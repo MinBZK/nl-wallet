@@ -3985,6 +3985,7 @@ dependencies = [
  "attestation_types",
  "chrono",
  "crypto",
+ "db_test",
  "derive_more",
  "futures",
  "hsm",
@@ -4000,6 +4001,7 @@ dependencies = [
  "server_utils",
  "status_lists",
  "thiserror 2.0.17",
+ "tokio",
  "tracing",
  "utils",
 ]

@@ -251,12 +251,16 @@ impl DbSetup {
 
     pub fn server_utils_url(&self) -> Url {
         // Reuse verification server as it is exactly the same as server utils migrations
-        DbName::VerificationServer.url(self.connect_options.clone(), self.index)
+        self.verification_server_url()
+    }
+
+    pub fn issuer_common_url(&self) -> Url {
+        self.issuance_server_url()
     }
 
     pub fn status_lists_url(&self) -> Url {
         // Reuse issuance server as it contains status lists and only used in the module
-        DbName::IssuanceServer.url(self.connect_options.clone(), self.index)
+        self.issuance_server_url()
     }
 
     pub fn pid_issuer_url(&self) -> Url {

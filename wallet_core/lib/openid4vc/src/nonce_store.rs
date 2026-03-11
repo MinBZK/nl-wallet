@@ -84,60 +84,65 @@ impl NonceStore for MemoryNonceStore {
     }
 }
 
-#[cfg(test)]
-mod tests {
+#[cfg(any(test, feature = "test"))]
+pub mod test {
     use assert_matches::assert_matches;
-    use futures::FutureExt;
 
-    use super::MemoryNonceStore;
     use super::NoncePresence;
     use super::NonceStore;
     use super::NonceStoreError;
 
-    #[test]
-    fn test_memory_nonce_store() {
-        let store = MemoryNonceStore::default();
-
+    pub async fn test_nonce_store<N>(store: N)
+    where
+        N: NonceStore,
+    {
         store
             .store_nonce("foobar".to_string())
-            .now_or_never()
-            .unwrap()
+            .await
             .expect("storing nonce should succeed");
 
         store
             .store_nonce("barfoo".to_string())
-            .now_or_never()
-            .unwrap()
+            .await
             .expect("storing nonce should succeed");
 
         let error = store
             .store_nonce("foobar".to_string())
-            .now_or_never()
-            .unwrap()
+            .await
             .expect_err("storing nonce should fail");
 
         assert_matches!(error, NonceStoreError::DuplicateNonce(nonce) if nonce == "foobar");
 
         let presence = store
             .find_and_remove_nonce("foobar")
-            .now_or_never()
-            .unwrap()
+            .await
             .expect("finding and removing nonce should succeed");
 
         assert_matches!(presence, NoncePresence::Present);
 
         let presence = store
             .find_and_remove_nonce("foobar")
-            .now_or_never()
-            .unwrap()
+            .await
             .expect("finding and removing nonce should succeed");
 
         assert_matches!(presence, NoncePresence::Absent);
 
         store
             .store_nonce("foobar".to_string())
-            .now_or_never()
-            .unwrap()
+            .await
             .expect("storing nonce should succeed");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use futures::FutureExt;
+
+    use super::MemoryNonceStore;
+    use super::test::test_nonce_store;
+
+    #[test]
+    fn test_memory_nonce_store() {
+        test_nonce_store(MemoryNonceStore::default()).now_or_never().unwrap()
     }
 }

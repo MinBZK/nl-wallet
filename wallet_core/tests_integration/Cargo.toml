@@ -161,6 +161,7 @@ fake_digid = ["dep:reqwest", "http_utils/client", "dep:url", "dep:wallet_configu
 db_test = [
     "audit_log?/db_test",
     "health_checkers?/db_test",
+    "issuer_common?/db_test",
     "server_utils?/db_test",
     "status_lists?/db_test",
     "verification_server?/db_test",

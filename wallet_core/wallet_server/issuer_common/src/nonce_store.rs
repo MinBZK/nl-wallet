@@ -9,8 +9,10 @@ use sea_orm::QueryFilter;
 use sea_orm::SqlErr;
 
 use openid4vc::nonce_store::MemoryNonceStore;
-use openid4vc::nonce_store::MemoryNonceStoreError;
+use openid4vc::nonce_store::NoncePresence;
 use openid4vc::nonce_store::NonceStore;
+use openid4vc::nonce_store::NonceStoreError;
+use openid4vc::nonce_store::NonceStoreResult;
 use server_utils::store::StoreConnection;
 
 use crate::entity::prelude::*;
@@ -18,22 +20,11 @@ use crate::entity::proof_nonce;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ProofNonceStoreError {
-    #[error("nonce is already present: {0}")]
-    DuplicateNonce(String),
-
     #[error("could not store nonce in database: {0}")]
     DbInsertNonce(#[source] DbErr),
 
     #[error("could not find and delete nonce from database: {0}")]
     DbDeleteNonce(#[source] DbErr),
-}
-
-impl From<MemoryNonceStoreError> for ProofNonceStoreError {
-    fn from(value: MemoryNonceStoreError) -> Self {
-        match value {
-            MemoryNonceStoreError::DuplicateNonce(nonce) => Self::DuplicateNonce(nonce),
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -62,7 +53,7 @@ impl ProofNonceStore {
 impl NonceStore for ProofNonceStore {
     type Error = ProofNonceStoreError;
 
-    async fn store_nonce(&self, nonce: String) -> Result<(), Self::Error> {
+    async fn store_nonce(&self, nonce: String) -> Result<(), NonceStoreError<Self::Error>> {
         match &self.backend {
             NonceStoreBackend::Postgres(connection) => {
                 proof_nonce::ActiveModel {
@@ -78,21 +69,22 @@ impl NonceStore for ProofNonceStore {
                         .sql_err()
                         .and_then(|sql_error| {
                             matches!(sql_error, SqlErr::UniqueConstraintViolation(_))
-                                .then_some(ProofNonceStoreError::DuplicateNonce(nonce))
+                                .then_some(NonceStoreError::DuplicateNonce(nonce))
                         })
-                        .unwrap_or(ProofNonceStoreError::DbInsertNonce(error))
+                        .unwrap_or(ProofNonceStoreError::DbInsertNonce(error).into())
                 })?;
-            }
-            NonceStoreBackend::Memory(memory_store) => {
-                memory_store.store_nonce(nonce).await?;
-            }
-        }
 
-        Ok(())
+                Ok(())
+            }
+            NonceStoreBackend::Memory(memory_store) => match memory_store.store(nonce.clone()) {
+                NonceStoreResult::Stored => Ok(()),
+                NonceStoreResult::DuplicateEntry => Err(NonceStoreError::DuplicateNonce(nonce)),
+            },
+        }
     }
 
-    async fn find_and_remove_nonce(&self, nonce: &str) -> Result<bool, Self::Error> {
-        let had_nonce = match &self.backend {
+    async fn find_and_remove_nonce(&self, nonce: &str) -> Result<NoncePresence, Self::Error> {
+        let presence = match &self.backend {
             NonceStoreBackend::Postgres(connection) => {
                 let delete_result = ProofNonce::delete_many()
                     .filter(proof_nonce::Column::Nonce.eq(nonce))
@@ -100,11 +92,15 @@ impl NonceStore for ProofNonceStore {
                     .await
                     .map_err(ProofNonceStoreError::DbDeleteNonce)?;
 
-                delete_result.rows_affected > 0
+                if delete_result.rows_affected > 0 {
+                    NoncePresence::Present
+                } else {
+                    NoncePresence::Absent
+                }
             }
-            NonceStoreBackend::Memory(memory_store) => memory_store.find_and_remove_nonce(nonce).await?,
+            NonceStoreBackend::Memory(memory_store) => memory_store.remove(nonce),
         };
 
-        Ok(had_nonce)
+        Ok(presence)
     }
 }

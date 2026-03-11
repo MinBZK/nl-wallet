@@ -10,6 +10,15 @@ workspace = true
 [lib]
 doctest = false
 
+[[test]]
+name = "nonce_store"
+path = "tests/nonce_store.rs"
+required-features = ["db_test"]
+
+[features]
+# Include and run integration tests that depend on an external PostgreSQL database
+db_test = ["dep:db_test", "openid4vc/test", "tokio/macros", "tokio/rt-multi-thread"]
+
 [dependencies]
 chrono.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into_iterator"] }
@@ -29,6 +38,8 @@ serde_json.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 
+tokio = { workspace = true, optional = true }
+
 attestation_data.path = "../../lib/attestation_data"
 attestation_types.path = "../../lib/attestation_types"
 crypto.path = "../../lib/crypto"
@@ -39,6 +50,8 @@ sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
 utils.path = "../../lib/utils"
 server_utils = { path = "../server_utils", features = ["postgres"] }
 status_lists.path = "../../lib/status_lists"
+
+db_test = { path = "../../lib/db_test", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
