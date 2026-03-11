@@ -5641,6 +5641,7 @@ dependencies = [
  "android_attest",
  "android_logger 0.14.1",
  "apple_app_attest",
+ "assert_matches",
  "async-trait",
  "base64 0.22.1",
  "cfg-if",
