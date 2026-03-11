@@ -511,6 +511,7 @@ where
         let server_url = issuer_identifier.join_issuer_url("/issuance");
         let credential_endpoint = server_url.join_issuer_url("/credential");
         let batch_credential_endpoint = server_url.join_issuer_url("/batch_credential");
+        let nonce_endpoint = server_url.join_issuer_url("/nonce");
         let credential_preview_endpoint = server_url.join_issuer_url("/credential_preview");
 
         let metadata = IssuerMetadata {
@@ -518,7 +519,7 @@ where
             authorization_servers: None,
             credential_endpoint,
             batch_credential_endpoint: Some(batch_credential_endpoint),
-            nonce_endpoint: None,
+            nonce_endpoint: Some(nonce_endpoint),
             deferred_credential_endpoint: None,
             notification_endpoint: None,
             credential_request_encryption: None,
