@@ -211,12 +211,11 @@ where
 
 impl<'a, K, R> Clone for Publisher<'a, K, R> {
     fn clone(&self) -> Self {
-        Self {
-            service: self.service,
-            revoke_all: self.revoke_all,
-        }
+        *self
     }
 }
+
+impl<'a, K, R> Copy for Publisher<'a, K, R> {}
 
 impl<K> StatusListServices for PostgresStatusListServices<K>
 where
@@ -432,18 +431,12 @@ where
             .to_publisher()
             .await
             .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
-        try_join_all(
-            status_list_info
-                .into_iter()
-                .unique_by(|(id, _, _)| *id)
-                .map(|(list_id, external_id, size)| {
-                    let publisher = publisher.clone();
-                    async move {
-                        let size = size.try_into().expect("size should be non-zero");
-                        publisher.publish(list_id, external_id.as_str(), size).await
-                    }
-                }),
-        )
+        try_join_all(status_list_info.into_iter().unique_by(|(id, _, _)| *id).map(
+            |(list_id, external_id, size)| async move {
+                let size = size.try_into().expect("size should be non-zero");
+                publisher.publish(list_id, external_id.as_str(), size).await
+            },
+        ))
         .await
         .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
@@ -987,7 +980,6 @@ where
 
         // Republish if necessary
         let expiries = join_all(lists.into_iter().map(|list| {
-            let publisher = publisher.clone();
             async move {
                 let path = self.config.publish_dir.jwt_path(&list.external_id);
                 let mut expiry = read_token_expiry(&path)
