@@ -17,6 +17,13 @@ futures.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 rustls-pki-types.workspace = true
+sea-orm = { workspace = true, features = [
+    "macros",
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
+    "with-chrono",
+    "with-uuid",
+] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 thiserror.workspace = true
@@ -30,7 +37,7 @@ http_utils.path = "../../lib/http_utils"
 openid4vc.path = "../../lib/openid4vc"
 sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
 utils.path = "../../lib/utils"
-server_utils.path = "../server_utils"
+server_utils = { path = "../server_utils", features = ["postgres"] }
 status_lists.path = "../../lib/status_lists"
 
 [dev-dependencies]

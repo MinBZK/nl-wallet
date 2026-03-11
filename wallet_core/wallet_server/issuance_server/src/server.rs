@@ -12,7 +12,7 @@ use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::TrivialAttributeService;
-use openid4vc::nonce_store::MemoryNonceStore;
+use openid4vc::nonce_store::NonceStore;
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::SessionTypeReturnUrl;
@@ -38,10 +38,11 @@ use crate::disclosure::IssuanceResultHandler;
 use crate::settings::IssuanceServerSettings;
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve<A, L, IS, DS, C>(
+pub async fn serve<IS, N, DS, A, L, C>(
     settings: IssuanceServerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
+    nonce_store: N,
     disclosure_sessions: Arc<DS>,
     attributes_fetcher: A,
     status_list_services: L,
@@ -51,6 +52,7 @@ pub async fn serve<A, L, IS, DS, C>(
 ) -> Result<()>
 where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
+    N: NonceStore + Send + Sync + 'static,
     DS: SessionStore<DisclosureData> + Send + Sync + 'static,
     A: AttributesFetcher + Sync + 'static,
     L: StatusListServices + StatusListRevocationService + Sync + 'static,
@@ -62,6 +64,7 @@ where
         settings,
         hsm,
         issuance_sessions,
+        nonce_store,
         disclosure_sessions,
         attributes_fetcher,
         status_list_services,
@@ -73,12 +76,13 @@ where
 }
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve_with_listeners<A, L, IS, DS, C>(
+pub async fn serve_with_listeners<IS, N, DS, A, L, C>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
     settings: IssuanceServerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
+    nonce_store: N,
     disclosure_sessions: Arc<DS>,
     attributes_fetcher: A,
     status_list_services: L,
@@ -88,6 +92,7 @@ pub async fn serve_with_listeners<A, L, IS, DS, C>(
 ) -> Result<()>
 where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
+    N: NonceStore + Send + Sync + 'static,
     DS: SessionStore<DisclosureData> + Send + Sync + 'static,
     A: AttributesFetcher + Sync + 'static,
     L: StatusListServices + StatusListRevocationService + Sync + 'static,
@@ -130,7 +135,7 @@ where
         None,
         TrivialAttributeService,
         issuance_sessions,
-        MemoryNonceStore::default(),
+        nonce_store,
         Arc::clone(&status_list_services),
     ));
 
