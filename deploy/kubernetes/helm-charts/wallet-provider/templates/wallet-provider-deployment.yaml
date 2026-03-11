@@ -109,6 +109,11 @@ spec:
                   name: nl-wallet-server-trust-anchors
                   key: issuer_trust_anchors
 
+            {{- with .Values.flagsRefreshDelayInSeconds }}
+            - name: WALLET_PROVIDER__FLAGS_REFRESH_DELAY_IN_SECONDS
+              value: {{ . | quote }}
+            {{- end }}
+
             - name: WALLET_PROVIDER__REVOKE_SOLUTION_ENABLED
               value: {{ .Values.revokeSolutionEnabled | quote }}
 
