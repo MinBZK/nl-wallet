@@ -67,7 +67,7 @@ async fn do_registration(
         StubWalletFlags,
         MockPkcs11Client<HsmError>,
         MockWuaIssuer,
-        PostgresStatusListService<SigningKey>,
+        PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
 ) {
     let wua_issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -86,13 +86,19 @@ async fn do_registration(
         key_pair, // unused
     };
 
-    let status_list_service =
-        PostgresStatusListService::try_new(db_connection, WUA_ATTESTATION_TYPE_IDENTIFIER, wua_status_list_config)
-            .await
-            .unwrap();
+    let flags = StubWalletFlags::default();
+    let status_list_service = PostgresStatusListService::try_new(
+        db_connection,
+        WUA_ATTESTATION_TYPE_IDENTIFIER,
+        wua_status_list_config,
+        flags.clone(),
+    )
+    .await
+    .unwrap();
 
     let user_state = mock::user_state(
         Repositories::from(db),
+        flags,
         wallet_certificate::mock::setup_hsm().await,
         wrapping_key_identifier.to_string(),
         vec![],

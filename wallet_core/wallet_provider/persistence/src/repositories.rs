@@ -59,6 +59,11 @@ impl WalletFlagRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn get_flag(&self, flag: WalletFlag) -> Result<bool, PersistenceError> {
+        wallet_flag::get_wallet_flag(&self.0, flag).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn set_flag(&self, flag: WalletFlag) -> Result<(), PersistenceError> {
         wallet_flag::set_wallet_flag(&self.0, flag, true).await
     }

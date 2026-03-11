@@ -20,6 +20,7 @@ use db_test::DbSetup;
 use db_test::connection_from_url;
 use status_lists::config::StatusListConfig;
 use status_lists::entity::attestation_batch;
+use status_lists::postgres::NoRevokeAll;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::publish::PublishDir;
 use status_lists::revoke::create_revocation_router;
@@ -53,7 +54,7 @@ pub async fn fetch_attestation_batch(
 async fn setup_revocation_test(
     db_setup: &DbSetup,
     publish_dir: PublishDir,
-) -> (Arc<PostgresStatusListService<SigningKey>>, Url) {
+) -> (Arc<PostgresStatusListService<SigningKey, NoRevokeAll>>, Url) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
 
     let key_pair = ca.generate_status_list_mock().unwrap();
@@ -70,7 +71,7 @@ async fn setup_revocation_test(
     };
 
     let connection = connection_from_url(db_setup.status_lists_url()).await;
-    let service = PostgresStatusListService::try_new(connection.clone(), &random_string(20), config)
+    let service = PostgresStatusListService::try_new(connection.clone(), &random_string(20), config, NoRevokeAll)
         .await
         .unwrap();
     try_join_all(service.initialize_lists().await.unwrap().into_iter())

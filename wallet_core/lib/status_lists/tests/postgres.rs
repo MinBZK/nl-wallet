@@ -1,11 +1,15 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::convert::Infallible;
 use std::ffi::OsStr;
 use std::hash::Hash;
 use std::io::ErrorKind;
 use std::num::NonZeroUsize;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
 use std::time::Duration;
 use std::time::SystemTime;
 
@@ -48,9 +52,9 @@ use status_lists::entity::attestation_batch_list_indices;
 use status_lists::entity::attestation_type;
 use status_lists::entity::status_list;
 use status_lists::entity::status_list_item;
-use status_lists::flag::Flag;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::postgres::PostgresStatusListServices;
+use status_lists::postgres::RevokeAll;
 use status_lists::publish::PublishDir;
 use token_status_list::status_list::Bits;
 use token_status_list::status_list::StatusList;
@@ -63,6 +67,17 @@ use utils::date_time_seconds::DateTimeSeconds;
 use utils::num::NonZeroU31;
 use utils::num::U31;
 
+#[derive(Clone, Default)]
+struct RevokeAllBool(Arc<AtomicBool>);
+
+impl RevokeAll for RevokeAllBool {
+    type Error = Infallible;
+
+    async fn is_revoked_all(&self) -> Result<bool, Self::Error> {
+        Ok(self.0.load(Ordering::Relaxed))
+    }
+}
+
 async fn create_status_list_service(
     ca: &Ca,
     connection: &DatabaseConnection,
@@ -73,8 +88,8 @@ async fn create_status_list_service(
 ) -> anyhow::Result<(
     String,
     StatusListConfig<SigningKey>,
-    Flag,
-    PostgresStatusListService<SigningKey>,
+    RevokeAllBool,
+    PostgresStatusListService<SigningKey, RevokeAllBool>,
 )> {
     let attestation_type = random_string(20);
     let config = StatusListConfig {
@@ -89,28 +104,26 @@ async fn create_status_list_service(
         publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf())?,
         key_pair: ca.generate_status_list_mock()?,
     };
-    let revoke_all_flag = Flag::new(connection.clone(), attestation_type.to_string());
-    let service = PostgresStatusListService::try_new_with_flag(
+    let revoke_all = RevokeAllBool::default();
+    let service = PostgresStatusListService::try_new(
         connection.clone(),
         &attestation_type,
         config.clone(),
-        revoke_all_flag.clone(),
+        revoke_all.clone(),
     )
     .await?;
     try_join_all(service.initialize_lists().await?.into_iter()).await?;
 
-    Ok((attestation_type, config, revoke_all_flag, service))
+    Ok((attestation_type, config, revoke_all, service))
 }
 
 async fn recreate_status_list_service(
     connection: &DatabaseConnection,
     attestation_type: &str,
     config: StatusListConfig<SigningKey>,
-    revoke_all_flag: Flag,
-) -> anyhow::Result<PostgresStatusListService<SigningKey>> {
-    let service =
-        PostgresStatusListService::try_new_with_flag(connection.clone(), attestation_type, config, revoke_all_flag)
-            .await?;
+    revoke_all: RevokeAllBool,
+) -> anyhow::Result<PostgresStatusListService<SigningKey, RevokeAllBool>> {
+    let service = PostgresStatusListService::try_new(connection.clone(), attestation_type, config, revoke_all).await?;
     try_join_all(service.initialize_lists().await?.into_iter()).await?;
 
     Ok(service)
@@ -345,7 +358,7 @@ async fn test_service_initializes_status_lists() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let db_setup = DbSetup::create().await;
+    let db_setup = DbSetup::create_clean_only([DbName::IssuanceServer]).await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
 
     let key_pair = ca.generate_status_list_mock().unwrap();
@@ -402,6 +415,9 @@ async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
         assert_eq!(db_lists.len(), 1);
         assert_empty_published_list(&configs.as_ref()[&attestation_type.name], &db_lists[0]).await;
     }
+
+    // Check republish
+    service.republish_all().await.unwrap();
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -410,7 +426,7 @@ async fn test_service_initializes_schedule_housekeeping_empty() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, revoke_all_flag, _) =
+    let (attestation_type, config, revoke_all, _) =
         create_status_list_service(&ca, &connection, 5, 2, None, &publish_dir)
             .await
             .unwrap();
@@ -425,7 +441,7 @@ async fn test_service_initializes_schedule_housekeeping_empty() {
         list_size: 6.try_into().unwrap(),
         ..config
     };
-    let _ = recreate_status_list_service(&connection, &attestation_type, config, revoke_all_flag).await;
+    let _ = recreate_status_list_service(&connection, &attestation_type, config, revoke_all).await;
 
     // Old list should be empty and new list should be created
     let db_lists = fetch_status_list(&connection, type_id).await;
@@ -440,7 +456,7 @@ async fn test_service_initializes_schedule_housekeeping_almost_empty() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, revoke_all_flag, _) =
+    let (attestation_type, config, revoke_all, _) =
         create_status_list_service(&ca, &connection, 5, 2, None, &publish_dir)
             .await
             .unwrap();
@@ -455,7 +471,7 @@ async fn test_service_initializes_schedule_housekeeping_almost_empty() {
         list_size: 7.try_into().unwrap(),
         ..config
     };
-    let _ = recreate_status_list_service(&connection, &attestation_type, config, revoke_all_flag).await;
+    let _ = recreate_status_list_service(&connection, &attestation_type, config, revoke_all).await;
 
     // New list should be created, but old one still has available items
     let db_lists = fetch_status_list(&connection, type_id).await;
@@ -470,7 +486,7 @@ async fn test_service_initializes_schedule_housekeeping_full() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, revoke_all_flag, _) =
+    let (attestation_type, config, revoke_all, _) =
         create_status_list_service(&ca, &connection, 5, 2, None, &publish_dir)
             .await
             .unwrap();
@@ -478,7 +494,7 @@ async fn test_service_initializes_schedule_housekeeping_full() {
     let type_id = attestation_type_id(&connection, &attestation_type).await;
 
     // Recreate list with large list size
-    let _ = recreate_status_list_service(&connection, &attestation_type, config, revoke_all_flag).await;
+    let _ = recreate_status_list_service(&connection, &attestation_type, config, revoke_all).await;
 
     // Full list should still be same
     let db_lists = fetch_status_list(&connection, type_id).await;
@@ -655,7 +671,7 @@ async fn test_service_revoke_attestation_batches_multiple_lists() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, revoke_all_flag, _) =
+    let (attestation_type, config, revoke_all, _) =
         create_status_list_service(&ca, &connection, 4, 1, Some(Duration::from_secs(300)), &publish_dir)
             .await
             .unwrap();
@@ -668,7 +684,7 @@ async fn test_service_revoke_attestation_batches_multiple_lists() {
         list_size: 10.try_into().unwrap(),
         ..config
     };
-    let service = recreate_status_list_service(&connection, attestation_type.as_ref(), config.clone(), revoke_all_flag)
+    let service = recreate_status_list_service(&connection, attestation_type.as_ref(), config.clone(), revoke_all)
         .await
         .unwrap();
 
@@ -803,7 +819,7 @@ async fn test_service_republish_status_list_with_revoke_all_set() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, revoke_all_flag, service) =
+    let (attestation_type, config, revoke_all, service) =
         create_status_list_service(&ca, &connection, 5, 1, None, &publish_dir)
             .await
             .unwrap();
@@ -822,16 +838,13 @@ async fn test_service_republish_status_list_with_revoke_all_set() {
         .unwrap();
 
     // Set revoke all
-    revoke_all_flag.set().await.unwrap();
+    revoke_all.0.store(true, Ordering::Relaxed);
 
     // Revoke all attestation to republish list
     service.revoke_attestation_batches(vec![batch_id]).await.unwrap();
 
     // Check if published list only contains invalid statuses
     assert_published_list(&config, &db_lists[0], 0..8).await;
-
-    // Set revoke all again to check for idempotency
-    revoke_all_flag.set().await.unwrap();
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -840,13 +853,13 @@ async fn test_service_new_status_list_with_revoke_all_set() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, revoke_all_flag, service) =
+    let (attestation_type, config, revoke_all, service) =
         create_status_list_service(&ca, &connection, 2, 1, None, &publish_dir)
             .await
             .unwrap();
 
     // Set revoke all
-    revoke_all_flag.set().await.unwrap();
+    revoke_all.0.store(true, Ordering::Relaxed);
 
     // Create status claims for attestation to create new list
     let (_, tasks) = service
@@ -870,9 +883,9 @@ async fn test_service_new_status_list_with_revoke_all_set() {
 async fn test_service_revoke_all() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let db_setup = DbSetup::create_clean_only([DbName::IssuanceServer]).await;
-    let connection = connection_from_url(db_setup.issuance_server_url()).await;
+    let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, revoke_all_flag, _) =
+    let (attestation_type, config, revoke_all, _service) =
         create_status_list_service(&ca, &connection, 2, 1, None, &publish_dir)
             .await
             .unwrap();
@@ -889,7 +902,7 @@ async fn test_service_revoke_all() {
         &connection,
         attestation_type.as_ref(),
         config.clone(),
-        revoke_all_flag.clone(),
+        revoke_all.clone(),
     )
     .await
     .unwrap();
@@ -900,11 +913,9 @@ async fn test_service_revoke_all() {
     assert_eq!(db_lists.len(), 2);
     assert_status_list_items(&connection, &db_lists[1], 9, 9, 11, false).await;
 
-    // Revoke all
-    service.revoke_all().await.unwrap();
-
-    // Check if revoke_all flag is set
-    assert!(revoke_all_flag.is_set().await.unwrap());
+    // Revoke all and publish
+    revoke_all.0.store(true, Ordering::Relaxed);
+    service.republish_all().await.unwrap();
 
     // Check if published lists only contains invalid statuses
     assert_published_list(&config, &db_lists[0], 0..8).await;

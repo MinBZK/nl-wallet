@@ -9,6 +9,7 @@ use tokio::sync::Mutex;
 use tokio::task::AbortHandle;
 use tokio::time::MissedTickBehavior;
 
+use status_lists::postgres::RevokeAll;
 use wallet_provider_domain::model::wallet_flag::WalletFlag;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::WalletFlagRepository;
@@ -158,35 +159,56 @@ where
     }
 }
 
+impl<R> RevokeAll for WalletRepoFlags<R>
+where
+    R: WalletFlagRepository + Sync,
+{
+    type Error = PersistenceError;
+
+    async fn is_revoked_all(&self) -> Result<bool, Self::Error> {
+        // Directly query the database and not use the flags cache. The reason
+        // is that after setting the flag, we directly republish all known
+        // status lists. Other instances of the app that do not have their flags
+        // refreshed can register new wallets and create new status lists. Those
+        // newly status lists also need to be published with all items revoked.
+        self.repository.get_flag(WalletFlag::SolutionRevoked).await
+    }
+}
+
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use std::convert::Infallible;
+    use std::sync::Arc;
     use std::sync::atomic::AtomicBool;
     use std::sync::atomic::Ordering;
 
+    use status_lists::postgres::RevokeAll;
+
     use crate::flags::WalletFlags;
 
-    #[derive(Default)]
+    #[derive(Default, Clone)]
     pub struct StubWalletFlags {
-        solution_revoked: AtomicBool,
-    }
-
-    impl StubWalletFlags {
-        pub fn set_solution_revoked(&self, value: bool) {
-            self.solution_revoked.store(value, Ordering::Relaxed);
-        }
+        solution_revoked: Arc<AtomicBool>,
     }
 
     impl WalletFlags for StubWalletFlags {
         type Error = Infallible;
 
         async fn set_solution_revoked(&self) -> Result<(), Self::Error> {
-            self.set_solution_revoked(true);
+            self.solution_revoked.store(true, Ordering::Relaxed);
             Ok(())
         }
 
         fn solution_is_revoked(&self) -> bool {
             self.solution_revoked.load(Ordering::Relaxed)
+        }
+    }
+
+    impl RevokeAll for StubWalletFlags {
+        type Error = Infallible;
+
+        async fn is_revoked_all(&self) -> Result<bool, Infallible> {
+            Ok(self.solution_is_revoked())
         }
     }
 }

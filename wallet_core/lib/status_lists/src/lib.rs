@@ -1,6 +1,5 @@
 pub mod config;
 pub mod entity;
-pub mod flag;
 pub mod postgres;
 pub mod publish;
 pub mod settings;
