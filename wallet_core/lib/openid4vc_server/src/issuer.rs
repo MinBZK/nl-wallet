@@ -16,6 +16,7 @@ use axum::routing::post;
 use axum_extra::TypedHeader;
 use axum_extra::headers;
 use axum_extra::headers::Authorization;
+use axum_extra::headers::CacheControl;
 use axum_extra::headers::Header;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::authorization::Credentials;
@@ -28,6 +29,7 @@ use openid4vc::CredentialPreviewErrorCode;
 use openid4vc::ErrorResponse;
 use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
+use openid4vc::c_nonce::NonceResponse;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
@@ -83,6 +85,7 @@ where
             Router::new()
                 .route("/token", post(token))
                 .route("/credential_preview", post(credential_preview))
+                .route("/nonce", post(nonce))
                 .route("/credential", post(credential))
                 .route("/credential", delete(reject_issuance))
                 .route("/batch_credential", post(batch_credential))
@@ -164,6 +167,24 @@ where
         .inspect_err(|error| warn!("processing credential preview failed: {}", error))?;
 
     Ok(Json(response))
+}
+
+async fn nonce<A, K, S, L>(
+    State(state): State<ApplicationState<A, K, S, L>>,
+) -> Result<(TypedHeader<CacheControl>, Json<NonceResponse>), StatusCode> {
+    let c_nonce = state.issuer.generate_proof_nonce().await.map_err(|error| {
+        warn!("generating fresh c_nonce failed: {}", error);
+
+        // Any error that occurs while generating the nonce is de facto a problem with the server.
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    // Including this header is mandated by the OpenID4VCI specification.
+    // See: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-7.2-3>
+    let header = TypedHeader(CacheControl::new().with_no_store());
+    let body = Json(NonceResponse { c_nonce });
+
+    Ok((header, body))
 }
 
 async fn credential<A, K, S, L>(

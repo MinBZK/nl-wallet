@@ -89,6 +89,8 @@ use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
 use crate::token::TokenType;
 
+pub const C_NONCE_LENGTH: usize = 32;
+
 // Errors are structured as follows in this module: the handler for a token request on the one hand, and the handlers
 // for the other endpoints on the other hand, have specific error types. (There is also a general error type included
 // by both of them for errors that can occur in all endpoints.) The reason for this split in the errors is that per
@@ -575,6 +577,17 @@ where
         self.sessions.write(session, true).await?;
 
         Ok(token)
+    }
+}
+
+impl<A, K, S, L> Issuer<A, K, S, L> {
+    #[expect(clippy::unused_async, reason = "TODO")]
+    pub async fn generate_proof_nonce(&self) -> Result<String, std::convert::Infallible> {
+        let nonce = random_string(C_NONCE_LENGTH);
+
+        // TODO: Store the generated nonce in the database.
+
+        Ok(nonce)
     }
 }
 
