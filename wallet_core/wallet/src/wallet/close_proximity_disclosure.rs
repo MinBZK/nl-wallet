@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use nutype::nutype;
-use tokio::sync::mpsc::Receiver;
 use tracing::info;
 use url::Url;
 
@@ -9,7 +8,6 @@ use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
-use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -18,9 +16,6 @@ use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::wallet::DisclosureError;
 use crate::wallet::Session;
-
-#[derive(Debug)]
-pub struct WalletCloseProximityDisclosureSession(Receiver<CloseProximityDisclosureUpdate>);
 
 #[nutype(validate(predicate = |s| s.parse::<Url>().is_ok_and(|u| u.scheme() == "mdoc")), derive(Debug, Clone, TryFrom, FromStr, AsRef, Into, Display))]
 pub struct MdocUri(String);
@@ -58,12 +53,10 @@ where
             return Err(DisclosureError::SessionState);
         }
 
-        let (qr, channel) = CPC::start_qr_handover().await?;
+        let (qr, _receiver) = CPC::start_qr_handover().await?;
 
-        // TODO actually listen on channel (PVW-5624)
-        self.session.replace(Session::CloseProximityDisclosure(
-            WalletCloseProximityDisclosureSession(channel),
-        ));
+        // TODO actually listen on receiver (PVW-5624)
+        self.session.replace(Session::CloseProximityDisclosure);
 
         let uri = format!("mdoc:{}", qr)
             .parse()
@@ -90,9 +83,6 @@ mod tests {
             .expect("starting proximity disclosure should succeed");
 
         assert_eq!(qr.as_ref(), "mdoc:some_qr_code");
-        assert!(matches!(
-            wallet.session.take(),
-            Some(Session::CloseProximityDisclosure(_))
-        ))
+        assert!(matches!(wallet.session.take(), Some(Session::CloseProximityDisclosure)))
     }
 }

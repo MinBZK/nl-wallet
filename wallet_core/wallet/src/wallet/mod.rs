@@ -23,6 +23,7 @@ mod uri;
 #[cfg(test)]
 mod test;
 
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 use cfg_if::cfg_if;
@@ -49,7 +50,6 @@ use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
-use crate::wallet::close_proximity_disclosure::WalletCloseProximityDisclosureSession;
 use crate::wallet::notifications::DirectNotificationsCallback;
 use crate::wallet::pin_recovery::PinRecoverySession;
 
@@ -128,7 +128,7 @@ enum Session<OC: OidcClient, IS, DCS> {
     },
     Issuance(WalletIssuanceSession<IS>),
     Disclosure(WalletDisclosureSession<DCS>),
-    CloseProximityDisclosure(WalletCloseProximityDisclosureSession),
+    CloseProximityDisclosure,
     PinRecovery {
         pid_config: PidAttributesConfiguration,
         session: PinRecoverySession<OC, IS>,
@@ -158,7 +158,7 @@ pub struct Wallet<
     registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,
     account_provider_client: Arc<APC>,
     disclosure_client: DCC,
-    close_proximity_disclosure_client: CPC,
+    close_proximity_disclosure_client: PhantomData<CPC>,
     status_list_client: Arc<SLC>,
     session: Option<Session<OC, IS, DCC::Session>>,
     lock: WalletLock,

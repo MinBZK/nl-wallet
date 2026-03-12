@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -148,17 +149,15 @@ where
 }
 
 #[derive(Debug, Default)]
-pub struct WalletClients<APC, DCC, CPC, SLC> {
+pub struct WalletClients<APC, DCC, SLC> {
     pub account_provider_client: APC,
     pub disclosure_client: DCC,
-    pub close_proximity_disclosure_client: CPC,
     pub status_list_client: SLC,
 }
 
-impl<APC, CPC> WalletClients<APC, VpDisclosureClient, CPC, HttpStatusListClient>
+impl<APC> WalletClients<APC, VpDisclosureClient, HttpStatusListClient>
 where
     APC: Default,
-    CPC: Default,
 {
     pub fn new() -> Result<Self, reqwest::Error> {
         let disclosure_client = VpDisclosureClient::new_with_client(default_reqwest_client_builder())?;
@@ -167,7 +166,6 @@ where
         let clients = Self {
             account_provider_client: APC::default(),
             disclosure_client,
-            close_proximity_disclosure_client: CPC::default(),
             status_list_client,
         };
 
@@ -187,7 +185,7 @@ where
         update_policy_repository: UR,
         storage: S,
         key_holder: AKH,
-        wallet_clients: WalletClients<APC, DCC, CPC, SLC>,
+        wallet_clients: WalletClients<APC, DCC, SLC>,
         registration_status: RegistrationStatus,
     ) -> Self {
         let registration = match registration_status {
@@ -219,7 +217,7 @@ where
             registration,
             account_provider_client: Arc::new(wallet_clients.account_provider_client),
             disclosure_client: wallet_clients.disclosure_client,
-            close_proximity_disclosure_client: wallet_clients.close_proximity_disclosure_client,
+            close_proximity_disclosure_client: PhantomData,
             status_list_client: Arc::new(wallet_clients.status_list_client),
             session: None,
             lock: WalletLock::new(true),
@@ -237,7 +235,7 @@ where
         update_policy_repository: UR,
         mut storage: S,
         key_holder: AKH,
-        wallet_clients: WalletClients<APC, DCC, CPC, SLC>,
+        wallet_clients: WalletClients<APC, DCC, SLC>,
     ) -> Result<Self, WalletInitError>
     where
         CR: Repository<Arc<WalletConfiguration>> + Send + Sync + 'static,
