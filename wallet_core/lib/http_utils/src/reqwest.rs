@@ -234,6 +234,26 @@ pub fn client_builder_accept_json(builder: ClientBuilder) -> ClientBuilder {
     )]))
 }
 
+#[cfg(any(test, feature = "test"))]
+pub mod test {
+    use base64::prelude::BASE64_STANDARD;
+    use base64::Engine;
+    use utils::vec_nonempty;
+
+    use crate::client::TlsPinningConfig;
+    use crate::reqwest::ReqwestTrustAnchor;
+
+    pub const TEST_CERTIFICATE_BASE64: &str = "MIIBUzCB+6ADAgECAhRGv/y0WtvIgkZodTBjwPMTvUcrujAKBggqhkjOPQQDAjAPMQ0wCwYDVQQDDAR0ZXN0MB4XDTI2MDMxMDE2MTUyM1oXDTI3MDMxMTE2MTUyM1owDzENMAsGA1UEAwwEdGVzdDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABIIT6QWW/A3sM0BDxZje7PvqheHP4qA1tEC2fSPBj+RbzOyUl6e39tB8nHZDFpk/UrRoLRYpJfa2PCebGeO+dBmjNTAzMB0GA1UdDgQWBBS/TIByJWDzfwSizPd6VRU/BQE4zTASBgNVHRMBAf8ECDAGAQH/AgEAMAoGCCqGSM49BAMCA0cAMEQCIGahEuSBxSDpgLIdGpSbVfqMKdLQ9c9ErbueoxFZZChbAiAGMCrYxBD4YRrhoiSdIndASo8RI9577oaKprb0KFa+Eg==";
+
+    pub fn get_test_trust_anchor() -> ReqwestTrustAnchor {
+        ReqwestTrustAnchor::try_from(BASE64_STANDARD.decode(TEST_CERTIFICATE_BASE64).unwrap()).unwrap()
+    }
+
+    pub fn get_tls_pinning_config_for_url(url: &str) -> TlsPinningConfig {
+        TlsPinningConfig::try_new(url.parse().unwrap(), vec_nonempty![get_test_trust_anchor()]).unwrap()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
@@ -241,14 +261,14 @@ mod tests {
     use base64::prelude::BASE64_STANDARD;
     use rstest::rstest;
 
+    use crate::reqwest::test::TEST_CERTIFICATE_BASE64;
+
     use super::ReqwestTrustAnchor;
     use super::ReqwestTrustAnchorError;
 
     #[test]
     fn request_trust_anchor_from_bytes_success() {
-        let trust_anchor = "MIIDGDCCAgCgAwIBAgIUBnabkUuAQCIHnTuaZwPH4hU4/H4wDQYJKoZIhvcNAQELBQAwEjEQMA4GA1UEAwwHcmRvLW1heDAeFw0yNjAzMDgwOTUzNTFaFw0yNzAzMDkxMTUzNTFaMBIxEDAOBgNVBAMMB3Jkby1tYXgwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDTpt+BBiah4NAe19zCULiY7s4BLwy3EflzeqD1CUVe4vTQrVNjLXAfNAVGvzpufXOZbDSEs6nMie+pPH67pHjk5x+5QwmUEGLF0PSbSh/ETlubxRr/K7l5QsSxcW/HLrlTa+2mbCsrs9YdaNMjBvsE69aVbD18oNbRrcw4YsIc+lDd4aR/IwiVhHG35gpHw+6/kxKKp5EDe06XOrplDphLacPJgq5dMdhkVqwglDq7UjCet0fB+QvtfRRwH5oFJ9a6BSue6wL+8Rrb3Aj6e1WWF5+7w9o2rfF3dHrGNIfN703K3eH1gM5dL7uJKPHjtHjFfAHalYuewK9A8bRp+wAdAgMBAAGjZjBkMB0GA1UdDgQWBBRBwSobJB2DHadw3d+wQcLY4hm0hzAfBgNVHSMEGDAWgBRBwSobJB2DHadw3d+wQcLY4hm0hzAOBgNVHQ8BAf8EBAMCAQYwEgYDVR0TAQH/BAgwBgEB/wIBADANBgkqhkiG9w0BAQsFAAOCAQEAxON5KqA3hI8bG9ekw4dxucGW1JImYyDrsDZKubf/O7eTdphIDXLOuW5Tx1lIaQ8Qy2zJKrvDiiRZhDf+Q+imea8p2BvbZTDiUBevQwSzmSAggeuzuNCrwQKTGxSLXbsq6qFsEI7t+EsJGQMhXXTrBgdrWyrsfmSPiB7TyUGYwM+p+SBI9wiDAYwp7K1H7DurwE4vvM4ZmmSp7yt9VZNXmEQzrETczlf3E7mDDgd3lTzb/rnsfuPJ0yWrSxbLOmpABEg8YgdSEDmfZNAIw7hirl3bNJmbX53Y0CZdI3zg/Ytlmtq0SR5VPmBseHqOulgH2jOEQ6WEHv01gBP5w+aWKQ==";
-
-        let der_bytes = BASE64_STANDARD.decode(trust_anchor).expect("valid base64");
+        let der_bytes = BASE64_STANDARD.decode(TEST_CERTIFICATE_BASE64).expect("valid base64");
 
         let trust_anchor_result: Result<ReqwestTrustAnchor, ReqwestTrustAnchorError> = der_bytes.try_into();
         let _ = trust_anchor_result.unwrap();
