@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::fmt::Display;
 use std::fs::File;
 use std::io::Read;
@@ -31,13 +32,20 @@ impl Display for PublishDir {
 #[derive(Debug, thiserror::Error)]
 pub enum PublishDirError {
     #[error("publish dir IO error: {0}")]
-    IO(std::io::Error),
+    IO(#[from] std::io::Error),
+
+    #[error("could not join: {0}")]
+    Join(#[from] JoinError),
 
     #[error("publish dir is not a directory")]
     NotADirectory,
 }
 
 impl PublishDir {
+    const TMP_EXTENSION: &'static str = "tmp";
+    const JWT_EXTENSION: &'static str = "jwt";
+    const LOCK_EXTENSION: &'static str = "lock";
+
     fn sanitize(path: PathBuf) -> PathBuf {
         prefix_local_path(path).into_owned()
     }
@@ -57,15 +65,30 @@ impl PublishDir {
     }
 
     pub fn tmp_path(&self, external_id: &str) -> PathBuf {
-        self.path_with_extension(external_id, "tmp")
+        self.path_with_extension(external_id, Self::TMP_EXTENSION)
     }
 
     pub fn jwt_path(&self, external_id: &str) -> PathBuf {
-        self.path_with_extension(external_id, "jwt")
+        self.path_with_extension(external_id, Self::JWT_EXTENSION)
     }
 
     pub fn lock_for(&self, external_id: &str) -> PublishLock {
-        PublishLock(self.path_with_extension(external_id, "lock"))
+        PublishLock(self.path_with_extension(external_id, Self::LOCK_EXTENSION))
+    }
+
+    pub async fn clear_locks(&self) -> Result<(), PublishDirError> {
+        let dir = self.as_ref().to_path_buf();
+        tokio::task::spawn_blocking(move || {
+            for entry in std::fs::read_dir(&dir)? {
+                let path = entry?.path();
+                if path.extension() == Some(OsStr::new(Self::LOCK_EXTENSION)) {
+                    let mut file = File::create(&path)?;
+                    LockVersion::default().write_to_io(&mut file)?;
+                }
+            }
+            Ok(())
+        })
+        .await?
     }
 }
 
@@ -270,9 +293,9 @@ mod tests {
         );
     }
 
-    async fn publish_with_lock_if_newer(file: &NamedTempFile, version: LockVersion) -> bool {
+    async fn publish_with_lock_if_newer(file: impl AsRef<Path>, version: LockVersion) -> bool {
         let hit = AtomicBool::new(false);
-        let lock = PublishLock(file.path().to_path_buf());
+        let lock = PublishLock(file.as_ref().to_path_buf());
         let published = lock
             .with_lock_if_newer(version, async || {
                 hit.store(true, Ordering::Relaxed);
@@ -359,5 +382,25 @@ mod tests {
             .await;
 
         assert_matches!(result, Err(PublishLockError::Open(err_path, _)) if err_path == path);
+    }
+
+    #[tokio::test]
+    async fn clear_locks() {
+        let tempdir = tempfile::tempdir().unwrap();
+        let publish_dir = PublishDir::try_new(tempdir.path().to_path_buf()).unwrap();
+
+        let now = Utc::now();
+        publish_dir.lock_for("abcd").create(Utc::now()).unwrap();
+
+        // Clear locks
+        publish_dir.clear_locks().await.unwrap();
+
+        // Should republish with same time
+        let published = publish_with_lock_if_newer(
+            publish_dir.path_with_extension("abcd", PublishDir::LOCK_EXTENSION),
+            LockVersion::from(0, now),
+        )
+        .await;
+        assert!(published);
     }
 }
