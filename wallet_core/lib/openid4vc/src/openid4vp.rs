@@ -577,7 +577,6 @@ pub struct NormalizedVpAuthorizationRequest {
 
 impl NormalizedVpAuthorizationRequest {
     /// Construct an Authorization Request to be sent by this verifier.
-    #[expect(clippy::too_many_arguments)]
     pub fn new_for_verifier(
         credential_requests: NormalizedCredentialRequests,
         client_id: ClientId,
@@ -624,9 +623,9 @@ impl NormalizedVpAuthorizationRequest {
             .map(|enc_values| {
                 enc_values
                     .iter()
-                    .filter(|alg| alg.is_supported())
-                    .max()
-                    .cloned()
+                    .filter_map(|alg| alg.preference_rank().map(|rank| (rank, alg)))
+                    .max_by_key(|(rank, _)| *rank)
+                    .map(|(_, alg)| alg.clone())
                     .ok_or(AuthRequestValidationError::NoSupportedEncryptedResponseEnc)
             })
             .transpose()?
@@ -900,7 +899,11 @@ impl VpAuthorizationResponse {
         encryption_nonce: &str,
         poa: Option<Poa>,
     ) -> Result<String, AuthResponseError> {
-        Self::new(vp_token, auth_request.state.clone(), poa).encrypt(auth_request, encryption_algorithm, encryption_nonce)
+        Self::new(vp_token, auth_request.state.clone(), poa).encrypt(
+            auth_request,
+            encryption_algorithm,
+            encryption_nonce,
+        )
     }
 
     fn encrypt(
@@ -1822,6 +1825,75 @@ mod tests {
             normalized_request.selected_encryption_algorithm().unwrap(),
             JweEncryptionAlgorithm::A128Gcm
         )
+    }
+
+    #[test]
+    fn select_encryption_algorithm_should_default_to_a128gcm_when_not_advertised() {
+        let (_, _, _, auth_request) = setup_mdoc();
+        let mut client_metadata = auth_request.client_metadata.clone();
+        client_metadata.encrypted_response_enc_values_supported = None;
+
+        let encryption_algorithm =
+            NormalizedVpAuthorizationRequest::select_encryption_algorithm(&client_metadata).unwrap();
+
+        assert_eq!(encryption_algorithm, JweEncryptionAlgorithm::A128Gcm);
+    }
+
+    #[test]
+    fn select_encryption_algorithm_should_ignore_unknown_algorithms() {
+        let (_, _, _, auth_request) = setup_mdoc();
+        let mut client_metadata = auth_request.client_metadata.clone();
+        client_metadata.encrypted_response_enc_values_supported = Some(vec_nonempty![
+            JweEncryptionAlgorithm::Other("A512GCM".to_string()),
+            JweEncryptionAlgorithm::A256Gcm
+        ]);
+
+        let encryption_algorithm =
+            NormalizedVpAuthorizationRequest::select_encryption_algorithm(&client_metadata).unwrap();
+
+        assert_eq!(encryption_algorithm, JweEncryptionAlgorithm::A256Gcm);
+    }
+
+    #[test]
+    fn select_encryption_algorithm_should_prefer_a256gcm_over_a128gcm() {
+        let (_, _, _, auth_request) = setup_mdoc();
+        let mut client_metadata = auth_request.client_metadata.clone();
+        client_metadata.encrypted_response_enc_values_supported = Some(vec_nonempty![
+            JweEncryptionAlgorithm::A128Gcm,
+            JweEncryptionAlgorithm::A256Gcm
+        ]);
+
+        let encryption_algorithm =
+            NormalizedVpAuthorizationRequest::select_encryption_algorithm(&client_metadata).unwrap();
+
+        assert_eq!(encryption_algorithm, JweEncryptionAlgorithm::A256Gcm);
+    }
+
+    #[test]
+    fn validate_should_return_selected_encryption_algorithm() {
+        let (_, rp_keypair, _, auth_request) = setup_mdoc();
+        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        auth_request
+            .client_metadata
+            .as_mut()
+            .unwrap()
+            .encrypted_response_enc_values_supported = Some(vec_nonempty![
+            JweEncryptionAlgorithm::Other("A512GCM".to_string()),
+            JweEncryptionAlgorithm::A256Gcm
+        ]);
+
+        let (normalized_request, encryption_algorithm) = auth_request.validate(rp_keypair.certificate(), None).unwrap();
+
+        assert_eq!(encryption_algorithm, JweEncryptionAlgorithm::A256Gcm);
+        assert_eq!(
+            normalized_request
+                .client_metadata
+                .encrypted_response_enc_values_supported,
+            Some(vec_nonempty![
+                JweEncryptionAlgorithm::Other("A512GCM".to_string()),
+                JweEncryptionAlgorithm::A256Gcm
+            ])
+        );
     }
 
     #[test]

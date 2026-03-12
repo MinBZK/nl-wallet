@@ -14,19 +14,7 @@ pub enum JweAlgorithm {
 
 /// A type representing the "alg" header parameter value for JWE, i.e. the JWE encryption algorithm.
 /// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-5>
-#[derive(
-    Debug,
-    Clone,
-    Default,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    strum::Display,
-    EnumString,
-    SerializeDisplay,
-    DeserializeFromStr,
-)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
 #[strum(serialize_all = "UPPERCASE")]
 pub enum JweEncryptionAlgorithm {
     A256Gcm,
@@ -41,6 +29,16 @@ pub enum JweEncryptionAlgorithm {
 impl JweEncryptionAlgorithm {
     pub fn is_supported(&self) -> bool {
         matches!(self, Self::A128Gcm | Self::A192Gcm | Self::A256Gcm)
+    }
+
+    // This is explicitly ranking the algorithms to prevent mis-interpretation of the Ord order
+    pub fn preference_rank(&self) -> Option<u8> {
+        match self {
+            Self::A128Gcm => Some(1),
+            Self::A192Gcm => Some(2),
+            Self::A256Gcm => Some(3),
+            Self::Other(_) => None,
+        }
     }
 }
 
@@ -86,6 +84,21 @@ mod tests {
 
         assert_eq!(jwe_enc, expected_jwe_enc);
         assert_eq!(jwe_enc.to_string(), *input);
+    }
+
+    #[rstest]
+    #[case::a128gcm(JweEncryptionAlgorithm::A128Gcm, Some(1))]
+    #[case::a192gcm(JweEncryptionAlgorithm::A192Gcm, Some(2))]
+    #[case::a256gcm(JweEncryptionAlgorithm::A256Gcm, Some(3))]
+    #[case::other(
+        JweEncryptionAlgorithm::Other("A512GCM".to_string()),
+        None
+    )]
+    fn test_jwe_encryption_algorithm_preference_rank(
+        #[case] input: JweEncryptionAlgorithm,
+        #[case] expected_rank: Option<u8>,
+    ) {
+        assert_eq!(input.preference_rank(), expected_rank);
     }
 
     #[rstest]
