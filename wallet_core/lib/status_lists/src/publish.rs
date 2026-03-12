@@ -32,7 +32,10 @@ impl Display for PublishDir {
 #[derive(Debug, thiserror::Error)]
 pub enum PublishDirError {
     #[error("publish dir IO error: {0}")]
-    IO(std::io::Error),
+    IO(#[from] std::io::Error),
+
+    #[error("could not join: {0}")]
+    Join(#[from] JoinError),
 
     #[error("publish dir is not a directory")]
     NotADirectory,
@@ -73,15 +76,19 @@ impl PublishDir {
         PublishLock(self.path_with_extension(external_id, Self::LOCK_EXTENSION))
     }
 
-    pub fn clear_locks(&self) -> Result<(), std::io::Error> {
-        for entry in std::fs::read_dir(self.as_ref())? {
-            let path = entry?.path();
-            if path.extension() == Some(OsStr::new(Self::LOCK_EXTENSION)) {
-                let mut file = File::create(&path)?;
-                LockVersion::default().write_to_io(&mut file)?;
+    pub async fn clear_locks(&self) -> Result<(), PublishDirError> {
+        let dir = self.as_ref().to_path_buf();
+        tokio::task::spawn_blocking(move || {
+            for entry in std::fs::read_dir(&dir)? {
+                let path = entry?.path();
+                if path.extension() == Some(OsStr::new(Self::LOCK_EXTENSION)) {
+                    let mut file = File::create(&path)?;
+                    LockVersion::default().write_to_io(&mut file)?;
+                }
             }
-        }
-        Ok(())
+            Ok(())
+        })
+        .await?
     }
 }
 
@@ -386,7 +393,7 @@ mod tests {
         publish_dir.lock_for("abcd").create(Utc::now()).unwrap();
 
         // Clear locks
-        publish_dir.clear_locks().unwrap();
+        publish_dir.clear_locks().await.unwrap();
 
         // Should republish with same time
         let published = publish_with_lock_if_newer(

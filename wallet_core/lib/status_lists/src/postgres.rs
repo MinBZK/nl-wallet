@@ -362,11 +362,11 @@ where
     async fn republish_all(&self, force: bool) -> Result<(), RevocationError> {
         if force {
             tracing::warn!("Resetting published status lists locks");
-            let config = Arc::clone(&self.config);
-            tokio::task::spawn_blocking(move || config.publish_dir.clear_locks())
+            self.config
+                .publish_dir
+                .clear_locks()
                 .await
-                .map_err(|err| RevocationError::InternalError(err.into()))?
-                .map_err(|err| RevocationError::InternalError(err.into()))?;
+                .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
         }
 
         let publisher = self
@@ -1034,7 +1034,7 @@ where
             .revoke_all
             .is_revoked_all()
             .await
-            .map_err(|err| StatusListServiceError::RevokeAll(err.into()))?;
+            .map_err(|e| StatusListServiceError::RevokeAll(Box::new(e)))?;
 
         // Build new status list
         let expires = Utc::now() + self.config.expiry;
