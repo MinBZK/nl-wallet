@@ -378,6 +378,7 @@ mod tests {
                 revocation_registration: None,
                 flags: Default::default(),
             },
+            StubWalletFlags::default(),
             hsm,
             WRAPPING_KEY_IDENTIFIER.to_string(),
             vec![],

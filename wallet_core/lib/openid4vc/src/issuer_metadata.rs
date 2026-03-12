@@ -39,15 +39,15 @@ pub struct IssuerMetadata {
 
     /// A non-empty array of strings, where each string is an identifier of the OAuth 2.0 Authorization Server (as
     /// defined in [RFC8414]) the Credential Issuer relies on for authorization. If this parameter is omitted, the
-    /// entity providing the Credential Issuer is also acting as the Authorization Server, i.e., the Credential Issuer's
-    /// identifier is used to obtain the Authorization Server metadata. The actual OAuth 2.0 Authorization Server
-    /// metadata is obtained from the `oauth-authorization-server` well-known location as defined in Section 3 of
-    /// [RFC8414]. When there are multiple entries in the array, the Wallet may be able to determine which Authorization
-    /// Server to use by querying the metadata; for example, by examining the `grant_types_supported` values, the Wallet
-    /// can filter the server to use based on the grant type it plans to use. When the Wallet is using
-    /// `authorization_server` parameter in the Credential Offer as a hint to determine which Authorization Server to
-    /// use out of multiple, the Wallet MUST NOT proceed with the flow if the `authorization_server` Credential Offer
-    /// parameter value does not match any of the entries in the `authorization_servers` array.
+    /// entity providing the Credential Issuer is also acting as the Authorization Server, i.e., the Credential
+    /// Issuer's identifier is used to obtain the Authorization Server metadata. The actual OAuth 2.0 Authorization
+    /// Server metadata is obtained from the `oauth-authorization-server` well-known location as defined in Section
+    /// 3 of [RFC8414]. When there are multiple entries in the array, the Wallet may be able to determine which
+    /// Authorization Server to use by querying the metadata; for example, by examining the `grant_types_supported`
+    /// values, the Wallet can filter the server to use based on the grant type it plans to use. When the Wallet is
+    /// using `authorization_server` parameter in the Credential Offer as a hint to determine which Authorization
+    /// Server to use out of multiple, the Wallet MUST NOT proceed with the flow if the `authorization_server`
+    /// Credential Offer parameter value does not match any of the entries in the `authorization_servers` array.
     pub authorization_servers: Option<VecNonEmpty<IssuerIdentifier>>,
 
     /// URL of the Credential Issuer's Credential Endpoint, as defined in Section 8.2. This URL MUST use the https
@@ -76,18 +76,18 @@ pub struct IssuerMetadata {
     /// on top of TLS.
     pub credential_request_encryption: Option<CredentialRequestEncryption>,
 
-    /// Object containing information about whether the Credential Issuer supports encryption of the Credential Response
-    /// on top of TLS.
+    /// Object containing information about whether the Credential Issuer supports encryption of the Credential
+    /// Response on top of TLS.
     pub credential_response_encryption: Option<CredentialResponseEncryption>,
 
     /// Object containing information about the Credential Issuer's support for issuance of multiple Credentials in a
     /// batch in the Credential Endpoint. The presence of this parameter means that the issuer supports more than one
-    /// key proof in the proofs parameter in the Credential Request so can issue more than one Verifiable Credential for
-    /// the same Credential Dataset in a single request/response.
+    /// key proof in the proofs parameter in the Credential Request so can issue more than one Verifiable Credential
+    /// for the same Credential Dataset in a single request/response.
     pub batch_credential_issuance: Option<BatchCredentialIssuance>,
 
-    /// A non-empty array of objects, where each object contains display properties of a Credential Issuer for a certain
-    /// language.
+    /// A non-empty array of objects, where each object contains display properties of a Credential Issuer for a
+    /// certain language.
     pub display: Option<VecNonEmpty<IssuerDisplay>>,
 
     /// Object that describes specifics of the Credential that the Credential Issuer supports issuance of. This object
@@ -97,6 +97,10 @@ pub struct IssuerMetadata {
     /// Credential.
     #[serde_as(as = "MapPreventDuplicates<_, _>")]
     pub credential_configurations_supported: HashMap<String, CredentialConfiguration>,
+
+    /// URL of the credential issuer's credential preview endpoint. This URL MUST use the https scheme and MAY contain
+    /// port, path and query parameter components.
+    pub credential_preview_endpoint: Option<IssuerUrl>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -181,10 +185,10 @@ pub struct CredentialRequestEncryption {
     /// by the Credential Endpoint to decode the Credential Request from a JWT.
     pub enc_values_supported: VecNonEmpty<JweEncryptionAlgorithm>,
 
-    /// A non-empty array containing a list of the JWE [RFC7516] compression algorithms (zip values) [RFC7518] supported
-    /// by the Credential Endpoint to uncompress the Credential Request after decryption. If absent then no compression
-    /// algorithms are supported. The Wallet may use any of the supported compression algorithm to compress the
-    /// Credential Request prior to encryption.
+    /// A non-empty array containing a list of the JWE [RFC7516] compression algorithms (zip values) [RFC7518]
+    /// supported by the Credential Endpoint to uncompress the Credential Request after decryption. If absent then
+    /// no compression algorithms are supported. The Wallet may use any of the supported compression algorithm to
+    /// compress the Credential Request prior to encryption.
     pub zip_values_supported: Option<VecNonEmpty<JweCompressionAlgorithm>>,
 
     /// Boolean value specifying whether the Credential Issuer requires the additional encryption on top of TLS for the
@@ -205,15 +209,15 @@ pub struct CredentialResponseEncryption {
     /// by the Credential Endpoint to encode the Credential Response in a JWT
     pub enc_values_supported: VecNonEmpty<JweEncryptionAlgorithm>,
 
-    /// A non-empty array containing a list of the JWE [RFC7516] compression algorithms (zip values) [RFC7518] supported
-    /// by the Credential Endpoint to compress the Credential Response prior to encryption. If absent then compression
-    /// is not supported.
+    /// A non-empty array containing a list of the JWE [RFC7516] compression algorithms (zip values) [RFC7518]
+    /// supported by the Credential Endpoint to compress the Credential Response prior to encryption. If absent
+    /// then compression is not supported.
     pub zip_values_supported: Option<VecNonEmpty<JweCompressionAlgorithm>>,
 
     /// Boolean value specifying whether the Credential Issuer requires the additional encryption on top of TLS for the
     /// Credential Response. If the value is true, the Credential Issuer requires encryption for every Credential
-    /// Response and therefore the Wallet MUST provide encryption keys in the Credential Request. If the value is false,
-    /// the Wallet MAY choose whether it provides encryption keys or not.
+    /// Response and therefore the Wallet MUST provide encryption keys in the Credential Request. If the value is
+    /// false, the Wallet MAY choose whether it provides encryption keys or not.
     pub encryption_required: bool,
 }
 
@@ -249,8 +253,8 @@ impl TryFrom<NonZeroU64> for NonZeroOrOneU64 {
 /// in a single request/response.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct BatchCredentialIssuance {
-    // Integer value specifying the maximum array size for the proofs parameter in a Credential Request. It MUST be 2 or
-    // greater.
+    // Integer value specifying the maximum array size for the proofs parameter in a Credential Request. It MUST be 2
+    // or greater.
     pub batch_size: NonZeroOrOneU64,
 }
 
@@ -273,8 +277,8 @@ pub struct NameLocale {
     /// String value of a display name for the Credential Issuer or Credential.
     pub name: Option<String>,
 
-    /// String value that identifies the language of this object represented as a language tag taken from values defined
-    /// in BCP47 [RFC5646]. There MUST be only one object for each language identifier.
+    /// String value that identifies the language of this object represented as a language tag taken from values
+    /// defined in BCP47 [RFC5646]. There MUST be only one object for each language identifier.
     pub locale: Option<String>,
 }
 
@@ -282,8 +286,8 @@ pub struct NameLocale {
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Logo {
-    /// String value that contains a URI where the Wallet can obtain the logo. The Wallet needs to determine the scheme,
-    /// since the URI value could use the `https:` scheme, the `data:` scheme, etc.
+    /// String value that contains a URI where the Wallet can obtain the logo. The Wallet needs to determine the
+    /// scheme, since the URI value could use the `https:` scheme, the `data:` scheme, etc.
     pub uri: Url,
 
     /// String value of the alternative text for the logo image.
@@ -311,12 +315,12 @@ pub struct CredentialConfiguration {
 
     /// A JSON string identifying the scope value that this Credential Issuer supports for this particular Credential.
     /// The value can be the same across multiple `credential_configurations_supported` objects. The Authorization
-    /// Server MUST be able to uniquely identify the Credential Issuer based on the scope value. The Wallet can use this
-    /// value in the Authorization Request as defined in Section 5.1.2. Scope values in this Credential Issuer metadata
-    /// MAY duplicate those in the `scopes_supported` parameter of the Authorization Server. If scope is absent, the
-    /// only way to request the Credential is using authorization_details [RFC9396] - in this case, the OAuth
-    /// Authorization Server metadata for one of the Authorization Servers found from the Credential Issuer's Metadata
-    /// must contain an `authorization_details_types_supported` that contains `openid_credential`.
+    /// Server MUST be able to uniquely identify the Credential Issuer based on the scope value. The Wallet can use
+    /// this value in the Authorization Request as defined in Section 5.1.2. Scope values in this Credential Issuer
+    /// metadata MAY duplicate those in the `scopes_supported` parameter of the Authorization Server. If scope is
+    /// absent, the only way to request the Credential is using authorization_details [RFC9396] - in this case, the
+    /// OAuth Authorization Server metadata for one of the Authorization Servers found from the Credential Issuer's
+    /// Metadata must contain an `authorization_details_types_supported` that contains `openid_credential`.
     pub scope: Option<String>,
 
     /// Combines the presence or absence of the `cryptographic_binding_methods_supported` and `proof_types_supported`
@@ -388,9 +392,9 @@ pub enum CredentialFormat {
         doctype: String,
 
         /// A non-empty array of algorithm identifiers that identify the algorithms that the Issuer uses to sign the
-        /// issued Credential. Cryptographic algorithm identifiers used in the `credential_signing_alg_values_supported`
-        /// parameter correspond to the numeric COSE algorithm identifiers used to secure the IssuerAuth COSE structure,
-        /// as defined in [ISO.18013-5].
+        /// issued Credential. Cryptographic algorithm identifiers used in the
+        /// `credential_signing_alg_values_supported` parameter correspond to the numeric COSE algorithm
+        /// identifiers used to secure the IssuerAuth COSE structure, as defined in [ISO.18013-5].
         credential_signing_alg_values_supported: Option<VecNonEmpty<CoseAlgorithmIdentifier>>,
     },
 
@@ -401,8 +405,9 @@ pub enum CredentialFormat {
         vct: String,
 
         /// A non-empty array of algorithm identifiers that identify the algorithms that the Issuer uses to sign the
-        /// issued Credential. Cryptographic algorithm identifiers used in the `credential_signing_alg_values_supported`
-        /// parameter are case sensitive strings and SHOULD be one of those JWS Algorithm Names defined in [IANA.JOSE].
+        /// issued Credential. Cryptographic algorithm identifiers used in the
+        /// `credential_signing_alg_values_supported` parameter are case sensitive strings and SHOULD be one of
+        /// those JWS Algorithm Names defined in [IANA.JOSE].
         credential_signing_alg_values_supported: Option<VecNonEmpty<JwsAlgorithm>>,
     },
 
@@ -413,6 +418,14 @@ pub enum CredentialFormat {
 }
 
 impl CredentialFormat {
+    pub fn attestation_type(&self) -> Option<&str> {
+        match self {
+            Self::MsoMdoc { doctype, .. } => Some(doctype),
+            Self::SdJwt { vct, .. } => Some(vct),
+            Self::Other { .. } => None,
+        }
+    }
+
     fn new_mdoc_ecdsa_p256_sha256(doctype: String) -> Self {
         Self::MsoMdoc {
             doctype,
@@ -544,8 +557,8 @@ pub enum ProofType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProofMetadata {
     /// A non-empty array of algorithm identifiers that the Issuer supports for this proof type. The Wallet uses one of
-    /// them to sign the proof. For the `jwt` and `attestation` proof types cryptographic algorithm identifiers are case
-    /// sensitive strings and SHOULD be one of those defined in [IANA.JOSE].
+    /// them to sign the proof. For the `jwt` and `attestation` proof types cryptographic algorithm identifiers are
+    /// case sensitive strings and SHOULD be one of those defined in [IANA.JOSE].
     pub proof_signing_alg_values_supported: VecNonEmpty<JwsAlgorithm>,
 
     /// Object that describes the requirement for key attestations as described in Appendix D, which the Credential
@@ -706,8 +719,8 @@ const fn bool_value<const B: bool>() -> bool {
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialClaim {
-    /// The value MUST be a non-empty array representing a claims path pointer that specifies the path to a claim within
-    /// the credential, as defined in Appendix C.
+    /// The value MUST be a non-empty array representing a claims path pointer that specifies the path to a claim
+    /// within the credential, as defined in Appendix C.
     pub path: VecNonEmpty<ClaimPath>,
 
     /// Boolean which, when set to `true`, indicates that the Credential Issuer will always include this claim in the
@@ -717,8 +730,8 @@ pub struct CredentialClaim {
     #[serde(default = "bool_value::<false>", skip_serializing_if = "<&bool>::not")]
     pub mandatory: bool,
 
-    /// A non-empty array of objects, where each object contains display properties of a certain claim in the Credential
-    /// for a certain language.
+    /// A non-empty array of objects, where each object contains display properties of a certain claim in the
+    /// Credential for a certain language.
     pub display: Option<VecNonEmpty<NameLocale>>,
 }
 

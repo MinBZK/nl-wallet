@@ -14,18 +14,21 @@ public final class PlatformSupport {
     private let encryptionKey: EncryptionKey
     private let attestedKey: AttestedKey
     private let utilities: Utilities
+    private let closeProximityDisclosure: CloseProximityDisclosure
 
     private init() {
         self.signingKey = SigningKey()
         self.encryptionKey = EncryptionKey()
         self.attestedKey = AttestedKey()
         self.utilities = Utilities()
+        self.closeProximityDisclosure = CloseProximityDisclosure()
 
         initPlatformSupport(
             signingKey: self.signingKey,
             encryptionKey: self.encryptionKey,
             attestedKey: self.attestedKey,
-            utils: self.utilities
+            utils: self.utilities,
+            closeProximityDisclosure: self.closeProximityDisclosure
         )
     }
 }

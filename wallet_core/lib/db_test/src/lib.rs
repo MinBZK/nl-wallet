@@ -5,6 +5,7 @@ use std::hash::Hash;
 use std::io::prelude::*;
 use std::net::SocketAddr;
 use std::str::FromStr;
+use std::sync::LazyLock;
 use std::thread::available_parallelism;
 use std::time::Duration;
 
@@ -36,6 +37,8 @@ use strum::VariantArray;
 use testcontainers::ImageExt;
 use testcontainers::ReuseDirective;
 use testcontainers::TestcontainersError;
+use testcontainers::core::Mount;
+use testcontainers::core::WaitFor;
 use testcontainers::core::error::ClientError;
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres;
@@ -44,14 +47,23 @@ use tracing::log::LevelFilter;
 use url::Url;
 use xxhash_rust::xxh3::xxh3_128;
 
-const DB_PORT: u16 = 5432;
-const DB_USER: &str = "postgres";
-const DB_PASSWORD: &str = "postgres";
-const DB_DEFAULT_DATABASE: &str = "postgres";
+static DB_HOST: LazyLock<String> = LazyLock::new(|| std::env::var("DB_HOST").unwrap_or("localhost".to_string()));
+static DB_PORT: LazyLock<u16> = LazyLock::new(|| {
+    std::env::var("DB_PORT")
+        .map(|text| text.parse::<u16>().expect("DB_PORT is not a u16"))
+        .unwrap_or(5432)
+});
+static DB_USERNAME: LazyLock<String> = LazyLock::new(|| std::env::var("DB_USERNAME").unwrap_or("postgres".to_string()));
+static DB_PASSWORD: LazyLock<String> = LazyLock::new(|| std::env::var("DB_PASSWORD").unwrap_or("postgres".to_string()));
+static DB_DEFAULT_DATABASE: LazyLock<String> =
+    LazyLock::new(|| std::env::var("DB_DEFAULT_DATABASE").unwrap_or("postgres".to_string()));
+static DB_TESTCONTAINER_NAME: LazyLock<String> =
+    LazyLock::new(|| std::env::var("DB_TESTCONTAINER_NAME").unwrap_or("wallet-postgres-test".to_string()));
+static DB_TESTCONTAINER_IMAGE: LazyLock<String> =
+    LazyLock::new(|| std::env::var("DB_TESTCONTAINER_IMAGE").unwrap_or("docker.io/library/postgres".to_string()));
+static DB_TESTCONTAINER_IMAGE_TAG: LazyLock<String> =
+    LazyLock::new(|| std::env::var("DB_TESTCONTAINER_IMAGE_TAG").unwrap_or("18.2-trixie".to_string()));
 
-const DB_TESTCONTAINER_IMAGE: &str = "docker.io/library/postgres";
-const DB_TESTCONTAINER_IMAGE_TAG: &str = "18.2-trixie";
-const DB_TESTCONTAINER_NAME: &str = "wallet-postgres-test";
 const DB_TESTCONTAINER_CMD_ARGS: &[&str] = &[
     "postgres",
     // Allow for more connections with larger shared buffers
@@ -179,16 +191,9 @@ impl DbSetup {
     }
 
     async fn create_with_clean(clean: impl IntoIterator<Item = DbName>) -> Self {
-        let ci = std::env::var("CI").is_ok();
-
         // Start testcontainer when not on CI
-        let (host, port) = if ci {
-            (
-                std::env::var("DB_HOST").expect("DB_HOST should be set").to_string(),
-                std::env::var("DB_PORT")
-                    .map(|text| text.parse::<u16>().expect("DB_PORT is not a u16"))
-                    .unwrap_or(DB_PORT),
-            )
+        let (host, port) = if std::env::var("CI").is_ok() {
+            (DB_HOST.clone(), *DB_PORT)
         } else {
             start_testcontainer().await
         };
@@ -197,11 +202,11 @@ impl DbSetup {
         let connect_options = PgConnectOptions::new()
             .host(&host)
             .port(port)
-            .username(DB_USER)
-            .password(DB_PASSWORD)
-            .database(DB_DEFAULT_DATABASE);
-        let mut connection = tokio::time::timeout(Duration::from_secs(1), async {
-            let mut interval = tokio::time::interval(Duration::from_millis(100));
+            .username(&DB_USERNAME)
+            .password(&DB_PASSWORD)
+            .database(&DB_DEFAULT_DATABASE);
+        let mut connection = tokio::time::timeout(Duration::from_secs(3), async {
+            let mut interval = tokio::time::interval(Duration::from_millis(300));
             interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
             loop {
                 interval.tick().await;
@@ -214,10 +219,8 @@ impl DbSetup {
         .await
         .expect("Could not connect to database");
 
-        // Create templates if not on CI
-        if !ci {
-            setup_templates(&mut connection, &connect_options).await;
-        }
+        // Create templates
+        setup_templates(&mut connection, &connect_options).await;
 
         // Find free set of databases
         let index = find_free_set_of_databases(&mut connection).await;
@@ -287,18 +290,32 @@ async fn start_testcontainer() -> (String, u16) {
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
         loop {
             interval.tick().await;
-            let result = postgres::Postgres::default()
-                .with_name(DB_TESTCONTAINER_IMAGE)
-                .with_tag(DB_TESTCONTAINER_IMAGE_TAG)
-                .with_container_name(DB_TESTCONTAINER_NAME)
+            let mut request = postgres::Postgres::default()
+                .with_user(&DB_USERNAME)
+                .with_password(&DB_PASSWORD)
+                .with_db_name(&DB_DEFAULT_DATABASE)
+                .with_name(&*DB_TESTCONTAINER_IMAGE)
+                .with_tag(&*DB_TESTCONTAINER_IMAGE_TAG)
+                .with_container_name(&*DB_TESTCONTAINER_NAME)
                 .with_cmd(DB_TESTCONTAINER_CMD_ARGS.iter().copied())
                 .with_reuse(ReuseDirective::Always)
                 // Add labels to force testcontainers to recreate on changes
-                .with_label("image", DB_TESTCONTAINER_IMAGE)
-                .with_label("image-tag", DB_TESTCONTAINER_IMAGE_TAG)
-                .with_label("cmd-args", &cmd_hash)
-                .start()
-                .await;
+                .with_label("image", &*DB_TESTCONTAINER_IMAGE)
+                .with_label("image-tag", &*DB_TESTCONTAINER_IMAGE_TAG)
+                .with_label("cmd-args", &cmd_hash);
+
+            if let Ok(volume_name) = std::env::var("DB_TESTCONTAINER_VOLUME") {
+                request = request
+                    .with_mount(Mount::volume_mount(volume_name, "/var/lib/postgresql"))
+                    // If you use a named volume, ready_conditions need to be overridden
+                    // See: https://github.com/testcontainers/testcontainers-rs-modules-community/issues/415
+                    .with_ready_conditions(vec![
+                        WaitFor::message_on_either_std("listening on IPv4 address"),
+                        WaitFor::message_on_either_std("database system is ready to accept connections"),
+                    ]);
+            }
+
+            let result = request.start().await;
             match result {
                 Ok(container) => break container,
                 // When the container is not yet started, conflicts are returned, retry after a delay
@@ -324,7 +341,7 @@ async fn start_testcontainer() -> (String, u16) {
         // Testcontainers can have a different port for ipv4 and ipv6
         get_ipv4_addr(container.get_host().await.expect("Could not get testcontainer host")).await,
         container
-            .get_host_port_ipv4(DB_PORT)
+            .get_host_port_ipv4(*DB_PORT)
             .await
             .expect("Could not get testcontainer port"),
     )
@@ -333,7 +350,7 @@ async fn start_testcontainer() -> (String, u16) {
 async fn remove_testcontainer() -> Result<(), BollardError> {
     let docker = Docker::connect_with_socket_defaults().expect("Could not connect to docker");
     let options = RemoveContainerOptionsBuilder::default().force(true).build();
-    docker.remove_container(DB_TESTCONTAINER_NAME, Some(options)).await
+    docker.remove_container(&DB_TESTCONTAINER_NAME, Some(options)).await
 }
 
 async fn get_ipv4_addr(host: url::Host) -> String {
@@ -352,7 +369,7 @@ async fn get_ipv4_addr(host: url::Host) -> String {
 ///
 /// This uses the [1,n] advisory locks from the database server. It randomly
 /// starts and tries to acquire a lock. `n` is equal to the available
-/// parallelism, which should be equal to the maximum number of tests.
+/// parallelism, which should be equal to the maximum number of worker threads (CPU cores).
 async fn find_free_set_of_databases(connection: &mut AsyncDropPgConnection) -> u32 {
     let max_parallel = available_parallelism()
         .expect("Cannot get parallelism")

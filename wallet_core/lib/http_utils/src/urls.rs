@@ -43,6 +43,10 @@ impl BaseUrl {
     pub fn is_https(&self) -> bool {
         self.as_ref().scheme() == "https"
     }
+
+    pub fn fqdn(&self) -> Option<&str> {
+        self.as_ref().host_str()
+    }
 }
 
 pub const DEFAULT_UNIVERSAL_LINK_BASE: &str = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/";

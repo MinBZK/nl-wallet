@@ -14,6 +14,8 @@ doctest = false
 [features]
 # Implement the mock hardware key types
 mock_hw_keystore = ["dep:aes-gcm", "dep:rand_core"]
+# Include the MockCloseProximityDisclosureClient
+mock_close_proximity_disclosure = ["tokio/time"]
 # Include the MockHardwareAttestedKeyHolder type for use in Apple tests
 mock_attested_key_apple = [
     "apple_app_attest/mock",
@@ -51,7 +53,7 @@ persistent_mock_attested_key = [
 # Implement extra constructor on PersistentMockAttestedKeyHolder by reading Xcode environment variables
 xcode_env = ["apple_app_attest/xcode_env"]
 # Include the MockHardwareUtilities type for use in tests
-mock_utils = ["dep:tokio"]
+mock_utils = []
 # Include all mock implementations for use in tests
 mock = ["mock_attested_key", "mock_hw_keystore", "mock_utils"]
 # Enable helper code for iOS and Android integration tests
@@ -61,6 +63,7 @@ hardware_integration_test = [
     "dep:android_attest",
     "dep:android_logger",
     "dep:apple_app_attest",
+    "dep:assert_matches",
     "dep:cfg-if",
     "dep:jni",
     "dep:log",
@@ -73,7 +76,7 @@ hardware_integration_test = [
 emulator_integration_test = [
     "android_attest/allow_emulator_keys",
     "android_attest/skip_root_key_check",
-    "hardware_integration_test"
+    "hardware_integration_test",
 ]
 
 [dependencies]
@@ -86,6 +89,7 @@ trait-variant.workspace = true
 uniffi.workspace = true
 
 aes-gcm = { workspace = true, optional = true }
+assert_matches = { workspace = true, optional = true }
 base64 = { workspace = true, optional = true }
 cfg-if = { workspace = true, optional = true }
 cfg_eval = { workspace = true, optional = true }
@@ -95,7 +99,7 @@ serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 serde_with = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }
-tokio = { workspace = true, optional = true }
+tokio = { workspace = true, features = ["sync"] }
 uuid = { workspace = true, optional = true }
 
 crypto = { path = "../../lib/crypto" }
@@ -112,8 +116,9 @@ android_logger = { workspace = true, optional = true }
 jni = { workspace = true, optional = true }
 
 [dev-dependencies]
-rustls-pki-types.workspace = true
+assert_matches.workspace = true
 log.workspace = true
+rustls-pki-types.workspace = true
 tokio = { workspace = true, features = ["macros", "fs", "io-util"] }
 
 [build-dependencies]

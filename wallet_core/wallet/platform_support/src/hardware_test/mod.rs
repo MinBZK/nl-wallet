@@ -1,4 +1,5 @@
 pub mod attested_key;
+pub mod close_proximity_disclosure;
 pub mod hw_keystore;
 pub mod utils;
 

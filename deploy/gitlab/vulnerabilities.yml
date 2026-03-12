@@ -8,9 +8,6 @@ dependency-check:
     - NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
     - OSS_INDEX_USERNAME=$(kubectl get secret nl-wallet-oss-index -o jsonpath='{.data.username}' | base64 --decode)
     - OSS_INDEX_PASSWORD=$(kubectl get secret nl-wallet-oss-index -o jsonpath='{.data.password}' | base64 --decode)
-    - (cd browsertests; npm ci --ignore-scripts)
-    - (cd testreporting; npm ci --ignore-scripts)
-    - (cd wallet_web; npm ci --ignore-scripts)
     - mkdir -p $CI_PROJECT_DIR/dependency_check_data
   script:
     - dependency-check.sh

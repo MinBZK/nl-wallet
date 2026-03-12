@@ -1,13 +1,18 @@
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 use serde_with::skip_serializing_none;
+use strum::EnumString;
 use url::Url;
 
 use http_utils::error::HttpJsonError;
 use http_utils::error::HttpJsonErrorType;
 use http_utils::urls::BaseUrl;
+use jwt::wua::WuaError;
 
+use crate::issuer::CredentialPreviewError;
 use crate::issuer::CredentialRequestError;
 use crate::issuer::IssuanceError;
 use crate::issuer::TokenRequestError;
@@ -50,16 +55,17 @@ pub trait ErrorStatusCode {
     fn status_code(&self) -> StatusCode;
 }
 
-/// See
-/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-error-response>
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+/// See <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.3.1>.
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum CredentialErrorCode {
     InvalidCredentialRequest,
-    UnsupportedCredentialType,
-    UnsupportedCredentialFormat,
+    UnknownCredentialConfiguration,
+    UnknownCredentialIdentifier,
     InvalidProof,
+    InvalidNonce,
     InvalidEncryptionParameters,
+    CredentialRequestDenied,
 
     // From https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
     InvalidRequest,
@@ -70,6 +76,11 @@ pub enum CredentialErrorCode {
     /// This error type is not defined in the spec, but then again the entire HTTP response in case
     /// 5xx status codes is not defined by the spec, so we have freedom to return what we want.
     ServerError,
+
+    // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
+    // Note that this is never to be used by the issuer, as this will lead to a panic.
+    #[strum(default)]
+    Other(String),
 }
 
 impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
@@ -77,34 +88,46 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
         let description = err.to_string();
         ErrorResponse {
             error: match err {
+                CredentialRequestError::IssuanceError(IssuanceError::UnexpectedState)
+                | CredentialRequestError::IssuanceError(IssuanceError::UnknownSession(_))
+                | CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(_))
+                | CredentialRequestError::UseBatchIssuance
+                | CredentialRequestError::WrongNumberOfCredentialRequests
+                | CredentialRequestError::MissingWua
+                | CredentialRequestError::MissingPoa
+                | CredentialRequestError::CredentialTypeMismatch { .. } => {
+                    CredentialErrorCode::InvalidCredentialRequest
+                }
+
+                CredentialRequestError::CredentialTypeNotOffered(_) => {
+                    CredentialErrorCode::UnknownCredentialConfiguration
+                }
+
+                // TODO (PVW-5541): Return `CredentialErrorCode::UnknownCredentialIdentifier` when appropriate.
+                CredentialRequestError::UnsupportedJwt(_)
+                | CredentialRequestError::Jwt(_)
+                | CredentialRequestError::JwkConversion(_)
+                | CredentialRequestError::MissingCredentialRequestPoP
+                | CredentialRequestError::PoaVerification(_)
+                | CredentialRequestError::Wua(WuaError::JwkConversion(_))
+                | CredentialRequestError::Wua(WuaError::Jwt(_)) => CredentialErrorCode::InvalidProof,
+
+                CredentialRequestError::IncorrectNonce | CredentialRequestError::Wua(WuaError::IncorrectNonce) => {
+                    CredentialErrorCode::InvalidNonce
+                }
+
+                // TODO (PVW-5538): Return `CredentialErrorCode::InvalidEncryptionParameters` when appropriate.
+                CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {
+                    CredentialErrorCode::InvalidToken
+                }
+
                 CredentialRequestError::IssuanceError(IssuanceError::SessionStore(_))
                 | CredentialRequestError::MissingAttestationTypeConfiguration(_)
                 | CredentialRequestError::PreviewConversion(_)
                 | CredentialRequestError::MdocConversion(_)
                 | CredentialRequestError::SdJwtConversion(_)
-                | CredentialRequestError::CredentialSigning(_)
                 | CredentialRequestError::IncorrectNumberOfStatusClaims(_)
                 | CredentialRequestError::ObtainStatusClaim(_) => CredentialErrorCode::ServerError,
-
-                CredentialRequestError::IssuanceError(_)
-                | CredentialRequestError::UseBatchIssuance
-                | CredentialRequestError::WrongNumberOfCredentialRequests
-                | CredentialRequestError::MissingWua
-                | CredentialRequestError::MissingPoa
-                | CredentialRequestError::CredentialTypeMismatch { .. }
-                | CredentialRequestError::Wua(_)
-                | CredentialRequestError::CredentialTypeNotOffered(_) => CredentialErrorCode::InvalidCredentialRequest,
-
-                CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {
-                    CredentialErrorCode::InvalidToken
-                }
-
-                CredentialRequestError::UnsupportedJwt(_)
-                | CredentialRequestError::IncorrectNonce
-                | CredentialRequestError::Jwt(_)
-                | CredentialRequestError::JwkConversion(_)
-                | CredentialRequestError::MissingCredentialRequestPoP
-                | CredentialRequestError::PoaVerification(_) => CredentialErrorCode::InvalidProof,
             },
             error_description: Some(description),
             error_uri: None,
@@ -115,23 +138,26 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
 impl ErrorStatusCode for CredentialErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
-            CredentialErrorCode::InvalidCredentialRequest
-            | CredentialErrorCode::UnsupportedCredentialType
-            | CredentialErrorCode::UnsupportedCredentialFormat
-            | CredentialErrorCode::InvalidProof
-            | CredentialErrorCode::InvalidEncryptionParameters
-            | CredentialErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
-            CredentialErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-            CredentialErrorCode::InvalidToken => StatusCode::UNAUTHORIZED,
-            CredentialErrorCode::InsufficientScope => StatusCode::FORBIDDEN,
+            Self::InvalidCredentialRequest
+            | Self::UnknownCredentialConfiguration
+            | Self::UnknownCredentialIdentifier
+            | Self::InvalidProof
+            | Self::InvalidNonce
+            | Self::InvalidEncryptionParameters
+            | Self::CredentialRequestDenied
+            | Self::InvalidRequest => StatusCode::BAD_REQUEST,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::InvalidToken => StatusCode::UNAUTHORIZED,
+            Self::InsufficientScope => StatusCode::FORBIDDEN,
+            Self::Other(_) => unimplemented!("the Other variant is only to be used by the client, not the server"),
         }
     }
 }
 
-/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-6.3>
+/// See <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-6.3>
 /// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-5.2>.
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum TokenErrorCode {
     InvalidRequest,
     InvalidClient,
@@ -139,13 +165,16 @@ pub enum TokenErrorCode {
     UnauthorizedClient,
     UnsupportedGrantType,
     InvalidScope,
-    AuthorizationPending, // OpenID4VCI-specific error type
-    SlowDown,             // OpenID4VCI-specific error type
 
     /// This can be returned in case of internal server errors, i.e. with HTTP status code 5xx.
     /// This error type is not defined in the specs, but then again the entire HTTP response in case
     /// 5xx status codes is not defined by the specs, so we have freedom to return what we want.
     ServerError,
+
+    // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
+    // Note that this is never to be used by the issuer, as this will lead to a panic.
+    #[strum(default)]
+    Other(String),
 }
 
 impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
@@ -169,21 +198,65 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
 impl ErrorStatusCode for TokenErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
-            TokenErrorCode::InvalidRequest
-            | TokenErrorCode::InvalidGrant
-            | TokenErrorCode::UnauthorizedClient
-            | TokenErrorCode::UnsupportedGrantType
-            | TokenErrorCode::InvalidScope
-            | TokenErrorCode::AuthorizationPending
-            | TokenErrorCode::SlowDown => StatusCode::BAD_REQUEST,
-            TokenErrorCode::InvalidClient => StatusCode::UNAUTHORIZED,
-            TokenErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::InvalidRequest
+            | Self::InvalidGrant
+            | Self::UnauthorizedClient
+            | Self::UnsupportedGrantType
+            | Self::InvalidScope => StatusCode::BAD_REQUEST,
+            Self::InvalidClient => StatusCode::UNAUTHORIZED,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Other(_) => unimplemented!("the Other variant is only to be used by the client, not the server"),
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+/// Error codes for the credential preview endpoint.
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
+pub enum CredentialPreviewErrorCode {
+    InvalidRequest,
+    InvalidToken,
+    ServerError,
+
+    // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
+    // Note that this is never to be used by the issuer, as this will lead to a panic.
+    #[strum(default)]
+    Other(String),
+}
+
+impl From<CredentialPreviewError> for ErrorResponse<CredentialPreviewErrorCode> {
+    fn from(err: CredentialPreviewError) -> Self {
+        let description = err.to_string();
+        ErrorResponse {
+            error: match err {
+                CredentialPreviewError::IssuanceError(IssuanceError::SessionStore(_))
+                | CredentialPreviewError::MissingAttestationTypeConfig(_) => CredentialPreviewErrorCode::ServerError,
+                CredentialPreviewError::IssuanceError(_)
+                | CredentialPreviewError::UnknownCredentialIdentifier(_)
+                | CredentialPreviewError::CredentialPreviewsNotFound => CredentialPreviewErrorCode::InvalidRequest,
+                CredentialPreviewError::MalformedToken | CredentialPreviewError::Unauthorized => {
+                    CredentialPreviewErrorCode::InvalidToken
+                }
+            },
+            error_description: Some(description),
+            error_uri: None,
+        }
+    }
+}
+
+impl ErrorStatusCode for CredentialPreviewErrorCode {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            Self::InvalidRequest => StatusCode::BAD_REQUEST,
+            Self::InvalidToken => StatusCode::UNAUTHORIZED,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Other(_) => unimplemented!("the Other variant is only to be used by the client, not the server"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum GetRequestErrorCode {
     InvalidRequest,
     ExpiredEphemeralId,
@@ -208,7 +281,6 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
                 }
                 GetAuthRequestError::Session(SessionError::UnknownSession(_)) => GetRequestErrorCode::UnknownSession,
                 GetAuthRequestError::EncryptionKey(_)
-                | GetAuthRequestError::AuthRequest(_)
                 | GetAuthRequestError::Jwt(_)
                 | GetAuthRequestError::ReturnUrlConfigurationMismatch
                 | GetAuthRequestError::UnknownUseCase(_)
@@ -241,8 +313,8 @@ impl ErrorStatusCode for GetRequestErrorCode {
 }
 
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html#name-error-response>
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum PostAuthResponseErrorCode {
     InvalidRequest,
     ExpiredSession,
@@ -315,7 +387,7 @@ where
 // OAuth/OpenID family, which uses `ErrorResponse`, but instead they are specific to this implementation.
 
 /// Error codes sent to the Relying Party when an error occurs when handling their request.
-#[derive(Debug, Clone, Copy, strum::EnumString, strum::Display)]
+#[derive(Debug, Clone, Copy, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum VerificationErrorCode {
     ServerError,
@@ -456,8 +528,8 @@ impl From<DisclosedAttributesError> for HttpJsonError<VerificationErrorCode> {
 }
 
 /// https://www.rfc-editor.org/rfc/rfc6750.html#section-3.1
-#[derive(Clone, Debug, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum AuthBearerErrorCode {
     InvalidRequest,
     InvalidToken,
@@ -465,21 +537,21 @@ pub enum AuthBearerErrorCode {
 }
 
 /// Error codes that the wallet sends to the verifier when it encounters an error or rejects the session.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum VpAuthorizationErrorCode {
     VpFormatsNotSupported,
     InvalidPresentationDefinitionUri,
     InvalidPresentationDefinitionReference,
     InvalidRequestUriMethod,
 
-    #[serde(untagged)]
+    #[strum(default)]
     AuthorizationError(AuthorizationErrorCode),
 }
 
 /// https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2.1
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
 pub enum AuthorizationErrorCode {
     InvalidRequest,
     UnauthorizedClient,
@@ -488,7 +560,7 @@ pub enum AuthorizationErrorCode {
     InvalidScope,
     ServerError,
     TemporarilyUnavailable,
-    #[serde(untagged)]
+    #[strum(default)]
     Other(String),
 }
 
