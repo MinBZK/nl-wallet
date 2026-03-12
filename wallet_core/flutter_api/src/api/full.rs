@@ -389,7 +389,7 @@ pub async fn start_close_proximity_disclosure() -> anyhow::Result<String> {
 
     let result = wallet.start_close_proximity_disclosure().await?;
 
-    Ok(result)
+    Ok(result.into())
 }
 
 #[flutter_api_error]
