@@ -25,7 +25,7 @@ class RevocationHelper {
             .contentType(ContentType.JSON)
             .accept(ContentType.JSON)
             .`when`()
-            .get("/batch/")
+            .get("batch/")
             .then()
             .statusCode(200)
             .extract()
@@ -50,7 +50,7 @@ class RevocationHelper {
             .accept(ContentType.JSON)
             .body(JSONArray(nonRevokedBatchIds).toString())
             .`when`()
-            .post("/revoke/")
+            .post("revoke/")
             .then()
             .statusCode(200)
     }
