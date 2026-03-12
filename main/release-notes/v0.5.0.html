@@ -243,11 +243,11 @@ active session will be aborted.</p></li>
 the user and reset the wallet to its initial state if the revocation was
 initiated remotely by the user.</p></li>
 <li><p>Updated Flutter to 3.41.2</p></li>
-<li><p>The wallet now stores the signed wallet configuration (as a JWT) on disk.
-On startup, the stored configuration is loaded and its signature verified,
-preventing a tampered configuration from being used without detection.
-When a newer configuration is fetched from the server, it replaces the
-previously stored one.</p></li>
+<li><p>The wallet now stores the signed wallet configuration (as a JWT) on disk. On
+startup, the stored configuration is loaded and its signature verified,
+preventing a tampered configuration from being used without detection. When a
+newer configuration is fetched from the server, it replaces the previously
+stored one.</p></li>
 </ul>
 </section>
 <section id="interoperability-improvements">
@@ -276,6 +276,13 @@ credentials in the mdoc format, has been updated to version 1.0.</p></li>
 <ul class="simple">
 <li><p>Support for DigiD app2app is removed, as it is technically not possible to
 support it with the Authorization Code Flow (ACF) of OpenID4VCI 1.0.</p></li>
+</ul>
+</section>
+<section id="bug-fixes">
+<h2>Bug fixes<a class="headerlink" href="#bug-fixes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">lst</span></code> field of a StatusList was not properly encoded and missing the last
+few bytes.</p></li>
 </ul>
 </section>
 </section>
