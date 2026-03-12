@@ -78,8 +78,9 @@ mod zlib_base64 {
         // Implementations are RECOMMENDED to use the highest compression level available.
         let mut e = ZlibEncoder::new(writer, Compression::best());
         e.write_all(bytes).map_err(serde::ser::Error::custom)?;
-        let encoded = e.finish().map_err(serde::ser::Error::custom)?.into_inner();
+        let mut writer = e.finish().map_err(serde::ser::Error::custom)?;
 
+        let encoded = writer.finish().map_err(serde::ser::Error::custom)?;
         let encoded = String::from_utf8(encoded).expect("base64 encoded string should be valid utf-8");
         encoded.serialize(serializer)
     }
@@ -374,13 +375,28 @@ pub mod test {
         LazyLock::new(|| parse_status_list(include_str!("../examples/spec/8-bit-status-list.txt")));
 
     #[rstest]
-    #[case(EXAMPLE_STATUS_LIST_ONE.to_owned(), Bits::One)]
-    #[case(EXAMPLE_STATUS_LIST_TWO.to_owned(), Bits::Two)]
+    #[case(EXAMPLE_STATUS_LIST_ONE.to_owned(), json!({
+            "bits": 1,
+            "lst": "eNrbuRgAAhcBXQ",
+        })
+    )]
+    #[case(EXAMPLE_STATUS_LIST_TWO.to_owned(), json!({
+            "bits": 2,
+            "lst": "eNo76fITAAPfAgc"
+        })
+    )]
+    fn test_status_list_serialization(#[case] list: StatusList, #[case] expected: serde_json::Value) {
+        let packed = list.pack();
+        let compressed = serde_json::to_value(packed).unwrap();
+        assert_eq!(compressed, expected);
+    }
+
+    #[rstest]
     #[case(ONE_BIT_STATUS_LIST.to_owned(), Bits::One)]
     #[case(TWO_BIT_STATUS_LIST.to_owned(), Bits::Two)]
     #[case(FOUR_BIT_STATUS_LIST.to_owned(), Bits::Four)]
     #[case(EIGHT_BIT_STATUS_LIST.to_owned(), Bits::Eight)]
-    fn test_status_list_serialization(#[case] list: StatusList, #[case] expected: Bits) {
+    fn test_status_list_serialization_bits(#[case] list: StatusList, #[case] expected: Bits) {
         let packed = list.pack();
         let compressed = serde_json::to_value(packed).unwrap();
         assert_eq!(compressed["bits"].as_u64().unwrap(), u64::from(expected.size()));
