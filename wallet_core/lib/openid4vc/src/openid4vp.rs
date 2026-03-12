@@ -508,12 +508,13 @@ impl VpAuthorizationRequest {
         self,
         rp_cert: &BorrowingCertificate,
         wallet_nonce: Option<&str>,
-    ) -> Result<NormalizedVpAuthorizationRequest, AuthRequestValidationError> {
+    ) -> Result<(NormalizedVpAuthorizationRequest, JweEncryptionAlgorithm), AuthRequestValidationError> {
         let dns_sans = rp_cert.san_dns_names()?;
         if dns_sans.is_empty() {
             return Err(AuthRequestValidationError::MissingSAN);
         }
-        let validated_auth_request = NormalizedVpAuthorizationRequest::try_from(self)?;
+        let (validated_auth_request, selected_encryption_algorithm) =
+            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(self)?;
         let client_id = &validated_auth_request.client_id;
 
         match &client_id.scheme {
@@ -551,7 +552,7 @@ impl VpAuthorizationRequest {
             });
         }
 
-        Ok(validated_auth_request)
+        Ok((validated_auth_request, selected_encryption_algorithm))
     }
 }
 
@@ -566,7 +567,6 @@ impl VpAuthorizationRequest {
 pub struct NormalizedVpAuthorizationRequest {
     pub client_id: ClientId,
     pub nonce: String,
-    pub encryption_algorithm: JweEncryptionAlgorithm,
     pub encryption_pubkey: JwePublicKey,
     pub response_uri: BaseUrl,
     pub credential_requests: NormalizedCredentialRequests,
@@ -576,12 +576,12 @@ pub struct NormalizedVpAuthorizationRequest {
 }
 
 impl NormalizedVpAuthorizationRequest {
+    /// Construct an Authorization Request to be sent by this verifier.
     #[expect(clippy::too_many_arguments)]
-    pub fn new(
+    pub fn new_for_verifier(
         credential_requests: NormalizedCredentialRequests,
         client_id: ClientId,
         nonce: String,
-        encryption_algorithm: JweEncryptionAlgorithm,
         encryption_pubkey: JwePublicKey,
         response_uri: BaseUrl,
         wallet_nonce: Option<String>,
@@ -591,7 +591,6 @@ impl NormalizedVpAuthorizationRequest {
         Self {
             client_id,
             nonce,
-            encryption_algorithm: encryption_algorithm.clone(),
             encryption_pubkey,
             response_uri,
             credential_requests,
@@ -602,52 +601,47 @@ impl NormalizedVpAuthorizationRequest {
                 vp_formats: VpFormat::MsoMdoc {
                     alg: IndexSet::from([FormatAlg::ES256]),
                 },
-                encrypted_response_enc_values_supported: Some(vec_nonempty![encryption_algorithm]),
+                // HAIP requires verifiers to list both A128GCM and A256GCM in
+                // `encrypted_response_enc_values_supported`:
+                // https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5
+                // The JWE enc (encryption algorithm) header parameter (see Section 4.1.2 of [RFC7516]) values A128GCM and A256GCM (as defined in Section 5.3 of [RFC7518]) MUST be supported by Verifiers.
+                encrypted_response_enc_values_supported: Some(vec_nonempty![
+                    JweEncryptionAlgorithm::A128Gcm,
+                    JweEncryptionAlgorithm::A256Gcm
+                ]),
             },
             state: None,
             wallet_nonce,
         }
     }
 
-    pub fn session_transcript(&self) -> SessionTranscript {
-        SessionTranscript::new_oid4vp(
-            &self.client_id.to_string(),
-            &self.nonce,
-            Some(&self.encryption_pubkey.sha256_thumbprint_bytes()),
-            &self.response_uri,
-        )
+    fn select_encryption_algorithm(
+        client_metadata: &VpClientMetadata,
+    ) -> Result<JweEncryptionAlgorithm, AuthRequestValidationError> {
+        let encryption_algorithm = client_metadata
+            .encrypted_response_enc_values_supported
+            .as_ref()
+            .map(|enc_values| {
+                enc_values
+                    .iter()
+                    .filter(|alg| alg.is_supported())
+                    .max()
+                    .cloned()
+                    .ok_or(AuthRequestValidationError::NoSupportedEncryptedResponseEnc)
+            })
+            .transpose()?
+            .unwrap_or_default();
+
+        Ok(encryption_algorithm)
     }
-}
 
-impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
-    fn from(value: NormalizedVpAuthorizationRequest) -> Self {
-        Self {
-            aud: VpAuthorizationRequestAudience::SelfIssued,
-            oauth_request: AuthorizationRequest {
-                response_type: ResponseType::VpToken.into(),
-                client_id: value.client_id.to_string(),
-                nonce: Some(value.nonce),
-                response_mode: Some(ResponseMode::DirectPostJwt),
-                redirect_uri: None,
-                state: None,
-                authorization_details: None,
-                request_uri: None,
-                code_challenge: None,
-                scope: None,
-            },
-            dcql_query: value.credential_requests.into(),
-            client_metadata: Some(value.client_metadata),
-            response_uri: Some(value.response_uri),
-            wallet_nonce: value.wallet_nonce,
-            transaction_data: None,
-        }
+    pub fn selected_encryption_algorithm(&self) -> Result<JweEncryptionAlgorithm, AuthRequestValidationError> {
+        Self::select_encryption_algorithm(&self.client_metadata)
     }
-}
 
-impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
-    type Error = AuthRequestValidationError;
-
-    fn try_from(vp_auth_request: VpAuthorizationRequest) -> Result<Self, Self::Error> {
+    fn try_from_with_selected_encryption_algorithm(
+        vp_auth_request: VpAuthorizationRequest,
+    ) -> Result<(Self, JweEncryptionAlgorithm), AuthRequestValidationError> {
         // Check absence of fields that must not be present in an OpenID4VP Authorization Request
         if vp_auth_request.oauth_request.authorization_details.is_some() {
             return Err(AuthRequestValidationError::UnexpectedField("authorization_details"));
@@ -724,40 +718,72 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
 
         let encryption_pubkey = encryption_pubkey.ok_or(AuthRequestValidationError::NoSupportedJwk(jwk_errors))?;
 
-        // If the verifier sent a list of supported encryption algorithms, select the best one amongst the ones that
-        // the wallet supports.
+        // Validate that the verifier advertised at least one encryption algorithm that the wallet supports,
+        // and keep the selected value for later use on the wallet encryption path.
         // See: <https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5-2.5>.
-        // Note that for selecting the best algorithm, we use the derived `Ord` implementation.
         //
         // If the verifier did not send any supported algorithms, default to AES128GCM.
         // See: <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.1-2.4.2.2>
-        let encryption_algorithm = client_metadata
-            .encrypted_response_enc_values_supported
-            .as_ref()
-            .map(|enc_values| {
-                enc_values
-                    .iter()
-                    .filter(|alg| alg.is_supported())
-                    .max()
-                    .cloned()
-                    .ok_or(AuthRequestValidationError::NoSupportedEncryptedResponseEnc)
-            })
-            .transpose()?
-            .unwrap_or_default();
+        let selected_encryption_algorithm = Self::select_encryption_algorithm(&client_metadata)?;
 
         let client_id = vp_auth_request.oauth_request.client_id.as_str().into();
 
-        Ok(NormalizedVpAuthorizationRequest {
-            client_id,
-            nonce: vp_auth_request.oauth_request.nonce.unwrap(),
-            encryption_algorithm,
-            encryption_pubkey,
-            credential_requests: vp_auth_request.dcql_query.try_into()?,
-            response_uri: vp_auth_request.response_uri.unwrap(),
-            client_metadata,
-            state: vp_auth_request.oauth_request.state,
-            wallet_nonce: vp_auth_request.wallet_nonce,
-        })
+        Ok((
+            NormalizedVpAuthorizationRequest {
+                client_id,
+                nonce: vp_auth_request.oauth_request.nonce.unwrap(),
+                encryption_pubkey,
+                credential_requests: vp_auth_request.dcql_query.try_into()?,
+                response_uri: vp_auth_request.response_uri.unwrap(),
+                client_metadata,
+                state: vp_auth_request.oauth_request.state,
+                wallet_nonce: vp_auth_request.wallet_nonce,
+            },
+            selected_encryption_algorithm,
+        ))
+    }
+
+    pub fn session_transcript(&self) -> SessionTranscript {
+        SessionTranscript::new_oid4vp(
+            &self.client_id.to_string(),
+            &self.nonce,
+            Some(&self.encryption_pubkey.sha256_thumbprint_bytes()),
+            &self.response_uri,
+        )
+    }
+}
+
+impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
+    fn from(value: NormalizedVpAuthorizationRequest) -> Self {
+        Self {
+            aud: VpAuthorizationRequestAudience::SelfIssued,
+            oauth_request: AuthorizationRequest {
+                response_type: ResponseType::VpToken.into(),
+                client_id: value.client_id.to_string(),
+                nonce: Some(value.nonce),
+                response_mode: Some(ResponseMode::DirectPostJwt),
+                redirect_uri: None,
+                state: None,
+                authorization_details: None,
+                request_uri: None,
+                code_challenge: None,
+                scope: None,
+            },
+            dcql_query: value.credential_requests.into(),
+            client_metadata: Some(value.client_metadata),
+            response_uri: Some(value.response_uri),
+            wallet_nonce: value.wallet_nonce,
+            transaction_data: None,
+        }
+    }
+}
+
+impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
+    type Error = AuthRequestValidationError;
+
+    fn try_from(vp_auth_request: VpAuthorizationRequest) -> Result<Self, Self::Error> {
+        let (auth_request, _) = Self::try_from_with_selected_encryption_algorithm(vp_auth_request)?;
+        Ok(auth_request)
     }
 }
 
@@ -870,15 +896,17 @@ impl VpAuthorizationResponse {
     pub fn new_encrypted(
         vp_token: HashMap<CredentialQueryIdentifier, VerifiablePresentation>,
         auth_request: &NormalizedVpAuthorizationRequest,
+        encryption_algorithm: &JweEncryptionAlgorithm,
         encryption_nonce: &str,
         poa: Option<Poa>,
     ) -> Result<String, AuthResponseError> {
-        Self::new(vp_token, auth_request.state.clone(), poa).encrypt(auth_request, encryption_nonce)
+        Self::new(vp_token, auth_request.state.clone(), poa).encrypt(auth_request, encryption_algorithm, encryption_nonce)
     }
 
     fn encrypt(
         &self,
         auth_request: &NormalizedVpAuthorizationRequest,
+        encryption_algorithm: &JweEncryptionAlgorithm,
         encryption_nonce: &str,
     ) -> Result<String, AuthResponseError> {
         let mut header = JweHeader::new();
@@ -890,7 +918,7 @@ impl VpAuthorizationResponse {
         header.set_agreement_partyvinfo(auth_request.nonce.clone());
 
         // Use the first content encryption algorithm that both parties support.
-        header.set_content_encryption(auth_request.encryption_algorithm.to_string());
+        header.set_content_encryption(encryption_algorithm.to_string());
         header.set_key_id(auth_request.encryption_pubkey.kid().to_string());
 
         // VpAuthorizationRequest always serializes to a JSON object useable as a JWT payload.
@@ -1195,11 +1223,10 @@ pub mod test {
                     .expect("certificate should contain SAN DNSName"),
             );
 
-            Self::new(
+            Self::new_for_verifier(
                 credential_requests,
                 client_id,
                 nonce,
-                JweEncryptionAlgorithm::default(),
                 encryption_pubkey,
                 response_uri,
                 wallet_nonce,
@@ -1510,7 +1537,10 @@ mod tests {
             None,
             None,
         );
-        let jwe = auth_response.encrypt(&auth_request, &encryption_nonce).unwrap();
+        let encryption_algorithm = auth_request.selected_encryption_algorithm().unwrap();
+        let jwe = auth_response
+            .encrypt(&auth_request, &encryption_algorithm, &encryption_nonce)
+            .unwrap();
         let decrypter = EcdhEsJweAlgorithm::EcdhEs
             .decrypter_from_jwk(&encryption_privkey.to_jwk_key_pair())
             .unwrap();
@@ -1559,7 +1589,7 @@ mod tests {
                 .unwrap();
 
         let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &[trust_anchor]).unwrap();
-        auth_request.validate(&cert, None).unwrap();
+        let _ = auth_request.validate(&cert, None).unwrap();
     }
 
     #[test]
@@ -1788,7 +1818,10 @@ mod tests {
                 .encrypted_response_enc_values_supported
                 .is_none()
         );
-        assert_eq!(normalized_request.encryption_algorithm, JweEncryptionAlgorithm::A128Gcm)
+        assert_eq!(
+            normalized_request.selected_encryption_algorithm().unwrap(),
+            JweEncryptionAlgorithm::A128Gcm
+        )
     }
 
     #[test]

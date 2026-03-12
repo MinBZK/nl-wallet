@@ -260,7 +260,7 @@ fn disclosure_jwe(
 
     // Verify the Authorization Request JWE and read the requested attributes.
     let (auth_request, cert) = VpAuthorizationRequest::try_new(auth_request, trust_anchors).unwrap();
-    let auth_request = auth_request.validate(&cert, None).unwrap();
+    let (auth_request, encryption_algorithm) = auth_request.validate(&cert, None).unwrap();
 
     // Compute the disclosure.
     let wscd = MockRemoteWscd::new(vec![mdoc_key]);
@@ -282,6 +282,7 @@ fn disclosure_jwe(
             VerifiablePresentation::MsoMdoc(device_responses),
         )]),
         &auth_request,
+        &encryption_algorithm,
         &encryption_nonce,
         poa,
     )
@@ -965,7 +966,7 @@ async fn test_verifier_auth_request_metadata_contract() {
         .unwrap();
 
     let (auth_request, cert) = VpAuthorizationRequest::try_new(&jws, &[trust_anchor]).unwrap();
-    auth_request.validate(&cert, None).unwrap();
+    let _ = auth_request.validate(&cert, None).unwrap();
 
     let (_, payload): (_, serde_json::Value) = jws
         .serialization()
@@ -979,7 +980,17 @@ async fn test_verifier_auth_request_metadata_contract() {
         .and_then(serde_json::Value::as_object)
         .expect("client_metadata should be present");
 
-    assert!(client_metadata.contains_key("encrypted_response_enc_values_supported"));
+    let encrypted_response_enc_values_supported = client_metadata
+        .get("encrypted_response_enc_values_supported")
+        .and_then(serde_json::Value::as_array)
+        .expect("encrypted_response_enc_values_supported should be present");
+    assert_eq!(
+        encrypted_response_enc_values_supported
+            .iter()
+            .map(serde_json::Value::as_str)
+            .collect_vec(),
+        vec![Some("A128GCM"), Some("A256GCM")]
+    );
     assert!(!client_metadata.contains_key("authorization_encryption_alg_values_supported"));
     assert!(!client_metadata.contains_key("authorization_encryption_enc_values_supported"));
     assert!(!client_metadata.contains_key("jwks_uri"));

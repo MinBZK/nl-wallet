@@ -56,7 +56,6 @@ use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
 use crate::PostAuthResponseErrorCode;
 use crate::VpAuthorizationErrorCode;
-use crate::jwe::JweEncryptionAlgorithm;
 use crate::openid4vp::AuthResponseError;
 use crate::openid4vp::ClientId;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
@@ -1363,11 +1362,10 @@ impl Session<Created> {
         let mut encryption_pubkey = encryption_keypair.to_jwk_public_key();
         encryption_pubkey.set_algorithm("ECDH-ES");
         encryption_pubkey.set_key_id(random_string(32));
-        let auth_request = NormalizedVpAuthorizationRequest::new(
+        let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
             self.state.data.credential_requests.clone(),
             self.state.data.client_id.clone(),
             nonce.clone(),
-            JweEncryptionAlgorithm::A256Gcm,
             encryption_pubkey.try_into().unwrap(), // safe because we just constructed this key
             response_uri,
             wallet_nonce,

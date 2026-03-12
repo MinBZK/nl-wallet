@@ -175,7 +175,7 @@ where
         let auth_request_result = vp_auth_request
             .validate(&certificate, request_nonce.as_deref())
             .map_err(VpVerifierError::AuthRequestValidation);
-        let auth_request = match (auth_request_result, response_uri) {
+        let (auth_request, selected_encryption_algorithm) = match (auth_request_result, response_uri) {
             (Err(error), Some(response_uri)) => {
                 return Err(self.report_error_back(response_uri, error).await)?;
             }
@@ -210,7 +210,13 @@ where
             return Err(VpClientError::MixedFormatCredentialRequest.into());
         }
 
-        let session = VpDisclosureSession::new(self.client.clone(), session_type, verifier_certificate, auth_request);
+        let session = VpDisclosureSession::new(
+            self.client.clone(),
+            session_type,
+            verifier_certificate,
+            auth_request,
+            selected_encryption_algorithm,
+        );
 
         Ok(session)
     }
