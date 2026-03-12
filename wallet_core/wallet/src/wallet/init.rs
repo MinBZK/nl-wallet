@@ -134,7 +134,7 @@ where
         )
         .await?;
 
-        let wallet_clients = WalletClients::new_http()?;
+        let wallet_clients = WalletClients::new()?;
 
         Self::init_registration(
             config_repository,
@@ -148,23 +148,26 @@ where
 }
 
 #[derive(Debug, Default)]
-pub struct WalletClients<APC, DCC, SLC> {
+pub struct WalletClients<APC, DCC, CPC, SLC> {
     pub account_provider_client: APC,
     pub disclosure_client: DCC,
+    pub close_proximity_disclosure_client: CPC,
     pub status_list_client: SLC,
 }
 
-impl<APC> WalletClients<APC, VpDisclosureClient, HttpStatusListClient>
+impl<APC, CPC> WalletClients<APC, VpDisclosureClient, CPC, HttpStatusListClient>
 where
     APC: Default,
+    CPC: Default,
 {
-    pub fn new_http() -> Result<Self, reqwest::Error> {
-        let disclosure_client = VpDisclosureClient::new_http(default_reqwest_client_builder())?;
+    pub fn new() -> Result<Self, reqwest::Error> {
+        let disclosure_client = VpDisclosureClient::new_with_client(default_reqwest_client_builder())?;
         let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
 
         let clients = Self {
             account_provider_client: APC::default(),
             disclosure_client,
+            close_proximity_disclosure_client: CPC::default(),
             status_list_client,
         };
 
@@ -172,7 +175,7 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
 where
     AKH: AttestedKeyHolder,
     OC: OidcClient,
@@ -184,7 +187,7 @@ where
         update_policy_repository: UR,
         storage: S,
         key_holder: AKH,
-        wallet_clients: WalletClients<APC, DCC, SLC>,
+        wallet_clients: WalletClients<APC, DCC, CPC, SLC>,
         registration_status: RegistrationStatus,
     ) -> Self {
         let registration = match registration_status {
@@ -216,6 +219,7 @@ where
             registration,
             account_provider_client: Arc::new(wallet_clients.account_provider_client),
             disclosure_client: wallet_clients.disclosure_client,
+            close_proximity_disclosure_client: wallet_clients.close_proximity_disclosure_client,
             status_list_client: Arc::new(wallet_clients.status_list_client),
             session: None,
             lock: WalletLock::new(true),
@@ -233,7 +237,7 @@ where
         update_policy_repository: UR,
         mut storage: S,
         key_holder: AKH,
-        wallet_clients: WalletClients<APC, DCC, SLC>,
+        wallet_clients: WalletClients<APC, DCC, CPC, SLC>,
     ) -> Result<Self, WalletInitError>
     where
         CR: Repository<Arc<WalletConfiguration>> + Send + Sync + 'static,
@@ -261,7 +265,7 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,

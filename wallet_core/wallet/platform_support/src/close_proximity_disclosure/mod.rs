@@ -12,8 +12,8 @@ use async_trait::async_trait;
 use tokio::sync::mpsc;
 
 use crate::bridge::close_proximity_disclosure::CloseProximityDisclosureChannel;
-use crate::bridge::close_proximity_disclosure::CloseProximityDisclosureError;
-use crate::bridge::close_proximity_disclosure::CloseProximityDisclosureUpdate;
+pub use crate::bridge::close_proximity_disclosure::CloseProximityDisclosureError;
+pub use crate::bridge::close_proximity_disclosure::CloseProximityDisclosureUpdate;
 
 pub trait CloseProximityDisclosureClient {
     async fn start_qr_handover()

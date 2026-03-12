@@ -7,6 +7,7 @@ use crate::close_proximity_disclosure::CloseProximityDisclosureChannelImpl;
 
 use super::CloseProximityDisclosureClient;
 
+#[derive(Debug, Default)]
 pub struct MockCloseProximityDisclosureClient;
 
 impl CloseProximityDisclosureClient for MockCloseProximityDisclosureClient {

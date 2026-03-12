@@ -1,5 +1,6 @@
 mod attestations;
 mod change_pin;
+mod close_proximity_disclosure;
 mod config;
 mod disclosure;
 mod disclosure_based_issuance;
@@ -36,6 +37,7 @@ use openid4vc::oidc::HttpOidcClient;
 use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
+use platform_support::close_proximity_disclosure::hardware::HardwareCloseProximityDisclosureClient;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
@@ -47,6 +49,7 @@ use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
+use crate::wallet::close_proximity_disclosure::WalletCloseProximityDisclosureSession;
 use crate::wallet::notifications::DirectNotificationsCallback;
 use crate::wallet::pin_recovery::PinRecoverySession;
 
@@ -125,6 +128,7 @@ enum Session<OC: OidcClient, IS, DCS> {
     },
     Issuance(WalletIssuanceSession<IS>),
     Disclosure(WalletDisclosureSession<DCS>),
+    CloseProximityDisclosure(WalletCloseProximityDisclosureSession),
     PinRecovery {
         pid_config: PidAttributesConfiguration,
         session: PinRecoverySession<OC, IS>,
@@ -132,15 +136,16 @@ enum Session<OC: OidcClient, IS, DCS> {
 }
 
 pub struct Wallet<
-    CR = WalletConfigurationRepository,         // Repository<WalletConfiguration>
-    UR = UpdatePolicyRepository,                // Repository<VersionState>
-    S = DatabaseStorage<HardwareEncryptionKey>, // Storage
-    AKH = KeyHolderType,                        // AttestedKeyHolder
-    APC = HttpAccountProviderClient,            // AccountProviderClient
-    OC = HttpOidcClient,                        // OidcClient for DigiD
-    IS = HttpIssuanceSession,                   // IssuanceSession
-    DCC = VpDisclosureClient,                   // DisclosureClient
-    SLC = HttpStatusListClient,                 // StatusListClient,
+    CR = WalletConfigurationRepository,           // Repository<WalletConfiguration>
+    UR = UpdatePolicyRepository,                  // Repository<VersionState>
+    S = DatabaseStorage<HardwareEncryptionKey>,   // Storage
+    AKH = KeyHolderType,                          // AttestedKeyHolder
+    APC = HttpAccountProviderClient,              // AccountProviderClient
+    OC = HttpOidcClient,                          // OidcClient for DigiD
+    IS = HttpIssuanceSession,                     // IssuanceSession
+    DCC = VpDisclosureClient,                     // DisclosureClient
+    CPC = HardwareCloseProximityDisclosureClient, // CloseProximityDisclosureClient
+    SLC = HttpStatusListClient,                   // StatusListClient,
 > where
     AKH: AttestedKeyHolder,
     OC: OidcClient,
@@ -153,6 +158,7 @@ pub struct Wallet<
     registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,
     account_provider_client: Arc<APC>,
     disclosure_client: DCC,
+    close_proximity_disclosure_client: CPC,
     status_list_client: Arc<SLC>,
     session: Option<Session<OC, IS, DCC::Session>>,
     lock: WalletLock,
