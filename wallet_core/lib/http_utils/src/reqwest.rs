@@ -4,12 +4,12 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use derive_more::AsRef;
-use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
 use http::Method;
-use mime::Mime;
+use http::header;
 use mime::APPLICATION_JSON;
+use mime::Mime;
 use reqwest::Certificate;
 use reqwest::Client;
 use reqwest::ClientBuilder;
@@ -236,8 +236,8 @@ pub fn client_builder_accept_json(builder: ClientBuilder) -> ClientBuilder {
 
 #[cfg(any(test, feature = "test"))]
 pub mod test {
-    use base64::prelude::BASE64_STANDARD;
     use base64::Engine;
+    use base64::prelude::BASE64_STANDARD;
     use utils::vec_nonempty;
 
     use crate::client::TlsPinningConfig;
@@ -257,8 +257,8 @@ pub mod test {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use base64::prelude::Engine;
     use base64::prelude::BASE64_STANDARD;
+    use base64::prelude::Engine;
     use rstest::rstest;
 
     use crate::reqwest::test::TEST_CERTIFICATE_BASE64;
