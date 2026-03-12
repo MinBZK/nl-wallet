@@ -3,9 +3,9 @@ env:
   contexts:
   - name: "Default Context"
     urls:
-    - "https://${STATIC_SERVER_HOST}/config/v1/wallet-config"
+    - "https://${STATIC_HOSTNAME}/config/v1/wallet-config"
     includePaths:
-    - "https://${STATIC_SERVER_HOST}/config/v1/wallet-config.*"
+    - "https://${STATIC_HOSTNAME}/config/v1/wallet-config.*"
     excludePaths: []
     authentication:
       parameters: {}
