@@ -21,6 +21,7 @@ use crate::logging::init_logging;
 use crate::models::attestation::AttestationPresentation;
 use crate::models::config::FlutterConfiguration;
 use crate::models::disclosure::AcceptDisclosureResult;
+use crate::models::disclosure::CloseProximityDisclosureFlutterUpdate;
 use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::DisclosureBasedIssuanceResult;
 use crate::models::instruction::PidIssuanceResult;
@@ -203,6 +204,19 @@ pub async fn set_recent_history_stream(sink: StreamSink<Vec<WalletEvent>>) -> an
 
 pub async fn clear_recent_history_stream() {
     wallet().write().await.clear_recent_history_callback();
+}
+
+pub async fn set_close_proximity_disclosure_stream(sink: StreamSink<CloseProximityDisclosureFlutterUpdate>) {
+    wallet()
+        .write()
+        .await
+        .set_close_proximity_disclosure_callback(Box::new(move |update| {
+            let _ = sink.add(update.into());
+        }));
+}
+
+pub async fn clear_close_proximity_disclosure_stream() {
+    wallet().write().await.clear_close_proximity_disclosure_callback();
 }
 
 #[flutter_api_error]

@@ -25,6 +25,19 @@ sealed class AcceptDisclosureResult with _$AcceptDisclosureResult {
   }) = AcceptDisclosureResult_InstructionError;
 }
 
+@freezed
+sealed class CloseProximityDisclosureFlutterUpdate with _$CloseProximityDisclosureFlutterUpdate {
+  const CloseProximityDisclosureFlutterUpdate._();
+
+  const factory CloseProximityDisclosureFlutterUpdate.connecting() = CloseProximityDisclosureFlutterUpdate_Connecting;
+  const factory CloseProximityDisclosureFlutterUpdate.connected() = CloseProximityDisclosureFlutterUpdate_Connected;
+  const factory CloseProximityDisclosureFlutterUpdate.disclosureStarted({
+    required StartDisclosureResult result,
+  }) = CloseProximityDisclosureFlutterUpdate_DisclosureStarted;
+  const factory CloseProximityDisclosureFlutterUpdate.disconnected() =
+      CloseProximityDisclosureFlutterUpdate_Disconnected;
+}
+
 class DisclosureOptions {
   final List<AttestationPresentation> field0;
 

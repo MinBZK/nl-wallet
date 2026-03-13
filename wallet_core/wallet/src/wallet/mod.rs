@@ -50,6 +50,7 @@ use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
+use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureCallback;
 use crate::wallet::notifications::DirectNotificationsCallback;
 use crate::wallet::pin_recovery::PinRecoverySession;
 
@@ -57,6 +58,8 @@ use self::attestations::AttestationsCallback;
 use self::disclosure::WalletDisclosureSession;
 use self::issuance::WalletIssuanceSession;
 
+pub use self::close_proximity_disclosure::CloseProximityDisclosureUpdate;
+pub use self::disclosure::AttributesNotAvailable;
 pub use self::disclosure::DisclosureAttestationOptions;
 pub use self::disclosure::DisclosureError;
 pub use self::disclosure::DisclosureProposalPresentation;
@@ -159,6 +162,7 @@ pub struct Wallet<
     account_provider_client: Arc<APC>,
     disclosure_client: DCC,
     close_proximity_disclosure_client: PhantomData<CPC>,
+    close_proximity_disclosure_callback: Option<CloseProximityDisclosureCallback>,
     status_list_client: Arc<SLC>,
     session: Option<Session<OC, IS, DCC::Session>>,
     lock: WalletLock,

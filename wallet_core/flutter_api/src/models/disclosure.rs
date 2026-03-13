@@ -1,6 +1,9 @@
+use itertools::Either;
 use itertools::Itertools;
 use url::Url;
 
+use wallet::AttributesNotAvailable;
+use wallet::CloseProximityDisclosureUpdate;
 use wallet::DisclosureAttestationOptions;
 use wallet::DisclosureProposalPresentation;
 use wallet::attestation_data::ReaderRegistration;
@@ -82,6 +85,35 @@ pub struct DisclosureOptions(pub Vec<AttestationPresentation>);
 pub enum AcceptDisclosureResult {
     Ok { return_url: Option<String> },
     InstructionError { error: WalletInstructionError },
+}
+
+pub enum CloseProximityDisclosureFlutterUpdate {
+    Connecting,
+    Connected,
+    DisclosureStarted { result: StartDisclosureResult },
+    Disconnected,
+}
+
+impl From<CloseProximityDisclosureUpdate> for CloseProximityDisclosureFlutterUpdate {
+    fn from(value: CloseProximityDisclosureUpdate) -> Self {
+        match value {
+            CloseProximityDisclosureUpdate::Connecting => Self::Connecting,
+            CloseProximityDisclosureUpdate::Connected => Self::Connected,
+            CloseProximityDisclosureUpdate::DisclosureStarted(result) => {
+                Self::DisclosureStarted { result: result.into() }
+            }
+            CloseProximityDisclosureUpdate::Disconnected => Self::Disconnected,
+        }
+    }
+}
+
+impl From<Either<DisclosureProposalPresentation, AttributesNotAvailable>> for StartDisclosureResult {
+    fn from(value: Either<DisclosureProposalPresentation, AttributesNotAvailable>) -> Self {
+        match value {
+            Either::Left(left) => left.into(),
+            Either::Right(right) => right.into(),
+        }
+    }
 }
 
 pub struct RPLocalizedStrings(pub wallet::attestation_data::LocalizedStrings);
@@ -175,63 +207,65 @@ impl From<wallet::attestation_data::DisclosureType> for DisclosureType {
     }
 }
 
+impl From<DisclosureProposalPresentation> for StartDisclosureResult {
+    fn from(proposal: DisclosureProposalPresentation) -> Self {
+        let policy: RequestPolicy = (&proposal.reader_registration).into();
+        let request_purpose: Vec<LocalizedString> =
+            RPLocalizedStrings(proposal.reader_registration.purpose_statement).into();
+
+        StartDisclosureResult::Request {
+            relying_party: proposal.reader_registration.organization.into(),
+            policy,
+            disclosure_options: proposal
+                .attestation_options
+                .into_iter()
+                .map(DisclosureOptions::from)
+                .collect(),
+            shared_data_with_relying_party_before: proposal.shared_data_with_relying_party_before,
+            session_type: proposal.session_type.into(),
+            request_purpose,
+            request_origin_base_url: proposal.reader_registration.request_origin_base_url.into(),
+            request_type: proposal.disclosure_type.into(),
+        }
+    }
+}
+
+impl From<AttributesNotAvailable> for StartDisclosureResult {
+    fn from(value: AttributesNotAvailable) -> Self {
+        let request_purpose: Vec<LocalizedString> =
+            RPLocalizedStrings(value.reader_registration.purpose_statement).into();
+        // TODO (PVW-4525): Have the UI actually display these as requested attributes,
+        //                  not as missing attributes.
+        let missing_attributes = value
+            .requested_attributes
+            .into_iter()
+            // Sort the attribute paths alphabetically to make the display order deterministic.
+            // TODO (PVW-4525): Do any sort of sorting in the UI instead.
+            .sorted()
+            .map(MissingAttribute::from)
+            .collect();
+
+        StartDisclosureResult::RequestAttributesMissing {
+            relying_party: value.reader_registration.organization.into(),
+            missing_attributes,
+            shared_data_with_relying_party_before: value.shared_data_with_relying_party_before,
+            session_type: value.session_type.into(),
+            request_purpose,
+            request_origin_base_url: value.reader_registration.request_origin_base_url.into(),
+        }
+    }
+}
+
 impl TryFrom<Result<DisclosureProposalPresentation, DisclosureError>> for StartDisclosureResult {
     type Error = DisclosureError;
 
     fn try_from(value: Result<DisclosureProposalPresentation, DisclosureError>) -> Result<Self, Self::Error> {
         match value {
-            Ok(proposal) => {
-                let policy: RequestPolicy = (&proposal.reader_registration).into();
-                let request_purpose: Vec<LocalizedString> =
-                    RPLocalizedStrings(proposal.reader_registration.purpose_statement).into();
-                let result = StartDisclosureResult::Request {
-                    relying_party: proposal.reader_registration.organization.into(),
-                    policy,
-                    disclosure_options: proposal
-                        .attestation_options
-                        .into_iter()
-                        .map(DisclosureOptions::from)
-                        .collect(),
-                    shared_data_with_relying_party_before: proposal.shared_data_with_relying_party_before,
-                    session_type: proposal.session_type.into(),
-                    request_purpose,
-                    request_origin_base_url: proposal.reader_registration.request_origin_base_url.into(),
-                    request_type: proposal.disclosure_type.into(),
-                };
-
-                Ok(result)
+            Ok(proposal) => Ok(proposal.into()),
+            Err(DisclosureError::AttributesNotAvailable(attributes_not_available)) => {
+                Ok(attributes_not_available.into())
             }
-            Err(error) => match error {
-                DisclosureError::AttributesNotAvailable {
-                    reader_registration,
-                    requested_attributes,
-                    shared_data_with_relying_party_before,
-                    session_type,
-                } => {
-                    let request_purpose: Vec<LocalizedString> =
-                        RPLocalizedStrings(reader_registration.purpose_statement).into();
-                    // TODO (PVW-4525): Have the UI actually display these as requested attributes,
-                    //                  not as missing attributes.
-                    let missing_attributes = requested_attributes
-                        .into_iter()
-                        // Sort the attribute paths alphabetically to make the display order deterministic.
-                        // TODO (PVW-4525): Do any sort of sorting in the UI instead.
-                        .sorted()
-                        .map(MissingAttribute::from)
-                        .collect();
-                    let result = StartDisclosureResult::RequestAttributesMissing {
-                        relying_party: reader_registration.organization.into(),
-                        missing_attributes,
-                        shared_data_with_relying_party_before,
-                        session_type: session_type.into(),
-                        request_purpose,
-                        request_origin_base_url: reader_registration.request_origin_base_url.into(),
-                    };
-
-                    Ok(result)
-                }
-                _ => Err(error),
-            },
+            Err(error) => Err(error),
         }
     }
 }

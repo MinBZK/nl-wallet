@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use itertools::Either;
 use nutype::nutype;
 use tracing::info;
 use url::Url;
@@ -11,11 +12,22 @@ use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use crate::DisclosureProposalPresentation;
 use crate::Wallet;
 use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::wallet::DisclosureError;
 use crate::wallet::Session;
+use crate::wallet::disclosure::AttributesNotAvailable;
+
+pub enum CloseProximityDisclosureUpdate {
+    Connecting,
+    Connected,
+    DisclosureStarted(Either<DisclosureProposalPresentation, AttributesNotAvailable>),
+    Disconnected,
+}
+
+pub type CloseProximityDisclosureCallback = Box<dyn Fn(CloseProximityDisclosureUpdate) + Send + Sync>; // TODO maybe not this update
 
 #[nutype(validate(predicate = |s| s.parse::<Url>().is_ok_and(|u| u.scheme() == "mdoc")), derive(Debug, Clone, TryFrom, FromStr, AsRef, Into, Display))]
 pub struct MdocUri(String);
@@ -63,6 +75,17 @@ where
             .expect("should always parse as an MdocUri");
 
         Ok(uri)
+    }
+
+    pub fn set_close_proximity_disclosure_callback(
+        &mut self,
+        callback: CloseProximityDisclosureCallback,
+    ) -> Option<CloseProximityDisclosureCallback> {
+        self.close_proximity_disclosure_callback.replace(callback)
+    }
+
+    pub fn clear_close_proximity_disclosure_callback(&mut self) {
+        self.close_proximity_disclosure_callback.take();
     }
 }
 

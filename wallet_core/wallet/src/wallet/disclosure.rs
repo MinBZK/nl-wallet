@@ -90,6 +90,14 @@ pub enum DisclosureAttestationOptions {
     Multiple(VecAtLeastTwo<AttestationPresentation>),
 }
 
+#[derive(Debug, Clone)]
+pub struct AttributesNotAvailable {
+    pub reader_registration: Box<ReaderRegistration>,
+    pub requested_attributes: HashSet<String>,
+    pub shared_data_with_relying_party_before: bool,
+    pub session_type: SessionType,
+}
+
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum DisclosureError {
@@ -134,14 +142,9 @@ pub enum DisclosureError {
     #[error("could not fetch candidate attestations from database: {0}")]
     AttestationRetrieval(#[source] StorageError),
 
-    #[error("not all requested attributes are available, requested: {requested_attributes:?}")]
+    #[error("not all requested attributes are available, requested: {:?}", .0.requested_attributes)]
     #[category(pd)] // Might reveal information about what attributes are stored in the Wallet
-    AttributesNotAvailable {
-        reader_registration: Box<ReaderRegistration>,
-        requested_attributes: HashSet<String>,
-        shared_data_with_relying_party_before: bool,
-        session_type: SessionType,
-    },
+    AttributesNotAvailable(AttributesNotAvailable),
 
     #[error("cannot request recovery code")]
     #[category(critical)]
@@ -543,12 +546,12 @@ where
                     session,
                 )));
 
-            return Err(DisclosureError::AttributesNotAvailable {
+            return Err(DisclosureError::AttributesNotAvailable(AttributesNotAvailable {
                 reader_registration: Box::new(reader_registration),
                 requested_attributes,
                 shared_data_with_relying_party_before,
                 session_type,
-            });
+            }));
         }
 
         info!("All attributes in the disclosure request are present in the database, return a proposal to the user");
@@ -1062,6 +1065,7 @@ mod tests {
     use super::super::test::mdoc_from_credential_payload;
     use super::super::test::setup_mock_recent_history_callback;
     use super::super::test::verified_sd_jwt_from_credential_payload;
+    use super::AttributesNotAvailable;
     use super::DisclosureAttestationOptions;
     use super::DisclosureError;
     use super::DisclosureProposalPresentation;
@@ -1882,6 +1886,8 @@ mod tests {
     async fn test_wallet_start_disclosure_error_attributes_not_available_not_present(
         #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
     ) {
+        use crate::wallet::disclosure::AttributesNotAvailable;
+
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let credential_requests = default_pid_credential_requests(requested_format);
@@ -1918,12 +1924,12 @@ mod tests {
 
         assert_matches!(
             error,
-            DisclosureError::AttributesNotAvailable {
+            DisclosureError::AttributesNotAvailable(AttributesNotAvailable {
                 reader_registration,
                 requested_attributes,
                 shared_data_with_relying_party_before,
                 session_type: SessionType::CrossDevice,
-            } if reader_registration.as_ref() == verifier_certificate.registration() &&
+            }) if reader_registration.as_ref() == verifier_certificate.registration() &&
                 requested_attributes == expected_attributes &&
                 !shared_data_with_relying_party_before
         );
@@ -1981,12 +1987,12 @@ mod tests {
         let expected_attributes = HashSet::from([format!("{}/{}", PID_ATTESTATION_TYPE, path.join("/"))]);
         assert_matches!(
             error,
-            DisclosureError::AttributesNotAvailable {
+            DisclosureError::AttributesNotAvailable(AttributesNotAvailable {
                 reader_registration,
                 requested_attributes,
                 shared_data_with_relying_party_before,
                 session_type: SessionType::CrossDevice,
-            } if reader_registration.as_ref() == verifier_certificate.registration() &&
+            }) if reader_registration.as_ref() == verifier_certificate.registration() &&
                 requested_attributes == expected_attributes &&
                 !shared_data_with_relying_party_before
         );

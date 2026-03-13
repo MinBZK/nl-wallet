@@ -63,6 +63,12 @@ Stream<List<WalletEvent>> setRecentHistoryStream() => WalletCore.instance.api.cr
 
 Future<void> clearRecentHistoryStream() => WalletCore.instance.api.crateApiFullClearRecentHistoryStream();
 
+Stream<CloseProximityDisclosureFlutterUpdate> setCloseProximityDisclosureStream() =>
+    WalletCore.instance.api.crateApiFullSetCloseProximityDisclosureStream();
+
+Future<void> clearCloseProximityDisclosureStream() =>
+    WalletCore.instance.api.crateApiFullClearCloseProximityDisclosureStream();
+
 Future<WalletInstructionResult> unlockWallet({required String pin}) =>
     WalletCore.instance.api.crateApiFullUnlockWallet(pin: pin);
 
