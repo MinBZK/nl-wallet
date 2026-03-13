@@ -9,6 +9,7 @@ use chrono::Utc;
 use futures::FutureExt;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
 use p256::ecdsa::SigningKey;
@@ -73,6 +74,7 @@ use openid4vc::disclosure_session::VpDisclosureSession;
 use openid4vc::disclosure_session::VpMessageClient;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::disclosure_session::VpSessionError;
+use openid4vc::jwe::JweEncryptionAlgorithm;
 use openid4vc::mock::ExtendingVctRetrieverStub;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::openid4vp::ClientId;
@@ -162,11 +164,14 @@ fn disclosure_direct() {
     let nonce = "nonce".to_string();
     let response_uri: BaseUrl = format!("https://{RP_CERT_CN}/response_uri").parse().unwrap();
     let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
+    let mut encryption_jwk = encryption_keypair.to_jwk_public_key();
+    encryption_jwk.set_algorithm("ECDH-ES");
+    encryption_jwk.set_key_id("test-kid");
     let iso_auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
         NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
         auth_keypair.certificate(),
         nonce.clone(),
-        encryption_keypair.to_jwk_public_key().try_into().unwrap(),
+        encryption_jwk.try_into().unwrap(),
         response_uri,
         None,
     );
@@ -201,6 +206,48 @@ fn disclosure_direct() {
     assert_disclosed_attestations_mdoc_pid(&disclosed_attestations);
 }
 
+#[test]
+fn disclosure_response_jwe_header_contains_selected_kid_and_enc() {
+    let ca = Ca::generate("myca", Default::default()).unwrap();
+    let auth_keypair = ca.generate_reader_mock().unwrap();
+
+    let nonce = "nonce".to_string();
+    let response_uri: BaseUrl = format!("https://{RP_CERT_CN}/response_uri").parse().unwrap();
+    let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
+    let mut encryption_jwk = encryption_keypair.to_jwk_public_key();
+    encryption_jwk.set_algorithm("ECDH-ES");
+    encryption_jwk.set_key_id("test-kid");
+    let mut iso_auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
+        NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
+        auth_keypair.certificate(),
+        nonce,
+        encryption_jwk.try_into().unwrap(),
+        response_uri,
+        None,
+    );
+    iso_auth_request.client_metadata.encrypted_response_enc_values_supported = Some(vec_nonempty![
+        JweEncryptionAlgorithm::Other("A512GCM".to_string()),
+        JweEncryptionAlgorithm::A256Gcm,
+    ]);
+
+    let auth_request = iso_auth_request.clone().into();
+    let auth_request_jws = SignedJwt::sign_with_certificate(&auth_request, &auth_keypair)
+        .now_or_never()
+        .unwrap()
+        .unwrap();
+
+    let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+    let jwe = disclosure_jwe(&auth_request_jws.into(), &[ca.to_trust_anchor()], &issuer_ca);
+
+    let decrypter = EcdhEsJweAlgorithm::EcdhEs
+        .decrypter_from_jwk(&encryption_keypair.to_jwk_key_pair())
+        .unwrap();
+    let (_, header) = josekit::jwt::decode_with_decrypter(&jwe, &decrypter).unwrap();
+
+    assert_eq!(header.key_id(), Some("test-kid"));
+    assert_eq!(header.content_encryption(), Some("A256GCM"));
+}
+
 /// The wallet side: verify the Authorization Request, gather the attestations and encrypt it into a JWE.
 fn disclosure_jwe(
     auth_request: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
@@ -213,7 +260,7 @@ fn disclosure_jwe(
 
     // Verify the Authorization Request JWE and read the requested attributes.
     let (auth_request, cert) = VpAuthorizationRequest::try_new(auth_request, trust_anchors).unwrap();
-    let auth_request = auth_request.validate(&cert, None).unwrap();
+    let (auth_request, encryption_algorithm) = auth_request.validate(&cert, None).unwrap();
 
     // Compute the disclosure.
     let wscd = MockRemoteWscd::new(vec![mdoc_key]);
@@ -235,6 +282,7 @@ fn disclosure_jwe(
             VerifiablePresentation::MsoMdoc(device_responses),
         )]),
         &auth_request,
+        &encryption_algorithm,
         &encryption_nonce,
         poa,
     )
@@ -336,12 +384,15 @@ impl DirectMockVpMessageClient {
 
         let response_uri: BaseUrl = format!("https://{RP_CERT_CN}/response_uri").parse().unwrap();
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let mut encryption_jwk = encryption_keypair.to_jwk_public_key();
+        encryption_jwk.set_algorithm("ECDH-ES");
+        encryption_jwk.set_key_id("test-kid");
 
         let auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
             test_credentials.to_normalized_credential_requests(formats.iter().copied()),
             auth_keypair.certificate(),
             "nonce".to_string(),
-            encryption_keypair.to_jwk_public_key().try_into().unwrap(),
+            encryption_jwk.try_into().unwrap(),
             response_uri.clone(),
             None,
         );
@@ -888,6 +939,73 @@ async fn test_wallet_initiated_usecase_verifier_cancel() {
 
     // Cancel and verify that we don't get a return URL
     assert!(session.terminate().await.unwrap().is_none());
+}
+
+#[tokio::test]
+async fn test_verifier_auth_request_metadata_contract() {
+    let dcql_query = Query::new_mock_mdoc_pid_example();
+    let (verifier, trust_anchor, _issuer_keypair) = setup_verifier(&dcql_query, None);
+
+    let session_token = verifier
+        .new_session(
+            DEFAULT_RETURN_URL_USE_CASE.to_string(),
+            Some(dcql_query),
+            Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
+        )
+        .await
+        .unwrap();
+    let disclosure_request = request_uri_from_status_endpoint(&verifier, &session_token, SessionType::SameDevice).await;
+    let request_uri: VpRequestUri = serde_urlencoded::from_str(&disclosure_request).unwrap();
+    let VpRequestUriObject::AsReference { request_uri, .. } = request_uri.object else {
+        panic!("expected request object by reference");
+    };
+
+    let jws = VerifierMockVpMessageClient::new(Arc::clone(&verifier))
+        .get_authorization_request(request_uri, None)
+        .await
+        .unwrap();
+
+    let (auth_request, cert) = VpAuthorizationRequest::try_new(&jws, &[trust_anchor]).unwrap();
+    let _ = auth_request.validate(&cert, None).unwrap();
+
+    let (_, payload): (_, serde_json::Value) = jws
+        .serialization()
+        .parse::<UnverifiedJwt<serde_json::Value, HeaderWithX5c>>()
+        .unwrap()
+        .dangerous_parse_unverified()
+        .unwrap();
+
+    let client_metadata = payload
+        .get("client_metadata")
+        .and_then(serde_json::Value::as_object)
+        .expect("client_metadata should be present");
+
+    let encrypted_response_enc_values_supported = client_metadata
+        .get("encrypted_response_enc_values_supported")
+        .and_then(serde_json::Value::as_array)
+        .expect("encrypted_response_enc_values_supported should be present");
+    assert_eq!(
+        encrypted_response_enc_values_supported
+            .iter()
+            .map(serde_json::Value::as_str)
+            .collect_vec(),
+        vec![Some("A128GCM"), Some("A256GCM")]
+    );
+    assert!(!client_metadata.contains_key("authorization_encryption_alg_values_supported"));
+    assert!(!client_metadata.contains_key("authorization_encryption_enc_values_supported"));
+    assert!(!client_metadata.contains_key("jwks_uri"));
+
+    let keys = client_metadata
+        .get("jwks")
+        .and_then(|jwks| jwks.get("keys"))
+        .and_then(serde_json::Value::as_array)
+        .expect("jwks.keys should be present");
+    assert!(!keys.is_empty());
+    assert!(keys.iter().all(|jwk| {
+        jwk.get("kid")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|kid| !kid.is_empty())
+    }));
 }
 
 #[tokio::test]
