@@ -35,7 +35,7 @@
 | Name               | Description                     | Value                                     |
 | ------------------ | ------------------------------- | ----------------------------------------- |
 | `image.repository` | Repository for the Docker image | `ghcr-io-proxy/cloudnative-pg/postgresql` |
-| `image.tag`        | Tag for the Docker image        | `18.1-bookworm`                           |
+| `image.tag`        | Tag for the Docker image        | `18.2-standard-trixie`                    |
 
 ### PgBouncer Image configuration
 

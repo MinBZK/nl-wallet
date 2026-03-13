@@ -34,7 +34,7 @@ type DirectNotificationFuture = Pin<Box<dyn Future<Output = ()> + Send + 'static
 pub type DirectNotificationsCallback =
     Arc<dyn Fn(Vec<(i32, NotificationType)>) -> DirectNotificationFuture + Send + Sync>;
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     S: Storage,

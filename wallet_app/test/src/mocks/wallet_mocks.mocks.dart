@@ -8080,6 +8080,31 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Future<void>);
 
   @override
+  _i10.Future<String> crateApiFullStartCloseProximityDisclosure() =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiFullStartCloseProximityDisclosure, []),
+            returnValue: _i10.Future<String>.value(
+              _i14.dummyValue<String>(
+                this,
+                Invocation.method(
+                  #crateApiFullStartCloseProximityDisclosure,
+                  [],
+                ),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<String>.value(
+              _i14.dummyValue<String>(
+                this,
+                Invocation.method(
+                  #crateApiFullStartCloseProximityDisclosure,
+                  [],
+                ),
+              ),
+            ),
+          )
+          as _i10.Future<String>);
+
+  @override
   _i10.Future<_i26.StartDisclosureResult> crateApiFullStartDisclosure({
     required String? uri,
     required bool? isQrCode,

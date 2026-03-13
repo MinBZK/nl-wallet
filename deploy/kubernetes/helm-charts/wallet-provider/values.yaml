@@ -190,10 +190,12 @@ ios:
 
 ## @section Application parameters
 ## @param appIdentifier Application identifier
+## @param flagsRefreshDelayInSeconds Interval in seconds of background job that refreshes flags
 ## @param recoveryCodePaths.urn:eudi:pid:nl:1 Recovery code path for default PID attestation
 ## @param revokeSolutionEnabled Whether the revoke-solution API is enabled
 ##
 appIdentifier: null
+flagsRefreshDelayInSeconds: null
 recoveryCodePaths:
   "urn:eudi:pid:nl:1": ["recovery_code"]
 revokeSolutionEnabled: false

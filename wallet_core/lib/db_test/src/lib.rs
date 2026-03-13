@@ -205,8 +205,8 @@ impl DbSetup {
             .username(&DB_USERNAME)
             .password(&DB_PASSWORD)
             .database(&DB_DEFAULT_DATABASE);
-        let mut connection = tokio::time::timeout(Duration::from_secs(1), async {
-            let mut interval = tokio::time::interval(Duration::from_millis(100));
+        let mut connection = tokio::time::timeout(Duration::from_secs(3), async {
+            let mut interval = tokio::time::interval(Duration::from_millis(300));
             interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
             loop {
                 interval.tick().await;
