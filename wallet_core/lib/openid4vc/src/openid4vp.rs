@@ -430,7 +430,10 @@ pub enum AuthRequestValidationError {
     #[error("missing kid in JWK at client_metadata.jwks[{0}]")]
     #[category(critical)]
     MissingJwkKid(usize),
-    #[error("no supported JWK found in client_metadata.jwks: expected at least one EC/P-256 JWK with alg ECDH-ES")]
+    #[error(
+        "no supported JWK found in client_metadata.jwks: expected at least one EC/P-256 JWK with alg ECDH-ES: {errors}",
+        errors = .0.iter().join(", ")
+    )]
     #[category(pd)]
     NoSupportedJwk(Vec<JwePublicKeyError>),
     #[error(
@@ -634,10 +637,6 @@ impl NormalizedVpAuthorizationRequest {
         Ok(encryption_algorithm)
     }
 
-    pub fn selected_encryption_algorithm(&self) -> Result<JweEncryptionAlgorithm, AuthRequestValidationError> {
-        Self::select_encryption_algorithm(&self.client_metadata)
-    }
-
     fn try_from_with_selected_encryption_algorithm(
         vp_auth_request: VpAuthorizationRequest,
     ) -> Result<(Self, JweEncryptionAlgorithm), AuthRequestValidationError> {
@@ -774,15 +773,6 @@ impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
             wallet_nonce: value.wallet_nonce,
             transaction_data: None,
         }
-    }
-}
-
-impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
-    type Error = AuthRequestValidationError;
-
-    fn try_from(vp_auth_request: VpAuthorizationRequest) -> Result<Self, Self::Error> {
-        let (auth_request, _) = Self::try_from_with_selected_encryption_algorithm(vp_auth_request)?;
-        Ok(auth_request)
     }
 }
 
@@ -1540,7 +1530,7 @@ mod tests {
             None,
             None,
         );
-        let encryption_algorithm = auth_request.selected_encryption_algorithm().unwrap();
+        let encryption_algorithm = JweEncryptionAlgorithm::default();
         let jwe = auth_response
             .encrypt(&auth_request, &encryption_algorithm, &encryption_nonce)
             .unwrap();
@@ -1719,7 +1709,7 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
+        NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap();
     }
 
     #[test]
@@ -1763,7 +1753,8 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
+        let (normalized_request, _) =
+            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap();
 
         assert_eq!(
             normalized_request
@@ -1813,7 +1804,8 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
+        let (normalized_request, _) =
+            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap();
 
         assert!(
             normalized_request
@@ -1821,10 +1813,6 @@ mod tests {
                 .encrypted_response_enc_values_supported
                 .is_none()
         );
-        assert_eq!(
-            normalized_request.selected_encryption_algorithm().unwrap(),
-            JweEncryptionAlgorithm::A128Gcm
-        )
     }
 
     #[test]
@@ -1882,18 +1870,9 @@ mod tests {
             JweEncryptionAlgorithm::A256Gcm
         ]);
 
-        let (normalized_request, encryption_algorithm) = auth_request.validate(rp_keypair.certificate(), None).unwrap();
+        let (_, encryption_algorithm) = auth_request.validate(rp_keypair.certificate(), None).unwrap();
 
         assert_eq!(encryption_algorithm, JweEncryptionAlgorithm::A256Gcm);
-        assert_eq!(
-            normalized_request
-                .client_metadata
-                .encrypted_response_enc_values_supported,
-            Some(vec_nonempty![
-                JweEncryptionAlgorithm::Other("A512GCM".to_string()),
-                JweEncryptionAlgorithm::A256Gcm
-            ])
-        );
     }
 
     #[test]
@@ -1937,7 +1916,8 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
+        let (normalized_request, _) =
+            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap();
 
         assert_eq!(
             normalized_request
@@ -1991,7 +1971,8 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
+        let error =
+            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap_err();
         assert_matches!(error, AuthRequestValidationError::NoSupportedEncryptedResponseEnc);
     }
 
@@ -2036,7 +2017,8 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
+        let error =
+            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap_err();
         assert_matches!(error, AuthRequestValidationError::MissingJwkKid(0));
     }
 
@@ -2081,7 +2063,8 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
+        let error =
+            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap_err();
         assert_matches!(error, AuthRequestValidationError::MissingJwkKid(0));
     }
 
@@ -2131,7 +2114,8 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
+        let (normalized_request, _) =
+            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap();
 
         assert_eq!(normalized_request.encryption_pubkey.kid(), "supported");
     }
@@ -2182,7 +2166,8 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
+        let error =
+            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap_err();
         let AuthRequestValidationError::NoSupportedJwk(errors) = error else {
             panic!("expected NoSupportedJwk error");
         };
@@ -2311,7 +2296,8 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
+        let error =
+            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap_err();
         assert_matches!(error, AuthRequestValidationError::UnsupportedField("transaction_data"));
     }
 

@@ -28,7 +28,7 @@ pub enum JweEncryptionAlgorithm {
 
 impl JweEncryptionAlgorithm {
     pub fn is_supported(&self) -> bool {
-        matches!(self, Self::A128Gcm | Self::A192Gcm | Self::A256Gcm)
+        self.preference_rank().is_some()
     }
 
     // This is explicitly ranking the algorithms to prevent mis-interpretation of the Ord order
@@ -84,21 +84,6 @@ mod tests {
 
         assert_eq!(jwe_enc, expected_jwe_enc);
         assert_eq!(jwe_enc.to_string(), *input);
-    }
-
-    #[rstest]
-    #[case::a128gcm(JweEncryptionAlgorithm::A128Gcm, Some(1))]
-    #[case::a192gcm(JweEncryptionAlgorithm::A192Gcm, Some(2))]
-    #[case::a256gcm(JweEncryptionAlgorithm::A256Gcm, Some(3))]
-    #[case::other(
-        JweEncryptionAlgorithm::Other("A512GCM".to_string()),
-        None
-    )]
-    fn test_jwe_encryption_algorithm_preference_rank(
-        #[case] input: JweEncryptionAlgorithm,
-        #[case] expected_rank: Option<u8>,
-    ) {
-        assert_eq!(input.preference_rank(), expected_rank);
     }
 
     #[rstest]

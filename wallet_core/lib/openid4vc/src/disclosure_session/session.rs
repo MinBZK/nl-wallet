@@ -302,6 +302,7 @@ mod tests {
     use crate::disclosure_session::error::DataDisclosed;
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
+    use crate::jwe::JweEncryptionAlgorithm;
     use crate::openid4vp::VpRequestUriMethod;
     use crate::verifier::SessionType;
 
@@ -345,7 +346,7 @@ mod tests {
 
         let mock_client = MockVerifierVpMessageClient::new(Arc::clone(&verifier_session));
         let auth_request = verifier_session.normalized_auth_request(None);
-        let selected_encryption_algorithm = auth_request.selected_encryption_algorithm().unwrap();
+        let selected_encryption_algorithm = JweEncryptionAlgorithm::default();
         let disclosure_session = VpDisclosureSession {
             client: mock_client,
             session_type,
