@@ -114,7 +114,7 @@ demo-rp-verification-server-${DEPLOY_ENV}:
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-rp-verification-server.yaml"
 
 demo-relying-party-${DEPLOY_ENV}:
-  extends: .deploy-base
+  extends: .deploy-helm
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
@@ -122,17 +122,6 @@ demo-relying-party-${DEPLOY_ENV}:
     CHART_NAME: demo-relying-party
     RELEASE_NAME: demo-relying-party
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-relying-party.yaml"
-  script:
-    - !reference [.build-helm-dependency, script]
-    - !reference [.replace-chart-app-version, script]
-    - !reference [.parse-config-files, script]
-    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
-    - |
-      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
-      --set global.imageRegistry=${HARBOR_REGISTRY} \
-      --set image.tag=${DEPLOY_IMAGE_VERSION} \
-       $FILE_OPTIONS
-    - !reference [.check-helm-install-status, script]
 
 demo-issuer-issuance-server-${DEPLOY_ENV}:
   extends: .deploy-helm
@@ -147,7 +136,7 @@ demo-issuer-issuance-server-${DEPLOY_ENV}:
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-issuer-issuance-server.yaml"
 
 demo-issuer-${DEPLOY_ENV}:
-  extends: .deploy-base
+  extends: .deploy-helm
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
@@ -155,17 +144,6 @@ demo-issuer-${DEPLOY_ENV}:
     CHART_NAME: demo-issuer
     RELEASE_NAME: demo-issuer
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-issuer.yaml"
-  script:
-    - !reference [.build-helm-dependency, script]
-    - !reference [.replace-chart-app-version, script]
-    - !reference [.parse-config-files, script]
-    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
-    - |
-      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
-      --set global.imageRegistry=${HARBOR_REGISTRY} \
-      --set image.tag=${DEPLOY_IMAGE_VERSION} \
-       $FILE_OPTIONS
-    - !reference [.check-helm-install-status, script]
 
 demo-index-${DEPLOY_ENV}:
   extends: .deploy-helm
