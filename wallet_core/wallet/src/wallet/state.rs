@@ -2,7 +2,9 @@ use tracing::instrument;
 
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::oidc::OidcClient;
+use openid4vc::issuance_session::CredentialIssuerDiscovery;
+use openid4vc::oidc::OidcDiscovery;
+
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::errors::AccountRevokedData;
@@ -60,12 +62,13 @@ pub enum TransferRole {
     Destination,
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
 where
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
+    OD: OidcDiscovery,
+    CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
 {
     #[instrument(skip_all)]
@@ -158,8 +161,9 @@ mod tests {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::issuance_session::IssuedCredential;
-    use openid4vc::mock::MockIssuanceSession;
-    use openid4vc::oidc::MockOidcClient;
+    use openid4vc::mock::MockCredentialIssuer;
+    use openid4vc::mock::MockCredentialIssuerDiscovery;
+    use openid4vc::oidc::MockOidcDiscovery;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
@@ -337,7 +341,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_session(
         #[case] is_locked: bool,
-        #[case] session: Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession>,
+        #[case] session: Session<MockOidcDiscovery, MockCredentialIssuerDiscovery, MockDisclosureSession>,
         #[case] expected_state: WalletState,
     ) {
         // Prepare a registered and unlocked wallet.
@@ -445,7 +449,7 @@ mod tests {
         #[case] change_pin_data: Option<impl Into<ChangePinData>>,
         #[case] transfer_data: Option<TransferData>,
         #[case] pin_recovery_data: Option<PinRecoveryData>,
-        #[case] session: Option<Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession>>,
+        #[case] session: Option<Session<MockOidcDiscovery, MockCredentialIssuerDiscovery, MockDisclosureSession>>,
         #[case] expected_state: WalletState,
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -541,14 +545,15 @@ mod tests {
         }
     }
 
-    fn digid_session() -> Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession> {
+    fn digid_session() -> Session<MockOidcDiscovery, MockCredentialIssuerDiscovery, MockDisclosureSession> {
         Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            session: mock_oidc_session(),
+            oidc_session: mock_oidc_session(),
+            discovered: MockCredentialIssuer::new(),
         }
     }
 
-    fn issuance_session() -> Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession> {
+    fn issuance_session() -> Session<MockOidcDiscovery, MockCredentialIssuerDiscovery, MockDisclosureSession> {
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
@@ -567,7 +572,7 @@ mod tests {
         ))
     }
 
-    fn disclosure_session() -> Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession> {
+    fn disclosure_session() -> Session<MockOidcDiscovery, MockCredentialIssuerDiscovery, MockDisclosureSession> {
         Session::Disclosure(WalletDisclosureSession::new_missing_attributes(
             RedirectUriPurpose::Browser,
             DisclosureType::Regular,
@@ -575,14 +580,17 @@ mod tests {
         ))
     }
 
-    fn pin_recovery_session() -> Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession> {
+    fn pin_recovery_session() -> Session<MockOidcDiscovery, MockCredentialIssuerDiscovery, MockDisclosureSession> {
         let wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple)
             .now_or_never()
             .unwrap();
 
         Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Oidc(mock_oidc_session()),
+            session: PinRecoverySession::Oidc {
+                oidc_session: mock_oidc_session(),
+                discovered: MockCredentialIssuer::new(),
+            },
         }
     }
 }

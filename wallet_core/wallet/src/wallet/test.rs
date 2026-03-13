@@ -40,8 +40,9 @@ use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::IssuedCredentialCopies;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
+use openid4vc::mock::MockCredentialIssuerDiscovery;
 use openid4vc::mock::MockIssuanceSession;
-use openid4vc::oidc::MockOidcClient;
+use openid4vc::oidc::MockOidcDiscovery;
 use openid4vc::token::CredentialPreviewContent;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
@@ -124,8 +125,8 @@ pub type TestWallet<S, CR = UpdatingConfigurationRepository<LocalConfigurationRe
     S,
     MockHardwareAttestedKeyHolder,
     MockAccountProviderClient,
-    MockOidcClient,
-    MockIssuanceSession,
+    MockOidcDiscovery,
+    MockCredentialIssuerDiscovery,
     MockDisclosureClient,
     MockStatusListClient,
 >;
@@ -383,6 +384,8 @@ where
             MockUpdatePolicyRepository::default(),
             S::init().await,
             generate_key_holder(vendor),
+            MockCredentialIssuerDiscovery::new(),
+            MockOidcDiscovery::new(),
             WalletClients::default(),
             RegistrationStatus::Unregistered,
         )
@@ -398,6 +401,8 @@ where
             MockUpdatePolicyRepository::default(),
             S::init().await,
             generate_key_holder(vendor),
+            MockCredentialIssuerDiscovery::new(),
+            MockOidcDiscovery::new(),
             WalletClients::default(),
         )
         .await
@@ -420,6 +425,8 @@ where
             MockUpdatePolicyRepository::default(),
             S::init().await,
             generate_key_holder(vendor),
+            MockCredentialIssuerDiscovery::new(),
+            MockOidcDiscovery::new(),
             WalletClients::default(),
             RegistrationStatus::Unregistered,
         );
@@ -477,6 +484,8 @@ impl TestWalletMockStorage {
             MockUpdatePolicyRepository::default(),
             storage,
             key_holder,
+            MockCredentialIssuerDiscovery::new(),
+            MockOidcDiscovery::new(),
             WalletClients::default(),
         )
         .await

@@ -32,6 +32,7 @@ use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
 use attestation_data::issuable_document::IssuableDocument;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::utils::random_string;
 use db_test::DbSetup;
 use dcql::CredentialFormat;
 use gba_hc_converter::settings::Settings as GbaSettings;
@@ -53,15 +54,18 @@ use issuer_settings::settings::StatusListAttestationSettings;
 use jwt::SignedJwt;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
-use openid4vc::issuance_session::HttpIssuanceSession;
+use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::oidc::MockOidcClient;
+use openid4vc::oidc::MockAuthorizationServer;
+use openid4vc::oidc::MockOidcDiscovery;
+use openid4vc::oidc::OidcReqwestClient;
 use openid4vc::openid4vp::ClientId;
 use openid4vc::openid4vp::VpRequestUri;
 use openid4vc::openid4vp::VpRequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::token::TokenRequest;
+use openid4vc::token::TokenRequestGrantType;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::VerifierUrlParameters;
 use pid_issuer::pid::mock::MockAttributeService;
@@ -89,6 +93,7 @@ use wallet::WalletClients;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
 use wallet::test::MockHardwareDatabaseStorage;
+use wallet::test::Repository;
 use wallet::test::UpdatePolicyRepository;
 use wallet::test::UpdateableRepository;
 use wallet::test::default_config_server_config;
@@ -160,8 +165,8 @@ pub type WalletWithStorage = Wallet<
     MockHardwareDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
-    MockOidcClient,
-    HttpIssuanceSession,
+    MockOidcDiscovery,
+    HttpCredentialIssuerDiscovery,
     VpDisclosureClient,
 >;
 
@@ -420,6 +425,15 @@ where
         .unwrap();
 
     let update_policy_repository = UpdatePolicyRepository::init();
+    let oidc_reqwest_client = OidcReqwestClient::try_new().unwrap();
+    let credential_issuer_discovery = HttpCredentialIssuerDiscovery::new(
+        config_repository.get().pid_issuance.client_id.clone(),
+        oidc_reqwest_client,
+    );
+    let mut oidc_discovery = MockOidcDiscovery::new();
+    oidc_discovery
+        .expect_start_sync()
+        .returning(|_, _, _| Ok(mock_oidc_start_result()));
     let wallet_clients = WalletClients::new_http().unwrap();
 
     Wallet::init_registration(
@@ -427,6 +441,8 @@ where
         update_policy_repository,
         storage_generator().await,
         key_holder,
+        credential_issuer_discovery,
+        oidc_discovery,
         wallet_clients,
     )
     .await
@@ -1017,9 +1033,6 @@ pub async fn do_pid_issuance_with_purpose(
     pin: String,
     purpose: PidIssuancePurpose,
 ) -> WalletWithStorage {
-    // TODO: remove `start_context` and `#[serial(MockOidcClient)]` when implementing ACF (PVW-5575)
-    let ctx = MockOidcClient::start_context();
-    ctx.expect().return_once(|_, _, _| Ok(mock_oidc_start_result()));
     let redirect_url = wallet
         .create_pid_issuance_auth_url(purpose)
         .await
@@ -1037,15 +1050,13 @@ pub async fn do_pid_issuance_with_purpose(
 }
 
 pub async fn do_pin_recovery(mut wallet: WalletWithStorage, new_pin: String) -> WalletWithStorage {
-    let ctx = MockOidcClient::start_context();
-    ctx.expect().return_once(|_, _, _| Ok(mock_oidc_start_result()));
-    let uri = wallet
+    let redirect_url = wallet
         .create_pin_recovery_redirect_uri()
         .await
         .expect("Could not create pin recovery redirect URI");
 
     wallet
-        .continue_pin_recovery(uri)
+        .continue_pin_recovery(redirect_url)
         .await
         .expect("Could not continue pin recovery");
     wallet
@@ -1053,6 +1064,23 @@ pub async fn do_pin_recovery(mut wallet: WalletWithStorage, new_pin: String) -> 
         .await
         .expect("Could not complete pin recovery");
     wallet
+}
+
+/// Creates a [`MockAuthorizationServer`] configured to return a random token request,
+/// plus a dummy auth URL. The pid_issuer creates a new session for any unknown code.
+pub fn mock_oidc_start_result() -> (MockAuthorizationServer, Url) {
+    let mut server = MockAuthorizationServer::new();
+    server.expect_token_request().returning(|_redirect_uri| {
+        Ok(TokenRequest {
+            grant_type: TokenRequestGrantType::PreAuthorizedCode {
+                pre_authorized_code: random_string(32).into(),
+            },
+            code_verifier: Some("my_code_verifier".to_string()),
+            client_id: Some("my_client_id".to_string()),
+            redirect_uri: Some("redirect://here".parse().unwrap()),
+        })
+    });
+    (server, Url::parse("http://localhost/").unwrap())
 }
 
 pub async fn do_degree_issuance(
@@ -1077,29 +1105,6 @@ pub async fn do_degree_issuance(
     wallet.accept_issuance(pin).await.unwrap();
 
     attestation_previews
-}
-
-/// Creates a [`MockOidcClient`] that is mocked to return some arbitrary token.
-pub fn mock_oidc_start_result() -> (MockOidcClient, Url) {
-    let mut oidc_client = MockOidcClient::new();
-
-    oidc_client
-        .expect_into_token_request()
-        .times(1)
-        .return_once(|_redirect_uri| {
-            let token_request = TokenRequest {
-                grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: crypto::utils::random_string(32).into(),
-                },
-                code_verifier: Some("my_code_verifier".to_string()),
-                client_id: Some("my_client_id".to_string()),
-                redirect_uri: Some("redirect://here".parse().unwrap()),
-            };
-
-            Ok(token_request)
-        });
-
-    (oidc_client, Url::parse("http://localhost/").unwrap())
 }
 
 pub fn universal_link(issuance_server_url: &BaseUrl, format: CredentialFormat) -> Url {

@@ -18,7 +18,6 @@ use base64::prelude::*;
 use error_category::ErrorCategory;
 use futures::TryFutureExt;
 use futures::try_join;
-use http_utils::reqwest::ReqwestClientUrl;
 use reqwest::header;
 use url::Url;
 
@@ -30,6 +29,7 @@ use crate::authorization::AuthorizationRequest;
 use crate::authorization::AuthorizationResponse;
 use crate::authorization::PkceCodeChallenge;
 use crate::authorization::ResponseType;
+use crate::issuer_identifier::IssuerIdentifier;
 use crate::pkce::PkcePair;
 use crate::pkce::S256PkcePair;
 use crate::token::AuthorizationCode;
@@ -38,6 +38,8 @@ use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
 
 use super::Config;
+use super::Discover;
+use super::HttpDiscover;
 use super::OidcReqwestClient;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -46,37 +48,51 @@ pub enum OidcError {
     #[error("transport error: {0}")]
     #[category(expected)]
     Http(#[from] reqwest::Error),
+
     #[error("url: path segments is cannot-be-a-base")]
     #[category(critical)]
     CannotBeABase,
+
     #[error("URL encoding error: {0}")]
     UrlEncoding(#[from] serde_urlencoded::ser::Error),
+
     #[error("URL decoding error: {0}")]
     UrlDecoding(#[from] serde::de::value::Error),
+
     #[error("error requesting authorization code: {0:?}")]
     RedirectUriError(Box<ErrorResponse<AuthorizationErrorCode>>),
+
     #[error("error requesting access token: {0:?}")]
     RequestingAccessToken(Box<ErrorResponse<TokenErrorCode>>),
+
     #[error("error requesting userinfo: {0:?}")]
     RequestingUserInfo(Box<ErrorResponse<AuthBearerErrorCode>>),
+
     #[error("invalid state token received in redirect URI")]
     #[category(critical)]
     StateTokenMismatch,
+
     #[error("no authorization code received in redirect URI")]
     #[category(critical)]
     NoAuthCode,
+
     #[error("invalid redirect URI received")]
     #[category(critical)]
     RedirectUriMismatch,
+
     #[error("JOSE error: {0}")]
     JoseKit(#[from] JoseError),
+
     #[error("JWE error: {0}")]
     Jwe(#[from] BiscuitError),
+
     #[error("JWE validation error: {0}")]
     JweValidation(#[from] biscuit::errors::ValidationError),
+
     #[error("config has no userinfo url")]
     #[category(critical)]
     NoUserinfoUrl,
+
     #[error("user denied authentication")]
     #[category(expected)]
     Denied,
@@ -84,98 +100,59 @@ pub enum OidcError {
 
 const APPLICATION_JWT: &str = "application/jwt";
 
-/// This trait is used to isolate the [`HttpOidcClient`], along with [`reqwest`] on which it depends.
-#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
-pub trait OidcClient {
-    /// Create a new instance by using OpenID discovery, and return an authorization URL.
-    async fn start(
-        http_client: &OidcReqwestClient,
+/// Produces an [`AuthorizationServer`] by performing OIDC discovery.
+pub trait OidcDiscovery {
+    type Server: AuthorizationServer;
+
+    /// Perform OIDC discovery and start an authorization flow, returning an [`AuthorizationServer`]
+    /// (for later token exchange) and the authorization URL to redirect the user to.
+    async fn discover(
+        &self,
+        authorization_server: &IssuerIdentifier,
         client_id: String,
         redirect_uri: Url,
-    ) -> Result<(Self, Url), OidcError>
-    where
-        Self: Sized;
+    ) -> Result<(Self::Server, Url), OidcError>;
+}
 
-    /// Create an OpenID Token Request based on the contents
-    /// of the redirect URI received.
+/// Returned by [`OidcDiscovery::discover`]. Holds the state of an in-progress authorization code flow
+/// and is consumed by [`into_token_request`] once the user redirects back.
+///
+/// [`into_token_request`]: AuthorizationServer::into_token_request
+pub trait AuthorizationServer {
+    /// Create an OpenID Token Request based on the contents of the redirect URI received.
     ///
-    /// Note that this consumes the [`OidcClient`], either on success or failure.
-    /// Retrying this operation is entirely possible, but most likely not something
-    /// that the UI will present to the user, instead they will have to start a new session.
-    /// For the purpose of simplification, that means that this operation is transactional
-    /// here as well.
+    /// Note that this consumes the [`AuthorizationServer`], either on success or failure.
     fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, OidcError>;
 }
 
-/// An OpenID Connect client.
-pub struct HttpOidcClient<P = S256PkcePair> {
-    pub provider: Config,
-    pub jwks: Option<JWKSet<Empty>>,
-
+/// The discovered authorization server state for an in-progress OIDC authorization code flow.
+pub struct HttpAuthorizationServer<P = S256PkcePair> {
+    provider: Config,
+    pub jwks: Option<JWKSet<Empty>>, // TODO: remove or reuse in `request_userinfo`
     client_id: String,
     redirect_uri: Url,
-
     pkce_pair: P,
     state: String,
     nonce: String,
 }
 
-impl<P> OidcClient for HttpOidcClient<P>
-where
-    P: PkcePair,
-{
-    async fn start(
-        http_client: &OidcReqwestClient,
-        client_id: String,
-        redirect_uri: Url,
-    ) -> Result<(Self, Url), OidcError>
-    where
-        Self: Sized,
-    {
-        // Note that the same TLS pinning configuration is used for both the discovery request and the JWKS request,
-        // even though the URLs could in theory point to different hosts.
-        let config = Config::discover(http_client).await?;
-        let jwks = config.jwks(http_client).await?;
-
-        let client = Self::new(config, jwks, client_id, redirect_uri);
-
-        let mut url = client.provider.authorization_endpoint.clone();
-        url.set_query(Some(&client.url_encoded_auth_request()?));
-
-        Ok((client, url))
-    }
-
-    fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, OidcError> {
-        let pre_authorized_code = self.authorization_code(received_redirect_uri)?;
-        let token_request = TokenRequest {
-            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
-            code_verifier: Some(self.pkce_pair.into_code_verifier()),
-            client_id: Some(self.client_id),
-            redirect_uri: Some(self.redirect_uri),
-        };
-        Ok(token_request)
-    }
-}
-
-impl<P: PkcePair> HttpOidcClient<P> {
-    pub fn new(config: Config, jwks: JWKSet<Empty>, client_id: String, redirect_uri: Url) -> Self {
+impl<P: PkcePair> HttpAuthorizationServer<P> {
+    fn new(config: Config, jwks: JWKSet<Empty>, client_id: String, redirect_uri: Url) -> Self {
         let csrf_token = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
         let nonce = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
         let pkce_pair = P::generate();
 
-        HttpOidcClient {
+        Self {
             provider: config,
+            jwks: Some(jwks),
             client_id,
             redirect_uri,
-            jwks: Some(jwks),
             pkce_pair,
             state: csrf_token,
             nonce,
         }
     }
 
-    // If and when we support PAR (Pushed Authorization Requests, https://datatracker.ietf.org/doc/html/rfc9126)
-    // we can make this method public.
     fn url_encoded_auth_request(&self) -> Result<String, OidcError> {
         let params = AuthorizationRequest {
             response_type: ResponseType::Code.into(),
@@ -226,19 +203,79 @@ impl<P: PkcePair> HttpOidcClient<P> {
     }
 }
 
+impl<P: PkcePair> AuthorizationServer for HttpAuthorizationServer<P> {
+    fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, OidcError> {
+        let pre_authorized_code = self.authorization_code(received_redirect_uri)?;
+
+        let token_request = TokenRequest {
+            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+            code_verifier: Some(self.pkce_pair.into_code_verifier()),
+            client_id: Some(self.client_id),
+            redirect_uri: Some(self.redirect_uri),
+        };
+
+        Ok(token_request)
+    }
+}
+
+/// Performs OIDC discovery to produce an [`HttpAuthorizationServer`].
+pub struct HttpOidcDiscovery {
+    http_client: OidcReqwestClient,
+}
+
+impl HttpOidcDiscovery {
+    pub fn new(http_client: OidcReqwestClient) -> Self {
+        Self { http_client }
+    }
+
+    pub async fn start<D, P>(
+        &self,
+        authorization_server: &IssuerIdentifier,
+        client_id: String,
+        redirect_uri: Url,
+        discovery: &D,
+    ) -> Result<(HttpAuthorizationServer<P>, Url), OidcError>
+    where
+        D: Discover<Config, OidcError>,
+        P: PkcePair,
+    {
+        let config = discovery.discover(authorization_server).await?;
+        let jwks = config.jwks(&self.http_client).await?;
+
+        let server = HttpAuthorizationServer::new(config, jwks, client_id, redirect_uri);
+
+        let mut url = server.provider.authorization_endpoint.clone();
+        url.set_query(Some(&server.url_encoded_auth_request()?));
+
+        Ok((server, url))
+    }
+}
+
+impl OidcDiscovery for HttpOidcDiscovery {
+    type Server = HttpAuthorizationServer;
+
+    async fn discover(
+        &self,
+        authorization_server: &IssuerIdentifier,
+        client_id: String,
+        redirect_uri: Url,
+    ) -> Result<(HttpAuthorizationServer, Url), OidcError> {
+        let discovery = HttpDiscover::new(self.http_client.clone());
+        self.start(authorization_server, client_id, redirect_uri, &discovery)
+            .await
+    }
+}
+
 async fn request_userinfo_jwt(
     http_client: &OidcReqwestClient,
     config: &Config,
     token_request: TokenRequest,
 ) -> Result<String, OidcError> {
     // Get userinfo endpoint from discovery, throw an error otherwise.
-    let endpoint = config.userinfo_endpoint.as_ref().ok_or(OidcError::NoUserinfoUrl)?;
+    let endpoint = config.userinfo_endpoint.clone().ok_or(OidcError::NoUserinfoUrl)?;
 
     let token_response = http_client
-        .as_ref()
-        .send_custom_post(ReqwestClientUrl::Absolute(config.token_endpoint.clone()), |request| {
-            request.form(&token_request)
-        })
+        .post(config.token_endpoint.clone(), |request| request.form(&token_request))
         .map_err(OidcError::from)
         .and_then(|response| async {
             // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
@@ -256,8 +293,7 @@ async fn request_userinfo_jwt(
 
     // Use the access_token to retrieve the userinfo as a JWT.
     let jwt = http_client
-        .as_ref()
-        .send_custom_post(ReqwestClientUrl::Absolute(endpoint.clone()), |request| {
+        .post(endpoint, |request| {
             request
                 .header(header::ACCEPT, APPLICATION_JWT)
                 .bearer_auth(token_response.access_token.as_ref())
@@ -302,6 +338,7 @@ fn decrypt_jwe(
 
 pub async fn request_userinfo<C, H>(
     http_client: &OidcReqwestClient,
+    authorization_server: &IssuerIdentifier,
     token_request: TokenRequest,
     expected_sig_alg: SignatureAlgorithm,
     encryption: Option<(&impl JweDecrypter, &impl JweContentEncryption)>,
@@ -312,7 +349,10 @@ where
 {
     // Note that the same TLS pinning configuration is used for both the discovery request and any of the subsequent
     // requests, even though the URLs could in theory point to different hosts.
-    let config = Config::discover(http_client).await?;
+    let discovery_url = authorization_server
+        .as_base_url()
+        .join(super::config::OPENID_CONFIGURATION_PATH);
+    let config = Config::discover(http_client, discovery_url).await?; // TODO: this has already been done
 
     let (jwt, jwks) = try_join!(
         request_userinfo_jwt(http_client, &config, token_request),
@@ -335,6 +375,48 @@ where
     Ok(decoded_jws)
 }
 
+#[cfg(any(test, feature = "mock"))]
+mockall::mock! {
+    #[derive(Debug)]
+    pub AuthorizationServer {
+        pub fn token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, OidcError>;
+    }
+}
+
+#[cfg(any(test, feature = "mock"))]
+impl AuthorizationServer for MockAuthorizationServer {
+    fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, OidcError> {
+        self.token_request(received_redirect_uri)
+    }
+}
+
+#[cfg(any(test, feature = "mock"))]
+mockall::mock! {
+    #[derive(Debug)]
+    pub OidcDiscovery {
+        pub fn start_sync(
+            &self,
+            authorization_server: &IssuerIdentifier,
+            client_id: String,
+            redirect_uri: Url,
+        ) -> Result<(MockAuthorizationServer, Url), OidcError>;
+    }
+}
+
+#[cfg(any(test, feature = "mock"))]
+impl OidcDiscovery for MockOidcDiscovery {
+    type Server = MockAuthorizationServer;
+
+    async fn discover(
+        &self,
+        authorization_server: &IssuerIdentifier,
+        client_id: String,
+        redirect_uri: Url,
+    ) -> Result<(MockAuthorizationServer, Url), OidcError> {
+        self.start_sync(authorization_server, client_id, redirect_uri)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
@@ -343,20 +425,33 @@ mod tests {
     use serial_test::serial;
     use url::Url;
 
-    use http_utils::client::InternalHttpConfig;
+    use http_utils::urls::BaseUrl;
 
     use crate::AuthorizationErrorCode;
     use crate::issuer_identifier::IssuerIdentifier;
+    use crate::oidc::Discover;
     use crate::oidc::tests::start_discovery_server;
     use crate::pkce::MockPkcePair;
-    use crate::pkce::S256PkcePair;
     use crate::token::TokenRequestGrantType;
 
+    use super::super::config::OPENID_CONFIGURATION_PATH;
+    use super::AuthorizationServer;
     use super::Config;
-    use super::HttpOidcClient;
-    use super::OidcClient;
+    use super::HttpAuthorizationServer;
+    use super::HttpOidcDiscovery;
     use super::OidcError;
     use super::OidcReqwestClient;
+
+    /// A test discoverer that bypasses `IssuerIdentifier` HTTPS requirement by using a `BaseUrl` directly.
+    struct TestDiscover(BaseUrl);
+
+    impl Discover<Config, OidcError> for TestDiscover {
+        async fn discover(&self, _identifier: &IssuerIdentifier) -> Result<Config, OidcError> {
+            let client = OidcReqwestClient::try_new().unwrap();
+            let url = self.0.join(OPENID_CONFIGURATION_PATH);
+            Config::discover(&client, url).await
+        }
+    }
 
     // These constants are used by multiple tests.
     const ISSUER_URL: &str = "https://example.com";
@@ -388,22 +483,29 @@ mod tests {
             pkce_pair
         });
 
-        // Create an OIDC client with start()
+        // Create an OIDC discovery with start_with_discover()
         let (_server, server_url) = start_discovery_server().await;
-        let client = OidcReqwestClient::try_new(InternalHttpConfig::try_new(server_url.clone()).unwrap()).unwrap();
+        let http_client = OidcReqwestClient::try_new().unwrap();
+        let authorization_server: IssuerIdentifier = "https://example.com/".parse().unwrap();
         let redirect_uri: Url = REDIRECT_URI.parse().unwrap();
-        let (client, auth_url) =
-            HttpOidcClient::<MockPkcePair>::start(&client, CLIENT_ID.to_string(), redirect_uri.clone())
-                .await
-                .unwrap();
+        let discovery = HttpOidcDiscovery::new(http_client);
+        let (server, auth_url) = discovery
+            .start::<_, MockPkcePair>(
+                &authorization_server,
+                CLIENT_ID.to_string(),
+                redirect_uri.clone(),
+                &TestDiscover(server_url.clone()),
+            )
+            .await
+            .unwrap();
 
-        assert_eq!(&client.client_id, CLIENT_ID);
-        assert_eq!(client.redirect_uri, redirect_uri);
+        assert_eq!(&server.client_id, CLIENT_ID);
+        assert_eq!(server.redirect_uri, redirect_uri);
         assert!(auth_url.as_str().starts_with(server_url.as_ref().as_str()));
 
         // Convert it to a token request
-        let state = client.state.clone();
-        let token_request = client
+        let state = server.state.clone();
+        let token_request = server
             .into_token_request(&redirect_uri.join(&format!("?code={CODE}&state={state}")).unwrap())
             .unwrap();
 
@@ -431,15 +533,23 @@ mod tests {
         });
 
         let (_server, server_url) = start_discovery_server().await;
-        let client = OidcReqwestClient::try_new(InternalHttpConfig::try_new(server_url.clone()).unwrap()).unwrap();
+        let http_client = OidcReqwestClient::try_new().unwrap();
+        let authorization_server: IssuerIdentifier = "https://example.com/".parse().unwrap();
         let redirect_uri: Url = REDIRECT_URI.parse().unwrap();
-        let (client, _) = HttpOidcClient::<MockPkcePair>::start(&client, CLIENT_ID.to_string(), redirect_uri.clone())
+        let discovery = HttpOidcDiscovery::new(http_client);
+        let (server, _) = discovery
+            .start::<_, MockPkcePair>(
+                &authorization_server,
+                CLIENT_ID.to_string(),
+                redirect_uri.clone(),
+                &TestDiscover(server_url.clone()),
+            )
             .await
             .unwrap();
 
         // Convert it to a token request
-        let state = client.state.clone();
-        let error = client
+        let state = server.state.clone();
+        let error = server
             .into_token_request(
                 &redirect_uri
                     .join(&format!("?error=access_denied&state={state}"))
@@ -450,13 +560,13 @@ mod tests {
         assert_matches!(error, OidcError::Denied);
     }
 
-    fn create_client() -> HttpOidcClient<MockPkcePair> {
+    fn create_server() -> HttpAuthorizationServer<MockPkcePair> {
         let issuer_identifier = ISSUER_URL.parse::<IssuerIdentifier>().unwrap();
 
         let mut pkce_pair = MockPkcePair::new();
         pkce_pair.expect_code_challenge().return_const("challenge".to_string());
 
-        HttpOidcClient {
+        HttpAuthorizationServer {
             provider: Config::new_mock(issuer_identifier),
             jwks: Some(JWKSet { keys: vec![] }),
             client_id: CLIENT_ID.to_string(),
@@ -469,10 +579,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_auth_url() {
-        let client = create_client();
+        let server = create_server();
 
         // Generate authentication URL
-        let auth_request = client.url_encoded_auth_request().unwrap();
+        let auth_request = server.url_encoded_auth_request().unwrap();
 
         #[rustfmt::skip]
         assert_eq!(
@@ -490,30 +600,33 @@ mod tests {
 
     #[test]
     fn test_matches_received_redirect_uri() {
-        let client = create_client();
+        let server = create_server();
 
         // These URIs should match the `base_redirect_uri`.
-        assert!(client.matches_received_redirect_uri(&Url::parse(REDIRECT_URI).unwrap()));
-        assert!(client.matches_received_redirect_uri(&url_with_query_pairs(
+        assert!(server.matches_received_redirect_uri(&Url::parse(REDIRECT_URI).unwrap()));
+        assert!(server.matches_received_redirect_uri(&url_with_query_pairs(
             Url::parse(REDIRECT_URI).unwrap(),
             &[("foo", "bar"), ("bleh", "blah")]
         )));
 
         // These URIs should NOT match the `base_redirect_uri`.
-        assert!(!client.matches_received_redirect_uri(&Url::parse("https://example.com").unwrap()));
-        assert!(!client.matches_received_redirect_uri(&Url::parse("scheme://host/path").unwrap()));
+        assert!(!server.matches_received_redirect_uri(&Url::parse("https://example.com").unwrap()));
+        assert!(!server.matches_received_redirect_uri(&Url::parse("scheme://host/path").unwrap()));
     }
 
-    // Helper function for testing `Client::token_request()` calls that should result in an error.
+    // Helper function for testing `AuthorizationServer::into_token_request()` calls that should result in an error.
     fn parse_request_uri(uri: &Url) -> OidcError {
-        let client = HttpOidcClient::<S256PkcePair>::new(
-            Config::new_mock(ISSUER_URL.parse().unwrap()),
-            JWKSet { keys: vec![] },
-            CLIENT_ID.to_string(),
-            REDIRECT_URI.parse().unwrap(),
-        );
+        let server = HttpAuthorizationServer::<MockPkcePair> {
+            provider: Config::new_mock(ISSUER_URL.parse().unwrap()),
+            jwks: Some(JWKSet { keys: vec![] }),
+            client_id: CLIENT_ID.to_string(),
+            redirect_uri: REDIRECT_URI.parse().unwrap(),
+            pkce_pair: MockPkcePair::new(),
+            state: CSRF_TOKEN.to_string(),
+            nonce: "nonce".to_string(),
+        };
 
-        client
+        server
             .into_token_request(uri)
             .expect_err("Getting access token should have failed")
     }
@@ -573,18 +686,18 @@ mod tests {
 
     #[test]
     fn test_into_token_request() {
-        let mut client = create_client();
+        let mut server = create_server();
 
-        client
+        server
             .pkce_pair
             .expect_into_code_verifier()
             .return_const("code_verifier".to_string());
 
         let redirect_uri = Url::parse(REDIRECT_URI).unwrap();
-        let received_redirect_uri =
-            url_with_query_pairs(redirect_uri.clone(), &[("state", &client.state), ("code", "123")]);
+        let state = server.state.clone();
+        let received_redirect_uri = url_with_query_pairs(redirect_uri.clone(), &[("state", &state), ("code", "123")]);
 
-        let token_request = client.into_token_request(&received_redirect_uri).unwrap();
+        let token_request = server.into_token_request(&received_redirect_uri).unwrap();
 
         assert_eq!(token_request.client_id, Some(CLIENT_ID.to_string()));
         assert_eq!(token_request.code_verifier, Some("code_verifier".to_string()));
@@ -597,14 +710,14 @@ mod tests {
 
     #[test]
     fn test_get_authorization_url() {
-        let client = create_client();
+        let server = create_server();
 
         let redirect_uri = url_with_query_pairs(
             Url::parse(REDIRECT_URI).unwrap(),
-            &[("state", &client.state), ("code", "123")],
+            &[("state", &server.state), ("code", "123")],
         );
 
-        assert_eq!(client.authorization_code(&redirect_uri).unwrap().as_ref(), "123");
+        assert_eq!(server.authorization_code(&redirect_uri).unwrap().as_ref(), "123");
     }
 
     pub fn url_with_query_pairs(mut url: Url, query_pairs: &[(&str, &str)]) -> Url {

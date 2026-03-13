@@ -18,7 +18,7 @@ use wallet::errors::DisclosureError;
 use tests_integration::common::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn test_revocation_pid_ok() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
@@ -46,7 +46,7 @@ async fn test_revocation_pid_ok() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn test_revocation_degree_ok() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";

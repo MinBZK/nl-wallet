@@ -14,8 +14,9 @@ use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClientError;
-use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
-use openid4vc::oidc::OidcClient;
+use openid4vc::issuance_session::CredentialIssuer;
+use openid4vc::issuance_session::CredentialIssuerDiscovery;
+use openid4vc::oidc::OidcDiscovery;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -71,15 +72,15 @@ pub enum DisclosureBasedIssuanceError {
 // However, the `flutter_api` already knows which flow it is in anyway, because it displays
 // different things to the user in each flow. So keeping this a distinct method is more
 // pragmatic.
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     S: Storage,
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
-    OC: OidcClient,
-    IS: Openid4vcIssuanceSession,
+    OD: OidcDiscovery,
+    CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
 {
     #[instrument(skip_all)]
@@ -148,11 +149,20 @@ where
             redirect_uri: None,
         };
 
+        let discovered = self
+            .credential_issuer_discovery
+            .discover(&credential_offer.credential_issuer)
+            .await
+            .map_err(IssuanceError::IssuanceSession)?;
+
+        let issuance_session = discovered
+            .start_issuance(token_request, &config.issuer_trust_anchors())
+            .await
+            .map_err(IssuanceError::from)?;
+
         let previews = self
             .issuance_fetch_previews(
-                token_request,
-                credential_offer.credential_issuer,
-                &config.issuer_trust_anchors(),
+                issuance_session,
                 None, // we're not doing PID issuance
             )
             .await?;
@@ -168,7 +178,6 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use rstest::rstest;
-    use serial_test::serial;
     use utils::vec_nonempty;
     use uuid::Uuid;
 
@@ -195,6 +204,7 @@ mod tests {
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpSessionError;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
+    use openid4vc::mock::MockCredentialIssuer;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::verifier::DisclosureResultHandlerError;
     use openid4vc::verifier::PostAuthResponseError;
@@ -271,7 +281,6 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    #[serial(MockIssuanceSession)]
     async fn test_wallet_accept_disclosure_based_issuance(
         #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
     ) {
@@ -302,18 +311,24 @@ mod tests {
 
         // Setup wallet issuance state
         let credential_preview = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::MsoMdoc);
-        let start_context = MockIssuanceSession::start_context();
-        start_context.expect().return_once(|| {
-            let mut client = MockIssuanceSession::new();
+        wallet
+            .credential_issuer_discovery
+            .expect_discover_sync()
+            .return_once(move |_| {
+                let mut issuer = MockCredentialIssuer::new();
+                issuer.expect_start().return_once(move |_| {
+                    let mut client = MockIssuanceSession::new();
 
-            client
-                .expect_normalized_credential_previews()
-                .return_const(vec![credential_preview]);
+                    client
+                        .expect_normalized_credential_previews()
+                        .return_const(vec![credential_preview]);
 
-            client.expect_issuer().return_const(IssuerRegistration::new_mock());
+                    client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
-            Ok(client)
-        });
+                    Ok(client)
+                });
+                Ok(issuer)
+            });
 
         wallet
             .mut_storage()

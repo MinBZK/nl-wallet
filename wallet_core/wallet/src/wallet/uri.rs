@@ -8,7 +8,9 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::urls;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::oidc::OidcClient;
+use openid4vc::issuance_session::CredentialIssuerDiscovery;
+use openid4vc::oidc::OidcDiscovery;
+
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -65,11 +67,12 @@ pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
     None
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
+    OD: OidcDiscovery,
+    CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
 {
     #[instrument(skip_all)]
@@ -106,7 +109,7 @@ where
                 if matches!(
                     self.session,
                     Some(Session::PinRecovery {
-                        session: PinRecoverySession::Oidc(_),
+                        session: PinRecoverySession::Oidc { .. },
                         ..
                     })
                 ) =>
@@ -171,7 +174,8 @@ mod tests {
         // Set up an enrollment `DigidSession` that will match the URI.
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            session: mock_oidc_session(),
+            oidc_session: mock_oidc_session(),
+            discovered: openid4vc::mock::MockCredentialIssuer::new(),
         });
 
         // The wallet should now recognise the DigiD URI.
@@ -180,7 +184,8 @@ mod tests {
         // Set up a PID renewal `DigidSession` that will match the URI.
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Renewal,
-            session: mock_oidc_session(),
+            oidc_session: mock_oidc_session(),
+            discovered: openid4vc::mock::MockCredentialIssuer::new(),
         });
 
         // The wallet should now recognise the DigiD URI.

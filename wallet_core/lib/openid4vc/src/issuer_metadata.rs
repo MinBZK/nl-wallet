@@ -27,6 +27,9 @@ use crate::issuer_identifier::IssuerUrl;
 use crate::jwe::JweAlgorithm;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
+use crate::oidc::Discover;
+use crate::oidc::HttpDiscover;
+use crate::oidc::OidcReqwestClient;
 
 /// Credential issuer metadata, as per
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4>.
@@ -118,22 +121,16 @@ pub enum IssuerMetadataDiscoveryError {
 impl IssuerMetadata {
     /// Discover the Credential Issuer metadata by GETting it from .well-known and parsing it.
     pub async fn discover(
-        client: &reqwest::Client,
+        client: &OidcReqwestClient,
         issuer_identifier: &IssuerIdentifier,
     ) -> Result<Self, IssuerMetadataDiscoveryError> {
         // TODO (PVW-5527): Composing of the `.well-known` path below is not compliant
         //                  with the OpenID4VCI specification and should be fixed.
-        let metadata = client
-            .get(
-                issuer_identifier
-                    .as_base_url()
-                    .join("/.well-known/openid-credential-issuer"),
-            )
-            .send()
-            .await?
-            .error_for_status()?
-            .json::<Self>()
-            .await?;
+        let url = issuer_identifier
+            .as_base_url()
+            .join("/.well-known/openid-credential-issuer");
+
+        let metadata: IssuerMetadata = client.get(url).await?;
 
         // As per specification, "The [credential issuer] MUST be identical to the Credential Issuer's identifier value
         // into which the well-known URI string was inserted to create the URL used to retrieve the metadata. If these
@@ -167,6 +164,12 @@ impl IssuerMetadata {
         self.batch_credential_issuance
             .map(|batch_issuance| batch_issuance.batch_size.into())
             .unwrap_or(NonZeroU64::MIN)
+    }
+}
+
+impl Discover<IssuerMetadata, IssuerMetadataDiscoveryError> for HttpDiscover {
+    async fn discover(&self, identifier: &IssuerIdentifier) -> Result<IssuerMetadata, IssuerMetadataDiscoveryError> {
+        IssuerMetadata::discover(self.as_ref(), identifier).await
     }
 }
 

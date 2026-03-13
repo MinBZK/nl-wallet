@@ -21,7 +21,9 @@ use uuid::Uuid;
 
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::oidc::OidcClient;
+use openid4vc::issuance_session::CredentialIssuerDiscovery;
+use openid4vc::oidc::OidcDiscovery;
+
 use platform_support::attested_key::AttestedKeyHolder;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
@@ -82,12 +84,13 @@ impl<S, SLC, CR> Clone for RevocationTaskContext<S, SLC, CR> {
     }
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
+    OD: OidcDiscovery,
+    CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
     SLC: StatusListClient,
 {

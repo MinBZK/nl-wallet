@@ -2,6 +2,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use http_utils::client::TlsPinningConfig;
+use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::oidc;
 use openid4vc::oidc::BiscuitError;
 use openid4vc::oidc::Empty;
@@ -40,13 +41,21 @@ pub enum Error {
 pub struct OpenIdClient {
     decrypter_private_key: RsaesJweDecrypter,
     http_client: OidcReqwestClient,
+    authorization_server: IssuerIdentifier,
 }
 
 impl OpenIdClient {
-    pub fn try_new(bsn_privkey: &str, http_config: TlsPinningConfig) -> Result<Self> {
+    pub fn try_new(bsn_privkey: &str, http_config: &TlsPinningConfig) -> Result<Self> {
+        let authorization_server: IssuerIdentifier = http_config
+            .base_url()
+            .as_ref()
+            .as_str()
+            .parse()
+            .expect("TlsPinningConfig base URL should be a valid IssuerIdentifier");
         let userinfo_client = OpenIdClient {
             decrypter_private_key: Self::decrypter(bsn_privkey)?,
-            http_client: OidcReqwestClient::try_new(http_config)?,
+            http_client: OidcReqwestClient::try_new()?,
+            authorization_server,
         };
 
         Ok(userinfo_client)
@@ -55,6 +64,7 @@ impl OpenIdClient {
     pub async fn bsn(&self, token_request: TokenRequest) -> Result<String> {
         let userinfo_claims: JWT<UserInfo, Empty> = oidc::request_userinfo(
             &self.http_client,
+            &self.authorization_server,
             token_request,
             SignatureAlgorithm::RS256,
             Some((&self.decrypter_private_key, &AescbcHmacJweEncryption::A128cbcHs256)),
@@ -74,7 +84,11 @@ impl OpenIdClient {
     }
 
     pub async fn discover_metadata(&self) -> Result<oidc::Config> {
-        let metadata = oidc::Config::discover(&self.http_client).await?;
+        let url = self
+            .authorization_server
+            .as_base_url()
+            .join(oidc::OPENID_CONFIGURATION_PATH);
+        let metadata = oidc::Config::discover(&self.http_client, url).await?;
         Ok(metadata)
     }
 }

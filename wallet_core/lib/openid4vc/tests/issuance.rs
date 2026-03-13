@@ -156,9 +156,10 @@ async fn accept_issuance(#[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap
     let message_client = MockOpenidMessageClient::new(issuer);
     let copy_count = 4;
 
-    let session = HttpIssuanceSession::start_issuance(
+    let issuer_metadata = message_client.discover_metadata(&issuer_identifier).await.unwrap();
+    let session = HttpIssuanceSession::start_issuance_inner(
         message_client,
-        issuer_identifier,
+        issuer_metadata,
         TokenRequest::new_mock(),
         trust_anchors,
     )
@@ -197,9 +198,10 @@ async fn reject_issuance() {
     let (issuer, trust_anchor, issuer_identifier, _) = setup_mock_issuer(NonZeroUsize::MIN);
     let message_client = MockOpenidMessageClient::new(issuer);
 
-    let session = HttpIssuanceSession::start_issuance(
+    let issuer_metadata = message_client.discover_metadata(&issuer_identifier).await.unwrap();
+    let session = HttpIssuanceSession::start_issuance_inner(
         message_client,
-        issuer_identifier,
+        issuer_metadata,
         TokenRequest::new_mock(),
         &[trust_anchor],
     )
@@ -216,9 +218,10 @@ async fn start_and_accept_err(
     wua_issuer_privkey: SigningKey,
 ) -> IssuanceSessionError {
     let trust_anchors = &[trust_anchor];
-    let session = HttpIssuanceSession::start_issuance(
+    let issuer_metadata = message_client.discover_metadata(&issuer_identifier).await.unwrap();
+    let session = HttpIssuanceSession::start_issuance_inner(
         message_client,
-        issuer_identifier,
+        issuer_metadata,
         TokenRequest::new_mock(),
         trust_anchors,
     )

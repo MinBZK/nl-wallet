@@ -12,7 +12,11 @@ use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::default_reqwest_client_builder;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
-use openid4vc::oidc::OidcClient;
+use openid4vc::issuance_session::CredentialIssuerDiscovery;
+use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
+use openid4vc::oidc::HttpOidcDiscovery;
+use openid4vc::oidc::OidcDiscovery;
+use openid4vc::oidc::OidcReqwestClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use platform_support::utils::PlatformUtilities;
@@ -53,10 +57,13 @@ const REVOCATION_CHECK_FREQUENCY: Duration = Duration::from_secs(24 * 60 * 60);
 pub enum WalletInitError {
     #[error("wallet configuration error")]
     Configuration(#[from] ConfigurationError),
+
     #[error("platform utilities error: {0}")]
     Utilities(#[from] UtilitiesError),
+
     #[error("could not initialize database: {0}")]
     Database(#[from] StorageError),
+
     #[error("could not initialize HTTP client: {0}")]
     #[category(critical)]
     HttpClient(#[from] reqwest::Error),
@@ -95,20 +102,19 @@ async fn init_mock_key_holder() -> platform_support::attested_key::mock::Persist
     PersistentMockAttestedKeyHolder::new_mock_xcode(apple_attestation_environment)
 }
 
-impl<APC, OC, IS>
+impl<APC>
     Wallet<
         WalletConfigurationRepository,
         UpdatePolicyRepository,
         DatabaseStorage<HardwareEncryptionKey>,
         KeyHolderType,
         APC,
-        OC,
-        IS,
+        HttpOidcDiscovery,
+        HttpCredentialIssuerDiscovery,
         VpDisclosureClient,
     >
 where
     APC: Default,
-    OC: OidcClient,
 {
     #[sentry_capture_error]
     pub async fn init_all() -> Result<Self, WalletInitError> {
@@ -134,6 +140,13 @@ where
         )
         .await?;
 
+        let oidc_reqwest_client = OidcReqwestClient::try_new()?;
+        let credential_issuer_discovery = HttpCredentialIssuerDiscovery::new(
+            config_repository.get().pid_issuance.client_id.clone(),
+            oidc_reqwest_client.clone(),
+        );
+        let oidc_discovery = HttpOidcDiscovery::new(oidc_reqwest_client);
+
         let wallet_clients = WalletClients::new_http()?;
 
         Self::init_registration(
@@ -141,6 +154,8 @@ where
             update_policy_repository,
             storage,
             key_holder,
+            credential_issuer_discovery,
+            oidc_discovery,
             wallet_clients,
         )
         .await
@@ -172,10 +187,11 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
 where
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
+    OD: OidcDiscovery,
+    CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
     SLC: StatusListClient,
 {
@@ -184,6 +200,8 @@ where
         update_policy_repository: UR,
         storage: S,
         key_holder: AKH,
+        credential_issuer_discovery: CID,
+        oidc_discovery: OD,
         wallet_clients: WalletClients<APC, DCC, SLC>,
         registration_status: RegistrationStatus,
     ) -> Self {
@@ -215,6 +233,8 @@ where
             key_holder,
             registration,
             account_provider_client: Arc::new(wallet_clients.account_provider_client),
+            oidc_discovery,
+            credential_issuer_discovery,
             disclosure_client: wallet_clients.disclosure_client,
             status_list_client: Arc::new(wallet_clients.status_list_client),
             session: None,
@@ -233,6 +253,8 @@ where
         update_policy_repository: UR,
         mut storage: S,
         key_holder: AKH,
+        credential_issuer_discovery: CID,
+        oidc_discovery: OD,
         wallet_clients: WalletClients<APC, DCC, SLC>,
     ) -> Result<Self, WalletInitError>
     where
@@ -251,6 +273,8 @@ where
             update_policy_repository,
             storage,
             key_holder,
+            credential_issuer_discovery,
+            oidc_discovery,
             wallet_clients,
             registration_status,
         );
@@ -261,11 +285,12 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
+    OD: OidcDiscovery,
+    CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
     SLC: StatusListClient,
 {

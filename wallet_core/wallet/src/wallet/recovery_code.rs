@@ -5,9 +5,10 @@ use dcql::CredentialFormat;
 use error_category::ErrorCategory;
 use openid4vc::Format;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::IssuanceSession;
+use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
-use openid4vc::oidc::OidcClient;
+use openid4vc::oidc::OidcDiscovery;
+
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::PidAttributesConfigurationError;
@@ -42,12 +43,12 @@ pub enum RecoveryCodeError {
     PidAttributesConfiguration(#[from] PidAttributesConfigurationError),
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
-    IS: IssuanceSession,
+    OD: OidcDiscovery,
+    CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
 {
     pub(super) fn pid_preview<'a>(

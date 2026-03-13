@@ -8,12 +8,14 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use http_utils::reqwest::ReqwestClientUrl;
-
 use crate::issuer_identifier::IssuerIdentifier;
 
+use super::Discover;
+use super::HttpDiscover;
 use super::OidcError;
 use super::OidcReqwestClient;
+
+pub const OPENID_CONFIGURATION_PATH: &str = ".well-known/openid-configuration";
 
 /// OpenID metadata as defind by https://openid.net/specs/openid-connect-discovery-1_0.html,
 /// to be published at `.well-known/openid-configuration`.
@@ -144,16 +146,8 @@ impl Config {
         }
     }
 
-    pub async fn discover(http_client: &OidcReqwestClient) -> Result<Self, OidcError> {
-        // If the Issuer value contains a path component, any terminating / MUST be removed before
-        // appending /.well-known/openid-configuration.
-        let config = http_client
-            .as_ref()
-            .send_get(ReqwestClientUrl::Relative(".well-known/openid-configuration"))
-            .await?
-            .error_for_status()?
-            .json()
-            .await?;
+    pub async fn discover(http_client: &OidcReqwestClient, url: Url) -> Result<Self, OidcError> {
+        let config = http_client.get(url).await?;
 
         Ok(config)
     }
@@ -161,15 +155,16 @@ impl Config {
     /// Get the JWK set from the given Url. Errors are either a reqwest error or an Insecure error if
     /// the url isn't https.
     pub(super) async fn jwks(&self, http_client: &OidcReqwestClient) -> Result<JWKSet<Empty>, OidcError> {
-        let jwks = http_client
-            .as_ref()
-            .send_get(ReqwestClientUrl::Absolute(self.jwks_uri.clone()))
-            .await?
-            .error_for_status()?
-            .json()
-            .await?;
+        let jwks = http_client.get(self.jwks_uri.clone()).await?;
 
         Ok(jwks)
+    }
+}
+
+impl Discover<Config, OidcError> for HttpDiscover {
+    async fn discover(&self, identifier: &IssuerIdentifier) -> Result<Config, OidcError> {
+        let url = identifier.as_base_url().join(OPENID_CONFIGURATION_PATH);
+        Config::discover(self.as_ref(), url).await
     }
 }
 
@@ -186,7 +181,6 @@ pub mod tests {
     use wiremock::matchers::method;
     use wiremock::matchers::path;
 
-    use http_utils::client::InternalHttpConfig;
     use http_utils::urls::BaseUrl;
 
     use super::super::OidcReqwestClient;
@@ -227,9 +221,10 @@ pub mod tests {
     #[tokio::test]
     async fn test_discovery() {
         let (_server, server_url) = start_discovery_server().await;
-        let client = OidcReqwestClient::try_new(InternalHttpConfig::try_new(server_url.clone()).unwrap()).unwrap();
+        let client = OidcReqwestClient::try_new().unwrap();
+        let discovery_url = server_url.join(".well-known/openid-configuration");
 
-        let discovered = Config::discover(&client).await.unwrap();
+        let discovered = Config::discover(&client, discovery_url).await.unwrap();
 
         assert_eq!(discovered.issuer.as_ref(), "https://example.com/");
 

@@ -61,7 +61,7 @@ impl BrpPidAttributeService {
     pub fn try_new(
         brp_client: HttpBrpClient,
         bsn_privkey: &str,
-        http_config: TlsPinningConfig,
+        http_config: &TlsPinningConfig,
         recovery_code_secret_key: SecretKeyVariant,
         issuer_identifier: IssuerIdentifier,
     ) -> Result<Self, Error> {

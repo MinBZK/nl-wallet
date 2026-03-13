@@ -1,13 +1,12 @@
-use std::hash::Hash;
-
 use tracing::info;
 use url::Url;
 
 use error_category::ErrorCategory;
-use http_utils::reqwest::IntoReqwestClient;
-use openid4vc::oidc::OidcClient;
+use openid4vc::issuer_identifier::IssuerIdentifier;
+use openid4vc::issuer_metadata::IssuerMetadataDiscoveryError;
+use openid4vc::oidc::AuthorizationServer;
+use openid4vc::oidc::OidcDiscovery;
 use openid4vc::oidc::OidcError;
-use openid4vc::oidc::OidcReqwestClient;
 use openid4vc::token::TokenRequest;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -19,56 +18,60 @@ pub enum OidcSessionError {
 
     #[error("OIDC error: {0}")]
     Oidc(#[from] OidcError),
+
+    #[error("issuer metadata error: {0}")]
+    #[category(expected)]
+    IssuerMetadata(#[from] IssuerMetadataDiscoveryError),
 }
 
 /// The state of an OIDC authorization code flow session after OIDC discovery.
-/// Contains the OIDC client (for token exchange) and the authorization URL.
+/// Contains the authorization server (for token exchange) and the authorization URL.
 #[derive(Debug)]
-pub struct OidcSession<O: OidcClient> {
-    pub oidc_client: O,
+pub struct OidcSession<S: AuthorizationServer> {
+    pub oidc_client: S,
     pub auth_url: Url,
 }
 
-impl<O: OidcClient> OidcSession<O> {
+impl<S: AuthorizationServer> OidcSession<S> {
     pub fn into_token_request(self, redirect_uri: &Url) -> Result<TokenRequest, OidcSessionError> {
         let token_request = self.oidc_client.into_token_request(redirect_uri)?;
+
         Ok(token_request)
     }
 }
 
-pub async fn start_oidc_session<O, C>(
+pub async fn start_oidc_session<OD>(
+    oidc_discovery: &OD,
+    auth_server: &IssuerIdentifier,
     client_id: String,
-    http_config: C,
     redirect_uri: Url,
-) -> Result<OidcSession<O>, OidcSessionError>
+) -> Result<OidcSession<OD::Server>, OidcSessionError>
 where
-    C: IntoReqwestClient + Clone + Hash,
-    O: OidcClient,
+    OD: OidcDiscovery,
 {
-    let http_client = OidcReqwestClient::try_new(http_config)?;
-    let (oidc_client, auth_url) = O::start(&http_client, client_id, redirect_uri).await?;
+    let (oidc_client, auth_url) = oidc_discovery.discover(auth_server, client_id, redirect_uri).await?;
 
-    info!("DigiD auth URL generated");
+    info!("OIDC auth URL generated");
 
     Ok(OidcSession { oidc_client, auth_url })
 }
 
 #[cfg(test)]
 pub mod mock {
-    use openid4vc::oidc::MockOidcClient;
+    use openid4vc::oidc::MockAuthorizationServer;
 
     use super::*;
 
     pub const AUTH_URL: &str = "http://example.com/auth";
 
-    pub fn mock_oidc_session() -> OidcSession<MockOidcClient> {
+    pub fn mock_oidc_session() -> OidcSession<MockAuthorizationServer> {
         OidcSession {
-            oidc_client: MockOidcClient::new(),
+            oidc_client: MockAuthorizationServer::new(),
             auth_url: Url::parse(AUTH_URL).unwrap(),
         }
     }
 
-    pub fn mock_oidc_session_tuple() -> (MockOidcClient, Url) {
+    pub fn mock_oidc_session_tuple() -> (MockAuthorizationServer, Url) {
         let OidcSession { oidc_client, auth_url } = mock_oidc_session();
         (oidc_client, auth_url)
     }
@@ -76,11 +79,10 @@ pub mod mock {
 
 #[cfg(test)]
 mod test {
-    use http_utils::client::TlsPinningConfig;
-    use serial_test::serial;
     use url::Url;
 
-    use openid4vc::oidc::MockOidcClient;
+    use openid4vc::oidc::MockAuthorizationServer;
+    use openid4vc::oidc::MockOidcDiscovery;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
 
@@ -100,30 +102,32 @@ mod test {
     }
 
     #[tokio::test]
-    #[serial(MockOidcClient)]
     async fn test_start_session() {
-        // TODO: remove `start_context` and `#[serial(MockOidcClient)]` when implementing ACF (PVW-5575)
-        let oidc_client = MockOidcClient::start_context();
-        oidc_client
-            .expect()
-            .return_once(|_, _, _| Ok((MockOidcClient::default(), Url::parse("https://example.com/").unwrap())));
+        let mut mock_oidc = MockOidcDiscovery::new();
+        mock_oidc.expect_start_sync().return_once(|_, _, _| {
+            Ok((
+                MockAuthorizationServer::default(),
+                Url::parse("https://example.com/").unwrap(),
+            ))
+        });
 
-        let session: OidcSession<MockOidcClient> = start_oidc_session(
+        let session: OidcSession<MockAuthorizationServer> = start_oidc_session(
+            &mock_oidc,
+            &"https://digid.example.com/".parse().unwrap(),
             String::from("client_id"),
-            TlsPinningConfig::try_new("https://digid.example.com".parse().unwrap(), vec![]).unwrap(),
             "https://app.example.com".parse().unwrap(),
         )
         .await
-        .expect("starting DigiD session should succeed");
+        .expect("starting OIDC session should succeed");
 
         assert_eq!(session.auth_url, "https://example.com/".parse().unwrap());
     }
 
     #[tokio::test]
     async fn test_into_token_request() {
-        let mut oidc_client = MockOidcClient::default();
+        let mut oidc_client = MockAuthorizationServer::default();
         oidc_client
-            .expect_into_token_request()
+            .expect_token_request()
             .return_once(|_| Ok(default_token_request()));
 
         let session = super::OidcSession {

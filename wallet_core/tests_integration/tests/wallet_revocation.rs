@@ -13,7 +13,6 @@ use audit_log::entity;
 use db_test::DbSetup;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::trusted_reqwest_client_builder;
-use openid4vc::oidc::MockOidcClient;
 use wallet::AccountRevokedData;
 use wallet::BlockedReason;
 use wallet::PidIssuancePurpose;
@@ -35,7 +34,7 @@ use tests_integration::common::*;
 /// Revoke a wallet via the wallet provider's internal endpoint and assert
 /// that the wallet wipes itself (UserRequest revocation).
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn test_revoke_wallet_by_revocation_code() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
@@ -90,7 +89,7 @@ async fn test_revoke_wallet_by_revocation_code() {
 /// Revoke a wallet via the wallet provider's internal endpoint and assert that
 /// the wallet is blocked (AdminRequest revocation), not wiped.
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn test_revoke_wallets_by_id() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
@@ -142,7 +141,7 @@ async fn test_revoke_wallets_by_id() {
 /// and assert that the wallet is blocked (AdminRequest revocation) and cannot register
 /// a new account.
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn test_revoke_wallets_by_recovery_code() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
@@ -206,10 +205,6 @@ async fn test_revoke_wallets_by_recovery_code() {
     )
     .await;
     wallet = do_wallet_registration(wallet, pin).await;
-
-    // TODO: remove `start_context` and `#[serial(MockOidcClient)]` when implementing ACF (PVW-5575)
-    let ctx = MockOidcClient::start_context();
-    ctx.expect().return_once(|_, _, _| Ok(mock_oidc_start_result()));
 
     let redirect_url = wallet
         .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)

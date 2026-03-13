@@ -70,6 +70,7 @@ use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::issuer_metadata::IssuerMetadataDiscoveryError;
 use crate::oidc;
+use crate::oidc::OidcReqwestClient;
 use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
 use crate::token::AccessToken;
@@ -316,16 +317,7 @@ mod example_constructors {
     }
 }
 
-pub trait IssuanceSession<H = HttpVcMessageClient> {
-    async fn start_issuance(
-        message_client: H,
-        issuer_identifier: IssuerIdentifier,
-        token_request: TokenRequest,
-        trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<Self, IssuanceSessionError>
-    where
-        Self: Sized;
-
+pub trait IssuanceSession {
     async fn accept_issuance<W>(
         &self,
         trust_anchors: &[TrustAnchor<'_>],
@@ -340,6 +332,77 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
     fn normalized_credential_preview(&self) -> &[NormalizedCredentialPreview];
 
     fn issuer_registration(&self) -> &IssuerRegistration;
+}
+
+/// Produces a `CredentialIssuer` by discovering credential issuer metadata.
+pub trait CredentialIssuerDiscovery {
+    type Issuer: CredentialIssuer;
+
+    async fn discover(&self, identifier: &IssuerIdentifier) -> Result<Self::Issuer, IssuanceSessionError>;
+}
+
+/// Returned by `CredentialIssuer::discover()` and consumed by `start_issuance`.
+pub trait CredentialIssuer {
+    type Session: IssuanceSession + std::fmt::Debug;
+
+    fn authorization_server_url(&self) -> &IssuerIdentifier;
+
+    async fn start_issuance(
+        self,
+        token_request: TokenRequest,
+        trust_anchors: &[TrustAnchor<'_>],
+    ) -> Result<Self::Session, IssuanceSessionError>;
+}
+
+pub struct HttpCredentialIssuerDiscovery {
+    client_id: String,
+    oidc_client: OidcReqwestClient,
+}
+
+impl HttpCredentialIssuerDiscovery {
+    pub fn new(client_id: String, oidc_client: OidcReqwestClient) -> Self {
+        Self { client_id, oidc_client }
+    }
+}
+
+impl CredentialIssuerDiscovery for HttpCredentialIssuerDiscovery {
+    type Issuer = HttpCredentialIssuer;
+
+    async fn discover(&self, identifier: &IssuerIdentifier) -> Result<HttpCredentialIssuer, IssuanceSessionError> {
+        let metadata = IssuerMetadata::discover(&self.oidc_client, identifier)
+            .await
+            .map_err(IssuanceSessionError::OpenId4vciDiscovery)?;
+
+        Ok(HttpCredentialIssuer {
+            metadata,
+            client_id: self.client_id.clone(),
+            oidc_client: self.oidc_client.clone(),
+        })
+    }
+}
+
+pub struct HttpCredentialIssuer {
+    metadata: IssuerMetadata,
+    client_id: String,
+    oidc_client: OidcReqwestClient,
+}
+
+impl CredentialIssuer for HttpCredentialIssuer {
+    type Session = HttpIssuanceSession;
+
+    fn authorization_server_url(&self) -> &IssuerIdentifier {
+        self.metadata.authorization_servers().into_first()
+    }
+
+    async fn start_issuance(
+        self,
+        token_request: TokenRequest,
+        trust_anchors: &[TrustAnchor<'_>],
+    ) -> Result<HttpIssuanceSession, IssuanceSessionError> {
+        let message_client = HttpVcMessageClient::new(self.client_id, self.oidc_client);
+
+        HttpIssuanceSession::start_issuance_inner(message_client, self.metadata, token_request, trust_anchors).await
+    }
 }
 
 #[derive(Debug)]
@@ -395,13 +458,14 @@ pub trait VcMessageClient {
     -> Result<(), IssuanceSessionError>;
 }
 
+#[derive(Debug)]
 pub struct HttpVcMessageClient {
     client_id: String,
-    http_client: reqwest::Client,
+    http_client: OidcReqwestClient,
 }
 
 impl HttpVcMessageClient {
-    pub fn new(client_id: String, http_client: reqwest::Client) -> Self {
+    pub fn new(client_id: String, http_client: OidcReqwestClient) -> Self {
         Self { client_id, http_client }
     }
 }
@@ -415,9 +479,12 @@ impl VcMessageClient for HttpVcMessageClient {
         &self,
         issuer_identifier: &IssuerIdentifier,
     ) -> Result<IssuerMetadata, IssuanceSessionError> {
-        let metadata = IssuerMetadata::discover(&self.http_client, issuer_identifier)
+        let oidc_client = OidcReqwestClient::try_new()?;
+
+        let metadata = IssuerMetadata::discover(&oidc_client, issuer_identifier)
             .await
             .map_err(IssuanceSessionError::OpenId4vciDiscovery)?;
+
         Ok(metadata)
     }
 
@@ -428,6 +495,7 @@ impl VcMessageClient for HttpVcMessageClient {
         // TODO (PVW-5527): Implement some sort of unified processing for fetching well-known metadata.
         let metadata = self
             .http_client
+            .as_ref()
             .get(
                 issuer_identifier
                     .as_base_url()
@@ -460,6 +528,7 @@ impl VcMessageClient for HttpVcMessageClient {
         dpop_header: &Dpop,
     ) -> Result<(TokenResponse, Option<String>), IssuanceSessionError> {
         self.http_client
+            .as_ref()
             .post(url.as_ref())
             .header(DPOP_HEADER_NAME, dpop_header.to_string())
             .form(token_request)
@@ -492,6 +561,7 @@ impl VcMessageClient for HttpVcMessageClient {
         access_token: &AccessToken,
     ) -> Result<CredentialPreviewResponse, IssuanceSessionError> {
         self.http_client
+            .as_ref()
             .post(url.as_ref())
             .bearer_auth(access_token.as_ref())
             .json(preview_request)
@@ -540,6 +610,7 @@ impl VcMessageClient for HttpVcMessageClient {
         access_token_header: &str,
     ) -> Result<(), IssuanceSessionError> {
         self.http_client
+            .as_ref()
             .delete(url.as_ref())
             .header(DPOP_HEADER_NAME, dpop_header)
             .header(AUTHORIZATION, access_token_header)
@@ -569,6 +640,7 @@ impl HttpVcMessageClient {
         access_token_header: &str,
     ) -> Result<S, IssuanceSessionError> {
         self.http_client
+            .as_ref()
             .post(url.as_ref())
             .header(DPOP_HEADER_NAME, dpop_header)
             .header(AUTHORIZATION, access_token_header)
@@ -626,7 +698,7 @@ struct IssuanceState {
     normalized_credential_previews: VecNonEmpty<NormalizedCredentialPreview>,
     credential_request_types: VecNonEmpty<CredentialRequestType>,
     issuer_registration: IssuerRegistration,
-    issuer_identifier: IssuerIdentifier,
+    issuer_metadata: IssuerMetadata,
     #[debug(skip)]
     dpop_private_key: SigningKey,
     dpop_nonce: Option<String>,
@@ -692,47 +764,12 @@ fn credential_request_types_from_preview(
 }
 
 impl<H: VcMessageClient> HttpIssuanceSession<H> {
-    /// Discover the credential endpoint from the Credential Issuer metadata.
-    async fn discover_credential_endpoint(
-        message_client: &H,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<Url, IssuanceSessionError> {
-        let url = message_client
-            .discover_metadata(issuer_identifier)
-            .await?
-            .credential_endpoint
-            .into_url();
-
-        Ok(url)
-    }
-
-    /// Discover the batch credential endpoint from the Credential Issuer metadata.
-    /// This function returns an `Option` because the batch credential is optional.
-    async fn discover_batch_credential_endpoint(
-        message_client: &H,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<Option<Url>, IssuanceSessionError> {
-        let url = message_client
-            .discover_metadata(issuer_identifier)
-            .await?
-            .batch_credential_endpoint
-            .map(|url| url.into_url());
-
-        Ok(url)
-    }
-}
-
-impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
-    async fn start_issuance(
+    pub async fn start_issuance_inner(
         message_client: H,
-        issuer_identifier: IssuerIdentifier,
+        issuer_metadata: IssuerMetadata,
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Self, IssuanceSessionError> {
-        // Discover the issuer metadata first to get the token endpoint, credential preview endpoint
-        // and the credential configuration IDs.
-        let issuer_metadata = message_client.discover_metadata(&issuer_identifier).await?;
-
         let credential_preview_endpoint = issuer_metadata
             .credential_preview_endpoint
             .as_ref()
@@ -802,7 +839,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             normalized_credential_previews,
             credential_request_types,
             issuer_registration,
-            issuer_identifier,
+            issuer_metadata,
             dpop_private_key,
             dpop_nonce,
         };
@@ -814,7 +851,9 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
         Ok(issuance_client)
     }
+}
 
+impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
     async fn accept_issuance<W>(
         &self,
         trust_anchors: &[TrustAnchor<'_>],
@@ -829,7 +868,11 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let mut issuance_data = wscd
             .perform_issuance(
                 key_count,
-                self.session_state.issuer_identifier.as_ref().to_string(),
+                self.session_state
+                    .issuer_metadata
+                    .credential_issuer
+                    .as_ref()
+                    .to_string(),
                 Some(self.session_state.c_nonce.clone()),
                 include_wua,
             )
@@ -968,8 +1011,12 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     }
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError> {
-        let url = Self::discover_batch_credential_endpoint(&self.message_client, &self.session_state.issuer_identifier)
-            .await?
+        let url = self
+            .session_state
+            .issuer_metadata
+            .batch_credential_endpoint
+            .clone()
+            .map(|u| u.into_url())
             .ok_or(IssuanceSessionError::NoBatchCredentialEndpoint)?;
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::DELETE).await?;
 
@@ -994,8 +1041,12 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         &self,
         credential_request: &CredentialRequest,
     ) -> Result<CredentialResponse, IssuanceSessionError> {
-        let url =
-            Self::discover_credential_endpoint(&self.message_client, &self.session_state.issuer_identifier).await?;
+        let url = self
+            .session_state
+            .issuer_metadata
+            .credential_endpoint
+            .clone()
+            .into_url();
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::POST).await?;
 
         let response = self
@@ -1012,8 +1063,12 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         wua_disclosure: Option<WuaDisclosure>,
         poa: Option<Poa>,
     ) -> Result<Vec<CredentialResponse>, IssuanceSessionError> {
-        let url = Self::discover_batch_credential_endpoint(&self.message_client, &self.session_state.issuer_identifier)
-            .await?
+        let url = self
+            .session_state
+            .issuer_metadata
+            .batch_credential_endpoint
+            .clone()
+            .map(|u| u.into_url())
             .ok_or(IssuanceSessionError::NoBatchCredentialEndpoint)?;
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::POST).await?;
 
@@ -1316,9 +1371,12 @@ mod tests {
                 })
             });
 
-        HttpIssuanceSession::start_issuance(
+        let issuer_identifier: IssuerIdentifier = "https://issuer.example.com".parse().unwrap();
+        let issuer_metadata = IssuerMetadata::new_mock(issuer_identifier, PID_ATTESTATION_TYPE);
+
+        HttpIssuanceSession::start_issuance_inner(
             mock_msg_client,
-            "https://example.com".parse().unwrap(),
+            issuer_metadata,
             TokenRequest::new_mock(),
             &[trust_anchor],
         )
@@ -1477,9 +1535,12 @@ mod tests {
                 })
             });
 
-        let error = HttpIssuanceSession::start_issuance(
+        let issuer_identifier: IssuerIdentifier = "https://issuer.example.com".parse().unwrap();
+        let issuer_metadata = IssuerMetadata::new_mock(issuer_identifier, PID_ATTESTATION_TYPE);
+
+        let error = HttpIssuanceSession::start_issuance_inner(
             mock_msg_client,
-            "https://example.com".parse().unwrap(),
+            issuer_metadata,
             TokenRequest::new_mock(),
             &[ca.to_trust_anchor()],
         )
@@ -1494,13 +1555,16 @@ mod tests {
     fn new_session_state(normalized_credential_previews: VecNonEmpty<NormalizedCredentialPreview>) -> IssuanceState {
         let credential_request_types = credential_request_types_from_preview(&normalized_credential_previews).unwrap();
 
+        let issuer_identifier: IssuerIdentifier = "https://issuer.example.com".parse().unwrap();
+        let issuer_metadata = IssuerMetadata::new_mock(issuer_identifier.clone(), PID_ATTESTATION_TYPE);
+
         IssuanceState {
             access_token: "access_token".to_string().into(),
             c_nonce: "c_nonce".to_string(),
             normalized_credential_previews,
             credential_request_types,
             issuer_registration: IssuerRegistration::new_mock(),
-            issuer_identifier: "https://issuer.example.com".parse().unwrap(),
+            issuer_metadata,
             dpop_private_key: SigningKey::random(&mut OsRng),
             dpop_nonce: Some("dpop_nonce".to_string()),
         }

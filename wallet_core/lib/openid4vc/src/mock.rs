@@ -7,8 +7,9 @@ use rustls_pki_types::TrustAnchor;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use dcql::disclosure::ExtendingVctRetriever;
 
+use crate::issuance_session::CredentialIssuer;
+use crate::issuance_session::CredentialIssuerDiscovery;
 use crate::issuance_session::CredentialWithMetadata;
-use crate::issuance_session::HttpVcMessageClient;
 use crate::issuance_session::IssuanceSession;
 use crate::issuance_session::IssuanceSessionError;
 use crate::issuance_session::NormalizedCredentialPreview;
@@ -31,10 +32,6 @@ pub use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
 mockall::mock! {
     #[derive(Debug)]
     pub IssuanceSession {
-        pub fn start() -> Result<Self, IssuanceSessionError>
-        where
-            Self: Sized;
-
         pub fn accept(
             &self,
         ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>;
@@ -48,18 +45,6 @@ mockall::mock! {
 }
 
 impl IssuanceSession for MockIssuanceSession {
-    async fn start_issuance(
-        _: HttpVcMessageClient,
-        _: IssuerIdentifier,
-        _: TokenRequest,
-        _: &[TrustAnchor<'_>],
-    ) -> Result<Self, IssuanceSessionError>
-    where
-        Self: Sized,
-    {
-        Self::start()
-    }
-
     async fn accept_issuance<W>(
         &self,
         _: &[TrustAnchor<'_>],
@@ -79,6 +64,45 @@ impl IssuanceSession for MockIssuanceSession {
 
     fn issuer_registration(&self) -> &IssuerRegistration {
         self.issuer()
+    }
+}
+
+mockall::mock! {
+    #[derive(Debug)]
+    pub CredentialIssuer {
+        pub fn get_metadata(&self) -> &IssuerMetadata;
+        pub fn start(&mut self, token_request: TokenRequest) -> Result<MockIssuanceSession, IssuanceSessionError>;
+    }
+}
+
+impl CredentialIssuer for MockCredentialIssuer {
+    type Session = MockIssuanceSession;
+
+    fn authorization_server_url(&self) -> &IssuerIdentifier {
+        self.get_metadata().authorization_servers().into_first()
+    }
+
+    async fn start_issuance(
+        mut self,
+        token_request: TokenRequest,
+        _: &[TrustAnchor<'_>],
+    ) -> Result<MockIssuanceSession, IssuanceSessionError> {
+        self.start(token_request)
+    }
+}
+
+mockall::mock! {
+    #[derive(Debug)]
+    pub CredentialIssuerDiscovery {
+        pub fn discover_sync(&self, identifier: &IssuerIdentifier) -> Result<MockCredentialIssuer, IssuanceSessionError>;
+    }
+}
+
+impl CredentialIssuerDiscovery for MockCredentialIssuerDiscovery {
+    type Issuer = MockCredentialIssuer;
+
+    async fn discover(&self, identifier: &IssuerIdentifier) -> Result<MockCredentialIssuer, IssuanceSessionError> {
+        self.discover_sync(identifier)
     }
 }
 

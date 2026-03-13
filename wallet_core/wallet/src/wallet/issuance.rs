@@ -5,7 +5,6 @@ use chrono::Utc;
 use derive_more::Constructor;
 use itertools::Itertools;
 use p256::ecdsa::signature;
-use rustls_pki_types::TrustAnchor;
 use tracing::info;
 use tracing::instrument;
 use url::Url;
@@ -19,24 +18,20 @@ use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
-use http_utils::reqwest::client_builder_accept_json;
-use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls;
 use jwt::error::JwtError;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::issuance_session::CredentialIssuer;
+use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::CredentialWithMetadata;
-use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
-use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::issuer_metadata::IssuerMetadata;
 use openid4vc::issuer_metadata::IssuerMetadataDiscoveryError;
-use openid4vc::oidc::OidcClient;
+use openid4vc::oidc::OidcDiscovery;
 use openid4vc::oidc::OidcError;
 use openid4vc::token::CredentialPreviewError;
-use openid4vc::token::TokenRequest;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::GoogleAttestedKey;
@@ -46,7 +41,6 @@ use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -235,11 +229,12 @@ pub enum PidAttestationFormat {
     Either,
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
+    OD: OidcDiscovery,
+    CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
 {
     pub(super) async fn has_pid(
@@ -260,14 +255,14 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
-    IS: IssuanceSession,
+    OD: OidcDiscovery,
+    CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
     APC: AccountProviderClient,
 {
@@ -315,27 +310,28 @@ where
 
         let pid_issuance_config = &self.config_repository.get().pid_issuance;
 
-        // TODO: in a later commit, use the OidcClient to fetch the metadata and store the result in the session
-        let http_client = client_builder_accept_json(default_reqwest_client_builder())
-            .build()
-            .expect("Could not build reqwest HTTP client");
-
         info!("Fetching issuer metadata to discover authorization server");
-        let issuer_metadata = IssuerMetadata::discover(&http_client, &pid_issuance_config.url).await?;
+        let discovered = self
+            .credential_issuer_discovery
+            .discover(&pid_issuance_config.url)
+            .await?;
 
-        let issuer_identifier = issuer_metadata.authorization_servers().into_first();
-
-        let session = start_oidc_session(
+        let oidc_session = start_oidc_session(
+            &self.oidc_discovery,
+            discovered.authorization_server_url(),
             pid_issuance_config.client_id.clone(),
-            issuer_identifier.as_base_url().clone(),
             urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
         )
         .await
         .map_err(IssuanceError::OidcSessionStart)?;
 
         info!("DigiD auth URL generated");
-        let auth_url = session.auth_url.clone();
-        self.session.replace(Session::Oidc { purpose, session });
+        let auth_url = oidc_session.auth_url.clone();
+        self.session.replace(Session::Oidc {
+            purpose,
+            oidc_session,
+            discovered,
+        });
 
         Ok(auth_url)
     }
@@ -416,43 +412,34 @@ where
         }
 
         // Take ownership of the active session, now that we know that it exists.
-        let Some(Session::Oidc { session, purpose }) = self.session.take() else {
+        let Some(Session::Oidc {
+            oidc_session,
+            purpose,
+            discovered,
+        }) = self.session.take()
+        else {
             panic!()
         };
 
-        let token_request = session.into_token_request(&redirect_uri)?;
+        let token_request = oidc_session.into_token_request(&redirect_uri)?;
 
         let config = self.config_repository.get();
+        let trust_anchors = config.issuer_trust_anchors();
 
-        self.issuance_fetch_previews(
-            token_request,
-            config.pid_issuance.url.clone(),
-            &config.issuer_trust_anchors(),
-            Some(purpose),
-        )
-        .await
+        let issuance_session = discovered
+            .start_issuance(token_request, &trust_anchors)
+            .await
+            .map_err(IssuanceError::IssuanceSession)?;
+
+        self.issuance_fetch_previews(issuance_session, Some(purpose)).await
     }
 
     #[instrument(skip_all)]
     pub(super) async fn issuance_fetch_previews(
         &mut self,
-        token_request: TokenRequest,
-        issuer_identifier: IssuerIdentifier,
-        issuer_trust_anchors: &Vec<TrustAnchor<'_>>,
+        issuance_session: <CID::Issuer as CredentialIssuer>::Session,
         pid_purpose: Option<PidIssuancePurpose>,
     ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
-        let http_client = client_builder_accept_json(default_reqwest_client_builder())
-            .build()
-            .expect("Could not build reqwest HTTP client");
-
-        let issuance_session = IS::start_issuance(
-            HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), http_client),
-            issuer_identifier,
-            token_request,
-            issuer_trust_anchors,
-        )
-        .await?;
-
         let previews = issuance_session.normalized_credential_preview();
         let preview_attestation_types = previews
             .iter()
@@ -676,7 +663,10 @@ where
         Ok(IssuanceResult { transfer_session_id })
     }
 
-    pub(super) fn handle_accept_issuance_error(error: IssuanceSessionError, issuance_session: &IS) -> IssuanceError {
+    pub(super) fn handle_accept_issuance_error<IS: IssuanceSession>(
+        error: IssuanceSessionError,
+        issuance_session: &IS,
+    ) -> IssuanceError {
         match error {
             // We knowingly call unwrap() on the downcast to `RemoteEcdsaKeyError` here because we know
             // that it is the error type of the `RemoteEcdsaWscd` we provide above.
@@ -806,15 +796,8 @@ mod tests {
     use itertools::multiunzip;
     use mockall::predicate::*;
     use rstest::rstest;
-    use serde_json::json;
-    use serial_test::serial;
     use url::Url;
     use uuid::Uuid;
-    use wiremock::Mock;
-    use wiremock::MockServer;
-    use wiremock::ResponseTemplate;
-    use wiremock::matchers::method;
-    use wiremock::matchers::path;
 
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -824,8 +807,9 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use openid4vc::Format;
     use openid4vc::issuance_session::IssuedCredential;
+    use openid4vc::mock::MockCredentialIssuer;
     use openid4vc::mock::MockIssuanceSession;
-    use openid4vc::oidc::MockOidcClient;
+    use openid4vc::oidc::MockAuthorizationServer;
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
@@ -859,46 +843,34 @@ mod tests {
     use super::super::test;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
-    use super::super::test::create_wallet_configuration;
     use super::*;
-
-    // TODO: remove when the OidcClient is used to fetch the metadata
-    async fn setup_issuer_metadata_mock(vendor: WalletDeviceVendor) -> (MockServer, TestWalletMockStorage) {
-        let server = MockServer::start().await;
-        let server_url = server.uri();
-
-        Mock::given(method("GET"))
-            .and(path("/.well-known/openid-credential-issuer"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "credential_issuer": server_url,
-                "authorization_servers": [server_url],
-                "credential_endpoint": format!("{server_url}/credential"),
-                "credential_configurations_supported": {},
-            })))
-            .mount(&server)
-            .await;
-
-        let mut config = create_wallet_configuration();
-        config.pid_issuance.url = server_url
-            .parse()
-            .expect("wiremock URL should be a valid IssuerIdentifier");
-
-        let wallet = TestWalletMockStorage::new_registered_and_unlocked_with_config(vendor, config).await;
-        (server, wallet)
-    }
 
     #[rstest]
     #[case(PidIssuancePurpose::Enrollment, false)]
     #[case(PidIssuancePurpose::Renewal, true)]
     #[tokio::test]
-    #[serial(MockOidcClient)]
     async fn test_create_pid_issuance_auth_url(#[case] purpose: PidIssuancePurpose, #[case] pid_present: bool) {
-        let (_server, mut wallet) = setup_issuer_metadata_mock(WalletDeviceVendor::Apple).await;
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         assert!(wallet.session.is_none());
 
-        let oidc_ctx = MockOidcClient::start_context();
-        oidc_ctx.expect().return_once(|_, _, _| Ok(mock_oidc_session_tuple()));
+        // Set up the credential issuer discovery mock
+        let pid_issuance_url = wallet.config_repository.get().pid_issuance.url.clone();
+        let issuer_metadata =
+            openid4vc::issuer_metadata::IssuerMetadata::new_mock(pid_issuance_url.clone(), "some_type");
+        wallet
+            .credential_issuer_discovery
+            .expect_discover_sync()
+            .return_once(move |_| {
+                let mut issuer = MockCredentialIssuer::new();
+                issuer.expect_get_metadata().return_const(issuer_metadata);
+                Ok(issuer)
+            });
+
+        wallet
+            .oidc_discovery
+            .expect_start_sync()
+            .return_once(|_, _, _| Ok(mock_oidc_session_tuple()));
 
         wallet
             .mut_storage()
@@ -984,7 +956,8 @@ mod tests {
         // Set up a mock DigiD session.
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            session: mock_oidc_session(),
+            oidc_session: mock_oidc_session(),
+            discovered: MockCredentialIssuer::new(),
         });
 
         // Creating a DigiD authentication URL on a `Wallet` that
@@ -1023,14 +996,28 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    #[serial(MockOidcClient)]
     async fn test_create_pid_issuance_auth_url_error_oidc_session_start(
         #[values(PidIssuancePurpose::Enrollment, PidIssuancePurpose::Renewal)] purpose: PidIssuancePurpose,
     ) {
-        let (_server, mut wallet) = setup_issuer_metadata_mock(WalletDeviceVendor::Apple).await;
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let oidc_ctx = MockOidcClient::start_context();
-        oidc_ctx.expect().return_once(|_, _, _| Err(OidcError::NoAuthCode));
+        // Set up the credential issuer discovery mock
+        let pid_issuance_url = wallet.config_repository.get().pid_issuance.url.clone();
+        let issuer_metadata =
+            openid4vc::issuer_metadata::IssuerMetadata::new_mock(pid_issuance_url.clone(), "some_type");
+        wallet
+            .credential_issuer_discovery
+            .expect_discover_sync()
+            .return_once(move |_| {
+                let mut issuer = MockCredentialIssuer::new();
+                issuer.expect_get_metadata().return_const(issuer_metadata);
+                Ok(issuer)
+            });
+
+        wallet
+            .oidc_discovery
+            .expect_start_sync()
+            .return_once(|_, _, _| Err(OidcError::NoAuthCode));
 
         wallet
             .mut_storage()
@@ -1053,7 +1040,8 @@ mod tests {
         // Set up a mock DigiD session.
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            session: mock_oidc_session(),
+            oidc_session: mock_oidc_session(),
+            discovered: MockCredentialIssuer::new(),
         });
 
         assert!(wallet.session.is_some());
@@ -1136,26 +1124,9 @@ mod tests {
     const REDIRECT_URI: &str = "redirect://here";
 
     #[tokio::test]
-    #[serial(MockIssuanceSession)]
     async fn test_continue_pid_issuance() {
+        // `setup_wallet_with_oidc_session_and_database_mock` already sets up the mock `start` expectation.
         let mut wallet = setup_wallet_with_oidc_session_and_database_mock().await;
-
-        // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
-        let start_context = MockIssuanceSession::start_context();
-        start_context.expect().return_once(|| {
-            let mut client = MockIssuanceSession::new();
-
-            client
-                .expect_normalized_credential_previews()
-                .return_const(vec![create_example_pid_preview_data(
-                    &MockTimeGenerator::default(),
-                    Format::SdJwt,
-                )]);
-
-            client.expect_issuer().return_const(IssuerRegistration::new_mock());
-
-            Ok(client)
-        });
 
         let stored = {
             let (sd_jwt, metadata) = create_example_pid_sd_jwt();
@@ -1205,7 +1176,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_continue_pid_issuance_user_cancelled() {
-        let mut wallet = setup_wallet_with_oidc_session_and_database_mock().await;
+        let mut wallet = setup_wallet_with_oidc_session().await;
 
         let error = wallet
             .continue_pid_issuance(Url::parse(&(REDIRECT_URI.to_string() + "?error=access_denied")).unwrap())
@@ -1259,11 +1230,11 @@ mod tests {
         assert_matches!(error, IssuanceError::SessionState);
     }
 
-    fn mock_oidc_session() -> OidcSession<MockOidcClient> {
-        // Set up a mock OIDC client that returns a token request.
-        let mut oidc_client = MockOidcClient::new();
+    fn mock_oidc_session() -> OidcSession<MockAuthorizationServer> {
+        // Set up a mock authorization server that returns a token request.
+        let mut oidc_client = MockAuthorizationServer::new();
 
-        oidc_client.expect_into_token_request().return_once(|redirect_uri| {
+        oidc_client.expect_token_request().return_once(|redirect_uri| {
             if redirect_uri
                 .query_pairs()
                 .any(|(key, val)| key == "error" && val == "access_denied")
@@ -1294,7 +1265,8 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            session: mock_oidc_session(),
+            oidc_session: mock_oidc_session(),
+            discovered: MockCredentialIssuer::new(),
         });
         wallet
     }
@@ -1302,23 +1274,41 @@ mod tests {
     async fn setup_wallet_with_oidc_session_and_database_mock() -> TestWalletMockStorage {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        // Set up the credential issuer discovery mock with a start expectation for continue_pid_issuance
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            session: mock_oidc_session(),
+            oidc_session: mock_oidc_session(),
+            discovered: {
+                let mut issuer = MockCredentialIssuer::new();
+                issuer.expect_start().return_once(|_| {
+                    let mut session = MockIssuanceSession::new();
+                    session.expect_normalized_credential_previews().return_const(vec![
+                        create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt),
+                    ]);
+                    session.expect_issuer().return_const(IssuerRegistration::new_mock());
+                    Ok(session)
+                });
+                issuer
+            },
         });
         wallet
     }
 
     #[tokio::test]
-    #[serial(MockIssuanceSession)]
     async fn test_continue_pid_issuance_error_pid_issuer() {
-        let mut wallet = setup_wallet_with_oidc_session().await;
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        // Set up the `MockIssuanceSession` to return an error.
-        let start_context = MockIssuanceSession::start_context();
-        start_context
-            .expect()
-            .return_once(|| Err(IssuanceSessionError::MissingNonce));
+        // Set up the credential issuer to return an error from start_issuance.
+        let mut issuer = MockCredentialIssuer::new();
+        issuer
+            .expect_start()
+            .return_once(|_| Err(IssuanceSessionError::MissingNonce));
+
+        wallet.session = Some(Session::Oidc {
+            purpose: PidIssuancePurpose::Enrollment,
+            oidc_session: mock_oidc_session(),
+            discovered: issuer,
+        });
 
         // Continuing PID issuance on a wallet should forward this error.
         let error = wallet
@@ -1352,7 +1342,6 @@ mod tests {
         preview
     })]
     #[tokio::test]
-    #[serial(MockIssuanceSession)]
     async fn test_continue_issuance_with_renewed_attestation(
         #[case] purpose: Option<PidIssuancePurpose>,
         #[case] attestation_type: &str,
@@ -1404,25 +1393,17 @@ mod tests {
             .expect_fetch_unique_attestations_by_types_and_format()
             .return_once(move |_attestation_types, _format| Ok(vec![stored_clone]));
 
-        // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
-        let start_context = MockIssuanceSession::start_context();
-        start_context.expect().return_once(|| {
-            let mut client = MockIssuanceSession::new();
-            client
-                .expect_normalized_credential_previews()
-                .return_const(vec![preview]);
-            client.expect_issuer().return_const(IssuerRegistration::new_mock());
-            Ok(client)
-        });
+        // Set up the `MockIssuanceSession` directly.
+        let mut issuance_session = MockIssuanceSession::new();
+        issuance_session
+            .expect_normalized_credential_previews()
+            .return_const(vec![preview]);
+        issuance_session
+            .expect_issuer()
+            .return_const(IssuerRegistration::new_mock());
 
-        let config = wallet.config_repository.get();
         let mut attestations = wallet
-            .issuance_fetch_previews(
-                TokenRequest::new_mock(),
-                config.pid_issuance.url.clone(),
-                &config.issuer_trust_anchors(),
-                purpose,
-            )
+            .issuance_fetch_previews(issuance_session, purpose)
             .await
             .expect("Could not continue issuance");
 

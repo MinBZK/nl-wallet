@@ -5,8 +5,9 @@ use url::Url;
 
 use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::VpDisclosureClient;
-use openid4vc::issuance_session::HttpIssuanceSession;
-use openid4vc::oidc::HttpOidcClient;
+use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
+use openid4vc::oidc::HttpOidcDiscovery;
+use openid4vc::oidc::OidcReqwestClient;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
 use openid4vc_server::verifier::StartDisclosureRequest;
@@ -41,8 +42,8 @@ type PerformanceTestWallet = Wallet<
     MockHardwareDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
-    HttpOidcClient,
-    HttpIssuanceSession,
+    HttpOidcDiscovery,
+    HttpCredentialIssuerDiscovery,
     VpDisclosureClient,
 >;
 
@@ -74,6 +75,10 @@ async fn main() {
         .unwrap();
     let pid_issuance_config = &config_repository.get().pid_issuance;
     let update_policy_repository = UpdatePolicyRepository::init();
+    let oidc_reqwest_client = OidcReqwestClient::try_new().unwrap();
+    let credential_issuer_discovery =
+        HttpCredentialIssuerDiscovery::new(pid_issuance_config.client_id.clone(), oidc_reqwest_client.clone());
+    let oidc_discovery = HttpOidcDiscovery::new(oidc_reqwest_client);
     let wallet_clients = WalletClients::new_http().unwrap();
 
     let storage = MockHardwareDatabaseStorage::open_in_memory().await;
@@ -83,6 +88,8 @@ async fn main() {
         update_policy_repository,
         storage,
         MockHardwareAttestedKeyHolder::new_apple_mock(default::attestation_environment(), default::app_identifier()),
+        credential_issuer_discovery,
+        oidc_discovery,
         wallet_clients,
     )
     .await

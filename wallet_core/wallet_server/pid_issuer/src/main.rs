@@ -51,7 +51,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     let pid_attr_service = BrpPidAttributeService::try_new(
         HttpBrpClient::new(settings.brp_server),
         &settings.digid.bsn_privkey,
-        settings.digid.http_config,
+        &settings.digid.http_config,
         SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?,
         issuer_settings.public_url.clone(),
     )?;
