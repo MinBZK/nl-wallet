@@ -524,7 +524,6 @@ impl VpAuthorizationRequest {
         //
         // If the verifier did not send any supported algorithms, default to AES128GCM.
         // See: <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.1-2.4.2.2>
-        // safe unwrap, inside try_from above we do a check on client_metadata being present
         let selected_encryption_algorithm =
             NormalizedVpAuthorizationRequest::select_encryption_algorithm(&validated_auth_request.client_metadata)?;
         let client_id = &validated_auth_request.client_id;
