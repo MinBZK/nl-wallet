@@ -46,7 +46,7 @@ use openid4vc::issuer::WuaConfig;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::issuer_metadata::IssuerMetadata;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
-use openid4vc::nonce_store::MemoryNonceStore;
+use openid4vc::nonce::memory_store::MemoryNonceStore;
 use openid4vc::oidc;
 use openid4vc::preview::CredentialPreviewRequest;
 use openid4vc::preview::CredentialPreviewResponse;

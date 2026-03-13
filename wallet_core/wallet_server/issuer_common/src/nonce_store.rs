@@ -8,11 +8,11 @@ use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use sea_orm::SqlErr;
 
-use openid4vc::nonce_store::MemoryNonceStore;
-use openid4vc::nonce_store::NoncePresence;
-use openid4vc::nonce_store::NonceStore;
-use openid4vc::nonce_store::NonceStoreError;
-use openid4vc::nonce_store::NonceStoreResult;
+use openid4vc::nonce::memory_store::MemoryNonceStore;
+use openid4vc::nonce::memory_store::NonceStoreResult;
+use openid4vc::nonce::store::NoncePresence;
+use openid4vc::nonce::store::NonceStore;
+use openid4vc::nonce::store::NonceStoreError;
 use server_utils::store::StoreConnection;
 
 use crate::entity::prelude::*;

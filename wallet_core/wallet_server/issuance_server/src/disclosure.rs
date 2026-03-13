@@ -202,7 +202,7 @@ mod tests {
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;
     use openid4vc::issuer::TrivialAttributeService;
-    use openid4vc::nonce_store::MemoryNonceStore;
+    use openid4vc::nonce::memory_store::MemoryNonceStore;
     use openid4vc::server_state::MemorySessionStore;
     use openid4vc::server_state::SessionStore;
     use openid4vc::server_state::SessionStoreTimeouts;

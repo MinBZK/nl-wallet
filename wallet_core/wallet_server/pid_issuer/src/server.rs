@@ -10,7 +10,7 @@ use issuer_common::settings::IssuerSettings;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WuaConfig;
-use openid4vc::nonce_store::NonceStore;
+use openid4vc::nonce::store::NonceStore;
 use openid4vc::server_state::SessionStore;
 use openid4vc_server::issuer::create_issuance_router;
 use server_utils::server::add_cache_control_no_store_layer;
