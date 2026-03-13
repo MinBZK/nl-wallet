@@ -1,9 +1,10 @@
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
+use strum::EnumString;
 
 /// A type representing the "alg" header parameter value for JWE, i.e. the JWE algorithm.
 /// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-4>
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, strum::EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
 #[strum(serialize_all = "SCREAMING-KEBAB-CASE")]
 pub enum JweAlgorithm {
     EcdhEs,
@@ -13,20 +14,37 @@ pub enum JweAlgorithm {
 
 /// A type representing the "alg" header parameter value for JWE, i.e. the JWE encryption algorithm.
 /// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-5>
-// TODO (PVW-5565): Use this type for the `encrypted_response_enc_values_supported` field in OpenID4VP metadata.
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, strum::EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
 #[strum(serialize_all = "UPPERCASE")]
 pub enum JweEncryptionAlgorithm {
-    A128Gcm,
-    A192Gcm,
     A256Gcm,
+    A192Gcm,
+    #[default]
+    A128Gcm,
+
     #[strum(default)]
     Other(String),
 }
 
+impl JweEncryptionAlgorithm {
+    pub fn is_supported(&self) -> bool {
+        self.preference_rank().is_some()
+    }
+
+    // This is explicitly ranking the algorithms to prevent mis-interpretation of the Ord order
+    pub fn preference_rank(&self) -> Option<u8> {
+        match self {
+            Self::A128Gcm => Some(1),
+            Self::A192Gcm => Some(2),
+            Self::A256Gcm => Some(3),
+            Self::Other(_) => None,
+        }
+    }
+}
+
 /// A type representing the "zip" header parameter value for JWE, i.e. the JWE encryption compression algorithm.
 /// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-7.3>
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, strum::EnumString, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
 pub enum JweCompressionAlgorithm {
     #[strum(serialize = "DEF")]
     Deflate,

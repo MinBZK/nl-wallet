@@ -19,6 +19,7 @@ use utils::generator::Generator;
 use wscd::Poa;
 use wscd::wscd::JwtPoaInput;
 
+use crate::jwe::JweEncryptionAlgorithm;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::VerifiablePresentation;
 use crate::openid4vp::VpAuthorizationResponse;
@@ -39,6 +40,7 @@ pub struct VpDisclosureSession<H> {
     session_type: SessionType,
     verifier_certificate: VerifierCertificate,
     auth_request: NormalizedVpAuthorizationRequest,
+    selected_encryption_algorithm: JweEncryptionAlgorithm,
 }
 
 impl<H> VpDisclosureSession<H> {
@@ -47,12 +49,14 @@ impl<H> VpDisclosureSession<H> {
         session_type: SessionType,
         verifier_certificate: VerifierCertificate,
         auth_request: NormalizedVpAuthorizationRequest,
+        selected_encryption_algorithm: JweEncryptionAlgorithm,
     ) -> Self {
         Self {
             client,
             session_type,
             verifier_certificate,
             auth_request,
+            selected_encryption_algorithm,
         }
     }
 }
@@ -231,7 +235,13 @@ where
         };
 
         // Finally, encrypt the response and send it to the verifier.
-        let result = VpAuthorizationResponse::new_encrypted(vp_token, &self.auth_request, &encryption_nonce, poa);
+        let result = VpAuthorizationResponse::new_encrypted(
+            vp_token,
+            &self.auth_request,
+            &self.selected_encryption_algorithm,
+            &encryption_nonce,
+            poa,
+        );
         let jwe = match result {
             Ok(value) => value,
             Err(error) => {
@@ -292,6 +302,7 @@ mod tests {
     use crate::disclosure_session::error::DataDisclosed;
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
+    use crate::jwe::JweEncryptionAlgorithm;
     use crate::openid4vp::VpRequestUriMethod;
     use crate::verifier::SessionType;
 
@@ -334,13 +345,16 @@ mod tests {
         let verifier_session = Arc::new(verifier_session);
 
         let mock_client = MockVerifierVpMessageClient::new(Arc::clone(&verifier_session));
+        let auth_request = verifier_session.normalized_auth_request(None);
+        let selected_encryption_algorithm = JweEncryptionAlgorithm::default();
         let disclosure_session = VpDisclosureSession {
             client: mock_client,
             session_type,
             verifier_certificate: VerifierCertificate::try_new(verifier_session.key_pair.certificate().clone())
                 .unwrap()
                 .unwrap(),
-            auth_request: verifier_session.normalized_auth_request(None),
+            auth_request,
+            selected_encryption_algorithm,
         };
 
         (disclosure_session, verifier_session)
@@ -364,6 +378,7 @@ mod tests {
             session_type: disclosure_session.session_type,
             verifier_certificate: disclosure_session.verifier_certificate,
             auth_request: disclosure_session.auth_request,
+            selected_encryption_algorithm: disclosure_session.selected_encryption_algorithm,
         }
     }
 

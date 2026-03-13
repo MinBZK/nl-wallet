@@ -1359,11 +1359,14 @@ impl Session<Created> {
         let nonce = random_string(32);
         let encryption_keypair =
             EcKeyPair::generate(EcCurve::P256).map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
-        let auth_request = NormalizedVpAuthorizationRequest::new(
+        let mut encryption_pubkey = encryption_keypair.to_jwk_public_key();
+        encryption_pubkey.set_algorithm("ECDH-ES");
+        encryption_pubkey.set_key_id(random_string(32));
+        let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
             self.state.data.credential_requests.clone(),
             self.state.data.client_id.clone(),
             nonce.clone(),
-            encryption_keypair.to_jwk_public_key().try_into().unwrap(), // safe because we just constructed this key
+            encryption_pubkey.try_into().unwrap(), // safe because we just constructed this key
             response_uri,
             wallet_nonce,
         );
