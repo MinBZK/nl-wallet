@@ -83,7 +83,7 @@ impl NonceStore for ProofNonceStore {
         }
     }
 
-    async fn find_and_remove_nonce(&self, nonce: &str) -> Result<NoncePresence, Self::Error> {
+    async fn check_nonce_presence_and_then_remove(&self, nonce: &str) -> Result<NoncePresence, Self::Error> {
         let presence = match &self.backend {
             NonceStoreBackend::Postgres(connection) => {
                 let delete_result = ProofNonce::delete_many()

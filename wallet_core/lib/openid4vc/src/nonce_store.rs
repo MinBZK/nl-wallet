@@ -25,7 +25,7 @@ pub trait NonceStore {
     type Error: Error + Send + Sync + 'static;
 
     async fn store_nonce(&self, nonce: String) -> Result<(), NonceStoreError<Self::Error>>;
-    async fn find_and_remove_nonce(&self, nonce: &str) -> Result<NoncePresence, Self::Error>;
+    async fn check_nonce_presence_and_then_remove(&self, nonce: &str) -> Result<NoncePresence, Self::Error>;
 
     // TODO (PVW-5678): Add method for cleaning up nonces that are older than a certain date and time.
 }
@@ -77,7 +77,7 @@ impl NonceStore for MemoryNonceStore {
         }
     }
 
-    async fn find_and_remove_nonce(&self, nonce: &str) -> Result<NoncePresence, Self::Error> {
+    async fn check_nonce_presence_and_then_remove(&self, nonce: &str) -> Result<NoncePresence, Self::Error> {
         let presence = self.remove(nonce);
 
         Ok(presence)
@@ -114,14 +114,14 @@ pub mod test {
         assert_matches!(error, NonceStoreError::DuplicateNonce(nonce) if nonce == "foobar");
 
         let presence = store
-            .find_and_remove_nonce("foobar")
+            .check_nonce_presence_and_then_remove("foobar")
             .await
             .expect("finding and removing nonce should succeed");
 
         assert_matches!(presence, NoncePresence::Present);
 
         let presence = store
-            .find_and_remove_nonce("foobar")
+            .check_nonce_presence_and_then_remove("foobar")
             .await
             .expect("finding and removing nonce should succeed");
 
