@@ -516,8 +516,17 @@ impl VpAuthorizationRequest {
         if dns_sans.is_empty() {
             return Err(AuthRequestValidationError::MissingSAN);
         }
-        let (validated_auth_request, selected_encryption_algorithm) =
-            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(self)?;
+        let validated_auth_request = NormalizedVpAuthorizationRequest::try_from(self)?;
+
+        // Validate that the verifier advertised at least one encryption algorithm that the wallet supports,
+        // and keep the selected value for later use on the wallet encryption path.
+        // See: <https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5-2.5>.
+        //
+        // If the verifier did not send any supported algorithms, default to AES128GCM.
+        // See: <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.1-2.4.2.2>
+        // safe unwrap, inside try_from above we do a check on client_metadata being present
+        let selected_encryption_algorithm =
+            NormalizedVpAuthorizationRequest::select_encryption_algorithm(&validated_auth_request.client_metadata)?;
         let client_id = &validated_auth_request.client_id;
 
         match &client_id.scheme {
@@ -637,9 +646,7 @@ impl NormalizedVpAuthorizationRequest {
         Ok(encryption_algorithm)
     }
 
-    fn try_from_with_selected_encryption_algorithm(
-        vp_auth_request: VpAuthorizationRequest,
-    ) -> Result<(Self, JweEncryptionAlgorithm), AuthRequestValidationError> {
+    fn try_from(vp_auth_request: VpAuthorizationRequest) -> Result<Self, AuthRequestValidationError> {
         // Check absence of fields that must not be present in an OpenID4VP Authorization Request
         if vp_auth_request.oauth_request.authorization_details.is_some() {
             return Err(AuthRequestValidationError::UnexpectedField("authorization_details"));
@@ -716,29 +723,18 @@ impl NormalizedVpAuthorizationRequest {
 
         let encryption_pubkey = encryption_pubkey.ok_or(AuthRequestValidationError::NoSupportedJwk(jwk_errors))?;
 
-        // Validate that the verifier advertised at least one encryption algorithm that the wallet supports,
-        // and keep the selected value for later use on the wallet encryption path.
-        // See: <https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5-2.5>.
-        //
-        // If the verifier did not send any supported algorithms, default to AES128GCM.
-        // See: <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.1-2.4.2.2>
-        let selected_encryption_algorithm = Self::select_encryption_algorithm(&client_metadata)?;
-
         let client_id = vp_auth_request.oauth_request.client_id.as_str().into();
 
-        Ok((
-            NormalizedVpAuthorizationRequest {
-                client_id,
-                nonce: vp_auth_request.oauth_request.nonce.unwrap(),
-                encryption_pubkey,
-                credential_requests: vp_auth_request.dcql_query.try_into()?,
-                response_uri: vp_auth_request.response_uri.unwrap(),
-                client_metadata,
-                state: vp_auth_request.oauth_request.state,
-                wallet_nonce: vp_auth_request.wallet_nonce,
-            },
-            selected_encryption_algorithm,
-        ))
+        Ok(NormalizedVpAuthorizationRequest {
+            client_id,
+            nonce: vp_auth_request.oauth_request.nonce.unwrap(),
+            encryption_pubkey,
+            credential_requests: vp_auth_request.dcql_query.try_into()?,
+            response_uri: vp_auth_request.response_uri.unwrap(),
+            client_metadata,
+            state: vp_auth_request.oauth_request.state,
+            wallet_nonce: vp_auth_request.wallet_nonce,
+        })
     }
 
     pub fn session_transcript(&self) -> SessionTranscript {
@@ -1709,7 +1705,7 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap();
+        NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
     }
 
     #[test]
@@ -1753,8 +1749,7 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let (normalized_request, _) =
-            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap();
+        let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
         assert_eq!(
             normalized_request
@@ -1804,8 +1799,7 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let (normalized_request, _) =
-            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap();
+        let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
         assert!(
             normalized_request
@@ -1916,8 +1910,7 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let (normalized_request, _) =
-            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap();
+        let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
         assert_eq!(
             normalized_request
@@ -1931,48 +1924,17 @@ mod tests {
     }
 
     #[test]
-    fn authorization_request_without_supported_encryption_enc_should_error() {
-        let example_json = json!(
-            {
-                "aud": "https://self-issued.me/v2",
-                "response_type": "vp_token",
-                "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
-                "response_uri": "https://example.com/post",
-                "nonce": "%%2_fsd32434!==r",
-                "client_metadata": {
-                    "jwks": {
-                        "keys": [{
-                            "kty": "EC", "use": "enc", "crv": "P-256", "alg": "ECDH-ES", "kid": "my-key-id",
-                            "x": "xVLtZaPPK-xvruh1fEClNVTR6RCZBsQai2-DrnyKkxg",
-                            "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
-                        }]
-                    },
-                    "encrypted_response_enc_values_supported": ["A512GCM"],
-                    "vp_formats": {
-                        "mso_mdoc": {
-                            "alg": [ "ES256" ]
-                        }
-                    }
-                },
-                "dcql_query": {
-                    "credentials": [{
-                        "id": "pid",
-                        "format": "mso_mdoc",
-                        "meta": {
-                            "doctype_value": "org.iso.18013.5.1.mDL",
-                        },
-                        "claims": [
-                            { "path": ["org.iso.18013.5.1", "family_name"], "intent_to_retain": false }
-                        ]
-                    }]
-                }
-            }
-        );
+    fn validate_should_error_when_no_supported_encryption_algorithm_is_advertised() {
+        let (_, rp_keypair, _, auth_request) = setup_mdoc();
+        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        auth_request
+            .client_metadata
+            .as_mut()
+            .unwrap()
+            .encrypted_response_enc_values_supported =
+            Some(vec_nonempty![JweEncryptionAlgorithm::Other("A512GCM".to_string())]);
 
-        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let error =
-            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap_err();
+        let error = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
         assert_matches!(error, AuthRequestValidationError::NoSupportedEncryptedResponseEnc);
     }
 
@@ -2017,8 +1979,7 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let error =
-            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap_err();
+        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
         assert_matches!(error, AuthRequestValidationError::MissingJwkKid(0));
     }
 
@@ -2063,8 +2024,7 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let error =
-            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap_err();
+        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
         assert_matches!(error, AuthRequestValidationError::MissingJwkKid(0));
     }
 
@@ -2114,8 +2074,7 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let (normalized_request, _) =
-            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap();
+        let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
 
         assert_eq!(normalized_request.encryption_pubkey.kid(), "supported");
     }
@@ -2166,8 +2125,7 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let error =
-            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap_err();
+        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
         let AuthRequestValidationError::NoSupportedJwk(errors) = error else {
             panic!("expected NoSupportedJwk error");
         };
@@ -2296,8 +2254,7 @@ mod tests {
         );
 
         let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
-        let error =
-            NormalizedVpAuthorizationRequest::try_from_with_selected_encryption_algorithm(auth_request).unwrap_err();
+        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
         assert_matches!(error, AuthRequestValidationError::UnsupportedField("transaction_data"));
     }
 
