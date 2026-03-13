@@ -37,7 +37,7 @@ pub struct VpDisclosureClient<H = HttpVpMessageClient> {
 }
 
 impl VpDisclosureClient<HttpVpMessageClient> {
-    pub fn new_http(client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
+    pub fn new_with_client(client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
         let client = Self::new(HttpVpMessageClient::new(client_builder)?);
 
         Ok(client)
@@ -642,7 +642,8 @@ mod tests {
             .now_or_never()
             .unwrap()
             .expect_err(
-                "starting a new disclosure session with a request uri object passed as query parameters should not succeed",
+                "starting a new disclosure session with a request uri object passed as query parameters should not \
+                 succeed",
             );
 
         assert_matches!(
@@ -722,7 +723,10 @@ mod tests {
             CredentialFormat::MsoMdoc,
             std::convert::identity,
         )
-        .expect_err("starting a new disclosure session with a session type which is incompatible with its source should not succeed");
+        .expect_err(
+            "starting a new disclosure session with a session type which is incompatible with its source should not \
+             succeed",
+        );
 
         assert_matches!(
             *error,
@@ -848,7 +852,10 @@ mod tests {
                 verifier_session
             },
         )
-        .expect_err("starting a new disclosure session where the request uri client_id does not match the RP certificate client_id should not succeed");
+        .expect_err(
+            "starting a new disclosure session where the request uri client_id does not match the RP certificate \
+             client_id should not succeed",
+        );
 
         assert_matches!(
             *error,
@@ -881,7 +888,10 @@ mod tests {
             None,
             std::convert::identity,
         )
-        .expect_err("starting a new disclosure session with a valid reader certificate but no reader registration should not succeed");
+        .expect_err(
+            "starting a new disclosure session with a valid reader certificate but no reader registration should not \
+             succeed",
+        );
 
         assert_matches!(
             *error,
@@ -918,7 +928,10 @@ mod tests {
             Some(reader_registration),
             std::convert::identity,
         )
-        .expect_err("starting a new disclosure session with an authorization request that contains an attribute not in the reader registration should not succeed");
+        .expect_err(
+            "starting a new disclosure session with an authorization request that contains an attribute not in the \
+             reader registration should not succeed",
+        );
 
         let unregistered_attributes = HashMap::from([(
             PID_ATTESTATION_TYPE.to_string(),
@@ -964,7 +977,10 @@ mod tests {
             Some(reader_registration),
             std::convert::identity,
         )
-        .expect_err("starting a new disclosure session with an authorization request that contains a credential request with a mix of requested formats should not succeed");
+        .expect_err(
+            "starting a new disclosure session with an authorization request that contains a credential request with \
+             a mix of requested formats should not succeed",
+        );
 
         assert_matches!(
             *error,

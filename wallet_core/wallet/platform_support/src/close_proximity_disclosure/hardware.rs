@@ -8,6 +8,7 @@ use crate::bridge::close_proximity_disclosure::get_close_proximity_disclosure_br
 use crate::close_proximity_disclosure::CloseProximityDisclosureChannelImpl;
 use crate::close_proximity_disclosure::CloseProximityDisclosureClient;
 
+#[derive(Debug, Default)]
 pub struct HardwareCloseProximityDisclosureClient;
 
 impl CloseProximityDisclosureClient for HardwareCloseProximityDisclosureClient {

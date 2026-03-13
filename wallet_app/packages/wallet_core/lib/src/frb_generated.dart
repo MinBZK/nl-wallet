@@ -80,7 +80,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 784391863;
+  int get rustContentHash => -2011647244;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -205,6 +205,8 @@ abstract class WalletCoreApi extends BaseApi {
   Stream<FlutterVersionState> crateApiFullSetVersionStateStream();
 
   Future<void> crateApiFullSkipWalletTransfer();
+
+  Future<String> crateApiFullStartCloseProximityDisclosure();
 
   Future<StartDisclosureResult> crateApiFullStartDisclosure({required String uri, required bool isQrCode});
 
@@ -1522,6 +1524,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullSkipWalletTransferConstMeta => const TaskConstMeta(
     debugName: "skip_wallet_transfer",
+    argNames: [],
+  );
+
+  @override
+  Future<String> crateApiFullStartCloseProximityDisclosure() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__full__start_close_proximity_disclosure(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_String,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullStartCloseProximityDisclosureConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullStartCloseProximityDisclosureConstMeta => const TaskConstMeta(
+    debugName: "start_close_proximity_disclosure",
     argNames: [],
   );
 

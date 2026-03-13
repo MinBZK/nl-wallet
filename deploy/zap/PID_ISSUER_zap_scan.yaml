@@ -5,7 +5,7 @@ env:
     urls:
     - "${PID_ISSUER_BASE_URL}"
     includePaths:
-    - "${PID_ISSUER_BASE_URL}/.*"
+    - "${PID_ISSUER_BASE_URL}.*"
     excludePaths: []
     authentication:
       parameters: {}
@@ -28,6 +28,48 @@ jobs:
 # False positive analysis in pwv-3375 showed that this is not a vulnerability
     - ruleId: "40025"
       ruleName: "Proxy Disclosure (40025)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: [ ]
+# False positive analysis in PVW-5701 showed that this is not a vulnerability
+    - ruleId: "90018"
+      ruleName: "Advanced SQL Injection (90018)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: [ ]
+# False positive analysis in PVW-5701 showed that this is not a vulnerability
+    - ruleId: "40033"
+      ruleName: "NoSQL Injection (40033)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: [ ]
+# False positive analysis in PVW-5701 showed that this is not a vulnerability
+    - ruleId: "40018"
+      ruleName: "SQL Injection (40018)"
       context: ""
       newRisk: "False Positive"
       parameter: ""

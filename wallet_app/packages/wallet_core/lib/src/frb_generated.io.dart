@@ -2923,6 +2923,21 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__skip_wallet_transfer = _wire__crate__api__full__skip_wallet_transferPtr
       .asFunction<void Function(int)>();
 
+  void wire__crate__api__full__start_close_proximity_disclosure(
+    int port_,
+  ) {
+    return _wire__crate__api__full__start_close_proximity_disclosure(
+      port_,
+    );
+  }
+
+  late final _wire__crate__api__full__start_close_proximity_disclosurePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_wallet_core_wire__crate__api__full__start_close_proximity_disclosure',
+      );
+  late final _wire__crate__api__full__start_close_proximity_disclosure =
+      _wire__crate__api__full__start_close_proximity_disclosurePtr.asFunction<void Function(int)>();
+
   void wire__crate__api__full__start_disclosure(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> uri,
