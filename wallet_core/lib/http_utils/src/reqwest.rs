@@ -4,6 +4,7 @@ use std::sync::LazyLock;
 use std::time::Duration;
 
 use derive_more::AsRef;
+use derive_more::Debug;
 use http::HeaderMap;
 use http::HeaderValue;
 use http::Method;
@@ -28,8 +29,9 @@ const CLIENT_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Wrapper around a [`Certificate`] implementing `PartialEq`, `Eq` and `Hash`. In addition, it implements
 /// the necessary `From`/`TryFrom` implementations so that it can be (de)serialised using `serde_with`.
-#[derive(Clone, AsRef)]
+#[derive(Clone, Debug, AsRef)]
 pub struct ReqwestTrustAnchor {
+    #[debug(skip)]
     #[as_ref([u8])]
     der_bytes: Vec<u8>,
     certificate: Certificate,
@@ -60,26 +62,19 @@ impl Hash for ReqwestTrustAnchor {
 }
 
 impl TryFrom<Vec<u8>> for ReqwestTrustAnchor {
-    type Error = ReqwestTrustAnchorError;
+    type Error = x509_parser::nom::Err<X509Error>;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
         // Certificate::from_der does not parse the bytes when using `rustls`, so we explicitly parse it here to ensure
         // the bytes represent a valid X.509 certificate.
         let _ = X509Certificate::from_der(&value)?;
-        let certificate = Certificate::from_der(&value)?;
+        // We know this will succeed, because the `rustls` feature is enabled, and because we have just verified it.
+        let certificate = Certificate::from_der(&value).unwrap();
         Ok(Self {
             der_bytes: value,
             certificate,
         })
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum ReqwestTrustAnchorError {
-    #[error("reqwest error: {0}")]
-    Reqwest(#[from] reqwest::Error),
-    #[error("certificate parsing error: {0}")]
-    X509Parser(#[from] x509_parser::nom::Err<X509Error>),
 }
 
 pub trait IntoReqwestClient {
@@ -256,7 +251,6 @@ pub mod test {
 
 #[cfg(test)]
 mod tests {
-    use assert_matches::assert_matches;
     use base64::prelude::BASE64_STANDARD;
     use base64::prelude::Engine;
     use rstest::rstest;
@@ -264,13 +258,12 @@ mod tests {
     use crate::reqwest::test::TEST_CERTIFICATE_BASE64;
 
     use super::ReqwestTrustAnchor;
-    use super::ReqwestTrustAnchorError;
 
     #[test]
     fn request_trust_anchor_from_bytes_success() {
         let der_bytes = BASE64_STANDARD.decode(TEST_CERTIFICATE_BASE64).expect("valid base64");
 
-        let trust_anchor_result: Result<ReqwestTrustAnchor, ReqwestTrustAnchorError> = der_bytes.try_into();
+        let trust_anchor_result: Result<ReqwestTrustAnchor, _> = der_bytes.try_into();
         let _ = trust_anchor_result.unwrap();
     }
 
@@ -280,13 +273,6 @@ mod tests {
     fn reqwest_trust_anchor_from_bytes_errors(#[case] input: &str) {
         let der_bytes = BASE64_STANDARD.decode(input).expect("valid base64");
 
-        let trust_anchor_result: Result<ReqwestTrustAnchor, ReqwestTrustAnchorError> = der_bytes.try_into();
-
-        // `unwrap` not possible because `ReqwestTrustAnchor` is not `Debug`
-        let Err(error) = trust_anchor_result else {
-            panic!("expected an error");
-        };
-
-        assert_matches!(error, ReqwestTrustAnchorError::X509Parser(_));
+        let _ = ReqwestTrustAnchor::try_from(der_bytes).expect_err("should fail");
     }
 }

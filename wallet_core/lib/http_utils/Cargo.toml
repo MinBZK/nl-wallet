@@ -51,7 +51,6 @@ tracing = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
 
 [dev-dependencies]
-assert_matches.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }
 toml.workspace = true
