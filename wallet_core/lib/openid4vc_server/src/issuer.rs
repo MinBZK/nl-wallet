@@ -16,6 +16,7 @@ use axum::routing::post;
 use axum_extra::TypedHeader;
 use axum_extra::headers;
 use axum_extra::headers::Authorization;
+use axum_extra::headers::CacheControl;
 use axum_extra::headers::Header;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::authorization::Credentials;
@@ -39,6 +40,8 @@ use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer_metadata::IssuerMetadata;
+use openid4vc::nonce::response::NonceResponse;
+use openid4vc::nonce::store::NonceStore;
 use openid4vc::oidc;
 use openid4vc::preview::CredentialPreviewRequest;
 use openid4vc::preview::CredentialPreviewResponse;
@@ -48,13 +51,13 @@ use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponse;
 use token_status_list::status_list_service::StatusListServices;
 
-struct ApplicationState<A, K, S, L> {
-    issuer: Arc<Issuer<A, K, S, L>>,
+struct ApplicationState<K, A, S, N, L> {
+    issuer: Arc<Issuer<K, A, S, N, L>>,
 }
 
 // Implement `Clone` manually, because `#[derive(Clone)]` unnecessarily adds `Clone` bounds on A, K, S and W,
 // which we don't want.
-impl<A, K, S, L> Clone for ApplicationState<A, K, S, L> {
+impl<K, A, S, N, L> Clone for ApplicationState<K, A, S, N, L> {
     fn clone(&self) -> Self {
         Self {
             issuer: self.issuer.clone(),
@@ -62,11 +65,12 @@ impl<A, K, S, L> Clone for ApplicationState<A, K, S, L> {
     }
 }
 
-pub fn create_issuance_router<A, K, S, L>(issuer: Arc<Issuer<A, K, S, L>>) -> Router
+pub fn create_issuance_router<K, A, S, N, L>(issuer: Arc<Issuer<K, A, S, N, L>>) -> Router
 where
-    A: AttributeService + Send + Sync + 'static,
     K: EcdsaKeySend + Sync + 'static,
+    A: AttributeService + Send + Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
+    N: NonceStore + Send + Sync + 'static,
     L: StatusListServices + Send + Sync + 'static,
 {
     let application_state = ApplicationState { issuer };
@@ -83,6 +87,7 @@ where
             Router::new()
                 .route("/token", post(token))
                 .route("/credential_preview", post(credential_preview))
+                .route("/nonce", post(nonce))
                 .route("/credential", post(credential))
                 .route("/credential", delete(reject_issuance))
                 .route("/batch_credential", post(batch_credential))
@@ -93,12 +98,12 @@ where
 
 // Although there is no standard here mandating what our error response looks like, we use `ErrorResponse`
 // for consistency with the other endpoints.
-async fn oauth_metadata<A, K, S, L>(
-    State(state): State<ApplicationState<A, K, S, L>>,
+async fn oauth_metadata<K, A, S, N, L>(
+    State(state): State<ApplicationState<K, A, S, N, L>>,
 ) -> Result<Json<oidc::Config>, ErrorResponse<MetadataError>>
 where
-    A: AttributeService,
     K: EcdsaKeySend,
+    A: AttributeService,
     S: SessionStore<IssuanceData>,
     L: StatusListServices,
 {
@@ -115,18 +120,18 @@ where
     Ok(Json(metadata))
 }
 
-async fn metadata<A, K, S, L>(State(state): State<ApplicationState<A, K, S, L>>) -> Json<IssuerMetadata> {
+async fn metadata<K, A, S, N, L>(State(state): State<ApplicationState<K, A, S, N, L>>) -> Json<IssuerMetadata> {
     Json(state.issuer.metadata().clone())
 }
 
-async fn token<A, K, S, L>(
-    State(state): State<ApplicationState<A, K, S, L>>,
+async fn token<K, A, S, N, L>(
+    State(state): State<ApplicationState<K, A, S, N, L>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Form(token_request): Form<TokenRequest>,
 ) -> Result<(HeaderMap, Json<TokenResponse>), ErrorResponse<TokenErrorCode>>
 where
-    A: AttributeService,
     K: EcdsaKeySend,
+    A: AttributeService,
     S: SessionStore<IssuanceData>,
     L: StatusListServices,
 {
@@ -145,14 +150,14 @@ where
     Ok((headers, Json(response)))
 }
 
-async fn credential_preview<A, K, S, L>(
-    State(state): State<ApplicationState<A, K, S, L>>,
+async fn credential_preview<K, A, S, N, L>(
+    State(state): State<ApplicationState<K, A, S, N, L>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<Bearer>>,
     Json(preview_request): Json<CredentialPreviewRequest>,
 ) -> Result<Json<CredentialPreviewResponse>, ErrorResponse<CredentialPreviewErrorCode>>
 where
-    A: AttributeService,
     K: EcdsaKeySend,
+    A: AttributeService,
     S: SessionStore<IssuanceData>,
     L: StatusListServices,
 {
@@ -166,15 +171,36 @@ where
     Ok(Json(response))
 }
 
-async fn credential<A, K, S, L>(
-    State(state): State<ApplicationState<A, K, S, L>>,
+async fn nonce<K, A, S, N, L>(
+    State(state): State<ApplicationState<K, A, S, N, L>>,
+) -> Result<(TypedHeader<CacheControl>, Json<NonceResponse>), StatusCode>
+where
+    N: NonceStore,
+{
+    let c_nonce = state.issuer.generate_proof_nonce().await.map_err(|error| {
+        warn!("generating fresh c_nonce failed: {}", error);
+
+        // Any error that occurs while generating the nonce is de facto a problem with the server.
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    // Including this header is mandated by the OpenID4VCI specification.
+    // See: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-7.2-3>
+    let header = TypedHeader(CacheControl::new().with_no_store());
+    let body = Json(NonceResponse { c_nonce });
+
+    Ok((header, body))
+}
+
+async fn credential<K, A, S, N, L>(
+    State(state): State<ApplicationState<K, A, S, N, L>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_request): Json<CredentialRequest>,
 ) -> Result<Json<CredentialResponse>, ErrorResponse<CredentialErrorCode>>
 where
-    A: AttributeService,
     K: EcdsaKeySend,
+    A: AttributeService,
     S: SessionStore<IssuanceData>,
     L: StatusListServices,
 {
@@ -188,15 +214,15 @@ where
     Ok(Json(response))
 }
 
-async fn batch_credential<A, K, S, L>(
-    State(state): State<ApplicationState<A, K, S, L>>,
+async fn batch_credential<K, A, S, N, L>(
+    State(state): State<ApplicationState<K, A, S, N, L>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_requests): Json<CredentialRequests>,
 ) -> Result<Json<CredentialResponses>, ErrorResponse<CredentialErrorCode>>
 where
-    A: AttributeService,
     K: EcdsaKeySend,
+    A: AttributeService,
     S: SessionStore<IssuanceData>,
     L: StatusListServices,
 {
@@ -210,15 +236,15 @@ where
     Ok(Json(response))
 }
 
-async fn reject_issuance<A, K, S, L>(
-    State(state): State<ApplicationState<A, K, S, L>>,
+async fn reject_issuance<K, A, S, N, L>(
+    State(state): State<ApplicationState<K, A, S, N, L>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     uri: Uri,
 ) -> Result<StatusCode, ErrorResponse<CredentialErrorCode>>
 where
-    A: AttributeService,
     K: EcdsaKeySend,
+    A: AttributeService,
     S: SessionStore<IssuanceData>,
     L: StatusListServices,
 {

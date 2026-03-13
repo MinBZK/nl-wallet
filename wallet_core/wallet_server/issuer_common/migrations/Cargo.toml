@@ -1,0 +1,18 @@
+[package]
+name = "issuer_common_migrations"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+async-trait.workspace = true
+sea-orm-migration.workspace = true
+
+server_utils_migrations.path = "../../server_utils/migrations"
+status_lists_migrations.path = "../../../lib/status_lists/migrations"

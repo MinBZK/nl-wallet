@@ -115,6 +115,7 @@ impl IssuerMetadata {
     pub fn new_mock(issuer_identifier: IssuerIdentifier, attestation_type: &str) -> IssuerMetadata {
         let credential_endpoint = issuer_identifier.join_issuer_url("/issuance/credential");
         let batch_credential_endpoint = issuer_identifier.join_issuer_url("/issuance/batch_credential");
+        let nonce_endpoint = issuer_identifier.join_issuer_url("/issuance/nonce");
         let credential_preview_endpoint = issuer_identifier.join_issuer_url("/issuance/credential_preview");
 
         IssuerMetadata {
@@ -122,7 +123,7 @@ impl IssuerMetadata {
             authorization_servers: None,
             credential_endpoint,
             batch_credential_endpoint: Some(batch_credential_endpoint),
-            nonce_endpoint: None,
+            nonce_endpoint: Some(nonce_endpoint),
             deferred_credential_endpoint: None,
             notification_endpoint: None,
             credential_request_encryption: None,

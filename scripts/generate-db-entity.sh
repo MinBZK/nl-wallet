@@ -20,9 +20,18 @@ if [[ -z $crate || $crate == 'status_lists' ]]; then
     rm -f "$BASE_DIR/wallet_core/lib/status_lists/src/entity"/*
     sea-orm-cli generate entity \
         --database-url "postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/issuance_server" \
-        --ignore-tables "seaql_migrations,session_state" \
+        --ignore-tables "seaql_migrations,session_state,proof_nonce" \
         --output-dir "$BASE_DIR/wallet_core/lib/status_lists/src/entity"
     cargo fmt --manifest-path "$BASE_DIR/wallet_core/lib/status_lists/Cargo.toml"
+fi
+
+if [[ -z $crate || $crate == 'issuer_common' ]]; then
+    rm -f "$BASE_DIR/wallet_core/wallet_server/issuer_common/src/entity"/*
+    sea-orm-cli generate entity \
+        --database-url "postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/issuance_server" \
+        --ignore-tables "seaql_migrations,attestation_batch,attestation_batch_list_indices,attestation_type,session_state,status_list,status_list_item" \
+        --output-dir "$BASE_DIR/wallet_core/wallet_server/issuer_common/src/entity"
+    cargo fmt --manifest-path "$BASE_DIR/wallet_core/wallet_server/issuer_common/Cargo.toml"
 fi
 
 if [[ -z $crate || $crate == 'wallet_provider' ]]; then

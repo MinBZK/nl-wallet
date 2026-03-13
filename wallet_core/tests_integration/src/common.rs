@@ -48,8 +48,9 @@ use http_utils::urls::disclosure_based_issuance_base_uri;
 use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
-use issuer_settings::settings::IssuerSettings;
-use issuer_settings::settings::StatusListAttestationSettings;
+use issuer_common::nonce_store::ProofNonceStore;
+use issuer_common::settings::IssuerSettings;
+use issuer_common::settings::StatusListAttestationSettings;
 use jwt::SignedJwt;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -779,6 +780,7 @@ pub async fn start_issuance_server(
         store_connection.clone(),
         storage_settings.into(),
     ));
+    let nonce_store = ProofNonceStore::new(store_connection.clone());
     let disclosure_settings = Arc::new(SessionStoreVariant::new(
         store_connection.clone(),
         storage_settings.into(),
@@ -801,6 +803,7 @@ pub async fn start_issuance_server(
                 settings,
                 hsm,
                 issuance_sessions,
+                nonce_store,
                 disclosure_settings,
                 attributes_fetcher,
                 status_list_services,
@@ -848,6 +851,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
         store_connection.clone(),
         storage_settings.into(),
     ));
+    let nonce_store = ProofNonceStore::new(store_connection.clone());
 
     let (status_list_router, status_list_services) = get_status_list_service_and_router(
         storage_settings.url.clone(),
@@ -866,6 +870,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
                 settings.issuer_settings,
                 hsm,
                 issuance_sessions,
+                nonce_store,
                 settings.wua_issuer_pubkey.into_inner(),
                 status_list_services,
                 Some(status_list_router),
