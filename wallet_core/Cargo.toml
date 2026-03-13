@@ -19,6 +19,7 @@ members = [
     "lib/health_checkers",
     "lib/hsm",
     "lib/http_utils",
+    "lib/jwe",
     "lib/jwt",
     "lib/mdoc",
     "lib/measure",
@@ -154,6 +155,7 @@ jni = "0.21.1"
 josekit = "0.10.3"
 jsonschema = { version = "0.37.4", default-features = false }
 jsonwebtoken = { version = "10.2.0", default-features = false, features = ["rust_crypto"] }
+jwk-simple = "0.2.0"
 libc = "0.2.178"
 # held back by sea-orm / sqlx
 libsqlite3-sys = { version = "0.30.1", default-features = false }

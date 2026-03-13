@@ -1,0 +1,22 @@
+[package]
+name = "jwe"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[dependencies]
+derive_more = { workspace = true, features = ["constructor"] }
+p256.workspace = true
+strum = { workspace = true, features = ["derive"] }
+thiserror.workspace = true
+jwk-simple.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+rstest.workspace = true
