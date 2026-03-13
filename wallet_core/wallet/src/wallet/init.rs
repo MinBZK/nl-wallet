@@ -147,19 +147,32 @@ where
         );
         let oidc_discovery = HttpOidcDiscovery::new(oidc_reqwest_client);
 
-        let wallet_clients = WalletClients::new_http()?;
-
-        Self::init_registration(
+        let repositories = WalletRepositories {
             config_repository,
             update_policy_repository,
-            storage,
-            key_holder,
+        };
+
+        let discovery = WalletDiscovery {
             credential_issuer_discovery,
             oidc_discovery,
-            wallet_clients,
-        )
-        .await
+        };
+
+        let wallet_clients = WalletClients::new_http()?;
+
+        Self::init_registration(storage, key_holder, repositories, discovery, wallet_clients).await
     }
+}
+
+#[derive(Debug)]
+pub struct WalletRepositories<CR, UR> {
+    pub config_repository: CR,
+    pub update_policy_repository: UR,
+}
+
+#[derive(Debug)]
+pub struct WalletDiscovery<CID, OD> {
+    pub credential_issuer_discovery: CID,
+    pub oidc_discovery: OD,
 }
 
 #[derive(Debug, Default)]
@@ -196,12 +209,10 @@ where
     SLC: StatusListClient,
 {
     pub(super) fn new(
-        config_repository: CR,
-        update_policy_repository: UR,
         storage: S,
         key_holder: AKH,
-        credential_issuer_discovery: CID,
-        oidc_discovery: OD,
+        repositories: WalletRepositories<CR, UR>,
+        discovery: WalletDiscovery<CID, OD>,
         wallet_clients: WalletClients<APC, DCC, SLC>,
         registration_status: RegistrationStatus,
     ) -> Self {
@@ -227,14 +238,14 @@ where
         };
 
         Wallet {
-            config_repository: Arc::new(config_repository),
-            update_policy_repository,
+            config_repository: Arc::new(repositories.config_repository),
+            update_policy_repository: repositories.update_policy_repository,
             storage: Arc::new(RwLock::new(storage)),
             key_holder,
             registration,
             account_provider_client: Arc::new(wallet_clients.account_provider_client),
-            oidc_discovery,
-            credential_issuer_discovery,
+            oidc_discovery: discovery.oidc_discovery,
+            credential_issuer_discovery: discovery.credential_issuer_discovery,
             disclosure_client: wallet_clients.disclosure_client,
             status_list_client: Arc::new(wallet_clients.status_list_client),
             session: None,
@@ -249,12 +260,10 @@ where
 
     /// Initialize the wallet by loading initial state.
     pub async fn init_registration(
-        config_repository: CR,
-        update_policy_repository: UR,
         mut storage: S,
         key_holder: AKH,
-        credential_issuer_discovery: CID,
-        oidc_discovery: OD,
+        repositories: WalletRepositories<CR, UR>,
+        discovery: WalletDiscovery<CID, OD>,
         wallet_clients: WalletClients<APC, DCC, SLC>,
     ) -> Result<Self, WalletInitError>
     where
@@ -263,18 +272,21 @@ where
         SLC: Sync + 'static,
         S: Storage + Sync + 'static,
     {
-        let http_config = config_repository.get().update_policy_server.http_config.clone();
-        update_policy_repository.fetch_in_background(http_config);
+        let http_config = repositories
+            .config_repository
+            .get()
+            .update_policy_server
+            .http_config
+            .clone();
+        repositories.update_policy_repository.fetch_in_background(http_config);
 
         let registration_status = Self::fetch_registration_status(&mut storage).await?;
 
         let mut wallet = Self::new(
-            config_repository,
-            update_policy_repository,
             storage,
             key_holder,
-            credential_issuer_discovery,
-            oidc_discovery,
+            repositories,
+            discovery,
             wallet_clients,
             registration_status,
         );

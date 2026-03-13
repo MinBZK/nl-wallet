@@ -22,6 +22,8 @@ use wallet::DisclosureUriSource;
 use wallet::PidIssuancePurpose;
 use wallet::Wallet;
 use wallet::WalletClients;
+use wallet::WalletDiscovery;
+use wallet::WalletRepositories;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
 use wallet::test::MockHardwareDatabaseStorage;
@@ -84,12 +86,16 @@ async fn main() {
     let storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
     let mut wallet: PerformanceTestWallet = Wallet::init_registration(
-        config_repository,
-        update_policy_repository,
         storage,
         MockHardwareAttestedKeyHolder::new_apple_mock(default::attestation_environment(), default::app_identifier()),
-        credential_issuer_discovery,
-        oidc_discovery,
+        WalletRepositories {
+            config_repository,
+            update_policy_repository,
+        },
+        WalletDiscovery {
+            credential_issuer_discovery,
+            oidc_discovery,
+        },
         wallet_clients,
     )
     .await

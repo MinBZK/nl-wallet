@@ -39,6 +39,8 @@ pub use crate::wallet::UnlockMethod;
 pub use crate::wallet::UriType;
 pub use crate::wallet::Wallet;
 pub use crate::wallet::WalletClients;
+pub use crate::wallet::WalletDiscovery;
+pub use crate::wallet::WalletRepositories;
 pub use crate::wallet::WalletState;
 
 pub use token_status_list::verification::verifier::RevocationStatus;

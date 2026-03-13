@@ -90,6 +90,8 @@ use wallet::AttestationPresentation;
 use wallet::PidIssuancePurpose;
 use wallet::Wallet;
 use wallet::WalletClients;
+use wallet::WalletDiscovery;
+use wallet::WalletRepositories;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
 use wallet::test::MockHardwareDatabaseStorage;
@@ -437,12 +439,16 @@ where
     let wallet_clients = WalletClients::new_http().unwrap();
 
     Wallet::init_registration(
-        config_repository,
-        update_policy_repository,
         storage_generator().await,
         key_holder,
-        credential_issuer_discovery,
-        oidc_discovery,
+        WalletRepositories {
+            config_repository,
+            update_policy_repository,
+        },
+        WalletDiscovery {
+            credential_issuer_discovery,
+            oidc_discovery,
+        },
         wallet_clients,
     )
     .await

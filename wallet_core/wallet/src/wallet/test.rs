@@ -86,6 +86,8 @@ use crate::storage::WalletEvent;
 use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
 use crate::wallet::init::WalletClients;
+use crate::wallet::init::WalletDiscovery;
+use crate::wallet::init::WalletRepositories;
 
 use super::HistoryError;
 use super::Wallet;
@@ -380,12 +382,16 @@ where
         .await;
 
         Wallet::new(
-            config_repository,
-            MockUpdatePolicyRepository::default(),
             S::init().await,
             generate_key_holder(vendor),
-            MockCredentialIssuerDiscovery::new(),
-            MockOidcDiscovery::new(),
+            WalletRepositories {
+                config_repository,
+                update_policy_repository: MockUpdatePolicyRepository::default(),
+            },
+            WalletDiscovery {
+                credential_issuer_discovery: MockCredentialIssuerDiscovery::new(),
+                oidc_discovery: MockOidcDiscovery::new(),
+            },
             WalletClients::default(),
             RegistrationStatus::Unregistered,
         )
@@ -397,12 +403,16 @@ where
             UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
 
         Wallet::init_registration(
-            config_repository,
-            MockUpdatePolicyRepository::default(),
             S::init().await,
             generate_key_holder(vendor),
-            MockCredentialIssuerDiscovery::new(),
-            MockOidcDiscovery::new(),
+            WalletRepositories {
+                config_repository,
+                update_policy_repository: MockUpdatePolicyRepository::default(),
+            },
+            WalletDiscovery {
+                credential_issuer_discovery: MockCredentialIssuerDiscovery::new(),
+                oidc_discovery: MockOidcDiscovery::new(),
+            },
             WalletClients::default(),
         )
         .await
@@ -421,12 +431,16 @@ where
             UpdatingConfigurationRepository::new(LocalConfigurationRepository::new(config), config_server_config).await;
 
         let mut wallet = Wallet::new(
-            config_repository,
-            MockUpdatePolicyRepository::default(),
             S::init().await,
             generate_key_holder(vendor),
-            MockCredentialIssuerDiscovery::new(),
-            MockOidcDiscovery::new(),
+            WalletRepositories {
+                config_repository,
+                update_policy_repository: MockUpdatePolicyRepository::default(),
+            },
+            WalletDiscovery {
+                credential_issuer_discovery: MockCredentialIssuerDiscovery::new(),
+                oidc_discovery: MockOidcDiscovery::new(),
+            },
             WalletClients::default(),
             RegistrationStatus::Unregistered,
         );
@@ -480,12 +494,16 @@ impl TestWalletMockStorage {
             UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
 
         Wallet::init_registration(
-            config_repository,
-            MockUpdatePolicyRepository::default(),
             storage,
             key_holder,
-            MockCredentialIssuerDiscovery::new(),
-            MockOidcDiscovery::new(),
+            WalletRepositories {
+                config_repository,
+                update_policy_repository: MockUpdatePolicyRepository::default(),
+            },
+            WalletDiscovery {
+                credential_issuer_discovery: MockCredentialIssuerDiscovery::new(),
+                oidc_discovery: MockOidcDiscovery::new(),
+            },
             WalletClients::default(),
         )
         .await
