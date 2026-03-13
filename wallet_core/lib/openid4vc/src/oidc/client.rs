@@ -347,6 +347,14 @@ fn verify_against_keys<C: DeserializeOwned>(token: &str, jwks: &JwkSet, algorith
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use josekit::jwe::ECDH_ES_A256KW;
+    use josekit::jwe::JweHeader;
+    use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
+    use josekit::jwe::enc::aescbc_hmac::AescbcHmacJweEncryption;
+    use josekit::jwk::Jwk;
+    use josekit::jwk::KeyPair;
+    use josekit::jwk::alg::ec::EcCurve;
+    use josekit::jwk::alg::ec::EcKeyPair;
     use rstest::rstest;
     use serial_test::serial;
     use url::Url;
@@ -366,6 +374,7 @@ mod tests {
     use super::OidcClient;
     use super::OidcError;
     use super::OidcReqwestClient;
+    use super::decrypt_jwe;
 
     // These constants are used by multiple tests.
     const ISSUER_URL: &str = "https://example.com";
@@ -640,5 +649,55 @@ mod tests {
         let url = url_with_query_pairs(url, &query_pairs);
 
         assert_eq!(url, expected);
+    }
+
+    const JWE_ENC: AescbcHmacJweEncryption = AescbcHmacJweEncryption::A128cbcHs256;
+    const JWE_ALG: EcdhEsJweAlgorithm = ECDH_ES_A256KW;
+
+    fn make_jwe(payload: &[u8]) -> (String, Jwk) {
+        let key_pair = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let jwk = key_pair.to_jwk_key_pair();
+
+        let mut header = JweHeader::new();
+        header.set_content_encryption(JWE_ENC.name());
+
+        let encrypter = JWE_ALG.encrypter_from_jwk(&jwk).unwrap();
+        let jwe = josekit::jwe::serialize_compact(payload, &header, &encrypter).unwrap();
+
+        (jwe, jwk)
+    }
+
+    #[test]
+    fn test_decrypt_jwe_success() {
+        let payload = b"hello world";
+        let (jwe, jwk) = make_jwe(payload);
+        let decrypter = JWE_ALG.decrypter_from_jwk(&jwk).unwrap();
+
+        let result = decrypt_jwe(&jwe, &decrypter, &JWE_ENC).unwrap();
+
+        assert_eq!(result, payload);
+    }
+
+    #[test]
+    fn test_decrypt_jwe_wrong_enc_algorithm() {
+        let wrong_enc = AescbcHmacJweEncryption::A256cbcHs512;
+        let (jwe, jwk) = make_jwe(b"payload");
+        let decrypter = JWE_ALG.decrypter_from_jwk(&jwk).unwrap();
+
+        let result = decrypt_jwe(&jwe, &decrypter, &wrong_enc);
+
+        assert_matches!(result, Err(OidcError::UnexpectedEncAlgorithm));
+    }
+
+    #[test]
+    fn test_decrypt_jwe_wrong_key() {
+        let (jwe, _) = make_jwe(b"payload");
+
+        let other_jwk = EcKeyPair::generate(EcCurve::P256).unwrap().to_jwk_key_pair();
+        let decrypter = JWE_ALG.decrypter_from_jwk(&other_jwk).unwrap();
+
+        let result = decrypt_jwe(&jwe, &decrypter, &JWE_ENC);
+
+        assert_matches!(result, Err(OidcError::JweDecryption(_)));
     }
 }
