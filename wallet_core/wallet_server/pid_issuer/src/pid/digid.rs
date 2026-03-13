@@ -56,9 +56,7 @@ impl OpenIdClient {
         )
         .await?;
 
-        let bsn = userinfo_claims.bsn.clone();
-
-        Ok(bsn)
+        Ok(userinfo_claims.bsn)
     }
 
     fn decrypter(jwk_json: &str) -> Result<RsaesJweDecrypter> {

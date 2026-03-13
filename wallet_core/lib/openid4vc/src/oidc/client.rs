@@ -338,7 +338,7 @@ fn verify_against_keys<C: DeserializeOwned>(token: &str, jwks: &JwkSet, algorith
     let key = DecodingKey::from_jwk(jwk)?;
 
     let mut validation = Validation::new(algorithm);
-    validation.required_spec_claims = Default::default(); // don't require exp
+    validation.required_spec_claims.clear(); // don't require exp
 
     let verified = jsonwebtoken::decode(token, &key, &validation)?;
 
