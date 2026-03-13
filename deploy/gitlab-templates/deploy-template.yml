@@ -28,14 +28,6 @@ variables:
   script: |
     yq -i ".appVersion = \"${IMAGE_TAG}\"" ${HELM_CHARTS_PATH}/${CHART_NAME}/Chart.yaml
 
-.check-helm-install-status:
-  script:
-    - |
-      if [ $? -ne 0 ]; then
-        echo "Helm upgrade/install failed"
-        exit 1
-      fi
-
 .parse-config-files:
   script:
     - |
@@ -45,15 +37,8 @@ variables:
         FILE_OPTIONS+="-f $file "
       done
 
-db-cluster-${DEPLOY_ENV}:
+.deploy-helm:
   extends: .deploy-base
-  needs:
-    - pipeline: $PARENT_PIPELINE_ID
-      job: create-deployment-${DEPLOY_ENV}
-  variables:
-    CHART_NAME: database-cnpg
-    RELEASE_NAME: db-cluster
-    CONFIG_FILES: "deploy-variables/${DEPLOY_ENV}/db-cluster.yaml"
   script:
     - !reference [.build-helm-dependency, script]
     - !reference [.parse-config-files, script]
@@ -63,7 +48,7 @@ db-cluster-${DEPLOY_ENV}:
       --set global.imageRegistry=${HARBOR_REGISTRY} \
       $FILE_OPTIONS
 
-.deploy-helm:
+.deploy-helm-with-tag:
   extends: .deploy-base
   script:
     - !reference [.build-helm-dependency, script]
@@ -75,10 +60,19 @@ db-cluster-${DEPLOY_ENV}:
       --set global.imageRegistry=${HARBOR_REGISTRY} \
       --set image.tag=${DEPLOY_IMAGE_VERSION} \
       $FILE_OPTIONS
-    - !reference [.check-helm-install-status, script]
+
+db-cluster-${DEPLOY_ENV}:
+  extends: .deploy-helm
+  needs:
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
+  variables:
+    CHART_NAME: database-cnpg
+    RELEASE_NAME: db-cluster
+    CONFIG_FILES: "deploy-variables/${DEPLOY_ENV}/db-cluster.yaml"
 
 wallet-provider-${DEPLOY_ENV}:
-  extends: .deploy-helm
+  extends: .deploy-helm-with-tag
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
@@ -90,7 +84,7 @@ wallet-provider-${DEPLOY_ENV}:
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/wallet-provider.yaml"
 
 pid-issuer-${DEPLOY_ENV}:
-  extends: .deploy-helm
+  extends: .deploy-helm-with-tag
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
@@ -102,7 +96,7 @@ pid-issuer-${DEPLOY_ENV}:
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/pid-issuer.yaml"
 
 demo-rp-verification-server-${DEPLOY_ENV}:
-  extends: .deploy-helm
+  extends: .deploy-helm-with-tag
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
@@ -114,7 +108,7 @@ demo-rp-verification-server-${DEPLOY_ENV}:
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-rp-verification-server.yaml"
 
 demo-relying-party-${DEPLOY_ENV}:
-  extends: .deploy-helm
+  extends: .deploy-helm-with-tag
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
@@ -124,7 +118,7 @@ demo-relying-party-${DEPLOY_ENV}:
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-relying-party.yaml"
 
 demo-issuer-issuance-server-${DEPLOY_ENV}:
-  extends: .deploy-helm
+  extends: .deploy-helm-with-tag
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
@@ -136,7 +130,7 @@ demo-issuer-issuance-server-${DEPLOY_ENV}:
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-issuer-issuance-server.yaml"
 
 demo-issuer-${DEPLOY_ENV}:
-  extends: .deploy-helm
+  extends: .deploy-helm-with-tag
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
@@ -146,7 +140,7 @@ demo-issuer-${DEPLOY_ENV}:
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-issuer.yaml"
 
 demo-index-${DEPLOY_ENV}:
-  extends: .deploy-helm
+  extends: .deploy-helm-with-tag
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
@@ -156,7 +150,7 @@ demo-index-${DEPLOY_ENV}:
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-index.yaml"
 
 revocation-portal-${DEPLOY_ENV}:
-  extends: .deploy-helm
+  extends: .deploy-helm-with-tag
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
@@ -166,7 +160,7 @@ revocation-portal-${DEPLOY_ENV}:
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/revocation-portal.yaml"
 
 update-policy-server-${DEPLOY_ENV}:
-  extends: .deploy-helm
+  extends: .deploy-helm-with-tag
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
@@ -176,7 +170,7 @@ update-policy-server-${DEPLOY_ENV}:
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/update-policy-server.yaml"
 
 brpproxy-${DEPLOY_ENV}:
-  extends: .deploy-base
+  extends: .deploy-helm
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
@@ -184,18 +178,9 @@ brpproxy-${DEPLOY_ENV}:
     CHART_NAME: brpproxy
     RELEASE_NAME: brpproxy
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/brpproxy.yaml"
-  script:
-    - !reference [.build-helm-dependency, script]
-    - !reference [.parse-config-files, script]
-    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
-    - |
-      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
-      --set global.imageRegistry=${HARBOR_REGISTRY} \
-       $FILE_OPTIONS
-    - !reference [.check-helm-install-status, script]
 
 gbamock-${DEPLOY_ENV}:
-  extends: .deploy-base
+  extends: .deploy-helm
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
@@ -203,15 +188,6 @@ gbamock-${DEPLOY_ENV}:
     CHART_NAME: gbamock
     RELEASE_NAME: gbamock
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/gbamock.yaml"
-  script:
-    - !reference [.build-helm-dependency, script]
-    - !reference [.parse-config-files, script]
-    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
-    - |
-      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
-      --set global.imageRegistry=${HARBOR_REGISTRY} \
-       $FILE_OPTIONS
-    - !reference [.check-helm-install-status, script]
 
 gba-hc-converter-${DEPLOY_ENV}:
   extends: .deploy-base
@@ -236,10 +212,9 @@ gba-hc-converter-${DEPLOY_ENV}:
       --set global.imageRegistry=${HARBOR_REGISTRY} \
       --set image.tag=${DEPLOY_IMAGE_VERSION} \
        $FILE_OPTIONS
-    - !reference [.check-helm-install-status, script]
 
 redis-${DEPLOY_ENV}:
-  extends: .deploy-base
+  extends: .deploy-helm
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
@@ -247,18 +222,9 @@ redis-${DEPLOY_ENV}:
     CHART_NAME: redis
     RELEASE_NAME: redis
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/general/redis.yaml"
-  script:
-    - !reference [.build-helm-dependency, script]
-    - !reference [.parse-config-files, script]
-    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
-    - |
-      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
-      --set global.imageRegistry=${HARBOR_REGISTRY} \
-       $FILE_OPTIONS
-    - !reference [.check-helm-install-status, script]
 
 digid-connector-${DEPLOY_ENV}:
-  extends: .deploy-base
+  extends: .deploy-helm
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
@@ -268,15 +234,6 @@ digid-connector-${DEPLOY_ENV}:
     CHART_NAME: rdo-max
     RELEASE_NAME: digid-connector
     CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/general/rdo-max.yaml,deploy-variables/${DEPLOY_ENV}/digid-connector.yaml"
-  script:
-    - !reference [.build-helm-dependency, script]
-    - !reference [.parse-config-files, script]
-    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
-    - |
-      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
-      --set global.imageRegistry=${HARBOR_REGISTRY} \
-       $FILE_OPTIONS
-    - !reference [.check-helm-install-status, script]
 
 run-encrypt-gba-v-testdata-${DEPLOY_ENV}:
   extends: .deploy-base
