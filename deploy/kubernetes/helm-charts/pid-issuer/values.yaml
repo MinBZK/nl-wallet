@@ -68,36 +68,35 @@ podSecurityContext: {}
 ##
 securityContext: {}
 
-## @section Ingress internal parameters
-## Parameters for the internal ingress
-## @param ingressInternal.enabled Enable or disable the internal ingress
-## @param ingressInternal.className Ingress class name
-## @param ingressInternal.hostname Hostname for the internal ingress
-## @param ingressInternal.tlsSecretName Name of the TLS secret for the internal ingress
-## @param ingressInternal.labels Additional labels for the internal ingress
-## @param ingressInternal.annotations Additional annotations for the internal ingress
+## @section HTTP route parameters
+## Parameters for the HTTPRoute configuration
+## @param httpRoute.enabled Enable or disable the route
+## @param httpRoute.parentRefs Parent references to the gateway
+## @param httpRoute.hostnames Hostnames for the route
+## @param httpRoute.contextPath Optional context path for the route
+## @param httpRoute.labels Additional labels for the route
+## @param httpRoute.annotations Additional annotations for the route
 ##
-ingressInternal:
-  enabled: false
-  className: "nginx"
-  hostname: null
-  tlsSecretName: null
+httpRoute:
+  enabled: true
+  parentRefs: []
+  hostnames: []
+  contextPath: null
   labels: {}
   annotations: {}
 
-## @section Ingress parameters
-## @param ingress.className Ingress class name
-## @param ingress.hostname Hostname for the ingress
-## @param ingress.contextPath Optional context path for the ingress
-## @param ingress.tlsSecretName Name of the TLS secret for the ingress
-## @param ingress.labels Additional labels for the ingress
-## @param ingress.annotations Additional annotations for the ingress
+## @section HTTP route internal parameters
+## Parameters for the HTTPRoute configuration
+## @param httpRouteInternal.enabled Enable or disable the route
+## @param httpRouteInternal.parentRefs Parent references to the gateway
+## @param httpRouteInternal.hostnames Hostnames for the route
+## @param httpRouteInternal.labels Additional labels for the route
+## @param httpRouteInternal.annotations Additional annotations for the route
 ##
-ingress:
-  className: "nginx"
-  hostname: null
-  contextPath: null
-  tlsSecretName: null
+httpRouteInternal:
+  enabled: true
+  parentRefs: []
+  hostnames: []
   labels: {}
   annotations: {}
 

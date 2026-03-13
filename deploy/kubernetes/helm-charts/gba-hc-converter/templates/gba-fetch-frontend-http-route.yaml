@@ -1,0 +1,33 @@
+{{- if .Values.frontend.httpRoute.enabled -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Values.frontend.name }}
+  labels:
+    {{- include "common.labels.component" (list .Values.frontend.name .) | nindent 4 }}
+    {{- with .Values.frontend.httpRoute.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.frontend.httpRoute.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    {{- with .Values.frontend.httpRoute.parentRefs }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.frontend.httpRoute.hostnames }}
+  hostnames:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    - backendRefs:
+        - name: {{ .Values.frontend.name }}
+          port: 80
+      {{- with .Values.frontend.httpRoute.filters }}
+      filters:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+# This route used to be protected by client TLS with anchor in nl-wallet-gba-fetch-truststore
