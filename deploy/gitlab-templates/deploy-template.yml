@@ -34,7 +34,7 @@ variables:
       IFS=',' read -r -a file_array <<< "$CONFIG_FILES"
       FILE_OPTIONS=""
       for file in "${file_array[@]}"; do
-        FILE_OPTIONS+="-f $file "
+        FILE_OPTIONS+="-f deploy-variables/$file "
       done
 
 .deploy-helm:
@@ -69,7 +69,7 @@ db-cluster-${DEPLOY_ENV}:
   variables:
     CHART_NAME: database-cnpg
     RELEASE_NAME: db-cluster
-    CONFIG_FILES: "deploy-variables/${DEPLOY_ENV}/db-cluster.yaml"
+    CONFIG_FILES: "${DEPLOY_ENV}/db-cluster.yaml"
 
 wallet-provider-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -81,7 +81,7 @@ wallet-provider-${DEPLOY_ENV}:
   variables:
     CHART_NAME: wallet-provider
     RELEASE_NAME: wallet-provider
-    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/wallet-provider.yaml"
+    CONFIG_FILES: "general/global.yaml,${DEPLOY_ENV}/wallet-provider.yaml"
 
 pid-issuer-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -93,7 +93,7 @@ pid-issuer-${DEPLOY_ENV}:
   variables:
     CHART_NAME: pid-issuer
     RELEASE_NAME: pid-issuer
-    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/pid-issuer.yaml"
+    CONFIG_FILES: "general/global.yaml,${DEPLOY_ENV}/pid-issuer.yaml"
 
 demo-rp-verification-server-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -105,7 +105,7 @@ demo-rp-verification-server-${DEPLOY_ENV}:
   variables:
     CHART_NAME: demo-rp-verification-server
     RELEASE_NAME: demo-rp-verification-server
-    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-rp-verification-server.yaml"
+    CONFIG_FILES: "general/global.yaml,${DEPLOY_ENV}/demo-rp-verification-server.yaml"
 
 demo-relying-party-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -115,7 +115,7 @@ demo-relying-party-${DEPLOY_ENV}:
   variables:
     CHART_NAME: demo-relying-party
     RELEASE_NAME: demo-relying-party
-    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-relying-party.yaml"
+    CONFIG_FILES: "general/global.yaml,${DEPLOY_ENV}/demo-relying-party.yaml"
 
 demo-issuer-issuance-server-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -127,7 +127,7 @@ demo-issuer-issuance-server-${DEPLOY_ENV}:
   variables:
     CHART_NAME: demo-issuer-issuance-server
     RELEASE_NAME: demo-issuer-issuance-server
-    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-issuer-issuance-server.yaml"
+    CONFIG_FILES: "general/global.yaml,${DEPLOY_ENV}/demo-issuer-issuance-server.yaml"
 
 demo-issuer-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -137,7 +137,7 @@ demo-issuer-${DEPLOY_ENV}:
   variables:
     CHART_NAME: demo-issuer
     RELEASE_NAME: demo-issuer
-    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-issuer.yaml"
+    CONFIG_FILES: "general/global.yaml,${DEPLOY_ENV}/demo-issuer.yaml"
 
 demo-index-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -147,7 +147,7 @@ demo-index-${DEPLOY_ENV}:
   variables:
     CHART_NAME: demo-index
     RELEASE_NAME: demo-index
-    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/demo-index.yaml"
+    CONFIG_FILES: "general/global.yaml,${DEPLOY_ENV}/demo-index.yaml"
 
 revocation-portal-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -157,7 +157,7 @@ revocation-portal-${DEPLOY_ENV}:
   variables:
     CHART_NAME: revocation-portal
     RELEASE_NAME: revocation-portal
-    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/revocation-portal.yaml"
+    CONFIG_FILES: "general/global.yaml,${DEPLOY_ENV}/revocation-portal.yaml"
 
 update-policy-server-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -167,7 +167,7 @@ update-policy-server-${DEPLOY_ENV}:
   variables:
     CHART_NAME: update-policy-server
     RELEASE_NAME: update-policy-server
-    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/update-policy-server.yaml"
+    CONFIG_FILES: "general/global.yaml,${DEPLOY_ENV}/update-policy-server.yaml"
 
 brpproxy-${DEPLOY_ENV}:
   extends: .deploy-helm
@@ -177,7 +177,7 @@ brpproxy-${DEPLOY_ENV}:
   variables:
     CHART_NAME: brpproxy
     RELEASE_NAME: brpproxy
-    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/brpproxy.yaml"
+    CONFIG_FILES: "general/global.yaml,${DEPLOY_ENV}/brpproxy.yaml"
 
 gbamock-${DEPLOY_ENV}:
   extends: .deploy-helm
@@ -187,7 +187,7 @@ gbamock-${DEPLOY_ENV}:
   variables:
     CHART_NAME: gbamock
     RELEASE_NAME: gbamock
-    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/gbamock.yaml"
+    CONFIG_FILES: "general/global.yaml,${DEPLOY_ENV}/gbamock.yaml"
 
 gba-hc-converter-${DEPLOY_ENV}:
   extends: .deploy-base
@@ -197,7 +197,7 @@ gba-hc-converter-${DEPLOY_ENV}:
   variables:
     CHART_NAME: gba-hc-converter
     RELEASE_NAME: gba-hc-converter
-    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/${DEPLOY_ENV}/gba-hc-converter.yaml"
+    CONFIG_FILES: "general/global.yaml,${DEPLOY_ENV}/gba-hc-converter.yaml"
   script:
     - !reference [.build-helm-dependency, script]
     - !reference [.replace-chart-app-version, script]
@@ -205,13 +205,14 @@ gba-hc-converter-${DEPLOY_ENV}:
     - sed -i 's/{{bsn}}/{{`{{bsn}}`}}/g' wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml
     - scripts/convert-gba-hc-converter-values.sh xmlFiles wallet_core/gba_hc_converter/resources/gba-v-responses > ${PATH_CHART}/xmlFiles.yaml
     - scripts/convert-gba-hc-converter-values.sh zoekXmlFiles wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml > ${PATH_CHART}/zoekXmlFiles.yaml
-    - export CONFIG_FILES="${CONFIG_FILES},${PATH_CHART}/xmlFiles.yaml,${PATH_CHART}/zoekXmlFiles.yaml"
     - !reference [.parse-config-files, script]
     - |
       helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
       --set global.imageRegistry=${HARBOR_REGISTRY} \
       --set image.tag=${DEPLOY_IMAGE_VERSION} \
-       $FILE_OPTIONS
+      -f ${PATH_CHART}/xmlFiles.yaml \
+      -f ${PATH_CHART}/zoekXmlFiles.yaml \
+      $FILE_OPTIONS
 
 redis-${DEPLOY_ENV}:
   extends: .deploy-helm
@@ -221,7 +222,7 @@ redis-${DEPLOY_ENV}:
   variables:
     CHART_NAME: redis
     RELEASE_NAME: redis
-    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/general/redis.yaml"
+    CONFIG_FILES: "general/global.yaml,general/redis.yaml"
 
 digid-connector-${DEPLOY_ENV}:
   extends: .deploy-helm
@@ -233,7 +234,7 @@ digid-connector-${DEPLOY_ENV}:
   variables:
     CHART_NAME: rdo-max
     RELEASE_NAME: digid-connector
-    CONFIG_FILES: "deploy-variables/general/global.yaml,deploy-variables/general/rdo-max.yaml,deploy-variables/${DEPLOY_ENV}/digid-connector.yaml"
+    CONFIG_FILES: "general/global.yaml,general/rdo-max.yaml,${DEPLOY_ENV}/digid-connector.yaml"
 
 run-encrypt-gba-v-testdata-${DEPLOY_ENV}:
   extends: .deploy-base
