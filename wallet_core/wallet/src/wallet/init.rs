@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -134,7 +135,7 @@ where
         )
         .await?;
 
-        let wallet_clients = WalletClients::new_http()?;
+        let wallet_clients = WalletClients::new()?;
 
         Self::init_registration(
             config_repository,
@@ -158,8 +159,8 @@ impl<APC> WalletClients<APC, VpDisclosureClient, HttpStatusListClient>
 where
     APC: Default,
 {
-    pub fn new_http() -> Result<Self, reqwest::Error> {
-        let disclosure_client = VpDisclosureClient::new_http(default_reqwest_client_builder())?;
+    pub fn new() -> Result<Self, reqwest::Error> {
+        let disclosure_client = VpDisclosureClient::new_with_client(default_reqwest_client_builder())?;
         let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
 
         let clients = Self {
@@ -172,7 +173,7 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
 where
     AKH: AttestedKeyHolder,
     OC: OidcClient,
@@ -216,6 +217,7 @@ where
             registration,
             account_provider_client: Arc::new(wallet_clients.account_provider_client),
             disclosure_client: wallet_clients.disclosure_client,
+            close_proximity_disclosure_client: PhantomData,
             status_list_client: Arc::new(wallet_clients.status_list_client),
             session: None,
             lock: WalletLock::new(true),
@@ -261,7 +263,7 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,

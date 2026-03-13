@@ -21,7 +21,12 @@ fake_attestation = [
     "platform_support/xcode_env",
 ]
 # Various test related functionality of Wallet types and dependencies
-test = ["openid4vc/mock", "platform_support/mock_hw_keystore", "dep:mockall"]
+test = [
+    "dep:mockall",
+    "openid4vc/mock",
+    "platform_support/mock_hw_keystore",
+    "platform_support/mock_close_proximity_disclosure",
+]
 
 [dependencies]
 async-trait.workspace = true

@@ -423,7 +423,7 @@ where
         .unwrap();
 
     let update_policy_repository = UpdatePolicyRepository::init();
-    let wallet_clients = WalletClients::new_http().unwrap();
+    let wallet_clients = WalletClients::new().unwrap();
 
     Wallet::init_registration(
         config_repository,

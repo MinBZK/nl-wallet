@@ -82,7 +82,7 @@ impl<S, SLC, CR> Clone for RevocationTaskContext<S, SLC, CR> {
     }
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, SLC>
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     S: Storage,

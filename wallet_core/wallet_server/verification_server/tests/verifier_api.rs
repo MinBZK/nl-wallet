@@ -892,7 +892,7 @@ async fn perform_full_disclosure(
         SessionType::SameDevice => DisclosureUriSource::Link,
         SessionType::CrossDevice => DisclosureUriSource::QrCode,
     };
-    let disclosure_client = VpDisclosureClient::new_http(default_reqwest_client_builder()).unwrap();
+    let disclosure_client = VpDisclosureClient::new_with_client(default_reqwest_client_builder()).unwrap();
     let disclosure_session = disclosure_client
         .start(&request_uri_query, uri_source, &[rp_trust_anchor])
         .await
@@ -1088,7 +1088,7 @@ async fn test_disclosed_attributes_failed_session() {
     };
 
     let request_uri_query = ul.as_ref().query().unwrap().to_string();
-    let disclosure_client = VpDisclosureClient::new_http(default_reqwest_client_builder()).unwrap();
+    let disclosure_client = VpDisclosureClient::new_with_client(default_reqwest_client_builder()).unwrap();
     let disclosure_session = disclosure_client
         .start(&request_uri_query, DisclosureUriSource::QrCode, &[rp_trust_anchor])
         .await
