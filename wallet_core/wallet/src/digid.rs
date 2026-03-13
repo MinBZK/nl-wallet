@@ -77,7 +77,7 @@ pub mod mock {
 
 #[cfg(test)]
 mod test {
-    use http_utils::client::TlsPinningConfig;
+    use http_utils::reqwest::test::get_tls_pinning_config_for_url;
     use serial_test::serial;
     use url::Url;
 
@@ -112,7 +112,7 @@ mod test {
 
         let session: DigidSessionState<MockOidcClient> = start_digid_session(
             DigidConfiguration::default(),
-            TlsPinningConfig::try_new("https://digid.example.com".parse().unwrap(), vec![]).unwrap(),
+            get_tls_pinning_config_for_url("https://digid.example.com"),
             "https://app.example.com".parse().unwrap(),
         )
         .await

@@ -8,6 +8,8 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
+use utils::vec_at_least::VecNonEmpty;
+
 use crate::reqwest::IntoReqwestClient;
 use crate::reqwest::ReqwestClient;
 use crate::reqwest::ReqwestTrustAnchor;
@@ -75,7 +77,7 @@ pub struct TlsPinningConfigHash(u64);
 struct TlsPinningConfigRaw {
     base_url: BaseUrl,
     #[serde_as(as = "Vec<Base64>")]
-    trust_anchors: Vec<ReqwestTrustAnchor>,
+    trust_anchors: VecNonEmpty<ReqwestTrustAnchor>,
 }
 
 #[serde_as]
@@ -85,11 +87,11 @@ pub struct TlsPinningConfig {
     base_url: BaseUrl,
     #[debug(skip)]
     #[serde_as(as = "Vec<Base64>")]
-    trust_anchors: Vec<ReqwestTrustAnchor>,
+    trust_anchors: VecNonEmpty<ReqwestTrustAnchor>,
 }
 
 impl TlsPinningConfig {
-    pub fn try_new(base_url: BaseUrl, trust_anchors: Vec<ReqwestTrustAnchor>) -> Result<Self, HttpConfigError> {
+    pub fn try_new(base_url: BaseUrl, trust_anchors: VecNonEmpty<ReqwestTrustAnchor>) -> Result<Self, HttpConfigError> {
         if !base_url.is_https() {
             return Err(HttpConfigError::NotHttps);
         }
@@ -104,7 +106,7 @@ impl TlsPinningConfig {
     }
 
     pub fn trust_anchors(&self) -> &[ReqwestTrustAnchor] {
-        &self.trust_anchors
+        self.trust_anchors.as_slice()
     }
 
     pub fn to_hash(&self) -> TlsPinningConfigHash {
