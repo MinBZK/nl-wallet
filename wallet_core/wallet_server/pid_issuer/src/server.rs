@@ -36,8 +36,8 @@ pub async fn serve<A, IS, N, L>(
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
-    N: NonceStore + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
+    N: NonceStore + Send + Sync + 'static,
     L: StatusListServices + StatusListRevocationService + Send + Sync + 'static,
 {
     serve_with_listeners(
@@ -57,7 +57,7 @@ where
 }
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve_with_listeners<A, N, IS, L>(
+pub async fn serve_with_listeners<A, IS, N, L>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
     attr_service: A,
@@ -72,8 +72,8 @@ pub async fn serve_with_listeners<A, N, IS, L>(
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
-    N: NonceStore + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
+    N: NonceStore + Send + Sync + 'static,
     L: StatusListServices + StatusListRevocationService + Send + Sync + 'static,
 {
     let log_requests = settings.server_settings.log_requests;
