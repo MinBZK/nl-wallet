@@ -66,13 +66,13 @@ pub enum OidcError {
     #[error("JWE decryption error: {0}")]
     JweDecryption(#[from] JoseError),
     #[error("JWT error: {0}")]
-    Jwt(#[from] jsonwebtoken::errors::Error),
+    Jsonwebtoken(#[from] jsonwebtoken::errors::Error),
     #[error("unexpected JWE content encryption algorithm")]
     #[category(critical)]
-    WrongEncAlgorithm,
+    UnexpectedEncAlgorithm,
     #[error("decrypted JWE payload is not valid UTF-8")]
     #[category(critical)]
-    InvalidJws,
+    JwePayloadNotUtf8,
     #[error("JWT header is missing key ID (kid)")]
     #[category(critical)]
     MissingKeyId,
@@ -297,7 +297,7 @@ fn decrypt_jwe(
     if header.content_encryption() == Some(expected_enc_alg.name()) {
         Ok(jwe_payload)
     } else {
-        Err(OidcError::WrongEncAlgorithm)
+        Err(OidcError::UnexpectedEncAlgorithm)
     }
 }
 
@@ -320,9 +320,8 @@ where
     )?;
 
     let jws = match encryption {
-        Some((decrypter, expected_enc_alg)) => {
-            String::from_utf8(decrypt_jwe(&jwt, decrypter, expected_enc_alg)?).map_err(|_| OidcError::InvalidJws)?
-        }
+        Some((decrypter, expected_enc_alg)) => String::from_utf8(decrypt_jwe(&jwt, decrypter, expected_enc_alg)?)
+            .map_err(|_| OidcError::JwePayloadNotUtf8)?,
         None => jwt,
     };
 
