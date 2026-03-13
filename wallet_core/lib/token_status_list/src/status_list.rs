@@ -119,7 +119,10 @@ impl StatusList {
 
     pub fn insert(&mut self, k: usize, v: StatusType) -> Option<StatusType> {
         if k > self.len {
-            return None; // status lists should not grow dynamically
+            panic!(
+                "status list was created with size {}, cannot insert at position {k}",
+                self.len
+            )
         }
 
         self.sparse.insert(k, v)
