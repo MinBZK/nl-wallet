@@ -136,7 +136,7 @@ pub trait AuthorizationServer {
 #[derive(Debug)]
 pub struct HttpAuthorizationServer<P = S256PkcePair> {
     provider: Config,
-    #[expect(dead_code)] // reserved for future use in `request_userinfo`
+    #[expect(dead_code)]
     jwks: Option<JwkSet>,
     client_id: String,
     redirect_uri: Url,
@@ -362,7 +362,7 @@ where
     let discovery_url = authorization_server
         .as_base_url()
         .join(super::config::OPENID_CONFIGURATION_PATH);
-    let config = Config::discover(http_client, discovery_url).await?; // TODO: this has already been done
+    let config = Config::discover(http_client, discovery_url).await?;
 
     let (jwt, jwks) = try_join!(
         request_userinfo_jwt(http_client, &config, token_request),
