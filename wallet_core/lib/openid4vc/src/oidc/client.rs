@@ -353,6 +353,8 @@ fn verify_against_keys<C: DeserializeOwned>(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::LazyLock;
+
     use assert_matches::assert_matches;
     use josekit::jwe::ECDH_ES_A256KW;
     use josekit::jwe::JweHeader;
@@ -362,7 +364,11 @@ mod tests {
     use josekit::jwk::KeyPair;
     use josekit::jwk::alg::ec::EcCurve;
     use josekit::jwk::alg::ec::EcKeyPair;
+    use jsonwebtoken::Algorithm;
+    use jsonwebtoken::EncodingKey;
+    use jsonwebtoken::Header;
     use rstest::rstest;
+    use serde_json::json;
     use serial_test::serial;
     use url::Url;
 
@@ -382,6 +388,7 @@ mod tests {
     use super::OidcError;
     use super::OidcReqwestClient;
     use super::decrypt_jwe;
+    use super::verify_against_keys;
 
     // These constants are used by multiple tests.
     const ISSUER_URL: &str = "https://example.com";
@@ -656,6 +663,109 @@ mod tests {
         let url = url_with_query_pairs(url, &query_pairs);
 
         assert_eq!(url, expected);
+    }
+
+    // This value was captured from nl-rdo-max in a local dev environment.
+    static JWS_PAYLOAD: LazyLock<serde_json::Value> = LazyLock::new(|| {
+        json!({
+            "aud": "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9",
+            "bsn": "999991772",
+            "iss": "https://localhost:8006",
+            "loa_authn": "http://eidas.europa.eu/LoA/substantial",
+            "session_id": "oKir-PwoC36a5TxX5vwIIPAU7WXoGVEsTkUwGSAv9ZM",
+            "sub": "ff5a4850ab665a3196ec4311d187a24d615d164787b38c89b98f6144855ddcfe"
+        })
+    });
+
+    fn make_jws(include_kid: bool) -> (String, JwkSet) {
+        let algoritm = Algorithm::HS256;
+        let kid = "hmac_key_id";
+
+        let mut header = Header::new(algoritm);
+        if include_kid {
+            header.kid = Some(kid.to_string());
+        }
+        let encoding_key = EncodingKey::from_secret(b"secret hmac key");
+        let jws = jsonwebtoken::encode(&header, LazyLock::force(&JWS_PAYLOAD), &encoding_key).unwrap();
+
+        let mut jwk = jsonwebtoken::jwk::Jwk::from_encoding_key(&encoding_key, algoritm).unwrap();
+        jwk.common.key_id = Some(kid.to_string());
+        let jwks = JwkSet { keys: vec![jwk] };
+
+        (jws, jwks)
+    }
+
+    #[test]
+    fn test_verify_against_keys_success() {
+        let (jws, jwks) = make_jws(true);
+
+        let payload = verify_against_keys::<serde_json::Value>(
+            &jws,
+            &jwks,
+            "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9",
+            Algorithm::HS256,
+        )
+        .expect("verifying JWS should succeed");
+
+        assert_eq!(
+            payload
+                .as_object()
+                .and_then(|payload| payload.get("bsn"))
+                .and_then(serde_json::Value::as_str),
+            Some("999991772")
+        );
+    }
+
+    #[test]
+    fn test_verify_against_keys_error_missing_key_id() {
+        let (jws, jwks) = make_jws(false);
+
+        let error = verify_against_keys::<serde_json::Value>(
+            &jws,
+            &jwks,
+            "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9",
+            Algorithm::HS256,
+        )
+        .expect_err("verifying JWS should fail");
+
+        assert_matches!(error, OidcError::MissingKeyId);
+    }
+
+    #[test]
+    fn test_verify_against_keys_error_key_not_found() {
+        let (jws, mut jwks) = make_jws(true);
+
+        jwks.keys.first_mut().unwrap().common.key_id = Some("wrong_kid".to_string());
+
+        let error = verify_against_keys::<serde_json::Value>(
+            &jws,
+            &jwks,
+            "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9",
+            Algorithm::HS256,
+        )
+        .expect_err("verifying JWS should fail");
+
+        assert_matches!(error, OidcError::KeyNotFound);
+    }
+
+    #[test]
+    fn test_verify_against_keys_error_wrong_aud() {
+        let (jws, jwks) = make_jws(true);
+
+        let error = verify_against_keys::<serde_json::Value>(&jws, &jwks, "wrong_aud", Algorithm::HS256)
+            .expect_err("verifying JWS should fail");
+
+        assert_matches!(error, OidcError::Jsonwebtoken(_));
+    }
+
+    #[test]
+    fn test_verify_against_keys_error_wrong_alg() {
+        let (jws, jwks) = make_jws(true);
+
+        let error = verify_against_keys::<serde_json::Value>(&jws, &jwks, "wrong_aud", Algorithm::HS512)
+            .expect_err("verifying JWS should fail");
+
+        assert_matches!(error, OidcError::Jsonwebtoken(_));
     }
 
     const JWE_ENC: AescbcHmacJweEncryption = AescbcHmacJweEncryption::A128cbcHs256;
