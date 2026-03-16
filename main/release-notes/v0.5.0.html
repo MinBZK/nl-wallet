@@ -196,6 +196,8 @@ sessions are rejected.</p></li>
 <li><p>The Wallet configuration JSON now includes a <code class="docutils literal notranslate"><span class="pre">maintenance_window</span></code> field, which
 contains both a <code class="docutils literal notranslate"><span class="pre">start</span></code> and <code class="docutils literal notranslate"><span class="pre">end</span></code> values encoded as RFC 3339 strings. Note
 that this field may also be <code class="docutils literal notranslate"><span class="pre">null</span></code> if no maintenance window is set.</p></li>
+<li><p>The pid issuer now contains a <code class="docutils literal notranslate"><span class="pre">client_id</span></code> setting in the <code class="docutils literal notranslate"><span class="pre">digid</span></code> section,
+which should equal the DigiD client ID in the wallet configuration.</p></li>
 </ul>
 </section>
 <section id="new-features">
