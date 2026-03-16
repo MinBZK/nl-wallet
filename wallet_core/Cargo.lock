@@ -5023,6 +5023,7 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "chrono",
+ "coset",
  "crypto",
  "dashmap 6.1.0",
  "dcql",

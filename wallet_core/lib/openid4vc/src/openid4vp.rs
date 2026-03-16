@@ -34,6 +34,8 @@ use serde_with::SerializeAs;
 use serde_with::SerializeDisplay;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
+use coset::RegisteredLabelWithPrivate;
+use coset::iana;
 
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestationError;
@@ -57,6 +59,7 @@ use jwt::UnverifiedJwt;
 use jwt::Validation;
 use jwt::error::JwtX5cError;
 use jwt::headers::HeaderWithX5c;
+use mdoc::DeviceAuth;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::utils::serialization::CborBase64;
@@ -897,6 +900,10 @@ pub enum AuthResponseError {
     #[error("not all revocation statuses are valid")]
     #[category(expected)]
     RevocationStatusNotAllValid,
+
+    #[error("unsupported signing algorithm: expected ES256")]
+    #[category(critical)]
+    UnsupportedAlgorithm,
 }
 
 /// Disclosure of a credential, generally containing the issuer-signed credential itself, the disclosed attributes,
@@ -1196,6 +1203,19 @@ impl VpAuthorizationResponse {
     where
         C: StatusListClient,
     {
+        // Before verification, check that all COSE objects use the ES256 algorithm identifier.
+        let expected_alg = RegisteredLabelWithPrivate::Assigned(iana::Algorithm::ES256);
+        for document in device_response.documents.iter().flatten() {
+            if document.issuer_signed.issuer_auth.0.protected.header.alg.as_ref() != Some(&expected_alg) {
+                return Err(AuthResponseError::UnsupportedAlgorithm);
+            }
+            if let DeviceAuth::DeviceSignature(device_sig) = &document.device_signed.device_auth
+                && device_sig.0.protected.header.alg.as_ref() != Some(&expected_alg)
+            {
+                return Err(AuthResponseError::UnsupportedAlgorithm);
+            }
+        }
+
         // Verify the cryptographic integrity of each mdoc `DeviceResponse`
         // and obtain a `DisclosedDocuments` for each.
         let disclosed_documents = device_response
@@ -1237,6 +1257,14 @@ impl VpAuthorizationResponse {
         let presentation = unverified_presentation
             .into_verified_against_trust_anchors(trust_anchors, &kb_verification_options, time, revocation_verifier)
             .await?;
+
+        // Check that the SD-JWT and KB-JWT use the ES256 algorithm identifier.
+        if presentation.sd_jwt().issuer_alg() != Algorithm::ES256 {
+            return Err(AuthResponseError::UnsupportedAlgorithm);
+        }
+        if presentation.key_binding_jwt().header().alg != Algorithm::ES256 {
+            return Err(AuthResponseError::UnsupportedAlgorithm);
+        }
 
         let holder_public_key = presentation
             .sd_jwt()
