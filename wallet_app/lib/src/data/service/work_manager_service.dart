@@ -74,28 +74,31 @@ class WorkManagerService {
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   if (kDebugMode) Fimber.plantTree(DebugTree());
-  Workmanager().executeTask((task, inputData) async {
-    final startTime = DateTime.now();
-    Fimber.d('[$kDebugTag] 🚀 Task started: $task. Input data: $inputData');
+  Workmanager().executeTask(executeTask);
+}
 
-    if (!kBackgroundSyncTaskIds.contains(task)) {
-      Fimber.e('[$kDebugTag] Unknown task: $task, aborting.');
-      return true;
-    }
+@visibleForTesting
+Future<bool> executeTask(String task, Map<String, dynamic>? inputData) async {
+  final startTime = DateTime.now();
+  Fimber.d('[$kDebugTag] 🚀 Task started: $task. Input data: $inputData');
 
-    try {
-      await performRevocationCheckTask();
+  if (!kBackgroundSyncTaskIds.contains(task)) {
+    Fimber.e('[$kDebugTag] Unknown task: $task, aborting.');
+    return true;
+  }
 
-      final duration = DateTime.now().difference(startTime);
-      Fimber.d('[$kDebugTag] ✅ Task completed in ${duration.inSeconds}s');
+  try {
+    await performRevocationCheckTask();
 
-      return true; // Report completed successfully
-    } catch (error, stackTrace) {
-      final duration = DateTime.now().difference(startTime);
-      Fimber.e('[$kDebugTag] ❌ Task failed after ${duration.inSeconds}s', ex: error, stacktrace: stackTrace);
-      return false; // Schedule retry
-    }
-  });
+    final duration = DateTime.now().difference(startTime);
+    Fimber.d('[$kDebugTag] ✅ Task completed in ${duration.inSeconds}s');
+
+    return true; // Report completed successfully
+  } catch (error, stackTrace) {
+    final duration = DateTime.now().difference(startTime);
+    Fimber.e('[$kDebugTag] ❌ Task failed after ${duration.inSeconds}s', ex: error, stacktrace: stackTrace);
+    return false; // Schedule retry
+  }
 }
 
 /// Sets up dependencies and triggers the native background synchronization.
@@ -164,14 +167,15 @@ void _onDirectNotification(
   OsNotification notification,
 ) {
   final details = NotificationDetails(
-    android: _resolveAndroidDetails(provider, notification.channel),
+    android: resolveAndroidDetails(provider, notification.channel),
     iOS: const DarwinNotificationDetails(presentAlert: true),
   );
   plugin.show(notification.id, notification.title, notification.body, details, payload: notification.payload);
 }
 
 /// Resolves the [AndroidNotificationDetails] for a given [channel].
-AndroidNotificationDetails? _resolveAndroidDetails(
+@visibleForTesting
+AndroidNotificationDetails? resolveAndroidDetails(
   ActiveLocaleProvider activeLocaleProvider,
   NotificationChannel channel,
 ) {
