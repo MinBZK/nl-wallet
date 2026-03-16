@@ -1316,6 +1316,37 @@ class MockVideoPlayerController extends _i1.Mock implements _i7.VideoPlayerContr
   );
 
   @override
+  _i10.Future<List<_i7.VideoAudioTrack>> getAudioTracks() =>
+      (super.noSuchMethod(
+            Invocation.method(#getAudioTracks, []),
+            returnValue: _i10.Future<List<_i7.VideoAudioTrack>>.value(
+              <_i7.VideoAudioTrack>[],
+            ),
+            returnValueForMissingStub: _i10.Future<List<_i7.VideoAudioTrack>>.value(
+              <_i7.VideoAudioTrack>[],
+            ),
+          )
+          as _i10.Future<List<_i7.VideoAudioTrack>>);
+
+  @override
+  _i10.Future<void> selectAudioTrack(String? trackId) =>
+      (super.noSuchMethod(
+            Invocation.method(#selectAudioTrack, [trackId]),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
+          )
+          as _i10.Future<void>);
+
+  @override
+  bool isAudioTrackSupportAvailable() =>
+      (super.noSuchMethod(
+            Invocation.method(#isAudioTrackSupportAvailable, []),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   void addListener(_i11.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
