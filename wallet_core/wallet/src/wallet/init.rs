@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::marker::PhantomData;
+
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -40,6 +40,7 @@ use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StorageState;
 use crate::update_policy::UpdatePolicyRepository;
+use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureManager;
 
 use super::KeyHolderType;
 use super::Wallet;
@@ -217,8 +218,7 @@ where
             registration,
             account_provider_client: Arc::new(wallet_clients.account_provider_client),
             disclosure_client: wallet_clients.disclosure_client,
-            close_proximity_disclosure_client: PhantomData,
-            close_proximity_disclosure_callback: None,
+            close_proximity_disclosure: CloseProximityDisclosureManager::init(),
             status_list_client: Arc::new(wallet_clients.status_list_client),
             session: None,
             lock: WalletLock::new(true),
