@@ -346,6 +346,8 @@ pub trait CredentialIssuer {
     type Session: IssuanceSession + std::fmt::Debug;
 
     fn authorization_server_url(&self) -> &IssuerIdentifier;
+    fn authorization_endpoint(&self) -> Url;
+    fn oauth_metadata(&self) -> oidc::Config;
 
     async fn start_issuance(
         self,
@@ -373,16 +375,23 @@ impl CredentialIssuerDiscovery for HttpCredentialIssuerDiscovery {
             .await
             .map_err(IssuanceSessionError::OpenId4vciDiscovery)?;
 
+        // Note: the spec allows multiple authorization servers, but we currently only support one.
+        let auth_server = metadata.authorization_servers().into_first().clone();
+        let oauth_metadata = fetch_oauth_metadata(&self.oidc_client, &auth_server).await?;
+
         Ok(HttpCredentialIssuer {
             metadata,
+            oauth_metadata,
             client_id: self.client_id.clone(),
             oidc_client: self.oidc_client.clone(),
         })
     }
 }
 
+#[derive(Debug)]
 pub struct HttpCredentialIssuer {
     metadata: IssuerMetadata,
+    oauth_metadata: oidc::Config,
     client_id: String,
     oidc_client: OidcReqwestClient,
 }
@@ -391,7 +400,16 @@ impl CredentialIssuer for HttpCredentialIssuer {
     type Session = HttpIssuanceSession;
 
     fn authorization_server_url(&self) -> &IssuerIdentifier {
+        // Note: the spec allows multiple authorization servers, but we currently only support one.
         self.metadata.authorization_servers().into_first()
+    }
+
+    fn authorization_endpoint(&self) -> Url {
+        self.oauth_metadata.authorization_endpoint.clone()
+    }
+
+    fn oauth_metadata(&self) -> oidc::Config {
+        self.oauth_metadata.clone()
     }
 
     async fn start_issuance(
@@ -400,8 +418,16 @@ impl CredentialIssuer for HttpCredentialIssuer {
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<HttpIssuanceSession, IssuanceSessionError> {
         let message_client = HttpVcMessageClient::new(self.client_id, self.oidc_client);
+        let token_endpoint = self.oauth_metadata.token_endpoint;
 
-        HttpIssuanceSession::start_issuance_inner(message_client, self.metadata, token_request, trust_anchors).await
+        HttpIssuanceSession::start_issuance_inner(
+            message_client,
+            self.metadata,
+            token_endpoint,
+            token_request,
+            trust_anchors,
+        )
+        .await
     }
 }
 
@@ -415,14 +441,6 @@ pub struct HttpIssuanceSession<H = HttpVcMessageClient> {
 #[cfg_attr(test, mockall::automock)]
 pub trait VcMessageClient {
     fn client_id(&self) -> &str;
-    async fn discover_metadata(
-        &self,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<IssuerMetadata, IssuanceSessionError>;
-    async fn discover_oauth_metadata(
-        &self,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<oidc::Config, IssuanceSessionError>;
 
     async fn request_token(
         &self,
@@ -458,6 +476,32 @@ pub trait VcMessageClient {
     -> Result<(), IssuanceSessionError>;
 }
 
+async fn fetch_oauth_metadata(
+    oidc_client: &OidcReqwestClient,
+    auth_server: &IssuerIdentifier,
+) -> Result<oidc::Config, IssuanceSessionError> {
+    // TODO (PVW-5527): Implement some sort of unified processing for fetching well-known metadata.
+    let url = auth_server
+        .as_base_url()
+        .join("/.well-known/oauth-authorization-server");
+    let metadata: oidc::Config = oidc_client
+        .get(url)
+        .await
+        .map_err(|error| IssuanceSessionError::OauthDiscovery(OauthDiscoveryError::Http(error)))?;
+
+    // According to <https://www.rfc-editor.org/rfc/rfc8414.html#section-3.3> these values should be identical.
+    if metadata.issuer != *auth_server {
+        return Err(IssuanceSessionError::OauthDiscovery(
+            OauthDiscoveryError::IssuerIdentifierMismatch {
+                expected: Box::new(auth_server.clone()),
+                received: Box::new(metadata.issuer),
+            },
+        ));
+    }
+
+    Ok(metadata)
+}
+
 #[derive(Debug)]
 pub struct HttpVcMessageClient {
     client_id: String,
@@ -473,52 +517,6 @@ impl HttpVcMessageClient {
 impl VcMessageClient for HttpVcMessageClient {
     fn client_id(&self) -> &str {
         &self.client_id
-    }
-
-    async fn discover_metadata(
-        &self,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<IssuerMetadata, IssuanceSessionError> {
-        let oidc_client = OidcReqwestClient::try_new()?;
-
-        let metadata = IssuerMetadata::discover(&oidc_client, issuer_identifier)
-            .await
-            .map_err(IssuanceSessionError::OpenId4vciDiscovery)?;
-
-        Ok(metadata)
-    }
-
-    async fn discover_oauth_metadata(
-        &self,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<oidc::Config, IssuanceSessionError> {
-        // TODO (PVW-5527): Implement some sort of unified processing for fetching well-known metadata.
-        let metadata = self
-            .http_client
-            .as_ref()
-            .get(
-                issuer_identifier
-                    .as_base_url()
-                    .join("/.well-known/oauth-authorization-server"),
-            )
-            .send()
-            .await?
-            .error_for_status()?
-            .json::<oidc::Config>()
-            .await
-            .map_err(|error| IssuanceSessionError::OauthDiscovery(OauthDiscoveryError::Http(error)))?;
-
-        // According to <https://www.rfc-editor.org/rfc/rfc8414.html#section-3.3> these values should be identifical.
-        if metadata.issuer != *issuer_identifier {
-            return Err(IssuanceSessionError::OauthDiscovery(
-                OauthDiscoveryError::IssuerIdentifierMismatch {
-                    expected: Box::new(issuer_identifier.clone()),
-                    received: Box::new(metadata.issuer),
-                },
-            ));
-        }
-
-        Ok(metadata)
     }
 
     async fn request_token(
@@ -767,6 +765,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     pub async fn start_issuance_inner(
         message_client: H,
         issuer_metadata: IssuerMetadata,
+        token_endpoint: Url,
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Self, IssuanceSessionError> {
@@ -783,10 +782,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .collect_vec()
             .try_into()
             .map_err(|_| IssuanceSessionError::NoCredentialConfigurationsSupported)?;
-
-        let oauth_server = issuer_metadata.authorization_servers().into_first();
-        let oauth_metadata = message_client.discover_oauth_metadata(oauth_server).await?;
-        let token_endpoint = oauth_metadata.token_endpoint.clone();
 
         let dpop_private_key = SigningKey::random(&mut OsRng);
         let dpop_header = Dpop::new(&dpop_private_key, token_endpoint.clone(), Method::POST, None, None).await?;
@@ -1314,17 +1309,6 @@ mod tests {
     fn mock_openid_message_client() -> MockVcMessageClient {
         let mut mock_msg_client = MockVcMessageClient::new();
         mock_msg_client
-            .expect_discover_metadata()
-            .returning(|issuer_identifier| {
-                Ok(IssuerMetadata::new_mock(
-                    issuer_identifier.clone(),
-                    PID_ATTESTATION_TYPE,
-                ))
-            });
-        mock_msg_client
-            .expect_discover_oauth_metadata()
-            .returning(|issuer_identifier| Ok(oidc::Config::new_mock(issuer_identifier.clone())));
-        mock_msg_client
             .expect_client_id()
             .return_const(MOCK_WALLET_CLIENT_ID.to_string());
 
@@ -1372,11 +1356,13 @@ mod tests {
             });
 
         let issuer_identifier: IssuerIdentifier = "https://issuer.example.com".parse().unwrap();
-        let issuer_metadata = IssuerMetadata::new_mock(issuer_identifier, PID_ATTESTATION_TYPE);
+        let issuer_metadata = IssuerMetadata::new_mock(issuer_identifier.clone(), PID_ATTESTATION_TYPE);
+        let token_endpoint = oidc::Config::new_mock(issuer_identifier).token_endpoint;
 
         HttpIssuanceSession::start_issuance_inner(
             mock_msg_client,
             issuer_metadata,
+            token_endpoint,
             TokenRequest::new_mock(),
             &[trust_anchor],
         )
@@ -1536,11 +1522,13 @@ mod tests {
             });
 
         let issuer_identifier: IssuerIdentifier = "https://issuer.example.com".parse().unwrap();
-        let issuer_metadata = IssuerMetadata::new_mock(issuer_identifier, PID_ATTESTATION_TYPE);
+        let issuer_metadata = IssuerMetadata::new_mock(issuer_identifier.clone(), PID_ATTESTATION_TYPE);
+        let token_endpoint = oidc::Config::new_mock(issuer_identifier).token_endpoint;
 
         let error = HttpIssuanceSession::start_issuance_inner(
             mock_msg_client,
             issuer_metadata,
+            token_endpoint,
             TokenRequest::new_mock(),
             &[ca.to_trust_anchor()],
         )

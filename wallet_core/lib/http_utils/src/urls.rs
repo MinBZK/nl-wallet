@@ -8,12 +8,6 @@ use nutype::nutype;
 use serde::Deserialize;
 use url::Url;
 
-use reqwest::ClientBuilder;
-
-use crate::reqwest::IntoReqwestClient;
-use crate::reqwest::ReqwestClient;
-use crate::reqwest::default_reqwest_client_builder;
-
 // TODO (PVW-5612): Only allow HTTPS in local development environment and remove this feature flag.
 cfg_if! {
     if #[cfg(feature = "allow_insecure_url")] {
@@ -52,18 +46,6 @@ impl BaseUrl {
 
     pub fn fqdn(&self) -> Option<&str> {
         self.as_ref().host_str()
-    }
-}
-
-impl IntoReqwestClient for BaseUrl {
-    fn try_into_custom_client<F>(self, builder_adapter: F) -> Result<ReqwestClient, reqwest::Error>
-    where
-        F: FnOnce(ClientBuilder) -> ClientBuilder,
-    {
-        let client = builder_adapter(default_reqwest_client_builder()).build()?;
-        let reqwest_client = ReqwestClient::new(client, self);
-
-        Ok(reqwest_client)
     }
 }
 

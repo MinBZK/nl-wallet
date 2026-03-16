@@ -14,8 +14,6 @@ use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
-use openid4vc::oidc::HttpOidcDiscovery;
-use openid4vc::oidc::OidcDiscovery;
 use openid4vc::oidc::OidcReqwestClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
@@ -109,7 +107,6 @@ impl<APC>
         DatabaseStorage<HardwareEncryptionKey>,
         KeyHolderType,
         APC,
-        HttpOidcDiscovery,
         HttpCredentialIssuerDiscovery,
         VpDisclosureClient,
     >
@@ -140,26 +137,28 @@ where
         )
         .await?;
 
-        let oidc_reqwest_client = OidcReqwestClient::try_new()?;
-        let credential_issuer_discovery = HttpCredentialIssuerDiscovery::new(
-            config_repository.get().pid_issuance.client_id.clone(),
-            oidc_reqwest_client.clone(),
-        );
-        let oidc_discovery = HttpOidcDiscovery::new(oidc_reqwest_client);
+        let config = config_repository.get();
+
+        let oidc_reqwest_client =
+            OidcReqwestClient::try_new_with_borrowing_trust_anchors(config.issuer_trust_anchors.clone())?;
+        let credential_issuer_discovery =
+            HttpCredentialIssuerDiscovery::new(config.pid_issuance.client_id.clone(), oidc_reqwest_client);
 
         let repositories = WalletRepositories {
             config_repository,
             update_policy_repository,
         };
 
-        let discovery = WalletDiscovery {
-            credential_issuer_discovery,
-            oidc_discovery,
-        };
-
         let wallet_clients = WalletClients::new_http()?;
 
-        Self::init_registration(storage, key_holder, repositories, discovery, wallet_clients).await
+        Self::init_registration(
+            storage,
+            key_holder,
+            repositories,
+            credential_issuer_discovery,
+            wallet_clients,
+        )
+        .await
     }
 }
 
@@ -167,12 +166,6 @@ where
 pub struct WalletRepositories<CR, UR> {
     pub config_repository: CR,
     pub update_policy_repository: UR,
-}
-
-#[derive(Debug)]
-pub struct WalletDiscovery<CID, OD> {
-    pub credential_issuer_discovery: CID,
-    pub oidc_discovery: OD,
 }
 
 #[derive(Debug, Default)]
@@ -200,10 +193,9 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, SLC>
 where
     AKH: AttestedKeyHolder,
-    OD: OidcDiscovery,
     CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
     SLC: StatusListClient,
@@ -212,7 +204,7 @@ where
         storage: S,
         key_holder: AKH,
         repositories: WalletRepositories<CR, UR>,
-        discovery: WalletDiscovery<CID, OD>,
+        credential_issuer_discovery: CID,
         wallet_clients: WalletClients<APC, DCC, SLC>,
         registration_status: RegistrationStatus,
     ) -> Self {
@@ -244,8 +236,7 @@ where
             key_holder,
             registration,
             account_provider_client: Arc::new(wallet_clients.account_provider_client),
-            oidc_discovery: discovery.oidc_discovery,
-            credential_issuer_discovery: discovery.credential_issuer_discovery,
+            credential_issuer_discovery,
             disclosure_client: wallet_clients.disclosure_client,
             status_list_client: Arc::new(wallet_clients.status_list_client),
             session: None,
@@ -263,7 +254,7 @@ where
         mut storage: S,
         key_holder: AKH,
         repositories: WalletRepositories<CR, UR>,
-        discovery: WalletDiscovery<CID, OD>,
+        credential_issuer_discovery: CID,
         wallet_clients: WalletClients<APC, DCC, SLC>,
     ) -> Result<Self, WalletInitError>
     where
@@ -286,7 +277,7 @@ where
             storage,
             key_holder,
             repositories,
-            discovery,
+            credential_issuer_discovery,
             wallet_clients,
             registration_status,
         );
@@ -297,11 +288,10 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, SLC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,
-    OD: OidcDiscovery,
     CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
     SLC: StatusListClient,

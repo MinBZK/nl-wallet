@@ -5,8 +5,9 @@ use url::Url;
 
 use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::VpDisclosureClient;
+use openid4vc::issuance_session::CredentialIssuer;
+use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
-use openid4vc::oidc::HttpOidcDiscovery;
 use openid4vc::oidc::OidcReqwestClient;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
@@ -22,7 +23,6 @@ use wallet::DisclosureUriSource;
 use wallet::PidIssuancePurpose;
 use wallet::Wallet;
 use wallet::WalletClients;
-use wallet::WalletDiscovery;
 use wallet::WalletRepositories;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
@@ -44,7 +44,6 @@ type PerformanceTestWallet = Wallet<
     MockHardwareDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
-    HttpOidcDiscovery,
     HttpCredentialIssuerDiscovery,
     VpDisclosureClient,
 >;
@@ -71,16 +70,19 @@ async fn main() {
     )
     .await
     .unwrap();
+
     config_repository
         .fetch(&config_server_config.http_config)
         .await
         .unwrap();
-    let pid_issuance_config = &config_repository.get().pid_issuance;
-    let update_policy_repository = UpdatePolicyRepository::init();
-    let oidc_reqwest_client = OidcReqwestClient::try_new().unwrap();
+    let config = config_repository.get();
+
+    let oidc_reqwest_client =
+        OidcReqwestClient::try_new_with_borrowing_trust_anchors(config.issuer_trust_anchors.clone()).unwrap();
     let credential_issuer_discovery =
-        HttpCredentialIssuerDiscovery::new(pid_issuance_config.client_id.clone(), oidc_reqwest_client.clone());
-    let oidc_discovery = HttpOidcDiscovery::new(oidc_reqwest_client);
+        HttpCredentialIssuerDiscovery::new(config.pid_issuance.client_id.clone(), oidc_reqwest_client.clone());
+
+    let update_policy_repository = UpdatePolicyRepository::init();
     let wallet_clients = WalletClients::new_http().unwrap();
 
     let storage = MockHardwareDatabaseStorage::open_in_memory().await;
@@ -92,10 +94,7 @@ async fn main() {
             config_repository,
             update_policy_repository,
         },
-        WalletDiscovery {
-            credential_issuer_discovery,
-            oidc_discovery,
-        },
+        HttpCredentialIssuerDiscovery::new(config.pid_issuance.client_id.clone(), oidc_reqwest_client.clone()),
         wallet_clients,
     )
     .await
@@ -110,9 +109,20 @@ async fn main() {
         .await
         .expect("Could not create pid issuance auth url");
 
+    let discovered = credential_issuer_discovery
+        .discover(&config.pid_issuance.url)
+        .await
+        .unwrap();
+
     let redirect_url = fake_digid_auth(
         authorization_url,
-        pid_issuance_config.url.as_base_url().clone(),
+        discovered
+            .authorization_endpoint()
+            .origin()
+            .unicode_serialization()
+            .as_str()
+            .parse()
+            .unwrap(),
         "999991772",
     )
     .await;

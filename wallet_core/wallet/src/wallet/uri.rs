@@ -9,7 +9,6 @@ use error_category::sentry_capture_error;
 use http_utils::urls;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::CredentialIssuerDiscovery;
-use openid4vc::oidc::OidcDiscovery;
 
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -67,11 +66,10 @@ pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
     None
 }
 
-impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     AKH: AttestedKeyHolder,
-    OD: OidcDiscovery,
     CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
 {
@@ -132,9 +130,14 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use url::Url;
+
+    use openid4vc::oidc::HttpAuthorizationServer;
 
     use crate::config::UNIVERSAL_LINK_BASE_URL;
-    use crate::oidc_session::mock::mock_oidc_session;
+    use crate::oidc_session::OidcSession;
+    use crate::oidc_session::build_oidc_session;
+    use crate::wallet::test::AUTH_URL;
 
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
@@ -171,10 +174,24 @@ mod tests {
             UriIdentificationError::Unknown(uri) if uri.as_str() == digid_uri
         );
 
+        let make_stub_oidc_session = || -> OidcSession<HttpAuthorizationServer> {
+            build_oidc_session(
+                openid4vc::oidc::Config::new(
+                    "http://example.com".parse().unwrap(),
+                    Url::parse(AUTH_URL).unwrap(),
+                    Url::parse(AUTH_URL).unwrap(),
+                    Url::parse(AUTH_URL).unwrap(),
+                ),
+                "client_id".to_string(),
+                Url::parse(AUTH_URL).unwrap(),
+            )
+            .unwrap()
+        };
+
         // Set up an enrollment `DigidSession` that will match the URI.
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: mock_oidc_session(),
+            oidc_session: make_stub_oidc_session(),
             discovered: openid4vc::mock::MockCredentialIssuer::new(),
         });
 
@@ -184,7 +201,7 @@ mod tests {
         // Set up a PID renewal `DigidSession` that will match the URI.
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Renewal,
-            oidc_session: mock_oidc_session(),
+            oidc_session: make_stub_oidc_session(),
             discovered: openid4vc::mock::MockCredentialIssuer::new(),
         });
 

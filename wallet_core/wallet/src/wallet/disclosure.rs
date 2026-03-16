@@ -37,7 +37,6 @@ use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::disclosure_session::VpVerifierError;
 use openid4vc::issuance_session::CredentialIssuerDiscovery;
 
-use openid4vc::oidc::OidcDiscovery;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt::claims::NonSelectivelyDisclosableClaimsError;
@@ -367,12 +366,11 @@ fn is_request_for_recovery_code(
     }
 }
 
-impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
-    OD: OidcDiscovery,
     CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
     S: Storage,
@@ -1031,7 +1029,6 @@ mod tests {
     use openid4vc::errors::ErrorResponse;
     use openid4vc::errors::GetRequestErrorCode;
     use openid4vc::mock::MockCredentialIssuerDiscovery;
-    use openid4vc::oidc::MockOidcDiscovery;
     use openid4vc::verifier::SessionType;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -1187,7 +1184,7 @@ mod tests {
     fn setup_wallet_disclosure_session_missing_attributes(
         requested_format: CredentialFormat,
     ) -> (
-        Session<MockOidcDiscovery, MockCredentialIssuerDiscovery, MockDisclosureSession>,
+        Session<MockCredentialIssuerDiscovery, MockDisclosureSession>,
         VerifierCertificate,
     ) {
         let (disclosure_session, verifier_certificate) =
@@ -1205,7 +1202,7 @@ mod tests {
     fn setup_wallet_disclosure_session(
         requested_format: CredentialFormat,
     ) -> (
-        Session<MockOidcDiscovery, MockCredentialIssuerDiscovery, MockDisclosureSession>,
+        Session<MockCredentialIssuerDiscovery, MockDisclosureSession>,
         VerifierCertificate,
     ) {
         let credential_requests = default_pid_credential_requests(requested_format);

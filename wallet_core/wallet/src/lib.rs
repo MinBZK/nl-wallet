@@ -39,7 +39,6 @@ pub use crate::wallet::UnlockMethod;
 pub use crate::wallet::UriType;
 pub use crate::wallet::Wallet;
 pub use crate::wallet::WalletClients;
-pub use crate::wallet::WalletDiscovery;
 pub use crate::wallet::WalletRepositories;
 pub use crate::wallet::WalletState;
 
@@ -100,7 +99,7 @@ pub mod test {
     pub use crate::config::WalletConfigurationRepository;
     pub use crate::config::default_config_server_config;
     pub use crate::config::default_wallet_config;
-    pub use crate::oidc_session::start_oidc_session;
+    pub use crate::oidc_session::build_oidc_session;
     pub use crate::repository::BackgroundUpdateableRepository;
     pub use crate::repository::Repository;
     pub use crate::repository::RepositoryUpdateState;

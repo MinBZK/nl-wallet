@@ -15,7 +15,7 @@ use openid4vc::issuance_session::CredentialIssuer;
 use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuedCredential;
-use openid4vc::oidc::OidcDiscovery;
+use openid4vc::oidc::HttpAuthorizationServer;
 use openid4vc::oidc::OidcError;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
@@ -35,7 +35,7 @@ use crate::instruction::PinRecoveryRemoteEcdsaWscd;
 use crate::instruction::PinRecoveryWscd;
 use crate::oidc_session::OidcSession;
 use crate::oidc_session::OidcSessionError;
-use crate::oidc_session::start_oidc_session;
+use crate::oidc_session::build_oidc_session;
 use crate::pin::key::PinKey;
 use crate::pin::key::new_pin_salt;
 use crate::repository::Repository;
@@ -114,24 +114,23 @@ impl From<OidcSessionError> for PinRecoveryError {
 }
 
 #[derive(Debug)]
-pub(super) enum PinRecoverySession<OD: OidcDiscovery, CID: CredentialIssuerDiscovery> {
+pub(super) enum PinRecoverySession<CID: CredentialIssuerDiscovery> {
     Oidc {
-        oidc_session: OidcSession<OD::Server>,
-        discovered: CID::Issuer,
+        oidc_session: Box<OidcSession<HttpAuthorizationServer>>,
+        discovered: Box<CID::Issuer>,
     },
     Issuance {
         pid_attestation_type: String,
-        issuance_session: <CID::Issuer as CredentialIssuer>::Session,
+        issuance_session: Box<<CID::Issuer as CredentialIssuer>::Session>,
     },
 }
 
-impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    OD: OidcDiscovery,
     CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
     APC: AccountProviderClient,
@@ -178,13 +177,11 @@ where
             .await
             .map_err(IssuanceError::IssuanceSession)?;
 
-        let oidc_session = start_oidc_session(
-            &self.oidc_discovery,
-            discovered.authorization_server_url(),
+        let oidc_session = build_oidc_session(
+            discovered.oauth_metadata(),
             config.pid_issuance.client_id.clone(),
             urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
         )
-        .await
         .map_err(IssuanceError::OidcSessionStart)?;
 
         info!("PIN recovery DigiD auth URL generated");
@@ -192,8 +189,8 @@ where
         self.session.replace(Session::PinRecovery {
             pid_config: config.pid_attributes.clone(),
             session: PinRecoverySession::Oidc {
-                oidc_session,
-                discovered,
+                oidc_session: Box::new(oidc_session),
+                discovered: Box::new(discovered),
             },
         });
 
@@ -259,7 +256,7 @@ where
             pid_config,
             session: PinRecoverySession::Issuance {
                 pid_attestation_type: pid_preview.content.credential_payload.attestation_type.clone(),
-                issuance_session,
+                issuance_session: Box::new(issuance_session),
             },
         });
 
@@ -377,7 +374,7 @@ where
         let issuance_result = issuance_session
             .accept_issuance(&config.issuer_trust_anchors(), &pin_recovery_wscd, true)
             .await
-            .map_err(|error| Self::handle_accept_issuance_error(error, issuance_session));
+            .map_err(|error| Self::handle_accept_issuance_error(error, &**issuance_session));
 
         let issuance_result = match issuance_result {
             Err(error @ IssuanceError::Instruction(InstructionError::AccountRevoked(data))) => {
@@ -503,10 +500,7 @@ mod tests {
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockCredentialIssuer;
     use openid4vc::mock::MockIssuanceSession;
-    use openid4vc::oidc::MockAuthorizationServer;
-    use openid4vc::oidc::OidcError;
-    use openid4vc::token::TokenRequest;
-    use openid4vc::token::TokenRequestGrantType;
+    use openid4vc::oidc::HttpAuthorizationServer;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
@@ -520,9 +514,6 @@ mod tests {
     use crate::errors::PinValidationError;
     use crate::instruction::PinRecoveryWscd;
     use crate::oidc_session::OidcSession;
-    use crate::oidc_session::mock::AUTH_URL;
-    use crate::oidc_session::mock::mock_oidc_session;
-    use crate::oidc_session::mock::mock_oidc_session_tuple;
     use crate::repository::Repository;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
@@ -533,6 +524,7 @@ mod tests {
     use crate::wallet::PinRecoverySession;
     use crate::wallet::Session;
     use crate::wallet::recovery_code::RecoveryCodeError;
+    use crate::wallet::test::AUTH_URL;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::create_example_pid_preview_data;
@@ -541,6 +533,32 @@ mod tests {
     use crate::wallet::test::mock_issuance_session;
 
     use super::PinRecoveryError;
+
+    /// Create a real `OidcSession<HttpAuthorizationServer>` and a redirect URI that will
+    /// successfully yield a token request when `into_token_request` is called.
+    fn create_real_oidc_session() -> (OidcSession<HttpAuthorizationServer>, Url) {
+        use crate::oidc_session::build_oidc_session;
+
+        let redirect_uri = Url::parse(AUTH_URL).unwrap();
+        let oidc_session = build_oidc_session(
+            openid4vc::oidc::Config::new(
+                "http://example.com".parse().unwrap(),
+                Url::parse(AUTH_URL).unwrap(),
+                Url::parse(AUTH_URL).unwrap(),
+                Url::parse(AUTH_URL).unwrap(),
+            ),
+            "client_id".to_string(),
+            redirect_uri.clone(),
+        )
+        .unwrap();
+
+        // Build a redirect URI with the right CSRF state and a dummy code
+        let state = oidc_session.oidc_client.csrf_state().to_string();
+        let mut redirect = redirect_uri.clone();
+        redirect.set_query(Some(&format!("code=test_code&state={state}")));
+
+        (oidc_session, redirect)
+    }
 
     fn setup_issuer_metadata_mock(wallet: &mut TestWalletMockStorage) {
         let config = wallet.config_repository.get();
@@ -553,6 +571,14 @@ mod tests {
             .return_once(move |_| {
                 let mut issuer = MockCredentialIssuer::new();
                 issuer.expect_get_metadata().return_const(issuer_metadata.clone());
+                issuer
+                    .expect_get_oauth_metadata()
+                    .return_const(openid4vc::oidc::Config::new(
+                        "http://example.com".parse().unwrap(),
+                        Url::parse(AUTH_URL).unwrap(),
+                        Url::parse(AUTH_URL).unwrap(),
+                        Url::parse(AUTH_URL).unwrap(),
+                    ));
                 Ok(issuer)
             });
     }
@@ -579,32 +605,15 @@ mod tests {
 
         setup_issuer_metadata_mock(&mut wallet);
 
-        wallet
-            .oidc_discovery
-            .expect_start_sync()
-            .return_once(|_, _, _| Ok(mock_oidc_session_tuple()));
-
         let redirect_uri = wallet.create_pin_recovery_redirect_uri().await.unwrap();
-        assert_eq!(&redirect_uri.to_string(), AUTH_URL);
+        assert!(redirect_uri.to_string().starts_with(AUTH_URL));
     }
 
     #[tokio::test]
     pub async fn continue_pin_recovery() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let mut oidc_client = MockAuthorizationServer::new();
-        oidc_client.expect_token_request().once().return_once(|_redirect_uri| {
-            let token_request = TokenRequest {
-                grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: "123".to_string().into(),
-                },
-                code_verifier: None,
-                client_id: None,
-                redirect_uri: None,
-            };
-
-            Ok(token_request)
-        });
+        let (oidc_session, redirect_uri) = create_real_oidc_session();
 
         let mut discovered = MockCredentialIssuer::new();
         discovered.expect_start().return_once(|_| {
@@ -626,11 +635,8 @@ mod tests {
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
             session: PinRecoverySession::Oidc {
-                oidc_session: OidcSession {
-                    oidc_client,
-                    auth_url: Url::parse(AUTH_URL).unwrap(),
-                },
-                discovered,
+                oidc_session: Box::new(oidc_session),
+                discovered: Box::new(discovered),
             },
         });
 
@@ -652,7 +658,7 @@ mod tests {
                 )])
             });
 
-        wallet.continue_pin_recovery(AUTH_URL.parse().unwrap()).await.unwrap();
+        wallet.continue_pin_recovery(redirect_uri).await.unwrap();
     }
 
     #[tokio::test]
@@ -810,27 +816,19 @@ mod tests {
     async fn continue_pid_recovery_user_refused() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let mut oidc_client = MockAuthorizationServer::new();
-        oidc_client
-            .expect_token_request()
-            .once()
-            .returning(|_| Err(OidcError::Denied));
+        let (oidc_session, _) = create_real_oidc_session();
 
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
             session: PinRecoverySession::Oidc {
-                oidc_session: OidcSession {
-                    oidc_client,
-                    auth_url: Url::parse(AUTH_URL).unwrap(),
-                },
-                discovered: MockCredentialIssuer::new(),
+                oidc_session: Box::new(oidc_session),
+                discovered: Box::new(MockCredentialIssuer::new()),
             },
         });
 
-        let err = wallet
-            .continue_pin_recovery(AUTH_URL.parse().unwrap())
-            .await
-            .unwrap_err();
+        // Pass a redirect URI with `error=access_denied` to simulate user denial
+        let denied_redirect = Url::parse(&format!("{AUTH_URL}?error=access_denied&state=whatever")).unwrap();
+        let err = wallet.continue_pin_recovery(denied_redirect).await.unwrap_err();
 
         assert_matches!(err, PinRecoveryError::DeniedDigiD);
     }
@@ -839,19 +837,7 @@ mod tests {
     pub async fn continue_pin_recovery_received_no_recovery_code() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let mut oidc_client = MockAuthorizationServer::new();
-        oidc_client.expect_token_request().once().return_once(|_redirect_uri| {
-            let token_request = TokenRequest {
-                grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: "123".to_string().into(),
-                },
-                code_verifier: None,
-                client_id: None,
-                redirect_uri: None,
-            };
-
-            Ok(token_request)
-        });
+        let (oidc_session, redirect_uri) = create_real_oidc_session();
 
         let mut discovered = MockCredentialIssuer::new();
         discovered.expect_start().return_once(|_| {
@@ -878,18 +864,12 @@ mod tests {
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
             session: PinRecoverySession::Oidc {
-                oidc_session: OidcSession {
-                    oidc_client,
-                    auth_url: Url::parse(AUTH_URL).unwrap(),
-                },
-                discovered,
+                oidc_session: Box::new(oidc_session),
+                discovered: Box::new(discovered),
             },
         });
 
-        let err = wallet
-            .continue_pin_recovery(AUTH_URL.parse().unwrap())
-            .await
-            .unwrap_err();
+        let err = wallet.continue_pin_recovery(redirect_uri).await.unwrap_err();
 
         assert_matches!(
             err,
@@ -901,19 +881,7 @@ mod tests {
     pub async fn continue_pin_recovery_received_wrong_recovery_code() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let mut oidc_client = MockAuthorizationServer::new();
-        oidc_client.expect_token_request().once().return_once(|_redirect_uri| {
-            let token_request = TokenRequest {
-                grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: "123".to_string().into(),
-                },
-                code_verifier: None,
-                client_id: None,
-                redirect_uri: None,
-            };
-
-            Ok(token_request)
-        });
+        let (oidc_session, redirect_uri) = create_real_oidc_session();
 
         let mut discovered = MockCredentialIssuer::new();
         discovered.expect_start().once().return_once(move |_| {
@@ -942,11 +910,8 @@ mod tests {
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
             session: PinRecoverySession::Oidc {
-                oidc_session: OidcSession {
-                    oidc_client,
-                    auth_url: Url::parse(AUTH_URL).unwrap(),
-                },
-                discovered,
+                oidc_session: Box::new(oidc_session),
+                discovered: Box::new(discovered),
             },
         });
 
@@ -968,10 +933,7 @@ mod tests {
                 )])
             });
 
-        let err = wallet
-            .continue_pin_recovery(AUTH_URL.parse().unwrap())
-            .await
-            .unwrap_err();
+        let err = wallet.continue_pin_recovery(redirect_uri).await.unwrap_err();
 
         assert_matches!(
             err,
@@ -997,18 +959,11 @@ mod tests {
     async fn complete_pid_recovery_has_digid_session() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
+        // complete_pin_recovery_internal without an active issuance session should return SessionState.
         let err = wallet
             .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".to_string())
             .await
             .unwrap_err();
-
-        wallet.session = Some(Session::PinRecovery {
-            pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Oidc {
-                oidc_session: mock_oidc_session(),
-                discovered: MockCredentialIssuer::new(),
-            },
-        });
 
         assert_matches!(err, PinRecoveryError::SessionState);
     }
@@ -1046,7 +1001,7 @@ mod tests {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
             session: PinRecoverySession::Issuance {
                 pid_attestation_type: PID_ATTESTATION_TYPE.to_string(),
-                issuance_session: pid_issuer,
+                issuance_session: Box::new(pid_issuer),
             },
         });
     }

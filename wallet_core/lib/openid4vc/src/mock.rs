@@ -3,6 +3,7 @@ use std::iter;
 
 use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
+use url::Url;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use dcql::disclosure::ExtendingVctRetriever;
@@ -71,6 +72,8 @@ mockall::mock! {
     #[derive(Debug)]
     pub CredentialIssuer {
         pub fn get_metadata(&self) -> &IssuerMetadata;
+        pub fn get_authorization_endpoint_url(&self) -> Url;
+        pub fn get_oauth_metadata(&self) -> Config;
         pub fn start(&mut self, token_request: TokenRequest) -> Result<MockIssuanceSession, IssuanceSessionError>;
     }
 }
@@ -80,6 +83,14 @@ impl CredentialIssuer for MockCredentialIssuer {
 
     fn authorization_server_url(&self) -> &IssuerIdentifier {
         self.get_metadata().authorization_servers().into_first()
+    }
+
+    fn authorization_endpoint(&self) -> Url {
+        self.get_authorization_endpoint_url()
+    }
+
+    fn oauth_metadata(&self) -> Config {
+        self.get_oauth_metadata()
     }
 
     async fn start_issuance(

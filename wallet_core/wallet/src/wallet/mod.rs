@@ -34,8 +34,7 @@ use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::CredentialIssuer;
 use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
-use openid4vc::oidc::HttpOidcDiscovery;
-use openid4vc::oidc::OidcDiscovery;
+use openid4vc::oidc::HttpAuthorizationServer;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
@@ -64,7 +63,6 @@ pub use self::disclosure_based_issuance::DisclosureBasedIssuanceError;
 pub use self::history::HistoryError;
 pub use self::history::RecentHistoryCallback;
 pub use self::init::WalletClients;
-pub use self::init::WalletDiscovery;
 pub use self::init::WalletInitError;
 pub use self::init::WalletRepositories;
 pub use self::issuance::IssuanceError;
@@ -122,17 +120,17 @@ impl<A, G> WalletRegistration<A, G> {
 }
 
 #[derive(Debug)]
-enum Session<OD: OidcDiscovery, CID: CredentialIssuerDiscovery, DCS> {
+enum Session<CID: CredentialIssuerDiscovery, DCS> {
     Oidc {
         purpose: PidIssuancePurpose,
-        oidc_session: OidcSession<OD::Server>,
+        oidc_session: OidcSession<HttpAuthorizationServer>,
         discovered: CID::Issuer,
     },
     Issuance(WalletIssuanceSession<<CID::Issuer as CredentialIssuer>::Session>),
     Disclosure(WalletDisclosureSession<DCS>),
     PinRecovery {
         pid_config: PidAttributesConfiguration,
-        session: PinRecoverySession<OD, CID>,
+        session: PinRecoverySession<CID>,
     },
 }
 
@@ -142,13 +140,11 @@ pub struct Wallet<
     S = DatabaseStorage<HardwareEncryptionKey>, // Storage
     AKH = KeyHolderType,                        // AttestedKeyHolder
     APC = HttpAccountProviderClient,            // AccountProviderClient
-    OD = HttpOidcDiscovery,                     // OidcDiscovery for DigiD
     CID = HttpCredentialIssuerDiscovery,        // CredentialIssuerDiscovery
     DCC = VpDisclosureClient,                   // DisclosureClient
     SLC = HttpStatusListClient,                 // StatusListClient,
 > where
     AKH: AttestedKeyHolder,
-    OD: OidcDiscovery,
     CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
 {
@@ -158,11 +154,10 @@ pub struct Wallet<
     key_holder: AKH,
     registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,
     account_provider_client: Arc<APC>,
-    oidc_discovery: OD,
     credential_issuer_discovery: CID,
     disclosure_client: DCC,
     status_list_client: Arc<SLC>,
-    session: Option<Session<OD, CID, DCC::Session>>,
+    session: Option<Session<CID, DCC::Session>>,
     lock: WalletLock,
     attestations_callback: Arc<Mutex<Option<AttestationsCallback>>>,
     recent_history_callback: Option<RecentHistoryCallback>,

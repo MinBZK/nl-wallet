@@ -44,7 +44,6 @@ use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WuaConfig;
 use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::issuer_metadata::IssuerMetadata;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::oidc;
 use openid4vc::preview::CredentialPreviewRequest;
@@ -156,10 +155,12 @@ async fn accept_issuance(#[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap
     let message_client = MockOpenidMessageClient::new(issuer);
     let copy_count = 4;
 
-    let issuer_metadata = message_client.discover_metadata(&issuer_identifier).await.unwrap();
+    let issuer_metadata = message_client.issuer.metadata().clone();
+    let token_endpoint = oidc::Config::new_mock(issuer_identifier).token_endpoint;
     let session = HttpIssuanceSession::start_issuance_inner(
         message_client,
         issuer_metadata,
+        token_endpoint,
         TokenRequest::new_mock(),
         trust_anchors,
     )
@@ -198,10 +199,12 @@ async fn reject_issuance() {
     let (issuer, trust_anchor, issuer_identifier, _) = setup_mock_issuer(NonZeroUsize::MIN);
     let message_client = MockOpenidMessageClient::new(issuer);
 
-    let issuer_metadata = message_client.discover_metadata(&issuer_identifier).await.unwrap();
+    let issuer_metadata = message_client.issuer.metadata().clone();
+    let token_endpoint = oidc::Config::new_mock(issuer_identifier).token_endpoint;
     let session = HttpIssuanceSession::start_issuance_inner(
         message_client,
         issuer_metadata,
+        token_endpoint,
         TokenRequest::new_mock(),
         &[trust_anchor],
     )
@@ -218,10 +221,12 @@ async fn start_and_accept_err(
     wua_issuer_privkey: SigningKey,
 ) -> IssuanceSessionError {
     let trust_anchors = &[trust_anchor];
-    let issuer_metadata = message_client.discover_metadata(&issuer_identifier).await.unwrap();
+    let issuer_metadata = message_client.issuer.metadata().clone();
+    let token_endpoint = oidc::Config::new_mock(issuer_identifier).token_endpoint;
     let session = HttpIssuanceSession::start_issuance_inner(
         message_client,
         issuer_metadata,
+        token_endpoint,
         TokenRequest::new_mock(),
         trust_anchors,
     )
@@ -468,20 +473,6 @@ fn invalidate_jwt(jwt: &str) -> String {
 impl VcMessageClient for MockOpenidMessageClient {
     fn client_id(&self) -> &str {
         MOCK_WALLET_CLIENT_ID
-    }
-
-    async fn discover_metadata(
-        &self,
-        _issuer_identifier: &IssuerIdentifier,
-    ) -> Result<IssuerMetadata, IssuanceSessionError> {
-        Ok(self.issuer.metadata().clone())
-    }
-
-    async fn discover_oauth_metadata(
-        &self,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<oidc::Config, IssuanceSessionError> {
-        Ok(oidc::Config::new_mock(issuer_identifier.clone()))
     }
 
     async fn request_token(

@@ -14,7 +14,6 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::CredentialIssuerDiscovery;
-use openid4vc::oidc::OidcDiscovery;
 
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
@@ -118,13 +117,12 @@ pub enum TransferError {
     TempFileCreation(#[source] std::io::Error),
 }
 
-impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    OD: OidcDiscovery,
     CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
     APC: AccountProviderClient,
@@ -472,9 +470,11 @@ mod tests {
     use josekit::jwk::Jwk;
     use parking_lot::Mutex;
     use url::Host;
+    use url::Url;
     use uuid::Uuid;
 
     use crypto::utils::random_bytes;
+    use openid4vc::oidc::HttpAuthorizationServer;
     use wallet_account::messages::errors::AccountError;
     use wallet_account::messages::instructions::HwSignedInstruction;
     use wallet_account::messages::instructions::Instruction;
@@ -483,12 +483,14 @@ mod tests {
     use crate::PidIssuancePurpose;
     use crate::account_provider::AccountProviderError;
     use crate::account_provider::AccountProviderResponseError;
-    use crate::oidc_session::mock::mock_oidc_session;
+    use crate::oidc_session::OidcSession;
+    use crate::oidc_session::build_oidc_session;
     use crate::storage::ChangePinData;
     use crate::storage::DatabaseExport;
     use crate::storage::InstructionData;
     use crate::storage::test::SqlCipherKey;
     use crate::wallet::Session;
+    use crate::wallet::test::AUTH_URL;
     use crate::wallet::test::create_wp_result;
 
     use super::super::test::TestWalletInMemoryStorage;
@@ -537,9 +539,20 @@ mod tests {
     #[tokio::test]
     async fn test_transfer_error_issuance_session_active() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let stub_oidc_session: OidcSession<HttpAuthorizationServer> = build_oidc_session(
+            openid4vc::oidc::Config::new(
+                "http://example.com".parse().unwrap(),
+                Url::parse(AUTH_URL).unwrap(),
+                Url::parse(AUTH_URL).unwrap(),
+                Url::parse(AUTH_URL).unwrap(),
+            ),
+            "client_id".to_string(),
+            Url::parse(AUTH_URL).unwrap(),
+        )
+        .unwrap();
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: mock_oidc_session(),
+            oidc_session: stub_oidc_session,
             discovered: openid4vc::mock::MockCredentialIssuer::new(),
         });
 

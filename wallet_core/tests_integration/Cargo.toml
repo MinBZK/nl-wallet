@@ -198,9 +198,11 @@ integration_test = [
 
 # Optional feature for running integration tests that depend on the DigiD connector
 digid_test = [
+    "allow_insecure_url",
     "fake_digid",
     "test_common",
     "dep:gba_hc_converter",
+    "dep:rand_core",
     "dep:ring",
     "dep:rustls-pki-types",
     "dep:serial_test",

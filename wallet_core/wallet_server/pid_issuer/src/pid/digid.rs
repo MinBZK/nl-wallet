@@ -52,9 +52,13 @@ impl OpenIdClient {
             .as_str()
             .parse()
             .expect("TlsPinningConfig base URL should be a valid IssuerIdentifier");
+        let certs = http_config
+            .trust_anchors()
+            .iter()
+            .map(|ta| ta.clone().into_certificate());
         let userinfo_client = OpenIdClient {
             decrypter_private_key: Self::decrypter(bsn_privkey)?,
-            http_client: OidcReqwestClient::try_new()?,
+            http_client: OidcReqwestClient::try_new_with_trust_anchors(certs)?,
             authorization_server,
         };
 
@@ -88,7 +92,9 @@ impl OpenIdClient {
             .authorization_server
             .as_base_url()
             .join(oidc::OPENID_CONFIGURATION_PATH);
+
         let metadata = oidc::Config::discover(&self.http_client, url).await?;
+
         Ok(metadata)
     }
 }

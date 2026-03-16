@@ -32,7 +32,6 @@ use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
 use attestation_data::issuable_document::IssuableDocument;
 use crypto::trust_anchor::BorrowingTrustAnchor;
-use crypto::utils::random_string;
 use db_test::DbSetup;
 use dcql::CredentialFormat;
 use gba_hc_converter::settings::Settings as GbaSettings;
@@ -46,6 +45,7 @@ use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use http_utils::urls::disclosure_based_issuance_base_uri;
+use http_utils::urls::issuance_base_uri;
 use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
@@ -57,15 +57,11 @@ use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::oidc::MockAuthorizationServer;
-use openid4vc::oidc::MockOidcDiscovery;
 use openid4vc::oidc::OidcReqwestClient;
 use openid4vc::openid4vp::ClientId;
 use openid4vc::openid4vp::VpRequestUri;
 use openid4vc::openid4vp::VpRequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
-use openid4vc::token::TokenRequest;
-use openid4vc::token::TokenRequestGrantType;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::VerifierUrlParameters;
 use pid_issuer::pid::mock::MockAttributeService;
@@ -90,7 +86,6 @@ use wallet::AttestationPresentation;
 use wallet::PidIssuancePurpose;
 use wallet::Wallet;
 use wallet::WalletClients;
-use wallet::WalletDiscovery;
 use wallet::WalletRepositories;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
@@ -167,7 +162,6 @@ pub type WalletWithStorage = Wallet<
     MockHardwareDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
-    MockOidcDiscovery,
     HttpCredentialIssuerDiscovery,
     VpDisclosureClient,
 >;
@@ -328,11 +322,9 @@ pub async fn setup_env(
     let issuance_server_url =
         start_issuance_server(issuance_server_settings, Some(hsm.clone()), attributes_fetcher).await;
 
-    let pid_issuer_url = start_pid_issuer_server(
-        issuer_settings,
-        Some(hsm),
-        MockAttributeService::new(pid_issuable_documents),
-    )
+    let pid_issuer_url = start_pid_issuer_server(issuer_settings, Some(hsm), |_| {
+        MockAttributeService::new(pid_issuable_documents)
+    })
     .await;
 
     let issuer_urls = IssuerUrls {
@@ -432,10 +424,6 @@ where
         config_repository.get().pid_issuance.client_id.clone(),
         oidc_reqwest_client,
     );
-    let mut oidc_discovery = MockOidcDiscovery::new();
-    oidc_discovery
-        .expect_start_sync()
-        .returning(|_, _, _| Ok(mock_oidc_start_result()));
     let wallet_clients = WalletClients::new_http().unwrap();
 
     Wallet::init_registration(
@@ -445,10 +433,7 @@ where
             config_repository,
             update_policy_repository,
         },
-        WalletDiscovery {
-            credential_issuer_discovery,
-            oidc_discovery,
-        },
+        credential_issuer_discovery,
         wallet_clients,
     )
     .await
@@ -844,15 +829,20 @@ pub async fn start_issuance_server(
     }
 }
 
-pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static>(
+pub async fn start_pid_issuer_server<A, F>(
     mut settings: PidIssuerSettings,
     hsm: Option<Pkcs11Hsm>,
-    attr_service: A,
-) -> IssuerUrl {
+    attr_service_factory: F,
+) -> IssuerUrl
+where
+    A: AttributeService + Send + Sync + 'static,
+    F: FnOnce(&IssuerIdentifier) -> A,
+{
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
     let public_url = local_http_issuer_identifier(public_port);
     settings.issuer_settings.public_url = public_url.clone();
+    let attr_service = attr_service_factory(&public_url);
 
     let internal_listener = get_internal_listener(&mut settings.issuer_settings.server_settings).await;
     let internal_port = internal_listener.as_ref().unwrap().local_addr().unwrap().port();
@@ -1026,6 +1016,29 @@ pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: &str) ->
     wallet
 }
 
+/// Construct a fake "redirect from DigiD" URL from an OIDC auth URL.
+///
+/// Since the integration tests use `MockAttributeService` which ignores the token request
+/// content, any authorization code works. We only need the correct `state` parameter
+/// (to pass the CSRF check) and a redirect URI that starts with the wallet's issuance base URI.
+/// A random code ensures each call gets a fresh session in the pid issuer's session store.
+pub fn fake_oidc_redirect(auth_url: &Url) -> Url {
+    let state = auth_url
+        .query_pairs()
+        .find(|(k, _)| k == "state")
+        .map(|(_, v)| v.into_owned())
+        .expect("auth URL should contain state parameter");
+
+    let code = crypto::utils::random_string(32);
+
+    let redirect_base: BaseUrl = DEFAULT_UNIVERSAL_LINK_BASE
+        .parse()
+        .expect("DEFAULT_UNIVERSAL_LINK_BASE should be a valid BaseUrl");
+    let mut redirect_url = issuance_base_uri(&redirect_base).as_ref().clone();
+    redirect_url.set_query(Some(&format!("code={code}&state={state}")));
+    redirect_url
+}
+
 pub async fn do_pid_issuance(wallet: WalletWithStorage, pin: String) -> WalletWithStorage {
     do_pid_issuance_with_purpose(wallet, pin, PidIssuancePurpose::Enrollment).await
 }
@@ -1039,10 +1052,12 @@ pub async fn do_pid_issuance_with_purpose(
     pin: String,
     purpose: PidIssuancePurpose,
 ) -> WalletWithStorage {
-    let redirect_url = wallet
+    let auth_url = wallet
         .create_pid_issuance_auth_url(purpose)
         .await
         .expect("Could not create pid issuance auth url");
+
+    let redirect_url = fake_oidc_redirect(&auth_url);
 
     let _attestations = wallet
         .continue_pid_issuance(redirect_url)
@@ -1056,10 +1071,12 @@ pub async fn do_pid_issuance_with_purpose(
 }
 
 pub async fn do_pin_recovery(mut wallet: WalletWithStorage, new_pin: String) -> WalletWithStorage {
-    let redirect_url = wallet
+    let auth_url = wallet
         .create_pin_recovery_redirect_uri()
         .await
         .expect("Could not create pin recovery redirect URI");
+
+    let redirect_url = fake_oidc_redirect(&auth_url);
 
     wallet
         .continue_pin_recovery(redirect_url)
@@ -1070,23 +1087,6 @@ pub async fn do_pin_recovery(mut wallet: WalletWithStorage, new_pin: String) -> 
         .await
         .expect("Could not complete pin recovery");
     wallet
-}
-
-/// Creates a [`MockAuthorizationServer`] configured to return a random token request,
-/// plus a dummy auth URL. The pid_issuer creates a new session for any unknown code.
-pub fn mock_oidc_start_result() -> (MockAuthorizationServer, Url) {
-    let mut server = MockAuthorizationServer::new();
-    server.expect_token_request().returning(|_redirect_uri| {
-        Ok(TokenRequest {
-            grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                pre_authorized_code: random_string(32).into(),
-            },
-            code_verifier: Some("my_code_verifier".to_string()),
-            client_id: Some("my_client_id".to_string()),
-            redirect_uri: Some("redirect://here".parse().unwrap()),
-        })
-    });
-    (server, Url::parse("http://localhost/").unwrap())
 }
 
 pub async fn do_degree_issuance(

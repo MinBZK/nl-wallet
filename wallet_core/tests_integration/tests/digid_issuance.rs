@@ -1,24 +1,25 @@
+use p256::ecdsa::SigningKey;
+use rand_core::OsRng;
 use serial_test::serial;
 
+use crypto::p256_der::DerVerifyingKey;
 use db_test::DbSetup;
 use hsm::service::Pkcs11Hsm;
-use http_utils::client::InternalHttpConfig;
 use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-use openid4vc::issuance_session::HttpIssuanceSession;
-use openid4vc::issuance_session::HttpVcMessageClient;
+use openid4vc::issuance_session::CredentialIssuer;
+use openid4vc::issuance_session::CredentialIssuerDiscovery;
+use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
 use openid4vc::issuance_session::IssuanceSession;
-use openid4vc::issuer_metadata::IssuerMetadata;
-use openid4vc::oidc::HttpOidcClient;
+use openid4vc::oidc::OidcReqwestClient;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
 use server_utils::keys::SecretKeyVariant;
-use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::SecretKey;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
+use wallet::test::build_oidc_session;
 use wallet::test::default_wallet_config;
-use wallet::test::start_oidc_session;
 use wscd::mock_remote::MockRemoteWscd;
 
 /// Test the full PID issuance flow, i.e. including OIDC with nl-rdo-max and retrieving the PID from BRP
@@ -39,7 +40,12 @@ use wscd::mock_remote::MockRemoteWscd;
 #[serial(hsm)]
 async fn ltc1_test_pid_issuance_digid_bridge() {
     let db_setup = DbSetup::create_clean().await;
-    let (settings, _) = pid_issuer_settings(db_setup.pid_issuer_url());
+    let (mut settings, _) = pid_issuer_settings(db_setup.pid_issuer_url());
+
+    // Generate a WUA key pair so MockRemoteWscd can sign WUAs accepted by the test pid issuer.
+    let wua_signing_key = SigningKey::random(&mut OsRng);
+    settings.wua_issuer_pubkey = DerVerifyingKey::from(*wua_signing_key.verifying_key());
+
     let hsm = settings
         .issuer_settings
         .server_settings
@@ -49,67 +55,65 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .transpose()
         .unwrap();
 
-    let attr_service = BrpPidAttributeService::try_new(
-        HttpBrpClient::new(settings.brp_server.clone()),
-        &settings.digid.bsn_privkey,
-        settings.digid.http_config.clone(),
-        SecretKeyVariant::from_settings(
-            SecretKey::Software {
-                secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
-            },
-            None,
+    let issuer_url = start_pid_issuer_server(settings.clone(), hsm, |public_url| {
+        BrpPidAttributeService::try_new(
+            HttpBrpClient::new(settings.brp_server.clone()),
+            &settings.digid.bsn_privkey,
+            &settings.digid.http_config,
+            SecretKeyVariant::from_settings(
+                SecretKey::Software {
+                    secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
+                },
+                None,
+            )
+            .unwrap(),
+            public_url.clone(),
         )
-        .unwrap(),
-        settings.issuer_settings.public_url.clone(),
-    )
-    .unwrap();
-
-    let issuer_url = start_pid_issuer_server(settings.clone(), hsm, attr_service).await;
+        .unwrap()
+    })
+    .await;
 
     start_gba_hc_converter(gba_hc_converter_settings()).await;
 
     let wallet_config = default_wallet_config();
 
-    // Discover the authorization server URL from issuer metadata
-    let http_client = reqwest::Client::new();
-    let issuer_metadata = IssuerMetadata::discover(&http_client, &wallet_config.pid_issuance.url)
-        .await
-        .unwrap();
-
-    let issuer_base_url = issuer_metadata
-        .authorization_servers()
-        .into_first()
-        .as_base_url()
-        .clone();
-
+    // Discover the credential issuer and authorization server URL from issuer metadata
+    let oidc_client = OidcReqwestClient::try_new().unwrap();
+    let credential_issuer_discovery =
+        HttpCredentialIssuerDiscovery::new(wallet_config.pid_issuance.client_id.clone(), oidc_client);
+    let credential_issuer = credential_issuer_discovery.discover(&issuer_url.public).await.unwrap();
     // Prepare DigiD flow
-    let digid_session = start_oidc_session::<HttpOidcClient, _>(
-        wallet_config.pid_issuance.digid.clone(),
-        issuer_base_url.clone(),
-        urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner(),
+    let redirect_uri = urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap())
+        .as_ref()
+        .clone();
+    let digid_session = build_oidc_session(
+        credential_issuer.oauth_metadata(),
+        wallet_config.pid_issuance.client_id.clone(),
+        redirect_uri,
     )
-    .await
     .unwrap();
 
     // Do fake DigiD authentication and parse the access token out of the redirect URL
-    let redirect_url = fake_digid_auth(digid_session.auth_url.clone(), issuer_base_url, "999991772").await;
+    let redirect_url = fake_digid_auth(
+        digid_session.auth_url.clone(),
+        settings.digid.http_config.base_url().clone(),
+        "999991772",
+    )
+    .await;
     let token_request = digid_session.into_token_request(&redirect_url).unwrap();
 
     // Start issuance by exchanging the authorization code for the attestation previews
-    let issuance_session = HttpIssuanceSession::start_issuance(
-        HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), reqwest::Client::new()),
-        issuer_url.public.clone(),
-        token_request,
-        &wallet_config.issuer_trust_anchors(),
-    )
-    .await
-    .unwrap();
-
-    let credential_with_metadata = issuance_session
-        .accept_issuance(&wallet_config.issuer_trust_anchors(), &MockRemoteWscd::default(), false)
+    let issuance_session = credential_issuer
+        .start_issuance(token_request, &wallet_config.issuer_trust_anchors())
         .await
         .unwrap();
 
-    assert_eq!(2, credential_with_metadata.len());
-    assert_eq!(2, credential_with_metadata[0].copies.as_ref().as_slice().len());
+    let wscd = MockRemoteWscd::new_with_wua_signing_key(wua_signing_key);
+    let credential_with_metadata = issuance_session
+        .accept_issuance(&wallet_config.issuer_trust_anchors(), &wscd, true)
+        .await
+        .unwrap();
+
+    assert_eq!(1, credential_with_metadata.len());
+    assert_eq!(8, credential_with_metadata[0].copies.as_ref().as_slice().len());
 }

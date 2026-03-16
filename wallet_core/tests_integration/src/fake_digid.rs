@@ -3,9 +3,7 @@ use reqwest::header::LOCATION;
 use reqwest::redirect::Policy;
 use url::Url;
 
-use http_utils::reqwest::IntoReqwestClient;
-use http_utils::reqwest::ReqwestClient;
-use http_utils::reqwest::ReqwestClientUrl;
+use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 
 // Use the mock flow of the DigiD bridge to simulate a DigiD login,
@@ -14,12 +12,10 @@ use http_utils::urls::BaseUrl;
 // Note that this depends of part of the internal API of the DigiD bridge, so it may break when the bridge
 // is updated.
 pub async fn fake_digid_auth(mut authorization_url: Url, digid_base_url: BaseUrl, bsn: &str) -> Url {
-    let client = digid_base_url
-        .try_into_custom_client(|client_builder| {
-            client_builder
-                // .danger_accept_invalid_certs(true) // TODO: is this necessary?
-                .redirect(Policy::none())
-        })
+    let http_client = default_reqwest_client_builder()
+        .danger_accept_invalid_certs(true)
+        .redirect(Policy::none())
+        .build()
         .unwrap();
 
     // Avoid the DigiD/mock DigiD landing page of the DigiD bridge by preselecting the latter
@@ -29,7 +25,7 @@ pub async fn fake_digid_auth(mut authorization_url: Url, digid_base_url: BaseUrl
 
     // Start authentication by GETting the authorization URL.
     // In the resulting HTML page, find the "RelayState" parameter which we need for the following URL.
-    let relay_state_page = do_get_as_text(&client, ReqwestClientUrl::Absolute(authorization_url)).await;
+    let relay_state_page = do_get_as_text(&http_client, authorization_url).await;
 
     let relay_state_line = relay_state_page
         .lines()
@@ -45,17 +41,17 @@ pub async fn fake_digid_auth(mut authorization_url: Url, digid_base_url: BaseUrl
     // Get the HTML page containing the redirect_uri back to our own app
     let finish_digid_path = format!("acs?SAMLart={bsn}&RelayState={relay_state}&mocking=1");
 
-    let response = do_get_request(&client, ReqwestClientUrl::Relative(&finish_digid_path)).await;
+    let response = do_get_request(&http_client, digid_base_url.join(&finish_digid_path)).await;
     let redirect_url = response.headers().get(LOCATION).unwrap().to_str().unwrap();
 
     Url::parse(redirect_url).expect("failed to parse redirect url")
 }
 
-async fn do_get_request(client: &ReqwestClient, url: ReqwestClientUrl<'_>) -> Response {
-    client.send_get(url).await.expect("failed to GET URL")
+async fn do_get_request(client: &reqwest::Client, url: Url) -> Response {
+    client.get(url).send().await.expect("failed to GET URL")
 }
 
-async fn do_get_as_text(client: &ReqwestClient, url: ReqwestClientUrl<'_>) -> String {
+async fn do_get_as_text(client: &reqwest::Client, url: Url) -> String {
     do_get_request(client, url)
         .await
         .text()

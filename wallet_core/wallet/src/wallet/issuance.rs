@@ -29,7 +29,6 @@ use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::issuer_metadata::IssuerMetadataDiscoveryError;
-use openid4vc::oidc::OidcDiscovery;
 use openid4vc::oidc::OidcError;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::attested_key::AppleAttestedKey;
@@ -60,7 +59,7 @@ use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
 use crate::oidc_session::OidcSessionError;
-use crate::oidc_session::start_oidc_session;
+use crate::oidc_session::build_oidc_session;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -229,11 +228,10 @@ pub enum PidAttestationFormat {
     Either,
 }
 
-impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, SLC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,
-    OD: OidcDiscovery,
     CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
 {
@@ -255,13 +253,12 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    OD: OidcDiscovery,
     CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
     APC: AccountProviderClient,
@@ -316,13 +313,11 @@ where
             .discover(&pid_issuance_config.url)
             .await?;
 
-        let oidc_session = start_oidc_session(
-            &self.oidc_discovery,
-            discovered.authorization_server_url(),
+        let oidc_session = build_oidc_session(
+            discovered.oauth_metadata(),
             pid_issuance_config.client_id.clone(),
             urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
         )
-        .await
         .map_err(IssuanceError::OidcSessionStart)?;
 
         info!("DigiD auth URL generated");
@@ -809,10 +804,7 @@ mod tests {
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockCredentialIssuer;
     use openid4vc::mock::MockIssuanceSession;
-    use openid4vc::oidc::MockAuthorizationServer;
-    use openid4vc::oidc::OidcError;
-    use openid4vc::token::TokenRequest;
-    use openid4vc::token::TokenRequestGrantType;
+    use openid4vc::oidc::HttpAuthorizationServer;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
@@ -825,13 +817,12 @@ mod tests {
     use crate::WalletEvent;
     use crate::attestation::AttestationAttributeValue;
     use crate::oidc_session::OidcSession;
-    use crate::oidc_session::mock::AUTH_URL;
-    use crate::oidc_session::mock::mock_oidc_session_tuple;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
     use crate::storage::RegistrationData;
     use crate::storage::StorageState;
     use crate::storage::StoredAttestation;
+    use crate::wallet::test::AUTH_URL;
     use crate::wallet::test::create_example_credential_payload;
     use crate::wallet::test::create_example_pid_credential_payload;
     use crate::wallet::test::create_example_pid_preview_data;
@@ -864,13 +855,16 @@ mod tests {
             .return_once(move |_| {
                 let mut issuer = MockCredentialIssuer::new();
                 issuer.expect_get_metadata().return_const(issuer_metadata);
+                issuer
+                    .expect_get_oauth_metadata()
+                    .return_const(openid4vc::oidc::Config::new(
+                        "http://example.com".parse().unwrap(),
+                        Url::parse(AUTH_URL).unwrap(),
+                        Url::parse(AUTH_URL).unwrap(),
+                        Url::parse(AUTH_URL).unwrap(),
+                    ));
                 Ok(issuer)
             });
-
-        wallet
-            .oidc_discovery
-            .expect_start_sync()
-            .return_once(|_, _, _| Ok(mock_oidc_session_tuple()));
 
         wallet
             .mut_storage()
@@ -883,7 +877,7 @@ mod tests {
             .await
             .expect("Could not generate PID issuance auth URL");
 
-        assert_eq!(auth_url.as_str(), AUTH_URL);
+        assert!(auth_url.as_str().starts_with(AUTH_URL));
         assert!(wallet.session.is_some());
     }
 
@@ -956,7 +950,7 @@ mod tests {
         // Set up a mock DigiD session.
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: mock_oidc_session(),
+            oidc_session: create_stub_oidc_session(),
             discovered: MockCredentialIssuer::new(),
         });
 
@@ -994,45 +988,6 @@ mod tests {
         assert_matches!(error, IssuanceError::SessionState);
     }
 
-    #[rstest]
-    #[tokio::test]
-    async fn test_create_pid_issuance_auth_url_error_oidc_session_start(
-        #[values(PidIssuancePurpose::Enrollment, PidIssuancePurpose::Renewal)] purpose: PidIssuancePurpose,
-    ) {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        // Set up the credential issuer discovery mock
-        let pid_issuance_url = wallet.config_repository.get().pid_issuance.url.clone();
-        let issuer_metadata =
-            openid4vc::issuer_metadata::IssuerMetadata::new_mock(pid_issuance_url.clone(), "some_type");
-        wallet
-            .credential_issuer_discovery
-            .expect_discover_sync()
-            .return_once(move |_| {
-                let mut issuer = MockCredentialIssuer::new();
-                issuer.expect_get_metadata().return_const(issuer_metadata);
-                Ok(issuer)
-            });
-
-        wallet
-            .oidc_discovery
-            .expect_start_sync()
-            .return_once(|_, _, _| Err(OidcError::NoAuthCode));
-
-        wallet
-            .mut_storage()
-            .expect_has_any_attestations_with_types()
-            .return_once(move |_| Ok(purpose == PidIssuancePurpose::Renewal));
-
-        // The error should be forwarded when attempting to create a DigiD authentication URL.
-        let error = wallet
-            .create_pid_issuance_auth_url(purpose)
-            .await
-            .expect_err("PID issuance auth URL generation should have resulted in error");
-
-        assert_matches!(error, IssuanceError::OidcSessionStart(_));
-    }
-
     #[tokio::test]
     async fn test_cancel_pid_issuance_oidc() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -1040,7 +995,7 @@ mod tests {
         // Set up a mock DigiD session.
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: mock_oidc_session(),
+            oidc_session: create_stub_oidc_session(),
             discovered: MockCredentialIssuer::new(),
         });
 
@@ -1126,7 +1081,7 @@ mod tests {
     #[tokio::test]
     async fn test_continue_pid_issuance() {
         // `setup_wallet_with_oidc_session_and_database_mock` already sets up the mock `start` expectation.
-        let mut wallet = setup_wallet_with_oidc_session_and_database_mock().await;
+        let (mut wallet, redirect_uri) = setup_wallet_with_oidc_session_and_database_mock().await;
 
         let stored = {
             let (sd_jwt, metadata) = create_example_pid_sd_jwt();
@@ -1156,7 +1111,7 @@ mod tests {
 
         // Continuing PID issuance should result in one preview `Attestation`.
         let attestations = wallet
-            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
+            .continue_pid_issuance(redirect_uri)
             .await
             .expect("Could not continue PID issuance");
 
@@ -1176,10 +1131,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_continue_pid_issuance_user_cancelled() {
-        let mut wallet = setup_wallet_with_oidc_session().await;
+        let (mut wallet, _) = setup_wallet_with_oidc_session().await;
 
+        let denied_redirect = Url::parse(&(REDIRECT_URI.to_string() + "?error=access_denied&state=whatever")).unwrap();
         let error = wallet
-            .continue_pid_issuance(Url::parse(&(REDIRECT_URI.to_string() + "?error=access_denied")).unwrap())
+            .continue_pid_issuance(denied_redirect)
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
@@ -1230,54 +1186,70 @@ mod tests {
         assert_matches!(error, IssuanceError::SessionState);
     }
 
-    fn mock_oidc_session() -> OidcSession<MockAuthorizationServer> {
-        // Set up a mock authorization server that returns a token request.
-        let mut oidc_client = MockAuthorizationServer::new();
+    /// Creates a real `OidcSession<HttpAuthorizationServer>` and a redirect URI with the correct state
+    /// that will successfully yield a token request when `into_token_request` is called.
+    fn create_real_oidc_session() -> (OidcSession<HttpAuthorizationServer>, Url) {
+        use crate::oidc_session::build_oidc_session;
 
-        oidc_client.expect_token_request().return_once(|redirect_uri| {
-            if redirect_uri
-                .query_pairs()
-                .any(|(key, val)| key == "error" && val == "access_denied")
-            {
-                return Err(OidcError::Denied);
-            }
+        let redirect_uri = Url::parse(REDIRECT_URI).unwrap();
+        let oidc_session = build_oidc_session(
+            openid4vc::oidc::Config::new(
+                "http://example.com".parse().unwrap(),
+                Url::parse(AUTH_URL).unwrap(),
+                Url::parse(AUTH_URL).unwrap(),
+                Url::parse(AUTH_URL).unwrap(),
+            ),
+            "client_id".to_string(),
+            redirect_uri.clone(),
+        )
+        .unwrap();
 
-            let token_request = TokenRequest {
-                grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: "123".to_string().into(),
-                },
-                code_verifier: None,
-                client_id: None,
-                redirect_uri: None,
-            };
+        // Build a redirect URI with the right CSRF state and a dummy code
+        let state = oidc_session.oidc_client.csrf_state().to_string();
+        let mut success_redirect = redirect_uri.clone();
+        success_redirect.set_query(Some(&format!("code=test_code&state={state}")));
 
-            Ok(token_request)
-        });
-
-        OidcSession {
-            oidc_client,
-            auth_url: Url::parse(AUTH_URL).unwrap(),
-        }
+        (oidc_session, success_redirect)
     }
 
-    async fn setup_wallet_with_oidc_session() -> TestWalletMockStorage {
+    /// Creates a real `OidcSession<HttpAuthorizationServer>` for tests that only need the session
+    /// (e.g., they cancel or check session state, not calling `into_token_request`).
+    fn create_stub_oidc_session() -> OidcSession<HttpAuthorizationServer> {
+        use crate::oidc_session::build_oidc_session;
+
+        build_oidc_session(
+            openid4vc::oidc::Config::new(
+                "http://example.com".parse().unwrap(),
+                Url::parse(AUTH_URL).unwrap(),
+                Url::parse(AUTH_URL).unwrap(),
+                Url::parse(AUTH_URL).unwrap(),
+            ),
+            "client_id".to_string(),
+            Url::parse(REDIRECT_URI).unwrap(),
+        )
+        .unwrap()
+    }
+
+    async fn setup_wallet_with_oidc_session() -> (TestWalletMockStorage, Url) {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let (oidc_session, redirect_uri) = create_real_oidc_session();
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: mock_oidc_session(),
+            oidc_session,
             discovered: MockCredentialIssuer::new(),
         });
-        wallet
+        (wallet, redirect_uri)
     }
 
-    async fn setup_wallet_with_oidc_session_and_database_mock() -> TestWalletMockStorage {
+    async fn setup_wallet_with_oidc_session_and_database_mock() -> (TestWalletMockStorage, Url) {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let (oidc_session, redirect_uri) = create_real_oidc_session();
         // Set up the credential issuer discovery mock with a start expectation for continue_pid_issuance
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: mock_oidc_session(),
+            oidc_session,
             discovered: {
                 let mut issuer = MockCredentialIssuer::new();
                 issuer.expect_start().return_once(|_| {
@@ -1291,12 +1263,13 @@ mod tests {
                 issuer
             },
         });
-        wallet
+        (wallet, redirect_uri)
     }
 
     #[tokio::test]
     async fn test_continue_pid_issuance_error_pid_issuer() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let (oidc_session, redirect_uri) = create_real_oidc_session();
 
         // Set up the credential issuer to return an error from start_issuance.
         let mut issuer = MockCredentialIssuer::new();
@@ -1306,13 +1279,13 @@ mod tests {
 
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: mock_oidc_session(),
+            oidc_session,
             discovered: issuer,
         });
 
         // Continuing PID issuance on a wallet should forward this error.
         let error = wallet
-            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
+            .continue_pid_issuance(redirect_uri)
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 

@@ -95,6 +95,11 @@ export HSM_TOKEN=${HSM_TOKEN:-test_token}
 # export WALLET_CLIENT_ID
 export WALLET_CLIENT_ID=3e58016e-bc2e-40d5-b4b1-a3e25f6193b9
 
+# Wallet's iss claim in credential proof JWTs sent to the issuer (matches Rust constant NL_WALLET_CLIENT_ID)
+export NL_WALLET_CLIENT_ID="https://wallet.edi.rijksoverheid.nl"
+# Wallet client ID used by MockRemoteWscd in integration tests (matches Rust constant MOCK_WALLET_CLIENT_ID)
+export MOCK_WALLET_CLIENT_ID="mock_wallet_client_id"
+
 export SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-local}
 
 # Optionally use a single CA when generating certs. 0 is false, 1 is true.

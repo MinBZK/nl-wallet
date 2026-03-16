@@ -126,9 +126,11 @@ pub trait AuthorizationServer {
 }
 
 /// The discovered authorization server state for an in-progress OIDC authorization code flow.
+#[derive(Debug)]
 pub struct HttpAuthorizationServer<P = S256PkcePair> {
     provider: Config,
-    pub jwks: Option<JWKSet<Empty>>, // TODO: remove or reuse in `request_userinfo`
+    #[allow(dead_code)] // reserved for future use in `request_userinfo`
+    jwks: Option<JWKSet<Empty>>,
     client_id: String,
     redirect_uri: Url,
     pkce_pair: P,
@@ -137,23 +139,20 @@ pub struct HttpAuthorizationServer<P = S256PkcePair> {
 }
 
 impl<P: PkcePair> HttpAuthorizationServer<P> {
-    fn new(config: Config, jwks: JWKSet<Empty>, client_id: String, redirect_uri: Url) -> Self {
-        let csrf_token = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
-        let nonce = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
-        let pkce_pair = P::generate();
-
+    pub fn new(config: Config, jwks: Option<JWKSet<Empty>>, client_id: String, redirect_uri: Url) -> Self {
         Self {
             provider: config,
-            jwks: Some(jwks),
+            jwks,
             client_id,
             redirect_uri,
-            pkce_pair,
-            state: csrf_token,
-            nonce,
+            pkce_pair: P::generate(),
+            state: BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16)),
+            nonce: BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16)),
         }
     }
 
-    fn url_encoded_auth_request(&self) -> Result<String, OidcError> {
+    /// Returns the authorization URL to redirect the user to, with all PKCE/CSRF/nonce parameters encoded.
+    pub fn auth_url(&self) -> Result<Url, OidcError> {
         let params = AuthorizationRequest {
             response_type: ResponseType::Code.into(),
             client_id: self.client_id.clone(),
@@ -169,7 +168,9 @@ impl<P: PkcePair> HttpAuthorizationServer<P> {
             response_mode: None,
         };
 
-        Ok(serde_urlencoded::to_string(params)?)
+        let mut url = self.provider.authorization_endpoint.clone();
+        url.set_query(Some(&serde_urlencoded::to_string(params)?));
+        Ok(url)
     }
 
     fn matches_received_redirect_uri(&self, received_redirect_uri: &Url) -> bool {
@@ -200,6 +201,14 @@ impl<P: PkcePair> HttpAuthorizationServer<P> {
         }
 
         Ok(auth_response.code.into())
+    }
+}
+
+#[cfg(any(test, feature = "mock"))]
+impl<P: PkcePair> HttpAuthorizationServer<P> {
+    /// Returns the CSRF state token. Available in test/mock builds to allow constructing valid redirect URIs.
+    pub fn csrf_state(&self) -> &str {
+        &self.state
     }
 }
 
@@ -242,10 +251,8 @@ impl HttpOidcDiscovery {
         let config = discovery.discover(authorization_server).await?;
         let jwks = config.jwks(&self.http_client).await?;
 
-        let server = HttpAuthorizationServer::new(config, jwks, client_id, redirect_uri);
-
-        let mut url = server.provider.authorization_endpoint.clone();
-        url.set_query(Some(&server.url_encoded_auth_request()?));
+        let server = HttpAuthorizationServer::new(config, Some(jwks), client_id, redirect_uri);
+        let url = server.auth_url()?;
 
         Ok((server, url))
     }
@@ -581,12 +588,11 @@ mod tests {
     async fn test_auth_url() {
         let server = create_server();
 
-        // Generate authentication URL
-        let auth_request = server.url_encoded_auth_request().unwrap();
+        let auth_url = server.auth_url().unwrap();
 
         #[rustfmt::skip]
         assert_eq!(
-            auth_request,
+            auth_url.query().unwrap(),
             "response_type=code\
                 &client_id=client-1\
                 &redirect_uri=redirect%3A%2F%2Fhere\

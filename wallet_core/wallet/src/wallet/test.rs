@@ -2,6 +2,8 @@ use std::num::NonZeroU8;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
+pub const AUTH_URL: &str = "http://example.com/auth";
+
 use chrono::DateTime;
 use chrono::Utc;
 use futures::future::FutureExt;
@@ -42,7 +44,6 @@ use openid4vc::issuance_session::IssuedCredentialCopies;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::mock::MockCredentialIssuerDiscovery;
 use openid4vc::mock::MockIssuanceSession;
-use openid4vc::oidc::MockOidcDiscovery;
 use openid4vc::token::CredentialPreviewContent;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
@@ -86,7 +87,6 @@ use crate::storage::WalletEvent;
 use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
 use crate::wallet::init::WalletClients;
-use crate::wallet::init::WalletDiscovery;
 use crate::wallet::init::WalletRepositories;
 
 use super::HistoryError;
@@ -127,7 +127,6 @@ pub type TestWallet<S, CR = UpdatingConfigurationRepository<LocalConfigurationRe
     S,
     MockHardwareAttestedKeyHolder,
     MockAccountProviderClient,
-    MockOidcDiscovery,
     MockCredentialIssuerDiscovery,
     MockDisclosureClient,
     MockStatusListClient,
@@ -388,10 +387,7 @@ where
                 config_repository,
                 update_policy_repository: MockUpdatePolicyRepository::default(),
             },
-            WalletDiscovery {
-                credential_issuer_discovery: MockCredentialIssuerDiscovery::new(),
-                oidc_discovery: MockOidcDiscovery::new(),
-            },
+            MockCredentialIssuerDiscovery::new(),
             WalletClients::default(),
             RegistrationStatus::Unregistered,
         )
@@ -409,10 +405,7 @@ where
                 config_repository,
                 update_policy_repository: MockUpdatePolicyRepository::default(),
             },
-            WalletDiscovery {
-                credential_issuer_discovery: MockCredentialIssuerDiscovery::new(),
-                oidc_discovery: MockOidcDiscovery::new(),
-            },
+            MockCredentialIssuerDiscovery::new(),
             WalletClients::default(),
         )
         .await
@@ -437,10 +430,7 @@ where
                 config_repository,
                 update_policy_repository: MockUpdatePolicyRepository::default(),
             },
-            WalletDiscovery {
-                credential_issuer_discovery: MockCredentialIssuerDiscovery::new(),
-                oidc_discovery: MockOidcDiscovery::new(),
-            },
+            MockCredentialIssuerDiscovery::new(),
             WalletClients::default(),
             RegistrationStatus::Unregistered,
         );
@@ -500,10 +490,7 @@ impl TestWalletMockStorage {
                 config_repository,
                 update_policy_repository: MockUpdatePolicyRepository::default(),
             },
-            WalletDiscovery {
-                credential_issuer_discovery: MockCredentialIssuerDiscovery::new(),
-                oidc_discovery: MockOidcDiscovery::new(),
-            },
+            MockCredentialIssuerDiscovery::new(),
             WalletClients::default(),
         )
         .await

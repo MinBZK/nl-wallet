@@ -16,7 +16,6 @@ use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::issuance_session::CredentialIssuer;
 use openid4vc::issuance_session::CredentialIssuerDiscovery;
-use openid4vc::oidc::OidcDiscovery;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -72,14 +71,13 @@ pub enum DisclosureBasedIssuanceError {
 // However, the `flutter_api` already knows which flow it is in anyway, because it displays
 // different things to the user in each flow. So keeping this a distinct method is more
 // pragmatic.
-impl<CR, UR, S, AKH, APC, OD, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, OD, CID, DCC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     S: Storage,
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
-    OD: OidcDiscovery,
     CID: CredentialIssuerDiscovery,
     DCC: DisclosureClient,
 {
