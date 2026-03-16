@@ -6,6 +6,7 @@ use tracing::warn;
 
 use crypto::utils as crypto_utils;
 use crypto::x509::BorrowingCertificate;
+use dcql::CredentialFormat;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
@@ -13,6 +14,8 @@ use http_utils::urls::BaseUrl;
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
+use crate::openid4vp::DcSdJwtAlgValues;
+use crate::openid4vp::MsoMdocAlgValues;
 use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpRequestUri;
 use crate::openid4vp::VpRequestUriMethod;
@@ -192,14 +195,14 @@ where
         //                  use the `DisclosureWscd` trait. If the credential request contains this, simply terminate
         //                  the session and return an error. In the future, we should change our use of `DisclosureWscd`
         //                  to support disclosing both mdoc and SD-JWT credentials in the same response.
-        let format_count = auth_request
+        let mut unique_format = auth_request
             .credential_requests
             .as_ref()
             .iter()
             .map(NormalizedCredentialRequest::format)
-            .unique()
-            .count();
-        if format_count > 1 {
+            .unique();
+
+        if unique_format.clone().count() > 1 {
             let _ = self
                 .client
                 .terminate(auth_request.response_uri)
@@ -208,6 +211,20 @@ where
                 .inspect_err(|error| warn!("failed to send session termination to verifier: {error}"));
 
             return Err(VpClientError::MixedFormatCredentialRequest.into());
+        }
+
+        // Validate that the verifier's vp_formats_supported covers the required format and includes ES256.
+        if let Some(format) = unique_format.next() {
+            let vp_formats = &auth_request.client_metadata.vp_formats_supported;
+            let format_supported = match format {
+                CredentialFormat::MsoMdoc => vp_formats.mso_mdoc.as_ref().is_some_and(MsoMdocAlgValues::is_ecdsa_256),
+                CredentialFormat::SdJwt => vp_formats.sd_jwt.as_ref().is_some_and(DcSdJwtAlgValues::is_ecdsa_256),
+            };
+
+            if !format_supported {
+                let error = VpVerifierError::VpFormatsNotSupported(format);
+                return Err(self.report_error_back(auth_request.response_uri, error).await)?;
+            }
         }
 
         let session = VpDisclosureSession::new(self.client.clone(), session_type, verifier_certificate, auth_request);
@@ -260,6 +277,7 @@ mod tests {
     use crate::mock::ExtendingVctRetrieverStub;
     use crate::openid4vp::AuthRequestValidationError;
     use crate::openid4vp::VpAuthorizationResponse;
+    use crate::openid4vp::VpFormatsSupported;
     use crate::openid4vp::VpRequestUri;
     use crate::openid4vp::VpRequestUriMethod;
     use crate::openid4vp::VpRequestUriObject;
@@ -977,5 +995,42 @@ mod tests {
         // A termination message should be sent to the verifier.
         let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied);
         assert_matches!(&wallet_messages[1], WalletMessage::Error(response) if response.error == expected_error_code);
+    }
+
+    #[rstest]
+    fn test_vp_disclosure_client_start_error_vp_formats_not_supported(
+        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] credential_format: CredentialFormat,
+    ) {
+        // Calling `VpDisclosureClient::start()` where the verifier's vp_formats_supported does not
+        // include ES256 for the required format should result in an error.
+        let (error, verifier_session) = start_disclosure_session_format(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            VpRequestUriMethod::POST,
+            None,
+            credential_format,
+            |mut verifier_session| {
+                // Remove ES256 from vp_formats_supported for the relevant format.
+                verifier_session.vp_formats_supported = VpFormatsSupported {
+                    mso_mdoc: None,
+                    sd_jwt: None,
+                };
+                verifier_session
+            },
+        )
+        .expect_err(
+            "starting a new disclosure session where vp_formats_supported does not include ES256 should not succeed",
+        );
+
+        assert_matches!(
+            *error,
+            VpSessionError::Verifier(VpVerifierError::VpFormatsNotSupported(_))
+        );
+
+        let wallet_messages = verifier_session.wallet_messages.lock();
+        assert_eq!(wallet_messages.len(), 2);
+        assert_matches!(&wallet_messages[0], WalletMessage::Request(_));
+        // This error should be reported back to the verifier using the vp_formats_not_supported error code.
+        assert_matches!(&wallet_messages[1], WalletMessage::Error(response) if response.error == VpAuthorizationErrorCode::VpFormatsNotSupported);
     }
 }

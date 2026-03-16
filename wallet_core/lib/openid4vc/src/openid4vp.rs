@@ -10,7 +10,6 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Constructor;
 use futures::future::try_join_all;
-use indexmap::IndexSet;
 use itertools::Itertools;
 use josekit::JoseError;
 use josekit::jwe::JweHeader;
@@ -27,6 +26,8 @@ use serde::Serialize;
 use serde::Serializer;
 use serde::de::DeserializeOwned;
 use serde::de::value::StringDeserializer;
+use serde_repr::Deserialize_repr;
+use serde_repr::Serialize_repr;
 use serde_with::DeserializeAs;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeAs;
@@ -69,6 +70,7 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use wscd::Poa;
 use wscd::PoaVerificationError;
 
@@ -201,7 +203,7 @@ pub enum VpAuthorizationRequestAudience {
 pub struct VpClientMetadata {
     #[serde(flatten)]
     pub jwks: VpJwks,
-    pub vp_formats: VpFormat,
+    pub vp_formats_supported: VpFormatsSupported,
 
     // These two are defined in https://openid.net/specs/oauth-v2-jarm-final.html
     pub authorization_encryption_alg_values_supported: VpAlgValues,
@@ -304,17 +306,63 @@ pub enum VpEncValues {
     A256GCM,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum VpFormat {
-    MsoMdoc { alg: IndexSet<FormatAlg> },
-    SdJwt { alg: IndexSet<FormatAlg> },
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VpFormatsSupported {
+    #[serde(rename = "mso_mdoc", skip_serializing_if = "Option::is_none")]
+    pub mso_mdoc: Option<MsoMdocAlgValues>,
+    #[serde(rename = "dc+sd-jwt", skip_serializing_if = "Option::is_none")]
+    pub sd_jwt: Option<DcSdJwtAlgValues>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MsoMdocAlgValues {
+    pub issuerauth_alg_values: Option<VecNonEmpty<FormatAlgCose>>,
+    pub deviceauth_alg_values: Option<VecNonEmpty<FormatAlgCose>>,
+}
+
+impl MsoMdocAlgValues {
+    pub fn is_ecdsa_256(&self) -> bool {
+        self.issuerauth_alg_values
+            .as_ref()
+            .is_some_and(|alg| alg.iter().contains(&FormatAlgCose::ESP256))
+            && self
+                .deviceauth_alg_values
+                .as_ref()
+                .is_some_and(|alg| alg.iter().contains(&FormatAlgCose::ESP256))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DcSdJwtAlgValues {
+    #[serde(rename = "sd-jwt_alg_values")]
+    pub sd_jwt_alg_values: Option<VecNonEmpty<FormatAlg>>,
+    #[serde(rename = "kb-jwt_alg_values")]
+    pub kb_jwt_alg_values: Option<VecNonEmpty<FormatAlg>>,
+}
+
+impl DcSdJwtAlgValues {
+    pub fn is_ecdsa_256(&self) -> bool {
+        self.sd_jwt_alg_values
+            .as_ref()
+            .is_some_and(|alg| alg.iter().contains(&FormatAlg::ES256))
+            && self
+                .kb_jwt_alg_values
+                .as_ref()
+                .is_some_and(|alg| alg.iter().contains(&FormatAlg::ES256))
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FormatAlg {
     #[default]
     ES256,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize_repr, Deserialize_repr)]
+#[repr(i16)]
+pub enum FormatAlgCose {
+    #[default]
+    ESP256 = -9,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -587,8 +635,15 @@ impl NormalizedVpAuthorizationRequest {
             credential_requests,
             client_metadata: VpClientMetadata {
                 jwks: VpJwks::Direct { keys: vec![jwk] },
-                vp_formats: VpFormat::MsoMdoc {
-                    alg: IndexSet::from([FormatAlg::ES256]),
+                vp_formats_supported: VpFormatsSupported {
+                    mso_mdoc: Some(MsoMdocAlgValues {
+                        issuerauth_alg_values: vec_nonempty![FormatAlgCose::ESP256].into(),
+                        deviceauth_alg_values: vec_nonempty![FormatAlgCose::ESP256].into(),
+                    }),
+                    sd_jwt: Some(DcSdJwtAlgValues {
+                        sd_jwt_alg_values: vec_nonempty![FormatAlg::ES256].into(),
+                        kb_jwt_alg_values: vec_nonempty![FormatAlg::ES256].into(),
+                    }),
                 },
                 authorization_encryption_alg_values_supported: VpAlgValues::EcdhEs,
                 authorization_encryption_enc_values_supported: VpEncValues::A128GCM,
@@ -1227,6 +1282,9 @@ mod tests {
     use crate::VpAuthorizationErrorCode;
     use crate::mock::ExtendingVctRetrieverStub;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
+    use crate::openid4vp::FormatAlgCose;
+    use crate::openid4vp::MsoMdocAlgValues;
+    use crate::openid4vp::VpFormatsSupported;
 
     use super::AuthRequestValidationError;
     use super::AuthResponseError;
@@ -1562,9 +1620,14 @@ mod tests {
                     },
                     "authorization_encryption_alg_values_supported": "ECDH-ES",
                     "authorization_encryption_enc_values_supported": "A256GCM",
-                    "vp_formats": {
+                    "vp_formats_supported": {
                         "mso_mdoc": {
-                            "alg": [ "ES256" ]
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
                         }
                     }
                 },
@@ -1611,9 +1674,14 @@ mod tests {
                     },
                     "authorization_encryption_alg_values_supported": "ECDH-ES",
                     "authorization_encryption_enc_values_supported": "A256GCM",
-                    "vp_formats": {
+                    "vp_formats_supported": {
                         "mso_mdoc": {
-                            "alg": [ "ES256" ]
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
                         }
                     }
                 },
@@ -2348,5 +2416,29 @@ mod tests {
             .expect_err("unrecognized request object should fail to parse as VpRequestUri");
 
         assert_matches!(result, crate::disclosure_session::VpClientError::RequestUri(_));
+    }
+
+    #[test]
+    fn deserialize_vp_formats_supported() {
+        let json = json!({
+            "mso_mdoc": {
+                "issuerauth_alg_values": [-9],
+                "deviceauth_alg_values": [-9]
+            },
+            "dc+sd-jwt": {
+                "sd-jwt_alg_values": ["ES256"],
+                "kb-jwt_alg_values": ["ES256"]
+            }
+        });
+
+        let deserialized: VpFormatsSupported = serde_json::from_value(json).unwrap();
+
+        assert_eq!(
+            deserialized.mso_mdoc,
+            Some(MsoMdocAlgValues {
+                issuerauth_alg_values: vec_nonempty![FormatAlgCose::ESP256].into(),
+                deviceauth_alg_values: vec_nonempty![FormatAlgCose::ESP256].into(),
+            })
+        );
     }
 }
