@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use itertools::Either;
 use nutype::nutype;
 use tracing::info;
 use url::Url;
@@ -18,16 +17,15 @@ use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::wallet::DisclosureError;
 use crate::wallet::Session;
-use crate::wallet::disclosure::AttributesNotAvailable;
 
 pub enum CloseProximityDisclosureUpdate {
     Connecting,
     Connected,
-    DisclosureStarted(Either<DisclosureProposalPresentation, AttributesNotAvailable>),
+    DeviceRequestReceived,
     Disconnected,
 }
 
-pub type CloseProximityDisclosureCallback = Box<dyn Fn(CloseProximityDisclosureUpdate) + Send + Sync>; // TODO maybe not this update
+pub type CloseProximityDisclosureCallback = Box<dyn Fn(CloseProximityDisclosureUpdate) + Send + Sync>;
 
 #[nutype(validate(predicate = |s| s.parse::<Url>().is_ok_and(|u| u.scheme() == "mdoc")), derive(Debug, Clone, TryFrom, FromStr, AsRef, Into, Display))]
 pub struct MdocUri(String);
@@ -75,6 +73,12 @@ where
             .expect("should always parse as an MdocUri");
 
         Ok(uri)
+    }
+
+    pub async fn continue_close_proximity_disclosure(
+        &mut self,
+    ) -> Result<DisclosureProposalPresentation, DisclosureError> {
+        unimplemented!()
     }
 
     pub fn set_close_proximity_disclosure_callback(

@@ -116,9 +116,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   RevocationStatus dco_decode_box_autoadd_revocation_status(dynamic raw);
 
   @protected
-  StartDisclosureResult dco_decode_box_autoadd_start_disclosure_result(dynamic raw);
-
-  @protected
   BigInt dco_decode_box_autoadd_u_64(dynamic raw);
 
   @protected
@@ -408,9 +405,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   RevocationStatus sse_decode_box_autoadd_revocation_status(SseDeserializer deserializer);
-
-  @protected
-  StartDisclosureResult sse_decode_box_autoadd_start_disclosure_result(SseDeserializer deserializer);
 
   @protected
   BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
@@ -801,16 +795,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ffi.Pointer<ffi.Int32> cst_encode_box_autoadd_revocation_status(RevocationStatus raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return wire.cst_new_box_autoadd_revocation_status(cst_encode_revocation_status(raw));
-  }
-
-  @protected
-  ffi.Pointer<wire_cst_start_disclosure_result> cst_encode_box_autoadd_start_disclosure_result(
-    StartDisclosureResult raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    final ptr = wire.cst_new_box_autoadd_start_disclosure_result();
-    cst_api_fill_to_wire_start_disclosure_result(raw, ptr.ref);
-    return ptr;
   }
 
   @protected
@@ -1230,14 +1214,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  void cst_api_fill_to_wire_box_autoadd_start_disclosure_result(
-    StartDisclosureResult apiObj,
-    ffi.Pointer<wire_cst_start_disclosure_result> wireObj,
-  ) {
-    cst_api_fill_to_wire_start_disclosure_result(apiObj, wireObj.ref);
-  }
-
-  @protected
   void cst_api_fill_to_wire_box_autoadd_wallet_instruction_error(
     WalletInstructionError apiObj,
     ffi.Pointer<wire_cst_wallet_instruction_error> wireObj,
@@ -1258,31 +1234,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.lang = cst_encode_String(apiObj.lang);
     wireObj.label = cst_encode_String(apiObj.label);
     wireObj.description = cst_encode_opt_String(apiObj.description);
-  }
-
-  @protected
-  void cst_api_fill_to_wire_close_proximity_disclosure_flutter_update(
-    CloseProximityDisclosureFlutterUpdate apiObj,
-    wire_cst_close_proximity_disclosure_flutter_update wireObj,
-  ) {
-    if (apiObj is CloseProximityDisclosureFlutterUpdate_Connecting) {
-      wireObj.tag = 0;
-      return;
-    }
-    if (apiObj is CloseProximityDisclosureFlutterUpdate_Connected) {
-      wireObj.tag = 1;
-      return;
-    }
-    if (apiObj is CloseProximityDisclosureFlutterUpdate_DisclosureStarted) {
-      var pre_result = cst_encode_box_autoadd_start_disclosure_result(apiObj.result);
-      wireObj.tag = 2;
-      wireObj.kind.DisclosureStarted.result = pre_result;
-      return;
-    }
-    if (apiObj is CloseProximityDisclosureFlutterUpdate_Disconnected) {
-      wireObj.tag = 3;
-      return;
-    }
   }
 
   @protected
@@ -1751,6 +1702,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   bool cst_encode_bool(bool raw);
 
   @protected
+  int cst_encode_close_proximity_disclosure_flutter_update(CloseProximityDisclosureFlutterUpdate raw);
+
+  @protected
   int cst_encode_disclosure_session_type(DisclosureSessionType raw);
 
   @protected
@@ -1884,9 +1838,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_box_autoadd_revocation_status(RevocationStatus self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_box_autoadd_start_disclosure_result(StartDisclosureResult self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
@@ -2469,6 +2420,21 @@ class WalletCoreWire implements BaseWire {
       );
   late final _wire__crate__api__full__continue_change_pin = _wire__crate__api__full__continue_change_pinPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+
+  void wire__crate__api__full__continue_close_proximity_disclosure(
+    int port_,
+  ) {
+    return _wire__crate__api__full__continue_close_proximity_disclosure(
+      port_,
+    );
+  }
+
+  late final _wire__crate__api__full__continue_close_proximity_disclosurePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_wallet_core_wire__crate__api__full__continue_close_proximity_disclosure',
+      );
+  late final _wire__crate__api__full__continue_close_proximity_disclosure =
+      _wire__crate__api__full__continue_close_proximity_disclosurePtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__continue_disclosure_based_issuance(
     int port_,
@@ -3222,17 +3188,6 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_box_autoadd_revocation_status = _cst_new_box_autoadd_revocation_statusPtr
       .asFunction<ffi.Pointer<ffi.Int32> Function(int)>();
 
-  ffi.Pointer<wire_cst_start_disclosure_result> cst_new_box_autoadd_start_disclosure_result() {
-    return _cst_new_box_autoadd_start_disclosure_result();
-  }
-
-  late final _cst_new_box_autoadd_start_disclosure_resultPtr =
-      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_start_disclosure_result> Function()>>(
-        'frbgen_wallet_core_cst_new_box_autoadd_start_disclosure_result',
-      );
-  late final _cst_new_box_autoadd_start_disclosure_result = _cst_new_box_autoadd_start_disclosure_resultPtr
-      .asFunction<ffi.Pointer<wire_cst_start_disclosure_result> Function()>();
-
   ffi.Pointer<ffi.Uint64> cst_new_box_autoadd_u_64(
     int value,
   ) {
@@ -3814,85 +3769,6 @@ final class wire_cst_request_policy extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> policy_url;
 }
 
-final class wire_cst_list_attestation_presentation extends ffi.Struct {
-  external ffi.Pointer<wire_cst_attestation_presentation> ptr;
-
-  @ffi.Int32()
-  external int len;
-}
-
-final class wire_cst_disclosure_options extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_attestation_presentation> field0;
-}
-
-final class wire_cst_list_disclosure_options extends ffi.Struct {
-  external ffi.Pointer<wire_cst_disclosure_options> ptr;
-
-  @ffi.Int32()
-  external int len;
-}
-
-final class wire_cst_StartDisclosureResult_Request extends ffi.Struct {
-  external ffi.Pointer<wire_cst_organization> relying_party;
-
-  external ffi.Pointer<wire_cst_request_policy> policy;
-
-  external ffi.Pointer<wire_cst_list_disclosure_options> disclosure_options;
-
-  @ffi.Bool()
-  external bool shared_data_with_relying_party_before;
-
-  @ffi.Int32()
-  external int session_type;
-
-  external ffi.Pointer<wire_cst_list_localized_string> request_purpose;
-
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> request_origin_base_url;
-
-  @ffi.Int32()
-  external int request_type;
-}
-
-final class wire_cst_missing_attribute extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_localized_string> labels;
-}
-
-final class wire_cst_list_missing_attribute extends ffi.Struct {
-  external ffi.Pointer<wire_cst_missing_attribute> ptr;
-
-  @ffi.Int32()
-  external int len;
-}
-
-final class wire_cst_StartDisclosureResult_RequestAttributesMissing extends ffi.Struct {
-  external ffi.Pointer<wire_cst_organization> relying_party;
-
-  external ffi.Pointer<wire_cst_list_missing_attribute> missing_attributes;
-
-  @ffi.Bool()
-  external bool shared_data_with_relying_party_before;
-
-  @ffi.Int32()
-  external int session_type;
-
-  external ffi.Pointer<wire_cst_list_localized_string> request_purpose;
-
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> request_origin_base_url;
-}
-
-final class StartDisclosureResultKind extends ffi.Union {
-  external wire_cst_StartDisclosureResult_Request Request;
-
-  external wire_cst_StartDisclosureResult_RequestAttributesMissing RequestAttributesMissing;
-}
-
-final class wire_cst_start_disclosure_result extends ffi.Struct {
-  @ffi.Int32()
-  external int tag;
-
-  external StartDisclosureResultKind kind;
-}
-
 final class wire_cst_WalletInstructionError_IncorrectPin extends ffi.Struct {
   @ffi.Uint8()
   external int attempts_left_in_round;
@@ -4025,6 +3901,35 @@ final class wire_cst_list_app_notification extends ffi.Struct {
   external int len;
 }
 
+final class wire_cst_list_attestation_presentation extends ffi.Struct {
+  external ffi.Pointer<wire_cst_attestation_presentation> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_disclosure_options extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_attestation_presentation> field0;
+}
+
+final class wire_cst_list_disclosure_options extends ffi.Struct {
+  external ffi.Pointer<wire_cst_disclosure_options> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_missing_attribute extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_localized_string> labels;
+}
+
+final class wire_cst_list_missing_attribute extends ffi.Struct {
+  external ffi.Pointer<wire_cst_missing_attribute> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
 final class wire_cst_list_prim_u_16_strict extends ffi.Struct {
   external ffi.Pointer<ffi.Uint16> ptr;
 
@@ -4116,21 +4021,6 @@ final class wire_cst_accept_disclosure_result extends ffi.Struct {
   external int tag;
 
   external AcceptDisclosureResultKind kind;
-}
-
-final class wire_cst_CloseProximityDisclosureFlutterUpdate_DisclosureStarted extends ffi.Struct {
-  external ffi.Pointer<wire_cst_start_disclosure_result> result;
-}
-
-final class CloseProximityDisclosureFlutterUpdateKind extends ffi.Union {
-  external wire_cst_CloseProximityDisclosureFlutterUpdate_DisclosureStarted DisclosureStarted;
-}
-
-final class wire_cst_close_proximity_disclosure_flutter_update extends ffi.Struct {
-  @ffi.Int32()
-  external int tag;
-
-  external CloseProximityDisclosureFlutterUpdateKind kind;
 }
 
 final class wire_cst_DisclosureBasedIssuanceResult_Ok extends ffi.Struct {
@@ -4232,6 +4122,56 @@ final class wire_cst_revocation_code_result extends ffi.Struct {
   external int tag;
 
   external RevocationCodeResultKind kind;
+}
+
+final class wire_cst_StartDisclosureResult_Request extends ffi.Struct {
+  external ffi.Pointer<wire_cst_organization> relying_party;
+
+  external ffi.Pointer<wire_cst_request_policy> policy;
+
+  external ffi.Pointer<wire_cst_list_disclosure_options> disclosure_options;
+
+  @ffi.Bool()
+  external bool shared_data_with_relying_party_before;
+
+  @ffi.Int32()
+  external int session_type;
+
+  external ffi.Pointer<wire_cst_list_localized_string> request_purpose;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> request_origin_base_url;
+
+  @ffi.Int32()
+  external int request_type;
+}
+
+final class wire_cst_StartDisclosureResult_RequestAttributesMissing extends ffi.Struct {
+  external ffi.Pointer<wire_cst_organization> relying_party;
+
+  external ffi.Pointer<wire_cst_list_missing_attribute> missing_attributes;
+
+  @ffi.Bool()
+  external bool shared_data_with_relying_party_before;
+
+  @ffi.Int32()
+  external int session_type;
+
+  external ffi.Pointer<wire_cst_list_localized_string> request_purpose;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> request_origin_base_url;
+}
+
+final class StartDisclosureResultKind extends ffi.Union {
+  external wire_cst_StartDisclosureResult_Request Request;
+
+  external wire_cst_StartDisclosureResult_RequestAttributesMissing RequestAttributesMissing;
+}
+
+final class wire_cst_start_disclosure_result extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external StartDisclosureResultKind kind;
 }
 
 final class wire_cst_WalletInstructionResult_InstructionError extends ffi.Struct {

@@ -407,6 +407,15 @@ pub async fn start_close_proximity_disclosure() -> anyhow::Result<String> {
 }
 
 #[flutter_api_error]
+pub async fn continue_close_proximity_disclosure() -> anyhow::Result<StartDisclosureResult> {
+    let mut wallet = wallet().write().await;
+
+    let result = wallet.continue_close_proximity_disclosure().await.try_into()?;
+
+    Ok(result)
+}
+
+#[flutter_api_error]
 pub async fn cancel_disclosure() -> anyhow::Result<Option<String>> {
     let mut wallet = wallet().write().await;
 

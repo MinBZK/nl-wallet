@@ -120,6 +120,9 @@ Future<StartDisclosureResult> startDisclosure({required String uri, required boo
 
 Future<String> startCloseProximityDisclosure() => WalletCore.instance.api.crateApiFullStartCloseProximityDisclosure();
 
+Future<StartDisclosureResult> continueCloseProximityDisclosure() =>
+    WalletCore.instance.api.crateApiFullContinueCloseProximityDisclosure();
+
 Future<String?> cancelDisclosure() => WalletCore.instance.api.crateApiFullCancelDisclosure();
 
 Future<AcceptDisclosureResult> acceptDisclosure({required List<int> selectedIndices, required String pin}) =>

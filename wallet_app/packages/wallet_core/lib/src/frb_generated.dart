@@ -80,7 +80,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -1436485441;
+  int get rustContentHash => -1609120498;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -132,6 +132,8 @@ abstract class WalletCoreApi extends BaseApi {
   Future<WalletInstructionResult> crateApiFullConfirmWalletTransfer({required String pin});
 
   Future<WalletInstructionResult> crateApiFullContinueChangePin({required String pin});
+
+  Future<StartDisclosureResult> crateApiFullContinueCloseProximityDisclosure();
 
   Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({
     required List<int> selectedIndices,
@@ -700,6 +702,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   TaskConstMeta get kCrateApiFullContinueChangePinConstMeta => const TaskConstMeta(
     debugName: "continue_change_pin",
     argNames: ["pin"],
+  );
+
+  @override
+  Future<StartDisclosureResult> crateApiFullContinueCloseProximityDisclosure() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__full__continue_close_proximity_disclosure(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_start_disclosure_result,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullContinueCloseProximityDisclosureConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullContinueCloseProximityDisclosureConstMeta => const TaskConstMeta(
+    debugName: "continue_close_proximity_disclosure",
+    argNames: [],
   );
 
   @override
@@ -1968,12 +1993,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  StartDisclosureResult dco_decode_box_autoadd_start_disclosure_result(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_start_disclosure_result(raw);
-  }
-
-  @protected
   BigInt dco_decode_box_autoadd_u_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_u_64(raw);
@@ -2006,20 +2025,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   CloseProximityDisclosureFlutterUpdate dco_decode_close_proximity_disclosure_flutter_update(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    switch (raw[0]) {
-      case 0:
-        return CloseProximityDisclosureFlutterUpdate_Connecting();
-      case 1:
-        return CloseProximityDisclosureFlutterUpdate_Connected();
-      case 2:
-        return CloseProximityDisclosureFlutterUpdate_DisclosureStarted(
-          result: dco_decode_box_autoadd_start_disclosure_result(raw[1]),
-        );
-      case 3:
-        return CloseProximityDisclosureFlutterUpdate_Disconnected();
-      default:
-        throw Exception("unreachable");
-    }
+    return CloseProximityDisclosureFlutterUpdate.values[raw as int];
   }
 
   @protected
@@ -2934,12 +2940,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  StartDisclosureResult sse_decode_box_autoadd_start_disclosure_result(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_start_disclosure_result(deserializer));
-  }
-
-  @protected
   BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_u_64(deserializer));
@@ -2971,21 +2971,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-
-    var tag_ = sse_decode_i_32(deserializer);
-    switch (tag_) {
-      case 0:
-        return CloseProximityDisclosureFlutterUpdate_Connecting();
-      case 1:
-        return CloseProximityDisclosureFlutterUpdate_Connected();
-      case 2:
-        var var_result = sse_decode_box_autoadd_start_disclosure_result(deserializer);
-        return CloseProximityDisclosureFlutterUpdate_DisclosureStarted(result: var_result);
-      case 3:
-        return CloseProximityDisclosureFlutterUpdate_Disconnected();
-      default:
-        throw UnimplementedError('');
-    }
+    var inner = sse_decode_i_32(deserializer);
+    return CloseProximityDisclosureFlutterUpdate.values[inner];
   }
 
   @protected
@@ -3862,6 +3849,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  int cst_encode_close_proximity_disclosure_flutter_update(CloseProximityDisclosureFlutterUpdate raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
   int cst_encode_disclosure_session_type(DisclosureSessionType raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return cst_encode_i_32(raw.index);
@@ -4220,12 +4213,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_box_autoadd_start_disclosure_result(StartDisclosureResult self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_start_disclosure_result(self, serializer);
-  }
-
-  @protected
   void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_u_64(self, serializer);
@@ -4257,17 +4244,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    switch (self) {
-      case CloseProximityDisclosureFlutterUpdate_Connecting():
-        sse_encode_i_32(0, serializer);
-      case CloseProximityDisclosureFlutterUpdate_Connected():
-        sse_encode_i_32(1, serializer);
-      case CloseProximityDisclosureFlutterUpdate_DisclosureStarted(result: final result):
-        sse_encode_i_32(2, serializer);
-        sse_encode_box_autoadd_start_disclosure_result(result, serializer);
-      case CloseProximityDisclosureFlutterUpdate_Disconnected():
-        sse_encode_i_32(3, serializer);
-    }
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected

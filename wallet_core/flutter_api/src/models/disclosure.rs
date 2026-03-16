@@ -1,4 +1,3 @@
-use itertools::Either;
 use itertools::Itertools;
 use url::Url;
 
@@ -90,7 +89,7 @@ pub enum AcceptDisclosureResult {
 pub enum CloseProximityDisclosureFlutterUpdate {
     Connecting,
     Connected,
-    DisclosureStarted { result: StartDisclosureResult },
+    DeviceRequestReceived,
     Disconnected,
 }
 
@@ -99,19 +98,8 @@ impl From<CloseProximityDisclosureUpdate> for CloseProximityDisclosureFlutterUpd
         match value {
             CloseProximityDisclosureUpdate::Connecting => Self::Connecting,
             CloseProximityDisclosureUpdate::Connected => Self::Connected,
-            CloseProximityDisclosureUpdate::DisclosureStarted(result) => {
-                Self::DisclosureStarted { result: result.into() }
-            }
+            CloseProximityDisclosureUpdate::DeviceRequestReceived => Self::DeviceRequestReceived,
             CloseProximityDisclosureUpdate::Disconnected => Self::Disconnected,
-        }
-    }
-}
-
-impl From<Either<DisclosureProposalPresentation, AttributesNotAvailable>> for StartDisclosureResult {
-    fn from(value: Either<DisclosureProposalPresentation, AttributesNotAvailable>) -> Self {
-        match value {
-            Either::Left(left) => left.into(),
-            Either::Right(right) => right.into(),
         }
     }
 }

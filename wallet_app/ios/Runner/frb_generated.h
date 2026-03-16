@@ -233,59 +233,6 @@ typedef struct wire_cst_request_policy {
   struct wire_cst_list_prim_u_8_strict *policy_url;
 } wire_cst_request_policy;
 
-typedef struct wire_cst_list_attestation_presentation {
-  struct wire_cst_attestation_presentation *ptr;
-  int32_t len;
-} wire_cst_list_attestation_presentation;
-
-typedef struct wire_cst_disclosure_options {
-  struct wire_cst_list_attestation_presentation *field0;
-} wire_cst_disclosure_options;
-
-typedef struct wire_cst_list_disclosure_options {
-  struct wire_cst_disclosure_options *ptr;
-  int32_t len;
-} wire_cst_list_disclosure_options;
-
-typedef struct wire_cst_StartDisclosureResult_Request {
-  struct wire_cst_organization *relying_party;
-  struct wire_cst_request_policy *policy;
-  struct wire_cst_list_disclosure_options *disclosure_options;
-  bool shared_data_with_relying_party_before;
-  int32_t session_type;
-  struct wire_cst_list_localized_string *request_purpose;
-  struct wire_cst_list_prim_u_8_strict *request_origin_base_url;
-  int32_t request_type;
-} wire_cst_StartDisclosureResult_Request;
-
-typedef struct wire_cst_missing_attribute {
-  struct wire_cst_list_localized_string *labels;
-} wire_cst_missing_attribute;
-
-typedef struct wire_cst_list_missing_attribute {
-  struct wire_cst_missing_attribute *ptr;
-  int32_t len;
-} wire_cst_list_missing_attribute;
-
-typedef struct wire_cst_StartDisclosureResult_RequestAttributesMissing {
-  struct wire_cst_organization *relying_party;
-  struct wire_cst_list_missing_attribute *missing_attributes;
-  bool shared_data_with_relying_party_before;
-  int32_t session_type;
-  struct wire_cst_list_localized_string *request_purpose;
-  struct wire_cst_list_prim_u_8_strict *request_origin_base_url;
-} wire_cst_StartDisclosureResult_RequestAttributesMissing;
-
-typedef union StartDisclosureResultKind {
-  struct wire_cst_StartDisclosureResult_Request Request;
-  struct wire_cst_StartDisclosureResult_RequestAttributesMissing RequestAttributesMissing;
-} StartDisclosureResultKind;
-
-typedef struct wire_cst_start_disclosure_result {
-  int32_t tag;
-  union StartDisclosureResultKind kind;
-} wire_cst_start_disclosure_result;
-
 typedef struct wire_cst_WalletInstructionError_IncorrectPin {
   uint8_t attempts_left_in_round;
   bool is_final_round;
@@ -387,6 +334,29 @@ typedef struct wire_cst_list_app_notification {
   int32_t len;
 } wire_cst_list_app_notification;
 
+typedef struct wire_cst_list_attestation_presentation {
+  struct wire_cst_attestation_presentation *ptr;
+  int32_t len;
+} wire_cst_list_attestation_presentation;
+
+typedef struct wire_cst_disclosure_options {
+  struct wire_cst_list_attestation_presentation *field0;
+} wire_cst_disclosure_options;
+
+typedef struct wire_cst_list_disclosure_options {
+  struct wire_cst_disclosure_options *ptr;
+  int32_t len;
+} wire_cst_list_disclosure_options;
+
+typedef struct wire_cst_missing_attribute {
+  struct wire_cst_list_localized_string *labels;
+} wire_cst_missing_attribute;
+
+typedef struct wire_cst_list_missing_attribute {
+  struct wire_cst_missing_attribute *ptr;
+  int32_t len;
+} wire_cst_list_missing_attribute;
+
 typedef struct wire_cst_list_prim_u_16_strict {
   uint16_t *ptr;
   int32_t len;
@@ -452,19 +422,6 @@ typedef struct wire_cst_accept_disclosure_result {
   int32_t tag;
   union AcceptDisclosureResultKind kind;
 } wire_cst_accept_disclosure_result;
-
-typedef struct wire_cst_CloseProximityDisclosureFlutterUpdate_DisclosureStarted {
-  struct wire_cst_start_disclosure_result *result;
-} wire_cst_CloseProximityDisclosureFlutterUpdate_DisclosureStarted;
-
-typedef union CloseProximityDisclosureFlutterUpdateKind {
-  struct wire_cst_CloseProximityDisclosureFlutterUpdate_DisclosureStarted DisclosureStarted;
-} CloseProximityDisclosureFlutterUpdateKind;
-
-typedef struct wire_cst_close_proximity_disclosure_flutter_update {
-  int32_t tag;
-  union CloseProximityDisclosureFlutterUpdateKind kind;
-} wire_cst_close_proximity_disclosure_flutter_update;
 
 typedef struct wire_cst_DisclosureBasedIssuanceResult_Ok {
   struct wire_cst_list_attestation_presentation *field0;
@@ -544,6 +501,36 @@ typedef struct wire_cst_revocation_code_result {
   union RevocationCodeResultKind kind;
 } wire_cst_revocation_code_result;
 
+typedef struct wire_cst_StartDisclosureResult_Request {
+  struct wire_cst_organization *relying_party;
+  struct wire_cst_request_policy *policy;
+  struct wire_cst_list_disclosure_options *disclosure_options;
+  bool shared_data_with_relying_party_before;
+  int32_t session_type;
+  struct wire_cst_list_localized_string *request_purpose;
+  struct wire_cst_list_prim_u_8_strict *request_origin_base_url;
+  int32_t request_type;
+} wire_cst_StartDisclosureResult_Request;
+
+typedef struct wire_cst_StartDisclosureResult_RequestAttributesMissing {
+  struct wire_cst_organization *relying_party;
+  struct wire_cst_list_missing_attribute *missing_attributes;
+  bool shared_data_with_relying_party_before;
+  int32_t session_type;
+  struct wire_cst_list_localized_string *request_purpose;
+  struct wire_cst_list_prim_u_8_strict *request_origin_base_url;
+} wire_cst_StartDisclosureResult_RequestAttributesMissing;
+
+typedef union StartDisclosureResultKind {
+  struct wire_cst_StartDisclosureResult_Request Request;
+  struct wire_cst_StartDisclosureResult_RequestAttributesMissing RequestAttributesMissing;
+} StartDisclosureResultKind;
+
+typedef struct wire_cst_start_disclosure_result {
+  int32_t tag;
+  union StartDisclosureResultKind kind;
+} wire_cst_start_disclosure_result;
+
 typedef struct wire_cst_WalletInstructionResult_InstructionError {
   struct wire_cst_wallet_instruction_error *error;
 } wire_cst_WalletInstructionResult_InstructionError;
@@ -606,6 +593,8 @@ void frbgen_wallet_core_wire__crate__api__full__confirm_wallet_transfer(int64_t 
 
 void frbgen_wallet_core_wire__crate__api__full__continue_change_pin(int64_t port_,
                                                                     struct wire_cst_list_prim_u_8_strict *pin);
+
+void frbgen_wallet_core_wire__crate__api__full__continue_close_proximity_disclosure(int64_t port_);
 
 void frbgen_wallet_core_wire__crate__api__full__continue_disclosure_based_issuance(int64_t port_,
                                                                                    struct wire_cst_list_prim_u_16_loose *selected_indices,
@@ -726,8 +715,6 @@ struct wire_cst_request_policy *frbgen_wallet_core_cst_new_box_autoadd_request_p
 
 int32_t *frbgen_wallet_core_cst_new_box_autoadd_revocation_status(int32_t value);
 
-struct wire_cst_start_disclosure_result *frbgen_wallet_core_cst_new_box_autoadd_start_disclosure_result(void);
-
 uint64_t *frbgen_wallet_core_cst_new_box_autoadd_u_64(uint64_t value);
 
 struct wire_cst_wallet_instruction_error *frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error(void);
@@ -775,7 +762,6 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_request_policy);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_revocation_status);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_start_disclosure_result);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_u_64);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_wallet_state);
@@ -815,6 +801,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__complete_pin_recovery);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__confirm_wallet_transfer);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__continue_change_pin);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__continue_close_proximity_disclosure);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__continue_disclosure_based_issuance);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__continue_pid_issuance);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__continue_pin_recovery);
