@@ -28,9 +28,9 @@ use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
-use openid4vc::issuer_metadata::IssuerMetadataDiscoveryError;
 use openid4vc::oidc::OidcError;
 use openid4vc::token::CredentialPreviewError;
+use openid4vc::well_known::WellKnownError;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::GoogleAttestedKey;
@@ -103,7 +103,7 @@ pub enum IssuanceError {
 
     #[error("could not discover issuer metadata: {0}")]
     #[category(expected)]
-    IssuerMetadataDiscovery(#[from] IssuerMetadataDiscoveryError),
+    IssuerMetadataDiscovery(#[from] WellKnownError),
 
     #[error("could not start DigiD session: {0}")]
     OidcSessionStart(#[source] OidcSessionError),

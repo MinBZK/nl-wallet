@@ -31,6 +31,8 @@ use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
+use crate::well_known;
+use crate::well_known::WellKnownError;
 
 use super::Config;
 use super::Discover;
@@ -103,6 +105,10 @@ pub enum OidcError {
     #[error("user denied authentication")]
     #[category(expected)]
     Denied,
+
+    #[error("error fetching well-known metadata: {0}")]
+    #[category(critical)]
+    WellKnown(#[from] WellKnownError),
 }
 
 const APPLICATION_JWT: &str = "application/jwt";
@@ -357,12 +363,12 @@ pub async fn request_userinfo<C>(
 where
     C: DeserializeOwned,
 {
-    // Note that the same TLS pinning configuration is used for both the discovery request and any of the subsequent
-    // requests, even though the URLs could in theory point to different hosts.
-    let discovery_url = authorization_server
-        .as_base_url()
-        .join(super::config::OPENID_CONFIGURATION_PATH);
-    let config = Config::discover(http_client, discovery_url).await?;
+    let config: Config = well_known::fetch_well_known_unvalidated(
+        http_client,
+        authorization_server,
+        well_known::WellKnownPath::OpenidConfiguration,
+    )
+    .await?;
 
     let (jwt, jwks) = try_join!(
         request_userinfo_jwt(http_client, &config, token_request),
@@ -472,7 +478,6 @@ mod tests {
     use crate::pkce::MockPkcePair;
     use crate::token::TokenRequestGrantType;
 
-    use super::super::config::OPENID_CONFIGURATION_PATH;
     use super::AuthorizationServer;
     use super::Config;
     use super::HttpAuthorizationServer;
@@ -489,8 +494,8 @@ mod tests {
     impl Discover<Config, OidcError> for TestDiscover {
         async fn discover(&self, _identifier: &IssuerIdentifier) -> Result<Config, OidcError> {
             let client = OidcReqwestClient::try_new().unwrap();
-            let url = self.0.join(OPENID_CONFIGURATION_PATH);
-            Config::discover(&client, url).await
+            let url = self.0.join("/.well-known/openid-configuration");
+            client.get(url).await.map_err(OidcError::Http)
         }
     }
 

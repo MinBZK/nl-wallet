@@ -2,12 +2,12 @@ use tracing::info;
 use url::Url;
 
 use error_category::ErrorCategory;
-use openid4vc::issuer_metadata::IssuerMetadataDiscoveryError;
 use openid4vc::oidc;
 use openid4vc::oidc::AuthorizationServer;
 use openid4vc::oidc::HttpAuthorizationServer;
 use openid4vc::oidc::OidcError;
 use openid4vc::token::TokenRequest;
+use openid4vc::well_known::WellKnownError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -21,7 +21,7 @@ pub enum OidcSessionError {
 
     #[error("issuer metadata error: {0}")]
     #[category(expected)]
-    IssuerMetadata(#[from] IssuerMetadataDiscoveryError),
+    IssuerMetadata(#[from] WellKnownError),
 }
 
 /// The state of an OIDC authorization code flow session after OIDC discovery.

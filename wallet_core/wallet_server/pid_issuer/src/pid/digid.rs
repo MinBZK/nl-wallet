@@ -12,6 +12,7 @@ use openid4vc::oidc::alg::rsaes::RsaesJweAlgorithm;
 use openid4vc::oidc::alg::rsaes::RsaesJweDecrypter;
 use openid4vc::oidc::enc::aescbc_hmac::AescbcHmacJweEncryption;
 use openid4vc::token::TokenRequest;
+use openid4vc::well_known;
 
 #[derive(Serialize, Deserialize)]
 struct UserInfo {
@@ -84,12 +85,13 @@ impl OpenIdClient {
     }
 
     pub async fn discover_metadata(&self) -> Result<oidc::Config> {
-        let url = self
-            .authorization_server
-            .as_base_url()
-            .join(oidc::OPENID_CONFIGURATION_PATH);
-
-        let metadata = oidc::Config::discover(&self.http_client, url).await?;
+        let metadata = well_known::fetch_well_known_unvalidated(
+            &self.http_client,
+            &self.authorization_server,
+            well_known::WellKnownPath::OpenidConfiguration,
+        )
+        .await
+        .map_err(OidcError::from)?;
 
         Ok(metadata)
     }

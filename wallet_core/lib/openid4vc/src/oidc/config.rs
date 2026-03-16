@@ -7,14 +7,15 @@ use serde_with::skip_serializing_none;
 use url::Url;
 
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::well_known;
+use crate::well_known::WellKnownMetadata;
+use crate::well_known::WellKnownPath;
 
 use super::Discover;
 use super::HttpDiscover;
 use super::JwkSet;
 use super::OidcError;
 use super::OidcReqwestClient;
-
-pub const OPENID_CONFIGURATION_PATH: &str = ".well-known/openid-configuration";
 
 /// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414),
 /// to be published at `.well-known/oauth-authorization-server`, and a superset of the OpenID Connect
@@ -146,12 +147,6 @@ impl Config {
         }
     }
 
-    pub async fn discover(http_client: &OidcReqwestClient, url: Url) -> Result<Self, OidcError> {
-        let config = http_client.get(url).await?;
-
-        Ok(config)
-    }
-
     /// Get the JWK set from the given Url. Errors are either a reqwest error or an Insecure error if
     /// the url isn't https.
     pub(super) async fn jwks(&self, http_client: &OidcReqwestClient) -> Result<JwkSet, OidcError> {
@@ -161,10 +156,17 @@ impl Config {
     }
 }
 
+impl WellKnownMetadata for Config {
+    fn issuer_identifier(&self) -> &IssuerIdentifier {
+        &self.issuer
+    }
+}
+
 impl Discover<Config, OidcError> for HttpDiscover {
     async fn discover(&self, identifier: &IssuerIdentifier) -> Result<Config, OidcError> {
-        let url = identifier.as_base_url().join(OPENID_CONFIGURATION_PATH);
-        Config::discover(self.as_ref(), url).await
+        well_known::fetch_well_known(self.as_ref(), identifier, WellKnownPath::OpenidConfiguration)
+            .await
+            .map_err(Into::into)
     }
 }
 
@@ -224,7 +226,7 @@ pub mod tests {
         let client = OidcReqwestClient::try_new().unwrap();
         let discovery_url = server_url.join(".well-known/openid-configuration");
 
-        let discovered = Config::discover(&client, discovery_url).await.unwrap();
+        let discovered: Config = client.get(discovery_url).await.unwrap();
 
         assert_eq!(discovered.issuer.as_ref(), "https://example.com/");
 

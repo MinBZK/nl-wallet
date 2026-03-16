@@ -68,7 +68,6 @@ use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_metadata::IssuerMetadata;
-use crate::issuer_metadata::IssuerMetadataDiscoveryError;
 use crate::oidc;
 use crate::oidc::OidcReqwestClient;
 use crate::preview::CredentialPreviewRequest;
@@ -79,6 +78,9 @@ use crate::token::CredentialPreviewContent;
 use crate::token::CredentialPreviewError;
 use crate::token::TokenRequest;
 use crate::token::TokenResponse;
+use crate::well_known;
+use crate::well_known::WellKnownError;
+use crate::well_known::WellKnownPath;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -181,11 +183,11 @@ pub enum IssuanceSessionError {
 
     #[error("error discovering Oauth metadata: {0}")]
     #[category(expected)]
-    OauthDiscovery(#[source] OauthDiscoveryError),
+    OauthDiscovery(#[source] WellKnownError),
 
     #[error("error discovering OpenID4VCI Credential Issuer metadata: {0}")]
     #[category(expected)]
-    OpenId4vciDiscovery(#[source] IssuerMetadataDiscoveryError),
+    OpenId4vciDiscovery(#[source] WellKnownError),
 
     #[error("issuer has no batch credential endpoint")]
     #[category(critical)]
@@ -224,18 +226,6 @@ pub enum IssuanceSessionError {
     #[error("issuer has no credential configurations supported")]
     #[category(critical)]
     NoCredentialConfigurationsSupported,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum OauthDiscoveryError {
-    #[error("could not fetch or deserialize credential OAuth Server Metadata: {0}")]
-    Http(#[from] reqwest::Error),
-
-    #[error("issuer identifier in OAuth Server Metadata does not match, expected: {expected}, received: {received}")]
-    IssuerIdentifierMismatch {
-        expected: Box<IssuerIdentifier>,
-        received: Box<IssuerIdentifier>,
-    },
 }
 
 #[derive(Clone, Debug)]
@@ -371,9 +361,10 @@ impl CredentialIssuerDiscovery for HttpCredentialIssuerDiscovery {
     type Issuer = HttpCredentialIssuer;
 
     async fn discover(&self, identifier: &IssuerIdentifier) -> Result<HttpCredentialIssuer, IssuanceSessionError> {
-        let metadata = IssuerMetadata::discover(&self.oidc_client, identifier)
-            .await
-            .map_err(IssuanceSessionError::OpenId4vciDiscovery)?;
+        let metadata: IssuerMetadata =
+            well_known::fetch_well_known(&self.oidc_client, identifier, WellKnownPath::CredentialIssuer)
+                .await
+                .map_err(IssuanceSessionError::OpenId4vciDiscovery)?;
 
         // Note: the spec allows multiple authorization servers, but we currently only support one.
         let auth_server = metadata.authorization_servers().into_first().clone();
@@ -480,26 +471,9 @@ async fn fetch_oauth_metadata(
     oidc_client: &OidcReqwestClient,
     auth_server: &IssuerIdentifier,
 ) -> Result<oidc::Config, IssuanceSessionError> {
-    // TODO (PVW-5527): Implement some sort of unified processing for fetching well-known metadata.
-    let url = auth_server
-        .as_base_url()
-        .join("/.well-known/oauth-authorization-server");
-    let metadata: oidc::Config = oidc_client
-        .get(url)
+    well_known::fetch_well_known(oidc_client, auth_server, WellKnownPath::OauthAuthorizationServer)
         .await
-        .map_err(|error| IssuanceSessionError::OauthDiscovery(OauthDiscoveryError::Http(error)))?;
-
-    // According to <https://www.rfc-editor.org/rfc/rfc8414.html#section-3.3> these values should be identical.
-    if metadata.issuer != *auth_server {
-        return Err(IssuanceSessionError::OauthDiscovery(
-            OauthDiscoveryError::IssuerIdentifierMismatch {
-                expected: Box::new(auth_server.clone()),
-                received: Box::new(metadata.issuer),
-            },
-        ));
-    }
-
-    Ok(metadata)
+        .map_err(IssuanceSessionError::OauthDiscovery)
 }
 
 #[derive(Debug)]

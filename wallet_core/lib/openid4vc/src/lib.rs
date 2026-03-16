@@ -32,6 +32,7 @@ pub use errors::*;
 pub mod nonce;
 pub mod oidc;
 pub mod server_state;
+pub mod well_known;
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;
