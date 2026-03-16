@@ -292,21 +292,31 @@ pub struct VpFormatsSupported {
     pub sd_jwt: Option<DcSdJwtAlgValues>,
 }
 
+/// Alg values for mso_mdoc.
+/// <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.2.2>
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MsoMdocAlgValues {
+    /// OPTIONAL. A non-empty array containing cryptographic algorithm identifiers.
     pub issuerauth_alg_values: Option<VecNonEmpty<FormatAlgCose>>,
+    /// OPTIONAL. A non-empty array containing cryptographic algorithm identifiers.
     pub deviceauth_alg_values: Option<VecNonEmpty<FormatAlgCose>>,
 }
 
 impl MsoMdocAlgValues {
     pub fn is_ecdsa_256(&self) -> bool {
+        // Per the OpenID4VP spec, a credential is considered to satisfy this constraint if the alg value matches
+        // either directly (-7, ECDSA with SHA-256 per https://www.iana.org/assignments/cose/cose.xhtml) or via a
+        // fully-specified algorithm (-9, ECDSA with P-256 and SHA-256 per
+        // https://datatracker.ietf.org/doc/html/rfc9864#section-2.1).
+        let accepts_ecdsa_p256 =
+            |alg: &VecNonEmpty<FormatAlgCose>| alg.iter().any(FormatAlgCose::is_ecdsa_p256);
         self.issuerauth_alg_values
             .as_ref()
-            .is_some_and(|alg| alg.iter().contains(&FormatAlgCose::ESP256))
+            .is_some_and(accepts_ecdsa_p256)
             && self
                 .deviceauth_alg_values
                 .as_ref()
-                .is_some_and(|alg| alg.iter().contains(&FormatAlgCose::ESP256))
+                .is_some_and(accepts_ecdsa_p256)
     }
 }
 
@@ -330,17 +340,32 @@ impl DcSdJwtAlgValues {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FormatAlg {
-    #[default]
     ES256,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize_repr, Deserialize_repr)]
 #[repr(i16)]
 pub enum FormatAlgCose {
+    /// ECDSA with SHA-256, per https://www.iana.org/assignments/cose/cose.xhtml.
     #[default]
+    ES256 = -7,
+    /// ECDSA with P-256 and SHA-256 as a fully-specified algorithm,
+    /// per https://datatracker.ietf.org/doc/html/rfc9864#section-2.1.
+    /// A credential signed with a P-256 key and alg -7
+    /// (per https://www.iana.org/assignments/cose/cose.xhtml)
+    /// satisfies both this value and `ES256`.
     ESP256 = -9,
+}
+
+impl FormatAlgCose {
+    /// Returns `true` if this algorithm identifier accepts an ECDSA-P256/SHA-256 signature,
+    /// i.e. it is `ES256` (-7, per https://www.iana.org/assignments/cose/cose.xhtml)
+    /// or the fully-specified `ESP256` (-9, per https://datatracker.ietf.org/doc/html/rfc9864#section-2.1).
+    pub fn is_ecdsa_p256(&self) -> bool {
+        matches!(self, Self::ES256 | Self::ESP256)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
