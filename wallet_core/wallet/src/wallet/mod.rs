@@ -126,8 +126,8 @@ impl<A, G> WalletRegistration<A, G> {
 enum Session<CID: CredentialIssuerDiscovery, DCS> {
     Oidc {
         purpose: PidIssuancePurpose,
-        oidc_session: OidcSession<HttpAuthorizationServer>,
-        discovered: CID::Issuer,
+        oidc_session: Box<OidcSession<HttpAuthorizationServer>>,
+        discovered: Box<CID::Issuer>,
     },
     Issuance(WalletIssuanceSession<<CID::Issuer as CredentialIssuer>::Session>),
     Disclosure(WalletDisclosureSession<DCS>),

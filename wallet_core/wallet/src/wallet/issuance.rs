@@ -324,8 +324,8 @@ where
         let auth_url = oidc_session.auth_url.clone();
         self.session.replace(Session::Oidc {
             purpose,
-            oidc_session,
-            discovered,
+            oidc_session: Box::new(oidc_session),
+            discovered: Box::new(discovered),
         });
 
         Ok(auth_url)
@@ -950,8 +950,8 @@ mod tests {
         // Set up a mock DigiD session.
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: create_stub_oidc_session(),
-            discovered: MockCredentialIssuer::new(),
+            oidc_session: Box::new(create_stub_oidc_session()),
+            discovered: Box::new(MockCredentialIssuer::new()),
         });
 
         // Creating a DigiD authentication URL on a `Wallet` that
@@ -995,8 +995,8 @@ mod tests {
         // Set up a mock DigiD session.
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: create_stub_oidc_session(),
-            discovered: MockCredentialIssuer::new(),
+            oidc_session: Box::new(create_stub_oidc_session()),
+            discovered: Box::new(MockCredentialIssuer::new()),
         });
 
         assert!(wallet.session.is_some());
@@ -1236,8 +1236,8 @@ mod tests {
         let (oidc_session, redirect_uri) = create_real_oidc_session();
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session,
-            discovered: MockCredentialIssuer::new(),
+            oidc_session: Box::new(oidc_session),
+            discovered: Box::new(MockCredentialIssuer::new()),
         });
         (wallet, redirect_uri)
     }
@@ -1249,8 +1249,8 @@ mod tests {
         // Set up the credential issuer discovery mock with a start expectation for continue_pid_issuance
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session,
-            discovered: {
+            oidc_session: Box::new(oidc_session),
+            discovered: Box::new({
                 let mut issuer = MockCredentialIssuer::new();
                 issuer.expect_start().return_once(|_| {
                     let mut session = MockIssuanceSession::new();
@@ -1261,7 +1261,7 @@ mod tests {
                     Ok(session)
                 });
                 issuer
-            },
+            }),
         });
         (wallet, redirect_uri)
     }
@@ -1279,8 +1279,8 @@ mod tests {
 
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session,
-            discovered: issuer,
+            oidc_session: Box::new(oidc_session),
+            discovered: Box::new(issuer),
         });
 
         // Continuing PID issuance on a wallet should forward this error.

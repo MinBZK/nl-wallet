@@ -552,8 +552,8 @@ mod tests {
         .unwrap();
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: stub_oidc_session,
-            discovered: openid4vc::mock::MockCredentialIssuer::new(),
+            oidc_session: Box::new(stub_oidc_session),
+            discovered: Box::new(openid4vc::mock::MockCredentialIssuer::new()),
         });
 
         let error = wallet

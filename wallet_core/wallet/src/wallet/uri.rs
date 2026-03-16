@@ -191,8 +191,8 @@ mod tests {
         // Set up an enrollment `DigidSession` that will match the URI.
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: make_stub_oidc_session(),
-            discovered: openid4vc::mock::MockCredentialIssuer::new(),
+            oidc_session: Box::new(make_stub_oidc_session()),
+            discovered: Box::new(openid4vc::mock::MockCredentialIssuer::new()),
         });
 
         // The wallet should now recognise the DigiD URI.
@@ -201,8 +201,8 @@ mod tests {
         // Set up a PID renewal `DigidSession` that will match the URI.
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Renewal,
-            oidc_session: make_stub_oidc_session(),
-            discovered: openid4vc::mock::MockCredentialIssuer::new(),
+            oidc_session: Box::new(make_stub_oidc_session()),
+            discovered: Box::new(openid4vc::mock::MockCredentialIssuer::new()),
         });
 
         // The wallet should now recognise the DigiD URI.

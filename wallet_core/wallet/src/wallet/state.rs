@@ -562,8 +562,8 @@ mod tests {
     fn digid_session() -> Session<MockCredentialIssuerDiscovery, MockDisclosureSession> {
         Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: create_stub_oidc_session(),
-            discovered: MockCredentialIssuer::new(),
+            oidc_session: Box::new(create_stub_oidc_session()),
+            discovered: Box::new(MockCredentialIssuer::new()),
         }
     }
 
