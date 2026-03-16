@@ -61,13 +61,14 @@ impl BrpPidAttributeService {
     pub fn try_new(
         brp_client: HttpBrpClient,
         bsn_privkey: &str,
+        client_id: impl Into<String>,
         http_config: &TlsPinningConfig,
         recovery_code_secret_key: SecretKeyVariant,
         issuer_identifier: IssuerIdentifier,
     ) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
-            openid_client: OpenIdClient::try_new(bsn_privkey, http_config)?,
+            openid_client: OpenIdClient::try_new(bsn_privkey, client_id, http_config)?,
             recovery_code_secret_key,
             issuer_identifier,
         })

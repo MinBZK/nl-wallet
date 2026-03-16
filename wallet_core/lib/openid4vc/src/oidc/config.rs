@@ -1,7 +1,5 @@
 //! OpenID discovery, loosely based on https://crates.io/crates/openid.
 
-use biscuit::Empty;
-use biscuit::jwk::JWKSet;
 use indexmap::IndexSet;
 use serde::Deserialize;
 use serde::Serialize;
@@ -12,6 +10,7 @@ use crate::issuer_identifier::IssuerIdentifier;
 
 use super::Discover;
 use super::HttpDiscover;
+use super::JwkSet;
 use super::OidcError;
 use super::OidcReqwestClient;
 
@@ -155,7 +154,7 @@ impl Config {
 
     /// Get the JWK set from the given Url. Errors are either a reqwest error or an Insecure error if
     /// the url isn't https.
-    pub(super) async fn jwks(&self, http_client: &OidcReqwestClient) -> Result<JWKSet<Empty>, OidcError> {
+    pub(super) async fn jwks(&self, http_client: &OidcReqwestClient) -> Result<JwkSet, OidcError> {
         let jwks = http_client.get(self.jwks_uri.clone()).await?;
 
         Ok(jwks)

@@ -145,8 +145,10 @@ persistence:
 ## @section DigiD parameters
 ## Parameters for the DigiD configuration
 ## @param digidBaseUrl Base URL for the DigiD service
+## @param digidClientId Base URL for the DigiD service
 ##
 digidBaseUrl:
+digidClientId:
 
 ## @section Migration parameters
 ## Parameters for the migration configuration

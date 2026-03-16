@@ -59,6 +59,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         BrpPidAttributeService::try_new(
             HttpBrpClient::new(settings.brp_server.clone()),
             &settings.digid.bsn_privkey,
+            settings.digid.client_id.clone(),
             &settings.digid.http_config,
             SecretKeyVariant::from_settings(
                 SecretKey::Software {

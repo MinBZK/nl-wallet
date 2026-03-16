@@ -53,7 +53,6 @@ zap-scan-static-server:
   script:
     - !reference [.run-zap-scan, script]
   variables:
-    STATIC_SERVER_HOST: "${STATIC_HOSTNAME}"
     SUT: "STATIC_SERVER"
 
 zap-scan-wallet-provider:

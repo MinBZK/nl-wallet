@@ -55,13 +55,9 @@ pub fn build_oidc_session(
 
 #[cfg(test)]
 mod test {
-    use url::Url;
-
     use openid4vc::oidc::MockAuthorizationServer;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-
-    use crate::oidc_session::OidcSession;
 
     fn default_token_request() -> TokenRequest {
         TokenRequest {

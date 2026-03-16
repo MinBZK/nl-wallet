@@ -1,5 +1,6 @@
 mod attestations;
 mod change_pin;
+mod close_proximity_disclosure;
 mod config;
 mod disclosure;
 mod disclosure_based_issuance;
@@ -22,6 +23,7 @@ mod uri;
 #[cfg(test)]
 mod test;
 
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 use cfg_if::cfg_if;
@@ -37,6 +39,7 @@ use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
 use openid4vc::oidc::HttpAuthorizationServer;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
+use platform_support::close_proximity_disclosure::hardware::HardwareCloseProximityDisclosureClient;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
@@ -128,6 +131,7 @@ enum Session<CID: CredentialIssuerDiscovery, DCS> {
     },
     Issuance(WalletIssuanceSession<<CID::Issuer as CredentialIssuer>::Session>),
     Disclosure(WalletDisclosureSession<DCS>),
+    CloseProximityDisclosure,
     PinRecovery {
         pid_config: PidAttributesConfiguration,
         session: PinRecoverySession<CID>,
@@ -135,14 +139,15 @@ enum Session<CID: CredentialIssuerDiscovery, DCS> {
 }
 
 pub struct Wallet<
-    CR = WalletConfigurationRepository,         // Repository<WalletConfiguration>
-    UR = UpdatePolicyRepository,                // Repository<VersionState>
-    S = DatabaseStorage<HardwareEncryptionKey>, // Storage
-    AKH = KeyHolderType,                        // AttestedKeyHolder
-    APC = HttpAccountProviderClient,            // AccountProviderClient
-    CID = HttpCredentialIssuerDiscovery,        // CredentialIssuerDiscovery
-    DCC = VpDisclosureClient,                   // DisclosureClient
-    SLC = HttpStatusListClient,                 // StatusListClient,
+    CR = WalletConfigurationRepository,           // Repository<WalletConfiguration>
+    UR = UpdatePolicyRepository,                  // Repository<VersionState>
+    S = DatabaseStorage<HardwareEncryptionKey>,   // Storage
+    AKH = KeyHolderType,                          // AttestedKeyHolder
+    APC = HttpAccountProviderClient,              // AccountProviderClient
+    CID = HttpCredentialIssuerDiscovery,          // CredentialIssuerDiscovery
+    DCC = VpDisclosureClient,                     // DisclosureClient
+    CPC = HardwareCloseProximityDisclosureClient, // CloseProximityDisclosureClient
+    SLC = HttpStatusListClient,                   // StatusListClient,
 > where
     AKH: AttestedKeyHolder,
     CID: CredentialIssuerDiscovery,
@@ -156,6 +161,7 @@ pub struct Wallet<
     account_provider_client: Arc<APC>,
     credential_issuer_discovery: CID,
     disclosure_client: DCC,
+    close_proximity_disclosure_client: PhantomData<CPC>,
     status_list_client: Arc<SLC>,
     session: Option<Session<CID, DCC::Session>>,
     lock: WalletLock,

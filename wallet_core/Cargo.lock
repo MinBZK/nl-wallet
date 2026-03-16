@@ -964,22 +964,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "biscuit"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e28fc7c56c61743a01d0d1b73e4fed68b8a4f032ea3a2d4bb8c6520a33fc05a"
-dependencies = [
- "chrono",
- "data-encoding",
- "num-bigint",
- "num-traits",
- "once_cell",
- "ring",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "bit-set"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1982,7 +1966,7 @@ dependencies = [
  "async-trait",
  "audit_log_migrations",
  "bollard",
- "issuance_server_migrations",
+ "issuer_common_migrations",
  "rand 0.8.5",
  "sea-orm",
  "sea-orm-migration",
@@ -3570,6 +3554,8 @@ dependencies = [
  "tower-http",
  "tracing",
  "url",
+ "utils",
+ "x509-parser",
 ]
 
 [[package]]
@@ -3946,7 +3932,7 @@ dependencies = [
  "hsm",
  "http_utils",
  "indexmap 2.12.1",
- "issuer_settings",
+ "issuer_common",
  "itertools 0.14.0",
  "openid4vc",
  "openid4vc_server",
@@ -3971,14 +3957,13 @@ dependencies = [
 name = "issuance_server_migrations"
 version = "0.5.0-dev"
 dependencies = [
+ "issuer_common_migrations",
  "sea-orm-migration",
- "server_utils_migrations",
- "status_lists_migrations",
  "tokio",
 ]
 
 [[package]]
-name = "issuer_settings"
+name = "issuer_common"
 version = "0.5.0-dev"
 dependencies = [
  "assert_matches",
@@ -3986,6 +3971,7 @@ dependencies = [
  "attestation_types",
  "chrono",
  "crypto",
+ "db_test",
  "derive_more",
  "futures",
  "hsm",
@@ -3995,13 +3981,25 @@ dependencies = [
  "openid4vc",
  "rustls-pki-types",
  "sd_jwt_vc_metadata",
+ "sea-orm",
  "serde",
  "serde_json",
  "server_utils",
  "status_lists",
  "thiserror 2.0.17",
+ "tokio",
  "tracing",
  "utils",
+]
+
+[[package]]
+name = "issuer_common_migrations"
+version = "0.5.0-dev"
+dependencies = [
+ "async-trait",
+ "sea-orm-migration",
+ "server_utils_migrations",
+ "status_lists_migrations",
 ]
 
 [[package]]
@@ -5024,7 +5022,6 @@ dependencies = [
  "attestation_types",
  "axum",
  "base64 0.22.1",
- "biscuit",
  "chrono",
  "crypto",
  "dashmap 6.1.0",
@@ -5038,6 +5035,7 @@ dependencies = [
  "indexmap 2.12.1",
  "itertools 0.14.0",
  "josekit",
+ "jsonwebtoken",
  "jwt",
  "mdoc",
  "mime",
@@ -5538,7 +5536,7 @@ dependencies = [
  "hsm",
  "http_utils",
  "indexmap 2.12.1",
- "issuer_settings",
+ "issuer_common",
  "itertools 0.14.0",
  "openid4vc",
  "openid4vc_server",
@@ -5563,7 +5561,7 @@ dependencies = [
 name = "pid_issuer_migrations"
 version = "0.5.0-dev"
 dependencies = [
- "issuance_server_migrations",
+ "issuer_common_migrations",
  "sea-orm-migration",
  "tokio",
 ]
@@ -5641,6 +5639,7 @@ dependencies = [
  "android_attest",
  "android_logger 0.14.1",
  "apple_app_attest",
+ "assert_matches",
  "async-trait",
  "base64 0.22.1",
  "cfg-if",
@@ -5923,9 +5922,9 @@ dependencies = [
 
 [[package]]
 name = "quinn-proto"
-version = "0.11.13"
+version = "0.11.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1906b49b0c3bc04b5fe5d86a77925ae6524a19b816ae38ce1e426255f1d8a31"
+checksum = "434b42fec591c96ef50e21e886936e66d3cc3f737104fdb9b737c40ffb94c098"
 dependencies = [
  "bytes",
  "getrandom 0.3.4",
@@ -7941,6 +7940,7 @@ dependencies = [
  "tokio",
  "tower-http",
  "tracing",
+ "trait-variant",
  "url",
  "utils",
  "utoipa",
@@ -8243,7 +8243,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.12.1",
  "issuance_server",
- "issuer_settings",
+ "issuer_common",
  "itertools 0.14.0",
  "jsonwebtoken",
  "jwt",
@@ -9680,7 +9680,6 @@ dependencies = [
  "semver",
  "serde",
  "serde_with",
- "status_lists",
  "thiserror 2.0.17",
  "tokio",
  "tracing",

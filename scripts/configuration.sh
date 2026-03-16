@@ -91,9 +91,9 @@ export DEFAULT_HSM_TOKEN_DIR="${HOME}/.softhsm2/tokens"
 export HSM_TOKEN_DIR=${HSM_TOKEN_DIR:-$DEFAULT_HSM_TOKEN_DIR}
 export HSM_TOKEN=${HSM_TOKEN:-test_token}
 
-# WALLET_CLIENT_ID=$(uuidgen)
-# export WALLET_CLIENT_ID
-export WALLET_CLIENT_ID=3e58016e-bc2e-40d5-b4b1-a3e25f6193b9
+# DIGID_CLIENT_ID=$(uuidgen)
+# export DIGID_CLIENT_ID
+export DIGID_CLIENT_ID=3e58016e-bc2e-40d5-b4b1-a3e25f6193b9
 
 # Wallet's iss claim in credential proof JWTs sent to the issuer (matches Rust constant NL_WALLET_CLIENT_ID)
 export NL_WALLET_CLIENT_ID="https://wallet.edi.rijksoverheid.nl"

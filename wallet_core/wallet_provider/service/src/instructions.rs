@@ -1412,7 +1412,9 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_bytes;
     use crypto::utils::random_string;
+    use hsm::model::mock::MockPkcs11Client;
     use hsm::model::wrapped_key::WrappedKey;
+    use hsm::service::HsmError;
     use jwt::Algorithm;
     use jwt::UnverifiedJwt;
     use jwt::Validation;
@@ -1451,16 +1453,50 @@ mod tests {
     use wscd::Poa;
 
     use crate::account_server::InstructionValidationError;
+    use crate::account_server::UserState;
     use crate::account_server::mock;
+    use crate::account_server::mock::user_state as mock_user_state;
+    use crate::flags::mock::StubWalletFlags;
     use crate::instructions::HandleInstruction;
     use crate::instructions::InstructionError;
     use crate::instructions::ValidateInstruction;
     use crate::instructions::is_poa_message;
     use crate::wallet_certificate::mock::setup_hsm;
+    use crate::wua_issuer::mock::MockWuaIssuer;
+
+    pub async fn user_state<R>(
+        repositories: R,
+        wrapping_key_identifier: &str,
+    ) -> UserState<R, StubWalletFlags, MockPkcs11Client<HsmError>, MockWuaIssuer, MockStatusListService> {
+        mock_user_state(
+            repositories,
+            StubWalletFlags::default(),
+            setup_hsm().await,
+            wrapping_key_identifier.to_string(),
+            vec![],
+            MockStatusListService::default(),
+        )
+    }
+
+    pub async fn user_state_with_ca<R>(
+        repositories: R,
+        wrapping_key_identifier: &str,
+        ca: &Ca,
+    ) -> UserState<R, StubWalletFlags, MockPkcs11Client<HsmError>, MockWuaIssuer, MockStatusListService> {
+        mock_user_state(
+            repositories,
+            StubWalletFlags::default(),
+            setup_hsm().await,
+            wrapping_key_identifier.to_string(),
+            vec![ca.to_trust_anchor().to_owned()],
+            MockStatusListService::default(),
+        )
+    }
 
     #[tokio::test]
     async fn should_handle_checkpin() {
         let wallet_user = wallet_user::mock::wallet_user_1();
+        let wallet_user_repo = MockTransactionalWalletUserRepository::new();
         let wrapping_key_identifier = "my_wrapping_key_identifier";
 
         let instruction = CheckPin {};
@@ -1468,13 +1504,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    MockTransactionalWalletUserRepository::new(),
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -1531,13 +1561,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -1606,13 +1630,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![issuer_ca.borrowing_trust_anchor().to_owned_trust_anchor()],
-                    MockStatusListService::default(),
-                ),
+                &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -1659,13 +1677,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![issuer_ca.borrowing_trust_anchor().to_owned_trust_anchor()],
-                    MockStatusListService::default(),
-                ),
+                &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -1721,13 +1733,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![issuer_ca.borrowing_trust_anchor().to_owned_trust_anchor()],
-                    MockStatusListService::default(),
-                ),
+                &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -1786,13 +1792,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![issuer_ca.borrowing_trust_anchor().to_owned_trust_anchor()],
-                    MockStatusListService::default(),
-                ),
+                &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -1837,13 +1837,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![issuer_ca.borrowing_trust_anchor().to_owned_trust_anchor()],
-                    MockStatusListService::default(),
-                ),
+                &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -1902,13 +1896,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![issuer_ca.borrowing_trust_anchor().to_owned_trust_anchor()],
-                    MockStatusListService::default(),
-                ),
+                &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await;
@@ -1940,13 +1928,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![issuer_ca.borrowing_trust_anchor().to_owned_trust_anchor()],
-                    MockStatusListService::default(),
-                ),
+                &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await;
@@ -1969,17 +1951,12 @@ mod tests {
             recovery_code_disclosure,
         };
 
+        let wallet_user_repo = MockTransactionalWalletUserRepository::new();
         let err = instruction
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    MockTransactionalWalletUserRepository::new(),
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![issuer_ca.borrowing_trust_anchor().to_owned_trust_anchor()],
-                    MockStatusListService::default(),
-                ),
+                &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -2021,13 +1998,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![issuer_ca.borrowing_trust_anchor().to_owned_trust_anchor()],
-                    MockStatusListService::default(),
-                ),
+                &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -2109,13 +2080,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -2422,13 +2387,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![issuer_ca.borrowing_trust_anchor().to_owned_trust_anchor()],
-                    MockStatusListService::default(),
-                ),
+                &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await;
@@ -2475,13 +2434,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -2519,13 +2472,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -2578,13 +2525,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -2620,13 +2561,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -2693,13 +2628,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -2736,13 +2665,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -2780,13 +2703,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -2824,13 +2741,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -2855,13 +2766,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -2895,13 +2800,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -2935,13 +2834,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -2978,13 +2871,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -3016,13 +2903,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -3066,13 +2947,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -3110,13 +2985,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -3153,13 +3022,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -3195,13 +3058,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -3237,13 +3094,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -3276,13 +3127,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -3321,13 +3166,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -3364,13 +3203,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -3407,13 +3240,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -3450,13 +3277,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &MockGenerators,
-                &mock::user_state(
-                    wallet_user_repo,
-                    setup_hsm().await,
-                    wrapping_key_identifier.to_string(),
-                    vec![],
-                    MockStatusListService::default(),
-                ),
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await

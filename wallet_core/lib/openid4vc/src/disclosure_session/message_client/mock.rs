@@ -215,11 +215,15 @@ impl MockVerifierSession {
     }
 
     pub fn normalized_auth_request(&self, wallet_nonce: Option<String>) -> NormalizedVpAuthorizationRequest {
+        let mut encryption_jwk = self.encryption_keypair.to_jwk_public_key();
+        encryption_jwk.set_algorithm("ECDH-ES");
+        encryption_jwk.set_key_id(crypto_utils::random_string(32));
+
         NormalizedVpAuthorizationRequest::new_from_certificate(
             self.credential_requests.clone(),
             self.key_pair.certificate(),
             self.nonce.clone(),
-            self.encryption_keypair.to_jwk_public_key().try_into().unwrap(),
+            encryption_jwk.try_into().unwrap(),
             self.response_uri.clone(),
             wallet_nonce,
         )

@@ -39,6 +39,7 @@ use openid4vc::issuance_session::CredentialIssuerDiscovery;
 
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
+use platform_support::close_proximity_disclosure::CloseProximityDisclosureError;
 use sd_jwt::claims::NonSelectivelyDisclosableClaimsError;
 use sd_jwt::error::SigningError;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
@@ -177,6 +178,10 @@ pub enum DisclosureError {
     #[error("non-selectively-disclosable claim error: {1}")]
     #[category(critical)]
     NonSelectivelyDisclosableClaim(Box<Organization>, #[source] NonSelectivelyDisclosableClaimsError),
+
+    #[error("Close Proximity discolsure session error: {0}")]
+    #[category(critical)]
+    CloseProximityDisclosureSessionError(#[from] CloseProximityDisclosureError),
 }
 
 impl DisclosureError {
@@ -366,7 +371,7 @@ fn is_request_for_recovery_code(
     }
 }
 
-impl<CR, UR, S, AKH, APC, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,

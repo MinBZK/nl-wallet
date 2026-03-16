@@ -116,6 +116,7 @@ import 'package:wallet/src/util/mapper/context_mapper.dart';
 import 'package:wallet/src/util/mapper/mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
 import 'package:wallet_core/core.dart';
+import 'package:workmanager/workmanager.dart';
 
 import 'wallet_mocks.mocks.dart';
 
@@ -168,6 +169,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<RevocationCodeStore>()])
 @GenerateNiceMocks([MockSpec<FlutterLocalNotificationsPlugin>()])
 @GenerateNiceMocks([MockSpec<LocalNotificationService>()])
+@GenerateNiceMocks([MockSpec<Workmanager>()])
 /// Mock use cases
 @GenerateNiceMocks([MockSpec<DecodeUriUseCase>()])
 @GenerateNiceMocks([MockSpec<IsWalletInitializedUseCase>()])

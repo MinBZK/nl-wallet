@@ -37,7 +37,7 @@ pub struct VpDisclosureClient<H = HttpVpMessageClient> {
 }
 
 impl VpDisclosureClient<HttpVpMessageClient> {
-    pub fn new_http(client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
+    pub fn new_with_client(client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
         let client = Self::new(HttpVpMessageClient::new(client_builder)?);
 
         Ok(client)
@@ -175,7 +175,7 @@ where
         let auth_request_result = vp_auth_request
             .validate(&certificate, request_nonce.as_deref())
             .map_err(VpVerifierError::AuthRequestValidation);
-        let auth_request = match (auth_request_result, response_uri) {
+        let (auth_request, selected_encryption_algorithm) = match (auth_request_result, response_uri) {
             (Err(error), Some(response_uri)) => {
                 return Err(self.report_error_back(response_uri, error).await)?;
             }
@@ -210,7 +210,13 @@ where
             return Err(VpClientError::MixedFormatCredentialRequest.into());
         }
 
-        let session = VpDisclosureSession::new(self.client.clone(), session_type, verifier_certificate, auth_request);
+        let session = VpDisclosureSession::new(
+            self.client.clone(),
+            session_type,
+            verifier_certificate,
+            auth_request,
+            selected_encryption_algorithm,
+        );
 
         Ok(session)
     }
@@ -642,7 +648,8 @@ mod tests {
             .now_or_never()
             .unwrap()
             .expect_err(
-                "starting a new disclosure session with a request uri object passed as query parameters should not succeed",
+                "starting a new disclosure session with a request uri object passed as query parameters should not \
+                 succeed",
             );
 
         assert_matches!(
@@ -722,7 +729,10 @@ mod tests {
             CredentialFormat::MsoMdoc,
             std::convert::identity,
         )
-        .expect_err("starting a new disclosure session with a session type which is incompatible with its source should not succeed");
+        .expect_err(
+            "starting a new disclosure session with a session type which is incompatible with its source should not \
+             succeed",
+        );
 
         assert_matches!(
             *error,
@@ -848,7 +858,10 @@ mod tests {
                 verifier_session
             },
         )
-        .expect_err("starting a new disclosure session where the request uri client_id does not match the RP certificate client_id should not succeed");
+        .expect_err(
+            "starting a new disclosure session where the request uri client_id does not match the RP certificate \
+             client_id should not succeed",
+        );
 
         assert_matches!(
             *error,
@@ -881,7 +894,10 @@ mod tests {
             None,
             std::convert::identity,
         )
-        .expect_err("starting a new disclosure session with a valid reader certificate but no reader registration should not succeed");
+        .expect_err(
+            "starting a new disclosure session with a valid reader certificate but no reader registration should not \
+             succeed",
+        );
 
         assert_matches!(
             *error,
@@ -918,7 +934,10 @@ mod tests {
             Some(reader_registration),
             std::convert::identity,
         )
-        .expect_err("starting a new disclosure session with an authorization request that contains an attribute not in the reader registration should not succeed");
+        .expect_err(
+            "starting a new disclosure session with an authorization request that contains an attribute not in the \
+             reader registration should not succeed",
+        );
 
         let unregistered_attributes = HashMap::from([(
             PID_ATTESTATION_TYPE.to_string(),
@@ -964,7 +983,10 @@ mod tests {
             Some(reader_registration),
             std::convert::identity,
         )
-        .expect_err("starting a new disclosure session with an authorization request that contains a credential request with a mix of requested formats should not succeed");
+        .expect_err(
+            "starting a new disclosure session with an authorization request that contains a credential request with \
+             a mix of requested formats should not succeed",
+        );
 
         assert_matches!(
             *error,

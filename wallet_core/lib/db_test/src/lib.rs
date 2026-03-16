@@ -37,6 +37,8 @@ use strum::VariantArray;
 use testcontainers::ImageExt;
 use testcontainers::ReuseDirective;
 use testcontainers::TestcontainersError;
+use testcontainers::core::Mount;
+use testcontainers::core::WaitFor;
 use testcontainers::core::error::ClientError;
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres;
@@ -203,8 +205,8 @@ impl DbSetup {
             .username(&DB_USERNAME)
             .password(&DB_PASSWORD)
             .database(&DB_DEFAULT_DATABASE);
-        let mut connection = tokio::time::timeout(Duration::from_secs(1), async {
-            let mut interval = tokio::time::interval(Duration::from_millis(100));
+        let mut connection = tokio::time::timeout(Duration::from_secs(3), async {
+            let mut interval = tokio::time::interval(Duration::from_millis(300));
             interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
             loop {
                 interval.tick().await;
@@ -249,12 +251,16 @@ impl DbSetup {
 
     pub fn server_utils_url(&self) -> Url {
         // Reuse verification server as it is exactly the same as server utils migrations
-        DbName::VerificationServer.url(self.connect_options.clone(), self.index)
+        self.verification_server_url()
+    }
+
+    pub fn issuer_common_url(&self) -> Url {
+        self.issuance_server_url()
     }
 
     pub fn status_lists_url(&self) -> Url {
         // Reuse issuance server as it contains status lists and only used in the module
-        DbName::IssuanceServer.url(self.connect_options.clone(), self.index)
+        self.issuance_server_url()
     }
 
     pub fn pid_issuer_url(&self) -> Url {
@@ -288,7 +294,7 @@ async fn start_testcontainer() -> (String, u16) {
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
         loop {
             interval.tick().await;
-            let result = postgres::Postgres::default()
+            let mut request = postgres::Postgres::default()
                 .with_user(&DB_USERNAME)
                 .with_password(&DB_PASSWORD)
                 .with_db_name(&DB_DEFAULT_DATABASE)
@@ -300,9 +306,20 @@ async fn start_testcontainer() -> (String, u16) {
                 // Add labels to force testcontainers to recreate on changes
                 .with_label("image", &*DB_TESTCONTAINER_IMAGE)
                 .with_label("image-tag", &*DB_TESTCONTAINER_IMAGE_TAG)
-                .with_label("cmd-args", &cmd_hash)
-                .start()
-                .await;
+                .with_label("cmd-args", &cmd_hash);
+
+            if let Ok(volume_name) = std::env::var("DB_TESTCONTAINER_VOLUME") {
+                request = request
+                    .with_mount(Mount::volume_mount(volume_name, "/var/lib/postgresql"))
+                    // If you use a named volume, ready_conditions need to be overridden
+                    // See: https://github.com/testcontainers/testcontainers-rs-modules-community/issues/415
+                    .with_ready_conditions(vec![
+                        WaitFor::message_on_either_std("listening on IPv4 address"),
+                        WaitFor::message_on_either_std("database system is ready to accept connections"),
+                    ]);
+            }
+
+            let result = request.start().await;
             match result {
                 Ok(container) => break container,
                 // When the container is not yet started, conflicts are returned, retry after a delay
@@ -495,8 +512,8 @@ async fn migrate(name: DbName, connect_options: PgConnectOptions) {
     let url = name.template_url(connect_options);
     let pool = connection_from_url(url.clone()).await;
     match name {
-        DbName::IssuanceServer => issuance_server_migrations::Migrator::up(&pool, None).await,
-        DbName::PidIssuer => issuance_server_migrations::Migrator::up(&pool, None).await,
+        DbName::IssuanceServer => issuer_common_migrations::Migrator::up(&pool, None).await,
+        DbName::PidIssuer => issuer_common_migrations::Migrator::up(&pool, None).await,
         DbName::VerificationServer => server_utils_migrations::Migrator::up(&pool, None).await,
         DbName::WalletProvider => wallet_provider_migrations::Migrator::up(&pool, None).await,
         DbName::WalletProviderAuditLog => audit_log_migrations::Migrator::up(&pool, None).await,

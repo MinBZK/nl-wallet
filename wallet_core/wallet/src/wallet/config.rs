@@ -13,7 +13,7 @@ use crate::repository::RepositoryCallback;
 
 use super::Wallet;
 
-impl<CR, UR, S, AKH, APC, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
@@ -25,7 +25,7 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     CR: ObservableRepository<Arc<WalletConfiguration>>,
     UR: ObservableRepository<VersionState>,

@@ -51,5 +51,21 @@
      <packageUrl regex="true">^pkg:gem/faraday@.*$</packageUrl>
      <vulnerabilityName>CVE-2026-25765</vulnerabilityName>
   </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    Reports issue in Dart < 3.11 and Flutter < 3.41, but we use Dart ^3.11.0 and Flutter ^3.41.2
+    ]]></notes>
+    <packageUrl regex="true">^pkg:cocoapods/flutter_local_notifications@.*$</packageUrl>
+    <cve>CVE-2026-27704</cve>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    Reports issue in Dart < 3.11 and Flutter < 3.41, but we use Dart ^3.11.0 and Flutter ^3.41.2
+    ]]></notes>
+    <packageUrl regex="true">^pkg:cocoapods/flutter_native_splash@.*$</packageUrl>
+    <cve>CVE-2026-27704</cve>
+  </suppress>
   <!-- End group: [MEDIUM] -->
 </suppressions>

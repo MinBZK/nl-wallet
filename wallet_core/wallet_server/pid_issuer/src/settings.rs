@@ -12,8 +12,8 @@ use serde_with::serde_as;
 use crypto::p256_der::DerVerifyingKey;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
-use issuer_settings::settings::IssuerSettings;
-use issuer_settings::settings::IssuerSettingsError;
+use issuer_common::settings::IssuerSettings;
+use issuer_common::settings::IssuerSettingsError;
 use openid4vc::server_state::SessionStoreTimeouts;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::SecretKey;
@@ -45,6 +45,7 @@ pub struct PidIssuerSettings {
 #[derive(Clone, Deserialize)]
 pub struct Digid {
     pub bsn_privkey: String,
+    pub client_id: String,
     pub http_config: TlsPinningConfig,
 }
 

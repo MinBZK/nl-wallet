@@ -117,6 +117,43 @@ interface UtilitiesBridge {
     string get_storage_path();
 };
 
+// Close Proximity Disclosure (using ISO 18013-5) bridge
+
+[Trait, WithForeign]
+interface CloseProximityDisclosureBridge {
+    [Async, Throws=CloseProximityDisclosureError]
+    string start_qr_handover(CloseProximityDisclosureChannel channel);
+
+    [Async, Throws=CloseProximityDisclosureError]
+    void send_device_response(sequence<u8> device_response);
+
+    [Async, Throws=CloseProximityDisclosureError]
+    void stop_ble_server();
+};
+
+// TODO this probably needs to be more fine-grained (PVW-5629)
+[Error]
+interface CloseProximityDisclosureError {
+    PlatformError(string reason); // All exceptions in native code are represented by this error
+    BridgingError(string reason); // Reserved for UnexpectedUniFFICallbackError
+};
+
+[Enum]
+interface CloseProximityDisclosureUpdate {
+    Connecting();
+    Connected();
+    SessionEstablished(sequence<u8> session_transcript, sequence<u8> device_request);
+    Closed();
+    // TODO this probably warrants its own enum variant (PVW-5630)
+    Error(CloseProximityDisclosureError error);
+};
+
+[Trait]
+interface CloseProximityDisclosureChannel {
+    [Async, Throws=CloseProximityDisclosureError]
+    void send_update(CloseProximityDisclosureUpdate update);
+};
+
 // all modules
 
 namespace platform_support {
@@ -126,6 +163,7 @@ namespace platform_support {
         SigningKeyBridge signing_key,
         EncryptionKeyBridge encryption_key,
         AttestedKeyBridge attested_key,
-        UtilitiesBridge utils
+        UtilitiesBridge utils,
+        CloseProximityDisclosureBridge close_proximity_disclosure
     );
 };

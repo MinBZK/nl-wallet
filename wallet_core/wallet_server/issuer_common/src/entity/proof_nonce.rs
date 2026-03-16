@@ -3,10 +3,13 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "status_list_flag")]
+#[sea_orm(table_name = "proof_nonce")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false, column_type = "Text")]
-    pub name: String,
+    #[sea_orm(primary_key)]
+    pub id: i64,
+    #[sea_orm(unique)]
+    pub nonce: String,
+    pub created_date_time: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

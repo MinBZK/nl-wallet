@@ -61,7 +61,7 @@ pub enum TransferRole {
     Destination,
 }
 
-impl<CR, UR, S, AKH, APC, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     UR: Repository<VersionState>,
     S: Storage,
@@ -122,9 +122,8 @@ where
 
         if let Some(session) = &self.session {
             return match session {
-                Session::Oidc { .. } => Ok(WalletState::InIssuanceFlow),
-                Session::Issuance(_) => Ok(WalletState::InIssuanceFlow),
-                Session::Disclosure(_) => Ok(WalletState::InDisclosureFlow),
+                Session::Oidc { .. } | Session::Issuance(_) => Ok(WalletState::InIssuanceFlow),
+                Session::Disclosure(_) | Session::CloseProximityDisclosure => Ok(WalletState::InDisclosureFlow),
                 Session::PinRecovery { .. } => Ok(WalletState::InPinRecoveryFlow),
             };
         }

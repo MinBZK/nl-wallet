@@ -43,7 +43,7 @@ class VerticalListItem extends StatelessWidget {
             const SizedBox(height: 8),
             DefaultTextStyle(style: context.textTheme.bodyLarge!, child: subtitle),
             SizedBox(height: button == null ? 0 : 12),
-            if (button != null) button!,
+            ?button,
           ],
         ),
       ),

@@ -5,7 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/wallet_state.dart';
 import 'package:wallet/src/domain/usecase/wallet/reset_wallet_usecase.dart';
 import 'package:wallet/src/feature/blocked/app_blocked_screen.dart';
+import 'package:wallet/src/feature/blocked/argument/app_blocked_screen_argument.dart';
 import 'package:wallet/src/feature/blocked/bloc/app_blocked_bloc.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mocks.dart';
@@ -101,6 +103,44 @@ void main() {
         ],
       );
       await screenMatchesGolden('app_blocked_by_admin_dark');
+    });
+  });
+
+  group('getArgument', () {
+    test('returns argument when valid map with admin_request is provided', () {
+      const settings = RouteSettings(arguments: {'reason': 'admin_request'});
+      final result = AppBlockedScreen.getArgument(settings);
+
+      expect(result, const AppBlockedScreenArgument(reason: RevocationReason.adminRequest));
+    });
+
+    test('returns argument when valid map with user_request is provided', () {
+      const settings = RouteSettings(arguments: {'reason': 'user_request'});
+      final result = AppBlockedScreen.getArgument(settings);
+
+      expect(result, const AppBlockedScreenArgument(reason: RevocationReason.userRequest));
+    });
+
+    test('returns argument with unknown reason when reason is missing', () {
+      const settings = RouteSettings(arguments: <String, dynamic>{});
+      final result = AppBlockedScreen.getArgument(settings);
+
+      expect(result, const AppBlockedScreenArgument(reason: RevocationReason.unknown));
+    });
+
+    test('returns null when arguments are null', () {
+      const settings = RouteSettings(arguments: null);
+      final result = AppBlockedScreen.getArgument(settings);
+
+      expect(result, isNull);
+    });
+
+    test('returns null when reason is invalid', () {
+      const settings = RouteSettings(arguments: {'reason': '_invalid_reason_'});
+
+      final result = AppBlockedScreen.getArgument(settings);
+
+      expect(result, isNull);
     });
   });
 }

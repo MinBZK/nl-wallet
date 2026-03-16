@@ -48,7 +48,7 @@ pub enum RevocationCodeError {
     Unlock(#[from] WalletUnlockError),
 }
 
-impl<CR, UR, S, AKH, APC, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     AKH: AttestedKeyHolder,
     CID: CredentialIssuerDiscovery,

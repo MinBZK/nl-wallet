@@ -35,7 +35,7 @@ pub enum ResetError {
 
 type ResetResult<T> = Result<T, ResetError>;
 
-impl<CR, UR, S, AKH, APC, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     UR: Repository<VersionState>,
     S: Storage,

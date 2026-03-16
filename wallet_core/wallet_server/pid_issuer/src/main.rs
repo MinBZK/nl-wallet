@@ -8,7 +8,8 @@ use health_checkers::hsm::HsmChecker;
 use health_checkers::postgres::DatabaseChecker;
 use hsm::service::Pkcs11Hsm;
 use http_utils::health::create_health_router;
-use issuer_settings::settings::StatusListAttestationSettings;
+use issuer_common::nonce_store::ProofNonceStore;
+use issuer_common::settings::StatusListAttestationSettings;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
 use pid_issuer::server;
@@ -47,10 +48,12 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         store_connection.clone(),
         storage_settings.into(),
     ));
+    let nonce_store = ProofNonceStore::new(store_connection.clone());
 
     let pid_attr_service = BrpPidAttributeService::try_new(
         HttpBrpClient::new(settings.brp_server),
         &settings.digid.bsn_privkey,
+        settings.digid.client_id,
         &settings.digid.http_config,
         SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?,
         issuer_settings.public_url.clone(),
@@ -112,6 +115,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         issuer_settings,
         hsm,
         sessions,
+        nonce_store,
         settings.wua_issuer_pubkey.into_inner(),
         status_list_services,
         status_list_router,

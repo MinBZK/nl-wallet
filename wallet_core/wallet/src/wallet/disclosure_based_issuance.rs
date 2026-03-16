@@ -71,7 +71,7 @@ pub enum DisclosureBasedIssuanceError {
 // However, the `flutter_api` already knows which flow it is in anyway, because it displays
 // different things to the user in each flow. So keeping this a distinct method is more
 // pragmatic.
-impl<CR, UR, S, AKH, APC, CID, DCC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,

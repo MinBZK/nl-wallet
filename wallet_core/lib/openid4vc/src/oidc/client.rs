@@ -1,24 +1,19 @@
-pub use biscuit::ClaimsSet;
-pub use biscuit::CompactJson;
-pub use biscuit::CompactPart;
-pub use biscuit::Empty;
-pub use biscuit::JWT;
-pub use biscuit::ValidationOptions;
-pub use biscuit::errors::Error as BiscuitError;
-pub use biscuit::jwa;
-pub use biscuit::jwa::SignatureAlgorithm;
-pub use biscuit::jwk::JWKSet;
 pub use josekit::JoseError;
 pub use josekit::jwe::JweContentEncryption;
 pub use josekit::jwe::JweDecrypter;
 pub use josekit::jwe::alg;
 pub use josekit::jwe::enc;
+pub use jsonwebtoken::Algorithm;
+pub use jsonwebtoken::jwk::JwkSet;
 
 use base64::prelude::*;
 use error_category::ErrorCategory;
 use futures::TryFutureExt;
 use futures::try_join;
+use jsonwebtoken::DecodingKey;
+use jsonwebtoken::Validation;
 use reqwest::header;
+use serde::de::DeserializeOwned;
 use url::Url;
 
 use crate::AuthBearerErrorCode;
@@ -79,15 +74,27 @@ pub enum OidcError {
     #[error("invalid redirect URI received")]
     #[category(critical)]
     RedirectUriMismatch,
+    #[error("JWE decryption error: {0}")]
+    JweDecryption(#[from] JoseError),
 
-    #[error("JOSE error: {0}")]
-    JoseKit(#[from] JoseError),
+    #[error("JWT error: {0}")]
+    Jsonwebtoken(#[from] jsonwebtoken::errors::Error),
 
-    #[error("JWE error: {0}")]
-    Jwe(#[from] BiscuitError),
+    #[error("unexpected JWE content encryption algorithm")]
+    #[category(critical)]
+    UnexpectedEncAlgorithm,
 
-    #[error("JWE validation error: {0}")]
-    JweValidation(#[from] biscuit::errors::ValidationError),
+    #[error("decrypted JWE payload is not valid UTF-8")]
+    #[category(critical)]
+    JwePayloadNotUtf8,
+
+    #[error("JWT header is missing key ID (kid)")]
+    #[category(critical)]
+    MissingKeyId,
+
+    #[error("JWT key ID not found in JWKS")]
+    #[category(critical)]
+    KeyNotFound,
 
     #[error("config has no userinfo url")]
     #[category(critical)]
@@ -129,8 +136,8 @@ pub trait AuthorizationServer {
 #[derive(Debug)]
 pub struct HttpAuthorizationServer<P = S256PkcePair> {
     provider: Config,
-    #[allow(dead_code)] // reserved for future use in `request_userinfo`
-    jwks: Option<JWKSet<Empty>>,
+    #[expect(dead_code)] // reserved for future use in `request_userinfo`
+    jwks: Option<JwkSet>,
     client_id: String,
     redirect_uri: Url,
     pkce_pair: P,
@@ -139,7 +146,7 @@ pub struct HttpAuthorizationServer<P = S256PkcePair> {
 }
 
 impl<P: PkcePair> HttpAuthorizationServer<P> {
-    pub fn new(config: Config, jwks: Option<JWKSet<Empty>>, client_id: String, redirect_uri: Url) -> Self {
+    pub fn new(config: Config, jwks: Option<JwkSet>, client_id: String, redirect_uri: Url) -> Self {
         Self {
             provider: config,
             jwks,
@@ -329,30 +336,26 @@ fn decrypt_jwe(
     decrypter: &impl JweDecrypter,
     expected_enc_alg: &impl JweContentEncryption,
 ) -> Result<Vec<u8>, OidcError> {
-    // Unfortunately we need to use josekit to decrypt the JWE, as we wish to support the A128CBC_HS256 content
-    // encryption which biscuit does not yet support.
-    // See https://github.com/lawliet89/biscuit/issues/42
     let (jwe_payload, header) = josekit::jwe::deserialize_compact(jwe_token, decrypter)?;
 
     // Check the "enc" header to confirm that that the content is encoded with the expected algorithm.
     if header.content_encryption() == Some(expected_enc_alg.name()) {
         Ok(jwe_payload)
     } else {
-        // This is the error that would have been returned, if the biscuit crate had done the algorithm checking.
-        Err(biscuit::errors::ValidationError::WrongAlgorithmHeader)?
+        Err(OidcError::UnexpectedEncAlgorithm)
     }
 }
 
-pub async fn request_userinfo<C, H>(
+pub async fn request_userinfo<C>(
     http_client: &OidcReqwestClient,
     authorization_server: &IssuerIdentifier,
     token_request: TokenRequest,
-    expected_sig_alg: SignatureAlgorithm,
+    client_id: &str,
+    expected_sig_alg: Algorithm,
     encryption: Option<(&impl JweDecrypter, &impl JweContentEncryption)>,
-) -> Result<JWT<C, H>, OidcError>
+) -> Result<C, OidcError>
 where
-    ClaimsSet<C>: CompactPart,
-    H: CompactJson,
+    C: DeserializeOwned,
 {
     // Note that the same TLS pinning configuration is used for both the discovery request and any of the subsequent
     // requests, even though the URLs could in theory point to different hosts.
@@ -367,19 +370,34 @@ where
     )?;
 
     let jws = match encryption {
-        Some((decrypter, expected_enc_alg)) => &decrypt_jwe(&jwt, decrypter, expected_enc_alg)?,
-        None => jwt.as_bytes(),
+        Some((decrypter, expected_enc_alg)) => String::from_utf8(decrypt_jwe(&jwt, decrypter, expected_enc_alg)?)
+            .map_err(|_| OidcError::JwePayloadNotUtf8)?,
+        None => jwt,
     };
 
-    // Get a JWS from the (decrypted) JWT and decode it using the JWK set.
-    let decoded_jws = JWT::<C, H>::from_bytes(jws)?.decode_with_jwks(&jwks, Some(expected_sig_alg))?;
+    verify_against_keys(&jws, &jwks, client_id, expected_sig_alg)
+}
 
-    decoded_jws
-        .payload()?
-        .registered
-        .validate(ValidationOptions::default())?;
+// We can't use our own `Jwt` types here because they only support ECDSA/P256.
+fn verify_against_keys<C: DeserializeOwned>(
+    token: &str,
+    jwks: &JwkSet,
+    audience: &str,
+    algorithm: Algorithm,
+) -> Result<C, OidcError> {
+    let header = jsonwebtoken::decode_header(token)?;
 
-    Ok(decoded_jws)
+    let kid = header.kid.as_deref().ok_or(OidcError::MissingKeyId)?;
+    let jwk = jwks.find(kid).ok_or(OidcError::KeyNotFound)?;
+    let key = DecodingKey::from_jwk(jwk)?;
+
+    let mut validation = Validation::new(algorithm);
+    validation.required_spec_claims.clear(); // don't require exp
+    validation.set_audience(&[audience]);
+
+    let verified = jsonwebtoken::decode(token, &key, &validation)?;
+
+    Ok(verified.claims)
 }
 
 #[cfg(any(test, feature = "mock"))]
@@ -426,9 +444,22 @@ impl OidcDiscovery for MockOidcDiscovery {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::LazyLock;
+
     use assert_matches::assert_matches;
-    use biscuit::jwk::JWKSet;
+    use josekit::jwe::ECDH_ES_A256KW;
+    use josekit::jwe::JweHeader;
+    use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
+    use josekit::jwe::enc::aescbc_hmac::AescbcHmacJweEncryption;
+    use josekit::jwk::Jwk;
+    use josekit::jwk::KeyPair;
+    use josekit::jwk::alg::ec::EcCurve;
+    use josekit::jwk::alg::ec::EcKeyPair;
+    use jsonwebtoken::Algorithm;
+    use jsonwebtoken::EncodingKey;
+    use jsonwebtoken::Header;
     use rstest::rstest;
+    use serde_json::json;
     use serial_test::serial;
     use url::Url;
 
@@ -446,8 +477,11 @@ mod tests {
     use super::Config;
     use super::HttpAuthorizationServer;
     use super::HttpOidcDiscovery;
+    use super::JwkSet;
     use super::OidcError;
     use super::OidcReqwestClient;
+    use super::decrypt_jwe;
+    use super::verify_against_keys;
 
     /// A test discoverer that bypasses `IssuerIdentifier` HTTPS requirement by using a `BaseUrl` directly.
     struct TestDiscover(BaseUrl);
@@ -575,7 +609,7 @@ mod tests {
 
         HttpAuthorizationServer {
             provider: Config::new_mock(issuer_identifier),
-            jwks: Some(JWKSet { keys: vec![] }),
+            jwks: Some(JwkSet { keys: vec![] }),
             client_id: CLIENT_ID.to_string(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),
             pkce_pair,
@@ -624,7 +658,7 @@ mod tests {
     fn parse_request_uri(uri: &Url) -> OidcError {
         let server = HttpAuthorizationServer::<MockPkcePair> {
             provider: Config::new_mock(ISSUER_URL.parse().unwrap()),
-            jwks: Some(JWKSet { keys: vec![] }),
+            jwks: Some(JwkSet { keys: vec![] }),
             client_id: CLIENT_ID.to_string(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),
             pkce_pair: MockPkcePair::new(),
@@ -750,5 +784,158 @@ mod tests {
         let url = url_with_query_pairs(url, &query_pairs);
 
         assert_eq!(url, expected);
+    }
+
+    // This value was captured from nl-rdo-max in a local dev environment.
+    static JWS_PAYLOAD: LazyLock<serde_json::Value> = LazyLock::new(|| {
+        json!({
+            "aud": "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9",
+            "bsn": "999991772",
+            "iss": "https://localhost:8006",
+            "loa_authn": "http://eidas.europa.eu/LoA/substantial",
+            "session_id": "oKir-PwoC36a5TxX5vwIIPAU7WXoGVEsTkUwGSAv9ZM",
+            "sub": "ff5a4850ab665a3196ec4311d187a24d615d164787b38c89b98f6144855ddcfe"
+        })
+    });
+
+    fn make_jws(include_kid: bool) -> (String, JwkSet) {
+        let algoritm = Algorithm::HS256;
+        let kid = "hmac_key_id";
+
+        let mut header = Header::new(algoritm);
+        if include_kid {
+            header.kid = Some(kid.to_string());
+        }
+        let encoding_key = EncodingKey::from_secret(b"secret hmac key");
+        let jws = jsonwebtoken::encode(&header, LazyLock::force(&JWS_PAYLOAD), &encoding_key).unwrap();
+
+        let mut jwk = jsonwebtoken::jwk::Jwk::from_encoding_key(&encoding_key, algoritm).unwrap();
+        jwk.common.key_id = Some(kid.to_string());
+        let jwks = JwkSet { keys: vec![jwk] };
+
+        (jws, jwks)
+    }
+
+    #[test]
+    fn test_verify_against_keys_success() {
+        let (jws, jwks) = make_jws(true);
+
+        let payload = verify_against_keys::<serde_json::Value>(
+            &jws,
+            &jwks,
+            "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9",
+            Algorithm::HS256,
+        )
+        .expect("verifying JWS should succeed");
+
+        assert_eq!(
+            payload
+                .as_object()
+                .and_then(|payload| payload.get("bsn"))
+                .and_then(serde_json::Value::as_str),
+            Some("999991772")
+        );
+    }
+
+    #[test]
+    fn test_verify_against_keys_error_missing_key_id() {
+        let (jws, jwks) = make_jws(false);
+
+        let error = verify_against_keys::<serde_json::Value>(
+            &jws,
+            &jwks,
+            "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9",
+            Algorithm::HS256,
+        )
+        .expect_err("verifying JWS should fail");
+
+        assert_matches!(error, OidcError::MissingKeyId);
+    }
+
+    #[test]
+    fn test_verify_against_keys_error_key_not_found() {
+        let (jws, mut jwks) = make_jws(true);
+
+        jwks.keys.first_mut().unwrap().common.key_id = Some("wrong_kid".to_string());
+
+        let error = verify_against_keys::<serde_json::Value>(
+            &jws,
+            &jwks,
+            "3e58016e-bc2e-40d5-b4b1-a3e25f6193b9",
+            Algorithm::HS256,
+        )
+        .expect_err("verifying JWS should fail");
+
+        assert_matches!(error, OidcError::KeyNotFound);
+    }
+
+    #[test]
+    fn test_verify_against_keys_error_wrong_aud() {
+        let (jws, jwks) = make_jws(true);
+
+        let error = verify_against_keys::<serde_json::Value>(&jws, &jwks, "wrong_aud", Algorithm::HS256)
+            .expect_err("verifying JWS should fail");
+
+        assert_matches!(error, OidcError::Jsonwebtoken(_));
+    }
+
+    #[test]
+    fn test_verify_against_keys_error_wrong_alg() {
+        let (jws, jwks) = make_jws(true);
+
+        let error = verify_against_keys::<serde_json::Value>(&jws, &jwks, "wrong_aud", Algorithm::HS512)
+            .expect_err("verifying JWS should fail");
+
+        assert_matches!(error, OidcError::Jsonwebtoken(_));
+    }
+
+    const JWE_ENC: AescbcHmacJweEncryption = AescbcHmacJweEncryption::A128cbcHs256;
+    const JWE_ALG: EcdhEsJweAlgorithm = ECDH_ES_A256KW;
+
+    fn make_jwe(payload: &[u8]) -> (String, Jwk) {
+        let key_pair = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let jwk = key_pair.to_jwk_key_pair();
+
+        let mut header = JweHeader::new();
+        header.set_content_encryption(JWE_ENC.name());
+
+        let encrypter = JWE_ALG.encrypter_from_jwk(&jwk).unwrap();
+        let jwe = josekit::jwe::serialize_compact(payload, &header, &encrypter).unwrap();
+
+        (jwe, jwk)
+    }
+
+    #[test]
+    fn test_decrypt_jwe_success() {
+        let payload = b"hello world";
+        let (jwe, jwk) = make_jwe(payload);
+        let decrypter = JWE_ALG.decrypter_from_jwk(&jwk).unwrap();
+
+        let result = decrypt_jwe(&jwe, &decrypter, &JWE_ENC).unwrap();
+
+        assert_eq!(result, payload);
+    }
+
+    #[test]
+    fn test_decrypt_jwe_wrong_enc_algorithm() {
+        let wrong_enc = AescbcHmacJweEncryption::A256cbcHs512;
+        let (jwe, jwk) = make_jwe(b"payload");
+        let decrypter = JWE_ALG.decrypter_from_jwk(&jwk).unwrap();
+
+        let result = decrypt_jwe(&jwe, &decrypter, &wrong_enc);
+
+        assert_matches!(result, Err(OidcError::UnexpectedEncAlgorithm));
+    }
+
+    #[test]
+    fn test_decrypt_jwe_wrong_key() {
+        let (jwe, _) = make_jwe(b"payload");
+
+        let other_jwk = EcKeyPair::generate(EcCurve::P256).unwrap().to_jwk_key_pair();
+        let decrypter = JWE_ALG.decrypter_from_jwk(&other_jwk).unwrap();
+
+        let result = decrypt_jwe(&jwe, &decrypter, &JWE_ENC);
+
+        assert_matches!(result, Err(OidcError::JweDecryption(_)));
     }
 }

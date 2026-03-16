@@ -83,7 +83,7 @@ async fn main() {
         HttpCredentialIssuerDiscovery::new(config.pid_issuance.client_id.clone(), oidc_reqwest_client.clone());
 
     let update_policy_repository = UpdatePolicyRepository::init();
-    let wallet_clients = WalletClients::new_http().unwrap();
+    let wallet_clients = WalletClients::new().unwrap();
 
     let storage = MockHardwareDatabaseStorage::open_in_memory().await;
 

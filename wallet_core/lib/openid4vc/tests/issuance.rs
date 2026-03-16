@@ -45,6 +45,7 @@ use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WuaConfig;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
+use openid4vc::nonce::memory_store::MemoryNonceStore;
 use openid4vc::oidc;
 use openid4vc::preview::CredentialPreviewRequest;
 use openid4vc::preview::CredentialPreviewResponse;
@@ -68,8 +69,13 @@ use wscd::Poa;
 use wscd::PoaPayload;
 use wscd::mock_remote::MockRemoteWscd;
 
-type MockIssuer<G = TimeGenerator> =
-    Issuer<MockAttributeService, SigningKey, MemorySessionStore<IssuanceData, G>, MockStatusListServices>;
+type MockIssuer<G = TimeGenerator> = Issuer<
+    SigningKey,
+    MockAttributeService,
+    MemorySessionStore<IssuanceData, G>,
+    MemoryNonceStore,
+    MockStatusListServices,
+>;
 
 fn setup_mock_issuer(
     attestation_count: NonZeroUsize,
@@ -133,14 +139,15 @@ where
         .into();
 
     let issuer = MockIssuer::new(
-        sessions,
-        attr_service,
-        attestation_config,
         issuer_identifier.clone(),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
+        attestation_config,
         Some(WuaConfig {
             wua_issuer_pubkey: wua_issuer_privkey.verifying_key().into(),
         }),
+        attr_service,
+        sessions,
+        MemoryNonceStore::default(),
         Arc::new(MockStatusListServices::default()),
     );
 
