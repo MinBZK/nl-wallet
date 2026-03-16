@@ -304,6 +304,7 @@ fn decrypt_jwe(
 pub async fn request_userinfo<C>(
     http_client: &OidcReqwestClient,
     token_request: TokenRequest,
+    client_id: &str,
     expected_sig_alg: Algorithm,
     encryption: Option<(&impl JweDecrypter, &impl JweContentEncryption)>,
 ) -> Result<C, OidcError>
@@ -325,11 +326,16 @@ where
         None => jwt,
     };
 
-    verify_against_keys(&jws, &jwks, expected_sig_alg)
+    verify_against_keys(&jws, &jwks, client_id, expected_sig_alg)
 }
 
 // We can't use our own `Jwt` types here because they only support ECDSA/P256.
-fn verify_against_keys<C: DeserializeOwned>(token: &str, jwks: &JwkSet, algorithm: Algorithm) -> Result<C, OidcError> {
+fn verify_against_keys<C: DeserializeOwned>(
+    token: &str,
+    jwks: &JwkSet,
+    audience: &str,
+    algorithm: Algorithm,
+) -> Result<C, OidcError> {
     let header = jsonwebtoken::decode_header(token)?;
 
     let kid = header.kid.as_deref().ok_or(OidcError::MissingKeyId)?;
@@ -338,6 +344,7 @@ fn verify_against_keys<C: DeserializeOwned>(token: &str, jwks: &JwkSet, algorith
 
     let mut validation = Validation::new(algorithm);
     validation.required_spec_claims.clear(); // don't require exp
+    validation.set_audience(&[audience]);
 
     let verified = jsonwebtoken::decode(token, &key, &validation)?;
 

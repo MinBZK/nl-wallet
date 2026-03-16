@@ -45,6 +45,7 @@ pub struct PidIssuerSettings {
 #[derive(Clone, Deserialize)]
 pub struct Digid {
     pub bsn_privkey: String,
+    pub client_id: String,
     pub http_config: TlsPinningConfig,
 }
 
