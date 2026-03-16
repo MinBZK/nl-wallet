@@ -84,8 +84,10 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-pid-issuer-digid-bsn-privkey
                   key: bsn_privkey
+            - name: PID_ISSUER__DIGID__CLIENT_ID
+              value: {{ .Values.digidClientId | quote }}
             - name: PID_ISSUER__DIGID__HTTP_CONFIG__BASE_URL
-              value: {{ .Values.digidBaseUrl }}
+              value: {{ .Values.digidBaseUrl | quote }}
             - name: PID_ISSUER__DIGID__HTTP_CONFIG__TRUST_ANCHORS
               valueFrom:
                 configMapKeyRef:

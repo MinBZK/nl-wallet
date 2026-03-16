@@ -34,13 +34,15 @@ pub enum Error {
 /// An OIDC client for exchanging an access token provided by the user for their BSN at the IdP.
 pub struct OpenIdClient {
     decrypter_private_key: RsaesJweDecrypter,
+    client_id: String,
     http_client: OidcReqwestClient,
 }
 
 impl OpenIdClient {
-    pub fn try_new(bsn_privkey: &str, http_config: TlsPinningConfig) -> Result<Self> {
+    pub fn try_new(bsn_privkey: &str, client_id: impl Into<String>, http_config: TlsPinningConfig) -> Result<Self> {
         let userinfo_client = OpenIdClient {
             decrypter_private_key: Self::decrypter(bsn_privkey)?,
+            client_id: client_id.into(),
             http_client: OidcReqwestClient::try_new(http_config)?,
         };
 
@@ -51,6 +53,7 @@ impl OpenIdClient {
         let userinfo_claims = oidc::request_userinfo::<UserInfo>(
             &self.http_client,
             token_request,
+            &self.client_id,
             Algorithm::RS256,
             Some((&self.decrypter_private_key, &AescbcHmacJweEncryption::A128cbcHs256)),
         )
