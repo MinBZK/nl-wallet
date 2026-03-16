@@ -355,6 +355,10 @@ impl<C> VerifiedSdJwt<C, HeaderWithX5c> {
     pub fn issuer_certificate(&self) -> &BorrowingCertificate {
         self.issuer_signed.header().x5c.first()
     }
+
+    pub fn issuer_alg(&self) -> Algorithm {
+        self.issuer_signed.header().inner().alg
+    }
 }
 
 impl VerifiedSdJwt {
@@ -582,6 +586,10 @@ impl<C, H> Display for VerifiedSdJwtPresentation<C, H> {
 impl<C, H> VerifiedSdJwtPresentation<C, H> {
     pub fn sd_jwt(&self) -> &VerifiedSdJwt<C, H> {
         &self.sd_jwt
+    }
+
+    pub fn key_binding_jwt(&self) -> &VerifiedKeyBindingJwt {
+        &self.key_binding_jwt
     }
 
     pub fn revocation_status(&self) -> Option<RevocationStatus> {
