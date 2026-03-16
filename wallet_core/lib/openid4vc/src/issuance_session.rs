@@ -526,11 +526,11 @@ impl VcMessageClient for HttpVcMessageClient {
         dpop_header: &Dpop,
     ) -> Result<(TokenResponse, Option<String>), IssuanceSessionError> {
         self.http_client
-            .as_ref()
-            .post(url.as_ref())
-            .header(DPOP_HEADER_NAME, dpop_header.to_string())
-            .form(token_request)
-            .send()
+            .post(url.as_ref(), |builder| {
+                builder
+                    .header(DPOP_HEADER_NAME, dpop_header.to_string())
+                    .form(token_request)
+            })
             .map_err(IssuanceSessionError::from)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
@@ -559,11 +559,9 @@ impl VcMessageClient for HttpVcMessageClient {
         access_token: &AccessToken,
     ) -> Result<CredentialPreviewResponse, IssuanceSessionError> {
         self.http_client
-            .as_ref()
-            .post(url.as_ref())
-            .bearer_auth(access_token.as_ref())
-            .json(preview_request)
-            .send()
+            .post(url.as_ref(), |builder| {
+                builder.bearer_auth(access_token.as_ref()).json(preview_request)
+            })
             .map_err(IssuanceSessionError::from)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
@@ -608,11 +606,11 @@ impl VcMessageClient for HttpVcMessageClient {
         access_token_header: &str,
     ) -> Result<(), IssuanceSessionError> {
         self.http_client
-            .as_ref()
-            .delete(url.as_ref())
-            .header(DPOP_HEADER_NAME, dpop_header)
-            .header(AUTHORIZATION, access_token_header)
-            .send()
+            .delete(url.as_ref(), |builder| {
+                builder
+                    .header(DPOP_HEADER_NAME, dpop_header)
+                    .header(AUTHORIZATION, access_token_header)
+            })
             .map_err(IssuanceSessionError::from)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
@@ -638,12 +636,12 @@ impl HttpVcMessageClient {
         access_token_header: &str,
     ) -> Result<S, IssuanceSessionError> {
         self.http_client
-            .as_ref()
-            .post(url.as_ref())
-            .header(DPOP_HEADER_NAME, dpop_header)
-            .header(AUTHORIZATION, access_token_header)
-            .json(request)
-            .send()
+            .post(url.as_ref(), |builder| {
+                builder
+                    .header(DPOP_HEADER_NAME, dpop_header)
+                    .header(AUTHORIZATION, access_token_header)
+                    .json(request)
+            })
             .map_err(IssuanceSessionError::from)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error

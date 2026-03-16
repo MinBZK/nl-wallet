@@ -1,15 +1,14 @@
-use derive_more::AsRef;
+use reqwest::IntoUrl;
 use reqwest::RequestBuilder;
 use reqwest::Response;
 use serde::de::DeserializeOwned;
-use url::Url;
 
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use http_utils::reqwest::client_builder_accept_json;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::reqwest::trusted_reqwest_client_builder;
 
-#[derive(Debug, Clone, AsRef)]
+#[derive(Debug, Clone)]
 pub struct OidcReqwestClient(reqwest::Client);
 
 impl OidcReqwestClient {
@@ -38,14 +37,27 @@ impl OidcReqwestClient {
         Ok(OidcReqwestClient(client))
     }
 
-    pub async fn get<T: DeserializeOwned>(&self, url: Url) -> Result<T, reqwest::Error> {
+    pub async fn get<U, T>(&self, url: U) -> Result<T, reqwest::Error>
+    where
+        U: IntoUrl,
+        T: DeserializeOwned,
+    {
         self.0.get(url).send().await?.error_for_status()?.json().await
     }
 
-    pub async fn post<F>(&self, url: Url, adapter: F) -> Result<Response, reqwest::Error>
+    pub async fn post<U, F>(&self, url: U, adapter: F) -> Result<Response, reqwest::Error>
     where
+        U: IntoUrl,
         F: FnOnce(RequestBuilder) -> RequestBuilder,
     {
         adapter(self.0.post(url)).send().await
+    }
+
+    pub async fn delete<U, F>(&self, url: U, adapter: F) -> Result<Response, reqwest::Error>
+    where
+        U: IntoUrl,
+        F: FnOnce(RequestBuilder) -> RequestBuilder,
+    {
+        adapter(self.0.delete(url)).send().await
     }
 }
