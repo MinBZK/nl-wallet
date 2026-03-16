@@ -80,4 +80,29 @@ void main() {
   test('call to continueChangePin throws when not registered', () async {
     await expectLater(() async => repo.continueChangePin('324942'), throwsA(isA<StateError>()));
   });
+
+  test('call to createPinRecoveryRedirectUri is passed through to the core', () async {
+    const uri = 'https://example.com';
+    when(core.createPinRecoveryRedirectUri()).thenAnswer((_) async => uri);
+    final result = await repo.createPinRecoveryRedirectUri();
+    expect(result, uri);
+    verify(core.createPinRecoveryRedirectUri()).called(1);
+  });
+
+  test('call to continuePinRecovery is passed through to the core', () async {
+    const uri = 'https://example.com/callback';
+    await repo.continuePinRecovery(uri);
+    verify(core.continuePinRecovery(uri)).called(1);
+  });
+
+  test('call to completePinRecovery is passed through to the core', () async {
+    const pin = '123456';
+    await repo.completePinRecovery(pin);
+    verify(core.completePinRecovery(pin)).called(1);
+  });
+
+  test('call to cancelPinRecovery is passed through to the core', () async {
+    await repo.cancelPinRecovery();
+    verify(core.cancelPinRecovery()).called(1);
+  });
 }
