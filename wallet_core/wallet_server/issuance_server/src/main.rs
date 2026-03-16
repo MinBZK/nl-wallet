@@ -12,7 +12,8 @@ use http_utils::reqwest::default_reqwest_client_builder;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::server;
 use issuance_server::settings::IssuanceServerSettings;
-use issuer_settings::settings::StatusListAttestationSettings;
+use issuer_common::nonce_store::ProofNonceStore;
+use issuer_common::settings::StatusListAttestationSettings;
 use server_utils::server::wallet_server_main;
 use server_utils::store::SessionStoreVariant;
 use server_utils::store::StoreConnection;
@@ -47,6 +48,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         store_connection.clone(),
         storage_settings.into(),
     ));
+    let nonce_store = ProofNonceStore::new(store_connection.clone());
     let disclosure_sessions = Arc::new(SessionStoreVariant::new(
         store_connection.clone(),
         storage_settings.into(),
@@ -118,6 +120,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         settings,
         hsm,
         issuance_sessions,
+        nonce_store,
         disclosure_sessions,
         attributes_fetcher,
         status_list_services,

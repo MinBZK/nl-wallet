@@ -55,7 +55,8 @@ members = [
     "wallet_provider/wallet_account",
     "wallet_server/issuance_server",
     "wallet_server/issuance_server/migrations",
-    "wallet_server/issuer_settings",
+    "wallet_server/issuer_common",
+    "wallet_server/issuer_common/migrations",
     "wallet_server/pid_issuer",
     "wallet_server/pid_issuer/migrations",
     "wallet_server/server_utils",
@@ -111,7 +112,6 @@ axum-server = { version = "0.8.0", features = ["tls-rustls-no-provider"] }
 axum_csrf = "0.11.0"
 backtrace = "0.3.76"
 base64 = "0.22.1"
-biscuit = "0.7.0"
 bitflags = "2.10.0"
 # bollard version is same as testcontainers
 bollard = "0.19.4"

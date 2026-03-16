@@ -21,8 +21,6 @@ PODS:
   - mobile_scanner (7.0.0):
     - Flutter
     - FlutterMacOS
-  - objective_c (0.0.1):
-    - Flutter
   - package_info_plus (0.4.5):
     - Flutter
   - permission_handler_apple (9.3.0):
@@ -35,7 +33,7 @@ PODS:
   - sensors_plus (0.0.1):
     - Flutter
   - Sentry/HybridSDK (8.56.2)
-  - sentry_flutter (9.8.0):
+  - sentry_flutter (9.14.0):
     - Flutter
     - FlutterMacOS
     - Sentry/HybridSDK (= 8.56.2)
@@ -66,7 +64,6 @@ DEPENDENCIES:
   - IOSSecuritySuite (= 1.9.10)
   - local_auth_darwin (from `.symlinks/plugins/local_auth_darwin/darwin`)
   - mobile_scanner (from `.symlinks/plugins/mobile_scanner/darwin`)
-  - objective_c (from `.symlinks/plugins/objective_c/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - root_jailbreak_sniffer (from `.symlinks/plugins/root_jailbreak_sniffer/ios`)
@@ -106,8 +103,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/local_auth_darwin/darwin"
   mobile_scanner:
     :path: ".symlinks/plugins/mobile_scanner/darwin"
-  objective_c:
-    :path: ".symlinks/plugins/objective_c/ios"
   package_info_plus:
     :path: ".symlinks/plugins/package_info_plus/ios"
   permission_handler_apple:
@@ -145,18 +140,17 @@ SPEC CHECKSUMS:
   IOSSecuritySuite: e764318117aabd1f894cbdfc5ac013a59352953d
   local_auth_darwin: c3ee6cce0a8d56be34c8ccb66ba31f7f180aaebb
   mobile_scanner: 9157936403f5a0644ca3779a38ff8404c5434a93
-  objective_c: 89e720c30d716b036faf9c9684022048eee1eee2
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
   root_jailbreak_sniffer: ddaf19e879b5042d74ea446cac763feb35925204
   screen_brightness_ios: 9953fd7da5bd480f1a93990daeec2eb42d4f3b52
   sensors_plus: 6a11ed0c2e1d0bd0b20b4029d3bad27d96e0c65b
   Sentry: b53951377b78e21a734f5dc8318e333dbfc682d7
-  sentry_flutter: 4c33648b7e83310aa1fdb1b10c5491027d9643f0
+  sentry_flutter: 841fa2fe08dc72eb95e2320b76e3f751f3400cf5
   shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
   store_redirect: 55fd455802ceab09803b2df6e68f19a58815266a
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
-  vibration: 69774ad57825b11c951ee4c46155f455d7a592ce
+  vibration: ca8104a8875b9c493e15b21b04e456befd0ff6eb
   video_player_avfoundation: dd410b52df6d2466a42d28550e33e4146928280a
   workmanager_apple: 904529ae31e97fc5be632cf628507652294a0778
 

@@ -77,6 +77,7 @@ use wscd::PoaVerificationError;
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
+use crate::jwe::JweEncryptionAlgorithm;
 
 /// Leeway used in the lower end of the `iat` verification, used to account for clock skew.
 const SD_JWT_IAT_LEEWAY: Duration = Duration::from_secs(5);
@@ -199,15 +200,17 @@ pub enum VpAuthorizationRequestAudience {
 
 /// Metadata of the verifier (which acts as the "client" in OAuth).
 /// https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-11
+#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpClientMetadata {
-    #[serde(flatten)]
     pub jwks: VpJwks,
     pub vp_formats_supported: VpFormatsSupported,
 
-    // These two are defined in https://openid.net/specs/oauth-v2-jarm-final.html
-    pub authorization_encryption_alg_values_supported: VpAlgValues,
-    pub authorization_encryption_enc_values_supported: VpEncValues,
+    /// Non-empty array of strings, where each string is a JWE [RFC7516] enc algorithm that can be used as the content
+    /// encryption algorithm for encrypting the Response. When a response_mode requiring encryption of the Response
+    /// (such as `dc_api.jwt`` or `direct_post.jwt``) is specified, this MUST be present for anything other than the
+    /// default single value of `A128GCM``. Otherwise, this SHOULD be absent.
+    pub encrypted_response_enc_values_supported: Option<VecNonEmpty<JweEncryptionAlgorithm>>,
 }
 
 /// `client_id` prefix values as defined by OpenID4VP 1.0 section 5.9.3.
@@ -277,33 +280,8 @@ impl ClientId {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum VpJwks {
-    #[serde(rename = "jwks")]
-    Direct { keys: Vec<Jwk> },
-    #[serde(rename = "jwks_uri")]
-    Indirect(BaseUrl),
-}
-
-impl VpJwks {
-    pub fn direct(&self) -> Option<&Vec<Jwk>> {
-        match self {
-            VpJwks::Direct { keys } => Some(keys),
-            VpJwks::Indirect(_) => None,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum VpAlgValues {
-    #[serde(rename = "ECDH-ES")]
-    EcdhEs,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, strum::Display)]
-pub enum VpEncValues {
-    A128GCM,
-    A192GCM,
-    A256GCM,
+pub struct VpJwks {
+    pub keys: VecNonEmpty<Jwk>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -384,7 +362,8 @@ pub enum JwePublicKeyError {
     JwkParsing(#[source] JoseError),
 }
 
-/// Wraps a [`Jwk`], performs validation on it and ensures that this contains a EC public key on the P256 curve.
+/// Wraps a [`Jwk`], performs validation on it and ensures that this contains an EC public key on the P256 curve,
+/// with a `kid` parameter. The underlying encrypter construction performs the remaining JWE-specific validation.
 /// Unfortunately, `josekit` actually does little validation when deserializing its `Jwk` type, opting instead to
 /// perform validations when this type is used. Since this goes counter to our principle of validating on input and
 /// failing early, we eagerly create a [`EcdhEsJweEncrypter`] here, which is where `josekit` actually performs the
@@ -401,19 +380,27 @@ pub struct JwePublicKey {
 impl JwePublicKey {
     pub fn try_new(jwk: Jwk) -> Result<Self, JwePublicKeyError> {
         // Avoid jwk.key_type() which panics if `kty` is not set.
-        if jwk.parameter("kty").and_then(serde_json::Value::as_str) != Some("EC") {
+        if jwk_parameter_as_str(&jwk, "kty") != Some("EC") {
             return Err(JwePublicKeyError::UnsupportedJwk {
                 field: "kty",
                 expected: "EC",
-                found: jwk.parameter("kty").cloned().map(Box::new),
+                found: jwk_parameter_value(&jwk, "kty"),
             });
         }
 
-        if jwk.curve() != Some("P-256") {
+        if jwk_parameter_as_str(&jwk, "crv") != Some("P-256") {
             return Err(JwePublicKeyError::UnsupportedJwk {
                 field: "crv",
                 expected: "P-256",
-                found: jwk.curve().map(serde_json::Value::from).map(Box::new),
+                found: jwk_parameter_value(&jwk, "crv"),
+            });
+        }
+
+        if jwk_parameter_as_str(&jwk, "kid").is_none() {
+            return Err(JwePublicKeyError::UnsupportedJwk {
+                field: "kid",
+                expected: "a string",
+                found: jwk_parameter_value(&jwk, "kid"),
             });
         }
 
@@ -432,6 +419,10 @@ impl JwePublicKey {
 
     pub fn encrypter(&self) -> &EcdhEsJweEncrypter {
         &self.encrypter
+    }
+
+    pub fn kid(&self) -> &str {
+        jwk_parameter_as_str(&self.jwk, "kid").expect("JwePublicKey guarantees presence of kid parameter")
     }
 
     /// Generate the bytes of a RFC 7638 compliant SHA-256 thumbprint, without URL-safe Base64 encoding.
@@ -456,6 +447,14 @@ impl TryFrom<Jwk> for JwePublicKey {
     }
 }
 
+fn jwk_parameter_as_str<'a>(jwk: &'a Jwk, field: &str) -> Option<&'a str> {
+    jwk.parameter(field).and_then(serde_json::Value::as_str)
+}
+
+fn jwk_parameter_value(jwk: &Jwk, field: &str) -> Option<Box<serde_json::Value>> {
+    jwk.parameter(field).cloned().map(Box::new)
+}
+
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum AuthRequestValidationError {
@@ -475,12 +474,21 @@ pub enum AuthRequestValidationError {
         expected: &'static str,
         found: String,
     },
-    #[error("field {0}_uri found, expected field directly")]
+    #[error("missing kid in JWK at client_metadata.jwks[{0}]")]
     #[category(critical)]
-    UriVariantNotSupported(&'static str),
-    #[error("unexpected amount of JWKs found in client_metadata: expected 1, found {0}")]
+    MissingJwkKid(usize),
+    #[error(
+        "no supported JWK found in client_metadata.jwks: expected at least one EC/P-256 JWK with alg ECDH-ES: {errors}",
+        errors = .0.iter().join(", ")
+    )]
+    #[category(pd)]
+    NoSupportedJwk(Vec<JwePublicKeyError>),
+    #[error(
+        "no supported value found in client_metadata.encrypted_response_enc_values_supported: expected at least one \
+         of A128GCM, A192GCM or A256GCM"
+    )]
     #[category(critical)]
-    UnexpectedJwkAmount(usize),
+    NoSupportedEncryptedResponseEnc,
     #[error("{0}")]
     #[category(pd)]
     Jwk(#[from] JwePublicKeyError),
@@ -550,12 +558,21 @@ impl VpAuthorizationRequest {
         self,
         rp_cert: &BorrowingCertificate,
         wallet_nonce: Option<&str>,
-    ) -> Result<NormalizedVpAuthorizationRequest, AuthRequestValidationError> {
+    ) -> Result<(NormalizedVpAuthorizationRequest, JweEncryptionAlgorithm), AuthRequestValidationError> {
         let dns_sans = rp_cert.san_dns_names()?;
         if dns_sans.is_empty() {
             return Err(AuthRequestValidationError::MissingSAN);
         }
         let validated_auth_request = NormalizedVpAuthorizationRequest::try_from(self)?;
+
+        // Validate that the verifier advertised at least one encryption algorithm that the wallet supports,
+        // and keep the selected value for later use on the wallet encryption path.
+        // See: <https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5-2.5>.
+        //
+        // If the verifier did not send any supported algorithms, default to AES128GCM.
+        // See: <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.1-2.4.2.2>
+        let selected_encryption_algorithm =
+            NormalizedVpAuthorizationRequest::select_encryption_algorithm(&validated_auth_request.client_metadata)?;
         let client_id = &validated_auth_request.client_id;
 
         match &client_id.scheme {
@@ -593,7 +610,7 @@ impl VpAuthorizationRequest {
             });
         }
 
-        Ok(validated_auth_request)
+        Ok((validated_auth_request, selected_encryption_algorithm))
     }
 }
 
@@ -617,7 +634,8 @@ pub struct NormalizedVpAuthorizationRequest {
 }
 
 impl NormalizedVpAuthorizationRequest {
-    pub fn new(
+    /// Construct an Authorization Request to be sent by this verifier.
+    pub fn new_for_verifier(
         credential_requests: NormalizedCredentialRequests,
         client_id: ClientId,
         nonce: String,
@@ -634,7 +652,9 @@ impl NormalizedVpAuthorizationRequest {
             response_uri,
             credential_requests,
             client_metadata: VpClientMetadata {
-                jwks: VpJwks::Direct { keys: vec![jwk] },
+                jwks: VpJwks {
+                    keys: vec_nonempty![jwk],
+                },
                 vp_formats_supported: VpFormatsSupported {
                     mso_mdoc: Some(MsoMdocAlgValues {
                         issuerauth_alg_values: vec_nonempty![FormatAlgCose::ESP256].into(),
@@ -645,53 +665,41 @@ impl NormalizedVpAuthorizationRequest {
                         kb_jwt_alg_values: vec_nonempty![FormatAlg::ES256].into(),
                     }),
                 },
-                authorization_encryption_alg_values_supported: VpAlgValues::EcdhEs,
-                authorization_encryption_enc_values_supported: VpEncValues::A128GCM,
+                // HAIP requires verifiers to list both A128GCM and A256GCM in
+                // `encrypted_response_enc_values_supported`:
+                // https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5
+                // The JWE enc (encryption algorithm) header parameter (see Section 4.1.2 of [RFC7516]) values A128GCM and A256GCM (as defined in Section 5.3 of [RFC7518]) MUST be supported by Verifiers.
+                encrypted_response_enc_values_supported: Some(vec_nonempty![
+                    JweEncryptionAlgorithm::A128Gcm,
+                    JweEncryptionAlgorithm::A256Gcm
+                ]),
             },
             state: None,
             wallet_nonce,
         }
     }
 
-    pub fn session_transcript(&self) -> SessionTranscript {
-        SessionTranscript::new_oid4vp(
-            &self.client_id.to_string(),
-            &self.nonce,
-            Some(&self.encryption_pubkey.sha256_thumbprint_bytes()),
-            &self.response_uri,
-        )
+    fn select_encryption_algorithm(
+        client_metadata: &VpClientMetadata,
+    ) -> Result<JweEncryptionAlgorithm, AuthRequestValidationError> {
+        let encryption_algorithm = client_metadata
+            .encrypted_response_enc_values_supported
+            .as_ref()
+            .map(|enc_values| {
+                enc_values
+                    .iter()
+                    .filter_map(|alg| alg.preference_rank().map(|rank| (rank, alg)))
+                    .max_by_key(|(rank, _)| *rank)
+                    .map(|(_, alg)| alg.clone())
+                    .ok_or(AuthRequestValidationError::NoSupportedEncryptedResponseEnc)
+            })
+            .transpose()?
+            .unwrap_or_default();
+
+        Ok(encryption_algorithm)
     }
-}
 
-impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
-    fn from(value: NormalizedVpAuthorizationRequest) -> Self {
-        Self {
-            aud: VpAuthorizationRequestAudience::SelfIssued,
-            oauth_request: AuthorizationRequest {
-                response_type: ResponseType::VpToken.into(),
-                client_id: value.client_id.to_string(),
-                nonce: Some(value.nonce),
-                response_mode: Some(ResponseMode::DirectPostJwt),
-                redirect_uri: None,
-                state: None,
-                authorization_details: None,
-                request_uri: None,
-                code_challenge: None,
-                scope: None,
-            },
-            dcql_query: value.credential_requests.into(),
-            client_metadata: Some(value.client_metadata),
-            response_uri: Some(value.response_uri),
-            wallet_nonce: value.wallet_nonce,
-            transaction_data: None,
-        }
-    }
-}
-
-impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
-    type Error = AuthRequestValidationError;
-
-    fn try_from(vp_auth_request: VpAuthorizationRequest) -> Result<Self, Self::Error> {
+    fn try_from(vp_auth_request: VpAuthorizationRequest) -> Result<Self, AuthRequestValidationError> {
         // Check absence of fields that must not be present in an OpenID4VP Authorization Request
         if vp_auth_request.oauth_request.authorization_details.is_some() {
             return Err(AuthRequestValidationError::UnexpectedField("authorization_details"));
@@ -741,19 +749,32 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
                 found: serde_json::to_string(&vp_auth_request.oauth_request.response_mode).unwrap(),
             });
         }
-        // Of fields that have an "_uri" variant, check that they are not used
-        let Some(jwks) = client_metadata.jwks.direct() else {
-            return Err(AuthRequestValidationError::UriVariantNotSupported(
-                "client_metadata.jwks",
-            ));
-        };
+        let jwks = &client_metadata.jwks.keys;
 
-        // check that we received exactly one EC/P256 curve
-        if jwks.len() != 1 {
-            return Err(AuthRequestValidationError::UnexpectedJwkAmount(jwks.len()));
+        // OpenID4VP 1.0 mandates that every JWK in verifier metadata has a `kid`.
+        if let Some((index, _)) = jwks
+            .iter()
+            .enumerate()
+            .find(|(_, jwk)| jwk_parameter_as_str(jwk, "kid").is_none())
+        {
+            return Err(AuthRequestValidationError::MissingJwkKid(index));
         }
-        let jwk = jwks.first().unwrap().clone();
-        let encryption_pubkey = JwePublicKey::try_new(jwk)?;
+
+        // Choose the first key the wallet supports (currently ECDH-ES on P-256).
+        let mut jwk_errors = Vec::new();
+        let mut encryption_pubkey = None;
+
+        for jwk in jwks.iter().cloned() {
+            match JwePublicKey::try_new(jwk) {
+                Ok(supported_jwk) => {
+                    encryption_pubkey = Some(supported_jwk);
+                    break;
+                }
+                Err(error) => jwk_errors.push(error),
+            }
+        }
+
+        let encryption_pubkey = encryption_pubkey.ok_or(AuthRequestValidationError::NoSupportedJwk(jwk_errors))?;
 
         let client_id = vp_auth_request.oauth_request.client_id.as_str().into();
 
@@ -767,6 +788,40 @@ impl TryFrom<VpAuthorizationRequest> for NormalizedVpAuthorizationRequest {
             state: vp_auth_request.oauth_request.state,
             wallet_nonce: vp_auth_request.wallet_nonce,
         })
+    }
+
+    pub fn session_transcript(&self) -> SessionTranscript {
+        SessionTranscript::new_oid4vp(
+            &self.client_id.to_string(),
+            &self.nonce,
+            Some(&self.encryption_pubkey.sha256_thumbprint_bytes()),
+            &self.response_uri,
+        )
+    }
+}
+
+impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
+    fn from(value: NormalizedVpAuthorizationRequest) -> Self {
+        Self {
+            aud: VpAuthorizationRequestAudience::SelfIssued,
+            oauth_request: AuthorizationRequest {
+                response_type: ResponseType::VpToken.into(),
+                client_id: value.client_id.to_string(),
+                nonce: Some(value.nonce),
+                response_mode: Some(ResponseMode::DirectPostJwt),
+                redirect_uri: None,
+                state: None,
+                authorization_details: None,
+                request_uri: None,
+                code_challenge: None,
+                scope: None,
+            },
+            dcql_query: value.credential_requests.into(),
+            client_metadata: Some(value.client_metadata),
+            response_uri: Some(value.response_uri),
+            wallet_nonce: value.wallet_nonce,
+            transaction_data: None,
+        }
     }
 }
 
@@ -879,15 +934,21 @@ impl VpAuthorizationResponse {
     pub fn new_encrypted(
         vp_token: HashMap<CredentialQueryIdentifier, VerifiablePresentation>,
         auth_request: &NormalizedVpAuthorizationRequest,
+        encryption_algorithm: &JweEncryptionAlgorithm,
         encryption_nonce: &str,
         poa: Option<Poa>,
     ) -> Result<String, AuthResponseError> {
-        Self::new(vp_token, auth_request.state.clone(), poa).encrypt(auth_request, encryption_nonce)
+        Self::new(vp_token, auth_request.state.clone(), poa).encrypt(
+            auth_request,
+            encryption_algorithm,
+            encryption_nonce,
+        )
     }
 
     fn encrypt(
         &self,
         auth_request: &NormalizedVpAuthorizationRequest,
+        encryption_algorithm: &JweEncryptionAlgorithm,
         encryption_nonce: &str,
     ) -> Result<String, AuthResponseError> {
         let mut header = JweHeader::new();
@@ -898,13 +959,9 @@ impl VpAuthorizationResponse {
         header.set_agreement_partyuinfo(encryption_nonce);
         header.set_agreement_partyvinfo(auth_request.nonce.clone());
 
-        // Use the AES key size that the server wants.
-        header.set_content_encryption(
-            auth_request
-                .client_metadata
-                .authorization_encryption_enc_values_supported
-                .to_string(),
-        );
+        // Use the first content encryption algorithm that both parties support.
+        header.set_content_encryption(encryption_algorithm.to_string());
+        header.set_key_id(auth_request.encryption_pubkey.kid().to_string());
 
         // VpAuthorizationRequest always serializes to a JSON object useable as a JWT payload.
         let serde_json::Value::Object(payload) = serde_json::to_value(self)? else {
@@ -1208,7 +1265,7 @@ pub mod test {
                     .expect("certificate should contain SAN DNSName"),
             );
 
-            Self::new(
+            Self::new_for_verifier(
                 credential_requests,
                 client_id,
                 nonce,
@@ -1230,6 +1287,7 @@ mod tests {
     use base64::prelude::*;
     use futures::FutureExt;
     use itertools::Itertools;
+    use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
     use josekit::jwk::Jwk;
     use josekit::jwk::alg::ec::EcCurve;
     use josekit::jwk::alg::ec::EcKeyPair;
@@ -1280,6 +1338,7 @@ mod tests {
 
     use crate::AuthorizationErrorCode;
     use crate::VpAuthorizationErrorCode;
+    use crate::jwe::JweEncryptionAlgorithm;
     use crate::mock::ExtendingVctRetrieverStub;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::openid4vp::FormatAlgCose;
@@ -1322,8 +1381,53 @@ mod tests {
         ExpectedJwePublicKeyError::UnsupportedJwk { field: "crv" }
     )]
     #[case::coordinates(
-        serde_json::from_value(json!({"kty":"EC","crv":"P-256"})).unwrap(),
+        serde_json::from_value(json!({"kty":"EC","crv":"P-256","alg":"ECDH-ES","kid":"test"})).unwrap(),
         ExpectedJwePublicKeyError::JwkParsing
+    )]
+    #[case::wrong_alg(
+        serde_json::from_value(json!({
+            "kty":"EC",
+            "crv":"P-256",
+            "alg":"ES256",
+            "kid":"test",
+            "x": "xVLtZaPPK-xvruh1fEClNVTR6RCZBsQai2-DrnyKkxg",
+            "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
+        }))
+        .unwrap(),
+        ExpectedJwePublicKeyError::JwkParsing
+    )]
+    #[case::non_string_crv(
+        serde_json::from_value(json!({
+            "kty":"EC",
+            "crv": true,
+            "alg":"ECDH-ES",
+            "kid":"test"
+        }))
+        .unwrap(),
+        ExpectedJwePublicKeyError::UnsupportedJwk { field: "crv" }
+    )]
+    #[case::missing_kid(
+        serde_json::from_value(json!({
+            "kty":"EC",
+            "crv":"P-256",
+            "alg":"ECDH-ES",
+            "x": "xVLtZaPPK-xvruh1fEClNVTR6RCZBsQai2-DrnyKkxg",
+            "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
+        }))
+        .unwrap(),
+        ExpectedJwePublicKeyError::UnsupportedJwk { field: "kid" }
+    )]
+    #[case::non_string_kid(
+        serde_json::from_value(json!({
+            "kty":"EC",
+            "crv":"P-256",
+            "alg":"ECDH-ES",
+            "kid": 1,
+            "x": "xVLtZaPPK-xvruh1fEClNVTR6RCZBsQai2-DrnyKkxg",
+            "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
+        }))
+        .unwrap(),
+        ExpectedJwePublicKeyError::UnsupportedJwk { field: "kid" }
     )]
     fn test_jwe_public_key_validation(#[case] jwk: Jwk, #[case] expected_error: ExpectedJwePublicKeyError) {
         let error = JwePublicKey::try_new(jwk).expect_err("JwePublicKey validation should fail");
@@ -1345,6 +1449,8 @@ mod tests {
             serde_json::from_value(json!({
                 "kty": "EC",
                 "crv": "P-256",
+                "alg": "ECDH-ES",
+                "kid": "test",
                 "x": "DxiH5Q4Yx3UrukE2lWCErq8N8bqC9CHLLrAwLz5BmE0",
                 "y": "XtLM4-3h5o3HUH0MHVJV0kyq0iBlrBwlh8qEDMZ4-Pc"
             }))
@@ -1439,6 +1545,9 @@ mod tests {
         let rp_keypair = ca.generate_reader_mock().unwrap();
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let mut encryption_jwk = encryption_privkey.to_jwk_public_key();
+        encryption_jwk.set_algorithm("ECDH-ES");
+        encryption_jwk.set_key_id("test-kid");
         let rp_fqdn = rp_keypair.certificate().san_dns_name().unwrap().unwrap();
         let response_uri = format!("https://{rp_fqdn}/response_uri").parse().unwrap();
 
@@ -1446,7 +1555,7 @@ mod tests {
             credential_requests,
             rp_keypair.certificate(),
             "nonce".to_string(),
-            encryption_privkey.to_jwk_public_key().try_into().unwrap(),
+            encryption_jwk.try_into().unwrap(),
             response_uri,
             None,
         );
@@ -1473,7 +1582,15 @@ mod tests {
             None,
             None,
         );
-        let jwe = auth_response.encrypt(&auth_request, &encryption_nonce).unwrap();
+        let encryption_algorithm = JweEncryptionAlgorithm::default();
+        let jwe = auth_response
+            .encrypt(&auth_request, &encryption_algorithm, &encryption_nonce)
+            .unwrap();
+        let decrypter = EcdhEsJweAlgorithm::EcdhEs
+            .decrypter_from_jwk(&encryption_privkey.to_jwk_key_pair())
+            .unwrap();
+        let (_, header) = josekit::jwt::decode_with_decrypter(&jwe, &decrypter).unwrap();
+        assert_eq!(header.key_id(), Some(auth_request.encryption_pubkey.kid()));
 
         let decrypted = VpAuthorizationResponse::decrypt(&jwe, &encryption_privkey).unwrap();
 
@@ -1517,7 +1634,7 @@ mod tests {
                 .unwrap();
 
         let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &[trust_anchor]).unwrap();
-        auth_request.validate(&cert, None).unwrap();
+        let _ = auth_request.validate(&cert, None).unwrap();
     }
 
     #[test]
@@ -1613,13 +1730,12 @@ mod tests {
                 "client_metadata": {
                     "jwks": {
                         "keys": [{
-                            "kty": "EC", "use": "enc", "crv": "P-256", "alg": "ECDH-ES",
+                            "kty": "EC", "use": "enc", "crv": "P-256", "alg": "ECDH-ES", "kid": "my-key-id",
                             "x": "xVLtZaPPK-xvruh1fEClNVTR6RCZBsQai2-DrnyKkxg",
                             "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
                         }]
                     },
-                    "authorization_encryption_alg_values_supported": "ECDH-ES",
-                    "authorization_encryption_enc_values_supported": "A256GCM",
+                    "encrypted_response_enc_values_supported": ["A256GCM"],
                     "vp_formats_supported": {
                         "mso_mdoc": {
                             "issuerauth_alg_values": [-9],
@@ -1654,14 +1770,258 @@ mod tests {
     }
 
     #[test]
-    fn authorization_request_with_transaction_data_should_error() {
+    fn deserialize_authorization_request_single_encryption_enc_supported() {
         let example_json = json!(
             {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id_scheme": "x509_san_dns",
-                "client_id": "example.com",
+                "client_id": "x509_san_dns:example.com",
+                "response_uri": "https://example.com/post",
+                "nonce": "%%2_fsd32434!==r",
+                "client_metadata": {
+                    "jwks": {
+                        "keys": [{
+                            "kty": "EC", "use": "enc", "crv": "P-256", "alg": "ECDH-ES", "kid": "my-key-id",
+                            "x": "xVLtZaPPK-xvruh1fEClNVTR6RCZBsQai2-DrnyKkxg",
+                            "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
+                        }]
+                    },
+                    "encrypted_response_enc_values_supported": ["A256GCM"],
+                    "vp_formats_supported": {
+                        "mso_mdoc": {
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
+                        }
+                    }
+                },
+                "dcql_query": {
+                    "credentials": [{
+                        "id": "pid",
+                        "format": "mso_mdoc",
+                        "meta": {
+                            "doctype_value": "org.iso.18013.5.1.mDL",
+                        },
+                        "claims": [
+                            { "path": ["org.iso.18013.5.1", "family_name"], "intent_to_retain": false }
+                        ]
+                    }]
+                }
+            }
+        );
+
+        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
+
+        assert_eq!(
+            normalized_request
+                .client_metadata
+                .encrypted_response_enc_values_supported,
+            Some(vec_nonempty![JweEncryptionAlgorithm::A256Gcm])
+        );
+    }
+
+    #[test]
+    fn deserialize_authorization_request_default_encryption_enc_supported() {
+        let example_json = json!(
+            {
+                "aud": "https://self-issued.me/v2",
+                "response_type": "vp_token",
+                "response_mode": "direct_post.jwt",
+                "client_id": "x509_san_dns:example.com",
+                "response_uri": "https://example.com/post",
+                "nonce": "%%2_fsd32434!==r",
+                "client_metadata": {
+                    "jwks": {
+                        "keys": [{
+                            "kty": "EC", "use": "enc", "crv": "P-256", "alg": "ECDH-ES", "kid": "my-key-id",
+                            "x": "xVLtZaPPK-xvruh1fEClNVTR6RCZBsQai2-DrnyKkxg",
+                            "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
+                        }]
+                    },
+                    "vp_formats_supported": {
+                        "mso_mdoc": {
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
+                        }
+                    }
+                },
+                "dcql_query": {
+                    "credentials": [{
+                        "id": "pid",
+                        "format": "mso_mdoc",
+                        "meta": {
+                            "doctype_value": "org.iso.18013.5.1.mDL",
+                        },
+                        "claims": [
+                            { "path": ["org.iso.18013.5.1", "family_name"], "intent_to_retain": false }
+                        ]
+                    }]
+                }
+            }
+        );
+
+        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
+
+        assert!(
+            normalized_request
+                .client_metadata
+                .encrypted_response_enc_values_supported
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn select_encryption_algorithm_should_default_to_a128gcm_when_not_advertised() {
+        let (_, _, _, auth_request) = setup_mdoc();
+        let mut client_metadata = auth_request.client_metadata.clone();
+        client_metadata.encrypted_response_enc_values_supported = None;
+
+        let encryption_algorithm =
+            NormalizedVpAuthorizationRequest::select_encryption_algorithm(&client_metadata).unwrap();
+
+        assert_eq!(encryption_algorithm, JweEncryptionAlgorithm::A128Gcm);
+    }
+
+    #[test]
+    fn select_encryption_algorithm_should_ignore_unknown_algorithms() {
+        let (_, _, _, auth_request) = setup_mdoc();
+        let mut client_metadata = auth_request.client_metadata.clone();
+        client_metadata.encrypted_response_enc_values_supported = Some(vec_nonempty![
+            JweEncryptionAlgorithm::Other("A512GCM".to_string()),
+            JweEncryptionAlgorithm::A256Gcm
+        ]);
+
+        let encryption_algorithm =
+            NormalizedVpAuthorizationRequest::select_encryption_algorithm(&client_metadata).unwrap();
+
+        assert_eq!(encryption_algorithm, JweEncryptionAlgorithm::A256Gcm);
+    }
+
+    #[test]
+    fn select_encryption_algorithm_should_prefer_a256gcm_over_a128gcm() {
+        let (_, _, _, auth_request) = setup_mdoc();
+        let mut client_metadata = auth_request.client_metadata.clone();
+        client_metadata.encrypted_response_enc_values_supported = Some(vec_nonempty![
+            JweEncryptionAlgorithm::A128Gcm,
+            JweEncryptionAlgorithm::A256Gcm
+        ]);
+
+        let encryption_algorithm =
+            NormalizedVpAuthorizationRequest::select_encryption_algorithm(&client_metadata).unwrap();
+
+        assert_eq!(encryption_algorithm, JweEncryptionAlgorithm::A256Gcm);
+    }
+
+    #[test]
+    fn validate_should_return_selected_encryption_algorithm() {
+        let (_, rp_keypair, _, auth_request) = setup_mdoc();
+        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        auth_request
+            .client_metadata
+            .as_mut()
+            .unwrap()
+            .encrypted_response_enc_values_supported = Some(vec_nonempty![
+            JweEncryptionAlgorithm::Other("A512GCM".to_string()),
+            JweEncryptionAlgorithm::A256Gcm
+        ]);
+
+        let (_, encryption_algorithm) = auth_request.validate(rp_keypair.certificate(), None).unwrap();
+
+        assert_eq!(encryption_algorithm, JweEncryptionAlgorithm::A256Gcm);
+    }
+
+    #[test]
+    fn deserialize_authorization_request_unknown_and_supported_encryption_enc_supported() {
+        let example_json = json!(
+            {
+                "aud": "https://self-issued.me/v2",
+                "response_type": "vp_token",
+                "response_mode": "direct_post.jwt",
+                "client_id": "x509_san_dns:example.com",
+                "response_uri": "https://example.com/post",
+                "nonce": "%%2_fsd32434!==r",
+                "client_metadata": {
+                    "jwks": {
+                        "keys": [{
+                            "kty": "EC", "use": "enc", "crv": "P-256", "alg": "ECDH-ES", "kid": "my-key-id",
+                            "x": "xVLtZaPPK-xvruh1fEClNVTR6RCZBsQai2-DrnyKkxg",
+                            "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
+                        }]
+                    },
+                    "encrypted_response_enc_values_supported": ["A512GCM", "A256GCM"],
+                    "vp_formats_supported": {
+                        "mso_mdoc": {
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
+                        }
+                    }
+                },
+                "dcql_query": {
+                    "credentials": [{
+                        "id": "pid",
+                        "format": "mso_mdoc",
+                        "meta": {
+                            "doctype_value": "org.iso.18013.5.1.mDL",
+                        },
+                        "claims": [
+                            { "path": ["org.iso.18013.5.1", "family_name"], "intent_to_retain": false }
+                        ]
+                    }]
+                }
+            }
+        );
+
+        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
+
+        assert_eq!(
+            normalized_request
+                .client_metadata
+                .encrypted_response_enc_values_supported,
+            Some(vec_nonempty![
+                JweEncryptionAlgorithm::Other("A512GCM".to_string()),
+                JweEncryptionAlgorithm::A256Gcm
+            ])
+        );
+    }
+
+    #[test]
+    fn validate_should_error_when_no_supported_encryption_algorithm_is_advertised() {
+        let (_, rp_keypair, _, auth_request) = setup_mdoc();
+        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        auth_request
+            .client_metadata
+            .as_mut()
+            .unwrap()
+            .encrypted_response_enc_values_supported =
+            Some(vec_nonempty![JweEncryptionAlgorithm::Other("A512GCM".to_string())]);
+
+        let error = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        assert_matches!(error, AuthRequestValidationError::NoSupportedEncryptedResponseEnc);
+    }
+
+    #[test]
+    fn authorization_request_missing_kid_should_error() {
+        let example_json = json!(
+            {
+                "aud": "https://self-issued.me/v2",
+                "response_type": "vp_token",
+                "response_mode": "direct_post.jwt",
+                "client_id": "x509_san_dns:example.com",
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -1672,8 +2032,311 @@ mod tests {
                             "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
                         }]
                     },
-                    "authorization_encryption_alg_values_supported": "ECDH-ES",
-                    "authorization_encryption_enc_values_supported": "A256GCM",
+                    "encrypted_response_enc_values_supported": ["A256GCM"],
+                    "vp_formats_supported": {
+                        "mso_mdoc": {
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
+                        }
+                    }
+                },
+                "dcql_query": {
+                    "credentials": [{
+                        "id": "pid",
+                        "format": "mso_mdoc",
+                        "meta": {
+                            "doctype_value": "org.iso.18013.5.1.mDL",
+                        },
+                        "claims": [
+                            { "path": ["org.iso.18013.5.1", "family_name"], "intent_to_retain": false }
+                        ]
+                    }]
+                }
+            }
+        );
+
+        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
+        assert_matches!(error, AuthRequestValidationError::MissingJwkKid(0));
+    }
+
+    #[test]
+    fn authorization_request_non_string_kid_should_error() {
+        let example_json = json!(
+            {
+                "aud": "https://self-issued.me/v2",
+                "response_type": "vp_token",
+                "response_mode": "direct_post.jwt",
+                "client_id": "x509_san_dns:example.com",
+                "response_uri": "https://example.com/post",
+                "nonce": "%%2_fsd32434!==r",
+                "client_metadata": {
+                    "jwks": {
+                        "keys": [{
+                            "kty": "EC", "use": "enc", "crv": "P-256", "alg": "ECDH-ES", "kid": 1,
+                            "x": "xVLtZaPPK-xvruh1fEClNVTR6RCZBsQai2-DrnyKkxg",
+                            "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
+                        }]
+                    },
+                    "encrypted_response_enc_values_supported": ["A256GCM"],
+                    "vp_formats_supported": {
+                        "mso_mdoc": {
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
+                        }
+                    }
+                },
+                "dcql_query": {
+                    "credentials": [{
+                        "id": "pid",
+                        "format": "mso_mdoc",
+                        "meta": {
+                            "doctype_value": "org.iso.18013.5.1.mDL",
+                        },
+                        "claims": [
+                            { "path": ["org.iso.18013.5.1", "family_name"], "intent_to_retain": false }
+                        ]
+                    }]
+                }
+            }
+        );
+
+        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
+        assert_matches!(error, AuthRequestValidationError::MissingJwkKid(0));
+    }
+
+    #[test]
+    fn authorization_request_should_select_first_supported_key() {
+        let example_json = json!(
+            {
+                "aud": "https://self-issued.me/v2",
+                "response_type": "vp_token",
+                "response_mode": "direct_post.jwt",
+                "client_id": "x509_san_dns:example.com",
+                "response_uri": "https://example.com/post",
+                "nonce": "%%2_fsd32434!==r",
+                "client_metadata": {
+                    "jwks": {
+                        "keys": [
+                            {
+                                "kty": "EC", "use": "enc", "crv": "P-384", "alg": "ECDH-ES", "kid": "unsupported"
+                            },
+                            {
+                                "kty": "EC", "use": "enc", "crv": "P-256", "alg": "ECDH-ES", "kid": "supported",
+                                "x": "xVLtZaPPK-xvruh1fEClNVTR6RCZBsQai2-DrnyKkxg",
+                                "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
+                            }
+                        ]
+                    },
+                    "encrypted_response_enc_values_supported": ["A256GCM"],
+                    "vp_formats_supported": {
+                        "mso_mdoc": {
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
+                        }
+                    }
+                },
+                "dcql_query": {
+                    "credentials": [{
+                        "id": "pid",
+                        "format": "mso_mdoc",
+                        "meta": {
+                            "doctype_value": "org.iso.18013.5.1.mDL",
+                        },
+                        "claims": [
+                            { "path": ["org.iso.18013.5.1", "family_name"], "intent_to_retain": false }
+                        ]
+                    }]
+                }
+            }
+        );
+
+        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let normalized_request = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap();
+
+        assert_eq!(normalized_request.encryption_pubkey.kid(), "supported");
+    }
+
+    #[test]
+    fn authorization_request_without_supported_keys_should_collect_jwk_errors() {
+        let example_json = json!(
+            {
+                "aud": "https://self-issued.me/v2",
+                "response_type": "vp_token",
+                "response_mode": "direct_post.jwt",
+                "client_id": "x509_san_dns:example.com",
+                "response_uri": "https://example.com/post",
+                "nonce": "%%2_fsd32434!==r",
+                "client_metadata": {
+                    "jwks": {
+                        "keys": [
+                            {
+                                "kty": "EC", "use": "enc", "crv": "P-384", "alg": "ECDH-ES", "kid": "unsupported-curve"
+                            },
+                            {
+                                "kty": "EC", "use": "enc", "crv": "P-256", "alg": "ES256", "kid": "unsupported-alg",
+                                "x": "xVLtZaPPK-xvruh1fEClNVTR6RCZBsQai2-DrnyKkxg",
+                                "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
+                            }
+                        ]
+                    },
+                    "encrypted_response_enc_values_supported": ["A256GCM"],
+                    "vp_formats_supported": {
+                        "mso_mdoc": {
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
+                        }
+                    }
+                },
+                "dcql_query": {
+                    "credentials": [{
+                        "id": "pid",
+                        "format": "mso_mdoc",
+                        "meta": {
+                            "doctype_value": "org.iso.18013.5.1.mDL",
+                        },
+                        "claims": [
+                            { "path": ["org.iso.18013.5.1", "family_name"], "intent_to_retain": false }
+                        ]
+                    }]
+                }
+            }
+        );
+
+        let auth_request: VpAuthorizationRequest = serde_json::from_value(example_json).unwrap();
+        let error = NormalizedVpAuthorizationRequest::try_from(auth_request).unwrap_err();
+        let AuthRequestValidationError::NoSupportedJwk(errors) = error else {
+            panic!("expected NoSupportedJwk error");
+        };
+
+        assert_eq!(errors.len(), 2);
+        assert_matches!(&errors[0], JwePublicKeyError::UnsupportedJwk { field, .. } if field == &"crv");
+        assert_matches!(&errors[1], JwePublicKeyError::JwkParsing(_));
+    }
+
+    #[test]
+    fn authorization_request_empty_jwks_should_fail_to_deserialize() {
+        let example_json = json!(
+            {
+                "aud": "https://self-issued.me/v2",
+                "response_type": "vp_token",
+                "response_mode": "direct_post.jwt",
+                "client_id": "x509_san_dns:example.com",
+                "response_uri": "https://example.com/post",
+                "nonce": "%%2_fsd32434!==r",
+                "client_metadata": {
+                    "jwks": {
+                        "keys": []
+                    },
+                    "encrypted_response_enc_values_supported": ["A256GCM"],
+                    "vp_formats_supported": {
+                        "mso_mdoc": {
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
+                        }
+                    }
+                },
+                "dcql_query": {
+                    "credentials": [{
+                        "id": "pid",
+                        "format": "mso_mdoc",
+                        "meta": {
+                            "doctype_value": "org.iso.18013.5.1.mDL",
+                        },
+                        "claims": [
+                            { "path": ["org.iso.18013.5.1", "family_name"], "intent_to_retain": false }
+                        ]
+                    }]
+                }
+            }
+        );
+
+        let error = serde_json::from_value::<VpAuthorizationRequest>(example_json).unwrap_err();
+        assert!(error.to_string().contains("vector does not contain least 1 item"));
+    }
+
+    #[test]
+    fn authorization_request_with_jwks_uri_should_fail_to_deserialize() {
+        let example_json = json!(
+            {
+                "aud": "https://self-issued.me/v2",
+                "response_type": "vp_token",
+                "response_mode": "direct_post.jwt",
+                "client_id": "x509_san_dns:example.com",
+                "response_uri": "https://example.com/post",
+                "nonce": "%%2_fsd32434!==r",
+                "client_metadata": {
+                    "jwks_uri": "https://example.com/jwks.json",
+                    "encrypted_response_enc_values_supported": ["A256GCM"],
+                    "vp_formats_supported": {
+                        "mso_mdoc": {
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
+                        }
+                    }
+                },
+                "dcql_query": {
+                    "credentials": [{
+                        "id": "pid",
+                        "format": "mso_mdoc",
+                        "meta": {
+                            "doctype_value": "org.iso.18013.5.1.mDL",
+                        },
+                        "claims": [
+                            { "path": ["org.iso.18013.5.1", "family_name"], "intent_to_retain": false }
+                        ]
+                    }]
+                }
+            }
+        );
+
+        assert!(serde_json::from_value::<VpAuthorizationRequest>(example_json).is_err());
+    }
+
+    #[test]
+    fn authorization_request_with_transaction_data_should_error() {
+        let example_json = json!(
+            {
+                "aud": "https://self-issued.me/v2",
+                "response_type": "vp_token",
+                "response_mode": "direct_post.jwt",
+                "client_id": "x509_san_dns:example.com",
+                "response_uri": "https://example.com/post",
+                "nonce": "%%2_fsd32434!==r",
+                "client_metadata": {
+                    "jwks": {
+                        "keys": [{
+                            "kty": "EC", "use": "enc", "crv": "P-256", "alg": "ECDH-ES", "kid": "my-key-id",
+                            "x": "xVLtZaPPK-xvruh1fEClNVTR6RCZBsQai2-DrnyKkxg",
+                            "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
+                        }]
+                    },
+                    "encrypted_response_enc_values_supported": ["A256GCM"],
                     "vp_formats_supported": {
                         "mso_mdoc": {
                             "issuerauth_alg_values": [-9],

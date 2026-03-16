@@ -3,9 +3,9 @@ env:
   contexts:
   - name: "Default Context"
     urls:
-    - "${DEMO_INDEX_URL}/"
+    - "${DEMO_INDEX_URL}"
     includePaths:
-    - "${DEMO_INDEX_URL}/.*"
+    - "${DEMO_INDEX_URL}.*"
     excludePaths: []
     authentication:
       parameters: {}

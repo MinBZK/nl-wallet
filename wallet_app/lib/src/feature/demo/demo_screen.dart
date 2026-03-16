@@ -52,17 +52,23 @@ class DemoScreen extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    return ConfirmButtons(
-      flipVertical: true,
-      primaryButton: PrimaryButton(
-        text: Text(context.l10n.demoScreenContinueCta),
-        onPressed: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.introductionRoute),
-      ),
-      secondaryButton: TertiaryButton(
-        text: Text(context.l10n.demoScreenMoreInfoCta),
-        icon: const Icon(Icons.north_east_outlined),
-        onPressed: () => launchUrlStringCatching(_kMoreInfoUrl),
-      ),
+    return Column(
+      mainAxisSize: .min,
+      children: [
+        const Divider(),
+        ConfirmButtons(
+          flipVertical: true,
+          primaryButton: PrimaryButton(
+            text: Text(context.l10n.demoScreenContinueCta),
+            onPressed: () => Navigator.restorablePushReplacementNamed(context, WalletRoutes.introductionRoute),
+          ),
+          secondaryButton: TertiaryButton(
+            text: Text(context.l10n.demoScreenMoreInfoCta),
+            icon: const Icon(Icons.north_east_outlined),
+            onPressed: () => launchUrlStringCatching(_kMoreInfoUrl),
+          ),
+        ),
+      ],
     );
   }
 

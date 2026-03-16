@@ -48,6 +48,11 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
+  Future<String> crateApiFullStartCloseProximityDisclosure() async {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<String?> crateApiFullCancelDisclosure() async {
     await _disclosureManager.cancelDisclosure();
     return null;

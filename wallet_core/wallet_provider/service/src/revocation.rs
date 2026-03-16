@@ -226,7 +226,7 @@ where
         .set_solution_revoked()
         .await
         .map_err(|err| RevocationError::Flag(Box::new(err)))?;
-    user_state.status_list_service.republish_all().await?;
+    user_state.status_list_service.republish_all(false).await?;
     Ok(())
 }
 
@@ -241,7 +241,7 @@ where
         .clear_flag(WalletFlag::SolutionRevoked)
         .await
         .map_err(|err| RevocationError::Flag(Box::new(err)))?;
-    user_state.status_list_service.republish_all().await?;
+    user_state.status_list_service.republish_all(true).await?;
     Ok(())
 }
 

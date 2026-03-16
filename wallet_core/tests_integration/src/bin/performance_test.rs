@@ -74,7 +74,7 @@ async fn main() {
         .unwrap();
     let pid_issuance_config = &config_repository.get().pid_issuance;
     let update_policy_repository = UpdatePolicyRepository::init();
-    let wallet_clients = WalletClients::new_http().unwrap();
+    let wallet_clients = WalletClients::new().unwrap();
 
     let storage = MockHardwareDatabaseStorage::open_in_memory().await;
 

@@ -48,8 +48,9 @@ use http_utils::urls::disclosure_based_issuance_base_uri;
 use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
-use issuer_settings::settings::IssuerSettings;
-use issuer_settings::settings::StatusListAttestationSettings;
+use issuer_common::nonce_store::ProofNonceStore;
+use issuer_common::settings::IssuerSettings;
+use issuer_common::settings::StatusListAttestationSettings;
 use jwt::SignedJwt;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -81,6 +82,7 @@ use status_lists::settings::StatusListsSettings;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use update_policy_server::settings::Settings as UpsSettings;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use verification_server::settings::VerifierSettings;
 use wallet::AttestationPresentation;
 use wallet::PidIssuancePurpose;
@@ -309,7 +311,8 @@ pub async fn setup_env(
             .map(|id| {
                 (
                     id.to_string(),
-                    TlsPinningConfig::try_new(attestation_server_url.clone(), vec![di_root_ca.clone()]).unwrap(),
+                    TlsPinningConfig::try_new(attestation_server_url.clone(), vec_nonempty![di_root_ca.clone()])
+                        .unwrap(),
                 )
             })
             .collect(),
@@ -338,17 +341,18 @@ pub async fn setup_env(
     served_wallet_config.pid_issuance.pid_issuer_url = issuer_urls.pid_issuer.public.clone();
     served_wallet_config.account_server.http_config = TlsPinningConfig::try_new(
         local_wp_base_url(wp_port),
-        served_wallet_config.account_server.http_config.trust_anchors().to_vec(),
+        VecNonEmpty::try_from(served_wallet_config.account_server.http_config.trust_anchors().to_vec()).unwrap(),
     )
     .unwrap();
     served_wallet_config.update_policy_server.http_config =
-        TlsPinningConfig::try_new(local_ups_base_url(ups_port), vec![ups_root_ca.clone()]).unwrap();
+        TlsPinningConfig::try_new(local_ups_base_url(ups_port), vec_nonempty![ups_root_ca.clone()]).unwrap();
 
     static_settings.wallet_config_jwt = config_jwt(&served_wallet_config).await.into();
 
     let static_port = start_static_server(static_settings, static_root_ca.clone()).await;
     let config_server_config = ConfigServerConfiguration {
-        http_config: TlsPinningConfig::try_new(local_config_base_url(static_port), vec![static_root_ca]).unwrap(),
+        http_config: TlsPinningConfig::try_new(local_config_base_url(static_port), vec_nonempty![static_root_ca])
+            .unwrap(),
         ..default_config_server_config()
     };
 
@@ -356,11 +360,11 @@ pub async fn setup_env(
     wallet_config.pid_issuance.pid_issuer_url = issuer_urls.pid_issuer.public.clone();
     wallet_config.account_server.http_config = TlsPinningConfig::try_new(
         local_wp_base_url(wp_port),
-        wallet_config.account_server.http_config.trust_anchors().to_vec(),
+        VecNonEmpty::try_from(wallet_config.account_server.http_config.trust_anchors().to_vec()).unwrap(),
     )
     .unwrap();
     wallet_config.update_policy_server.http_config =
-        TlsPinningConfig::try_new(local_ups_base_url(ups_port), vec![ups_root_ca]).unwrap();
+        TlsPinningConfig::try_new(local_ups_base_url(ups_port), vec_nonempty![ups_root_ca]).unwrap();
 
     (
         config_server_config,
@@ -420,7 +424,7 @@ where
         .unwrap();
 
     let update_policy_repository = UpdatePolicyRepository::init();
-    let wallet_clients = WalletClients::new_http().unwrap();
+    let wallet_clients = WalletClients::new().unwrap();
 
     Wallet::init_registration(
         config_repository,
@@ -776,6 +780,7 @@ pub async fn start_issuance_server(
         store_connection.clone(),
         storage_settings.into(),
     ));
+    let nonce_store = ProofNonceStore::new(store_connection.clone());
     let disclosure_settings = Arc::new(SessionStoreVariant::new(
         store_connection.clone(),
         storage_settings.into(),
@@ -798,6 +803,7 @@ pub async fn start_issuance_server(
                 settings,
                 hsm,
                 issuance_sessions,
+                nonce_store,
                 disclosure_settings,
                 attributes_fetcher,
                 status_list_services,
@@ -845,6 +851,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
         store_connection.clone(),
         storage_settings.into(),
     ));
+    let nonce_store = ProofNonceStore::new(store_connection.clone());
 
     let (status_list_router, status_list_services) = get_status_list_service_and_router(
         storage_settings.url.clone(),
@@ -863,6 +870,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
                 settings.issuer_settings,
                 hsm,
                 issuance_sessions,
+                nonce_store,
                 settings.wua_issuer_pubkey.into_inner(),
                 status_list_services,
                 Some(status_list_router),

@@ -251,12 +251,16 @@ impl DbSetup {
 
     pub fn server_utils_url(&self) -> Url {
         // Reuse verification server as it is exactly the same as server utils migrations
-        DbName::VerificationServer.url(self.connect_options.clone(), self.index)
+        self.verification_server_url()
+    }
+
+    pub fn issuer_common_url(&self) -> Url {
+        self.issuance_server_url()
     }
 
     pub fn status_lists_url(&self) -> Url {
         // Reuse issuance server as it contains status lists and only used in the module
-        DbName::IssuanceServer.url(self.connect_options.clone(), self.index)
+        self.issuance_server_url()
     }
 
     pub fn pid_issuer_url(&self) -> Url {
@@ -508,8 +512,8 @@ async fn migrate(name: DbName, connect_options: PgConnectOptions) {
     let url = name.template_url(connect_options);
     let pool = connection_from_url(url.clone()).await;
     match name {
-        DbName::IssuanceServer => issuance_server_migrations::Migrator::up(&pool, None).await,
-        DbName::PidIssuer => issuance_server_migrations::Migrator::up(&pool, None).await,
+        DbName::IssuanceServer => issuer_common_migrations::Migrator::up(&pool, None).await,
+        DbName::PidIssuer => issuer_common_migrations::Migrator::up(&pool, None).await,
         DbName::VerificationServer => server_utils_migrations::Migrator::up(&pool, None).await,
         DbName::WalletProvider => wallet_provider_migrations::Migrator::up(&pool, None).await,
         DbName::WalletProviderAuditLog => audit_log_migrations::Migrator::up(&pool, None).await,

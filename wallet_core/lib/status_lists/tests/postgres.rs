@@ -417,7 +417,7 @@ async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
     }
 
     // Check republish
-    service.republish_all().await.unwrap();
+    service.republish_all(true).await.unwrap();
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -915,7 +915,15 @@ async fn test_service_revoke_all() {
 
     // Revoke all and publish
     revoke_all.0.store(true, Ordering::Relaxed);
-    service.republish_all().await.unwrap();
+    service.republish_all(false).await.unwrap();
+
+    // Check if published lists only contains invalid statuses
+    assert_published_list(&config, &db_lists[0], 0..8).await;
+    assert_published_list(&config, &db_lists[1], 0..16).await;
+
+    // Switching flag should not republish (if reset is false)
+    revoke_all.0.store(false, Ordering::Relaxed);
+    service.republish_all(false).await.unwrap();
 
     // Check if published lists only contains invalid statuses
     assert_published_list(&config, &db_lists[0], 0..8).await;

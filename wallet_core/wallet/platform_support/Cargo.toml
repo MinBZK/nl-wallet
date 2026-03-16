@@ -55,7 +55,7 @@ xcode_env = ["apple_app_attest/xcode_env"]
 # Include the MockHardwareUtilities type for use in tests
 mock_utils = []
 # Include all mock implementations for use in tests
-mock = ["mock_attested_key", "mock_hw_keystore", "mock_utils"]
+mock = ["mock_attested_key", "mock_close_proximity_disclosure", "mock_hw_keystore", "mock_utils"]
 # Enable helper code for iOS and Android integration tests
 hardware_integration_test = [
     "android_attest/test_root_keys",

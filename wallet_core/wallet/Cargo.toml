@@ -21,7 +21,12 @@ fake_attestation = [
     "platform_support/xcode_env",
 ]
 # Various test related functionality of Wallet types and dependencies
-test = ["openid4vc/mock", "platform_support/mock_hw_keystore", "dep:mockall"]
+test = [
+    "dep:mockall",
+    "openid4vc/mock",
+    "platform_support/mock_hw_keystore",
+    "platform_support/mock_close_proximity_disclosure",
+]
 
 [dependencies]
 async-trait.workspace = true
@@ -103,7 +108,7 @@ attestation_types = { path = "../lib/attestation_types" }
 attestation_data = { path = "../lib/attestation_data", features = ["example_credential_payloads", "generate", "mock"] }
 crypto = { path = "../lib/crypto", features = ["mock", "mock_secure_keys"] }
 dcql = { path = "../lib/dcql", features = ["mock"] }
-http_utils = { path = "../lib/http_utils", features = ["client"] }
+http_utils = { path = "../lib/http_utils", features = ["client", "test"] }
 jwt = { path = "../lib/jwt", features = ["test"] }
 openid4vc = { path = "../lib/openid4vc", features = [
     "mock",

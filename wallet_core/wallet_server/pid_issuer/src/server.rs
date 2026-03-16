@@ -6,10 +6,11 @@ use p256::ecdsa::VerifyingKey;
 use tokio::net::TcpListener;
 
 use hsm::service::Pkcs11Hsm;
-use issuer_settings::settings::IssuerSettings;
+use issuer_common::settings::IssuerSettings;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WuaConfig;
+use openid4vc::nonce::store::NonceStore;
 use openid4vc::server_state::SessionStore;
 use openid4vc_server::issuer::create_issuance_router;
 use server_utils::server::add_cache_control_no_store_layer;
@@ -22,11 +23,12 @@ use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListServices;
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve<A, L, IS>(
+pub async fn serve<A, IS, N, L>(
     attr_service: A,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
+    nonce_store: N,
     wua_issuer_pubkey: VerifyingKey,
     status_list_services: L,
     status_list_router: Option<Router>,
@@ -34,8 +36,9 @@ pub async fn serve<A, L, IS>(
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
-    L: StatusListServices + StatusListRevocationService + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
+    N: NonceStore + Send + Sync + 'static,
+    L: StatusListServices + StatusListRevocationService + Send + Sync + 'static,
 {
     serve_with_listeners(
         create_wallet_listener(&settings.server_settings.wallet_server).await?,
@@ -44,6 +47,7 @@ where
         settings,
         hsm,
         issuance_sessions,
+        nonce_store,
         wua_issuer_pubkey,
         status_list_services,
         status_list_router,
@@ -53,13 +57,14 @@ where
 }
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve_with_listeners<A, L, IS>(
+pub async fn serve_with_listeners<A, IS, N, L>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
     attr_service: A,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
+    nonce_store: N,
     wua_issuer_pubkey: VerifyingKey,
     status_list_services: L,
     status_list_router: Option<Router>,
@@ -67,8 +72,9 @@ pub async fn serve_with_listeners<A, L, IS>(
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
-    L: StatusListServices + StatusListRevocationService + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
+    N: NonceStore + Send + Sync + 'static,
+    L: StatusListServices + StatusListRevocationService + Send + Sync + 'static,
 {
     let log_requests = settings.server_settings.log_requests;
 
@@ -76,14 +82,15 @@ where
 
     let status_list_services = Arc::new(status_list_services);
     let wallet_issuance_router = create_issuance_router(Arc::new(Issuer::new(
-        issuance_sessions,
-        attr_service,
-        attestation_config,
         settings.public_url,
         settings.wallet_client_ids,
+        attestation_config,
         Some(WuaConfig {
             wua_issuer_pubkey: (&wua_issuer_pubkey).into(),
         }),
+        attr_service,
+        issuance_sessions,
+        nonce_store,
         Arc::clone(&status_list_services),
     )));
 

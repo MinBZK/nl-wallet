@@ -21,18 +21,6 @@ class HistoryDetailLoadSuccess extends HistoryDetailState {
 
   const HistoryDetailLoadSuccess(this.event);
 
-  WalletCard? cardById(String attestationId) {
-    final event = this.event;
-    switch (event) {
-      case DisclosureEvent():
-        return event.cards.firstWhereOrNull((card) => card.attestationId == attestationId);
-      case IssuanceEvent():
-        return event.card.takeIf((card) => card.attestationId == attestationId);
-      case SignEvent():
-        return null;
-    }
-  }
-
   @override
   List<Object> get props => [event];
 }
