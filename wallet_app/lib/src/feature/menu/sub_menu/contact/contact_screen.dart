@@ -72,7 +72,7 @@ class ContactScreen extends StatelessWidget {
           icon: const Icon(Icons.phone_outlined),
           iconPosition: IconPosition.start,
           dividerSide: DividerSide.none,
-          onPressed: () => PlaceholderScreen.showGeneric(context),
+          onPressed: () => PlaceholderScreen.showGeneric(context, secured: false),
         ),
         const SizedBox(height: 24),
       ],
