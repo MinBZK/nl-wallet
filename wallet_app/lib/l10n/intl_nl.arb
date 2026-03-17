@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2026-03-02T17:40:44+01:00",
+    "@@last_modified": "2026-03-16T15:47:31+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -25,7 +25,7 @@
     "appBlockedByUpdateScreenDescription": "Je kunt deze versie van de app niet langer gebruiken. Ga naar de Play Store om de app bij te werken.",
     "appBlockedByUpdateScreenDescriptioniOSVariant": "Je kunt deze versie van de app niet langer gebruiken. Ga naar de App Store om de app bij te werken.",
     "appBlockedByUpdateScreenTitle": "Een nieuwe app versie is vereist",
-    "appBlockedScreenByUserDescription": "Je kunt deze NL Wallet niet meer gebruiken. je heeft deze wallet verwijderd met jouw verwijdercode.\n\nAls je dit niet zelf heeft gedaan, neem dan contact op met de helpdesk.",
+    "appBlockedScreenByUserDescription": "Je kunt deze NL Wallet niet meer gebruiken. Je hebt deze wallet verwijderd met jouw verwijdercode.\n\nAls je dit niet zelf hebt gedaan, neem dan contact op met de helpdesk.",
     "appBlockedScreenByUserTitle": "Jouw NL Wallet is verwijderd",
     "appBlockedScreenDescription": "Je kunt de NL Wallet-app niet meer gebruiken. Dit kan meerdere oorzaken hebben.\n\nSluit deze app of maak een nieuwe wallet aan om de NL Wallet opnieuw te gebruiken.\n\nHulp nodig? Neem contact op met de helpdesk.",
     "appBlockedScreenHelpdeskCta": "Naar helpdesk",
