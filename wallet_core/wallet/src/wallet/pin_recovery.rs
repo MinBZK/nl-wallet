@@ -500,7 +500,6 @@ mod tests {
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockCredentialIssuer;
     use openid4vc::mock::MockIssuanceSession;
-    use openid4vc::oidc::HttpAuthorizationServer;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
@@ -513,7 +512,6 @@ mod tests {
 
     use crate::errors::PinValidationError;
     use crate::instruction::PinRecoveryWscd;
-    use crate::oidc_session::OidcSession;
     use crate::repository::Repository;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
@@ -529,36 +527,11 @@ mod tests {
     use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::create_example_pid_preview_data;
     use crate::wallet::test::create_example_pid_sd_jwt;
+    use crate::wallet::test::create_real_oidc_session;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::mock_issuance_session;
 
     use super::PinRecoveryError;
-
-    /// Create a real `OidcSession<HttpAuthorizationServer>` and a redirect URI that will
-    /// successfully yield a token request when `into_token_request` is called.
-    fn create_real_oidc_session() -> (OidcSession<HttpAuthorizationServer>, Url) {
-        use crate::oidc_session::build_oidc_session;
-
-        let redirect_uri = Url::parse(AUTH_URL).unwrap();
-        let oidc_session = build_oidc_session(
-            openid4vc::oidc::Config::new(
-                "http://example.com".parse().unwrap(),
-                Url::parse(AUTH_URL).unwrap(),
-                Url::parse(AUTH_URL).unwrap(),
-                Url::parse(AUTH_URL).unwrap(),
-            ),
-            "client_id".to_string(),
-            redirect_uri.clone(),
-        )
-        .unwrap();
-
-        // Build a redirect URI with the right CSRF state and a dummy code
-        let state = oidc_session.oidc_client.csrf_state().to_string();
-        let mut redirect = redirect_uri.clone();
-        redirect.set_query(Some(&format!("code=test_code&state={state}")));
-
-        (oidc_session, redirect)
-    }
 
     fn setup_issuer_metadata_mock(wallet: &mut TestWalletMockStorage) {
         let config = wallet.config_repository.get();
@@ -613,7 +586,7 @@ mod tests {
     pub async fn continue_pin_recovery() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let (oidc_session, redirect_uri) = create_real_oidc_session();
+        let (oidc_session, redirect_uri) = create_real_oidc_session(AUTH_URL);
 
         let mut discovered = MockCredentialIssuer::new();
         discovered.expect_start().return_once(|_| {
@@ -816,7 +789,7 @@ mod tests {
     async fn continue_pid_recovery_user_refused() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let (oidc_session, _) = create_real_oidc_session();
+        let (oidc_session, _) = create_real_oidc_session(AUTH_URL);
 
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
@@ -837,7 +810,7 @@ mod tests {
     pub async fn continue_pin_recovery_received_no_recovery_code() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let (oidc_session, redirect_uri) = create_real_oidc_session();
+        let (oidc_session, redirect_uri) = create_real_oidc_session(AUTH_URL);
 
         let mut discovered = MockCredentialIssuer::new();
         discovered.expect_start().return_once(|_| {
@@ -881,7 +854,7 @@ mod tests {
     pub async fn continue_pin_recovery_received_wrong_recovery_code() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let (oidc_session, redirect_uri) = create_real_oidc_session();
+        let (oidc_session, redirect_uri) = create_real_oidc_session(AUTH_URL);
 
         let mut discovered = MockCredentialIssuer::new();
         discovered.expect_start().once().return_once(move |_| {

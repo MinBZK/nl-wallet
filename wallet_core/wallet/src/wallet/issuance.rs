@@ -828,6 +828,7 @@ mod tests {
     use crate::wallet::test::create_example_pid_preview_data;
     use crate::wallet::test::create_example_pid_sd_jwt;
     use crate::wallet::test::create_example_preview_data;
+    use crate::wallet::test::create_real_oidc_session;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::mock_issuance_session;
 
@@ -1186,32 +1187,6 @@ mod tests {
         assert_matches!(error, IssuanceError::SessionState);
     }
 
-    /// Creates a real `OidcSession<HttpAuthorizationServer>` and a redirect URI with the correct state
-    /// that will successfully yield a token request when `into_token_request` is called.
-    fn create_real_oidc_session() -> (OidcSession<HttpAuthorizationServer>, Url) {
-        use crate::oidc_session::build_oidc_session;
-
-        let redirect_uri = Url::parse(REDIRECT_URI).unwrap();
-        let oidc_session = build_oidc_session(
-            openid4vc::oidc::Config::new(
-                "http://example.com".parse().unwrap(),
-                Url::parse(AUTH_URL).unwrap(),
-                Url::parse(AUTH_URL).unwrap(),
-                Url::parse(AUTH_URL).unwrap(),
-            ),
-            "client_id".to_string(),
-            redirect_uri.clone(),
-        )
-        .unwrap();
-
-        // Build a redirect URI with the right CSRF state and a dummy code
-        let state = oidc_session.oidc_client.csrf_state().to_string();
-        let mut success_redirect = redirect_uri.clone();
-        success_redirect.set_query(Some(&format!("code=test_code&state={state}")));
-
-        (oidc_session, success_redirect)
-    }
-
     /// Creates a real `OidcSession<HttpAuthorizationServer>` for tests that only need the session
     /// (e.g., they cancel or check session state, not calling `into_token_request`).
     fn create_stub_oidc_session() -> OidcSession<HttpAuthorizationServer> {
@@ -1233,7 +1208,7 @@ mod tests {
     async fn setup_wallet_with_oidc_session() -> (TestWalletMockStorage, Url) {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (oidc_session, redirect_uri) = create_real_oidc_session();
+        let (oidc_session, redirect_uri) = create_real_oidc_session(REDIRECT_URI);
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
             oidc_session: Box::new(oidc_session),
@@ -1245,7 +1220,7 @@ mod tests {
     async fn setup_wallet_with_oidc_session_and_database_mock() -> (TestWalletMockStorage, Url) {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (oidc_session, redirect_uri) = create_real_oidc_session();
+        let (oidc_session, redirect_uri) = create_real_oidc_session(REDIRECT_URI);
         // Set up the credential issuer discovery mock with a start expectation for continue_pid_issuance
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
@@ -1269,7 +1244,7 @@ mod tests {
     #[tokio::test]
     async fn test_continue_pid_issuance_error_pid_issuer() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (oidc_session, redirect_uri) = create_real_oidc_session();
+        let (oidc_session, redirect_uri) = create_real_oidc_session(REDIRECT_URI);
 
         // Set up the credential issuer to return an error from start_issuance.
         let mut issuer = MockCredentialIssuer::new();

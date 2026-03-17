@@ -15,6 +15,7 @@ use rand_core::OsRng;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use ssri::Integrity;
+use url::Url;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
@@ -44,6 +45,7 @@ use openid4vc::issuance_session::IssuedCredentialCopies;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::mock::MockCredentialIssuerDiscovery;
 use openid4vc::mock::MockIssuanceSession;
+use openid4vc::oidc::HttpAuthorizationServer;
 use openid4vc::token::CredentialPreviewContent;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
@@ -77,6 +79,8 @@ use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::default_config_server_config;
 use crate::config::test::test_wallet_config;
+use crate::oidc_session::OidcSession;
+use crate::oidc_session::build_oidc_session;
 use crate::pin::key as pin_key;
 use crate::storage::KeyData;
 use crate::storage::MockHardwareDatabaseStorage;
@@ -644,4 +648,28 @@ pub fn mock_issuance_session(
     });
 
     (client, attestations)
+}
+
+/// Creates a real `OidcSession<HttpAuthorizationServer>` and a redirect URI with the correct state
+/// that will successfully yield a token request when `into_token_request` is called.
+pub fn create_real_oidc_session(redirect_uri: &str) -> (OidcSession<HttpAuthorizationServer>, Url) {
+    let redirect_uri = Url::parse(redirect_uri).unwrap();
+    let oidc_session = build_oidc_session(
+        openid4vc::oidc::Config::new(
+            "http://example.com".parse().unwrap(),
+            Url::parse(AUTH_URL).unwrap(),
+            Url::parse(AUTH_URL).unwrap(),
+            Url::parse(AUTH_URL).unwrap(),
+        ),
+        "client_id".to_string(),
+        redirect_uri.clone(),
+    )
+    .unwrap();
+
+    // Build a redirect URI with the right CSRF state and a dummy code
+    let state = oidc_session.oidc_client.csrf_state().to_string();
+    let mut redirect = redirect_uri.clone();
+    redirect.set_query(Some(&format!("code=test_code&state={state}")));
+
+    (oidc_session, redirect)
 }
