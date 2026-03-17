@@ -27,7 +27,7 @@
 
 <form method="post" class="delete-form">
   <fieldset>
-    <legend class="step-title">Step 1:</legend>
+    <legend class="step-title">{{ base.trans.delete_step1 }}:</legend>
     <p class="step-description">{{ base.trans.delete_step1_instruction }}</p>
 
     <div class="form-group">
