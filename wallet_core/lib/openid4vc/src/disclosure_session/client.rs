@@ -14,8 +14,8 @@ use http_utils::urls::BaseUrl;
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
-use crate::openid4vp::DcSdJwtAlgValues;
 use crate::openid4vp::MsoMdocAlgValues;
+use crate::openid4vp::SdJwtAlgValues;
 use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpRequestUri;
 use crate::openid4vp::VpRequestUriMethod;
@@ -218,7 +218,7 @@ where
             let vp_formats = &auth_request.client_metadata.vp_formats_supported;
             let format_supported = match format {
                 CredentialFormat::MsoMdoc => vp_formats.mso_mdoc.as_ref().is_some_and(MsoMdocAlgValues::is_ecdsa_256),
-                CredentialFormat::SdJwt => vp_formats.sd_jwt.as_ref().is_some_and(DcSdJwtAlgValues::is_ecdsa_256),
+                CredentialFormat::SdJwt => vp_formats.sd_jwt.as_ref().is_some_and(SdJwtAlgValues::is_ecdsa_256),
             };
 
             if !format_supported {

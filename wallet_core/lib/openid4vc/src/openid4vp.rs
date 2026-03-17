@@ -292,7 +292,7 @@ pub struct VpFormatsSupported {
     #[serde(rename = "mso_mdoc", skip_serializing_if = "Option::is_none")]
     pub mso_mdoc: Option<MsoMdocAlgValues>,
     #[serde(rename = "dc+sd-jwt", skip_serializing_if = "Option::is_none")]
-    pub sd_jwt: Option<DcSdJwtAlgValues>,
+    pub sd_jwt: Option<SdJwtAlgValues>,
 }
 
 /// Alg values for mso_mdoc.
@@ -313,15 +313,21 @@ impl MsoMdocAlgValues {
     }
 }
 
+/// Alg values for dc+sd-jwt.
+/// <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.3.4>
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DcSdJwtAlgValues {
+pub struct SdJwtAlgValues {
+    /// OPTIONAL. A non-empty array containing fully-specified identifiers of cryptographic algorithms supported for an
+    /// Issuer-signed JWT of an SD-JWT.
     #[serde(rename = "sd-jwt_alg_values")]
     pub sd_jwt_alg_values: Option<VecNonEmpty<FormatAlg>>,
+    /// OPTIONAL. A non-empty array containing fully-specified identifiers of cryptographic algorithms supported for a
+    /// Key Binding JWT (KB-JWT).
     #[serde(rename = "kb-jwt_alg_values")]
     pub kb_jwt_alg_values: Option<VecNonEmpty<FormatAlg>>,
 }
 
-impl DcSdJwtAlgValues {
+impl SdJwtAlgValues {
     pub fn is_ecdsa_256(&self) -> bool {
         let contains_es_256 = |alg: &VecNonEmpty<FormatAlg>| alg.iter().contains(&FormatAlg::ES256);
         self.sd_jwt_alg_values.as_ref().is_some_and(contains_es_256)
@@ -668,7 +674,7 @@ impl NormalizedVpAuthorizationRequest {
                         issuerauth_alg_values: vec_nonempty![FormatAlgCose::ESP256].into(),
                         deviceauth_alg_values: vec_nonempty![FormatAlgCose::ESP256].into(),
                     }),
-                    sd_jwt: Some(DcSdJwtAlgValues {
+                    sd_jwt: Some(SdJwtAlgValues {
                         sd_jwt_alg_values: vec_nonempty![FormatAlg::ES256].into(),
                         kb_jwt_alg_values: vec_nonempty![FormatAlg::ES256].into(),
                     }),

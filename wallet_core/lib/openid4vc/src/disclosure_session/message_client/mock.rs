@@ -24,11 +24,11 @@ use utils::vec_nonempty;
 
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
-use crate::openid4vp::DcSdJwtAlgValues;
 use crate::openid4vp::FormatAlg;
 use crate::openid4vp::FormatAlgCose;
 use crate::openid4vp::MsoMdocAlgValues;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
+use crate::openid4vp::SdJwtAlgValues;
 use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpClientMetadata;
 use crate::openid4vp::VpFormatsSupported;
@@ -213,7 +213,7 @@ impl MockVerifierSession {
                     issuerauth_alg_values: vec_nonempty![FormatAlgCose::ESP256].into(),
                     deviceauth_alg_values: vec_nonempty![FormatAlgCose::ESP256].into(),
                 }),
-                sd_jwt: Some(DcSdJwtAlgValues {
+                sd_jwt: Some(SdJwtAlgValues {
                     sd_jwt_alg_values: vec_nonempty![FormatAlg::ES256].into(),
                     kb_jwt_alg_values: vec_nonempty![FormatAlg::ES256].into(),
                 }),
