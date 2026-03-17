@@ -8,6 +8,8 @@ use std::time::Duration;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
+use coset::RegisteredLabelWithPrivate;
+use coset::iana;
 use derive_more::Constructor;
 use futures::future::try_join_all;
 use itertools::Itertools;
@@ -34,8 +36,6 @@ use serde_with::SerializeAs;
 use serde_with::SerializeDisplay;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
-use coset::RegisteredLabelWithPrivate;
-use coset::iana;
 
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestationError;
@@ -311,15 +311,9 @@ impl MsoMdocAlgValues {
         // either directly (-7, ECDSA with SHA-256 per https://www.iana.org/assignments/cose/cose.xhtml) or via a
         // fully-specified algorithm (-9, ECDSA with P-256 and SHA-256 per
         // https://datatracker.ietf.org/doc/html/rfc9864#section-2.1).
-        let accepts_ecdsa_p256 =
-            |alg: &VecNonEmpty<FormatAlgCose>| alg.iter().any(FormatAlgCose::is_ecdsa_p256);
-        self.issuerauth_alg_values
-            .as_ref()
-            .is_some_and(accepts_ecdsa_p256)
-            && self
-                .deviceauth_alg_values
-                .as_ref()
-                .is_some_and(accepts_ecdsa_p256)
+        let accepts_ecdsa_p256 = |alg: &VecNonEmpty<FormatAlgCose>| alg.iter().any(FormatAlgCose::is_ecdsa_p256);
+        self.issuerauth_alg_values.as_ref().is_some_and(accepts_ecdsa_p256)
+            && self.deviceauth_alg_values.as_ref().is_some_and(accepts_ecdsa_p256)
     }
 }
 
