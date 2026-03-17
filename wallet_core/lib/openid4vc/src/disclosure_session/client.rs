@@ -222,8 +222,7 @@ where
             };
 
             if !format_supported {
-                let error = VpVerifierError::VpFormatsNotSupported(format);
-                return Err(self.report_error_back(auth_request.response_uri, error).await)?;
+                return Err(VpVerifierError::VpFormatsNotSupported(format).into());
             }
         }
 
