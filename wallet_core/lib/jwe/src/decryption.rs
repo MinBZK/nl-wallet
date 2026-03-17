@@ -1,26 +1,56 @@
-use derive_more::Constructor;
+use derive_more::AsRef;
+use derive_more::Debug;
+use derive_more::Display;
+use derive_more::From;
+use derive_more::FromStr;
 use josekit::JoseError;
 use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
 use josekit::jwe::alg::ecdh_es::EcdhEsJweDecrypter;
 use p256::SecretKey;
 use p256::pkcs8::EncodePrivateKey;
 use rand_core::OsRng;
+use serde::Deserialize;
+use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde_with::DisplayFromStr;
+use serde_with::serde_as;
 
 use crate::algorithm::JweAlgorithm;
 use crate::encryption::JwePublicKey;
 
+#[derive(Debug, Clone, From, AsRef, Display, FromStr)]
+#[display(
+    "{}",
+    self
+        .0
+        .to_pkcs8_pem(Default::default())
+        .expect("a p256 secret key should always encode to PKCS #8 PEM")
+        .as_str()
+)]
+struct PemSecretKey(SecretKey);
+
 /// Wraps a P-256 EC secret key, anoptional `kid` value and a JWE algorithm. This type is meant to be converted to a
 /// [`JwePublicKey`], which can then be converted to a JWK in the form of a [`jwk_simple::jwk::Key`] and sent to
 /// another party. JWEs from this other party can then be decrypted by converting it into a [`JweDecrypter`].
-#[derive(Debug, Clone, Constructor)]
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JweSecretKey {
     id: Option<String>,
-    key: SecretKey,
+    #[serde_as(as = "DisplayFromStr")]
+    key: PemSecretKey,
+    #[serde_as(as = "DisplayFromStr")]
     algorithm: JweAlgorithm,
 }
 
 impl JweSecretKey {
+    pub fn new(id: Option<String>, key: SecretKey, algorithm: JweAlgorithm) -> Self {
+        Self {
+            id,
+            key: key.into(),
+            algorithm,
+        }
+    }
+
     pub fn new_random(id: Option<String>, algorithm: JweAlgorithm) -> Self {
         let key = SecretKey::random(&mut OsRng);
 
@@ -32,7 +62,7 @@ impl JweSecretKey {
     }
 
     pub fn key(&self) -> &SecretKey {
-        &self.key
+        self.key.as_ref()
     }
 
     pub fn algorithm(&self) -> JweAlgorithm {
@@ -40,7 +70,7 @@ impl JweSecretKey {
     }
 
     pub fn to_jwe_public_key(&self) -> JwePublicKey {
-        JwePublicKey::new(self.id.clone(), self.key.public_key(), self.algorithm)
+        JwePublicKey::new(self.id.clone(), self.key.as_ref().public_key(), self.algorithm)
     }
 }
 
@@ -78,7 +108,7 @@ impl JweDecrypter {
     }
 
     pub fn from_secret_key(secret_key: &JweSecretKey) -> Self {
-        Self::new(secret_key.id.clone(), &secret_key.key, secret_key.algorithm)
+        Self::new(secret_key.id.clone(), secret_key.key.as_ref(), secret_key.algorithm)
     }
 
     pub fn id(&self) -> Option<&str> {

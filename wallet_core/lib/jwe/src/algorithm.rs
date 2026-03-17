@@ -1,9 +1,10 @@
 use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
 use jwk_simple::Algorithm;
+use strum::EnumString;
 
 /// A type representing the "alg" header parameter value for JWE, i.e. the JWE algorithm. It contains only those
 /// algorithms supported by this crate. See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-4>
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "SCREAMING-KEBAB-CASE")]
 pub enum JweAlgorithm {
     EcdhEs,
