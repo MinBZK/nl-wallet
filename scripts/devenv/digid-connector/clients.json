@@ -1,5 +1,5 @@
 {
-  "${WALLET_CLIENT_ID}": {
+  "${DIGID_CLIENT_ID}": {
     "name": "NL Wallet",
     "external_id": "87654321",
     "external_ids": ["87654321"],
