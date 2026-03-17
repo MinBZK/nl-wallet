@@ -20,11 +20,12 @@ import '../../wallet_constants.dart';
 import '../banner/banner_list.dart';
 import '../card/detail/argument/card_detail_screen_argument.dart';
 import '../card/detail/card_detail_screen.dart';
+import '../common/sheet/qr_action_sheet.dart';
 import '../common/widget/activity_summary.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/icon/menu_icon_text_button.dart';
 import '../common/widget/button/icon/qr_icon_button.dart';
-import '../common/widget/button/scan_qr_button.dart';
+import '../common/widget/button/qr_action_button.dart';
 import '../common/widget/card/wallet_card_item.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fade_in_at_offset.dart';
@@ -167,8 +168,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const BannerList(),
           const SizedBox(height: 16),
           Center(
-            child: ScanQrButton(
-              onPressed: () => Navigator.pushNamed(context, WalletRoutes.qrRoute),
+            child: QrActionButton(
+              onPressed: () => QrActionSheet.show(context),
             ),
           ),
           const SizedBox(height: 16),

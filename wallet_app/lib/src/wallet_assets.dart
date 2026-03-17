@@ -122,6 +122,7 @@ class WalletAssets {
   static const icon_wallet_transfer = 'assets/non-free/icons/wallet_transfer.png';
   static const icon_disclose = 'assets/non-free/icons/disclose.png';
   static const icon_manage_notifications = 'assets/non-free/icons/manage_notifications.png';
+  static const icon_qr_scan = 'assets/non-free/icons/qr_scan.png';
 
   // VIDEOS
   static const slug_placeholder = '{slug}';
