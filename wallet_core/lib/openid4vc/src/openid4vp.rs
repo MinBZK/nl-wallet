@@ -1203,7 +1203,7 @@ impl VpAuthorizationResponse {
     where
         C: StatusListClient,
     {
-        // Before verification, check that all COSE objects use the ES256 algorithm identifier.
+        // Check that all COSE objects use the ES256 algorithm identifier.
         let expected_alg = RegisteredLabelWithPrivate::Assigned(iana::Algorithm::ES256);
         for document in device_response.documents.iter().flatten() {
             if document.issuer_signed.issuer_auth.0.protected.header.alg.as_ref() != Some(&expected_alg) {
