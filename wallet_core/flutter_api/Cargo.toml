@@ -12,6 +12,9 @@ name = "wallet_core"
 crate-type = ["staticlib", "cdylib"]
 doctest = false
 
+[features]
+allow_insecure_url = ["wallet/allow_insecure_url"]
+
 [dependencies]
 anyhow.workspace = true
 backtrace.workspace = true
