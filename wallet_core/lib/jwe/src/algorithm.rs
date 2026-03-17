@@ -1,3 +1,4 @@
+use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
 use jwk_simple::Algorithm;
 
 /// A type representing the "alg" header parameter value for JWE, i.e. the JWE algorithm. It contains only those
@@ -35,4 +36,31 @@ impl From<JweAlgorithm> for Algorithm {
             JweAlgorithm::EcdhEsA256kw => Self::EcdhEsA256kw,
         }
     }
+}
+
+impl From<JweAlgorithm> for EcdhEsJweAlgorithm {
+    fn from(value: JweAlgorithm) -> Self {
+        match value {
+            JweAlgorithm::EcdhEs => Self::EcdhEs,
+            JweAlgorithm::EcdhEsA128kw => Self::EcdhEsA128kw,
+            JweAlgorithm::EcdhEsA192kw => Self::EcdhEsA192kw,
+            JweAlgorithm::EcdhEsA256kw => Self::EcdhEsA256kw,
+        }
+    }
+}
+
+/// A type representing the "enc" header parameter value for JWE, i.e. the JWE encryption algorithm. It contains only
+/// those algorithms supported by this crate. See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-5>
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
+#[strum(serialize_all = "UPPERCASE")]
+pub enum JweEncryptionAlgorithm {
+    #[strum(serialize = "A128CBC-HS256")]
+    A128CbcHs256,
+    #[strum(serialize = "A192CBC-HS384")]
+    A192CbcHs384,
+    #[strum(serialize = "A256CBC-HS512")]
+    A256CbcHs512,
+    A128Gcm,
+    A192Gcm,
+    A256Gcm,
 }

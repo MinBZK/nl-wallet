@@ -1,4 +1,8 @@
 use derive_more::Constructor;
+use josekit::JoseError;
+use josekit::jwe::JweHeader;
+use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
+use josekit::jwe::alg::ecdh_es::EcdhEsJweEncrypter;
 use jwk_simple::Algorithm;
 use jwk_simple::EcCurve;
 use jwk_simple::EcParams;
@@ -10,8 +14,11 @@ use p256::EncodedPoint;
 use p256::PublicKey;
 use p256::elliptic_curve::sec1::FromEncodedPoint;
 use p256::elliptic_curve::sec1::ToEncodedPoint;
+use p256::pkcs8::EncodePublicKey;
+use serde::Serialize;
 
 use crate::algorithm::JweAlgorithm;
+use crate::algorithm::JweEncryptionAlgorithm;
 
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(test, derive(strum::EnumDiscriminants))]
@@ -126,15 +133,96 @@ impl From<JwePublicKey> for Key {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum JweEncrypterError {
+    #[error("could not serialize data: {0}")]
+    Serialization(#[source] serde_json::Error),
+
+    #[error("could not encrypt data: {0}")]
+    Encryption(#[source] JoseError),
+}
+
+/// Wraps JWE encryption using the key that is derived from an eliptic curve P-256 public key and optional `kid` value.
+/// Can be constructed from a [`JwePublicKey`].
+#[derive(Debug, Clone)]
+pub struct JweEncrypter {
+    id: Option<String>,
+    encrypter: EcdhEsJweEncrypter,
+}
+
+impl JweEncrypter {
+    fn new(id: Option<String>, public_key: PublicKey, algorithm: JweAlgorithm) -> Self {
+        let der = public_key
+            .to_public_key_der()
+            .expect("a p256 public key should always encode to PKCS #8 DER");
+
+        let encrypter = EcdhEsJweAlgorithm::from(algorithm)
+            .encrypter_from_der(der)
+            .expect("the p256 public key PKCS #8 DER should always be valid");
+
+        Self { id, encrypter }
+    }
+
+    pub fn id(&self) -> Option<&str> {
+        self.id.as_deref()
+    }
+
+    pub fn encrypt<T>(
+        &self,
+        data: &T,
+        encryption_algorithm: JweEncryptionAlgorithm,
+        apu: Option<&[u8]>,
+        apv: Option<&[u8]>,
+    ) -> Result<String, JweEncrypterError>
+    where
+        T: Serialize,
+    {
+        let payload = serde_json::to_vec(data).map_err(JweEncrypterError::Serialization)?;
+
+        let mut header = JweHeader::new();
+
+        if let Some(id) = &self.id {
+            header.set_key_id(id);
+        }
+
+        header.set_content_encryption(encryption_algorithm.to_string());
+
+        if let Some(apu) = apu {
+            header.set_agreement_partyuinfo(apu);
+        }
+        if let Some(apv) = apv {
+            header.set_agreement_partyvinfo(apv);
+        }
+
+        let jwe = josekit::jwe::serialize_compact(&payload, &header, &self.encrypter)
+            .map_err(JweEncrypterError::Encryption)?;
+
+        Ok(jwe)
+    }
+}
+
+impl From<JwePublicKey> for JweEncrypter {
+    fn from(value: JwePublicKey) -> Self {
+        Self::new(value.id, value.key, value.algorithm)
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
+    use assert_matches::assert_matches;
     use jwk_simple::Key;
     use jwk_simple::KeyUse;
     use rstest::rstest;
+    use serde::Serialize;
     use serde_json::json;
 
     use crate::algorithm::JweAlgorithm;
+    use crate::algorithm::JweEncryptionAlgorithm;
 
+    use super::JweEncrypter;
+    use super::JweEncrypterError;
     use super::JwePublicKey;
     use super::JwePublicKeyErrorDiscriminants;
 
@@ -272,5 +360,84 @@ mod tests {
                 assert_eq!(JwePublicKeyErrorDiscriminants::from(&error), expected_error);
             }
         }
+    }
+
+    #[derive(Debug, Serialize)]
+    struct ValidPayload {
+        text: String,
+        number: u64,
+    }
+
+    impl ValidPayload {
+        fn new() -> Self {
+            Self {
+                text: "Some text".to_string(),
+                number: 42,
+            }
+        }
+    }
+
+    #[rstest]
+    #[case::ecdh_es(ValidPayload::new(), example_jwk_with_alg(JweAlgorithm::EcdhEs))]
+    #[case::ecdh_es_a128kw(ValidPayload::new(), example_jwk_with_alg(JweAlgorithm::EcdhEsA128kw))]
+    #[case::ecdh_es_a256kw(ValidPayload::new(), example_jwk_with_alg(JweAlgorithm::EcdhEsA256kw))]
+    #[case::no_kid(ValidPayload::new(), example_jwk_no_kid())]
+    fn test_jwe_encrypter_ok<T>(
+        #[case] data: T,
+        #[case] jwk_json: serde_json::Value,
+        #[values(
+            JweEncryptionAlgorithm::A128CbcHs256,
+            JweEncryptionAlgorithm::A256CbcHs512,
+            JweEncryptionAlgorithm::A128Gcm,
+            JweEncryptionAlgorithm::A256Gcm
+        )]
+        encryption_algorithm: JweEncryptionAlgorithm,
+        #[values(None, Some("apu"))] apu: Option<&str>,
+        #[values(None, Some("apv"))] apv: Option<&str>,
+    ) where
+        T: Serialize,
+    {
+        let jwk = serde_json::from_value(jwk_json).unwrap();
+        let key = JwePublicKey::try_from_jwk(&jwk).unwrap();
+        let encrypter = JweEncrypter::from(key);
+
+        let jws = encrypter
+            .encrypt(
+                &data,
+                encryption_algorithm,
+                apu.map(str::as_bytes),
+                apv.map(str::as_bytes),
+            )
+            .expect("encrypting data with JweEncrypter should succeed");
+
+        let header = josekit::jwt::decode_header(&jws).unwrap();
+
+        assert_eq!(
+            header.claim("alg").and_then(serde_json::Value::as_str),
+            Some(jwk.alg().unwrap().to_string().as_str())
+        );
+        assert_eq!(
+            header.claim("enc").and_then(serde_json::Value::as_str),
+            Some(encryption_algorithm.to_string().as_str())
+        );
+        assert!(header.claim("epk").and_then(serde_json::Value::as_object).is_some());
+
+        assert_eq!(header.claim("kid").and_then(serde_json::Value::as_str), jwk.kid());
+        assert_eq!(header.claim("apu").is_some(), apu.is_some());
+        assert_eq!(header.claim("apv").is_some(), apv.is_some());
+    }
+
+    #[test]
+    fn test_jwe_encrypter_error_serialization() {
+        let jwk = serde_json::from_value(example_jwk()).unwrap();
+        let key = JwePublicKey::try_from_jwk(&jwk).unwrap();
+        let encrypter = JweEncrypter::from(key);
+
+        let data = HashMap::from([(("one".to_string(), "two".to_string()), "three".to_string())]);
+        let result = encrypter.encrypt(&data, JweEncryptionAlgorithm::A256Gcm, None, None);
+
+        let error = result.expect_err("encrypting data with JweEncrypter should fail");
+
+        assert_matches!(error, JweEncrypterError::Serialization(_));
     }
 }

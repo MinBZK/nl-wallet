@@ -4128,10 +4128,13 @@ dependencies = [
 name = "jwe"
 version = "0.5.0-dev"
 dependencies = [
+ "assert_matches",
  "derive_more",
+ "josekit",
  "jwk-simple",
  "p256",
  "rstest",
+ "serde",
  "serde_json",
  "strum 0.28.0",
  "thiserror 2.0.17",
