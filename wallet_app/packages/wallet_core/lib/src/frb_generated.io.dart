@@ -2266,21 +2266,6 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__clear_attestations_stream = _wire__crate__api__full__clear_attestations_streamPtr
       .asFunction<void Function(int)>();
 
-  void wire__crate__api__full__clear_close_proximity_disclosure_stream(
-    int port_,
-  ) {
-    return _wire__crate__api__full__clear_close_proximity_disclosure_stream(
-      port_,
-    );
-  }
-
-  late final _wire__crate__api__full__clear_close_proximity_disclosure_streamPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-        'frbgen_wallet_core_wire__crate__api__full__clear_close_proximity_disclosure_stream',
-      );
-  late final _wire__crate__api__full__clear_close_proximity_disclosure_stream =
-      _wire__crate__api__full__clear_close_proximity_disclosure_streamPtr.asFunction<void Function(int)>();
-
   void wire__crate__api__full__clear_configuration_stream(
     int port_,
   ) {
@@ -2880,24 +2865,6 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__set_biometric_unlock = _wire__crate__api__full__set_biometric_unlockPtr
       .asFunction<void Function(int, bool)>();
 
-  void wire__crate__api__full__set_close_proximity_disclosure_stream(
-    int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> sink,
-  ) {
-    return _wire__crate__api__full__set_close_proximity_disclosure_stream(
-      port_,
-      sink,
-    );
-  }
-
-  late final _wire__crate__api__full__set_close_proximity_disclosure_streamPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-        'frbgen_wallet_core_wire__crate__api__full__set_close_proximity_disclosure_stream',
-      );
-  late final _wire__crate__api__full__set_close_proximity_disclosure_stream =
-      _wire__crate__api__full__set_close_proximity_disclosure_streamPtr
-          .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
-
   void wire__crate__api__full__set_configuration_stream(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> sink,
@@ -3019,18 +2986,21 @@ class WalletCoreWire implements BaseWire {
 
   void wire__crate__api__full__start_close_proximity_disclosure(
     int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> sink,
   ) {
     return _wire__crate__api__full__start_close_proximity_disclosure(
       port_,
+      sink,
     );
   }
 
   late final _wire__crate__api__full__start_close_proximity_disclosurePtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
         'frbgen_wallet_core_wire__crate__api__full__start_close_proximity_disclosure',
       );
   late final _wire__crate__api__full__start_close_proximity_disclosure =
-      _wire__crate__api__full__start_close_proximity_disclosurePtr.asFunction<void Function(int)>();
+      _wire__crate__api__full__start_close_proximity_disclosurePtr
+          .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
   void wire__crate__api__full__start_disclosure(
     int port_,

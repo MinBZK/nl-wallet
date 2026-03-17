@@ -25,14 +25,9 @@
 
 // Section: imports
 
-use flutter_rust_bridge::Handler;
-use flutter_rust_bridge::IntoIntoDart;
-use flutter_rust_bridge::for_generated::Lifetimeable;
-use flutter_rust_bridge::for_generated::Lockable;
-use flutter_rust_bridge::for_generated::byteorder::NativeEndian;
-use flutter_rust_bridge::for_generated::byteorder::ReadBytesExt;
-use flutter_rust_bridge::for_generated::byteorder::WriteBytesExt;
-use flutter_rust_bridge::for_generated::transform_result_dco;
+use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
+use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+use flutter_rust_bridge::{Handler, IntoIntoDart};
 
 // Section: boilerplate
 
@@ -42,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1609120498;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1160024863;
 
 // Section: executor
 
@@ -267,30 +262,6 @@ fn wire__crate__api__full__clear_attestations_stream_impl(port_: flutter_rust_br
                     (move || async move {
                         let output_ok = Result::<_, ()>::Ok({
                             crate::api::full::clear_attestations_stream().await;
-                        })?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    )
-}
-fn wire__crate__api__full__clear_close_proximity_disclosure_stream_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "clear_close_proximity_disclosure_stream",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            move |context| async move {
-                transform_result_dco::<_, _, ()>(
-                    (move || async move {
-                        let output_ok = Result::<_, ()>::Ok({
-                            crate::api::full::clear_close_proximity_disclosure_stream().await;
                         })?;
                         Ok(output_ok)
                     })()
@@ -1143,37 +1114,6 @@ fn wire__crate__api__full__set_biometric_unlock_impl(
         },
     )
 }
-fn wire__crate__api__full__set_close_proximity_disclosure_stream_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    sink: impl CstDecode<
-        StreamSink<
-            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate,
-            flutter_rust_bridge::for_generated::DcoCodec,
-        >,
-    >,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "set_close_proximity_disclosure_stream",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let api_sink = sink.cst_decode();
-            move |context| async move {
-                transform_result_dco::<_, _, ()>(
-                    (move || async move {
-                        let output_ok = Result::<_, ()>::Ok({
-                            crate::api::full::set_close_proximity_disclosure_stream(api_sink).await;
-                        })?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    )
-}
 fn wire__crate__api__full__set_configuration_stream_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     sink: impl CstDecode<
@@ -1356,6 +1296,12 @@ fn wire__crate__api__full__skip_wallet_transfer_impl(port_: flutter_rust_bridge:
 }
 fn wire__crate__api__full__start_close_proximity_disclosure_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
+    sink: impl CstDecode<
+        StreamSink<
+            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate,
+            flutter_rust_bridge::for_generated::DcoCodec,
+        >,
+    >,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
@@ -1364,10 +1310,11 @@ fn wire__crate__api__full__start_close_proximity_disclosure_impl(
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
+            let api_sink = sink.cst_decode();
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::start_close_proximity_disclosure().await?;
+                        let output_ok = crate::api::full::start_close_proximity_disclosure(api_sink).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -5155,14 +5102,9 @@ mod io {
     // Section: imports
 
     use super::*;
-    use flutter_rust_bridge::Handler;
-    use flutter_rust_bridge::IntoIntoDart;
-    use flutter_rust_bridge::for_generated::Lifetimeable;
-    use flutter_rust_bridge::for_generated::Lockable;
-    use flutter_rust_bridge::for_generated::byteorder::NativeEndian;
-    use flutter_rust_bridge::for_generated::byteorder::ReadBytesExt;
-    use flutter_rust_bridge::for_generated::byteorder::WriteBytesExt;
-    use flutter_rust_bridge::for_generated::transform_result_dco;
+    use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
+    use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
+    use flutter_rust_bridge::{Handler, IntoIntoDart};
 
     // Section: boilerplate
 
@@ -6579,11 +6521,6 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__clear_close_proximity_disclosure_stream(port_: i64) {
-        wire__crate__api__full__clear_close_proximity_disclosure_stream_impl(port_)
-    }
-
-    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__clear_configuration_stream(port_: i64) {
         wire__crate__api__full__clear_configuration_stream_impl(port_)
     }
@@ -6814,14 +6751,6 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__set_close_proximity_disclosure_stream(
-        port_: i64,
-        sink: *mut wire_cst_list_prim_u_8_strict,
-    ) {
-        wire__crate__api__full__set_close_proximity_disclosure_stream_impl(port_, sink)
-    }
-
-    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__set_configuration_stream(
         port_: i64,
         sink: *mut wire_cst_list_prim_u_8_strict,
@@ -6875,8 +6804,11 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__start_close_proximity_disclosure(port_: i64) {
-        wire__crate__api__full__start_close_proximity_disclosure_impl(port_)
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__start_close_proximity_disclosure(
+        port_: i64,
+        sink: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__start_close_proximity_disclosure_impl(port_, sink)
     }
 
     #[unsafe(no_mangle)]
@@ -6907,8 +6839,8 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation()
-    -> *mut wire_cst_attestation_presentation {
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation(
+    ) -> *mut wire_cst_attestation_presentation {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_attestation_presentation::new_with_null_ptr())
     }
 
@@ -6955,8 +6887,8 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error()
-    -> *mut wire_cst_wallet_instruction_error {
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error(
+    ) -> *mut wire_cst_wallet_instruction_error {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_wallet_instruction_error::new_with_null_ptr())
     }
 

@@ -80,7 +80,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -1609120498;
+  int get rustContentHash => -1160024863;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -112,8 +112,6 @@ abstract class WalletCoreApi extends BaseApi {
   Future<WalletInstructionResult> crateApiFullCheckPin({required String pin});
 
   Future<void> crateApiFullClearAttestationsStream();
-
-  Future<void> crateApiFullClearCloseProximityDisclosureStream();
 
   Future<void> crateApiFullClearConfigurationStream();
 
@@ -194,8 +192,6 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<void> crateApiFullSetBiometricUnlock({required bool enable});
 
-  Stream<CloseProximityDisclosureFlutterUpdate> crateApiFullSetCloseProximityDisclosureStream();
-
   Stream<FlutterConfiguration> crateApiFullSetConfigurationStream();
 
   Future<void> crateApiFullSetDirectNotificationsCallback({
@@ -212,7 +208,7 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<void> crateApiFullSkipWalletTransfer();
 
-  Future<String> crateApiFullStartCloseProximityDisclosure();
+  Stream<CloseProximityDisclosureFlutterUpdate> crateApiFullStartCloseProximityDisclosure();
 
   Future<StartDisclosureResult> crateApiFullStartDisclosure({required String uri, required bool isQrCode});
 
@@ -468,29 +464,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullClearAttestationsStreamConstMeta => const TaskConstMeta(
     debugName: "clear_attestations_stream",
-    argNames: [],
-  );
-
-  @override
-  Future<void> crateApiFullClearCloseProximityDisclosureStream() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          return wire.wire__crate__api__full__clear_close_proximity_disclosure_stream(port_);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
-          decodeErrorData: null,
-        ),
-        constMeta: kCrateApiFullClearCloseProximityDisclosureStreamConstMeta,
-        argValues: [],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiFullClearCloseProximityDisclosureStreamConstMeta => const TaskConstMeta(
-    debugName: "clear_close_proximity_disclosure_stream",
     argNames: [],
   );
 
@@ -1391,34 +1364,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Stream<CloseProximityDisclosureFlutterUpdate> crateApiFullSetCloseProximityDisclosureStream() {
-    final sink = RustStreamSink<CloseProximityDisclosureFlutterUpdate>();
-    unawaited(
-      handler.executeNormal(
-        NormalTask(
-          callFfi: (port_) {
-            var arg0 = cst_encode_StreamSink_close_proximity_disclosure_flutter_update_Dco(sink);
-            return wire.wire__crate__api__full__set_close_proximity_disclosure_stream(port_, arg0);
-          },
-          codec: DcoCodec(
-            decodeSuccessData: dco_decode_unit,
-            decodeErrorData: null,
-          ),
-          constMeta: kCrateApiFullSetCloseProximityDisclosureStreamConstMeta,
-          argValues: [sink],
-          apiImpl: this,
-        ),
-      ),
-    );
-    return sink.stream;
-  }
-
-  TaskConstMeta get kCrateApiFullSetCloseProximityDisclosureStreamConstMeta => const TaskConstMeta(
-    debugName: "set_close_proximity_disclosure_stream",
-    argNames: ["sink"],
-  );
-
-  @override
   Stream<FlutterConfiguration> crateApiFullSetConfigurationStream() {
     final sink = RustStreamSink<FlutterConfiguration>();
     unawaited(
@@ -1608,26 +1553,31 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Future<String> crateApiFullStartCloseProximityDisclosure() {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          return wire.wire__crate__api__full__start_close_proximity_disclosure(port_);
-        },
-        codec: DcoCodec(
-          decodeSuccessData: dco_decode_String,
-          decodeErrorData: dco_decode_AnyhowException,
+  Stream<CloseProximityDisclosureFlutterUpdate> crateApiFullStartCloseProximityDisclosure() {
+    final sink = RustStreamSink<CloseProximityDisclosureFlutterUpdate>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            var arg0 = cst_encode_StreamSink_close_proximity_disclosure_flutter_update_Dco(sink);
+            return wire.wire__crate__api__full__start_close_proximity_disclosure(port_, arg0);
+          },
+          codec: DcoCodec(
+            decodeSuccessData: dco_decode_String,
+            decodeErrorData: dco_decode_AnyhowException,
+          ),
+          constMeta: kCrateApiFullStartCloseProximityDisclosureConstMeta,
+          argValues: [sink],
+          apiImpl: this,
         ),
-        constMeta: kCrateApiFullStartCloseProximityDisclosureConstMeta,
-        argValues: [],
-        apiImpl: this,
       ),
     );
+    return sink.stream;
   }
 
   TaskConstMeta get kCrateApiFullStartCloseProximityDisclosureConstMeta => const TaskConstMeta(
     debugName: "start_close_proximity_disclosure",
-    argNames: [],
+    argNames: ["sink"],
   );
 
   @override

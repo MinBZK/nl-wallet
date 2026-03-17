@@ -63,12 +63,6 @@ Stream<List<WalletEvent>> setRecentHistoryStream() => WalletCore.instance.api.cr
 
 Future<void> clearRecentHistoryStream() => WalletCore.instance.api.crateApiFullClearRecentHistoryStream();
 
-Stream<CloseProximityDisclosureFlutterUpdate> setCloseProximityDisclosureStream() =>
-    WalletCore.instance.api.crateApiFullSetCloseProximityDisclosureStream();
-
-Future<void> clearCloseProximityDisclosureStream() =>
-    WalletCore.instance.api.crateApiFullClearCloseProximityDisclosureStream();
-
 Future<WalletInstructionResult> unlockWallet({required String pin}) =>
     WalletCore.instance.api.crateApiFullUnlockWallet(pin: pin);
 
@@ -118,7 +112,8 @@ Future<PidIssuanceResult> acceptPidIssuance({required String pin}) =>
 Future<StartDisclosureResult> startDisclosure({required String uri, required bool isQrCode}) =>
     WalletCore.instance.api.crateApiFullStartDisclosure(uri: uri, isQrCode: isQrCode);
 
-Future<String> startCloseProximityDisclosure() => WalletCore.instance.api.crateApiFullStartCloseProximityDisclosure();
+Stream<CloseProximityDisclosureFlutterUpdate> startCloseProximityDisclosure() =>
+    WalletCore.instance.api.crateApiFullStartCloseProximityDisclosure();
 
 Future<StartDisclosureResult> continueCloseProximityDisclosure() =>
     WalletCore.instance.api.crateApiFullContinueCloseProximityDisclosure();

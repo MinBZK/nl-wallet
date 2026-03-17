@@ -1,17 +1,18 @@
-use std::marker::PhantomData;
 use std::sync::Arc;
 
+use derive_more::IsVariant;
 use nutype::nutype;
 use parking_lot::Mutex;
 use tokio::sync::mpsc;
+use tokio::task::JoinHandle;
 use tracing::info;
 use url::Url;
 
+use mdoc::DeviceRequest;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
-use platform_support::close_proximity_disclosure::CloseProximityDisclosureError;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -22,6 +23,7 @@ use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::wallet::DisclosureError;
 use crate::wallet::Session;
+use crate::wallet::disclosure::WalletDisclosureAttestations;
 
 #[derive(Debug)]
 pub enum CloseProximityDisclosureUpdate {
@@ -36,53 +38,37 @@ pub type CloseProximityDisclosureCallback = Box<dyn Fn(CloseProximityDisclosureU
 #[nutype(validate(predicate = |s| s.parse::<Url>().is_ok_and(|u| u.scheme() == "mdoc")), derive(Debug, Clone, TryFrom, FromStr, AsRef, Into, Display))]
 pub struct MdocUri(String);
 
+#[derive(Debug, Clone, IsVariant)]
+enum CloseProximityDisclosureSessionState {
+    Advertising,
+    SessionEstablished {
+        session_transcript: Vec<u8>,
+        device_request: Vec<u8>,
+    },
+    DisclosureProposed {
+        session_transcript: Vec<u8>,
+        device_request: DeviceRequest,
+        attestations: WalletDisclosureAttestations,
+    },
+}
+
 #[derive(Debug)]
 pub struct CloseProximityDisclosureSessionData {
-    pub session_transcript: Vec<u8>,
-    pub device_request: Vec<u8>,
+    session_transcript: Vec<u8>,
+    device_request: Vec<u8>,
 }
 
-pub struct CloseProximityDisclosureManager<CPC> {
-    callback: Arc<Mutex<Option<CloseProximityDisclosureCallback>>>,
-    session_data: Arc<Mutex<Option<CloseProximityDisclosureSessionData>>>,
-    _phantom: PhantomData<CPC>,
-}
-
-impl<CPC> CloseProximityDisclosureManager<CPC> {
-    pub fn init() -> Self {
-        Self {
-            callback: Arc::default(),
-            session_data: Arc::default(),
-            _phantom: PhantomData,
-        }
-    }
-
-    pub fn set_callback(&self, callback: CloseProximityDisclosureCallback) -> Option<CloseProximityDisclosureCallback> {
-        self.callback.lock().replace(callback)
-    }
-
-    pub fn clear_callback(&self) -> Option<CloseProximityDisclosureCallback> {
-        self.callback.lock().take()
-    }
-}
-
-impl<CPC: CloseProximityDisclosureClient> CloseProximityDisclosureManager<CPC> {
-    pub async fn start_session(&mut self) -> Result<String, CloseProximityDisclosureError> {
-        let (qr, receiver) = CPC::start_qr_handover().await?;
-
-        // Reset session data
-        self.session_data = Arc::default();
-        spawn_listener(receiver, Arc::clone(&self.session_data), Arc::clone(&self.callback));
-
-        Ok(qr)
-    }
+#[derive(Debug)]
+pub struct CloseProximityDisclosureSession {
+    listener: JoinHandle<()>,
+    session_state: Arc<Mutex<CloseProximityDisclosureSessionState>>,
 }
 
 fn spawn_listener(
     mut receiver: mpsc::Receiver<PlatformUpdate>,
-    session_data: Arc<Mutex<Option<CloseProximityDisclosureSessionData>>>,
-    callback: Arc<Mutex<Option<CloseProximityDisclosureCallback>>>,
-) {
+    session_state: Arc<Mutex<CloseProximityDisclosureSessionState>>,
+    callback: CloseProximityDisclosureCallback,
+) -> JoinHandle<()> {
     tokio::spawn(async move {
         while let Some(update) = receiver.recv().await {
             let wallet_update = match update {
@@ -92,10 +78,11 @@ fn spawn_listener(
                     session_transcript,
                     device_request,
                 } => {
-                    session_data.lock().replace(CloseProximityDisclosureSessionData {
+                    // TODO only do this if the current state is Advertising
+                    *session_state.lock() = CloseProximityDisclosureSessionState::SessionEstablished {
                         session_transcript,
                         device_request,
-                    });
+                    };
 
                     CloseProximityDisclosureUpdate::DeviceRequestReceived
                 }
@@ -105,11 +92,9 @@ fn spawn_listener(
             };
 
             info!("Close proximity disclosure update: {wallet_update:?}");
-            if let Some(callback) = callback.lock().as_ref() {
-                callback(wallet_update);
-            }
+            callback(wallet_update);
         }
-    });
+    })
 }
 
 // ── Wallet methods ────────────────────────────────────────────────────────────
@@ -124,7 +109,10 @@ where
     CPC: CloseProximityDisclosureClient,
     S: Storage,
 {
-    pub async fn start_close_proximity_disclosure(&mut self) -> Result<MdocUri, DisclosureError> {
+    pub async fn start_close_proximity_disclosure(
+        &mut self,
+        callback: CloseProximityDisclosureCallback,
+    ) -> Result<MdocUri, DisclosureError> {
         info!("Starting close proximity disclosure");
 
         info!("Checking if blocked");
@@ -147,8 +135,16 @@ where
             return Err(DisclosureError::SessionState);
         }
 
-        let qr = self.close_proximity_disclosure.start_session().await?;
-        self.session.replace(Session::CloseProximityDisclosure);
+        let (qr, receiver) = CPC::start_qr_handover().await?;
+
+        let session_state = Arc::new(Mutex::new(CloseProximityDisclosureSessionState::Advertising));
+
+        let listener = spawn_listener(receiver, Arc::clone(&session_state), callback);
+        self.session
+            .replace(Session::CloseProximityDisclosure(CloseProximityDisclosureSession {
+                listener,
+                session_state,
+            }));
 
         let uri = format!("mdoc:{qr}").parse().expect("should always parse as an MdocUri");
 
@@ -162,29 +158,12 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
-where
-    AKH: AttestedKeyHolder,
-    OC: OidcClient,
-    DCC: DisclosureClient,
-{
-    pub fn set_close_proximity_disclosure_callback(
-        &mut self,
-        callback: CloseProximityDisclosureCallback,
-    ) -> Option<CloseProximityDisclosureCallback> {
-        self.close_proximity_disclosure.set_callback(callback)
-    }
-
-    pub fn clear_close_proximity_disclosure_callback(&mut self) {
-        self.close_proximity_disclosure.clear_callback();
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
 
     use crate::wallet::Session;
+    use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureSession;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
 
@@ -195,12 +174,17 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let qr = wallet
-            .start_close_proximity_disclosure()
+            .start_close_proximity_disclosure(Box::new(|_| {}))
             .await
             .expect("starting proximity disclosure should succeed");
 
         assert_eq!(qr.as_ref(), "mdoc:some_qr_code");
-        assert!(matches!(wallet.session.take(), Some(Session::CloseProximityDisclosure)));
+        assert!(matches!(
+            wallet.session.take(),
+            Some(Session::CloseProximityDisclosure(
+                CloseProximityDisclosureSession { .. }
+            ))
+        ));
     }
 
     #[tokio::test]
@@ -208,12 +192,10 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<CloseProximityDisclosureUpdate>();
-        wallet.set_close_proximity_disclosure_callback(Box::new(move |update| {
-            let _ = tx.send(update);
-        }));
-
         wallet
-            .start_close_proximity_disclosure()
+            .start_close_proximity_disclosure(Box::new(move |update| {
+                let _ = tx.send(update);
+            }))
             .await
             .expect("starting proximity disclosure should succeed");
 
@@ -227,7 +209,13 @@ mod tests {
         let update = rx.recv().await.expect("should receive DeviceRequestReceived update");
         assert_matches!(update, CloseProximityDisclosureUpdate::DeviceRequestReceived);
 
-        let data = wallet.close_proximity_disclosure.session_data.lock();
+        let data = wallet.session.as_ref().and_then(|s| {
+            if let Session::CloseProximityDisclosure(session) = s {
+                Some(session.session_state.lock())
+            } else {
+                None
+            }
+        });
         assert!(data.is_some());
 
         let update = rx.recv().await.expect("should receive Disconnected update");

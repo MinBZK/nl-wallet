@@ -122,7 +122,7 @@ where
         if let Some(session) = &self.session {
             return match session {
                 Session::Digid { .. } | Session::Issuance(_) => Ok(WalletState::InIssuanceFlow),
-                Session::Disclosure(_) | Session::CloseProximityDisclosure => Ok(WalletState::InDisclosureFlow),
+                Session::Disclosure(_) | Session::CloseProximityDisclosure(_) => Ok(WalletState::InDisclosureFlow),
                 Session::PinRecovery { .. } => Ok(WalletState::InPinRecoveryFlow),
             };
         }

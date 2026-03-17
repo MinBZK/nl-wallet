@@ -4,9 +4,7 @@
 pub mod mdocs;
 pub use mdocs::*;
 
-#[cfg(test)]
 pub mod device_retrieval;
-#[cfg(test)]
 pub use device_retrieval::*;
 
 pub mod disclosure;

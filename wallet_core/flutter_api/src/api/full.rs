@@ -206,19 +206,6 @@ pub async fn clear_recent_history_stream() {
     wallet().write().await.clear_recent_history_callback();
 }
 
-pub async fn set_close_proximity_disclosure_stream(sink: StreamSink<CloseProximityDisclosureFlutterUpdate>) {
-    wallet()
-        .write()
-        .await
-        .set_close_proximity_disclosure_callback(Box::new(move |update| {
-            let _ = sink.add(update.into());
-        }));
-}
-
-pub async fn clear_close_proximity_disclosure_stream() {
-    wallet().write().await.clear_close_proximity_disclosure_callback();
-}
-
 #[flutter_api_error]
 pub async fn unlock_wallet(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
@@ -398,10 +385,16 @@ pub async fn start_disclosure(uri: String, is_qr_code: bool) -> anyhow::Result<S
 }
 
 #[flutter_api_error]
-pub async fn start_close_proximity_disclosure() -> anyhow::Result<String> {
+pub async fn start_close_proximity_disclosure(
+    sink: StreamSink<CloseProximityDisclosureFlutterUpdate>,
+) -> anyhow::Result<String> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.start_close_proximity_disclosure().await?;
+    let result = wallet
+        .start_close_proximity_disclosure(Box::new(move |update| {
+            let _ = sink.add(update.into());
+        }))
+        .await?;
 
     Ok(result.into())
 }
