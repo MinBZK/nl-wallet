@@ -58,7 +58,7 @@ spec:
             - name: DEMO_RELYING_PARTY__INTERNAL_WALLET_SERVER_URL
               value: "http://demo-rp-verification-server:8080/"
             - name: DEMO_RELYING_PARTY__PUBLIC_URL
-              value: {{ include "common.urls.combineDomainAndContext" (list .Values.ingress.hostname .Values.ingress.contextPath) }}
+              value: {{ include "common.urls.combineDomainAndContext" (list (first .Values.httpRoute.hostnames) .Values.httpRoute.contextPath) }}
             - name: DEMO_RELYING_PARTY__HELP_BASE_URL
               value: {{ .Values.helpBaseUrl }}
             - name: DEMO_RELYING_PARTY__DEMO_INDEX_URL

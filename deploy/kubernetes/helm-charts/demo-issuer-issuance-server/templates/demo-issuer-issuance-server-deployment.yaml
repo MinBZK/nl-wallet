@@ -73,7 +73,7 @@ spec:
             - name: ISSUANCE_SERVER__INTERNAL_SERVER__IP
               value: "0.0.0.0"
             - name: ISSUANCE_SERVER__PUBLIC_URL
-              value: {{ include "common.urls.combineDomainAndContext" (list .Values.ingress.hostname .Values.ingress.contextPath) }}
+              value: {{ include "common.urls.combineDomainAndContext" (list (first .Values.httpRoute.hostnames) .Values.httpRoute.contextPath) }}
             - name: ISSUANCE_SERVER__UNIVERSAL_LINK_BASE_URL
               value: {{ .Values.universalLinkBaseUrl }}
             - name: ISSUANCE_SERVER__STRUCTURED_LOGGING

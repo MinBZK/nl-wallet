@@ -140,9 +140,12 @@ hostAliases: []
 ## @param frontend.name Name of the GBA Fetch frontend application
 ## @param frontend.extraAnnotations Additional annotations for the frontend deployment
 ## @param frontend.extraPodLabels Additional labels for the frontend pods
-## @param frontend.ingress.className Ingress class name for the frontend
-## @param frontend.ingress.hostname Ingress hostname for the frontend
-## @param frontend.ingress.tlsSecretName Secret name for the ingress TLS configuration
+## @param frontend.httpRoute.enabled Enable or disable the route
+## @param frontend.httpRoute.parentRefs Parent references to the gateway
+## @param frontend.httpRoute.hostnames Hostnames for the route
+## @param frontend.httpRoute.contextPath Optional context path for the route
+## @param frontend.httpRoute.labels Additional labels for the route
+## @param frontend.httpRoute.annotations Additional annotations for the route
 ## @param frontend.probes.config.liveness Additional configuration for liveness probe
 ## @param frontend.probes.config.readiness Additional configuration for readiness probe
 ## @param frontend.probes.config.startup Additional configuration for startup probe
@@ -157,10 +160,13 @@ frontend:
   name: gba-fetch-frontend
   extraAnnotations: {}
   extraPodLabels: {}
-  ingress:
-    className: nginx
-    hostname: null
-    tlsSecretName: null
+  httpRoute:
+    enabled: true
+    parentRefs: []
+    hostnames: []
+    contextPath: null
+    labels: {}
+    annotations: {}
   probes:
     config:
       liveness: {}
