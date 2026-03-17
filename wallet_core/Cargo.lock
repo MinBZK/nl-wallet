@@ -4133,6 +4133,7 @@ dependencies = [
  "josekit",
  "jwk-simple",
  "p256",
+ "rand_core 0.6.4",
  "rstest",
  "serde",
  "serde_json",
