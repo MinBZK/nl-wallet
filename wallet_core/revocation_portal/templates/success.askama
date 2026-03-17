@@ -1,7 +1,13 @@
 {% extends "base.askama" %}
+{%- import "../../lib/web_utils/templates/components/languages.askama" as languages -%}
 
 {% block scripts %}
+<script integrity="sha256-{{ base.language_js_sha256 }}" nonce="{{ base.nonce }}" src="/support/language.js" defer></script>
 <script integrity="sha256-{{ base.lokalize_js_sha256 }}" nonce="{{ base.nonce }}" src="/support/lokalize.js" defer></script>
+{% endblock %}
+
+{% block aside %}
+{% call languages::lang_selector(base.selected_lang, base.trans, base.available_languages, web_utils::OPTION_STR_NONE, web_utils::OPTION_STR_NONE) %}
 {% endblock %}
 
 {% block content %}
