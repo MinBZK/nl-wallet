@@ -10,6 +10,10 @@ workspace = true
 [lib]
 doctest = false
 
+[[test]]
+name = "encrypt_decrypt"
+path = "tests/encrypt_decrypt.rs"
+
 [features]
 vendored_openssl = ["josekit/vendored"]
 
