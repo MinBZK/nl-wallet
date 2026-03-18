@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
+import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
 import screen.disclosure.QRScanner
 
@@ -25,8 +26,7 @@ class QRScannerTests : TestBase() {
         startDriver(testInfo)
     }
 
-    //TODO: enable after PVW-5420
-    //@RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC7 QR scanner")
     @Tags(Tag("a11yBatch1"))
     fun verifyScanInAppDialog(testInfo: TestInfo) {
