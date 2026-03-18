@@ -81,7 +81,7 @@ wallet-provider-${DEPLOY_ENV}:
   variables:
     CHART_NAME: wallet-provider
     RELEASE_NAME: wallet-provider
-    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,${DEPLOY_ENV}/wallet-provider.yaml"
+    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/wallet-provider.yaml"
 
 pid-issuer-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -93,7 +93,7 @@ pid-issuer-${DEPLOY_ENV}:
   variables:
     CHART_NAME: pid-issuer
     RELEASE_NAME: pid-issuer
-    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,${DEPLOY_ENV}/pid-issuer.yaml"
+    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/pid-issuer.yaml"
 
 demo-rp-verification-server-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -105,7 +105,7 @@ demo-rp-verification-server-${DEPLOY_ENV}:
   variables:
     CHART_NAME: demo-rp-verification-server
     RELEASE_NAME: demo-rp-verification-server
-    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,${DEPLOY_ENV}/demo-rp-verification-server.yaml"
+    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/demo-rp-verification-server.yaml"
 
 demo-relying-party-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -127,7 +127,7 @@ demo-issuer-issuance-server-${DEPLOY_ENV}:
   variables:
     CHART_NAME: demo-issuer-issuance-server
     RELEASE_NAME: demo-issuer-issuance-server
-    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,${DEPLOY_ENV}/demo-issuer-issuance-server.yaml"
+    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/demo-issuer-issuance-server.yaml"
 
 demo-issuer-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
@@ -137,7 +137,7 @@ demo-issuer-${DEPLOY_ENV}:
   variables:
     CHART_NAME: demo-issuer
     RELEASE_NAME: demo-issuer
-    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers-without-csp.yaml,${DEPLOY_ENV}/demo-issuer.yaml"
+    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers-without-csp.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/demo-issuer.yaml"
 
 demo-index-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
