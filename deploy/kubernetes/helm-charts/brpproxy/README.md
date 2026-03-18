@@ -63,13 +63,10 @@
 | `resources.limits.cpu`      | CPU limit      | `500m`  |
 | `resources.limits.memory`   | Memory limit   | `256Mi` |
 
-### Environment variables
+### Routes configuration
 
-| Name           | Description                                                              | Value                                        |
-| -------------- | ------------------------------------------------------------------------ | -------------------------------------------- |
-| `env[0].name`  | Name of Routes__0__DownstreamScheme environment variable                 | `Routes__0__DownstreamScheme`                |
-| `env[0].value` | Value of Routes__0__DownstreamScheme environment variable                | `http`                                       |
-| `env[1].name`  | Name of Routes__0__DownstreamHostAndPorts__0__Host environment variable  | `Routes__0__DownstreamHostAndPorts__0__Host` |
-| `env[1].value` | Value of Routes__0__DownstreamHostAndPorts__0__Host environment variable | `gba-hc-converter`                           |
-| `env[2].name`  | Name of Routes__0__DownstreamHostAndPorts__0__Port environment variable  | `Routes__0__DownstreamHostAndPorts__0__Port` |
-| `env[2].value` | Value of Routes__0__DownstreamHostAndPorts__0__Port environment variable | `80`                                         |
+| Name                            | Description                  | Value              |
+| ------------------------------- | ---------------------------- | ------------------ |
+| `routes[0].scheme`              | URL scheme (http/https)      | `http`             |
+| `routes[0].downstreams[0].host` | Downstream host of the route | `gba-hc-converter` |
+| `routes[0].downstreams[0].port` | Downstream port of the route | `80`               |

@@ -49,8 +49,15 @@ spec:
               value: "Release"
             - name: ASPNETCORE_URLS
               value: "http://+:5000"
-            {{- with .Values.env }}
-            {{- toYaml . | nindent 12 }}
+            {{- range $i, $route := .Values.routes }}
+            - name: Routes__{{ $i }}__DownstreamScheme
+              value: {{ $route.scheme | quote }}
+            {{- range $j, $downstream := $route.downstreams }}
+            - name: Routes__{{ $i }}__DownstreamHostAndPorts__{{ $j }}__Host
+              value: {{ $downstream.host | quote }}
+            - name: Routes__{{ $i }}__DownstreamHostAndPorts__{{ $j }}__Port
+              value: {{ $downstream.port | quote }}
+            {{- end }}
             {{- end }}
           ports:
             - name: http

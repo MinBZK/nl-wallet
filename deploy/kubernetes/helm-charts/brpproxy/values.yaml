@@ -71,19 +71,14 @@ resources:
     cpu: "500m"
     memory: "256Mi"
 
-## @section Environment variables
-## Environment variables for the container
-## @param env[0].name Name of Routes__0__DownstreamScheme environment variable
-## @param env[0].value Value of Routes__0__DownstreamScheme environment variable
-## @param env[1].name Name of Routes__0__DownstreamHostAndPorts__0__Host environment variable
-## @param env[1].value Value of Routes__0__DownstreamHostAndPorts__0__Host environment variable
-## @param env[2].name Name of Routes__0__DownstreamHostAndPorts__0__Port environment variable
-## @param env[2].value Value of Routes__0__DownstreamHostAndPorts__0__Port environment variable
+## @section Routes configuration
+## Routes configuration of the proxy
+## @param routes[0].scheme URL scheme (http/https)
+## @param routes[0].downstreams[0].host Downstream host of the route
+## @param routes[0].downstreams[0].port Downstream port of the route
 ##
-env:
-  - name: Routes__0__DownstreamScheme
-    value: "http"
-  - name: Routes__0__DownstreamHostAndPorts__0__Host
-    value: "gba-hc-converter"
-  - name: Routes__0__DownstreamHostAndPorts__0__Port
-    value: "80"
+routes:
+  - scheme: http
+    downstreams:
+      - host: gba-hc-converter
+        port: 80
