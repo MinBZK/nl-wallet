@@ -247,7 +247,7 @@ tracing-subscriber = { version = "0.3.22", default-features = false, features = 
 tracing-test = "0.2.5"
 trait-variant = "0.1.2"
 ts-rs = "11.1.0"
-uniffi = { version = "0.30.0", default-features = false }
+uniffi = { version = "0.31.0", default-features = false }
 url = "2.5.7"
 utoipa = "5.4.0"
 utoipa-axum = "0.2.0"
