@@ -27,11 +27,6 @@ pub struct AuthorizationRequest {
     pub state: Option<String>,
     pub authorization_details: Option<Vec<AuthorizationDetails>>,
 
-    /// https://datatracker.ietf.org/doc/html/rfc9126. MUST NOT be sent in a PAR.
-    /// This is a `String` and not a `Url`, because despite its name it need not be an actual URL;
-    /// its contents is completely up to the server and to be considered opaque.
-    pub request_uri: Option<String>,
-
     #[serde(flatten)]
     pub code_challenge: Option<PkceCodeChallenge>,
 
@@ -40,6 +35,18 @@ pub struct AuthorizationRequest {
 
     pub nonce: Option<Nonce>,
     pub response_mode: Option<ResponseMode>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PushedAuthorizationRequest {
+    pub client_id: String,
+    pub request_uri: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PushedAuthorizationResponse {
+    pub request_uri: String,
+    pub expires_in: u64,
 }
 
 /// Defined in https://openid.net/specs/oauth-v2-multiple-response-types-1_0.html#ResponseModes
@@ -138,10 +145,52 @@ pub struct AuthorizationResponse {
 
 #[cfg(test)]
 mod tests {
+    use indexmap::IndexSet;
     use serde_json::json;
+    use serde_urlencoded;
+    use url::Url;
 
     use crate::authorization::AuthorizationDetails;
     use crate::authorization::AuthorizationDetailsFormatData;
+    use crate::authorization::AuthorizationRequest;
+    use crate::authorization::PkceCodeChallenge;
+    use crate::authorization::ResponseMode;
+    use crate::authorization::ResponseType;
+
+    #[test]
+    fn authorization_request_serialization_roundtrip() {
+        let mut response_type = IndexSet::new();
+        response_type.insert(ResponseType::Code);
+
+        let mut scope = IndexSet::new();
+        scope.insert("openid".to_string());
+        scope.insert("profile".to_string());
+
+        let request = AuthorizationRequest {
+            response_type,
+            client_id: "client-123".to_string(),
+            redirect_uri: Some(Url::parse("https://example.com/callback").unwrap()),
+            state: Some("state-abc".to_string()),
+            authorization_details: None,
+            code_challenge: Some(PkceCodeChallenge::S256 {
+                code_challenge: "challenge-xyz".to_string(),
+            }),
+            scope: Some(scope),
+            nonce: Some("nonce-789".to_string()),
+            response_mode: Some(ResponseMode::Fragment),
+        };
+
+        let encoded = serde_urlencoded::to_string(&request).unwrap();
+        let decoded: AuthorizationRequest = serde_urlencoded::from_str(&encoded).unwrap();
+
+        assert_eq!(decoded.client_id, "client-123");
+        assert_eq!(decoded.state.as_deref(), Some("state-abc"));
+        assert_eq!(decoded.nonce.as_deref(), Some("nonce-789"));
+        assert_eq!(
+            decoded.scope.unwrap().iter().cloned().collect::<Vec<_>>(),
+            vec!["openid", "profile"]
+        );
+    }
 
     #[test]
     fn authorization_details_serialization() {

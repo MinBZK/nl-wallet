@@ -587,9 +587,6 @@ impl NormalizedVpAuthorizationRequest {
         if vp_auth_request.oauth_request.scope.is_some() {
             return Err(AuthRequestValidationError::UnexpectedField("scope"));
         }
-        if vp_auth_request.oauth_request.request_uri.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("request_uri"));
-        }
         if vp_auth_request.transaction_data.is_some() {
             return Err(AuthRequestValidationError::UnsupportedField("transaction_data"));
         }
@@ -698,7 +695,6 @@ impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
                 redirect_uri: None,
                 state: value.state,
                 authorization_details: None,
-                request_uri: None,
                 code_challenge: None,
                 scope: None,
             },
