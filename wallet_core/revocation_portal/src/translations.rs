@@ -30,11 +30,12 @@ pub const TRANSLATIONS: Translations = Translations {
                              deletion code to delete your NL Wallet and all your data. This stops anyone from using \
                              it.",
         delete_warning: "This action cannot be undone.",
+        delete_step1: "Step 1",
         delete_step1_instruction: "Enter your 18 characters deletion code that you wrote down when creating the \
                                    wallet.",
         delete_code_label: "Your deletion code",
         delete_confirm: "Delete wallet",
-        delete_code_invalid_length: "The code must be exactly 18 characters long.",
+        delete_code_invalid_length: "Please enter all 18 characters.",
         delete_code_required: "Please enter your deletion code.",
         delete_code_format: "18-character alphanumeric code, for example: C20C-KF0R-D32B-A5E3-2X",
         delete_code_incorrect: "Deletion code is incorrect. Please try again.",
@@ -48,7 +49,7 @@ pub const TRANSLATIONS: Translations = Translations {
         need_help: "Need help?",
         back_to_support: "Back to support",
         try_again: "Try again",
-        download_text: "Write your feedback or download the new NL Wallet in the app store.",
+        download_text: "Write your feedback or download the NL Wallet app again.",
         apple_app_store: "Download in the App Store",
         google_play_store: "Discover on Google Play",
         date_format: "%d %B %Y",
@@ -65,16 +66,17 @@ pub const TRANSLATIONS: Translations = Translations {
                              verwijder-code om je NL Wallet en alle gegevens te verwijderen. Zo kan niemand deze \
                              gebruiken.",
         delete_warning: "Je kunt deze actie niet ongedaan maken.",
+        delete_step1: "Stap 1",
         delete_step1_instruction: "Vul je verwijder-code van 18 tekens in die je hebt opgeschreven toen je de wallet \
                                    aanmaakte.",
         delete_code_label: "Je verwijder-code",
         delete_confirm: "Wallet verwijderen",
-        delete_code_invalid_length: "De code moet precies 18 tekens lang zijn.",
+        delete_code_invalid_length: "Vul alle 18 tekens in.",
         delete_code_required: "Voer je verwijder-code in.",
         delete_code_format: "Code van 18 tekens, bijvoorbeeld: C20C-KF0R-D32B-A5E3-2X",
         delete_code_incorrect: "verwijder-code is incorrect. Probeer het opnieuw.",
         success_wb_confirmation: "Je hebt je verwijder-code gebruikt om je NL Wallet te verwijderen op {date} om \
-                                  {time}. Je wallet is stopgezet en niemand kan je wallet gebruiken",
+                                  {time}. Je wallet is stopgezet en niemand kan je wallet gebruiken.",
         success_wallet_confirmation: "Als je wallet verbinding maakt met het internet, worden alle gegevens in je \
                                       wallet verwijderd.",
         error_description: "De wallet kon niet verwijderd worden. Dit kan verschillende redenen hebben. Probeer het \
@@ -84,7 +86,7 @@ pub const TRANSLATIONS: Translations = Translations {
         need_help: "Hulp nodig?",
         back_to_support: "Terug naar support",
         try_again: "Probeer opnieuw",
-        download_text: "Geef je feedback of download de nieuwe NL Wallet in de appstore.",
+        download_text: "Geef je feedback of download de NL Wallet app opnieuw.",
         apple_app_store: "Download in de App Store",
         google_play_store: "Ontdek het op Google Play",
         date_format: "%d %B %Y",
@@ -101,6 +103,7 @@ pub struct Words<'a> {
     pub error_title: &'a str,
     pub delete_description: &'a str,
     pub delete_warning: &'a str,
+    pub delete_step1: &'a str,
     pub delete_step1_instruction: &'a str,
     pub delete_code_label: &'a str,
     pub delete_confirm: &'a str,
