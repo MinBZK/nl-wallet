@@ -32,7 +32,7 @@
     }
   },
   "pid_issuance": {
-    "pid_issuer_url": "http://${SERVICES_HOST}:${PID_ISSUER_WS_PORT}/",
+    "pid_issuer_url": "http://${SERVICES_HOST}:${PID_ISSUER_PORT}/",
     "digid": {
       "client_id": "${DIGID_CLIENT_ID}"
     },

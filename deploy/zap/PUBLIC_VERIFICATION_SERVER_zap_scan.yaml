@@ -3,9 +3,9 @@ env:
   contexts:
   - name: "Default Context"
     urls:
-    - "${PUBLIC_VERIFICATION_SERVER_URL}"
+    - "${VERIFICATION_SERVER_URL}"
     includePaths:
-    - "${PUBLIC_VERIFICATION_SERVER_URL}.*"
+    - "${VERIFICATION_SERVER_URL}.*"
     excludePaths: []
     authentication:
       parameters: {}
