@@ -1,4 +1,4 @@
-import { formatDeletionCode, calculateCursorPosition, validateDeletionCode } from "./portal.js"
+import { formatDeletionCode, calculateCursorPosition, validateDeletionCode, DELETION_CODE_LENGTH } from "./portal.js"
 ;(function () {
   const input = document.getElementById("deletion-code")
   const errorDisplay = document.getElementById("error-message")
@@ -42,7 +42,7 @@ import { formatDeletionCode, calculateCursorPosition, validateDeletionCode } fro
     const newPos = calculateCursorPosition(oldVal, oldPos, formatted, rawValue, addTrailingHyphen)
     e.target.setSelectionRange(newPos, newPos)
 
-    validate(rawValue.length > 18 || errorDisplay.classList.contains("visible"))
+    validate(rawValue.length > DELETION_CODE_LENGTH || errorDisplay.classList.contains("visible"))
   })
 
   input.addEventListener("keydown", (e) => {
@@ -63,7 +63,7 @@ import { formatDeletionCode, calculateCursorPosition, validateDeletionCode } fro
         const newPos = calculateCursorPosition(newValue, newValue.length, formatted, rawValue, addTrailingHyphen)
         e.target.setSelectionRange(newPos, newPos)
 
-        validate(rawValue.length > 18 || errorDisplay.classList.contains("visible"))
+        validate(rawValue.length > DELETION_CODE_LENGTH || errorDisplay.classList.contains("visible"))
       }
     }
   })

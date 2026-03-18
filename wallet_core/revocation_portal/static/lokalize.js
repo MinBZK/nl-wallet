@@ -5,9 +5,9 @@
 
     if (!el) return
 
-    const iso = el.getAttribute("data-revoked-at")
-    const lang = el.getAttribute("data-language") // "nl" or "en"
-    const template = el.getAttribute("data-template")
+    const iso = el.dataset.revokedAt
+    const lang = el.dataset.language // "nl" or "en"
+    const template = el.dataset.template
 
     if (!iso || !template) return
     const d = new Date(iso)
