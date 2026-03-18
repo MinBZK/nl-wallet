@@ -198,7 +198,11 @@ where
     let openapi = ApiDocs::openapi().nest("/internal", internal_openapi);
 
     #[cfg(feature = "test_internal_ui")]
-    let router = router.merge(utoipa_swagger_ui::SwaggerUi::new("/api-docs").url("/openapi.json", openapi));
+    let router = router.merge(
+        utoipa_swagger_ui::SwaggerUi::new("/api-docs")
+            .config(utoipa_swagger_ui::Config::default().validator_url("none"))
+            .url("/openapi.json", openapi),
+    );
 
     #[cfg(not(feature = "test_internal_ui"))]
     let router = router.route("/openapi.json", get(Json(openapi)));
