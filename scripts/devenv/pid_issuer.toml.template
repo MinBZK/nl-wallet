@@ -1,4 +1,4 @@
-public_url = 'http://${SERVICES_HOST}:${PID_ISSUER_WS_PORT}/'
+public_url = 'http://${SERVICES_HOST}:${PID_ISSUER_PORT}/'
 issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 
 brp_server = 'http://${SERVICES_HOST}:${BRP_SERVER_PORT}'
@@ -14,7 +14,7 @@ url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/pid_issuer
 
 [wallet_server]
 ip = '0.0.0.0'
-port = ${PID_ISSUER_WS_PORT}
+port = ${PID_ISSUER_PORT}
 
 [internal_server]
 ip = '0.0.0.0'
