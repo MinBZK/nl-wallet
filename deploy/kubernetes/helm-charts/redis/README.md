@@ -36,6 +36,7 @@ optional PVC.
 
 | Name                 | Description                        | Value |
 | -------------------- | ---------------------------------- | ----- |
+| `serviceAccountName` | Name of the service account        | `nil` |
 | `podSecurityContext` | Security context for the pod       | `{}`  |
 | `securityContext`    | Security context for the container | `{}`  |
 

@@ -30,9 +30,11 @@ image:
 imagePullSecrets: []
 
 ## @section Security parameters
+## @param serviceAccountName Name of the service account
 ## @param podSecurityContext Security context for the pod
 ## @param securityContext Security context for the container
 ##
+serviceAccountName: null
 podSecurityContext: {}
 securityContext: {}
 

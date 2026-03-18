@@ -31,11 +31,11 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ .Values.serviceAccountName }}
       {{ with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      serviceAccountName: {{ .Values.serviceAccountName }}
       containers:
         - name: preload-gba-v-data-pod
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.imagePreload.repository }}:{{ .Values.image.tag }}"

@@ -47,7 +47,7 @@ deployment:
 ## @param podSecurityContext Security context for the pod
 ## @param securityContext Security context for the container
 ##
-serviceAccountName: ""
+serviceAccountName: null
 podSecurityContext: {}
 securityContext: {}
 

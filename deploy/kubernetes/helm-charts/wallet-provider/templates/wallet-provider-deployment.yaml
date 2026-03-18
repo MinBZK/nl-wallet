@@ -28,11 +28,11 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ .Values.serviceAccountName }}
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      serviceAccountName: {{ .Values.serviceAccountName }}
 
       containers:
         - name: {{ include "common.names.fullname" . }}
