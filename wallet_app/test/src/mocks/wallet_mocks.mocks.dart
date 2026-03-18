@@ -7904,6 +7904,34 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Future<_i26.WalletInstructionResult>);
 
   @override
+  _i10.Future<_i26.StartDisclosureResult> crateApiFullContinueCloseProximityDisclosure() =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #crateApiFullContinueCloseProximityDisclosure,
+              [],
+            ),
+            returnValue: _i10.Future<_i26.StartDisclosureResult>.value(
+              _i14.dummyValue<_i26.StartDisclosureResult>(
+                this,
+                Invocation.method(
+                  #crateApiFullContinueCloseProximityDisclosure,
+                  [],
+                ),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<_i26.StartDisclosureResult>.value(
+              _i14.dummyValue<_i26.StartDisclosureResult>(
+                this,
+                Invocation.method(
+                  #crateApiFullContinueCloseProximityDisclosure,
+                  [],
+                ),
+              ),
+            ),
+          )
+          as _i10.Future<_i26.StartDisclosureResult>);
+
+  @override
   _i10.Future<_i26.DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({
     required List<int>? selectedIndices,
     required String? pin,
@@ -8386,29 +8414,13 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Future<void>);
 
   @override
-  _i10.Future<String> crateApiFullStartCloseProximityDisclosure() =>
+  _i10.Stream<_i26.CloseProximityDisclosureFlutterUpdate> crateApiFullStartCloseProximityDisclosure() =>
       (super.noSuchMethod(
             Invocation.method(#crateApiFullStartCloseProximityDisclosure, []),
-            returnValue: _i10.Future<String>.value(
-              _i14.dummyValue<String>(
-                this,
-                Invocation.method(
-                  #crateApiFullStartCloseProximityDisclosure,
-                  [],
-                ),
-              ),
-            ),
-            returnValueForMissingStub: _i10.Future<String>.value(
-              _i14.dummyValue<String>(
-                this,
-                Invocation.method(
-                  #crateApiFullStartCloseProximityDisclosure,
-                  [],
-                ),
-              ),
-            ),
+            returnValue: _i10.Stream<_i26.CloseProximityDisclosureFlutterUpdate>.empty(),
+            returnValueForMissingStub: _i10.Stream<_i26.CloseProximityDisclosureFlutterUpdate>.empty(),
           )
-          as _i10.Future<String>);
+          as _i10.Stream<_i26.CloseProximityDisclosureFlutterUpdate>);
 
   @override
   _i10.Future<_i26.StartDisclosureResult> crateApiFullStartDisclosure({

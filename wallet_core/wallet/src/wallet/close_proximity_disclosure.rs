@@ -39,6 +39,10 @@ pub type CloseProximityDisclosureCallback = Box<dyn Fn(CloseProximityDisclosureU
 pub struct MdocUri(String);
 
 #[derive(Debug, Clone, IsVariant)]
+#[expect(
+    unused,
+    reason = "will be used when continue_close_proximity_disclosure is implemented"
+)]
 enum CloseProximityDisclosureSessionState {
     Advertising,
     SessionEstablished {
@@ -53,12 +57,10 @@ enum CloseProximityDisclosureSessionState {
 }
 
 #[derive(Debug)]
-pub struct CloseProximityDisclosureSessionData {
-    session_transcript: Vec<u8>,
-    device_request: Vec<u8>,
-}
-
-#[derive(Debug)]
+#[expect(
+    unused,
+    reason = "will be used when continue_close_proximity_disclosure is implemented"
+)]
 pub struct CloseProximityDisclosureSession {
     listener: JoinHandle<()>,
     session_state: Arc<Mutex<CloseProximityDisclosureSessionState>>,
@@ -151,9 +153,7 @@ where
         Ok(uri)
     }
 
-    pub async fn continue_close_proximity_disclosure(
-        &mut self,
-    ) -> Result<DisclosureProposalPresentation, DisclosureError> {
+    pub fn continue_close_proximity_disclosure(&mut self) -> Result<DisclosureProposalPresentation, DisclosureError> {
         unimplemented!()
     }
 }
