@@ -89,7 +89,7 @@ zap-scan-public-verification-server:
   script:
     - !reference [.get-session-token, script]
     - |
-      yq e ".servers[0].url=\"${PUBLIC_VERIFICATION_SERVER_URL}\"" -i wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
+      yq e ".servers[0].url=\"${VERIFICATION_SERVER_URL}\"" -i wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
       sed -i 's|wallet-components.openapi.yaml#|#|g' wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
       sed -i "s|application/x-www-form-urlencoded|application/json|g" wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
       sed -i "s|{session_token}|${SESSION_TOKEN}|g" wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
