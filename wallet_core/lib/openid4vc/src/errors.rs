@@ -35,6 +35,30 @@ pub struct ErrorResponse<T> {
     pub error_uri: Option<Url>,
 }
 
+/// Wrapper of [`ErrorResponse`] that adds the optional `state` parameter used by authorization error responses.
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuthorizationErrorResponse<T> {
+    #[serde(flatten)]
+    pub error_response: ErrorResponse<T>,
+    pub state: Option<String>,
+}
+
+impl<T> AuthorizationErrorResponse<T> {
+    pub fn error(&self) -> &T {
+        &self.error_response.error
+    }
+}
+
+impl<T> From<ErrorResponse<T>> for AuthorizationErrorResponse<T> {
+    fn from(error_response: ErrorResponse<T>) -> Self {
+        Self {
+            error_response,
+            state: None,
+        }
+    }
+}
+
 /// Wrapper of [`ErrorResponse`] that has an optional redirect URI
 /// and is as an error response for disclosure endpoints.
 #[skip_serializing_none]
@@ -46,7 +70,7 @@ pub struct DisclosureErrorResponse<T> {
 }
 
 impl<T> DisclosureErrorResponse<T> {
-    pub fn response_error(&self) -> &T {
+    pub fn error(&self) -> &T {
         &self.error_response.error
     }
 }

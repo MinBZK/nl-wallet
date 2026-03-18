@@ -53,7 +53,7 @@ use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::AuthorizationErrorCode;
-use crate::ErrorResponse;
+use crate::AuthorizationErrorResponse;
 use crate::PostAuthResponseErrorCode;
 use crate::VpAuthorizationErrorCode;
 use crate::openid4vp::AuthResponseError;
@@ -181,7 +181,7 @@ pub enum UseCaseCertificateError {
 
 #[derive(thiserror::Error, Debug)]
 #[error("user aborted with error: {0:?}")]
-pub struct UserError(Box<ErrorResponse<VpAuthorizationErrorCode>>);
+pub struct UserError(Box<AuthorizationErrorResponse<VpAuthorizationErrorCode>>);
 
 #[derive(thiserror::Error, Debug)]
 pub struct WithRedirectUri<T: Error> {
@@ -303,7 +303,7 @@ pub struct VpToken {
 #[serde(untagged)]
 pub enum WalletAuthResponse {
     Response(VpToken),
-    Error(ErrorResponse<VpAuthorizationErrorCode>),
+    Error(AuthorizationErrorResponse<VpAuthorizationErrorCode>),
 }
 
 /// Disclosure session states for use as `T` in `Session<T>`.
@@ -1458,7 +1458,7 @@ impl Session<WaitingForResponse> {
             WalletAuthResponse::Error(err) => {
                 // Check if the error code indicates that the user refused to disclose.
                 let user_refused = matches!(
-                    err.error,
+                    err.error(),
                     VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied)
                 );
 
@@ -1613,19 +1613,20 @@ mod tests {
     use utils::generator::TimeGenerator;
     use utils::vec_nonempty;
 
+    use crate::ErrorResponse;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionStore;
     use crate::server_state::SessionToken;
 
     use super::AuthorizationErrorCode;
+    use super::AuthorizationErrorResponse;
     use super::ClientId;
     use super::DisclosedAttributesError;
     use super::DisclosureData;
     use super::Done;
     use super::EPHEMERAL_ID_VALIDITY_SECONDS;
     use super::EphemeralIdParameters;
-    use super::ErrorResponse;
     use super::GetAuthRequestError;
     use super::HashMap;
     use super::NewSessionError;
@@ -1816,11 +1817,14 @@ mod tests {
             .unwrap();
 
         // We have no mdoc in this test to actually disclose, so we let the wallet terminate the session
-        let end_session_message = WalletAuthResponse::Error(ErrorResponse {
-            error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
-            error_description: None,
-            error_uri: None,
-        });
+        let end_session_message = WalletAuthResponse::Error(
+            ErrorResponse {
+                error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
+                error_description: None,
+                error_uri: None,
+            }
+            .into(),
+        );
         let ended_session_response = verifier
             .process_authorization_response(&session_token, end_session_message, &TimeGenerator)
             .await
@@ -2169,5 +2173,44 @@ mod tests {
         let response: WalletAuthResponse = serde_urlencoded::from_str("response=jwe").unwrap();
 
         assert_matches!(response, WalletAuthResponse::Response(VpToken { response }) if response == "jwe");
+    }
+
+    #[test]
+    fn test_wallet_auth_response_error_serializes_without_state_parameter() {
+        let body = serde_urlencoded::to_string(WalletAuthResponse::Error(
+            ErrorResponse {
+                error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
+                error_description: None,
+                error_uri: None,
+            }
+            .into(),
+        ))
+        .unwrap();
+
+        assert_eq!(body, "error=access_denied");
+    }
+
+    #[test]
+    fn test_wallet_auth_response_error_serializes_and_deserializes_state_parameter() {
+        let body = serde_urlencoded::to_string(WalletAuthResponse::Error(AuthorizationErrorResponse {
+            error_response: ErrorResponse {
+                error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
+                error_description: None,
+                error_uri: None,
+            },
+            state: Some("authorization_state".to_string()),
+        }))
+        .unwrap();
+
+        assert_eq!(body, "error=access_denied&state=authorization_state");
+
+        let response: WalletAuthResponse = serde_urlencoded::from_str(&body).unwrap();
+        assert_matches!(
+            response,
+            WalletAuthResponse::Error(response)
+                if response.error()
+                    == &VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied)
+                    && response.state.as_deref() == Some("authorization_state")
+        );
     }
 }

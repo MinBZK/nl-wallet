@@ -12,6 +12,7 @@ use itertools::Itertools;
 use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
+use openid4vc::AuthorizationErrorResponse;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
@@ -60,7 +61,6 @@ use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 use mdoc::DeviceResponse;
 use mdoc::holder::disclosure::PartialMdoc;
-use openid4vc::ErrorResponse;
 use openid4vc::GetRequestErrorCode;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VpAuthorizationErrorCode;
@@ -469,7 +469,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
     async fn send_error(
         &self,
         _url: BaseUrl,
-        error: ErrorResponse<VpAuthorizationErrorCode>,
+        error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         panic!("error: {error:?}")
     }
@@ -1372,7 +1372,7 @@ where
     async fn send_error(
         &self,
         url: BaseUrl,
-        error: ErrorResponse<VpAuthorizationErrorCode>,
+        error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
         let session_token = path_segments[path_segments.len() - 2].to_owned().into();

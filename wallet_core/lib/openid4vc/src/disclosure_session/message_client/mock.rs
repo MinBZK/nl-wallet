@@ -21,7 +21,7 @@ use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 
-use crate::errors::ErrorResponse;
+use crate::errors::AuthorizationErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationRequest;
@@ -41,7 +41,7 @@ use super::VpMessageClientError;
 pub enum WalletMessage {
     Request(WalletRequest),
     Disclosure(String),
-    Error(ErrorResponse<VpAuthorizationErrorCode>),
+    Error(AuthorizationErrorResponse<VpAuthorizationErrorCode>),
 }
 
 /// An implementation of [`VpMessageClient`] that sends an error made by the response factory,
@@ -95,7 +95,7 @@ where
     async fn send_error(
         &self,
         _url: BaseUrl,
-        error: ErrorResponse<VpAuthorizationErrorCode>,
+        error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.wallet_messages.lock().push(WalletMessage::Error(error));
 
@@ -148,6 +148,7 @@ pub struct MockVerifierSession {
     pub trust_anchors: Vec<TrustAnchor<'static>>,
     pub credential_requests: NormalizedCredentialRequests,
     pub nonce: String,
+    pub state: Option<String>,
     pub encryption_keypair: EcKeyPair,
     pub client_id: String,
     pub request_uri: BaseUrl,
@@ -194,6 +195,7 @@ impl MockVerifierSession {
             key_pair,
             credential_requests,
             nonce,
+            state: None,
             encryption_keypair,
             client_id,
             request_uri,
@@ -219,14 +221,17 @@ impl MockVerifierSession {
         encryption_jwk.set_algorithm("ECDH-ES");
         encryption_jwk.set_key_id(crypto_utils::random_string(32));
 
-        NormalizedVpAuthorizationRequest::new_from_certificate(
+        let mut auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
             self.credential_requests.clone(),
             self.key_pair.certificate(),
             self.nonce.clone(),
             encryption_jwk.try_into().unwrap(),
             self.response_uri.clone(),
             wallet_nonce,
-        )
+        );
+        auth_request.state = self.state.clone();
+
+        auth_request
     }
 
     /// Generate the first protocol message of the verifier.
@@ -279,7 +284,7 @@ impl VpMessageClient for MockVerifierVpMessageClient {
     async fn send_error(
         &self,
         _url: BaseUrl,
-        error: ErrorResponse<VpAuthorizationErrorCode>,
+        error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.session.wallet_messages.lock().push(WalletMessage::Error(error));
         let redirect_uri = self.session.redirect_uri.clone();
