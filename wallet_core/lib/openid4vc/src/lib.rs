@@ -6,6 +6,7 @@ pub mod authorization;
 pub mod credential;
 pub mod issuer_identifier;
 pub mod metadata;
+pub mod par;
 pub mod token;
 
 // Cryptographic tools.

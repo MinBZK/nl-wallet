@@ -145,17 +145,17 @@ pub struct AuthorizationResponse {
 
 #[cfg(test)]
 mod tests {
-    use indexmap::IndexSet;
-    use serde_json::json;
-    use serde_urlencoded;
-    use url::Url;
-
     use crate::authorization::AuthorizationDetails;
     use crate::authorization::AuthorizationDetailsFormatData;
     use crate::authorization::AuthorizationRequest;
     use crate::authorization::PkceCodeChallenge;
     use crate::authorization::ResponseMode;
     use crate::authorization::ResponseType;
+    use indexmap::IndexSet;
+    use jwt::nonce::Nonce;
+    use serde_json::json;
+    use serde_urlencoded;
+    use url::Url;
 
     #[test]
     fn authorization_request_serialization_roundtrip() {
@@ -165,6 +165,8 @@ mod tests {
         let mut scope = IndexSet::new();
         scope.insert("openid".to_string());
         scope.insert("profile".to_string());
+
+        let nonce = Nonce::new_random();
 
         let request = AuthorizationRequest {
             response_type,
@@ -176,7 +178,7 @@ mod tests {
                 code_challenge: "challenge-xyz".to_string(),
             }),
             scope: Some(scope),
-            nonce: Some("nonce-789".to_string()),
+            nonce: Some(nonce.clone()),
             response_mode: Some(ResponseMode::Fragment),
         };
 
@@ -185,7 +187,7 @@ mod tests {
 
         assert_eq!(decoded.client_id, "client-123");
         assert_eq!(decoded.state.as_deref(), Some("state-abc"));
-        assert_eq!(decoded.nonce.as_deref(), Some("nonce-789"));
+        assert_eq!(decoded.nonce, Some(nonce));
         assert_eq!(
             decoded.scope.unwrap().iter().cloned().collect::<Vec<_>>(),
             vec!["openid", "profile"]

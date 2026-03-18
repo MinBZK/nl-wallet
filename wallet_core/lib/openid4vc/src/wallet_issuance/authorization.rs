@@ -98,7 +98,6 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             redirect_uri: Some(redirect_uri.clone()),
             state: Some(state.clone()),
             authorization_details: None,
-            request_uri: None,
             code_challenge: Some(PkceCodeChallenge::S256 {
                 code_challenge: pkce_pair.code_challenge().to_string(),
             }),
