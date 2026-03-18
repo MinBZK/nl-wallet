@@ -1,6 +1,6 @@
 ## Global Docker image parameters
 ## Please, note that this will override the image parameters, including dependencies, configured to use the global value
-## Current available global Docker image parameters: imageRegistry and imagePullSecrets
+## Current available global Docker image parameters: imageRegistry
 ## @section Global parameters
 ## @param global.imageRegistry Global Docker image registry
 ##
@@ -8,13 +8,11 @@ global:
   imageRegistry: ""
 
 ## @section Common parameters
-## String to partially override the chart's fullname template
 ## @param nameOverride String to partially override chart's fullname
 ##
 nameOverride: ""
 
 ## @section Common parameters
-## Number of replicas
 ## @param replicaCount Number of replicas
 ##
 replicaCount: 2
@@ -45,6 +43,20 @@ imageAuditLogMigrations:
   repository: null
   pullPolicy: IfNotPresent
 
+## @section Image pull secrets
+## @param imagePullSecrets Array of secret names for private registries
+##
+imagePullSecrets: []
+
+## @section Security parameters
+## @param serviceAccountName Name of the service account
+## @param podSecurityContext Security context for the pod
+## @param securityContext Security context for the container
+##
+serviceAccountName: ""
+podSecurityContext: {}
+securityContext: {}
+
 ## @section Annotations and labels
 ## Additional annotations and labels
 ## @param extraAnnotations Additional annotations for the deployment
@@ -53,28 +65,19 @@ imageAuditLogMigrations:
 extraAnnotations: {}
 extraPodLabels: {}
 
-## @section Image pull secrets
-## Secrets for pulling images from private registries
-## @param imagePullSecrets Array of secret names for private registries
+## @section Resource requests and limits
+## @param resources.requests.cpu CPU request
+## @param resources.requests.memory Memory request
+## @param resources.limits.cpu CPU limit
+## @param resources.limits.memory Memory limit
 ##
-imagePullSecrets: []
-
-## @section Service account name
-## Name of the service account to use
-## @param serviceAccountName Name of the service account
-##
-serviceAccountName: null
-
-## @section Pod security context
-## Security context for the pod
-## @param podSecurityContext Security context for the pod
-podSecurityContext: {}
-
-## @section Security context
-## Security context for the container
-## @param securityContext Security context for the container
-##
-securityContext: {}
+resources:
+  requests:
+    cpu: "100m"
+    memory: "32Mi"
+  limits:
+    cpu: "400m"
+    memory: "64Mi"
 
 ## @section HTTP route parameters
 ## Parameters for the HTTPRoute configuration
@@ -96,7 +99,7 @@ httpRoute:
   nginxClientSettingsPolicy: {}
 
 ## @section HTTP route internal parameters
-## Parameters for the HTTPRoute configuration
+## Parameters for the internal HTTPRoute configuration
 ## @param httpRouteInternal.enabled Enable or disable the route
 ## @param httpRouteInternal.parentRefs Parent references to the gateway
 ## @param httpRouteInternal.hostnames Hostnames for the route
@@ -125,29 +128,17 @@ probes:
   disableLiveness: false
   useLivenessAsReadiness: false
 
-## @section Resource requests and limits
-## @param resources.requests.cpu CPU request
-## @param resources.requests.memory Memory request
-## @param resources.limits.cpu CPU limit
-## @param resources.limits.memory Memory limit
-##
-resources:
-  requests:
-    cpu: "100m"
-    memory: "32Mi"
-  limits:
-    cpu: "400m"
-    memory: "64Mi"
-
 ## @section Database parameters
 ## Parameters for database configuration
 ## @param database.secretName The secret name that contains the connection url for the database
+##
 database:
   secretName: null
 
 ## @section Audit Log Database parameters
 ## Parameters for database configuration
 ## @param auditLog.secretName The secret name that contains the connection url for the database
+##
 auditLog:
   secretName: null
 
@@ -170,6 +161,7 @@ hsm:
 ## @param android.allowSideLoading Allow installing apps from sources other than the Play Store
 ## @param android.serviceAccount.secretName Name to the the Secret containing the Google Cloud service account file
 ## @param android.serviceAccount.secretKey Key of the the Secret containing the Google Cloud service account file
+##
 android:
   rootPublicKeys: null
   playstoreCertificateHashes: null
@@ -223,6 +215,7 @@ migration:
 
 ## @section Service monitor
 ## @param serviceMonitor.enabled Enable service monitor
+##
 serviceMonitor:
   enabled: true
 
@@ -235,6 +228,7 @@ serviceMonitor:
 ## @param logSidecar.resources.limits.cpu CPU limit of log sidecar
 ## @param logSidecar.resources.limits.memory Memory limit of log sidecar
 ## @param logSidecar.securityContext Security context for the log sidecar
+##
 logSidecar:
   image:
     repository: null

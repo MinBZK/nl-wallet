@@ -1,6 +1,6 @@
 ## Global Docker image parameters
 ## Please, note that this will override the image parameters, including dependencies, configured to use the global value
-## Current available global Docker image parameters: imageRegistry and imagePullSecrets
+## Current available global Docker image parameters: imageRegistry
 ## @section Global parameters
 ## @param global.imageRegistry Global Docker image registry
 ##
@@ -36,26 +36,17 @@ imageGbaFrontend:
   pullPolicy: IfNotPresent
 
 ## @section Image pull secrets
-## Secrets for pulling images from private registries
 ## @param imagePullSecrets Array of secret names for private registries
 ##
 imagePullSecrets: []
 
-## @section Service account name
-## Name of the service account to use
+## @section Security parameters
 ## @param serviceAccountName Name of the service account
-##
-serviceAccountName: null
-
-## @section Pod security context
-## Security context for the pod
 ## @param podSecurityContext Security context for the pod
-podSecurityContext: {}
-
-## @section Security context
-## Security context for the container
 ## @param securityContext Security context for the container
 ##
+serviceAccountName: null
+podSecurityContext: {}
 securityContext: {}
 
 ## @section Network Policy configuration
@@ -83,6 +74,7 @@ networkPolicy:
 ## @param gbaHcConverter.resources.requests.memory Memory request
 ## @param gbaHcConverter.resources.limits.cpu CPU limit
 ## @param gbaHcConverter.resources.limits.memory Memory limit
+##
 gbaHcConverter:
   replicaCount: 2
   extraAnnotations: {}
@@ -155,6 +147,7 @@ hostAliases: []
 ## @param frontend.resources.requests.memory Memory request for the frontend container
 ## @param frontend.resources.limits.cpu CPU limit for the frontend container
 ## @param frontend.resources.limits.memory Memory limit for the frontend container
+##
 frontend:
   replicaCount: 1
   name: gba-fetch-frontend
@@ -185,14 +178,15 @@ frontend:
 ## @section Preload GBA deployement parameters
 ## Parameters for the Preload GBA deployement configuration
 ## @param preloadGba.name Name of the Preload GBA Deployment
-## @param preloadGba.extraAnnotations Additional annotations for the Preload GBA Deployment
-## @param preloadGba.extraPodLabels Additional labels for the Preload GBA Pod
-## @param preloadGba.volumeClaimName Name of the Preload GBA Volume Claim
-## @param preloadGba.storageClassName Storage class name for the Preload GBA Volume Claim
-## @param preloadGba.resources.requests.cpu CPU request for the Preload GBA Pod
-## @param preloadGba.resources.requests.memory Memory request for the Preload GBA Pod
-## @param preloadGba.resources.limits.cpu CPU limit for the Preload GBA Pod
-## @param preloadGba.resources.limits.memory Memory limit for the Preload GBA Pod
+## @param preloadGba.extraAnnotations Additional annotations
+## @param preloadGba.extraPodLabels Additional labels
+## @param preloadGba.volumeClaimName Name of the volume claim
+## @param preloadGba.storageClassName Storage class name for the volume claim
+## @param preloadGba.resources.requests.cpu CPU request
+## @param preloadGba.resources.requests.memory Memory request
+## @param preloadGba.resources.limits.cpu CPU limit
+## @param preloadGba.resources.limits.memory Memory limit
+##
 preloadGba:
   name: preload-gba-v-data
   extraAnnotations: {}
@@ -210,9 +204,11 @@ preloadGba:
 ## @section xml files
 ## Parameters for the XML files used in the GBA HC Converter
 ## @param xmlFiles List of XML files to be used in the GBA HC Converter
+##
 xmlFiles: {}
 
 ## @section zoekXmlFiles
 ## Parameters for the XML files used in the GBA HC Converter for Zoek
 ## @param zoekXmlFiles List of XML files to be used in the GBA HC Converter
+##
 zoekXmlFiles: {}

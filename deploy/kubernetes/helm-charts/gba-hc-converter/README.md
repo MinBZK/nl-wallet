@@ -34,23 +34,13 @@
 | ------------------ | -------------------------------------------- | ----- |
 | `imagePullSecrets` | Array of secret names for private registries | `[]`  |
 
-### Service account name
+### Security parameters
 
-| Name                 | Description                 | Value |
-| -------------------- | --------------------------- | ----- |
-| `serviceAccountName` | Name of the service account | `nil` |
-
-### Pod security context
-
-| Name                 | Description                  | Value |
-| -------------------- | ---------------------------- | ----- |
-| `podSecurityContext` | Security context for the pod | `{}`  |
-
-### Security context
-
-| Name              | Description                        | Value |
-| ----------------- | ---------------------------------- | ----- |
-| `securityContext` | Security context for the container | `{}`  |
+| Name                 | Description                        | Value |
+| -------------------- | ---------------------------------- | ----- |
+| `serviceAccountName` | Name of the service account        | `nil` |
+| `podSecurityContext` | Security context for the pod       | `{}`  |
+| `securityContext`    | Security context for the container | `{}`  |
 
 ### Network Policy configuration
 
@@ -127,17 +117,17 @@
 
 ### Preload GBA deployement parameters
 
-| Name                                   | Description                                           | Value                  |
-| -------------------------------------- | ----------------------------------------------------- | ---------------------- |
-| `preloadGba.name`                      | Name of the Preload GBA Deployment                    | `preload-gba-v-data`   |
-| `preloadGba.extraAnnotations`          | Additional annotations for the Preload GBA Deployment | `{}`                   |
-| `preloadGba.extraPodLabels`            | Additional labels for the Preload GBA Pod             | `{}`                   |
-| `preloadGba.volumeClaimName`           | Name of the Preload GBA Volume Claim                  | `preloaded-gba-v-data` |
-| `preloadGba.storageClassName`          | Storage class name for the Preload GBA Volume Claim   | `nfs`                  |
-| `preloadGba.resources.requests.cpu`    | CPU request for the Preload GBA Pod                   | `50m`                  |
-| `preloadGba.resources.requests.memory` | Memory request for the Preload GBA Pod                | `64Mi`                 |
-| `preloadGba.resources.limits.cpu`      | CPU limit for the Preload GBA Pod                     | `200m`                 |
-| `preloadGba.resources.limits.memory`   | Memory limit for the Preload GBA Pod                  | `128Mi`                |
+| Name                                   | Description                             | Value                  |
+| -------------------------------------- | --------------------------------------- | ---------------------- |
+| `preloadGba.name`                      | Name of the Preload GBA Deployment      | `preload-gba-v-data`   |
+| `preloadGba.extraAnnotations`          | Additional annotations                  | `{}`                   |
+| `preloadGba.extraPodLabels`            | Additional labels                       | `{}`                   |
+| `preloadGba.volumeClaimName`           | Name of the volume claim                | `preloaded-gba-v-data` |
+| `preloadGba.storageClassName`          | Storage class name for the volume claim | `nfs`                  |
+| `preloadGba.resources.requests.cpu`    | CPU request                             | `50m`                  |
+| `preloadGba.resources.requests.memory` | Memory request                          | `64Mi`                 |
+| `preloadGba.resources.limits.cpu`      | CPU limit                               | `200m`                 |
+| `preloadGba.resources.limits.memory`   | Memory limit                            | `128Mi`                |
 
 ### xml files
 

@@ -63,6 +63,13 @@ requests.
 
 ### Common parameters
 
+| Name               | Description                                    | Value |
+| ------------------ | ---------------------------------------------- | ----- |
+| `fullnameOverride` | String to completely override chart's fullname | `""`  |
+| `nameOverride`     | String to partially override chart's fullname  | `""`  |
+
+### Common parameters
+
 | Name           | Description        | Value |
 | -------------- | ------------------ | ----- |
 | `replicaCount` | Number of replicas | `1`   |
@@ -71,9 +78,9 @@ requests.
 
 | Name               | Description                        | Value          |
 | ------------------ | ---------------------------------- | -------------- |
-| `image.repository` | Repository for the container image | `max`          |
+| `image.repository` | Repository for the container image | `nl-rdo-max`   |
 | `image.pullPolicy` | Image pull policy                  | `IfNotPresent` |
-| `image.tag`        | Image tag                          | `latest`       |
+| `image.tag`        | Image tag                          | `nil`          |
 
 ### Image pull secrets
 
@@ -81,24 +88,12 @@ requests.
 | ------------------ | -------------------------------------------- | ----- |
 | `imagePullSecrets` | Array of secret names for private registries | `[]`  |
 
-### Pod security context
+### Security parameters
 
-| Name                 | Description                  | Value |
-| -------------------- | ---------------------------- | ----- |
-| `podSecurityContext` | Security context for the pod | `{}`  |
-
-### Security context
-
-| Name              | Description                        | Value |
-| ----------------- | ---------------------------------- | ----- |
-| `securityContext` | Security context for the container | `{}`  |
-
-### Common parameters
-
-| Name               | Description                                    | Value |
-| ------------------ | ---------------------------------------------- | ----- |
-| `fullnameOverride` | String to completely override chart's fullname | `""`  |
-| `nameOverride`     | String to partially override chart's fullname  | `""`  |
+| Name                 | Description                        | Value |
+| -------------------- | ---------------------------------- | ----- |
+| `podSecurityContext` | Security context for the pod       | `{}`  |
+| `securityContext`    | Security context for the container | `{}`  |
 
 ### Annotations and labels
 
@@ -115,6 +110,17 @@ requests.
 | `resources.requests.memory` | Memory request | `256Mi` |
 | `resources.limits.cpu`      | CPU limit      | `1000m` |
 | `resources.limits.memory`   | Memory limit   | `512Mi` |
+
+### HTTP route parameters
+
+| Name                    | Description                          | Value  |
+| ----------------------- | ------------------------------------ | ------ |
+| `httpRoute.enabled`     | Enable or disable the route          | `true` |
+| `httpRoute.parentRefs`  | Parent references to the gateway     | `[]`   |
+| `httpRoute.hostnames`   | Hostnames for the route              | `[]`   |
+| `httpRoute.contextPath` | Optional context path for the route  | `nil`  |
+| `httpRoute.labels`      | Additional labels for the route      | `{}`   |
+| `httpRoute.annotations` | Additional annotations for the route | `{}`   |
 
 ### Max server configuration
 
@@ -233,14 +239,3 @@ requests.
 | `max.secret.certificateName`                               | Name of the certificate within the secret                                                                                                                                                                                                                                                                                                                                                         | `sp.crt`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `max.secret.privateKeyName`                                | Name of the private key within the secret                                                                                                                                                                                                                                                                                                                                                         | `sp.key`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `max.secret.secretName`                                    | Name of the secret in Kubernetes                                                                                                                                                                                                                                                                                                                                                                  | `max-app-secret`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-
-### HTTP route parameters
-
-| Name                    | Description                          | Value  |
-| ----------------------- | ------------------------------------ | ------ |
-| `httpRoute.enabled`     | Enable or disable the route          | `true` |
-| `httpRoute.parentRefs`  | Parent references to the gateway     | `[]`   |
-| `httpRoute.hostnames`   | Hostnames for the route              | `[]`   |
-| `httpRoute.contextPath` | Optional context path for the route  | `nil`  |
-| `httpRoute.labels`      | Additional labels for the route      | `{}`   |
-| `httpRoute.annotations` | Additional annotations for the route | `{}`   |

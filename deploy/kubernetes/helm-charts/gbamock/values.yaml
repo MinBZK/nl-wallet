@@ -1,6 +1,6 @@
 ## Global Docker image parameters
 ## Please, note that this will override the image parameters, including dependencies, configured to use the global value
-## Current available global Docker image parameters: imageRegistry and imagePullSecrets
+## Current available global Docker image parameters: imageRegistry
 ## @section Global parameters
 ## @param global.imageRegistry Global Docker image registry
 ##
@@ -8,7 +8,11 @@ global:
   imageRegistry: ""
 
 ## @section Common parameters
-## Number of replicas
+## @param nameOverride String to partially override chart's fullname
+##
+nameOverride: ""
+
+## @section Common parameters
 ## @param replicaCount Number of replicas
 ##
 replicaCount: 1
@@ -21,30 +25,19 @@ replicaCount: 1
 image:
   repository: ghcr-io-proxy/brp-api/haal-centraal-brp-bevragen-gba-mock
   pullPolicy: IfNotPresent
-  tag: "latest"
+  tag: "2.0.8"
 
 ## @section Image pull secrets
-## Secrets for pulling images from private registries
 ## @param imagePullSecrets Array of secret names for private registries
 ##
 imagePullSecrets: []
 
-## @section Pod security context
-## Security context for the pod
+## @section Security parameters
 ## @param podSecurityContext Security context for the pod
-podSecurityContext: {}
-
-## @section Security context
-## Security context for the container
 ## @param securityContext Security context for the container
 ##
+podSecurityContext: {}
 securityContext: {}
-
-## @section Common parameters
-## String to partially override the chart's fullname template
-## @param nameOverride String to partially override chart's fullname
-##
-nameOverride: ""
 
 ## @section Annotations and labels
 ## Additional annotations and labels

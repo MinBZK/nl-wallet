@@ -33,6 +33,19 @@
 | `imageMigrations.repository` | Repository for the migration container image  | `nil`          |
 | `imageMigrations.pullPolicy` | Image pull policy for the migration container | `IfNotPresent` |
 
+### Image pull secrets
+
+| Name               | Description                                  | Value |
+| ------------------ | -------------------------------------------- | ----- |
+| `imagePullSecrets` | Array of secret names for private registries | `[]`  |
+
+### Security parameters
+
+| Name                 | Description                        | Value |
+| -------------------- | ---------------------------------- | ----- |
+| `podSecurityContext` | Security context for the pod       | `{}`  |
+| `securityContext`    | Security context for the container | `{}`  |
+
 ### Annotations and labels
 
 | Name               | Description                               | Value |
@@ -40,23 +53,14 @@
 | `extraAnnotations` | Additional annotations for the deployment | `{}`  |
 | `extraPodLabels`   | Additional labels for the pods            | `{}`  |
 
-### Image pull secrets
+### Resource requests and limits
 
-| Name               | Description                                  | Value |
-| ------------------ | -------------------------------------------- | ----- |
-| `imagePullSecrets` | Array of secret names for private registries | `[]`  |
-
-### Pod security context
-
-| Name                 | Description                  | Value |
-| -------------------- | ---------------------------- | ----- |
-| `podSecurityContext` | Security context for the pod | `{}`  |
-
-### Security context
-
-| Name              | Description                        | Value |
-| ----------------- | ---------------------------------- | ----- |
-| `securityContext` | Security context for the container | `{}`  |
+| Name                        | Description    | Value   |
+| --------------------------- | -------------- | ------- |
+| `resources.requests.cpu`    | CPU request    | `50m`   |
+| `resources.requests.memory` | Memory request | `64Mi`  |
+| `resources.limits.cpu`      | CPU limit      | `200m`  |
+| `resources.limits.memory`   | Memory limit   | `128Mi` |
 
 ### HTTP route parameters
 
@@ -89,15 +93,11 @@
 | `probes.disableLiveness`        | Disable liveness probe                       | `false` |
 | `probes.useLivenessAsReadiness` | Use liveness endpoint for readiness          | `false` |
 
-### Resource requests and limits
+### Database parameters
 
-| Name                        | Description                                                       | Value   |
-| --------------------------- | ----------------------------------------------------------------- | ------- |
-| `resources.requests.cpu`    | CPU request                                                       | `50m`   |
-| `resources.requests.memory` | Memory request                                                    | `64Mi`  |
-| `resources.limits.cpu`      | CPU limit                                                         | `200m`  |
-| `resources.limits.memory`   | Memory limit                                                      | `128Mi` |
-| `database.secretName`       | The secret name that contains the connection url for the database | `nil`   |
+| Name                  | Description                                                       | Value |
+| --------------------- | ----------------------------------------------------------------- | ----- |
+| `database.secretName` | The secret name that contains the connection url for the database | `nil` |
 
 ### Urls
 

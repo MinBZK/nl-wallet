@@ -12,45 +12,44 @@
 | -------------- | --------------------------------------------- | ----- |
 | `nameOverride` | String to partially override chart's fullname | `""`  |
 
-### Annotations and labels
-
-| Name               | Description                                  | Value |
-| ------------------ | -------------------------------------------- | ----- |
-| `extraAnnotations` | Additional annotations for the deployment    | `{}`  |
-| `extraPodLabels`   | Additional labels for the pods               | `{}`  |
-| `imagePullSecrets` | Array of secret names for private registries | `[]`  |
-
-### Image parameters
-
-| Name               | Description                        | Value          |
-| ------------------ | ---------------------------------- | -------------- |
-| `image.repository` | Repository for the container image | `""`           |
-| `image.pullPolicy` | Image pull policy                  | `IfNotPresent` |
-| `image.tag`        | Image tag                          | `""`           |
-
-### Deployment parameters
+### Common parameters
 
 | Name           | Description        | Value |
 | -------------- | ------------------ | ----- |
 | `replicaCount` | Number of replicas | `2`   |
 
-### Service Account configuration
+### Image parameters
 
-| Name                 | Description                 | Value |
-| -------------------- | --------------------------- | ----- |
-| `serviceAccountName` | Name of the service account | `""`  |
+| Name               | Description                                  | Value          |
+| ------------------ | -------------------------------------------- | -------------- |
+| `image.repository` | Repository for the container image           | `nil`          |
+| `image.pullPolicy` | Image pull policy                            | `IfNotPresent` |
+| `image.tag`        | Image tag                                    | `nil`          |
+| `imagePullSecrets` | Array of secret names for private registries | `[]`           |
 
-### Pod security context
+### Security parameters
 
-| Name                 | Description                  | Value |
-| -------------------- | ---------------------------- | ----- |
-| `podSecurityContext` | Security context for the pod | `{}`  |
+| Name                 | Description                        | Value |
+| -------------------- | ---------------------------------- | ----- |
+| `serviceAccountName` | Name of the service account        | `""`  |
+| `podSecurityContext` | Security context for the pod       | `{}`  |
+| `securityContext`    | Security context for the container | `{}`  |
 
-### Security context
+### Annotations and labels
 
-| Name              | Description                        | Value |
-| ----------------- | ---------------------------------- | ----- |
-| `securityContext` | Security context for the container | `{}`  |
+| Name               | Description                               | Value |
+| ------------------ | ----------------------------------------- | ----- |
+| `extraAnnotations` | Additional annotations for the deployment | `{}`  |
+| `extraPodLabels`   | Additional labels for the pods            | `{}`  |
+
+### Resource requests and limits
+
+| Name                        | Description    | Value  |
+| --------------------------- | -------------- | ------ |
+| `resources.requests.cpu`    | CPU request    | `50m`  |
+| `resources.requests.memory` | Memory request | `16Mi` |
+| `resources.limits.cpu`      | CPU limit      | `200m` |
+| `resources.limits.memory`   | Memory limit   | `32Mi` |
 
 ### HTTP route parameters
 
@@ -72,15 +71,6 @@
 | `probes.config.startup`         | Additional configuration for startup probe   | `{}`    |
 | `probes.disableLiveness`        | Disable liveness probe                       | `false` |
 | `probes.useLivenessAsReadiness` | Use liveness endpoint for readiness          | `false` |
-
-### Resource requests and limits
-
-| Name                        | Description    | Value  |
-| --------------------------- | -------------- | ------ |
-| `resources.requests.cpu`    | CPU request    | `50m`  |
-| `resources.requests.memory` | Memory request | `16Mi` |
-| `resources.limits.cpu`      | CPU limit      | `200m` |
-| `resources.limits.memory`   | Memory limit   | `32Mi` |
 
 ### Update policy
 

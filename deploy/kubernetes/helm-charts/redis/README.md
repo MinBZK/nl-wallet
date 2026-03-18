@@ -11,6 +11,13 @@ optional PVC.
 | ---------------------- | ---------------------------- | ----- |
 | `global.imageRegistry` | Global Docker image registry | `""`  |
 
+### Common parameters
+
+| Name               | Description                                    | Value |
+| ------------------ | ---------------------------------------------- | ----- |
+| `fullnameOverride` | String to completely override chart's fullname | `""`  |
+| `nameOverride`     | String to partially override chart's fullname  | `""`  |
+
 ### Image parameters
 
 | Name               | Description                        | Value          |
@@ -25,12 +32,12 @@ optional PVC.
 | ------------------ | -------------------------------------------- | ----- |
 | `imagePullSecrets` | Array of secret names for private registries | `[]`  |
 
-### Common parameters
+### Security parameters
 
-| Name               | Description                                    | Value |
-| ------------------ | ---------------------------------------------- | ----- |
-| `fullnameOverride` | String to completely override chart's fullname | `""`  |
-| `nameOverride`     | String to partially override chart's fullname  | `""`  |
+| Name                 | Description                        | Value |
+| -------------------- | ---------------------------------- | ----- |
+| `podSecurityContext` | Security context for the pod       | `{}`  |
+| `securityContext`    | Security context for the container | `{}`  |
 
 ### Annotations and labels
 
@@ -38,18 +45,6 @@ optional PVC.
 | ------------------ | ------------------------------------------ | ----- |
 | `extraAnnotations` | Additional annotations for the statefulset | `{}`  |
 | `extraPodLabels`   | Additional labels for the pods             | `{}`  |
-
-### Pod security context
-
-| Name                 | Description                  | Value |
-| -------------------- | ---------------------------- | ----- |
-| `podSecurityContext` | Security context for the pod | `{}`  |
-
-### Security context
-
-| Name              | Description                        | Value |
-| ----------------- | ---------------------------------- | ----- |
-| `securityContext` | Security context for the container | `{}`  |
 
 ### Resource requests and limits
 

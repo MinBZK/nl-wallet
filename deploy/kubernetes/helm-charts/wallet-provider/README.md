@@ -40,6 +40,20 @@
 | `imageAuditLogMigrations.repository` | Repository for the migration container image  | `nil`          |
 | `imageAuditLogMigrations.pullPolicy` | Image pull policy for the migration container | `IfNotPresent` |
 
+### Image pull secrets
+
+| Name               | Description                                  | Value |
+| ------------------ | -------------------------------------------- | ----- |
+| `imagePullSecrets` | Array of secret names for private registries | `[]`  |
+
+### Security parameters
+
+| Name                 | Description                        | Value |
+| -------------------- | ---------------------------------- | ----- |
+| `serviceAccountName` | Name of the service account        | `""`  |
+| `podSecurityContext` | Security context for the pod       | `{}`  |
+| `securityContext`    | Security context for the container | `{}`  |
+
 ### Annotations and labels
 
 | Name               | Description                               | Value |
@@ -47,29 +61,14 @@
 | `extraAnnotations` | Additional annotations for the deployment | `{}`  |
 | `extraPodLabels`   | Additional labels for the pods            | `{}`  |
 
-### Image pull secrets
+### Resource requests and limits
 
-| Name               | Description                                  | Value |
-| ------------------ | -------------------------------------------- | ----- |
-| `imagePullSecrets` | Array of secret names for private registries | `[]`  |
-
-### Service account name
-
-| Name                 | Description                 | Value |
-| -------------------- | --------------------------- | ----- |
-| `serviceAccountName` | Name of the service account | `nil` |
-
-### Pod security context
-
-| Name                 | Description                  | Value |
-| -------------------- | ---------------------------- | ----- |
-| `podSecurityContext` | Security context for the pod | `{}`  |
-
-### Security context
-
-| Name              | Description                        | Value |
-| ----------------- | ---------------------------------- | ----- |
-| `securityContext` | Security context for the container | `{}`  |
+| Name                        | Description    | Value  |
+| --------------------------- | -------------- | ------ |
+| `resources.requests.cpu`    | CPU request    | `100m` |
+| `resources.requests.memory` | Memory request | `32Mi` |
+| `resources.limits.cpu`      | CPU limit      | `400m` |
+| `resources.limits.memory`   | Memory limit   | `64Mi` |
 
 ### HTTP route parameters
 
@@ -102,15 +101,6 @@
 | `probes.config.startup`         | Additional configuration for startup probe   | `{}`    |
 | `probes.disableLiveness`        | Disable liveness probe                       | `false` |
 | `probes.useLivenessAsReadiness` | Use liveness endpoint for readiness          | `false` |
-
-### Resource requests and limits
-
-| Name                        | Description    | Value  |
-| --------------------------- | -------------- | ------ |
-| `resources.requests.cpu`    | CPU request    | `100m` |
-| `resources.requests.memory` | Memory request | `32Mi` |
-| `resources.limits.cpu`      | CPU limit      | `400m` |
-| `resources.limits.memory`   | Memory limit   | `64Mi` |
 
 ### Database parameters
 

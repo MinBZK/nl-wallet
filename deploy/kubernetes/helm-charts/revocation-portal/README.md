@@ -26,6 +26,19 @@
 | `image.pullPolicy` | Image pull policy                  | `IfNotPresent` |
 | `image.tag`        | Image tag                          | `nil`          |
 
+### Image pull secrets
+
+| Name               | Description                                  | Value |
+| ------------------ | -------------------------------------------- | ----- |
+| `imagePullSecrets` | Array of secret names for private registries | `[]`  |
+
+### Security parameters
+
+| Name                 | Description                        | Value |
+| -------------------- | ---------------------------------- | ----- |
+| `podSecurityContext` | Security context for the pod       | `{}`  |
+| `securityContext`    | Security context for the container | `{}`  |
+
 ### Annotations and labels
 
 | Name               | Description                               | Value |
@@ -33,23 +46,14 @@
 | `extraAnnotations` | Additional annotations for the deployment | `{}`  |
 | `extraPodLabels`   | Additional labels for the pods            | `{}`  |
 
-### Image pull secrets
+### Resource requests and limits
 
-| Name               | Description                                  | Value |
-| ------------------ | -------------------------------------------- | ----- |
-| `imagePullSecrets` | Array of secret names for private registries | `[]`  |
-
-### Pod security context
-
-| Name                 | Description                  | Value |
-| -------------------- | ---------------------------- | ----- |
-| `podSecurityContext` | Security context for the pod | `{}`  |
-
-### Security context
-
-| Name              | Description                        | Value |
-| ----------------- | ---------------------------------- | ----- |
-| `securityContext` | Security context for the container | `{}`  |
+| Name                        | Description    | Value  |
+| --------------------------- | -------------- | ------ |
+| `resources.requests.cpu`    | CPU request    | `50m`  |
+| `resources.requests.memory` | Memory request | `32Mi` |
+| `resources.limits.cpu`      | CPU limit      | `200m` |
+| `resources.limits.memory`   | Memory limit   | `64Mi` |
 
 ### HTTP route parameters
 
@@ -71,15 +75,6 @@
 | `probes.config.startup`         | Additional configuration for startup probe   | `{}`    |
 | `probes.disableLiveness`        | Disable liveness probe                       | `false` |
 | `probes.useLivenessAsReadiness` | Use liveness endpoint for readiness          | `false` |
-
-### Resource requests and limits
-
-| Name                        | Description    | Value  |
-| --------------------------- | -------------- | ------ |
-| `resources.requests.cpu`    | CPU request    | `50m`  |
-| `resources.requests.memory` | Memory request | `32Mi` |
-| `resources.limits.cpu`      | CPU limit      | `200m` |
-| `resources.limits.memory`   | Memory limit   | `64Mi` |
 
 ### Logging
 

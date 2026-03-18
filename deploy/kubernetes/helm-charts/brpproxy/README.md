@@ -8,6 +8,12 @@
 
 ### Common parameters
 
+| Name           | Description                                   | Value |
+| -------------- | --------------------------------------------- | ----- |
+| `nameOverride` | String to partially override chart's fullname | `""`  |
+
+### Common parameters
+
 | Name           | Description        | Value |
 | -------------- | ------------------ | ----- |
 | `replicaCount` | Number of replicas | `1`   |
@@ -26,23 +32,12 @@
 | ------------------ | -------------------------------------------- | ----- |
 | `imagePullSecrets` | Array of secret names for private registries | `[]`  |
 
-### Pod security context
+### Security parameters
 
-| Name                 | Description                  | Value |
-| -------------------- | ---------------------------- | ----- |
-| `podSecurityContext` | Security context for the pod | `{}`  |
-
-### Security context
-
-| Name              | Description                        | Value |
-| ----------------- | ---------------------------------- | ----- |
-| `securityContext` | Security context for the container | `{}`  |
-
-### Common parameters
-
-| Name           | Description                                   | Value |
-| -------------- | --------------------------------------------- | ----- |
-| `nameOverride` | String to partially override chart's fullname | `""`  |
+| Name                 | Description                        | Value |
+| -------------------- | ---------------------------------- | ----- |
+| `podSecurityContext` | Security context for the pod       | `{}`  |
+| `securityContext`    | Security context for the container | `{}`  |
 
 ### Annotations and labels
 
