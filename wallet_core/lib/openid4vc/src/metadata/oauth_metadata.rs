@@ -95,6 +95,16 @@ pub struct AuthorizationServerMetadata {
     // This is a NONSTANDARD extension Google uses that is a part of the Oauth discovery draft
     #[serde(default)]
     pub code_challenge_methods_supported: Option<IndexSet<String>>,
+
+    /// The URL of the pushed authorization request endpoint at which a client can post an authorization request to
+    /// exchange for a request_uri value usable at the authorization server.
+    #[serde(default)]
+    pub pushed_authorization_request_endpoint: Option<Url>,
+
+    /// Boolean parameter indicating whether the authorization server accepts authorization request data only via PAR.
+    /// If omitted, the default value is false.
+    #[serde(default)]
+    pub require_pushed_authorization_requests: bool,
 }
 
 impl AuthorizationServerMetadata {
@@ -137,6 +147,8 @@ impl AuthorizationServerMetadata {
             op_policy_uri: None,
             op_tos_uri: None,
             code_challenge_methods_supported: None,
+            pushed_authorization_request_endpoint: None,
+            require_pushed_authorization_requests: false,
         }
     }
 }
