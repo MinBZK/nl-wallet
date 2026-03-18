@@ -58,7 +58,10 @@ networkPolicy:
 
 ## @section GBA HC Converter parameters
 ## Parameters for the GBA HC Converter configuration
-## @param gbaHcConverter.replicaCount Number of replicas for the GBA HC Converter
+## @param gbaHcConverter.replicaCount Number of replicas
+## @param gbaHcConverter.deployment.strategy Strategy used to replace old pods by new one
+## @param gbaHcConverter.deployment.revisionHistoryLimit The number of old ReplicaSets to retain to allow rollback
+## @param gbaHcConverter.deployment.progressDeadlineSeconds The number of seconds you want to wait for your Deployment to progress
 ## @param gbaHcConverter.extraAnnotations Additional annotations for the BA HC Converter deployment
 ## @param gbaHcConverter.extraPodLabels Additional labels for the BA HC Converter pods
 ## @param gbaHcConverter.runMode Run mode for the GBA HC Converter (e.g., ALL, PRELOADED, GBAV)
@@ -77,6 +80,10 @@ networkPolicy:
 ##
 gbaHcConverter:
   replicaCount: 2
+  deployment:
+    strategy: null
+    revisionHistoryLimit: 2
+    progressDeadlineSeconds: 300
   extraAnnotations: {}
   extraPodLabels: {}
   runMode: PRELOADED
@@ -128,8 +135,11 @@ hostAliases: []
 
 ## @section Frontend parameters
 ## Parameters for the GBA Fetch frontend configuration
-## @param frontend.replicaCount Number of replicas for the GBA Fetch frontend
-## @param frontend.name Name of the GBA Fetch frontend application
+## @param frontend.replicaCount Number of replicas
+## @param frontend.name Name of the frontend application
+## @param frontend.deployment.strategy Strategy used to replace old pods by new one
+## @param frontend.deployment.revisionHistoryLimit The number of old ReplicaSets to retain to allow rollback
+## @param frontend.deployment.progressDeadlineSeconds The number of seconds you want to wait for your Deployment to progress
 ## @param frontend.extraAnnotations Additional annotations for the frontend deployment
 ## @param frontend.extraPodLabels Additional labels for the frontend pods
 ## @param frontend.httpRoute.enabled Enable or disable the route
@@ -151,6 +161,10 @@ hostAliases: []
 frontend:
   replicaCount: 1
   name: gba-fetch-frontend
+  deployment:
+    strategy: null
+    revisionHistoryLimit: 2
+    progressDeadlineSeconds: 300
   extraAnnotations: {}
   extraPodLabels: {}
   httpRoute:
@@ -178,6 +192,9 @@ frontend:
 ## @section Preload GBA deployement parameters
 ## Parameters for the Preload GBA deployement configuration
 ## @param preloadGba.name Name of the Preload GBA Deployment
+## @param preloadGba.deployment.strategy Strategy used to replace old pods by new one
+## @param preloadGba.deployment.revisionHistoryLimit The number of old ReplicaSets to retain to allow rollback
+## @param preloadGba.deployment.progressDeadlineSeconds The number of seconds you want to wait for your Deployment to progress
 ## @param preloadGba.extraAnnotations Additional annotations
 ## @param preloadGba.extraPodLabels Additional labels
 ## @param preloadGba.volumeClaimName Name of the volume claim
@@ -189,6 +206,10 @@ frontend:
 ##
 preloadGba:
   name: preload-gba-v-data
+  deployment:
+    strategy: null
+    revisionHistoryLimit: 2
+    progressDeadlineSeconds: 300
   extraAnnotations: {}
   extraPodLabels: {}
   volumeClaimName: preloaded-gba-v-data

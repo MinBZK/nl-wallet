@@ -15,13 +15,9 @@ spec:
   selector:
     matchLabels:
       {{- include "common.labels.componentSelectorLabels" (list .Values.preloadGba.name .) | nindent 6 }}
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
-  revisionHistoryLimit: 2
-  progressDeadlineSeconds: 300
+  {{- with .Values.preloadGba.deployment }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
   template:
     metadata:
       name: {{ .Values.preloadGba.name}}

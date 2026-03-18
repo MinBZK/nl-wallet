@@ -13,13 +13,9 @@ spec:
   selector:
     matchLabels:
       {{- include "common.labels.componentSelectorLabels" (list .Chart.Name .) | nindent 6 }}
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 1
-  revisionHistoryLimit: 2
-  progressDeadlineSeconds: 300
+  {{- with .Values.gbaHcConverter.deployment }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
   template:
     metadata:
       labels:

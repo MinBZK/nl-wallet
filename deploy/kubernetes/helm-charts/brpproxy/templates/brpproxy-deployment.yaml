@@ -13,6 +13,9 @@ spec:
   selector:
     matchLabels:
       {{- include "common.labels.selectorLabels" . | nindent 6 }}
+  {{- with .Values.deployment }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
   template:
     metadata:
       labels:

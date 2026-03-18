@@ -40,6 +40,16 @@ imageMigrations:
 ##
 imagePullSecrets: []
 
+## @section Deployment parameters
+## @param deployment.strategy Strategy used to replace old pods by new one
+## @param deployment.revisionHistoryLimit The number of old ReplicaSets to retain to allow rollback
+## @param deployment.progressDeadlineSeconds The number of seconds you want to wait for your Deployment to progress
+##
+deployment:
+  strategy: null
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 300
+
 ## @section Security parameters
 ## @param serviceAccountName Name of the service account
 ## @param podSecurityContext Security context for the pod

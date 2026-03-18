@@ -46,6 +46,14 @@
 | ------------------ | -------------------------------------------- | ----- |
 | `imagePullSecrets` | Array of secret names for private registries | `[]`  |
 
+### Deployment parameters
+
+| Name                                 | Description                                                            | Value |
+| ------------------------------------ | ---------------------------------------------------------------------- | ----- |
+| `deployment.strategy`                | Strategy used to replace old pods by new one                           | `nil` |
+| `deployment.revisionHistoryLimit`    | The number of old ReplicaSets to retain to allow rollback              | `2`   |
+| `deployment.progressDeadlineSeconds` | The number of seconds you want to wait for your Deployment to progress | `300` |
+
 ### Security parameters
 
 | Name                 | Description                        | Value |

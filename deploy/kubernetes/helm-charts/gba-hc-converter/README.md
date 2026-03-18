@@ -50,24 +50,27 @@
 
 ### GBA HC Converter parameters
 
-| Name                                           | Description                                                    | Value                                 |
-| ---------------------------------------------- | -------------------------------------------------------------- | ------------------------------------- |
-| `gbaHcConverter.replicaCount`                  | Number of replicas for the GBA HC Converter                    | `2`                                   |
-| `gbaHcConverter.extraAnnotations`              | Additional annotations for the BA HC Converter deployment      | `{}`                                  |
-| `gbaHcConverter.extraPodLabels`                | Additional labels for the BA HC Converter pods                 | `{}`                                  |
-| `gbaHcConverter.runMode`                       | Run mode for the GBA HC Converter (e.g., ALL, PRELOADED, GBAV) | `PRELOADED`                           |
-| `gbaHcConverter.envVarNamePreloaded`           | Environment variable name for the preloaded run mode           | `PRELOADED`                           |
-| `gbaHcConverter.envVarNameGbav`                | Environment variable name for the GBAV run mode                | `ALL__GBAV`                           |
-| `gbaHcConverter.preloadedXmlPath`              | Path to the preloaded XML files                                | `resources/encrypted-gba-v-responses` |
-| `gbaHcConverter.probes.config.liveness`        | Additional configuration for liveness probe                    | `{}`                                  |
-| `gbaHcConverter.probes.config.readiness`       | Additional configuration for readiness probe                   | `{}`                                  |
-| `gbaHcConverter.probes.config.startup`         | Additional configuration for startup probe                     | `{}`                                  |
-| `gbaHcConverter.probes.disableLiveness`        | Disable liveness probe                                         | `false`                               |
-| `gbaHcConverter.probes.useLivenessAsReadiness` | Use liveness endpoint for readiness                            | `false`                               |
-| `gbaHcConverter.resources.requests.cpu`        | CPU request                                                    | `50m`                                 |
-| `gbaHcConverter.resources.requests.memory`     | Memory request                                                 | `64Mi`                                |
-| `gbaHcConverter.resources.limits.cpu`          | CPU limit                                                      | `200m`                                |
-| `gbaHcConverter.resources.limits.memory`       | Memory limit                                                   | `128Mi`                               |
+| Name                                                | Description                                                            | Value                                 |
+| --------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------- |
+| `gbaHcConverter.replicaCount`                       | Number of replicas                                                     | `2`                                   |
+| `gbaHcConverter.deployment.strategy`                | Strategy used to replace old pods by new one                           | `nil`                                 |
+| `gbaHcConverter.deployment.revisionHistoryLimit`    | The number of old ReplicaSets to retain to allow rollback              | `2`                                   |
+| `gbaHcConverter.deployment.progressDeadlineSeconds` | The number of seconds you want to wait for your Deployment to progress | `300`                                 |
+| `gbaHcConverter.extraAnnotations`                   | Additional annotations for the BA HC Converter deployment              | `{}`                                  |
+| `gbaHcConverter.extraPodLabels`                     | Additional labels for the BA HC Converter pods                         | `{}`                                  |
+| `gbaHcConverter.runMode`                            | Run mode for the GBA HC Converter (e.g., ALL, PRELOADED, GBAV)         | `PRELOADED`                           |
+| `gbaHcConverter.envVarNamePreloaded`                | Environment variable name for the preloaded run mode                   | `PRELOADED`                           |
+| `gbaHcConverter.envVarNameGbav`                     | Environment variable name for the GBAV run mode                        | `ALL__GBAV`                           |
+| `gbaHcConverter.preloadedXmlPath`                   | Path to the preloaded XML files                                        | `resources/encrypted-gba-v-responses` |
+| `gbaHcConverter.probes.config.liveness`             | Additional configuration for liveness probe                            | `{}`                                  |
+| `gbaHcConverter.probes.config.readiness`            | Additional configuration for readiness probe                           | `{}`                                  |
+| `gbaHcConverter.probes.config.startup`              | Additional configuration for startup probe                             | `{}`                                  |
+| `gbaHcConverter.probes.disableLiveness`             | Disable liveness probe                                                 | `false`                               |
+| `gbaHcConverter.probes.useLivenessAsReadiness`      | Use liveness endpoint for readiness                                    | `false`                               |
+| `gbaHcConverter.resources.requests.cpu`             | CPU request                                                            | `50m`                                 |
+| `gbaHcConverter.resources.requests.memory`          | Memory request                                                         | `64Mi`                                |
+| `gbaHcConverter.resources.limits.cpu`               | CPU limit                                                              | `200m`                                |
+| `gbaHcConverter.resources.limits.memory`            | Memory limit                                                           | `128Mi`                               |
 
 ### GBA CLI Tool parameters
 
@@ -93,41 +96,47 @@
 
 ### Frontend parameters
 
-| Name                                     | Description                                        | Value                |
-| ---------------------------------------- | -------------------------------------------------- | -------------------- |
-| `frontend.replicaCount`                  | Number of replicas for the GBA Fetch frontend      | `1`                  |
-| `frontend.name`                          | Name of the GBA Fetch frontend application         | `gba-fetch-frontend` |
-| `frontend.extraAnnotations`              | Additional annotations for the frontend deployment | `{}`                 |
-| `frontend.extraPodLabels`                | Additional labels for the frontend pods            | `{}`                 |
-| `frontend.httpRoute.enabled`             | Enable or disable the route                        | `true`               |
-| `frontend.httpRoute.parentRefs`          | Parent references to the gateway                   | `[]`                 |
-| `frontend.httpRoute.hostnames`           | Hostnames for the route                            | `[]`                 |
-| `frontend.httpRoute.contextPath`         | Optional context path for the route                | `nil`                |
-| `frontend.httpRoute.labels`              | Additional labels for the route                    | `{}`                 |
-| `frontend.httpRoute.annotations`         | Additional annotations for the route               | `{}`                 |
-| `frontend.probes.config.liveness`        | Additional configuration for liveness probe        | `{}`                 |
-| `frontend.probes.config.readiness`       | Additional configuration for readiness probe       | `{}`                 |
-| `frontend.probes.config.startup`         | Additional configuration for startup probe         | `{}`                 |
-| `frontend.probes.disableLiveness`        | Disable liveness probe                             | `false`              |
-| `frontend.probes.useLivenessAsReadiness` | Use liveness endpoint for readiness                | `false`              |
-| `frontend.resources.requests.cpu`        | CPU request for the frontend container             | `50m`                |
-| `frontend.resources.requests.memory`     | Memory request for the frontend container          | `64Mi`               |
-| `frontend.resources.limits.cpu`          | CPU limit for the frontend container               | `200m`               |
-| `frontend.resources.limits.memory`       | Memory limit for the frontend container            | `128Mi`              |
+| Name                                          | Description                                                            | Value                |
+| --------------------------------------------- | ---------------------------------------------------------------------- | -------------------- |
+| `frontend.replicaCount`                       | Number of replicas                                                     | `1`                  |
+| `frontend.name`                               | Name of the frontend application                                       | `gba-fetch-frontend` |
+| `frontend.deployment.strategy`                | Strategy used to replace old pods by new one                           | `nil`                |
+| `frontend.deployment.revisionHistoryLimit`    | The number of old ReplicaSets to retain to allow rollback              | `2`                  |
+| `frontend.deployment.progressDeadlineSeconds` | The number of seconds you want to wait for your Deployment to progress | `300`                |
+| `frontend.extraAnnotations`                   | Additional annotations for the frontend deployment                     | `{}`                 |
+| `frontend.extraPodLabels`                     | Additional labels for the frontend pods                                | `{}`                 |
+| `frontend.httpRoute.enabled`                  | Enable or disable the route                                            | `true`               |
+| `frontend.httpRoute.parentRefs`               | Parent references to the gateway                                       | `[]`                 |
+| `frontend.httpRoute.hostnames`                | Hostnames for the route                                                | `[]`                 |
+| `frontend.httpRoute.contextPath`              | Optional context path for the route                                    | `nil`                |
+| `frontend.httpRoute.labels`                   | Additional labels for the route                                        | `{}`                 |
+| `frontend.httpRoute.annotations`              | Additional annotations for the route                                   | `{}`                 |
+| `frontend.probes.config.liveness`             | Additional configuration for liveness probe                            | `{}`                 |
+| `frontend.probes.config.readiness`            | Additional configuration for readiness probe                           | `{}`                 |
+| `frontend.probes.config.startup`              | Additional configuration for startup probe                             | `{}`                 |
+| `frontend.probes.disableLiveness`             | Disable liveness probe                                                 | `false`              |
+| `frontend.probes.useLivenessAsReadiness`      | Use liveness endpoint for readiness                                    | `false`              |
+| `frontend.resources.requests.cpu`             | CPU request for the frontend container                                 | `50m`                |
+| `frontend.resources.requests.memory`          | Memory request for the frontend container                              | `64Mi`               |
+| `frontend.resources.limits.cpu`               | CPU limit for the frontend container                                   | `200m`               |
+| `frontend.resources.limits.memory`            | Memory limit for the frontend container                                | `128Mi`              |
 
 ### Preload GBA deployement parameters
 
-| Name                                   | Description                             | Value                  |
-| -------------------------------------- | --------------------------------------- | ---------------------- |
-| `preloadGba.name`                      | Name of the Preload GBA Deployment      | `preload-gba-v-data`   |
-| `preloadGba.extraAnnotations`          | Additional annotations                  | `{}`                   |
-| `preloadGba.extraPodLabels`            | Additional labels                       | `{}`                   |
-| `preloadGba.volumeClaimName`           | Name of the volume claim                | `preloaded-gba-v-data` |
-| `preloadGba.storageClassName`          | Storage class name for the volume claim | `nfs`                  |
-| `preloadGba.resources.requests.cpu`    | CPU request                             | `50m`                  |
-| `preloadGba.resources.requests.memory` | Memory request                          | `64Mi`                 |
-| `preloadGba.resources.limits.cpu`      | CPU limit                               | `200m`                 |
-| `preloadGba.resources.limits.memory`   | Memory limit                            | `128Mi`                |
+| Name                                            | Description                                                            | Value                  |
+| ----------------------------------------------- | ---------------------------------------------------------------------- | ---------------------- |
+| `preloadGba.name`                               | Name of the Preload GBA Deployment                                     | `preload-gba-v-data`   |
+| `preloadGba.deployment.strategy`                | Strategy used to replace old pods by new one                           | `nil`                  |
+| `preloadGba.deployment.revisionHistoryLimit`    | The number of old ReplicaSets to retain to allow rollback              | `2`                    |
+| `preloadGba.deployment.progressDeadlineSeconds` | The number of seconds you want to wait for your Deployment to progress | `300`                  |
+| `preloadGba.extraAnnotations`                   | Additional annotations                                                 | `{}`                   |
+| `preloadGba.extraPodLabels`                     | Additional labels                                                      | `{}`                   |
+| `preloadGba.volumeClaimName`                    | Name of the volume claim                                               | `preloaded-gba-v-data` |
+| `preloadGba.storageClassName`                   | Storage class name for the volume claim                                | `nfs`                  |
+| `preloadGba.resources.requests.cpu`             | CPU request                                                            | `50m`                  |
+| `preloadGba.resources.requests.memory`          | Memory request                                                         | `64Mi`                 |
+| `preloadGba.resources.limits.cpu`               | CPU limit                                                              | `200m`                 |
+| `preloadGba.resources.limits.memory`            | Memory limit                                                           | `128Mi`                |
 
 ### xml files
 
