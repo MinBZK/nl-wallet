@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-03-17T09:23:38+01:00",
+    "@@last_modified": "2026-03-19T14:53:35+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -1250,6 +1250,13 @@
     "qrActionSheetShowQrTitle": "Show your QR code",
     "qrActionSheetTitle": "Choose how you do it",
     "qrCodeCodeDialogTitle": "Scan the QR code with your NL Wallet app",
+    "qrPresentScreenCenterQrCodeCta": "Center QR code on screen",
+    "qrPresentScreenConnectedTitle": "Please wait. Your request is being retrieved.",
+    "qrPresentScreenConnectingTitle": "Please wait. Connecting to the organisation.",
+    "qrPresentScreenConnectionFailedPageDescription": "Keep the devices close together. Check your Bluetooth connection. Then try again.",
+    "qrPresentScreenConnectionFailedPageTitle": "Sorry, connection failed",
+    "qrPresentScreenReportIssueCta": "Would you like to report a problem?",
+    "qrPresentScreenTitle": "Show your QR code",
     "qrScanTabContinueCta": "Scan another QR code",
     "qrScanTabGrantPermissionCta": "Grant access to camera",
     "qrScreenCheckingCodeWCAGAnnouncement": "QR code is being checked",

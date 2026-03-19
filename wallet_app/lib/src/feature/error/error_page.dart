@@ -1,5 +1,7 @@
+import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 
+import '../../domain/model/result/application_error.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
@@ -214,5 +216,46 @@ class ErrorPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Creates an [ErrorPage] based on a specific [ApplicationError].
+  ///
+  /// This factory maps known error types to specialized error pages (e.g.,
+  /// [NetworkError] maps to either a general network error or a specific
+  /// "no internet" page based on connectivity).
+  ///
+  /// **Note:** This method does not provide unique UI for every possible error.
+  /// Many specific errors (such as [ValidatePinError] or [AccountRevokedError])
+  /// currently default to [ErrorPage.generic]. If an error requires dedicated
+  /// handling or specific instructions for the user, that logic should be
+  /// managed upstream before calling this factory.
+  factory ErrorPage.fromError(
+    BuildContext context,
+    ApplicationError error, {
+    required VoidCallback onPrimaryActionPressed,
+    required ErrorCtaStyle style,
+  }) {
+    switch (error) {
+      case GenericError():
+        return ErrorPage.generic(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
+      case NetworkError(hasInternet: true):
+        return ErrorPage.network(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
+      case NetworkError(hasInternet: false):
+        return ErrorPage.noInternet(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
+      case SessionError():
+        return ErrorPage.sessionExpired(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
+      case RelyingPartyError():
+        return ErrorPage.relyingParty(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
+      case ValidatePinError():
+      case CheckPinError():
+      case HardwareUnsupportedError():
+      case RedirectUriError():
+      case ExternalScannerError():
+      case WrongDigidError():
+      case DeniedDigidError():
+      case AccountRevokedError():
+        Fimber.i('No specific handling defined for $error, defaulting to generic error page.');
+        return ErrorPage.generic(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
+    }
   }
 }
