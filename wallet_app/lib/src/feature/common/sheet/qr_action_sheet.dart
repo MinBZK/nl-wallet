@@ -7,7 +7,6 @@ import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../dialog/ble_permission_dialog.dart';
-import '../screen/placeholder_screen.dart';
 import '../widget/button/bottom_close_button.dart';
 import '../widget/menu_item.dart';
 import '../widget/text/title_text.dart';
@@ -32,10 +31,7 @@ class QrActionSheet extends StatelessWidget {
             leftIcon: Image.asset(WalletAssets.icon_qr_scan, color: context.theme.iconTheme.color),
             label: Text(context.l10n.qrActionSheetScanQrTitle),
             subtitle: Text(context.l10n.qrActionSheetScanQrDescription),
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, WalletRoutes.qrScanRoute);
-            },
+            onPressed: () => Navigator.pushReplacementNamed(context, WalletRoutes.qrScanRoute),
           ),
           const Divider(),
           MenuItem(
@@ -58,7 +54,7 @@ class QrActionSheet extends StatelessWidget {
     Navigator.pop(context);
 
     if (result.isGranted) {
-      PlaceholderScreen.showGeneric(context); // TODO(anyone): PVW-5619
+      await Navigator.pushReplacementNamed(context, WalletRoutes.qrPresentRoute);
     } else if (result.isPermanentlyDenied) {
       // Permission permanently denied — show rationale dialog.
       await BlePermissionDialog.show(context);

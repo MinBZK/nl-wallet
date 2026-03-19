@@ -27,10 +27,10 @@ import 'package:local_auth/src/local_auth.dart' as _i50;
 import 'package:local_auth_android/local_auth_android.dart' as _i51;
 import 'package:local_auth_darwin/local_auth_darwin.dart' as _i52;
 import 'package:local_auth_windows/local_auth_windows.dart' as _i53;
-import 'package:mobile_scanner/mobile_scanner.dart' as _i118;
+import 'package:mobile_scanner/mobile_scanner.dart' as _i119;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i14;
-import 'package:permission_handler/permission_handler.dart' as _i120;
+import 'package:permission_handler/permission_handler.dart' as _i121;
 import 'package:timezone/timezone.dart' as _i69;
 import 'package:video_player/src/closed_caption_file.dart' as _i18;
 import 'package:video_player/video_player.dart' as _i7;
@@ -38,12 +38,13 @@ import 'package:video_player_platform_interface/video_player_platform_interface.
 import 'package:wallet/l10n/generated/app_localizations.dart' as _i62;
 import 'package:wallet/src/data/repository/biometric/biometric_repository.dart' as _i35;
 import 'package:wallet/src/data/repository/card/wallet_card_repository.dart' as _i29;
+import 'package:wallet/src/data/repository/close_proximity/close_proximity_repository.dart' as _i75;
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart' as _i32;
 import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart' as _i23;
 import 'package:wallet/src/data/repository/event/wallet_event_repository.dart' as _i30;
 import 'package:wallet/src/data/repository/issuance/issuance_repository.dart' as _i39;
 import 'package:wallet/src/data/repository/language/language_repository.dart' as _i34;
-import 'package:wallet/src/data/repository/network/network_repository.dart' as _i82;
+import 'package:wallet/src/data/repository/network/network_repository.dart' as _i83;
 import 'package:wallet/src/data/repository/notification/notification_repository.dart' as _i42;
 import 'package:wallet/src/data/repository/pid/pid_repository.dart' as _i21;
 import 'package:wallet/src/data/repository/pin/pin_repository.dart' as _i28;
@@ -65,101 +66,102 @@ import 'package:wallet/src/domain/app_event/app_event_listener.dart' as _i58;
 import 'package:wallet/src/domain/model/attribute/attribute.dart' as _i22;
 import 'package:wallet/src/domain/model/card/wallet_card.dart' as _i9;
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart' as _i33;
-import 'package:wallet/src/domain/model/configuration/maintenance_state.dart' as _i106;
+import 'package:wallet/src/domain/model/configuration/maintenance_state.dart' as _i107;
 import 'package:wallet/src/domain/model/disclosure/start_disclosure_result.dart' as _i24;
 import 'package:wallet/src/domain/model/event/wallet_event.dart' as _i31;
 import 'package:wallet/src/domain/model/notification/app_notification.dart' as _i43;
-import 'package:wallet/src/domain/model/notification/os_notification.dart' as _i154;
+import 'package:wallet/src/domain/model/notification/os_notification.dart' as _i155;
 import 'package:wallet/src/domain/model/permission/permission_check_result.dart' as _i12;
-import 'package:wallet/src/domain/model/result/result.dart' as _i76;
-import 'package:wallet/src/domain/model/start_sign_result/start_sign_result.dart' as _i111;
-import 'package:wallet/src/domain/model/tour/tour_video.dart' as _i133;
+import 'package:wallet/src/domain/model/result/result.dart' as _i77;
+import 'package:wallet/src/domain/model/start_sign_result/start_sign_result.dart' as _i112;
+import 'package:wallet/src/domain/model/tour/tour_video.dart' as _i134;
 import 'package:wallet/src/domain/model/transfer/transfer_session_state.dart' as _i41;
 import 'package:wallet/src/domain/model/update/update_notification.dart' as _i49;
 import 'package:wallet/src/domain/model/update/version_state.dart' as _i37;
-import 'package:wallet/src/domain/model/wallet_card_detail.dart' as _i104;
+import 'package:wallet/src/domain/model/wallet_card_detail.dart' as _i105;
 import 'package:wallet/src/domain/model/wallet_state.dart' as _i27;
-import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart' as _i77;
-import 'package:wallet/src/domain/usecase/biometrics/biometric_authentication_result.dart' as _i130;
-import 'package:wallet/src/domain/usecase/biometrics/biometrics.dart' as _i123;
-import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart' as _i122;
-import 'package:wallet/src/domain/usecase/biometrics/get_supported_biometrics_usecase.dart' as _i125;
-import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart' as _i126;
-import 'package:wallet/src/domain/usecase/biometrics/request_biometrics_usecase.dart' as _i129;
-import 'package:wallet/src/domain/usecase/biometrics/set_biometrics_usecase.dart' as _i124;
-import 'package:wallet/src/domain/usecase/card/get_pid_cards_usecase.dart' as _i135;
-import 'package:wallet/src/domain/usecase/card/get_wallet_card_usecase.dart' as _i107;
-import 'package:wallet/src/domain/usecase/card/get_wallet_cards_usecase.dart' as _i99;
-import 'package:wallet/src/domain/usecase/card/observe_wallet_card_detail_usecase.dart' as _i103;
-import 'package:wallet/src/domain/usecase/card/observe_wallet_card_usecase.dart' as _i98;
-import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart' as _i90;
-import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart' as _i86;
-import 'package:wallet/src/domain/usecase/disclosure/cancel_disclosure_usecase.dart' as _i89;
-import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart' as _i88;
-import 'package:wallet/src/domain/usecase/event/get_most_recent_wallet_event_usecase.dart' as _i93;
-import 'package:wallet/src/domain/usecase/event/get_wallet_events_for_card_usecase.dart' as _i109;
-import 'package:wallet/src/domain/usecase/event/get_wallet_events_usecase.dart' as _i108;
-import 'package:wallet/src/domain/usecase/event/observe_recent_wallet_events_usecase.dart' as _i91;
-import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart' as _i87;
-import 'package:wallet/src/domain/usecase/issuance/cancel_issuance_usecase.dart' as _i114;
-import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart' as _i113;
-import 'package:wallet/src/domain/usecase/maintenance/observe_maintenance_state_usecase.dart' as _i105;
-import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart' as _i83;
+import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart' as _i78;
+import 'package:wallet/src/domain/usecase/biometrics/biometric_authentication_result.dart' as _i131;
+import 'package:wallet/src/domain/usecase/biometrics/biometrics.dart' as _i124;
+import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart' as _i123;
+import 'package:wallet/src/domain/usecase/biometrics/get_supported_biometrics_usecase.dart' as _i126;
+import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart' as _i127;
+import 'package:wallet/src/domain/usecase/biometrics/request_biometrics_usecase.dart' as _i130;
+import 'package:wallet/src/domain/usecase/biometrics/set_biometrics_usecase.dart' as _i125;
+import 'package:wallet/src/domain/usecase/card/get_pid_cards_usecase.dart' as _i136;
+import 'package:wallet/src/domain/usecase/card/get_wallet_card_usecase.dart' as _i108;
+import 'package:wallet/src/domain/usecase/card/get_wallet_cards_usecase.dart' as _i100;
+import 'package:wallet/src/domain/usecase/card/observe_wallet_card_detail_usecase.dart' as _i104;
+import 'package:wallet/src/domain/usecase/card/observe_wallet_card_usecase.dart' as _i99;
+import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart' as _i91;
+import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart' as _i87;
+import 'package:wallet/src/domain/usecase/disclosure/cancel_disclosure_usecase.dart' as _i90;
+import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart' as _i89;
+import 'package:wallet/src/domain/usecase/engagement/start_qr_engagement_usecase.dart' as _i165;
+import 'package:wallet/src/domain/usecase/event/get_most_recent_wallet_event_usecase.dart' as _i94;
+import 'package:wallet/src/domain/usecase/event/get_wallet_events_for_card_usecase.dart' as _i110;
+import 'package:wallet/src/domain/usecase/event/get_wallet_events_usecase.dart' as _i109;
+import 'package:wallet/src/domain/usecase/event/observe_recent_wallet_events_usecase.dart' as _i92;
+import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart' as _i88;
+import 'package:wallet/src/domain/usecase/issuance/cancel_issuance_usecase.dart' as _i115;
+import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart' as _i114;
+import 'package:wallet/src/domain/usecase/maintenance/observe_maintenance_state_usecase.dart' as _i106;
+import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart' as _i84;
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart' as _i48;
-import 'package:wallet/src/domain/usecase/notification/observe_dashboard_notifications_usecase.dart' as _i151;
-import 'package:wallet/src/domain/usecase/notification/observe_os_notifications_usecase.dart' as _i153;
-import 'package:wallet/src/domain/usecase/notification/observe_push_notifications_setting_usecase.dart' as _i157;
-import 'package:wallet/src/domain/usecase/notification/set_direct_os_notification_callback_usecase.dart' as _i163;
-import 'package:wallet/src/domain/usecase/notification/set_push_notifications_setting_usecase.dart' as _i158;
-import 'package:wallet/src/domain/usecase/permission/check_permission_usecase.dart' as _i150;
-import 'package:wallet/src/domain/usecase/permission/request_permission_usecase.dart' as _i119;
-import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart' as _i84;
-import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart' as _i101;
-import 'package:wallet/src/domain/usecase/pid/check_is_pid.dart' as _i155;
-import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart' as _i102;
-import 'package:wallet/src/domain/usecase/pid/get_pid_issuance_url_usecase.dart' as _i100;
-import 'package:wallet/src/domain/usecase/pid/get_pid_renewal_url_usecase.dart' as _i134;
-import 'package:wallet/src/domain/usecase/pin/cancel_pin_recovery_usecase.dart' as _i145;
-import 'package:wallet/src/domain/usecase/pin/change_pin_usecase.dart' as _i121;
-import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart' as _i94;
-import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart' as _i80;
-import 'package:wallet/src/domain/usecase/pin/complete_pin_recovery_usecase.dart' as _i146;
-import 'package:wallet/src/domain/usecase/pin/continue_pin_recovery_usecase.dart' as _i144;
-import 'package:wallet/src/domain/usecase/pin/create_pin_recovery_url_usecase.dart' as _i143;
-import 'package:wallet/src/domain/usecase/pin/disclose_for_issuance_usecase.dart' as _i116;
-import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart' as _i96;
-import 'package:wallet/src/domain/usecase/qr/decode_qr_usecase.dart' as _i117;
-import 'package:wallet/src/domain/usecase/revocation/get_registration_revocation_code_usecase.dart' as _i162;
-import 'package:wallet/src/domain/usecase/revocation/get_revocation_code_saved_usecase.dart' as _i159;
-import 'package:wallet/src/domain/usecase/revocation/get_revocation_code_usecase.dart' as _i161;
-import 'package:wallet/src/domain/usecase/revocation/set_revocation_code_saved_usecase.dart' as _i160;
-import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart' as _i85;
-import 'package:wallet/src/domain/usecase/sign/reject_sign_agreement_usecase.dart' as _i112;
-import 'package:wallet/src/domain/usecase/sign/start_sign_usecase.dart' as _i110;
-import 'package:wallet/src/domain/usecase/tour/fetch_tour_videos_usecase.dart' as _i132;
-import 'package:wallet/src/domain/usecase/tour/observe_show_tour_banner_usecase.dart' as _i92;
-import 'package:wallet/src/domain/usecase/tour/tour_overview_viewed_usecase.dart' as _i131;
-import 'package:wallet/src/domain/usecase/transfer/cancel_wallet_transfer_usecase.dart' as _i138;
-import 'package:wallet/src/domain/usecase/transfer/confirm_wallet_transfer_usecase.dart' as _i136;
-import 'package:wallet/src/domain/usecase/transfer/init_wallet_transfer_usecase.dart' as _i141;
-import 'package:wallet/src/domain/usecase/transfer/observe_transfer_session_state_usecase.dart' as _i140;
-import 'package:wallet/src/domain/usecase/transfer/pair_wallet_transfer_usecase.dart' as _i139;
-import 'package:wallet/src/domain/usecase/transfer/receive_wallet_transfer_usecase.dart' as _i148;
-import 'package:wallet/src/domain/usecase/transfer/skip_wallet_transfer_usecase.dart' as _i142;
-import 'package:wallet/src/domain/usecase/transfer/start_wallet_transfer_usecase.dart' as _i137;
-import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart' as _i127;
-import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart' as _i75;
-import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dart' as _i128;
-import 'package:wallet/src/domain/usecase/wallet/create_wallet_usecase.dart' as _i95;
-import 'package:wallet/src/domain/usecase/wallet/get_wallet_state_usecase.dart' as _i147;
-import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i78;
-import 'package:wallet/src/domain/usecase/wallet/is_wallet_registered_and_unlocked_usecase.dart' as _i149;
-import 'package:wallet/src/domain/usecase/wallet/lock_wallet_usecase.dart' as _i115;
-import 'package:wallet/src/domain/usecase/wallet/move_to_ready_state_usecase.dart' as _i156;
-import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart' as _i79;
-import 'package:wallet/src/domain/usecase/wallet/reset_wallet_usecase.dart' as _i97;
-import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart' as _i81;
-import 'package:wallet/src/feature/banner/wallet_banner.dart' as _i152;
+import 'package:wallet/src/domain/usecase/notification/observe_dashboard_notifications_usecase.dart' as _i152;
+import 'package:wallet/src/domain/usecase/notification/observe_os_notifications_usecase.dart' as _i154;
+import 'package:wallet/src/domain/usecase/notification/observe_push_notifications_setting_usecase.dart' as _i158;
+import 'package:wallet/src/domain/usecase/notification/set_direct_os_notification_callback_usecase.dart' as _i164;
+import 'package:wallet/src/domain/usecase/notification/set_push_notifications_setting_usecase.dart' as _i159;
+import 'package:wallet/src/domain/usecase/permission/check_permission_usecase.dart' as _i151;
+import 'package:wallet/src/domain/usecase/permission/request_permission_usecase.dart' as _i120;
+import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart' as _i85;
+import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart' as _i102;
+import 'package:wallet/src/domain/usecase/pid/check_is_pid.dart' as _i156;
+import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart' as _i103;
+import 'package:wallet/src/domain/usecase/pid/get_pid_issuance_url_usecase.dart' as _i101;
+import 'package:wallet/src/domain/usecase/pid/get_pid_renewal_url_usecase.dart' as _i135;
+import 'package:wallet/src/domain/usecase/pin/cancel_pin_recovery_usecase.dart' as _i146;
+import 'package:wallet/src/domain/usecase/pin/change_pin_usecase.dart' as _i122;
+import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart' as _i95;
+import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart' as _i81;
+import 'package:wallet/src/domain/usecase/pin/complete_pin_recovery_usecase.dart' as _i147;
+import 'package:wallet/src/domain/usecase/pin/continue_pin_recovery_usecase.dart' as _i145;
+import 'package:wallet/src/domain/usecase/pin/create_pin_recovery_url_usecase.dart' as _i144;
+import 'package:wallet/src/domain/usecase/pin/disclose_for_issuance_usecase.dart' as _i117;
+import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart' as _i97;
+import 'package:wallet/src/domain/usecase/qr/decode_qr_usecase.dart' as _i118;
+import 'package:wallet/src/domain/usecase/revocation/get_registration_revocation_code_usecase.dart' as _i163;
+import 'package:wallet/src/domain/usecase/revocation/get_revocation_code_saved_usecase.dart' as _i160;
+import 'package:wallet/src/domain/usecase/revocation/get_revocation_code_usecase.dart' as _i162;
+import 'package:wallet/src/domain/usecase/revocation/set_revocation_code_saved_usecase.dart' as _i161;
+import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart' as _i86;
+import 'package:wallet/src/domain/usecase/sign/reject_sign_agreement_usecase.dart' as _i113;
+import 'package:wallet/src/domain/usecase/sign/start_sign_usecase.dart' as _i111;
+import 'package:wallet/src/domain/usecase/tour/fetch_tour_videos_usecase.dart' as _i133;
+import 'package:wallet/src/domain/usecase/tour/observe_show_tour_banner_usecase.dart' as _i93;
+import 'package:wallet/src/domain/usecase/tour/tour_overview_viewed_usecase.dart' as _i132;
+import 'package:wallet/src/domain/usecase/transfer/cancel_wallet_transfer_usecase.dart' as _i139;
+import 'package:wallet/src/domain/usecase/transfer/confirm_wallet_transfer_usecase.dart' as _i137;
+import 'package:wallet/src/domain/usecase/transfer/init_wallet_transfer_usecase.dart' as _i142;
+import 'package:wallet/src/domain/usecase/transfer/observe_transfer_session_state_usecase.dart' as _i141;
+import 'package:wallet/src/domain/usecase/transfer/pair_wallet_transfer_usecase.dart' as _i140;
+import 'package:wallet/src/domain/usecase/transfer/receive_wallet_transfer_usecase.dart' as _i149;
+import 'package:wallet/src/domain/usecase/transfer/skip_wallet_transfer_usecase.dart' as _i143;
+import 'package:wallet/src/domain/usecase/transfer/start_wallet_transfer_usecase.dart' as _i138;
+import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart' as _i128;
+import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart' as _i76;
+import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dart' as _i129;
+import 'package:wallet/src/domain/usecase/wallet/create_wallet_usecase.dart' as _i96;
+import 'package:wallet/src/domain/usecase/wallet/get_wallet_state_usecase.dart' as _i148;
+import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart' as _i79;
+import 'package:wallet/src/domain/usecase/wallet/is_wallet_registered_and_unlocked_usecase.dart' as _i150;
+import 'package:wallet/src/domain/usecase/wallet/lock_wallet_usecase.dart' as _i116;
+import 'package:wallet/src/domain/usecase/wallet/move_to_ready_state_usecase.dart' as _i157;
+import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart' as _i80;
+import 'package:wallet/src/domain/usecase/wallet/reset_wallet_usecase.dart' as _i98;
+import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart' as _i82;
+import 'package:wallet/src/feature/banner/wallet_banner.dart' as _i153;
 import 'package:wallet/src/util/manager/biometric_unlock_manager.dart' as _i55;
 import 'package:wallet/src/util/mapper/context_mapper.dart' as _i20;
 import 'package:wallet/src/util/mapper/mapper.dart' as _i19;
@@ -3295,6 +3297,25 @@ class MockTypedWalletCore extends _i1.Mock implements _i45.TypedWalletCore {
           as _i10.Future<_i26.RevocationCodeResult>);
 
   @override
+  _i10.Future<String> startCloseProximityDisclosure() =>
+      (super.noSuchMethod(
+            Invocation.method(#startCloseProximityDisclosure, []),
+            returnValue: _i10.Future<String>.value(
+              _i14.dummyValue<String>(
+                this,
+                Invocation.method(#startCloseProximityDisclosure, []),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<String>.value(
+              _i14.dummyValue<String>(
+                this,
+                Invocation.method(#startCloseProximityDisclosure, []),
+              ),
+            ),
+          )
+          as _i10.Future<String>);
+
+  @override
   _i10.Future<T> call<T>(_i10.Future<T> Function()? runnable) =>
       (super.noSuchMethod(
             Invocation.method(#call, [runnable]),
@@ -4111,56 +4132,89 @@ class MockWorkmanager extends _i1.Mock implements _i73.Workmanager {
           as _i10.Future<String>);
 }
 
+/// A class which mocks [CloseProximityRepository].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockCloseProximityRepository extends _i1.Mock implements _i75.CloseProximityRepository {
+  @override
+  _i10.Future<String> startCloseProximityDisclosure() =>
+      (super.noSuchMethod(
+            Invocation.method(#startCloseProximityDisclosure, []),
+            returnValue: _i10.Future<String>.value(
+              _i14.dummyValue<String>(
+                this,
+                Invocation.method(#startCloseProximityDisclosure, []),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<String>.value(
+              _i14.dummyValue<String>(
+                this,
+                Invocation.method(#startCloseProximityDisclosure, []),
+              ),
+            ),
+          )
+          as _i10.Future<String>);
+
+  @override
+  _i10.Future<void> stopCloseProximityDisclosure() =>
+      (super.noSuchMethod(
+            Invocation.method(#stopCloseProximityDisclosure, []),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
+          )
+          as _i10.Future<void>);
+}
+
 /// A class which mocks [DecodeUriUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockDecodeUriUseCase extends _i1.Mock implements _i75.DecodeUriUseCase {
+class MockDecodeUriUseCase extends _i1.Mock implements _i76.DecodeUriUseCase {
   @override
-  _i10.Future<_i76.Result<_i48.NavigationRequest>> invoke(Uri? uri) =>
+  _i10.Future<_i77.Result<_i48.NavigationRequest>> invoke(Uri? uri) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [uri]),
-            returnValue: _i10.Future<_i76.Result<_i48.NavigationRequest>>.value(
-              _i14.dummyValue<_i76.Result<_i48.NavigationRequest>>(
+            returnValue: _i10.Future<_i77.Result<_i48.NavigationRequest>>.value(
+              _i14.dummyValue<_i77.Result<_i48.NavigationRequest>>(
                 this,
                 Invocation.method(#invoke, [uri]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<_i48.NavigationRequest>>.value(
-              _i14.dummyValue<_i76.Result<_i48.NavigationRequest>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<_i48.NavigationRequest>>.value(
+              _i14.dummyValue<_i77.Result<_i48.NavigationRequest>>(
                 this,
                 Invocation.method(#invoke, [uri]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<_i48.NavigationRequest>>);
+          as _i10.Future<_i77.Result<_i48.NavigationRequest>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [IsWalletInitializedUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIsWalletInitializedUseCase extends _i1.Mock implements _i77.IsWalletInitializedUseCase {
+class MockIsWalletInitializedUseCase extends _i1.Mock implements _i78.IsWalletInitializedUseCase {
   @override
   _i10.Future<bool> invoke() =>
       (super.noSuchMethod(
@@ -4171,32 +4225,32 @@ class MockIsWalletInitializedUseCase extends _i1.Mock implements _i77.IsWalletIn
           as _i10.Future<bool>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [IsWalletInitializedWithPidUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIsWalletInitializedWithPidUseCase extends _i1.Mock implements _i78.IsWalletInitializedWithPidUseCase {
+class MockIsWalletInitializedWithPidUseCase extends _i1.Mock implements _i79.IsWalletInitializedWithPidUseCase {
   @override
   _i10.Future<bool> invoke() =>
       (super.noSuchMethod(
@@ -4207,32 +4261,32 @@ class MockIsWalletInitializedWithPidUseCase extends _i1.Mock implements _i78.IsW
           as _i10.Future<bool>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ObserveWalletLockedUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockObserveWalletLockedUseCase extends _i1.Mock implements _i79.ObserveWalletLockedUseCase {
+class MockObserveWalletLockedUseCase extends _i1.Mock implements _i80.ObserveWalletLockedUseCase {
   @override
   _i10.Stream<bool> invoke() =>
       (super.noSuchMethod(
@@ -4243,78 +4297,78 @@ class MockObserveWalletLockedUseCase extends _i1.Mock implements _i79.ObserveWal
           as _i10.Stream<bool>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [CheckPinUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCheckPinUseCase extends _i1.Mock implements _i80.CheckPinUseCase {
+class MockCheckPinUseCase extends _i1.Mock implements _i81.CheckPinUseCase {
   @override
-  _i10.Future<_i76.Result<dynamic>> invoke(String? pin) =>
+  _i10.Future<_i77.Result<dynamic>> invoke(String? pin) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [pin]),
-            returnValue: _i10.Future<_i76.Result<dynamic>>.value(
-              _i14.dummyValue<_i76.Result<dynamic>>(
+            returnValue: _i10.Future<_i77.Result<dynamic>>.value(
+              _i14.dummyValue<_i77.Result<dynamic>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<dynamic>>.value(
-              _i14.dummyValue<_i76.Result<dynamic>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<dynamic>>.value(
+              _i14.dummyValue<_i77.Result<dynamic>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<dynamic>>);
+          as _i10.Future<_i77.Result<dynamic>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [SetupMockedWalletUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockSetupMockedWalletUseCase extends _i1.Mock implements _i81.SetupMockedWalletUseCase {
+class MockSetupMockedWalletUseCase extends _i1.Mock implements _i82.SetupMockedWalletUseCase {
   @override
   _i10.Future<void> invoke() =>
       (super.noSuchMethod(
@@ -4325,32 +4379,32 @@ class MockSetupMockedWalletUseCase extends _i1.Mock implements _i81.SetupMockedW
           as _i10.Future<void>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [NetworkRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockNetworkRepository extends _i1.Mock implements _i82.NetworkRepository {
+class MockNetworkRepository extends _i1.Mock implements _i83.NetworkRepository {
   @override
   _i10.Future<bool> hasInternet() =>
       (super.noSuchMethod(
@@ -4375,32 +4429,32 @@ class MockPerformPreNavigationActionsUseCase extends _i1.Mock implements _i48.Pe
           as _i10.Future<void>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [CheckNavigationPrerequisitesUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCheckNavigationPrerequisitesUseCase extends _i1.Mock implements _i83.CheckNavigationPrerequisitesUseCase {
+class MockCheckNavigationPrerequisitesUseCase extends _i1.Mock implements _i84.CheckNavigationPrerequisitesUseCase {
   @override
   _i10.Future<bool> invoke(List<_i48.NavigationPrerequisite>? prerequisites) =>
       (super.noSuchMethod(
@@ -4411,225 +4465,225 @@ class MockCheckNavigationPrerequisitesUseCase extends _i1.Mock implements _i83.C
           as _i10.Future<bool>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [AcceptOfferedPidUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAcceptOfferedPidUseCase extends _i1.Mock implements _i84.AcceptOfferedPidUseCase {
+class MockAcceptOfferedPidUseCase extends _i1.Mock implements _i85.AcceptOfferedPidUseCase {
   @override
-  _i10.Future<_i76.Result<_i21.TransferState>> invoke(String? pin) =>
+  _i10.Future<_i77.Result<_i21.TransferState>> invoke(String? pin) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [pin]),
-            returnValue: _i10.Future<_i76.Result<_i21.TransferState>>.value(
-              _i14.dummyValue<_i76.Result<_i21.TransferState>>(
+            returnValue: _i10.Future<_i77.Result<_i21.TransferState>>.value(
+              _i14.dummyValue<_i77.Result<_i21.TransferState>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<_i21.TransferState>>.value(
-              _i14.dummyValue<_i76.Result<_i21.TransferState>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<_i21.TransferState>>.value(
+              _i14.dummyValue<_i77.Result<_i21.TransferState>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<_i21.TransferState>>);
+          as _i10.Future<_i77.Result<_i21.TransferState>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [AcceptSignAgreementUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAcceptSignAgreementUseCase extends _i1.Mock implements _i85.AcceptSignAgreementUseCase {
+class MockAcceptSignAgreementUseCase extends _i1.Mock implements _i86.AcceptSignAgreementUseCase {
   @override
-  _i10.Future<_i76.Result<String?>> invoke(String? pin) =>
+  _i10.Future<_i77.Result<String?>> invoke(String? pin) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [pin]),
-            returnValue: _i10.Future<_i76.Result<String?>>.value(
-              _i14.dummyValue<_i76.Result<String?>>(
+            returnValue: _i10.Future<_i77.Result<String?>>.value(
+              _i14.dummyValue<_i77.Result<String?>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<String?>>.value(
-              _i14.dummyValue<_i76.Result<String?>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<String?>>.value(
+              _i14.dummyValue<_i77.Result<String?>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<String?>>);
+          as _i10.Future<_i77.Result<String?>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [AcceptDisclosureUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAcceptDisclosureUseCase extends _i1.Mock implements _i86.AcceptDisclosureUseCase {
+class MockAcceptDisclosureUseCase extends _i1.Mock implements _i87.AcceptDisclosureUseCase {
   @override
-  _i10.Future<_i76.Result<String?>> invoke(String? pin) =>
+  _i10.Future<_i77.Result<String?>> invoke(String? pin) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [pin]),
-            returnValue: _i10.Future<_i76.Result<String?>>.value(
-              _i14.dummyValue<_i76.Result<String?>>(
+            returnValue: _i10.Future<_i77.Result<String?>>.value(
+              _i14.dummyValue<_i77.Result<String?>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<String?>>.value(
-              _i14.dummyValue<_i76.Result<String?>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<String?>>.value(
+              _i14.dummyValue<_i77.Result<String?>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<String?>>);
+          as _i10.Future<_i77.Result<String?>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [AcceptIssuanceUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockAcceptIssuanceUseCase extends _i1.Mock implements _i87.AcceptIssuanceUseCase {
+class MockAcceptIssuanceUseCase extends _i1.Mock implements _i88.AcceptIssuanceUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke(String? pin) =>
+  _i10.Future<_i77.Result<void>> invoke(String? pin) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [pin]),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [StartDisclosureUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockStartDisclosureUseCase extends _i1.Mock implements _i88.StartDisclosureUseCase {
+class MockStartDisclosureUseCase extends _i1.Mock implements _i89.StartDisclosureUseCase {
   @override
-  _i10.Future<_i76.Result<_i24.StartDisclosureResult>> invoke(
+  _i10.Future<_i77.Result<_i24.StartDisclosureResult>> invoke(
     String? disclosureUri, {
     bool? isQrCode = false,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [disclosureUri], {#isQrCode: isQrCode}),
-            returnValue: _i10.Future<_i76.Result<_i24.StartDisclosureResult>>.value(
-              _i14.dummyValue<_i76.Result<_i24.StartDisclosureResult>>(
+            returnValue: _i10.Future<_i77.Result<_i24.StartDisclosureResult>>.value(
+              _i14.dummyValue<_i77.Result<_i24.StartDisclosureResult>>(
                 this,
                 Invocation.method(
                   #invoke,
@@ -4638,8 +4692,8 @@ class MockStartDisclosureUseCase extends _i1.Mock implements _i88.StartDisclosur
                 ),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<_i24.StartDisclosureResult>>.value(
-              _i14.dummyValue<_i76.Result<_i24.StartDisclosureResult>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<_i24.StartDisclosureResult>>.value(
+              _i14.dummyValue<_i77.Result<_i24.StartDisclosureResult>>(
                 this,
                 Invocation.method(
                   #invoke,
@@ -4649,81 +4703,81 @@ class MockStartDisclosureUseCase extends _i1.Mock implements _i88.StartDisclosur
               ),
             ),
           )
-          as _i10.Future<_i76.Result<_i24.StartDisclosureResult>>);
+          as _i10.Future<_i77.Result<_i24.StartDisclosureResult>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [CancelDisclosureUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCancelDisclosureUseCase extends _i1.Mock implements _i89.CancelDisclosureUseCase {
+class MockCancelDisclosureUseCase extends _i1.Mock implements _i90.CancelDisclosureUseCase {
   @override
-  _i10.Future<_i76.Result<String?>> invoke() =>
+  _i10.Future<_i77.Result<String?>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<String?>>.value(
-              _i14.dummyValue<_i76.Result<String?>>(
+            returnValue: _i10.Future<_i77.Result<String?>>.value(
+              _i14.dummyValue<_i77.Result<String?>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<String?>>.value(
-              _i14.dummyValue<_i76.Result<String?>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<String?>>.value(
+              _i14.dummyValue<_i77.Result<String?>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<String?>>);
+          as _i10.Future<_i77.Result<String?>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ObserveWalletCardsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockObserveWalletCardsUseCase extends _i1.Mock implements _i90.ObserveWalletCardsUseCase {
+class MockObserveWalletCardsUseCase extends _i1.Mock implements _i91.ObserveWalletCardsUseCase {
   @override
   _i10.Stream<List<_i9.WalletCard>> invoke() =>
       (super.noSuchMethod(
@@ -4734,32 +4788,32 @@ class MockObserveWalletCardsUseCase extends _i1.Mock implements _i90.ObserveWall
           as _i10.Stream<List<_i9.WalletCard>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ObserveRecentWalletEventsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockObserveRecentWalletEventsUseCase extends _i1.Mock implements _i91.ObserveRecentWalletEventsUseCase {
+class MockObserveRecentWalletEventsUseCase extends _i1.Mock implements _i92.ObserveRecentWalletEventsUseCase {
   @override
   _i10.Stream<List<_i31.WalletEvent>> invoke() =>
       (super.noSuchMethod(
@@ -4770,32 +4824,32 @@ class MockObserveRecentWalletEventsUseCase extends _i1.Mock implements _i91.Obse
           as _i10.Stream<List<_i31.WalletEvent>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ObserveShowTourBannerUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockObserveShowTourBannerUseCase extends _i1.Mock implements _i92.ObserveShowTourBannerUseCase {
+class MockObserveShowTourBannerUseCase extends _i1.Mock implements _i93.ObserveShowTourBannerUseCase {
   @override
   _i10.Stream<bool> invoke() =>
       (super.noSuchMethod(
@@ -4806,32 +4860,32 @@ class MockObserveShowTourBannerUseCase extends _i1.Mock implements _i92.ObserveS
           as _i10.Stream<bool>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [GetMostRecentWalletEventUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetMostRecentWalletEventUseCase extends _i1.Mock implements _i93.GetMostRecentWalletEventUseCase {
+class MockGetMostRecentWalletEventUseCase extends _i1.Mock implements _i94.GetMostRecentWalletEventUseCase {
   @override
   _i10.Future<_i31.WalletEvent?> invoke() =>
       (super.noSuchMethod(
@@ -4842,170 +4896,170 @@ class MockGetMostRecentWalletEventUseCase extends _i1.Mock implements _i93.GetMo
           as _i10.Future<_i31.WalletEvent?>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [CheckIsValidPinUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCheckIsValidPinUseCase extends _i1.Mock implements _i94.CheckIsValidPinUseCase {
+class MockCheckIsValidPinUseCase extends _i1.Mock implements _i95.CheckIsValidPinUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke(String? pin) =>
+  _i10.Future<_i77.Result<void>> invoke(String? pin) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [pin]),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [CreateWalletUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCreateWalletUseCase extends _i1.Mock implements _i95.CreateWalletUseCase {
+class MockCreateWalletUseCase extends _i1.Mock implements _i96.CreateWalletUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke(String? pin) =>
+  _i10.Future<_i77.Result<void>> invoke(String? pin) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [pin]),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [UnlockWalletWithPinUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockUnlockWalletWithPinUseCase extends _i1.Mock implements _i96.UnlockWalletWithPinUseCase {
+class MockUnlockWalletWithPinUseCase extends _i1.Mock implements _i97.UnlockWalletWithPinUseCase {
   @override
-  _i10.Future<_i76.Result<String?>> invoke(String? pin) =>
+  _i10.Future<_i77.Result<String?>> invoke(String? pin) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [pin]),
-            returnValue: _i10.Future<_i76.Result<String?>>.value(
-              _i14.dummyValue<_i76.Result<String?>>(
+            returnValue: _i10.Future<_i77.Result<String?>>.value(
+              _i14.dummyValue<_i77.Result<String?>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<String?>>.value(
-              _i14.dummyValue<_i76.Result<String?>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<String?>>.value(
+              _i14.dummyValue<_i77.Result<String?>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<String?>>);
+          as _i10.Future<_i77.Result<String?>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ResetWalletUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockResetWalletUseCase extends _i1.Mock implements _i97.ResetWalletUseCase {
+class MockResetWalletUseCase extends _i1.Mock implements _i98.ResetWalletUseCase {
   @override
   _i10.Future<void> invoke() =>
       (super.noSuchMethod(
@@ -5016,32 +5070,32 @@ class MockResetWalletUseCase extends _i1.Mock implements _i97.ResetWalletUseCase
           as _i10.Future<void>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ObserveWalletCardUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockObserveWalletCardUseCase extends _i1.Mock implements _i98.ObserveWalletCardUseCase {
+class MockObserveWalletCardUseCase extends _i1.Mock implements _i99.ObserveWalletCardUseCase {
   @override
   _i10.Stream<_i9.WalletCard> invoke(String? cardId) =>
       (super.noSuchMethod(
@@ -5052,529 +5106,529 @@ class MockObserveWalletCardUseCase extends _i1.Mock implements _i98.ObserveWalle
           as _i10.Stream<_i9.WalletCard>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [GetWalletCardsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetWalletCardsUseCase extends _i1.Mock implements _i99.GetWalletCardsUseCase {
+class MockGetWalletCardsUseCase extends _i1.Mock implements _i100.GetWalletCardsUseCase {
   @override
-  _i10.Future<_i76.Result<List<_i9.WalletCard>>> invoke() =>
+  _i10.Future<_i77.Result<List<_i9.WalletCard>>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<List<_i9.WalletCard>>>.value(
-              _i14.dummyValue<_i76.Result<List<_i9.WalletCard>>>(
+            returnValue: _i10.Future<_i77.Result<List<_i9.WalletCard>>>.value(
+              _i14.dummyValue<_i77.Result<List<_i9.WalletCard>>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<List<_i9.WalletCard>>>.value(
-              _i14.dummyValue<_i76.Result<List<_i9.WalletCard>>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<List<_i9.WalletCard>>>.value(
+              _i14.dummyValue<_i77.Result<List<_i9.WalletCard>>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<List<_i9.WalletCard>>>);
+          as _i10.Future<_i77.Result<List<_i9.WalletCard>>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [GetPidIssuanceUrlUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetPidIssuanceUrlUseCase extends _i1.Mock implements _i100.GetPidIssuanceUrlUseCase {
+class MockGetPidIssuanceUrlUseCase extends _i1.Mock implements _i101.GetPidIssuanceUrlUseCase {
   @override
-  _i10.Future<_i76.Result<String>> invoke() =>
+  _i10.Future<_i77.Result<String>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<String>>.value(
-              _i14.dummyValue<_i76.Result<String>>(
+            returnValue: _i10.Future<_i77.Result<String>>.value(
+              _i14.dummyValue<_i77.Result<String>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<String>>.value(
-              _i14.dummyValue<_i76.Result<String>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<String>>.value(
+              _i14.dummyValue<_i77.Result<String>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<String>>);
+          as _i10.Future<_i77.Result<String>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [CancelPidIssuanceUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCancelPidIssuanceUseCase extends _i1.Mock implements _i101.CancelPidIssuanceUseCase {
+class MockCancelPidIssuanceUseCase extends _i1.Mock implements _i102.CancelPidIssuanceUseCase {
   @override
-  _i10.Future<_i76.Result<bool>> invoke() =>
+  _i10.Future<_i77.Result<bool>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<bool>>.value(
-              _i14.dummyValue<_i76.Result<bool>>(
+            returnValue: _i10.Future<_i77.Result<bool>>.value(
+              _i14.dummyValue<_i77.Result<bool>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<bool>>.value(
-              _i14.dummyValue<_i76.Result<bool>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<bool>>.value(
+              _i14.dummyValue<_i77.Result<bool>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<bool>>);
+          as _i10.Future<_i77.Result<bool>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ContinuePidIssuanceUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockContinuePidIssuanceUseCase extends _i1.Mock implements _i102.ContinuePidIssuanceUseCase {
+class MockContinuePidIssuanceUseCase extends _i1.Mock implements _i103.ContinuePidIssuanceUseCase {
   @override
-  _i10.Future<_i76.Result<List<_i22.Attribute>>> invoke(String? uri) =>
+  _i10.Future<_i77.Result<List<_i22.Attribute>>> invoke(String? uri) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [uri]),
-            returnValue: _i10.Future<_i76.Result<List<_i22.Attribute>>>.value(
-              _i14.dummyValue<_i76.Result<List<_i22.Attribute>>>(
+            returnValue: _i10.Future<_i77.Result<List<_i22.Attribute>>>.value(
+              _i14.dummyValue<_i77.Result<List<_i22.Attribute>>>(
                 this,
                 Invocation.method(#invoke, [uri]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<List<_i22.Attribute>>>.value(
-              _i14.dummyValue<_i76.Result<List<_i22.Attribute>>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<List<_i22.Attribute>>>.value(
+              _i14.dummyValue<_i77.Result<List<_i22.Attribute>>>(
                 this,
                 Invocation.method(#invoke, [uri]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<List<_i22.Attribute>>>);
+          as _i10.Future<_i77.Result<List<_i22.Attribute>>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ObserveWalletCardDetailUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockObserveWalletCardDetailUseCase extends _i1.Mock implements _i103.ObserveWalletCardDetailUseCase {
+class MockObserveWalletCardDetailUseCase extends _i1.Mock implements _i104.ObserveWalletCardDetailUseCase {
   @override
-  _i10.Stream<_i104.WalletCardDetail> invoke(String? cardId) =>
+  _i10.Stream<_i105.WalletCardDetail> invoke(String? cardId) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [cardId]),
-            returnValue: _i10.Stream<_i104.WalletCardDetail>.empty(),
-            returnValueForMissingStub: _i10.Stream<_i104.WalletCardDetail>.empty(),
+            returnValue: _i10.Stream<_i105.WalletCardDetail>.empty(),
+            returnValueForMissingStub: _i10.Stream<_i105.WalletCardDetail>.empty(),
           )
-          as _i10.Stream<_i104.WalletCardDetail>);
+          as _i10.Stream<_i105.WalletCardDetail>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ObserveMaintenanceStateUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockObserveMaintenanceStateUseCase extends _i1.Mock implements _i105.ObserveMaintenanceStateUseCase {
+class MockObserveMaintenanceStateUseCase extends _i1.Mock implements _i106.ObserveMaintenanceStateUseCase {
   @override
-  _i10.Stream<_i106.MaintenanceState> invoke() =>
+  _i10.Stream<_i107.MaintenanceState> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Stream<_i106.MaintenanceState>.empty(),
-            returnValueForMissingStub: _i10.Stream<_i106.MaintenanceState>.empty(),
+            returnValue: _i10.Stream<_i107.MaintenanceState>.empty(),
+            returnValueForMissingStub: _i10.Stream<_i107.MaintenanceState>.empty(),
           )
-          as _i10.Stream<_i106.MaintenanceState>);
+          as _i10.Stream<_i107.MaintenanceState>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [GetWalletCardUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetWalletCardUseCase extends _i1.Mock implements _i107.GetWalletCardUseCase {
+class MockGetWalletCardUseCase extends _i1.Mock implements _i108.GetWalletCardUseCase {
   @override
-  _i10.Future<_i76.Result<_i9.WalletCard>> invoke(String? attestationId) =>
+  _i10.Future<_i77.Result<_i9.WalletCard>> invoke(String? attestationId) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [attestationId]),
-            returnValue: _i10.Future<_i76.Result<_i9.WalletCard>>.value(
-              _i14.dummyValue<_i76.Result<_i9.WalletCard>>(
+            returnValue: _i10.Future<_i77.Result<_i9.WalletCard>>.value(
+              _i14.dummyValue<_i77.Result<_i9.WalletCard>>(
                 this,
                 Invocation.method(#invoke, [attestationId]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<_i9.WalletCard>>.value(
-              _i14.dummyValue<_i76.Result<_i9.WalletCard>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<_i9.WalletCard>>.value(
+              _i14.dummyValue<_i77.Result<_i9.WalletCard>>(
                 this,
                 Invocation.method(#invoke, [attestationId]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<_i9.WalletCard>>);
+          as _i10.Future<_i77.Result<_i9.WalletCard>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [GetWalletEventsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetWalletEventsUseCase extends _i1.Mock implements _i108.GetWalletEventsUseCase {
+class MockGetWalletEventsUseCase extends _i1.Mock implements _i109.GetWalletEventsUseCase {
   @override
-  _i10.Future<_i76.Result<List<_i31.WalletEvent>>> invoke() =>
+  _i10.Future<_i77.Result<List<_i31.WalletEvent>>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<List<_i31.WalletEvent>>>.value(
-              _i14.dummyValue<_i76.Result<List<_i31.WalletEvent>>>(
+            returnValue: _i10.Future<_i77.Result<List<_i31.WalletEvent>>>.value(
+              _i14.dummyValue<_i77.Result<List<_i31.WalletEvent>>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<List<_i31.WalletEvent>>>.value(
-              _i14.dummyValue<_i76.Result<List<_i31.WalletEvent>>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<List<_i31.WalletEvent>>>.value(
+              _i14.dummyValue<_i77.Result<List<_i31.WalletEvent>>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<List<_i31.WalletEvent>>>);
+          as _i10.Future<_i77.Result<List<_i31.WalletEvent>>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [GetWalletEventsForCardUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetWalletEventsForCardUseCase extends _i1.Mock implements _i109.GetWalletEventsForCardUseCase {
+class MockGetWalletEventsForCardUseCase extends _i1.Mock implements _i110.GetWalletEventsForCardUseCase {
   @override
-  _i10.Future<_i76.Result<List<_i31.WalletEvent>>> invoke(
+  _i10.Future<_i77.Result<List<_i31.WalletEvent>>> invoke(
     String? attestationId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [attestationId]),
-            returnValue: _i10.Future<_i76.Result<List<_i31.WalletEvent>>>.value(
-              _i14.dummyValue<_i76.Result<List<_i31.WalletEvent>>>(
+            returnValue: _i10.Future<_i77.Result<List<_i31.WalletEvent>>>.value(
+              _i14.dummyValue<_i77.Result<List<_i31.WalletEvent>>>(
                 this,
                 Invocation.method(#invoke, [attestationId]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<List<_i31.WalletEvent>>>.value(
-              _i14.dummyValue<_i76.Result<List<_i31.WalletEvent>>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<List<_i31.WalletEvent>>>.value(
+              _i14.dummyValue<_i77.Result<List<_i31.WalletEvent>>>(
                 this,
                 Invocation.method(#invoke, [attestationId]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<List<_i31.WalletEvent>>>);
+          as _i10.Future<_i77.Result<List<_i31.WalletEvent>>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [StartSignUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockStartSignUseCase extends _i1.Mock implements _i110.StartSignUseCase {
+class MockStartSignUseCase extends _i1.Mock implements _i111.StartSignUseCase {
   @override
-  _i10.Future<_i76.Result<_i111.StartSignResult>> invoke(String? signUri) =>
+  _i10.Future<_i77.Result<_i112.StartSignResult>> invoke(String? signUri) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [signUri]),
-            returnValue: _i10.Future<_i76.Result<_i111.StartSignResult>>.value(
-              _i14.dummyValue<_i76.Result<_i111.StartSignResult>>(
+            returnValue: _i10.Future<_i77.Result<_i112.StartSignResult>>.value(
+              _i14.dummyValue<_i77.Result<_i112.StartSignResult>>(
                 this,
                 Invocation.method(#invoke, [signUri]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<_i111.StartSignResult>>.value(
-              _i14.dummyValue<_i76.Result<_i111.StartSignResult>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<_i112.StartSignResult>>.value(
+              _i14.dummyValue<_i77.Result<_i112.StartSignResult>>(
                 this,
                 Invocation.method(#invoke, [signUri]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<_i111.StartSignResult>>);
+          as _i10.Future<_i77.Result<_i112.StartSignResult>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [RejectSignAgreementUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockRejectSignAgreementUseCase extends _i1.Mock implements _i112.RejectSignAgreementUseCase {
+class MockRejectSignAgreementUseCase extends _i1.Mock implements _i113.RejectSignAgreementUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke() =>
+  _i10.Future<_i77.Result<void>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [StartIssuanceUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockStartIssuanceUseCase extends _i1.Mock implements _i113.StartIssuanceUseCase {
+class MockStartIssuanceUseCase extends _i1.Mock implements _i114.StartIssuanceUseCase {
   @override
-  _i10.Future<_i76.Result<_i24.StartDisclosureResult>> invoke(
+  _i10.Future<_i77.Result<_i24.StartDisclosureResult>> invoke(
     String? issuanceUri, {
     bool? isQrCode = false,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [issuanceUri], {#isQrCode: isQrCode}),
-            returnValue: _i10.Future<_i76.Result<_i24.StartDisclosureResult>>.value(
-              _i14.dummyValue<_i76.Result<_i24.StartDisclosureResult>>(
+            returnValue: _i10.Future<_i77.Result<_i24.StartDisclosureResult>>.value(
+              _i14.dummyValue<_i77.Result<_i24.StartDisclosureResult>>(
                 this,
                 Invocation.method(
                   #invoke,
@@ -5583,8 +5637,8 @@ class MockStartIssuanceUseCase extends _i1.Mock implements _i113.StartIssuanceUs
                 ),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<_i24.StartDisclosureResult>>.value(
-              _i14.dummyValue<_i76.Result<_i24.StartDisclosureResult>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<_i24.StartDisclosureResult>>.value(
+              _i14.dummyValue<_i77.Result<_i24.StartDisclosureResult>>(
                 this,
                 Invocation.method(
                   #invoke,
@@ -5594,81 +5648,81 @@ class MockStartIssuanceUseCase extends _i1.Mock implements _i113.StartIssuanceUs
               ),
             ),
           )
-          as _i10.Future<_i76.Result<_i24.StartDisclosureResult>>);
+          as _i10.Future<_i77.Result<_i24.StartDisclosureResult>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [CancelIssuanceUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCancelIssuanceUseCase extends _i1.Mock implements _i114.CancelIssuanceUseCase {
+class MockCancelIssuanceUseCase extends _i1.Mock implements _i115.CancelIssuanceUseCase {
   @override
-  _i10.Future<_i76.Result<String?>> invoke() =>
+  _i10.Future<_i77.Result<String?>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<String?>>.value(
-              _i14.dummyValue<_i76.Result<String?>>(
+            returnValue: _i10.Future<_i77.Result<String?>>.value(
+              _i14.dummyValue<_i77.Result<String?>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<String?>>.value(
-              _i14.dummyValue<_i76.Result<String?>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<String?>>.value(
+              _i14.dummyValue<_i77.Result<String?>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<String?>>);
+          as _i10.Future<_i77.Result<String?>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [LockWalletUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockLockWalletUseCase extends _i1.Mock implements _i115.LockWalletUseCase {
+class MockLockWalletUseCase extends _i1.Mock implements _i116.LockWalletUseCase {
   @override
   _i10.Future<void> invoke() =>
       (super.noSuchMethod(
@@ -5679,129 +5733,129 @@ class MockLockWalletUseCase extends _i1.Mock implements _i115.LockWalletUseCase 
           as _i10.Future<void>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [DiscloseForIssuanceUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockDiscloseForIssuanceUseCase extends _i1.Mock implements _i116.DiscloseForIssuanceUseCase {
+class MockDiscloseForIssuanceUseCase extends _i1.Mock implements _i117.DiscloseForIssuanceUseCase {
   @override
-  _i10.Future<_i76.Result<List<_i9.WalletCard>>> invoke(String? pin) =>
+  _i10.Future<_i77.Result<List<_i9.WalletCard>>> invoke(String? pin) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [pin]),
-            returnValue: _i10.Future<_i76.Result<List<_i9.WalletCard>>>.value(
-              _i14.dummyValue<_i76.Result<List<_i9.WalletCard>>>(
+            returnValue: _i10.Future<_i77.Result<List<_i9.WalletCard>>>.value(
+              _i14.dummyValue<_i77.Result<List<_i9.WalletCard>>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<List<_i9.WalletCard>>>.value(
-              _i14.dummyValue<_i76.Result<List<_i9.WalletCard>>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<List<_i9.WalletCard>>>.value(
+              _i14.dummyValue<_i77.Result<List<_i9.WalletCard>>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<List<_i9.WalletCard>>>);
+          as _i10.Future<_i77.Result<List<_i9.WalletCard>>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [DecodeQrUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockDecodeQrUseCase extends _i1.Mock implements _i117.DecodeQrUseCase {
+class MockDecodeQrUseCase extends _i1.Mock implements _i118.DecodeQrUseCase {
   @override
-  _i10.Future<_i76.Result<_i48.NavigationRequest>> invoke(
-    _i118.Barcode? barcode,
+  _i10.Future<_i77.Result<_i48.NavigationRequest>> invoke(
+    _i119.Barcode? barcode,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [barcode]),
-            returnValue: _i10.Future<_i76.Result<_i48.NavigationRequest>>.value(
-              _i14.dummyValue<_i76.Result<_i48.NavigationRequest>>(
+            returnValue: _i10.Future<_i77.Result<_i48.NavigationRequest>>.value(
+              _i14.dummyValue<_i77.Result<_i48.NavigationRequest>>(
                 this,
                 Invocation.method(#invoke, [barcode]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<_i48.NavigationRequest>>.value(
-              _i14.dummyValue<_i76.Result<_i48.NavigationRequest>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<_i48.NavigationRequest>>.value(
+              _i14.dummyValue<_i77.Result<_i48.NavigationRequest>>(
                 this,
                 Invocation.method(#invoke, [barcode]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<_i48.NavigationRequest>>);
+          as _i10.Future<_i77.Result<_i48.NavigationRequest>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [RequestPermissionUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockRequestPermissionUseCase extends _i1.Mock implements _i119.RequestPermissionUseCase {
+class MockRequestPermissionUseCase extends _i1.Mock implements _i120.RequestPermissionUseCase {
   @override
   _i10.Future<_i12.PermissionCheckResult> invoke(
-    _i120.Permission? permission,
+    _i121.Permission? permission,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [permission]),
@@ -5821,120 +5875,120 @@ class MockRequestPermissionUseCase extends _i1.Mock implements _i119.RequestPerm
           as _i10.Future<_i12.PermissionCheckResult>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ChangePinUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockChangePinUseCase extends _i1.Mock implements _i121.ChangePinUseCase {
+class MockChangePinUseCase extends _i1.Mock implements _i122.ChangePinUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke(String? oldPin, String? newPin) =>
+  _i10.Future<_i77.Result<void>> invoke(String? oldPin, String? newPin) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [oldPin, newPin]),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [oldPin, newPin]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [oldPin, newPin]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [GetAvailableBiometricsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetAvailableBiometricsUseCase extends _i1.Mock implements _i122.GetAvailableBiometricsUseCase {
+class MockGetAvailableBiometricsUseCase extends _i1.Mock implements _i123.GetAvailableBiometricsUseCase {
   @override
-  _i10.Future<_i123.Biometrics> invoke() =>
+  _i10.Future<_i124.Biometrics> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i123.Biometrics>.value(
-              _i123.Biometrics.face,
+            returnValue: _i10.Future<_i124.Biometrics>.value(
+              _i124.Biometrics.face,
             ),
-            returnValueForMissingStub: _i10.Future<_i123.Biometrics>.value(
-              _i123.Biometrics.face,
+            returnValueForMissingStub: _i10.Future<_i124.Biometrics>.value(
+              _i124.Biometrics.face,
             ),
           )
-          as _i10.Future<_i123.Biometrics>);
+          as _i10.Future<_i124.Biometrics>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [SetBiometricsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockSetBiometricsUseCase extends _i1.Mock implements _i124.SetBiometricsUseCase {
+class MockSetBiometricsUseCase extends _i1.Mock implements _i125.SetBiometricsUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke({
+  _i10.Future<_i77.Result<void>> invoke({
     required bool? enable,
     required bool? authenticateBeforeEnabling,
   }) =>
@@ -5943,8 +5997,8 @@ class MockSetBiometricsUseCase extends _i1.Mock implements _i124.SetBiometricsUs
               #enable: enable,
               #authenticateBeforeEnabling: authenticateBeforeEnabling,
             }),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [], {
                   #enable: enable,
@@ -5952,8 +6006,8 @@ class MockSetBiometricsUseCase extends _i1.Mock implements _i124.SetBiometricsUs
                 }),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [], {
                   #enable: enable,
@@ -5962,75 +6016,75 @@ class MockSetBiometricsUseCase extends _i1.Mock implements _i124.SetBiometricsUs
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [GetSupportedBiometricsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetSupportedBiometricsUseCase extends _i1.Mock implements _i125.GetSupportedBiometricsUseCase {
+class MockGetSupportedBiometricsUseCase extends _i1.Mock implements _i126.GetSupportedBiometricsUseCase {
   @override
-  _i10.Future<_i123.Biometrics> invoke() =>
+  _i10.Future<_i124.Biometrics> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i123.Biometrics>.value(
-              _i123.Biometrics.face,
+            returnValue: _i10.Future<_i124.Biometrics>.value(
+              _i124.Biometrics.face,
             ),
-            returnValueForMissingStub: _i10.Future<_i123.Biometrics>.value(
-              _i123.Biometrics.face,
+            returnValueForMissingStub: _i10.Future<_i124.Biometrics>.value(
+              _i124.Biometrics.face,
             ),
           )
-          as _i10.Future<_i123.Biometrics>);
+          as _i10.Future<_i124.Biometrics>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [IsBiometricLoginEnabledUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIsBiometricLoginEnabledUseCase extends _i1.Mock implements _i126.IsBiometricLoginEnabledUseCase {
+class MockIsBiometricLoginEnabledUseCase extends _i1.Mock implements _i127.IsBiometricLoginEnabledUseCase {
   @override
   _i10.Future<bool> invoke() =>
       (super.noSuchMethod(
@@ -6041,32 +6095,32 @@ class MockIsBiometricLoginEnabledUseCase extends _i1.Mock implements _i126.IsBio
           as _i10.Future<bool>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ObserveVersionStateUsecase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockObserveVersionStateUsecase extends _i1.Mock implements _i127.ObserveVersionStateUsecase {
+class MockObserveVersionStateUsecase extends _i1.Mock implements _i128.ObserveVersionStateUsecase {
   @override
   _i10.Stream<_i37.VersionState> invoke() =>
       (super.noSuchMethod(
@@ -6077,486 +6131,486 @@ class MockObserveVersionStateUsecase extends _i1.Mock implements _i127.ObserveVe
           as _i10.Stream<_i37.VersionState>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [GetVersionStringUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetVersionStringUseCase extends _i1.Mock implements _i128.GetVersionStringUseCase {
+class MockGetVersionStringUseCase extends _i1.Mock implements _i129.GetVersionStringUseCase {
   @override
-  _i10.Future<_i76.Result<String>> invoke() =>
+  _i10.Future<_i77.Result<String>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<String>>.value(
-              _i14.dummyValue<_i76.Result<String>>(
+            returnValue: _i10.Future<_i77.Result<String>>.value(
+              _i14.dummyValue<_i77.Result<String>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<String>>.value(
-              _i14.dummyValue<_i76.Result<String>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<String>>.value(
+              _i14.dummyValue<_i77.Result<String>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<String>>);
+          as _i10.Future<_i77.Result<String>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [RequestBiometricsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockRequestBiometricsUseCase extends _i1.Mock implements _i129.RequestBiometricsUseCase {
+class MockRequestBiometricsUseCase extends _i1.Mock implements _i130.RequestBiometricsUseCase {
   @override
-  _i10.Future<_i76.Result<_i130.BiometricAuthenticationResult>> invoke() =>
+  _i10.Future<_i77.Result<_i131.BiometricAuthenticationResult>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<_i130.BiometricAuthenticationResult>>.value(
-              _i14.dummyValue<_i76.Result<_i130.BiometricAuthenticationResult>>(this, Invocation.method(#invoke, [])),
+            returnValue: _i10.Future<_i77.Result<_i131.BiometricAuthenticationResult>>.value(
+              _i14.dummyValue<_i77.Result<_i131.BiometricAuthenticationResult>>(this, Invocation.method(#invoke, [])),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<_i130.BiometricAuthenticationResult>>.value(
-              _i14.dummyValue<_i76.Result<_i130.BiometricAuthenticationResult>>(this, Invocation.method(#invoke, [])),
+            returnValueForMissingStub: _i10.Future<_i77.Result<_i131.BiometricAuthenticationResult>>.value(
+              _i14.dummyValue<_i77.Result<_i131.BiometricAuthenticationResult>>(this, Invocation.method(#invoke, [])),
             ),
           )
-          as _i10.Future<_i76.Result<_i130.BiometricAuthenticationResult>>);
+          as _i10.Future<_i77.Result<_i131.BiometricAuthenticationResult>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [TourOverviewViewedUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockTourOverviewViewedUseCase extends _i1.Mock implements _i131.TourOverviewViewedUseCase {
+class MockTourOverviewViewedUseCase extends _i1.Mock implements _i132.TourOverviewViewedUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke() =>
+  _i10.Future<_i77.Result<void>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [FetchTourVideosUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockFetchTourVideosUseCase extends _i1.Mock implements _i132.FetchTourVideosUseCase {
+class MockFetchTourVideosUseCase extends _i1.Mock implements _i133.FetchTourVideosUseCase {
   @override
-  _i10.Future<_i76.Result<List<_i133.TourVideo>>> invoke() =>
+  _i10.Future<_i77.Result<List<_i134.TourVideo>>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<List<_i133.TourVideo>>>.value(
-              _i14.dummyValue<_i76.Result<List<_i133.TourVideo>>>(
+            returnValue: _i10.Future<_i77.Result<List<_i134.TourVideo>>>.value(
+              _i14.dummyValue<_i77.Result<List<_i134.TourVideo>>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<List<_i133.TourVideo>>>.value(
-              _i14.dummyValue<_i76.Result<List<_i133.TourVideo>>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<List<_i134.TourVideo>>>.value(
+              _i14.dummyValue<_i77.Result<List<_i134.TourVideo>>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<List<_i133.TourVideo>>>);
+          as _i10.Future<_i77.Result<List<_i134.TourVideo>>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [GetPidRenewalUrlUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetPidRenewalUrlUseCase extends _i1.Mock implements _i134.GetPidRenewalUrlUseCase {
+class MockGetPidRenewalUrlUseCase extends _i1.Mock implements _i135.GetPidRenewalUrlUseCase {
   @override
-  _i10.Future<_i76.Result<String>> invoke() =>
+  _i10.Future<_i77.Result<String>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<String>>.value(
-              _i14.dummyValue<_i76.Result<String>>(
+            returnValue: _i10.Future<_i77.Result<String>>.value(
+              _i14.dummyValue<_i77.Result<String>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<String>>.value(
-              _i14.dummyValue<_i76.Result<String>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<String>>.value(
+              _i14.dummyValue<_i77.Result<String>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<String>>);
+          as _i10.Future<_i77.Result<String>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [GetPidCardsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetPidCardsUseCase extends _i1.Mock implements _i135.GetPidCardsUseCase {
+class MockGetPidCardsUseCase extends _i1.Mock implements _i136.GetPidCardsUseCase {
   @override
-  _i10.Future<_i76.Result<List<_i9.WalletCard>>> invoke() =>
+  _i10.Future<_i77.Result<List<_i9.WalletCard>>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<List<_i9.WalletCard>>>.value(
-              _i14.dummyValue<_i76.Result<List<_i9.WalletCard>>>(
+            returnValue: _i10.Future<_i77.Result<List<_i9.WalletCard>>>.value(
+              _i14.dummyValue<_i77.Result<List<_i9.WalletCard>>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<List<_i9.WalletCard>>>.value(
-              _i14.dummyValue<_i76.Result<List<_i9.WalletCard>>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<List<_i9.WalletCard>>>.value(
+              _i14.dummyValue<_i77.Result<List<_i9.WalletCard>>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<List<_i9.WalletCard>>>);
+          as _i10.Future<_i77.Result<List<_i9.WalletCard>>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ConfirmWalletTransferUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockConfirmWalletTransferUseCase extends _i1.Mock implements _i136.ConfirmWalletTransferUseCase {
+class MockConfirmWalletTransferUseCase extends _i1.Mock implements _i137.ConfirmWalletTransferUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke(String? pin) =>
+  _i10.Future<_i77.Result<void>> invoke(String? pin) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [pin]),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [StartWalletTransferUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockStartWalletTransferUseCase extends _i1.Mock implements _i137.StartWalletTransferUseCase {
+class MockStartWalletTransferUseCase extends _i1.Mock implements _i138.StartWalletTransferUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke() =>
+  _i10.Future<_i77.Result<void>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [CancelWalletTransferUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCancelWalletTransferUseCase extends _i1.Mock implements _i138.CancelWalletTransferUseCase {
+class MockCancelWalletTransferUseCase extends _i1.Mock implements _i139.CancelWalletTransferUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke() =>
+  _i10.Future<_i77.Result<void>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [PairWalletTransferUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockPairWalletTransferUseCase extends _i1.Mock implements _i139.PairWalletTransferUseCase {
+class MockPairWalletTransferUseCase extends _i1.Mock implements _i140.PairWalletTransferUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke(String? uri) =>
+  _i10.Future<_i77.Result<void>> invoke(String? uri) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [uri]),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [uri]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [uri]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ObserveTransferSessionStateUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockObserveTransferSessionStateUseCase extends _i1.Mock implements _i140.ObserveTransferSessionStateUseCase {
+class MockObserveTransferSessionStateUseCase extends _i1.Mock implements _i141.ObserveTransferSessionStateUseCase {
   @override
   _i10.Stream<_i41.TransferSessionState> invoke() =>
       (super.noSuchMethod(
@@ -6567,308 +6621,308 @@ class MockObserveTransferSessionStateUseCase extends _i1.Mock implements _i140.O
           as _i10.Stream<_i41.TransferSessionState>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [InitWalletTransferUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockInitWalletTransferUseCase extends _i1.Mock implements _i141.InitWalletTransferUseCase {
+class MockInitWalletTransferUseCase extends _i1.Mock implements _i142.InitWalletTransferUseCase {
   @override
-  _i10.Future<_i76.Result<String>> invoke() =>
+  _i10.Future<_i77.Result<String>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<String>>.value(
-              _i14.dummyValue<_i76.Result<String>>(
+            returnValue: _i10.Future<_i77.Result<String>>.value(
+              _i14.dummyValue<_i77.Result<String>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<String>>.value(
-              _i14.dummyValue<_i76.Result<String>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<String>>.value(
+              _i14.dummyValue<_i77.Result<String>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<String>>);
+          as _i10.Future<_i77.Result<String>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [SkipWalletTransferUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockSkipWalletTransferUseCase extends _i1.Mock implements _i142.SkipWalletTransferUseCase {
+class MockSkipWalletTransferUseCase extends _i1.Mock implements _i143.SkipWalletTransferUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke() =>
+  _i10.Future<_i77.Result<void>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [CreatePinRecoveryRedirectUriUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCreatePinRecoveryRedirectUriUseCase extends _i1.Mock implements _i143.CreatePinRecoveryRedirectUriUseCase {
+class MockCreatePinRecoveryRedirectUriUseCase extends _i1.Mock implements _i144.CreatePinRecoveryRedirectUriUseCase {
   @override
-  _i10.Future<_i76.Result<String>> invoke() =>
+  _i10.Future<_i77.Result<String>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<String>>.value(
-              _i14.dummyValue<_i76.Result<String>>(
+            returnValue: _i10.Future<_i77.Result<String>>.value(
+              _i14.dummyValue<_i77.Result<String>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<String>>.value(
-              _i14.dummyValue<_i76.Result<String>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<String>>.value(
+              _i14.dummyValue<_i77.Result<String>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<String>>);
+          as _i10.Future<_i77.Result<String>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ContinuePinRecoveryUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockContinuePinRecoveryUseCase extends _i1.Mock implements _i144.ContinuePinRecoveryUseCase {
+class MockContinuePinRecoveryUseCase extends _i1.Mock implements _i145.ContinuePinRecoveryUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke(String? uri) =>
+  _i10.Future<_i77.Result<void>> invoke(String? uri) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [uri]),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [uri]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [uri]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [CancelPinRecoveryUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCancelPinRecoveryUseCase extends _i1.Mock implements _i145.CancelPinRecoveryUseCase {
+class MockCancelPinRecoveryUseCase extends _i1.Mock implements _i146.CancelPinRecoveryUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke() =>
+  _i10.Future<_i77.Result<void>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [CompletePinRecoveryUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCompletePinRecoveryUseCase extends _i1.Mock implements _i146.CompletePinRecoveryUseCase {
+class MockCompletePinRecoveryUseCase extends _i1.Mock implements _i147.CompletePinRecoveryUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke(String? pin) =>
+  _i10.Future<_i77.Result<void>> invoke(String? pin) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [pin]),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [GetWalletStateUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetWalletStateUseCase extends _i1.Mock implements _i147.GetWalletStateUseCase {
+class MockGetWalletStateUseCase extends _i1.Mock implements _i148.GetWalletStateUseCase {
   @override
   _i10.Future<_i27.WalletState> invoke() =>
       (super.noSuchMethod(
@@ -6889,78 +6943,78 @@ class MockGetWalletStateUseCase extends _i1.Mock implements _i147.GetWalletState
           as _i10.Future<_i27.WalletState>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ReceiveWalletTransferUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockReceiveWalletTransferUseCase extends _i1.Mock implements _i148.ReceiveWalletTransferUseCase {
+class MockReceiveWalletTransferUseCase extends _i1.Mock implements _i149.ReceiveWalletTransferUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke() =>
+  _i10.Future<_i77.Result<void>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [IsWalletRegisteredAndUnlockedUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIsWalletRegisteredAndUnlockedUseCase extends _i1.Mock implements _i149.IsWalletRegisteredAndUnlockedUseCase {
+class MockIsWalletRegisteredAndUnlockedUseCase extends _i1.Mock implements _i150.IsWalletRegisteredAndUnlockedUseCase {
   @override
   _i10.Future<bool> invoke() =>
       (super.noSuchMethod(
@@ -6971,35 +7025,35 @@ class MockIsWalletRegisteredAndUnlockedUseCase extends _i1.Mock implements _i149
           as _i10.Future<bool>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [CheckPermissionUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCheckPermissionUseCase extends _i1.Mock implements _i150.CheckPermissionUseCase {
+class MockCheckPermissionUseCase extends _i1.Mock implements _i151.CheckPermissionUseCase {
   @override
   _i10.Future<_i12.PermissionCheckResult> invoke(
-    _i120.Permission? permission,
+    _i121.Permission? permission,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [permission]),
@@ -7019,201 +7073,201 @@ class MockCheckPermissionUseCase extends _i1.Mock implements _i150.CheckPermissi
           as _i10.Future<_i12.PermissionCheckResult>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ObserveDashboardNotificationsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockObserveDashboardNotificationsUseCase extends _i1.Mock implements _i151.ObserveDashboardNotificationsUseCase {
+class MockObserveDashboardNotificationsUseCase extends _i1.Mock implements _i152.ObserveDashboardNotificationsUseCase {
   @override
-  _i10.Stream<List<_i152.WalletBanner>> invoke() =>
+  _i10.Stream<List<_i153.WalletBanner>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Stream<List<_i152.WalletBanner>>.empty(),
-            returnValueForMissingStub: _i10.Stream<List<_i152.WalletBanner>>.empty(),
+            returnValue: _i10.Stream<List<_i153.WalletBanner>>.empty(),
+            returnValueForMissingStub: _i10.Stream<List<_i153.WalletBanner>>.empty(),
           )
-          as _i10.Stream<List<_i152.WalletBanner>>);
+          as _i10.Stream<List<_i153.WalletBanner>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ObserveOsNotificationsUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockObserveOsNotificationsUseCase extends _i1.Mock implements _i153.ObserveOsNotificationsUseCase {
+class MockObserveOsNotificationsUseCase extends _i1.Mock implements _i154.ObserveOsNotificationsUseCase {
   @override
-  _i10.Stream<List<_i154.OsNotification>> invoke({
+  _i10.Stream<List<_i155.OsNotification>> invoke({
     bool? respectUserSetting = true,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [], {
               #respectUserSetting: respectUserSetting,
             }),
-            returnValue: _i10.Stream<List<_i154.OsNotification>>.empty(),
-            returnValueForMissingStub: _i10.Stream<List<_i154.OsNotification>>.empty(),
+            returnValue: _i10.Stream<List<_i155.OsNotification>>.empty(),
+            returnValueForMissingStub: _i10.Stream<List<_i155.OsNotification>>.empty(),
           )
-          as _i10.Stream<List<_i154.OsNotification>>);
+          as _i10.Stream<List<_i155.OsNotification>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [CheckIsPidUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCheckIsPidUseCase extends _i1.Mock implements _i155.CheckIsPidUseCase {
+class MockCheckIsPidUseCase extends _i1.Mock implements _i156.CheckIsPidUseCase {
   @override
-  _i10.Future<_i76.Result<bool>> invoke(_i9.WalletCard? card) =>
+  _i10.Future<_i77.Result<bool>> invoke(_i9.WalletCard? card) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [card]),
-            returnValue: _i10.Future<_i76.Result<bool>>.value(
-              _i14.dummyValue<_i76.Result<bool>>(
+            returnValue: _i10.Future<_i77.Result<bool>>.value(
+              _i14.dummyValue<_i77.Result<bool>>(
                 this,
                 Invocation.method(#invoke, [card]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<bool>>.value(
-              _i14.dummyValue<_i76.Result<bool>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<bool>>.value(
+              _i14.dummyValue<_i77.Result<bool>>(
                 this,
                 Invocation.method(#invoke, [card]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<bool>>);
+          as _i10.Future<_i77.Result<bool>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [MoveToReadyStateUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockMoveToReadyStateUseCase extends _i1.Mock implements _i156.MoveToReadyStateUseCase {
+class MockMoveToReadyStateUseCase extends _i1.Mock implements _i157.MoveToReadyStateUseCase {
   @override
-  _i10.Future<_i76.Result<bool>> invoke() =>
+  _i10.Future<_i77.Result<bool>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<bool>>.value(
-              _i14.dummyValue<_i76.Result<bool>>(
+            returnValue: _i10.Future<_i77.Result<bool>>.value(
+              _i14.dummyValue<_i77.Result<bool>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<bool>>.value(
-              _i14.dummyValue<_i76.Result<bool>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<bool>>.value(
+              _i14.dummyValue<_i77.Result<bool>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<bool>>);
+          as _i10.Future<_i77.Result<bool>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [ObservePushNotificationsSettingUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockObservePushNotificationsSettingUseCase extends _i1.Mock
-    implements _i157.ObservePushNotificationsSettingUseCase {
+    implements _i158.ObservePushNotificationsSettingUseCase {
   @override
   _i10.Stream<bool> invoke() =>
       (super.noSuchMethod(
@@ -7224,32 +7278,32 @@ class MockObservePushNotificationsSettingUseCase extends _i1.Mock
           as _i10.Stream<bool>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [SetPushNotificationsSettingUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockSetPushNotificationsSettingUseCase extends _i1.Mock implements _i158.SetPushNotificationsSettingUseCase {
+class MockSetPushNotificationsSettingUseCase extends _i1.Mock implements _i159.SetPushNotificationsSettingUseCase {
   @override
   _i10.Future<void> invoke({required bool? enabled}) =>
       (super.noSuchMethod(
@@ -7260,244 +7314,290 @@ class MockSetPushNotificationsSettingUseCase extends _i1.Mock implements _i158.S
           as _i10.Future<void>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [GetRevocationCodeSavedUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetRevocationCodeSavedUseCase extends _i1.Mock implements _i159.GetRevocationCodeSavedUseCase {
+class MockGetRevocationCodeSavedUseCase extends _i1.Mock implements _i160.GetRevocationCodeSavedUseCase {
   @override
-  _i10.Future<_i76.Result<bool>> invoke() =>
+  _i10.Future<_i77.Result<bool>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<bool>>.value(
-              _i14.dummyValue<_i76.Result<bool>>(
+            returnValue: _i10.Future<_i77.Result<bool>>.value(
+              _i14.dummyValue<_i77.Result<bool>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<bool>>.value(
-              _i14.dummyValue<_i76.Result<bool>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<bool>>.value(
+              _i14.dummyValue<_i77.Result<bool>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<bool>>);
+          as _i10.Future<_i77.Result<bool>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [SetRevocationCodeSavedUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockSetRevocationCodeSavedUseCase extends _i1.Mock implements _i160.SetRevocationCodeSavedUseCase {
+class MockSetRevocationCodeSavedUseCase extends _i1.Mock implements _i161.SetRevocationCodeSavedUseCase {
   @override
-  _i10.Future<_i76.Result<void>> invoke({required bool? saved}) =>
+  _i10.Future<_i77.Result<void>> invoke({required bool? saved}) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [], {#saved: saved}),
-            returnValue: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValue: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [], {#saved: saved}),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<void>>.value(
-              _i14.dummyValue<_i76.Result<void>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<void>>.value(
+              _i14.dummyValue<_i77.Result<void>>(
                 this,
                 Invocation.method(#invoke, [], {#saved: saved}),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<void>>);
+          as _i10.Future<_i77.Result<void>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [GetRevocationCodeUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetRevocationCodeUseCase extends _i1.Mock implements _i161.GetRevocationCodeUseCase {
+class MockGetRevocationCodeUseCase extends _i1.Mock implements _i162.GetRevocationCodeUseCase {
   @override
-  _i10.Future<_i76.Result<String>> invoke(String? pin) =>
+  _i10.Future<_i77.Result<String>> invoke(String? pin) =>
       (super.noSuchMethod(
             Invocation.method(#invoke, [pin]),
-            returnValue: _i10.Future<_i76.Result<String>>.value(
-              _i14.dummyValue<_i76.Result<String>>(
+            returnValue: _i10.Future<_i77.Result<String>>.value(
+              _i14.dummyValue<_i77.Result<String>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<String>>.value(
-              _i14.dummyValue<_i76.Result<String>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<String>>.value(
+              _i14.dummyValue<_i77.Result<String>>(
                 this,
                 Invocation.method(#invoke, [pin]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<String>>);
+          as _i10.Future<_i77.Result<String>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [GetRegistrationRevocationCodeUseCase].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockGetRegistrationRevocationCodeUseCase extends _i1.Mock implements _i162.GetRegistrationRevocationCodeUseCase {
+class MockGetRegistrationRevocationCodeUseCase extends _i1.Mock implements _i163.GetRegistrationRevocationCodeUseCase {
   @override
-  _i10.Future<_i76.Result<String>> invoke() =>
+  _i10.Future<_i77.Result<String>> invoke() =>
       (super.noSuchMethod(
             Invocation.method(#invoke, []),
-            returnValue: _i10.Future<_i76.Result<String>>.value(
-              _i14.dummyValue<_i76.Result<String>>(
+            returnValue: _i10.Future<_i77.Result<String>>.value(
+              _i14.dummyValue<_i77.Result<String>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<String>>.value(
-              _i14.dummyValue<_i76.Result<String>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<String>>.value(
+              _i14.dummyValue<_i77.Result<String>>(
                 this,
                 Invocation.method(#invoke, []),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<String>>);
+          as _i10.Future<_i77.Result<String>>);
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [SetDirectOsNotificationCallbackUsecase].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockSetDirectOsNotificationCallbackUsecase extends _i1.Mock
-    implements _i163.SetDirectOsNotificationCallbackUsecase {
+    implements _i164.SetDirectOsNotificationCallbackUsecase {
   @override
-  void invoke(dynamic Function(_i154.OsNotification)? callback) => super.noSuchMethod(
+  void invoke(dynamic Function(_i155.OsNotification)? callback) => super.noSuchMethod(
     Invocation.method(#invoke, [callback]),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i10.Future<_i76.Result<T>> tryCatch<T>(
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
     _i10.Future<T> Function()? future,
     String? errorDescription,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#tryCatch, [future, errorDescription]),
-            returnValue: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
-            returnValueForMissingStub: _i10.Future<_i76.Result<T>>.value(
-              _i14.dummyValue<_i76.Result<T>>(
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
                 this,
                 Invocation.method(#tryCatch, [future, errorDescription]),
               ),
             ),
           )
-          as _i10.Future<_i76.Result<T>>);
+          as _i10.Future<_i77.Result<T>>);
+}
+
+/// A class which mocks [StartQrEngagementUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockStartQrEngagementUseCase extends _i1.Mock implements _i165.StartQrEngagementUseCase {
+  @override
+  _i10.Future<_i77.Result<String>> invoke() =>
+      (super.noSuchMethod(
+            Invocation.method(#invoke, []),
+            returnValue: _i10.Future<_i77.Result<String>>.value(
+              _i14.dummyValue<_i77.Result<String>>(
+                this,
+                Invocation.method(#invoke, []),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<_i77.Result<String>>.value(
+              _i14.dummyValue<_i77.Result<String>>(
+                this,
+                Invocation.method(#invoke, []),
+              ),
+            ),
+          )
+          as _i10.Future<_i77.Result<String>>);
+
+  @override
+  _i10.Future<_i77.Result<T>> tryCatch<T>(
+    _i10.Future<T> Function()? future,
+    String? errorDescription,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#tryCatch, [future, errorDescription]),
+            returnValue: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
+                this,
+                Invocation.method(#tryCatch, [future, errorDescription]),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<_i77.Result<T>>.value(
+              _i14.dummyValue<_i77.Result<T>>(
+                this,
+                Invocation.method(#tryCatch, [future, errorDescription]),
+              ),
+            ),
+          )
+          as _i10.Future<_i77.Result<T>>);
 }
 
 /// A class which mocks [WalletCoreApi].

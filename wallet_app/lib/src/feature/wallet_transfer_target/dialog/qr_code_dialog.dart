@@ -55,7 +55,7 @@ class QrCodeDialog extends StatelessWidget {
                     dataModuleShape: QrDataModuleShape.square,
                   ),
                   data: data,
-                  embeddedImage: const AssetImage(WalletAssets.logo_wallet),
+                  embeddedImage: const AssetImage(WalletAssets.logo_wallet_qr),
                   embeddedImageEmitsError: true,
                   embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(32, 32)),
                 ),
