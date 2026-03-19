@@ -1661,6 +1661,19 @@ mod tests {
         StatusListClientStub<SigningKey>,
     >;
 
+    impl From<VpAuthorizationErrorCode> for AuthorizationErrorResponse<VpAuthorizationErrorCode> {
+        fn from(error: VpAuthorizationErrorCode) -> Self {
+            Self {
+                error_response: ErrorResponse {
+                    error,
+                    error_description: None,
+                    error_uri: None,
+                },
+                state: None,
+            }
+        }
+    }
+
     fn create_verifier() -> TestVerifier {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
@@ -1818,12 +1831,7 @@ mod tests {
 
         // We have no mdoc in this test to actually disclose, so we let the wallet terminate the session
         let end_session_message = WalletAuthResponse::Error(
-            ErrorResponse {
-                error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
-                error_description: None,
-                error_uri: None,
-            }
-            .into(),
+            VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied).into(),
         );
         let ended_session_response = verifier
             .process_authorization_response(&session_token, end_session_message, &TimeGenerator)
@@ -2178,12 +2186,7 @@ mod tests {
     #[test]
     fn test_wallet_auth_response_error_serializes_without_state_parameter() {
         let body = serde_urlencoded::to_string(WalletAuthResponse::Error(
-            ErrorResponse {
-                error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
-                error_description: None,
-                error_uri: None,
-            }
-            .into(),
+            VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied).into(),
         ))
         .unwrap();
 

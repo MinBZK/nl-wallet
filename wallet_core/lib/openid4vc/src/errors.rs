@@ -50,15 +50,6 @@ impl<T> AuthorizationErrorResponse<T> {
     }
 }
 
-impl<T> From<ErrorResponse<T>> for AuthorizationErrorResponse<T> {
-    fn from(error_response: ErrorResponse<T>) -> Self {
-        Self {
-            error_response,
-            state: None,
-        }
-    }
-}
-
 /// Wrapper of [`ErrorResponse`] that has an optional redirect URI
 /// and is as an error response for disclosure endpoints.
 #[skip_serializing_none]
