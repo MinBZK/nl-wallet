@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:permission_handler/permission_handler.dart';
 
+import '../../../domain/usecase/permission/request_permission_usecase.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
+import '../dialog/ble_permission_dialog.dart';
 import '../screen/placeholder_screen.dart';
 import '../widget/button/bottom_close_button.dart';
 import '../widget/menu_item.dart';
@@ -38,15 +42,29 @@ class QrActionSheet extends StatelessWidget {
             leftIcon: const Icon(Icons.qr_code),
             label: Text(context.l10n.qrActionSheetShowQrTitle),
             subtitle: Text(context.l10n.qrActionSheetShowQrDescription),
-            onPressed: () {
-              Navigator.pop(context);
-              PlaceholderScreen.showGeneric(context);
-            },
+            onPressed: () => _onShowQrPressed(context),
           ),
           const BottomCloseButton(),
         ],
       ),
     );
+  }
+
+  Future<void> _onShowQrPressed(BuildContext context) async {
+    final result = await context.read<RequestPermissionUseCase>().invoke(Permission.bluetooth);
+    if (!context.mounted) return;
+
+    // Dismiss the sheet
+    Navigator.pop(context);
+
+    if (result.isGranted) {
+      PlaceholderScreen.showGeneric(context); // TODO(anyone): PVW-5619
+    } else if (result.isPermanentlyDenied) {
+      // Permission permanently denied — show rationale dialog.
+      await BlePermissionDialog.show(context);
+    }
+
+    // If denied but not permanently, user saw the OS dialog and denied — do nothing (already on dashboard).
   }
 
   static Future<void> show(BuildContext context) {
