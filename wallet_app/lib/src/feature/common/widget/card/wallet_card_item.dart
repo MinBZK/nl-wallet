@@ -14,7 +14,6 @@ import '../../../../util/extension/object_extension.dart';
 import '../../../../util/extension/string_extension.dart';
 import '../../../../util/mapper/card/status/card_status_metadata_mapper.dart';
 import '../../../../util/mapper/card/status/card_status_render_type.dart';
-import '../../decoration/shadow_decoration.dart';
 import '../animated_fade_in.dart';
 import '../animated_fade_out.dart';
 import '../text/body_text.dart';
@@ -22,6 +21,7 @@ import '../text/headline_small_text.dart';
 import '../utility/disable_text_scaling.dart';
 import 'bottom_clip_shadow.dart';
 import 'card_logo.dart';
+import 'card_shadow_container.dart';
 import 'mock_card_background.dart';
 import 'mock_card_holograph.dart';
 import 'show_details_cta.dart';
@@ -227,8 +227,7 @@ class _WalletCardItemState extends State<WalletCardItem> {
         child: FittedBox(
           child: ConstrainedBox(
             constraints: _kCardSizeConstraints,
-            child: DecoratedBox(
-              decoration: const CardShadowDecoration(),
+            child: CardShadowContainer(
               child: Material(
                 color: Colors.transparent,
                 borderRadius: _kCardBorderRadius,
