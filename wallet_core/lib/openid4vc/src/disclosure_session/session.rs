@@ -78,7 +78,10 @@ where
     }
 
     async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError> {
-        let return_url = self.client.terminate(self.auth_request.response_uri).await?;
+        let return_url = self
+            .client
+            .terminate(self.auth_request.response_uri.clone(), self.auth_request.state.clone())
+            .await?;
 
         Ok(return_url)
     }
@@ -571,10 +574,11 @@ mod tests {
     fn test_disclosure_session_terminate(
         #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<BaseUrl>,
     ) {
-        let (disclosure_session, verifier_session) = setup_disclosure_session(
+        let (mut disclosure_session, verifier_session) = setup_disclosure_session(
             redirect_uri.clone(),
             NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
         );
+        disclosure_session.auth_request.state = Some("authorization_state".to_string());
 
         let terminate_redirect_uri = disclosure_session
             .terminate()
@@ -591,7 +595,9 @@ mod tests {
         let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied);
         assert_matches!(
             wallet_messages.last().unwrap(),
-            WalletMessage::Error(response) if response.error == expected_error_code
+            WalletMessage::Error(response)
+                if response.error() == &expected_error_code
+                    && response.state.as_deref() == Some("authorization_state")
         );
     }
 
@@ -600,10 +606,11 @@ mod tests {
     where
         F: Fn() -> VpMessageClientError,
     {
-        let disclosure_session = setup_disclosure_session_http_error(
+        let mut disclosure_session = setup_disclosure_session_http_error(
             NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
             response_factory,
         );
+        disclosure_session.auth_request.state = Some("authorization_state".to_string());
         let wallet_messages = Arc::clone(&disclosure_session.client.wallet_messages);
 
         // Terminate the session, which should result in the verified receiving an access denied error.
@@ -619,7 +626,9 @@ mod tests {
         let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied);
         assert_matches!(
             wallet_messages.last().unwrap(),
-            WalletMessage::Error(response) if response.error == expected_error_code
+            WalletMessage::Error(response)
+                if response.error() == &expected_error_code
+                    && response.state.as_deref() == Some("authorization_state")
         );
 
         error

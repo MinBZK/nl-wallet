@@ -32,14 +32,14 @@ impl VpMessageClientError {
     pub fn error_type(&self) -> VpMessageClientErrorType {
         match self {
             // Consider the different error codes when getting the disclosure request.
-            Self::AuthGetResponse(error) => match error.response_error() {
+            Self::AuthGetResponse(response) => match response.error() {
                 GetRequestErrorCode::ExpiredEphemeralId => VpMessageClientErrorType::Expired { can_retry: true },
                 GetRequestErrorCode::ExpiredSession => VpMessageClientErrorType::Expired { can_retry: false },
                 GetRequestErrorCode::CancelledSession => VpMessageClientErrorType::Cancelled,
                 _ => VpMessageClientErrorType::Other,
             },
             // Consider the different error codes when posting the disclosure response.
-            Self::AuthPostResponse(error) => match error.response_error() {
+            Self::AuthPostResponse(response) => match response.error() {
                 PostAuthResponseErrorCode::ExpiredSession => VpMessageClientErrorType::Expired { can_retry: false },
                 PostAuthResponseErrorCode::CancelledSession => VpMessageClientErrorType::Cancelled,
                 _ => VpMessageClientErrorType::Other,
