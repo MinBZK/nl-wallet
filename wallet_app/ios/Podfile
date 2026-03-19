@@ -54,6 +54,8 @@ post_install do |installer|
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
 
+        ## dart: PermissionGroup.bluetooth
+        'PERMISSION_BLUETOOTH=1',
         ## dart: PermissionGroup.camera
         'PERMISSION_CAMERA=1',
         ## dart: PermissionGroup.notification
