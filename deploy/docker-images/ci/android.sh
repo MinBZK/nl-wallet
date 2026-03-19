@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-wget --no-hsts -q -O sdk.zip https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
-echo "7ec965280a073311c339e571cd5de778b9975026cfcbe79f2b1cdcb1e15317ee sdk.zip" | sha256sum -c
+# Download from: https://developer.android.com/studio#command-line-tools-only
+wget --no-hsts -q -O sdk.zip https://dl.google.com/android/repository/commandlinetools-linux-14742923_latest.zip
+echo "04453066b540409d975c676d781da1477479dde3761310f1a7eb92a1dfb15af7 sdk.zip" | sha256sum -c
 
 unzip -q sdk.zip
 rm sdk.zip
