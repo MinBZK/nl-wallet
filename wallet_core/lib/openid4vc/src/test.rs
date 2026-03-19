@@ -107,7 +107,6 @@ pub fn setup_mock_issuer<G>(
     attr_service: MockAttrService,
     attestation_count: NonZeroUsize,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
-    upstream_oauth_identifier: Option<IssuerIdentifier>,
 ) -> (MockIssuer<G>, TrustAnchor<'static>, SigningKey)
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
@@ -165,7 +164,6 @@ where
         Some(WiaConfig {
             wia_issuer_pubkey: wia_issuer_privkey.verifying_key().into(),
         }),
-        upstream_oauth_identifier,
         attr_service,
         sessions,
         MemoryNonceStore::new(),

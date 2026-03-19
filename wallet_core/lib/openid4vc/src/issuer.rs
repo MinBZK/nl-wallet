@@ -427,9 +427,6 @@ pub struct IssuerData<K> {
     server_url: BaseUrl,
 
     metadata: IssuerMetadata,
-
-    /// The upstream OAuth identifier, if any.
-    upstream_oauth_identifier: Option<IssuerIdentifier>,
 }
 
 pub struct WiaConfig {
@@ -461,7 +458,6 @@ where
         wallet_client_ids: Vec<String>,
         attestation_config: AttestationTypesConfig<K>,
         wia_config: Option<WiaConfig>,
-        upstream_oauth_identifier: Option<IssuerIdentifier>,
         attr_service: A,
         sessions: Arc<S>,
         proof_nonce_store: N,
@@ -532,7 +528,6 @@ where
             attestation_config,
             accepted_wallet_client_ids: wallet_client_ids,
             wia_config,
-            upstream_oauth_identifier,
 
             // In this implementation, the public server URL is composed of the
             // Credential Issuer Identifier appended with the "/issuance/" path.
@@ -894,12 +889,9 @@ where
         let issuer_url = self.issuer_data.metadata.credential_issuer.as_base_url();
 
         AuthorizationServerMetadata {
-            authorization_endpoint: self
-                .issuer_data
-                .upstream_oauth_identifier
-                .as_ref()
-                // TODO (PVW-5746): decouple from upstream OAuth
-                .map(|identifier| identifier.as_base_url().join("authorize")),
+            authorization_endpoint: Some(issuer_url.join("/issuance/authorize")),
+            pushed_authorization_request_endpoint: Some(issuer_url.join("/issuance/par")),
+            require_pushed_authorization_requests: true,
             ..AuthorizationServerMetadata::new(
                 self.issuer_data.metadata.credential_issuer.clone(),
                 issuer_url.join("issuance/token"),
@@ -1744,7 +1736,6 @@ mod tests {
             },
             NonZeroUsize::MIN,
             Arc::new(MemorySessionStore::default()),
-            None,
         );
         (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey)
     }
@@ -2070,7 +2061,6 @@ mod tests {
             },
             NonZeroUsize::MIN,
             sessions.clone(),
-            None,
         );
 
         let token = issuer.new_session(documents).await.unwrap();

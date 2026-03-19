@@ -15,6 +15,7 @@ use openid4vc::credential::GrantPreAuthorizedCode;
 use openid4vc::credential::Grants;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
+use openid4vc::par::MemoryParStore;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionToken;
 use openid4vc::test::MOCK_ATTESTATION_TYPES;
@@ -69,6 +70,8 @@ async fn start_server(
     let issuer_identifier: IssuerIdentifier = format!("https://localhost:{port}").parse().unwrap();
 
     let sessions = Arc::new(MemorySessionStore::default());
+    let par_store = Arc::new(MemoryParStore::default());
+
     let (issuer, trust_anchor, wia_issuer_privkey) = setup_mock_issuer(
         issuer_identifier.clone(),
         MockAttrService {
@@ -76,11 +79,10 @@ async fn start_server(
         },
         attestation_count,
         sessions,
-        upstream_oauth_identifier,
     );
     let issuer = Arc::new(issuer);
 
-    let router = create_issuance_router(Arc::clone(&issuer));
+    let router = create_issuance_router(Arc::clone(&issuer), par_store, upstream_oauth_identifier);
     tokio::spawn(async move {
         axum_server::from_tcp_rustls(listener, tls_server_config.into_rustls_config().unwrap())
             .unwrap()
@@ -175,13 +177,14 @@ async fn authorization_code_flow(
         .await
         .unwrap();
 
-    // Auth URL must point to the upstream authorization server endpoint.
-    assert!(
-        auth_session
-            .auth_url()
-            .as_str()
-            .starts_with("https://auth.example.com/authorize")
-    );
+    dbg!(&auth_session.auth_url());
+    dbg!(issuer_identifier.as_base_url().as_ref().as_str());
+
+    // Auth URL must point to the authorization endpoint of the issuer
+    assert!(auth_session.auth_url().as_str().starts_with(&format!(
+        "{}issuance/authorize",
+        issuer_identifier.as_base_url().as_ref().as_str()
+    )));
 
     // Extract the state from the auth URL so we can craft a valid redirect.
     let auth_params: HashMap<String, String> = auth_session

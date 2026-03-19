@@ -1,8 +1,10 @@
+use chrono::Duration;
 use indexmap::IndexSet;
 use jwt::nonce::Nonce;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DeserializeFromStr;
+use serde_with::DurationSeconds;
 use serde_with::SerializeDisplay;
 use serde_with::StringWithSeparator;
 use serde_with::formats::SpaceSeparator;
@@ -43,10 +45,13 @@ pub struct PushedAuthorizationRequest {
     pub request_uri: String,
 }
 
+#[serde_as]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PushedAuthorizationResponse {
     pub request_uri: String,
-    pub expires_in: u64,
+
+    #[serde_as(as = "DurationSeconds<i64>")]
+    pub expires_in: Duration,
 }
 
 /// Defined in https://openid.net/specs/oauth-v2-multiple-response-types-1_0.html#ResponseModes

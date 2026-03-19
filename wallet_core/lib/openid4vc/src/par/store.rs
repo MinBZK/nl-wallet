@@ -4,9 +4,15 @@ use std::error::Error;
 use std::sync::Mutex;
 
 use chrono::DateTime;
+use chrono::Duration;
 use chrono::Utc;
 
 use crate::authorization::AuthorizationRequest;
+
+/// TTL for PAR entries. Per [RFC 9126 §2.2], the `expires_in` value should be short.
+///
+/// [RFC 9126 §2.2]: https://www.rfc-editor.org/rfc/rfc9126#section-2.2
+pub const PAR_TTL: Duration = Duration::seconds(60);
 
 #[trait_variant::make(Send)]
 pub trait ParStore {
@@ -70,6 +76,23 @@ impl ParStore for MemoryParStore {
 
     async fn cleanup(&self) -> Result<(), Self::Error> {
         self.cleanup_inner();
+        Ok(())
+    }
+}
+
+/// A no-op [`ParStore`] implementation for use when PAR is not needed.
+impl ParStore for () {
+    type Error = Infallible;
+
+    async fn store(&self, _: String, _: AuthorizationRequest, _: DateTime<Utc>) -> Result<(), Infallible> {
+        Ok(())
+    }
+
+    async fn consume(&self, _: &str) -> Result<Option<AuthorizationRequest>, Infallible> {
+        Ok(None)
+    }
+
+    async fn cleanup(&self) -> Result<(), Infallible> {
         Ok(())
     }
 }

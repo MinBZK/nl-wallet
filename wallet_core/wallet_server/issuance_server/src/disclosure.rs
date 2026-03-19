@@ -280,7 +280,6 @@ mod tests {
             vec![],
             HashMap::<String, AttestationTypeConfig<SigningKey>>::new().into(),
             None,
-            None,
             (),
             sessions,
             MemoryNonceStore::new(),

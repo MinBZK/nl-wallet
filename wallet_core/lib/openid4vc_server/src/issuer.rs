@@ -4,12 +4,16 @@ use std::sync::Arc;
 use axum::Form;
 use axum::Json;
 use axum::Router;
+use axum::extract::Query;
 use axum::extract::State;
 use axum::http::HeaderMap;
 use axum::http::HeaderName;
 use axum::http::HeaderValue;
 use axum::http::StatusCode;
 use axum::http::Uri;
+use axum::http::header;
+use axum::response::IntoResponse;
+use axum::response::Response;
 use axum::routing::delete;
 use axum::routing::get;
 use axum::routing::post;
@@ -20,11 +24,16 @@ use axum_extra::headers::CacheControl;
 use axum_extra::headers::Header;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::authorization::Credentials;
+use chrono::Utc;
 use crypto::keys::EcdsaKeySend;
 use openid4vc::CredentialErrorCode;
 use openid4vc::CredentialPreviewErrorCode;
 use openid4vc::ErrorResponse;
+use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
+use openid4vc::authorization::AuthorizationRequest;
+use openid4vc::authorization::PushedAuthorizationRequest;
+use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
@@ -35,42 +44,60 @@ use openid4vc::dpop::Dpop;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
+use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::issuer_metadata::IssuerMetadata;
 use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
 use openid4vc::nonce::response::NonceResponse;
 use openid4vc::nonce::store::NonceStore;
+use openid4vc::par;
+use openid4vc::par::PAR_TTL;
+use openid4vc::par::ParStore;
 use openid4vc::preview::CredentialPreviewRequest;
 use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::SessionStore;
 use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponse;
+use serde::Serialize;
 use token_status_list::status_list_service::StatusListServices;
 use tracing::warn;
 
-struct ApplicationState<K, A, S, N, L> {
+struct ApplicationState<K, A, S, N, L, P> {
     issuer: Arc<Issuer<K, A, S, N, L>>,
+    par_store: Arc<P>,
+    upstream_oauth_identifier: Option<IssuerIdentifier>,
 }
 
-// Implement `Clone` manually, because `#[derive(Clone)]` unnecessarily adds `Clone` bounds on A, K, S and W,
+// Implement `Clone` manually, because `#[derive(Clone)]` unnecessarily adds `Clone` bounds on its type parameters,
 // which we don't want.
-impl<K, A, S, N, L> Clone for ApplicationState<K, A, S, N, L> {
+impl<K, A, S, N, L, P> Clone for ApplicationState<K, A, S, N, L, P> {
     fn clone(&self) -> Self {
         Self {
             issuer: self.issuer.clone(),
+            par_store: self.par_store.clone(),
+            upstream_oauth_identifier: self.upstream_oauth_identifier.clone(),
         }
     }
 }
 
-pub fn create_issuance_router<K, A, S, N, L>(issuer: Arc<Issuer<K, A, S, N, L>>) -> Router
+pub fn create_issuance_router<K, A, S, N, L, P>(
+    issuer: Arc<Issuer<K, A, S, N, L>>,
+    par_store: Arc<P>,
+    upstream_oauth_identifier: Option<IssuerIdentifier>,
+) -> Router
 where
     K: EcdsaKeySend + Sync + 'static,
     A: AttributeService + Send + Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
     N: NonceStore + Send + Sync + 'static,
     L: StatusListServices + Send + Sync + 'static,
+    P: ParStore + Send + Sync + 'static,
 {
-    let application_state = ApplicationState { issuer };
+    let application_state = ApplicationState {
+        issuer,
+        par_store,
+        upstream_oauth_identifier,
+    };
 
     Router::new()
         .nest(
@@ -82,6 +109,8 @@ where
         .nest(
             "/issuance",
             Router::new()
+                .route("/par", post(pushed_authorization_request::<K, A, S, N, L, P>))
+                .route("/authorize", get(authorize::<K, A, S, N, L, P>))
                 .route("/token", post(token))
                 .route("/credential_preview", post(credential_preview))
                 .route("/nonce", post(nonce))
@@ -95,8 +124,8 @@ where
 
 // Although there is no standard here mandating what our error response looks like, we use `ErrorResponse`
 // for consistency with the other endpoints.
-async fn oauth_metadata<K, A, S, N, L>(
-    State(state): State<ApplicationState<K, A, S, N, L>>,
+async fn oauth_metadata<K, A, S, N, L, P>(
+    State(state): State<ApplicationState<K, A, S, N, L, P>>,
 ) -> Json<AuthorizationServerMetadata>
 where
     A: AttributeService,
@@ -104,12 +133,12 @@ where
     Json(state.issuer.oauth_metadata())
 }
 
-async fn metadata<K, A, S, N, L>(State(state): State<ApplicationState<K, A, S, N, L>>) -> Json<IssuerMetadata> {
+async fn metadata<K, A, S, N, L, P>(State(state): State<ApplicationState<K, A, S, N, L, P>>) -> Json<IssuerMetadata> {
     Json(state.issuer.metadata().clone())
 }
 
-async fn token<K, A, S, N, L>(
-    State(state): State<ApplicationState<K, A, S, N, L>>,
+async fn token<K, A, S, N, L, P>(
+    State(state): State<ApplicationState<K, A, S, N, L, P>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Form(token_request): Form<TokenRequest>,
 ) -> Result<(HeaderMap, Json<TokenResponse>), ErrorResponse<TokenErrorCode>>
@@ -133,8 +162,8 @@ where
     Ok((headers, Json(response)))
 }
 
-async fn credential_preview<K, A, S, N, L>(
-    State(state): State<ApplicationState<K, A, S, N, L>>,
+async fn credential_preview<K, A, S, N, L, P>(
+    State(state): State<ApplicationState<K, A, S, N, L, P>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<Bearer>>,
     Json(preview_request): Json<CredentialPreviewRequest>,
 ) -> Result<Json<CredentialPreviewResponse>, ErrorResponse<CredentialPreviewErrorCode>>
@@ -151,8 +180,8 @@ where
     Ok(Json(response))
 }
 
-async fn nonce<K, A, S, N, L>(
-    State(state): State<ApplicationState<K, A, S, N, L>>,
+async fn nonce<K, A, S, N, L, P>(
+    State(state): State<ApplicationState<K, A, S, N, L, P>>,
 ) -> Result<(TypedHeader<CacheControl>, Json<NonceResponse>), StatusCode>
 where
     N: NonceStore,
@@ -172,8 +201,8 @@ where
     Ok((header, body))
 }
 
-async fn credential<K, A, S, N, L>(
-    State(state): State<ApplicationState<K, A, S, N, L>>,
+async fn credential<K, A, S, N, L, P>(
+    State(state): State<ApplicationState<K, A, S, N, L, P>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_request): Json<CredentialRequest>,
@@ -195,8 +224,8 @@ where
     Ok(Json(response))
 }
 
-async fn batch_credential<K, A, S, N, L>(
-    State(state): State<ApplicationState<K, A, S, N, L>>,
+async fn batch_credential<K, A, S, N, L, P>(
+    State(state): State<ApplicationState<K, A, S, N, L, P>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_requests): Json<CredentialRequests>,
@@ -218,8 +247,8 @@ where
     Ok(Json(response))
 }
 
-async fn reject_issuance<K, A, S, N, L>(
-    State(state): State<ApplicationState<K, A, S, N, L>>,
+async fn reject_issuance<K, A, S, N, L, P>(
+    State(state): State<ApplicationState<K, A, S, N, L, P>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     uri: Uri,
@@ -248,7 +277,7 @@ impl Header for DpopHeader {
         &DPOP_HEADER_NAME_LOWERCASE
     }
 
-    fn decode<'i, I>(values: &mut I) -> Result<Self, axum_extra::headers::Error>
+    fn decode<'i, I>(values: &mut I) -> Result<Self, headers::Error>
     where
         Self: Sized,
         I: Iterator<Item = &'i HeaderValue>,
@@ -294,5 +323,124 @@ impl Credentials for DpopBearer {
 
     fn encode(&self) -> HeaderValue {
         HeaderValue::from_str(&(DPOP_HEADER_NAME.to_string() + " " + &self.0)).unwrap()
+    }
+}
+
+async fn pushed_authorization_request<K, A, S, N, L, P>(
+    State(state): State<ApplicationState<K, A, S, N, L, P>>,
+    Form(authorization_request): Form<AuthorizationRequest>,
+) -> Result<(StatusCode, Json<PushedAuthorizationResponse>), ErrorResponse<ParError>>
+where
+    K: EcdsaKeySend,
+    A: AttributeService,
+    S: SessionStore<IssuanceData>,
+    N: NonceStore,
+    L: StatusListServices,
+    P: ParStore,
+{
+    let request_uri = par::generate_request_uri();
+    let expires_at = Utc::now() + PAR_TTL;
+
+    state
+        .par_store
+        .store(request_uri.clone(), authorization_request, expires_at)
+        .await
+        .map_err(|error| {
+            warn!("storing PAR request failed: {}", error);
+            ErrorResponse {
+                error: ParError::ServerError,
+                error_description: Some(error.to_string()),
+                error_uri: None,
+            }
+        })?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(PushedAuthorizationResponse {
+            request_uri,
+            expires_in: PAR_TTL,
+        }),
+    ))
+}
+
+async fn authorize<K, A, S, N, L, P>(
+    State(state): State<ApplicationState<K, A, S, N, L, P>>,
+    Query(PushedAuthorizationRequest { request_uri, .. }): Query<PushedAuthorizationRequest>,
+) -> Result<Response, ErrorResponse<AuthorizeError>>
+where
+    K: EcdsaKeySend,
+    A: AttributeService,
+    S: SessionStore<IssuanceData>,
+    N: NonceStore,
+    L: StatusListServices,
+    P: ParStore,
+{
+    let upstream_oauth_identifier = state.upstream_oauth_identifier.clone().ok_or_else(|| ErrorResponse {
+        error: AuthorizeError::ServerError,
+        error_description: Some("no upstream authorization endpoint configured".to_string()),
+        error_uri: None,
+    })?;
+
+    // TODO (PVW-5746): decouple from upstream OAuth
+    let upstream_authorization_endpoint = upstream_oauth_identifier.as_base_url().join("authorize");
+
+    let authorization_request = state
+        .par_store
+        .consume(&request_uri)
+        .await
+        .map_err(|error| {
+            warn!("consuming PAR request failed: {}", error);
+            ErrorResponse {
+                error: AuthorizeError::ServerError,
+                error_description: Some(error.to_string()),
+                error_uri: None,
+            }
+        })?
+        .ok_or_else(|| ErrorResponse {
+            error: AuthorizeError::InvalidRequest,
+            error_description: Some(format!("request_uri not found or expired: {request_uri}")),
+            error_uri: None,
+        })?;
+
+    let query_string = serde_urlencoded::to_string(&authorization_request).map_err(|error| {
+        warn!("encoding authorization request as query string failed: {}", error);
+        ErrorResponse {
+            error: AuthorizeError::ServerError,
+            error_description: Some(error.to_string()),
+            error_uri: None,
+        }
+    })?;
+
+    let mut redirect_url = upstream_authorization_endpoint;
+    redirect_url.set_query(Some(&query_string));
+
+    Ok((StatusCode::FOUND, [(header::LOCATION, redirect_url.to_string())]).into_response())
+}
+
+#[derive(Serialize, Debug, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum ParError {
+    ServerError,
+}
+
+impl ErrorStatusCode for ParError {
+    fn status_code(&self) -> StatusCode {
+        StatusCode::INTERNAL_SERVER_ERROR
+    }
+}
+
+#[derive(Serialize, Debug, Clone)]
+#[serde(rename_all = "snake_case")]
+enum AuthorizeError {
+    InvalidRequest,
+    ServerError,
+}
+
+impl ErrorStatusCode for AuthorizeError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            Self::InvalidRequest => StatusCode::BAD_REQUEST,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+        }
     }
 }
