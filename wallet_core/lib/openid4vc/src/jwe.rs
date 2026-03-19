@@ -2,16 +2,6 @@ use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 use strum::EnumString;
 
-/// A type representing the "alg" header parameter value for JWE, i.e. the JWE algorithm.
-/// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-4>
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
-#[strum(serialize_all = "SCREAMING-KEBAB-CASE")]
-pub enum JweAlgorithm {
-    EcdhEs,
-    #[strum(default)]
-    Other(String),
-}
-
 /// A type representing the "alg" header parameter value for JWE, i.e. the JWE encryption algorithm.
 /// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-5>
 #[derive(Debug, Clone, Default, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
@@ -56,21 +46,8 @@ pub enum JweCompressionAlgorithm {
 mod tests {
     use rstest::rstest;
 
-    use super::JweAlgorithm;
     use super::JweCompressionAlgorithm;
     use super::JweEncryptionAlgorithm;
-
-    #[rstest]
-    #[case::ecdh_es("ECDH-ES", JweAlgorithm::EcdhEs)]
-    #[case::ecdh_es("dir", JweAlgorithm::Other("dir".to_string()))]
-    fn test_jwe_algorithm_parse(#[case] input: &str, #[case] expected_jwe_alg: JweAlgorithm) {
-        let jwe_alg = input
-            .parse::<JweAlgorithm>()
-            .expect("parsing JweAlgorithm from string should succeed");
-
-        assert_eq!(jwe_alg, expected_jwe_alg);
-        assert_eq!(jwe_alg.to_string(), *input);
-    }
 
     #[rstest]
     #[case::a128gcm("A128GCM", JweEncryptionAlgorithm::A128Gcm)]
