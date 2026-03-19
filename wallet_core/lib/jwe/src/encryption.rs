@@ -1,4 +1,7 @@
-use derive_more::Constructor;
+use derive_more::Display;
+use derive_more::From;
+use derive_more::FromStr;
+use derive_more::Into;
 use josekit::JoseError;
 use josekit::jwe::JweHeader;
 use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
@@ -15,7 +18,10 @@ use p256::PublicKey;
 use p256::elliptic_curve::sec1::FromEncodedPoint;
 use p256::elliptic_curve::sec1::ToEncodedPoint;
 use p256::pkcs8::EncodePublicKey;
+use serde::Deserialize;
 use serde::Serialize;
+use serde_with::DisplayFromStr;
+use serde_with::serde_as;
 
 use crate::algorithm::JweAlgorithm;
 use crate::algorithm::JweEncryptionAlgorithm;
@@ -42,16 +48,38 @@ pub enum JwePublicKeyError {
     UnsupportedJwkEcCurve(EcCurve),
 }
 
+#[derive(Debug, Clone, Copy, From, Into, Display, FromStr)]
+#[display(
+    "{}",
+    self
+        .0
+        .to_public_key_pem(Default::default())
+        .expect("a p256 public key should always encode to PKCS #8 PEM")
+        .as_str()
+)]
+struct PemPublicKey(PublicKey);
+
 /// Wraps a P-256 EC public key, anoptional `kid` value and a JWE algorithm. This type is meant to be converted from a
 /// JWK in the form of a [`Key`] type and used as key derivation input for encrypting a JWE.
-#[derive(Debug, Clone, Constructor)]
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JwePublicKey {
     id: Option<String>,
-    key: PublicKey,
+    #[serde_as(as = "DisplayFromStr")]
+    key: PemPublicKey,
+    #[serde_as(as = "DisplayFromStr")]
     algorithm: JweAlgorithm,
 }
 
 impl JwePublicKey {
+    pub fn new(id: Option<String>, key: PublicKey, algorithm: JweAlgorithm) -> Self {
+        Self {
+            id,
+            key: key.into(),
+            algorithm,
+        }
+    }
+
     pub fn try_from_jwk(jwk: &Key) -> Result<Self, JwePublicKeyError> {
         jwk.validate().map_err(JwePublicKeyError::JwkInvalid)?;
 
@@ -91,11 +119,7 @@ impl JwePublicKey {
         let public_key = PublicKey::from_encoded_point(&encoded_point)
             .expect("Key::validate() succeeding guarantees valid x and y coordinates");
 
-        Ok(Self {
-            id,
-            key: public_key,
-            algorithm: jwe_algorithm,
-        })
+        Ok(Self::new(id, public_key, jwe_algorithm))
     }
 
     pub fn id(&self) -> Option<&str> {
@@ -103,7 +127,7 @@ impl JwePublicKey {
     }
 
     pub fn key(&self) -> PublicKey {
-        self.key
+        self.key.into()
     }
 
     pub fn algorithm(&self) -> JweAlgorithm {
@@ -111,7 +135,7 @@ impl JwePublicKey {
     }
 
     fn ec_params(&self) -> EcParams {
-        let encoded_point = self.key.to_encoded_point(false);
+        let encoded_point = PublicKey::from(self.key).to_encoded_point(false);
         let x = encoded_point
             .x()
             .expect("public key should never use the identity point");
@@ -203,7 +227,7 @@ impl JweEncrypter {
 
 impl From<JwePublicKey> for JweEncrypter {
     fn from(value: JwePublicKey) -> Self {
-        Self::new(value.id, value.key, value.algorithm)
+        Self::new(value.id, value.key.into(), value.algorithm)
     }
 }
 

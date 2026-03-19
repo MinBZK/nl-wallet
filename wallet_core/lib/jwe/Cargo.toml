@@ -14,7 +14,7 @@ doctest = false
 vendored_openssl = ["josekit/vendored"]
 
 [dependencies]
-derive_more = { workspace = true, features = ["as_ref", "constructor", "debug", "display", "from", "from_str"] }
+derive_more = { workspace = true, features = ["as_ref", "constructor", "debug", "display", "from", "from_str", "into"] }
 p256 = { workspace = true, features = ["pem"] }
 rand_core.workspace = true
 serde.workspace = true
