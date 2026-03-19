@@ -172,7 +172,7 @@ where
             };
 
             if let Some(response_uri) = response_uri {
-                return Err(self.report_error_back(response_uri, state.clone(), error).await)?;
+                return Err(self.report_error_back(response_uri, state, error).await)?;
             }
             return Err(error.into());
         }
@@ -192,7 +192,7 @@ where
             Ok(value) => value,
             Err(error) => {
                 return Err(self
-                    .report_error_back(auth_request.response_uri.clone(), auth_request.state.clone(), error)
+                    .report_error_back(auth_request.response_uri, auth_request.state, error)
                     .await)?;
             }
         };
