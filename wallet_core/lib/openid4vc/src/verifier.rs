@@ -292,14 +292,14 @@ impl<'de> Deserialize<'de> for EncryptionPrivateKey {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct VpToken {
     pub response: String,
 }
 
 /// Sent by the wallet to the `response_uri`: either an Authorization Response JWE or an error, which either indicates
 /// that they refuse disclosure, or is an actual error that the wallet encountered during the session.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum WalletAuthResponse {
     Response(VpToken),
@@ -2192,25 +2192,20 @@ mod tests {
 
     #[test]
     fn test_wallet_auth_response_error_serializes_and_deserializes_state_parameter() {
-        let body = serde_urlencoded::to_string(WalletAuthResponse::Error(AuthorizationErrorResponse {
+        let expected = WalletAuthResponse::Error(AuthorizationErrorResponse {
             error_response: ErrorResponse {
                 error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
                 error_description: None,
                 error_uri: None,
             },
             state: Some("authorization_state".to_string()),
-        }))
-        .unwrap();
+        });
+
+        let body = serde_urlencoded::to_string(&expected).unwrap();
 
         assert_eq!(body, "error=access_denied&state=authorization_state");
 
         let response: WalletAuthResponse = serde_urlencoded::from_str(&body).unwrap();
-        assert_matches!(
-            response,
-            WalletAuthResponse::Error(response)
-                if response.error()
-                    == &VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied)
-                    && response.state.as_deref() == Some("authorization_state")
-        );
+        assert_eq!(response, expected);
     }
 }

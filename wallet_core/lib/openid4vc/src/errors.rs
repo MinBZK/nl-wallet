@@ -28,7 +28,7 @@ use crate::verifier::WithRedirectUri;
 
 /// Describes an error that occurred when processing an HTTP endpoint from the OAuth/OpenID protocol family.
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ErrorResponse<T> {
     pub error: T,
     pub error_description: Option<String>,
@@ -37,7 +37,7 @@ pub struct ErrorResponse<T> {
 
 /// Wrapper of [`ErrorResponse`] that adds the optional `state` parameter used by authorization error responses.
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthorizationErrorResponse<T> {
     #[serde(flatten)]
     pub error_response: ErrorResponse<T>,
