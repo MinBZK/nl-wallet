@@ -52,6 +52,7 @@ pub enum WalletState {
 pub enum BlockedReason {
     RequiresAppUpdate,
     BlockedByWalletProvider,
+    WalletSolutionRevoked,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -82,8 +83,13 @@ where
         }
 
         if let Some(revocation_data) = self.storage.read().await.fetch_data::<AccountRevokedData>().await? {
+            let reason = match revocation_data.revocation_reason {
+                RevocationReason::AdminRequest => BlockedReason::BlockedByWalletProvider,
+                RevocationReason::WalletSolutionCompromised => BlockedReason::WalletSolutionRevoked,
+                RevocationReason::UserRequest => unreachable!(), // in this case the wallet would have wiped itself
+            };
             return Ok(WalletState::Blocked {
-                reason: BlockedReason::BlockedByWalletProvider,
+                reason,
                 // In case of `AdminRequest`, the `can_register_new_account` flag whether or not the user
                 // can register a new account. For the other two variants of `RevocationReason`,
                 // reregistering would not make sense so we return false in those cases.
@@ -479,8 +485,6 @@ mod tests {
     #[rstest]
     #[case(RevocationReason::AdminRequest, true, true)]
     #[case(RevocationReason::AdminRequest, false, false)]
-    #[case(RevocationReason::UserRequest, true, false)]
-    #[case(RevocationReason::UserRequest, false, false)]
     #[case(RevocationReason::WalletSolutionCompromised, true, false)]
     #[case(RevocationReason::WalletSolutionCompromised, false, false)]
     #[tokio::test]
@@ -506,7 +510,11 @@ mod tests {
         assert_eq!(
             wallet.get_state().await.unwrap(),
             WalletState::Blocked {
-                reason: BlockedReason::BlockedByWalletProvider,
+                reason: match revocation_reason {
+                    RevocationReason::UserRequest => panic!(),
+                    RevocationReason::AdminRequest => BlockedReason::BlockedByWalletProvider,
+                    RevocationReason::WalletSolutionCompromised => BlockedReason::WalletSolutionRevoked,
+                },
                 can_register_new_account
             }
         );

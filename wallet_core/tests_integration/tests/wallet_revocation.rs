@@ -467,7 +467,11 @@ async fn assert_wallet_revoked(
         assert_eq!(
             wallet.get_state().await.unwrap(),
             WalletState::Blocked {
-                reason: BlockedReason::BlockedByWalletProvider,
+                reason: match revocation_data.revocation_reason {
+                    RevocationReason::UserRequest => panic!(),
+                    RevocationReason::AdminRequest => BlockedReason::BlockedByWalletProvider,
+                    RevocationReason::WalletSolutionCompromised => BlockedReason::WalletSolutionRevoked,
+                },
                 can_register_new_account: revocation_data.can_register_new_account
                     && revocation_data.revocation_reason == RevocationReason::AdminRequest,
             }
