@@ -31,6 +31,7 @@ use tracing::warn;
 use uuid::Uuid;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
+use wallet_provider_domain::repository::commit_on_error;
 use webpki::ring::ECDSA_P256_SHA256;
 use webpki::ring::ECDSA_P256_SHA384;
 use webpki::ring::ECDSA_P384_SHA256;
@@ -887,24 +888,26 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         debug!("Starting database transaction");
         let tx = user_state.repositories.begin_transaction().await?;
 
-        let instruction_update = user_state
+        user_state
             .repositories
             .update_instruction_challenge_and_sequence_number(
                 &tx,
                 &user.wallet_id,
                 challenge.clone(),
                 request.sequence_number,
-            );
+            )
+            .await?;
 
-        if let Some(assertion_counter) = assertion_counter {
-            let update_assertion_counter =
+        let (tx, _) = commit_on_error::<T, _, (), ChallengeError>(tx, async |tx| {
+            if let Some(assertion_counter) = assertion_counter {
                 user_state
                     .repositories
-                    .update_apple_assertion_counter(&tx, &user.wallet_id, assertion_counter);
-            try_join!(instruction_update, update_assertion_counter,)?;
-        } else {
-            instruction_update.await?;
-        }
+                    .update_apple_assertion_counter(tx, &user.wallet_id, assertion_counter)
+                    .await?;
+            }
+            Ok(())
+        })
+        .await?;
 
         tx.commit().await?;
 
@@ -997,34 +1000,34 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .clear_instruction_challenge(&tx, &wallet_user.wallet_id)
             .await?;
 
-        debug!("Verifying instruction");
+        let (tx, instruction_payload) = commit_on_error::<_, _, _, InstructionError>(tx, async |tx: &T| {
+            debug!("Verifying instruction");
 
-        let verification_result = self.verify_hw_signed_instruction(&instruction, &wallet_user, generators);
+            let verification_result = self.verify_hw_signed_instruction(&instruction, &wallet_user, generators);
 
-        let instruction_payload = match verification_result {
-            Ok((challenge_response_payload, assertion_counter)) => {
-                debug!("Instruction successfully verified, validating instruction");
+            match verification_result {
+                Ok((challenge_response_payload, assertion_counter)) => {
+                    debug!("Instruction successfully verified, validating instruction");
 
-                challenge_response_payload.payload.validate_instruction(&wallet_user)?;
+                    challenge_response_payload.payload.validate_instruction(&wallet_user)?;
 
-                Self::update_instruction_counters(
-                    &tx,
-                    &wallet_user,
-                    &user_state.repositories,
-                    challenge_response_payload.sequence_number,
-                    assertion_counter,
-                )
-                .await?;
+                    Self::update_instruction_counters(
+                        tx,
+                        &wallet_user,
+                        &user_state.repositories,
+                        challenge_response_payload.sequence_number,
+                        assertion_counter,
+                    )
+                    .await?;
 
-                tx.commit().await?;
-
-                Ok(challenge_response_payload.payload)
+                    Ok(challenge_response_payload.payload)
+                }
+                Err(validation_error) => Err(validation_error)?,
             }
-            Err(validation_error) => {
-                tx.commit().await?;
-                Err(validation_error)
-            }
-        }?;
+        })
+        .await?;
+
+        tx.commit().await?;
 
         let instruction_result = instruction_payload
             .handle(&wallet_user, generators, user_state, &self.recovery_code_paths)
@@ -1169,9 +1172,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .rollback_pin_change(&tx, &wallet_user.wallet_id)
             .await?;
 
+        let result = self.sign_instruction_result(instruction_result_signing_key, ()).await?;
+
         tx.commit().await?;
 
-        self.sign_instruction_result(instruction_result_signing_key, ()).await
+        Ok(result)
     }
 
     pub async fn handle_start_pin_recovery_instruction<T, R, F, G, H>(
@@ -1372,81 +1377,83 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .clear_instruction_challenge(&tx, &wallet_user.wallet_id)
             .await?;
 
-        debug!("Evaluating pin policy state");
+        // Commit the transaction on error anyway, because we want to persist the `clear_instruction_challenge`.
+        let (tx, result) = commit_on_error::<_, _, _, InstructionError>(tx, async |tx: &T| {
+            debug!("Evaluating pin policy state");
 
-        let pin_eval = pin_policy.evaluate(
-            wallet_user.unsuccessful_pin_entries + 1,
-            wallet_user.last_unsuccessful_pin_entry,
-            generators.generate(),
-        );
+            let pin_eval = pin_policy.evaluate(
+                wallet_user.unsuccessful_pin_entries + 1,
+                wallet_user.last_unsuccessful_pin_entry,
+                generators.generate(),
+            );
 
-        // An evaluation result of blocked permanently can only occur once. This fact is stored in the database
-        // for the wallet_user. Subsequent calls will verify if the user is blocked against the database.
-        if matches!(pin_eval, PinPolicyEvaluation::InTimeout { timeout: _ }) {
-            tx.commit().await?;
-            return Err(pin_eval.into());
-        }
+            // An evaluation result of blocked permanently can only occur once. This fact is stored in the database
+            // for the wallet_user. Subsequent calls will verify if the user is blocked against the database.
+            if matches!(pin_eval, PinPolicyEvaluation::InTimeout { timeout: _ }) {
+                return Err(pin_eval.into());
+            }
 
-        debug!("Verifying instruction");
+            debug!("Verifying instruction");
 
-        let verification_result = self
-            .verify_instruction(
-                &instruction,
-                wallet_user,
-                pin_pubkey,
-                generators,
-                &user_state.wallet_user_hsm,
-            )
-            .await;
-
-        match verification_result {
-            Ok((challenge_response_payload, assertion_counter)) => {
-                debug!("Instruction successfully verified, validating instruction");
-
-                challenge_response_payload.payload.validate_instruction(wallet_user)?;
-
-                debug!("Instruction successfully validated, resetting pin retries");
-
-                let reset_pin_entries = user_state
-                    .repositories
-                    .reset_unsuccessful_pin_entries(&tx, &wallet_user.wallet_id);
-
-                let instruction_counters = Self::update_instruction_counters(
-                    &tx,
+            let verification_result = self
+                .verify_instruction(
+                    &instruction,
                     wallet_user,
-                    &user_state.repositories,
-                    challenge_response_payload.sequence_number,
-                    assertion_counter,
-                );
+                    pin_pubkey,
+                    generators,
+                    &user_state.wallet_user_hsm,
+                )
+                .await;
 
-                try_join!(reset_pin_entries, instruction_counters)?;
+            match verification_result {
+                Ok((challenge_response_payload, assertion_counter)) => {
+                    debug!("Instruction successfully verified, validating instruction");
 
-                tx.commit().await?;
+                    challenge_response_payload.payload.validate_instruction(wallet_user)?;
 
-                Ok(challenge_response_payload.payload)
-            }
-            Err(validation_error) => {
-                let error = if matches!(validation_error, InstructionValidationError::VerificationFailed(_)) {
-                    debug!("Instruction validation failed, registering unsuccessful pin entry");
+                    debug!("Instruction successfully validated, resetting pin retries");
 
-                    user_state
+                    let reset_pin_entries = user_state
                         .repositories
-                        .register_unsuccessful_pin_entry(
-                            &tx,
-                            &wallet_user.wallet_id,
-                            matches!(pin_eval, PinPolicyEvaluation::BlockedPermanently),
-                            generators.generate(),
-                        )
-                        .await?;
-                    Err(pin_eval.into())
-                } else {
-                    Err(validation_error)?
-                };
+                        .reset_unsuccessful_pin_entries(tx, &wallet_user.wallet_id);
 
-                tx.commit().await?;
-                error
+                    let instruction_counters = Self::update_instruction_counters(
+                        tx,
+                        wallet_user,
+                        &user_state.repositories,
+                        challenge_response_payload.sequence_number,
+                        assertion_counter,
+                    );
+
+                    try_join!(reset_pin_entries, instruction_counters)?;
+
+                    Ok(challenge_response_payload.payload)
+                }
+                Err(validation_error) => {
+                    if matches!(validation_error, InstructionValidationError::VerificationFailed(_)) {
+                        debug!("Instruction validation failed, registering unsuccessful pin entry");
+
+                        user_state
+                            .repositories
+                            .register_unsuccessful_pin_entry(
+                                tx,
+                                &wallet_user.wallet_id,
+                                matches!(pin_eval, PinPolicyEvaluation::BlockedPermanently),
+                                generators.generate(),
+                            )
+                            .await?;
+                        Err(pin_eval.into())
+                    } else {
+                        Err(validation_error)?
+                    }
+                }
             }
-        }
+        })
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(result)
     }
 
     async fn update_instruction_counters<T, R>(
