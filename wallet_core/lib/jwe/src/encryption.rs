@@ -157,6 +157,16 @@ impl From<JwePublicKey> for Key {
     }
 }
 
+// Even though the conversion does not require an owned `Key`, this
+// trait implementation is useful for `serde_with::TryFrom_Into`.
+impl TryFrom<Key> for JwePublicKey {
+    type Error = JwePublicKeyError;
+
+    fn try_from(value: Key) -> Result<Self, Self::Error> {
+        Self::try_from_jwk(&value)
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum JweEncrypterError {
     #[error("could not serialize data: {0}")]

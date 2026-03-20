@@ -1,11 +1,13 @@
-use josekit::jwk::Jwk;
+use jwk_simple::jwk::Key;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::TryFromInto;
 use serde_with::json::JsonString;
 use serde_with::serde_as;
 use url::Url;
 
 use http_utils::urls;
+use jwe::encryption::JwePublicKey;
 
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::transfer::TransferSessionId;
@@ -26,14 +28,14 @@ pub enum TransferUriError {
 }
 
 #[serde_as]
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransferQuery {
     #[serde(rename = "s")]
     pub session_id: TransferSessionId,
 
     #[serde(rename = "k")]
-    #[serde_as(as = "JsonString")]
-    pub public_key: Jwk,
+    #[serde_as(as = "JsonString<TryFromInto<Key>>")]
+    pub public_key: JwePublicKey,
 }
 
 impl TryFrom<Url> for TransferQuery {
@@ -63,23 +65,23 @@ impl TryFrom<TransferQuery> for Url {
 
 #[cfg(test)]
 mod tests {
-    use josekit::jwk::KeyPair;
-    use josekit::jwk::alg::ec::EcCurve;
-    use josekit::jwk::alg::ec::EcKeyPair;
     use url::Host;
     use url::Url;
     use uuid::Uuid;
+
+    use jwe::algorithm::EcdhAlgorithm;
+    use jwe::decryption::JweSecretKey;
 
     use crate::transfer::uri::TransferQuery;
 
     #[test]
     fn test_transfer_query() {
         let transfer_session_id = Uuid::new_v4();
-        let key_pair = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let secret_key = JweSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw);
 
         let transfer_query = TransferQuery {
             session_id: transfer_session_id.into(),
-            public_key: key_pair.to_jwk_public_key(),
+            public_key: secret_key.to_jwe_public_key(),
         };
         let url: Url = transfer_query.try_into().unwrap();
 
@@ -94,8 +96,6 @@ mod tests {
 
         let query: TransferQuery = serde_urlencoded::from_str(url.fragment().unwrap()).unwrap();
         assert_eq!(query.session_id, transfer_session_id.into());
-        assert_eq!(query.public_key.key_type(), "EC");
-        assert_eq!(query.public_key.curve(), Some("P-256"));
-        assert_eq!(query.public_key, key_pair.to_jwk_public_key());
+        assert_eq!(query.public_key.key(), secret_key.key().public_key());
     }
 }
