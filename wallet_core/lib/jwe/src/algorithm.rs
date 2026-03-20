@@ -2,11 +2,12 @@ use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
 use jwk_simple::Algorithm;
 use strum::EnumString;
 
-/// A type representing the "alg" header parameter value for JWE, i.e. the JWE algorithm. It contains only those
-/// algorithms supported by this crate. See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-4>
+/// A type representing possible values of the "alg" header parameter value for JWE, when using an elliptic curve
+/// secret and public key. It contains only those algorithms supported by this crate.
+/// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-4>
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "SCREAMING-KEBAB-CASE")]
-pub enum JweAlgorithm {
+pub enum EcdhAlgorithm {
     EcdhEs,
     #[strum(serialize = "ECDH-ES+A128KW")]
     EcdhEsA128kw,
@@ -16,7 +17,7 @@ pub enum JweAlgorithm {
     EcdhEsA256kw,
 }
 
-impl JweAlgorithm {
+impl EcdhAlgorithm {
     pub fn try_from_jwk_simple_algorithm(value: &Algorithm) -> Option<Self> {
         match &value {
             Algorithm::EcdhEs => Some(Self::EcdhEs),
@@ -28,24 +29,24 @@ impl JweAlgorithm {
     }
 }
 
-impl From<JweAlgorithm> for Algorithm {
-    fn from(value: JweAlgorithm) -> Self {
+impl From<EcdhAlgorithm> for Algorithm {
+    fn from(value: EcdhAlgorithm) -> Self {
         match value {
-            JweAlgorithm::EcdhEs => Self::EcdhEs,
-            JweAlgorithm::EcdhEsA128kw => Self::EcdhEsA128kw,
-            JweAlgorithm::EcdhEsA192kw => Self::EcdhEsA192kw,
-            JweAlgorithm::EcdhEsA256kw => Self::EcdhEsA256kw,
+            EcdhAlgorithm::EcdhEs => Self::EcdhEs,
+            EcdhAlgorithm::EcdhEsA128kw => Self::EcdhEsA128kw,
+            EcdhAlgorithm::EcdhEsA192kw => Self::EcdhEsA192kw,
+            EcdhAlgorithm::EcdhEsA256kw => Self::EcdhEsA256kw,
         }
     }
 }
 
-impl From<JweAlgorithm> for EcdhEsJweAlgorithm {
-    fn from(value: JweAlgorithm) -> Self {
+impl From<EcdhAlgorithm> for EcdhEsJweAlgorithm {
+    fn from(value: EcdhAlgorithm) -> Self {
         match value {
-            JweAlgorithm::EcdhEs => Self::EcdhEs,
-            JweAlgorithm::EcdhEsA128kw => Self::EcdhEsA128kw,
-            JweAlgorithm::EcdhEsA192kw => Self::EcdhEsA192kw,
-            JweAlgorithm::EcdhEsA256kw => Self::EcdhEsA256kw,
+            EcdhAlgorithm::EcdhEs => Self::EcdhEs,
+            EcdhAlgorithm::EcdhEsA128kw => Self::EcdhEsA128kw,
+            EcdhAlgorithm::EcdhEsA192kw => Self::EcdhEsA192kw,
+            EcdhAlgorithm::EcdhEsA256kw => Self::EcdhEsA256kw,
         }
     }
 }

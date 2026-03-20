@@ -1,5 +1,5 @@
 use assert_matches::assert_matches;
-use jwe::algorithm::JweAlgorithm;
+use jwe::algorithm::EcdhAlgorithm;
 use jwe::algorithm::JweEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweDecrypterError;
@@ -19,7 +19,7 @@ struct TestPayload {
 }
 
 fn setup_receiver(kid: Option<String>) -> (JweSecretKey, Key) {
-    let secret_key = JweSecretKey::new_random(kid, JweAlgorithm::EcdhEs);
+    let secret_key = JweSecretKey::new_random(kid, EcdhAlgorithm::EcdhEs);
     let jwk = Key::from(secret_key.to_jwe_public_key());
 
     (secret_key, jwk)

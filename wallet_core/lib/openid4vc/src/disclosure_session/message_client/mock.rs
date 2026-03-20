@@ -15,7 +15,7 @@ use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
-use jwe::algorithm::JweAlgorithm;
+use jwe::algorithm::EcdhAlgorithm;
 use jwe::decryption::JweSecretKey;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
@@ -179,7 +179,7 @@ impl MockVerifierSession {
 
         // Generate some OpenID4VP specific session material.
         let nonce = random_string(32);
-        let encryption_secret_key = JweSecretKey::new_random(Some(random_string(32)), JweAlgorithm::EcdhEs);
+        let encryption_secret_key = JweSecretKey::new_random(Some(random_string(32)), EcdhAlgorithm::EcdhEs);
         let response_uri = verifier_url.join_base_url("response_uri");
         let client_id = format!(
             "x509_san_dns:{}",

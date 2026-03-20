@@ -23,7 +23,7 @@ use serde::Serialize;
 use serde_with::DisplayFromStr;
 use serde_with::serde_as;
 
-use crate::algorithm::JweAlgorithm;
+use crate::algorithm::EcdhAlgorithm;
 use crate::algorithm::JweEncryptionAlgorithm;
 
 #[derive(Debug, thiserror::Error)]
@@ -68,11 +68,11 @@ pub struct JwePublicKey {
     #[serde_as(as = "DisplayFromStr")]
     key: PemPublicKey,
     #[serde_as(as = "DisplayFromStr")]
-    algorithm: JweAlgorithm,
+    algorithm: EcdhAlgorithm,
 }
 
 impl JwePublicKey {
-    pub fn new(id: Option<String>, key: PublicKey, algorithm: JweAlgorithm) -> Self {
+    pub fn new(id: Option<String>, key: PublicKey, algorithm: EcdhAlgorithm) -> Self {
         Self {
             id,
             key: key.into(),
@@ -91,7 +91,7 @@ impl JwePublicKey {
             return Err(JwePublicKeyError::InvalidJwkKeyUse(key_use.clone()));
         }
 
-        let jwe_algorithm = JweAlgorithm::try_from_jwk_simple_algorithm(algorithm)
+        let jwe_algorithm = EcdhAlgorithm::try_from_jwk_simple_algorithm(algorithm)
             .ok_or(JwePublicKeyError::UnsupportedJwkAlgorithm(algorithm.clone()))?;
 
         if !jwk.is_algorithm_compatible(algorithm) {
@@ -130,7 +130,7 @@ impl JwePublicKey {
         self.key.into()
     }
 
-    pub fn algorithm(&self) -> JweAlgorithm {
+    pub fn algorithm(&self) -> EcdhAlgorithm {
         self.algorithm
     }
 
@@ -175,7 +175,7 @@ pub struct JweEncrypter {
 }
 
 impl JweEncrypter {
-    fn new(id: Option<String>, public_key: PublicKey, algorithm: JweAlgorithm) -> Self {
+    fn new(id: Option<String>, public_key: PublicKey, algorithm: EcdhAlgorithm) -> Self {
         let der = public_key
             .to_public_key_der()
             .expect("a p256 public key should always encode to PKCS #8 DER");
@@ -242,7 +242,7 @@ mod tests {
     use serde::Serialize;
     use serde_json::json;
 
-    use crate::algorithm::JweAlgorithm;
+    use crate::algorithm::EcdhAlgorithm;
     use crate::algorithm::JweEncryptionAlgorithm;
 
     use super::JweEncrypter;
@@ -251,10 +251,10 @@ mod tests {
     use super::JwePublicKeyErrorDiscriminants;
 
     fn example_jwk() -> serde_json::Value {
-        example_jwk_with_alg(JweAlgorithm::EcdhEs)
+        example_jwk_with_alg(EcdhAlgorithm::EcdhEs)
     }
 
-    fn example_jwk_with_alg(algorithm: JweAlgorithm) -> serde_json::Value {
+    fn example_jwk_with_alg(algorithm: EcdhAlgorithm) -> serde_json::Value {
         // Source: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.3-6
         json!({
             "kty": "EC",
@@ -344,7 +344,7 @@ mod tests {
 
     #[rstest]
     #[case::valid(example_jwk(), Ok(()))]
-    #[case::valid_ecdh_es_a256kw(example_jwk_with_alg(JweAlgorithm::EcdhEsA256kw), Ok(()))]
+    #[case::valid_ecdh_es_a256kw(example_jwk_with_alg(EcdhAlgorithm::EcdhEsA256kw), Ok(()))]
     #[case::valid_no_kid(example_jwk_no_kid(), Ok(()))]
     #[case::invalid_key_length(example_jwk_invalid_key_length(), Err(JwePublicKeyErrorDiscriminants::JwkInvalid))]
     #[case::invalid_no_alg(example_jwk_no_alg(), Err(JwePublicKeyErrorDiscriminants::MissingJwkAlgorithm))]
@@ -402,9 +402,9 @@ mod tests {
     }
 
     #[rstest]
-    #[case::ecdh_es(ValidPayload::new(), example_jwk_with_alg(JweAlgorithm::EcdhEs))]
-    #[case::ecdh_es_a128kw(ValidPayload::new(), example_jwk_with_alg(JweAlgorithm::EcdhEsA128kw))]
-    #[case::ecdh_es_a256kw(ValidPayload::new(), example_jwk_with_alg(JweAlgorithm::EcdhEsA256kw))]
+    #[case::ecdh_es(ValidPayload::new(), example_jwk_with_alg(EcdhAlgorithm::EcdhEs))]
+    #[case::ecdh_es_a128kw(ValidPayload::new(), example_jwk_with_alg(EcdhAlgorithm::EcdhEsA128kw))]
+    #[case::ecdh_es_a256kw(ValidPayload::new(), example_jwk_with_alg(EcdhAlgorithm::EcdhEsA256kw))]
     #[case::no_kid(ValidPayload::new(), example_jwk_no_kid())]
     fn test_jwe_encrypter_ok<T>(
         #[case] data: T,

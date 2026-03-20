@@ -1144,7 +1144,7 @@ mod tests {
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use http_utils::urls::BaseUrl;
-    use jwe::algorithm::JweAlgorithm;
+    use jwe::algorithm::EcdhAlgorithm;
     use jwe::decryption::JweSecretKey;
     use jwt::SignedJwt;
     use jwt::pop::JwtPopClaims;
@@ -1293,7 +1293,7 @@ mod tests {
         let trust_anchor = ca.to_trust_anchor().to_owned();
         let rp_keypair = ca.generate_reader_mock().unwrap();
 
-        let encryption_secret_key = JweSecretKey::new_random(Some("test-kid".to_string()), JweAlgorithm::EcdhEs);
+        let encryption_secret_key = JweSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
         let encryption_public_key = encryption_secret_key.to_jwe_public_key();
 
         let rp_fqdn = rp_keypair.certificate().san_dns_name().unwrap().unwrap();

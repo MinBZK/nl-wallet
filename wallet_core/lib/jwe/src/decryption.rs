@@ -15,7 +15,7 @@ use serde::de::DeserializeOwned;
 use serde_with::DisplayFromStr;
 use serde_with::serde_as;
 
-use crate::algorithm::JweAlgorithm;
+use crate::algorithm::EcdhAlgorithm;
 use crate::encryption::JwePublicKey;
 
 #[derive(Debug, Clone, From, AsRef, Display, FromStr)]
@@ -39,11 +39,11 @@ pub struct JweSecretKey {
     #[serde_as(as = "DisplayFromStr")]
     key: PemSecretKey,
     #[serde_as(as = "DisplayFromStr")]
-    algorithm: JweAlgorithm,
+    algorithm: EcdhAlgorithm,
 }
 
 impl JweSecretKey {
-    pub fn new(id: Option<String>, key: SecretKey, algorithm: JweAlgorithm) -> Self {
+    pub fn new(id: Option<String>, key: SecretKey, algorithm: EcdhAlgorithm) -> Self {
         Self {
             id,
             key: key.into(),
@@ -51,7 +51,7 @@ impl JweSecretKey {
         }
     }
 
-    pub fn new_random(id: Option<String>, algorithm: JweAlgorithm) -> Self {
+    pub fn new_random(id: Option<String>, algorithm: EcdhAlgorithm) -> Self {
         let key = SecretKey::random(&mut OsRng);
 
         Self::new(id, key, algorithm)
@@ -65,7 +65,7 @@ impl JweSecretKey {
         self.key.as_ref()
     }
 
-    pub fn algorithm(&self) -> JweAlgorithm {
+    pub fn algorithm(&self) -> EcdhAlgorithm {
         self.algorithm
     }
 
@@ -95,7 +95,7 @@ pub struct JweDecrypter {
 }
 
 impl JweDecrypter {
-    fn new(id: Option<String>, secret_key: &SecretKey, algorithm: JweAlgorithm) -> Self {
+    fn new(id: Option<String>, secret_key: &SecretKey, algorithm: EcdhAlgorithm) -> Self {
         let der = secret_key
             .to_pkcs8_der()
             .expect("a p256 secret key should always encode to DER");
@@ -146,7 +146,7 @@ mod tests {
     use p256::SecretKey;
     use serde_json::json;
 
-    use crate::algorithm::JweAlgorithm;
+    use crate::algorithm::EcdhAlgorithm;
 
     use super::JweDecrypter;
     use super::JweSecretKey;
@@ -197,7 +197,7 @@ mod tests {
 
         let id = jwk.kid().map(str::to_string);
         let secret_key = jwk_to_secret_key(&jwk);
-        let algorithm = JweAlgorithm::try_from_jwk_simple_algorithm(jwk.alg().unwrap()).unwrap();
+        let algorithm = EcdhAlgorithm::try_from_jwk_simple_algorithm(jwk.alg().unwrap()).unwrap();
 
         let key = JweSecretKey::new(id, secret_key, algorithm);
         let decrypter = JweDecrypter::from_secret_key(&key);
