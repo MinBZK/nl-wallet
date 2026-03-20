@@ -36,12 +36,12 @@ impl JweEncryptionAlgorithm {
     /// Explicitly rank the supported algorithms in order of preference.
     fn preference_rank(algorithm: jwe::algorithm::JweEncryptionAlgorithm) -> u8 {
         match algorithm {
-            jwe::algorithm::JweEncryptionAlgorithm::A128Gcm => 1,
-            jwe::algorithm::JweEncryptionAlgorithm::A128CbcHs256 => 2,
-            jwe::algorithm::JweEncryptionAlgorithm::A192Gcm => 3,
-            jwe::algorithm::JweEncryptionAlgorithm::A192CbcHs384 => 4,
-            jwe::algorithm::JweEncryptionAlgorithm::A256Gcm => 5,
-            jwe::algorithm::JweEncryptionAlgorithm::A256CbcHs512 => 6,
+            jwe::algorithm::JweEncryptionAlgorithm::A128CbcHs256 => 1,
+            jwe::algorithm::JweEncryptionAlgorithm::A192CbcHs384 => 2,
+            jwe::algorithm::JweEncryptionAlgorithm::A256CbcHs512 => 3,
+            jwe::algorithm::JweEncryptionAlgorithm::A128Gcm => 4,
+            jwe::algorithm::JweEncryptionAlgorithm::A192Gcm => 5,
+            jwe::algorithm::JweEncryptionAlgorithm::A256Gcm => 6,
         }
     }
 
