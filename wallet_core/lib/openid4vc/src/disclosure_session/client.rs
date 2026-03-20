@@ -1,5 +1,4 @@
 use derive_more::Constructor;
-use itertools::Itertools;
 use reqwest::ClientBuilder;
 use tracing::info;
 use tracing::warn;
@@ -10,6 +9,8 @@ use dcql::CredentialFormat;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
+use utils::single_unique::NonEmptySingleUnique;
+use utils::vec_at_least::NonEmptyIterator;
 
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ErrorResponse;
@@ -195,14 +196,12 @@ where
         //                  use the `DisclosureWscd` trait. If the credential request contains this, simply terminate
         //                  the session and return an error. In the future, we should change our use of `DisclosureWscd`
         //                  to support disclosing both mdoc and SD-JWT credentials in the same response.
-        let mut unique_format = auth_request
+        let Ok(format) = auth_request
             .credential_requests
-            .as_ref()
-            .iter()
+            .nonempty_iter()
             .map(NormalizedCredentialRequest::format)
-            .unique();
-
-        if unique_format.clone().count() > 1 {
+            .single_unique()
+        else {
             let _ = self
                 .client
                 .terminate(auth_request.response_uri)
@@ -211,19 +210,18 @@ where
                 .inspect_err(|error| warn!("failed to send session termination to verifier: {error}"));
 
             return Err(VpClientError::MixedFormatCredentialRequest.into());
-        }
+        };
 
         // Validate that the verifier's vp_formats_supported covers the required format and includes ES256.
-        if let Some(format) = unique_format.next() {
-            let vp_formats = &auth_request.client_metadata.vp_formats_supported;
-            let format_supported = match format {
-                CredentialFormat::MsoMdoc => vp_formats.mso_mdoc.as_ref().is_some_and(MsoMdocAlgValues::is_ecdsa_256),
-                CredentialFormat::SdJwt => vp_formats.sd_jwt.as_ref().is_some_and(SdJwtAlgValues::is_ecdsa_256),
-            };
+        let vp_formats = &auth_request.client_metadata.vp_formats_supported;
+        let format_supported = match format {
+            CredentialFormat::MsoMdoc => vp_formats.mso_mdoc.as_ref().is_some_and(MsoMdocAlgValues::is_ecdsa_256),
+            CredentialFormat::SdJwt => vp_formats.sd_jwt.as_ref().is_some_and(SdJwtAlgValues::is_ecdsa_256),
+        };
 
-            if !format_supported {
-                return Err(VpVerifierError::VpFormatsNotSupported(format).into());
-            }
+        if !format_supported {
+            let error = VpVerifierError::VpFormatsNotSupported(format);
+            return Err(self.report_error_back(auth_request.response_uri, error).await)?;
         }
 
         let session = VpDisclosureSession::new(
