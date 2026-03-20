@@ -307,11 +307,11 @@ pub struct MsoMdocAlgValues {
 }
 
 impl MsoMdocAlgValues {
-    pub fn is_ecdsa_256(&self) -> bool {
-        let contains_esp_p256 =
+    pub fn contains_ecdsa_p256(&self) -> bool {
+        let contains_ecdsa_p256 =
             |alg: &VecNonEmpty<CoseAlgorithmIdentifier>| alg.iter().any(CoseAlgorithmIdentifier::is_ecdsa_p256);
-        self.issuerauth_alg_values.as_ref().is_some_and(contains_esp_p256)
-            && self.deviceauth_alg_values.as_ref().is_some_and(contains_esp_p256)
+        self.issuerauth_alg_values.as_ref().is_some_and(contains_ecdsa_p256)
+            && self.deviceauth_alg_values.as_ref().is_some_and(contains_ecdsa_p256)
     }
 }
 
@@ -330,7 +330,7 @@ pub struct SdJwtAlgValues {
 }
 
 impl SdJwtAlgValues {
-    pub fn is_ecdsa_256(&self) -> bool {
+    pub fn contains_es_256(&self) -> bool {
         let contains_es_256 = |alg: &VecNonEmpty<JwsAlgorithm>| alg.iter().contains(&JwsAlgorithm::ES256);
         self.sd_jwt_alg_values.as_ref().is_some_and(contains_es_256)
             && self.kb_jwt_alg_values.as_ref().is_some_and(contains_es_256)

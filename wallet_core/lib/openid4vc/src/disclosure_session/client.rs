@@ -215,8 +215,11 @@ where
         // Validate that the verifier's vp_formats_supported covers the required format and includes ES256.
         let vp_formats = &auth_request.client_metadata.vp_formats_supported;
         let format_supported = match format {
-            CredentialFormat::MsoMdoc => vp_formats.mso_mdoc.as_ref().is_some_and(MsoMdocAlgValues::is_ecdsa_256),
-            CredentialFormat::SdJwt => vp_formats.sd_jwt.as_ref().is_some_and(SdJwtAlgValues::is_ecdsa_256),
+            CredentialFormat::MsoMdoc => vp_formats
+                .mso_mdoc
+                .as_ref()
+                .is_some_and(MsoMdocAlgValues::contains_ecdsa_p256),
+            CredentialFormat::SdJwt => vp_formats.sd_jwt.as_ref().is_some_and(SdJwtAlgValues::contains_es_256),
         };
 
         if !format_supported {
