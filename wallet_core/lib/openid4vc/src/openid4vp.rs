@@ -80,6 +80,7 @@ use wscd::PoaVerificationError;
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
+use crate::issuer_metadata::JwsAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 
 /// Leeway used in the lower end of the `iat` verification, used to account for clock skew.
@@ -320,24 +321,19 @@ pub struct SdJwtAlgValues {
     /// OPTIONAL. A non-empty array containing fully-specified identifiers of cryptographic algorithms supported for an
     /// Issuer-signed JWT of an SD-JWT.
     #[serde(rename = "sd-jwt_alg_values")]
-    pub sd_jwt_alg_values: Option<VecNonEmpty<FormatAlg>>,
+    pub sd_jwt_alg_values: Option<VecNonEmpty<JwsAlgorithm>>,
     /// OPTIONAL. A non-empty array containing fully-specified identifiers of cryptographic algorithms supported for a
     /// Key Binding JWT (KB-JWT).
     #[serde(rename = "kb-jwt_alg_values")]
-    pub kb_jwt_alg_values: Option<VecNonEmpty<FormatAlg>>,
+    pub kb_jwt_alg_values: Option<VecNonEmpty<JwsAlgorithm>>,
 }
 
 impl SdJwtAlgValues {
     pub fn is_ecdsa_256(&self) -> bool {
-        let contains_es_256 = |alg: &VecNonEmpty<FormatAlg>| alg.iter().contains(&FormatAlg::ES256);
+        let contains_es_256 = |alg: &VecNonEmpty<JwsAlgorithm>| alg.iter().contains(&JwsAlgorithm::ES256);
         self.sd_jwt_alg_values.as_ref().is_some_and(contains_es_256)
             && self.kb_jwt_alg_values.as_ref().is_some_and(contains_es_256)
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum FormatAlg {
-    ES256,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize_repr, Deserialize_repr)]
@@ -675,8 +671,8 @@ impl NormalizedVpAuthorizationRequest {
                         deviceauth_alg_values: vec_nonempty![FormatAlgCose::ESP256].into(),
                     }),
                     sd_jwt: Some(SdJwtAlgValues {
-                        sd_jwt_alg_values: vec_nonempty![FormatAlg::ES256].into(),
-                        kb_jwt_alg_values: vec_nonempty![FormatAlg::ES256].into(),
+                        sd_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
+                        kb_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
                     }),
                 },
                 // HAIP requires verifiers to list both A128GCM and A256GCM in
@@ -1377,10 +1373,10 @@ mod tests {
 
     use crate::AuthorizationErrorCode;
     use crate::VpAuthorizationErrorCode;
+    use crate::issuer_metadata::JwsAlgorithm;
     use crate::jwe::JweEncryptionAlgorithm;
     use crate::mock::ExtendingVctRetrieverStub;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
-    use crate::openid4vp::FormatAlg;
     use crate::openid4vp::FormatAlgCose;
     use crate::openid4vp::MsoMdocAlgValues;
     use crate::openid4vp::SdJwtAlgValues;
@@ -3147,8 +3143,8 @@ mod tests {
         assert_eq!(
             deserialized.sd_jwt,
             Some(SdJwtAlgValues {
-                sd_jwt_alg_values: vec_nonempty![FormatAlg::ES256].into(),
-                kb_jwt_alg_values: vec_nonempty![FormatAlg::ES256].into(),
+                sd_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
+                kb_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
             })
         );
     }
