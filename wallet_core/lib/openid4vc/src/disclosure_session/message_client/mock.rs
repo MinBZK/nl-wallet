@@ -25,7 +25,7 @@ use utils::vec_nonempty;
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
 use crate::issuer_metadata::JwsAlgorithm;
-use crate::openid4vp::FormatAlgCose;
+use crate::issuer_metadata::KnownCoseAlgorithmIdentifier;
 use crate::openid4vp::MsoMdocAlgValues;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::SdJwtAlgValues;
@@ -210,8 +210,8 @@ impl MockVerifierSession {
             wallet_messages: Mutex::new(Vec::new()),
             vp_formats_supported: VpFormatsSupported {
                 mso_mdoc: Some(MsoMdocAlgValues {
-                    issuerauth_alg_values: vec_nonempty![FormatAlgCose::ESP256].into(),
-                    deviceauth_alg_values: vec_nonempty![FormatAlgCose::ESP256].into(),
+                    issuerauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                    deviceauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
                 }),
                 sd_jwt: Some(SdJwtAlgValues {
                     sd_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),

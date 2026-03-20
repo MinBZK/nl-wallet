@@ -28,8 +28,6 @@ use serde::Serialize;
 use serde::Serializer;
 use serde::de::DeserializeOwned;
 use serde::de::value::StringDeserializer;
-use serde_repr::Deserialize_repr;
-use serde_repr::Serialize_repr;
 use serde_with::DeserializeAs;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeAs;
@@ -80,7 +78,9 @@ use wscd::PoaVerificationError;
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
+use crate::issuer_metadata::CoseAlgorithmIdentifier;
 use crate::issuer_metadata::JwsAlgorithm;
+use crate::issuer_metadata::KnownCoseAlgorithmIdentifier;
 use crate::jwe::JweEncryptionAlgorithm;
 
 /// Leeway used in the lower end of the `iat` verification, used to account for clock skew.
@@ -301,14 +301,15 @@ pub struct VpFormatsSupported {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MsoMdocAlgValues {
     /// OPTIONAL. A non-empty array containing cryptographic algorithm identifiers.
-    pub issuerauth_alg_values: Option<VecNonEmpty<FormatAlgCose>>,
+    pub issuerauth_alg_values: Option<VecNonEmpty<CoseAlgorithmIdentifier>>,
     /// OPTIONAL. A non-empty array containing cryptographic algorithm identifiers.
-    pub deviceauth_alg_values: Option<VecNonEmpty<FormatAlgCose>>,
+    pub deviceauth_alg_values: Option<VecNonEmpty<CoseAlgorithmIdentifier>>,
 }
 
 impl MsoMdocAlgValues {
     pub fn is_ecdsa_256(&self) -> bool {
-        let contains_esp_p256 = |alg: &VecNonEmpty<FormatAlgCose>| alg.iter().contains(&FormatAlgCose::ESP256);
+        let contains_esp_p256 =
+            |alg: &VecNonEmpty<CoseAlgorithmIdentifier>| alg.iter().any(CoseAlgorithmIdentifier::is_ecdsa_p256);
         self.issuerauth_alg_values.as_ref().is_some_and(contains_esp_p256)
             && self.deviceauth_alg_values.as_ref().is_some_and(contains_esp_p256)
     }
@@ -333,23 +334,6 @@ impl SdJwtAlgValues {
         let contains_es_256 = |alg: &VecNonEmpty<JwsAlgorithm>| alg.iter().contains(&JwsAlgorithm::ES256);
         self.sd_jwt_alg_values.as_ref().is_some_and(contains_es_256)
             && self.kb_jwt_alg_values.as_ref().is_some_and(contains_es_256)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize_repr, Deserialize_repr)]
-#[repr(i16)]
-pub enum FormatAlgCose {
-    /// ECDSA with P-256 and SHA-256 as a fully-specified algorithm,
-    /// <https://datatracker.ietf.org/doc/html/rfc9864#section-2.1>.
-    ESP256 = -9,
-}
-
-impl FormatAlgCose {
-    /// Returns `true` if this algorithm identifier accepts an ECDSA-P256/SHA-256 signature,
-    /// i.e. it is `ES256` (-7, per https://www.iana.org/assignments/cose/cose.xhtml)
-    /// or the fully-specified `ESP256` (-9, per https://datatracker.ietf.org/doc/html/rfc9864#section-2.1).
-    pub fn is_ecdsa_p256(&self) -> bool {
-        matches!(self, Self::ESP256)
     }
 }
 
@@ -667,8 +651,8 @@ impl NormalizedVpAuthorizationRequest {
                 },
                 vp_formats_supported: VpFormatsSupported {
                     mso_mdoc: Some(MsoMdocAlgValues {
-                        issuerauth_alg_values: vec_nonempty![FormatAlgCose::ESP256].into(),
-                        deviceauth_alg_values: vec_nonempty![FormatAlgCose::ESP256].into(),
+                        issuerauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                        deviceauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
                     }),
                     sd_jwt: Some(SdJwtAlgValues {
                         sd_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
@@ -1374,10 +1358,10 @@ mod tests {
     use crate::AuthorizationErrorCode;
     use crate::VpAuthorizationErrorCode;
     use crate::issuer_metadata::JwsAlgorithm;
+    use crate::issuer_metadata::KnownCoseAlgorithmIdentifier;
     use crate::jwe::JweEncryptionAlgorithm;
     use crate::mock::ExtendingVctRetrieverStub;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
-    use crate::openid4vp::FormatAlgCose;
     use crate::openid4vp::MsoMdocAlgValues;
     use crate::openid4vp::SdJwtAlgValues;
     use crate::openid4vp::VpFormatsSupported;
@@ -3136,8 +3120,8 @@ mod tests {
         assert_eq!(
             deserialized.mso_mdoc,
             Some(MsoMdocAlgValues {
-                issuerauth_alg_values: vec_nonempty![FormatAlgCose::ESP256].into(),
-                deviceauth_alg_values: vec_nonempty![FormatAlgCose::ESP256].into(),
+                issuerauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                deviceauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
             })
         );
         assert_eq!(

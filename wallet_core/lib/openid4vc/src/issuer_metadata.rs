@@ -452,6 +452,26 @@ pub enum CoseAlgorithmIdentifier {
     Unknown(i64),
 }
 
+impl CoseAlgorithmIdentifier {
+    /// Returns `true` if this algorithm identifier accepts an ECDSA-P256/SHA-256 signature,
+    /// i.e. it is `ES256` (-7, per https://www.iana.org/assignments/cose/cose.xhtml)
+    /// or the fully-specified `ESP256` (-9, per https://datatracker.ietf.org/doc/html/rfc9864#section-2.1).
+    pub fn is_ecdsa_p256(&self) -> bool {
+        match &self {
+            CoseAlgorithmIdentifier::Known(KnownCoseAlgorithmIdentifier::Es256)
+            | CoseAlgorithmIdentifier::Known(KnownCoseAlgorithmIdentifier::Esp256) => true,
+            CoseAlgorithmIdentifier::Unknown(_) => false,
+        }
+    }
+}
+
+
+impl From<KnownCoseAlgorithmIdentifier> for CoseAlgorithmIdentifier {
+    fn from(value: KnownCoseAlgorithmIdentifier) -> Self {
+        Self::Known(value)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::FromRepr)]
 #[repr(i64)]
 pub enum KnownCoseAlgorithmIdentifier {
