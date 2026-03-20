@@ -5,6 +5,7 @@ use nutype::nutype;
 use parking_lot::Mutex;
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
+use tracing::error;
 use tracing::info;
 use url::Url;
 
@@ -80,13 +81,18 @@ fn spawn_listener(
                     session_transcript,
                     device_request,
                 } => {
-                    // TODO only do this if the current state is Advertising
-                    *session_state.lock() = CloseProximityDisclosureSessionState::SessionEstablished {
-                        session_transcript,
-                        device_request,
-                    };
-
-                    CloseProximityDisclosureUpdate::DeviceRequestReceived
+                    let current_state = session_state.lock().clone();
+                    if let CloseProximityDisclosureSessionState::Advertising = current_state {
+                        *session_state.lock() = CloseProximityDisclosureSessionState::SessionEstablished {
+                            session_transcript,
+                            device_request,
+                        };
+                        CloseProximityDisclosureUpdate::DeviceRequestReceived
+                    } else {
+                        // we only support a single SessionEstablished update
+                        error!("Received SessionEstablished update while not in Advertising state");
+                        continue;
+                    }
                 }
                 PlatformUpdate::Closed => CloseProximityDisclosureUpdate::Disconnected,
                 // TODO process error (PVW-5710)
