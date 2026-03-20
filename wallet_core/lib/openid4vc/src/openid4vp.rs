@@ -80,7 +80,7 @@ use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
 use crate::cose::CoseAlgorithmIdentifier;
 use crate::cose::KnownCoseAlgorithmIdentifier;
-use crate::issuer_metadata::JwsAlgorithm;
+use crate::jose::JwsAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 
 /// Leeway used in the lower end of the `iat` verification, used to account for clock skew.
@@ -1369,7 +1369,7 @@ mod tests {
     use crate::AuthorizationErrorCode;
     use crate::VpAuthorizationErrorCode;
     use crate::cose::KnownCoseAlgorithmIdentifier;
-    use crate::issuer_metadata::JwsAlgorithm;
+    use crate::jose::JwsAlgorithm;
     use crate::jwe::JweEncryptionAlgorithm;
     use crate::mock::ExtendingVctRetrieverStub;
     use crate::mock::MOCK_WALLET_CLIENT_ID;

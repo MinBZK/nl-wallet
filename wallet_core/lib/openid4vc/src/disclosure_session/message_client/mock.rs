@@ -25,7 +25,7 @@ use utils::vec_nonempty;
 use crate::cose::KnownCoseAlgorithmIdentifier;
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
-use crate::issuer_metadata::JwsAlgorithm;
+use crate::jose::JwsAlgorithm;
 use crate::openid4vp::MsoMdocAlgValues;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::SdJwtAlgValues;

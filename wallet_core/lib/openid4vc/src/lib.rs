@@ -30,6 +30,7 @@ pub mod errors;
 pub use errors::*;
 
 pub mod cose;
+pub mod jose;
 pub mod nonce;
 pub mod oidc;
 pub mod server_state;

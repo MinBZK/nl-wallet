@@ -26,6 +26,7 @@ use crate::cose::CoseAlgorithmIdentifier;
 use crate::cose::KnownCoseAlgorithmIdentifier;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
+use crate::jose::JwsAlgorithm;
 use crate::jwe::JweAlgorithm;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
@@ -534,17 +535,6 @@ impl ProofMetadata {
             key_attestations_required: None,
         }
     }
-}
-
-/// Algorithms that the Issuer supports for a proof, as defined in [IANA.JOSE]. The Wallet uses one of them to sign the
-/// proof.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum JwsAlgorithm {
-    ES256,
-
-    // Allow the issuer to announce algorithms that the wallet doesn't support.
-    #[serde(untagged)]
-    Other(String),
 }
 
 /// Requirement for key attestations as described in Appendix D, which the Credential Issuer expects the Wallet to send
