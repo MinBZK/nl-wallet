@@ -6,6 +6,7 @@ use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweDecrypterError;
 use jwe::decryption::JweSecretKey;
+use jwe::encryption::JweCompression;
 use jwe::encryption::JweEncrypter;
 use jwe::encryption::JweEncrypterError;
 use jwe::encryption::JwePublicKey;
@@ -20,7 +21,13 @@ impl WalletDatabasePayload {
         let Self(export) = self;
 
         let encryper = JweEncrypter::from(public_key);
-        let jwe = encryper.encrypt(export, EncryptionAlgorithm::A256Gcm, None, None)?;
+        let jwe = encryper.encrypt(
+            export,
+            EncryptionAlgorithm::A256Gcm,
+            None,
+            None,
+            JweCompression::Deflate,
+        )?;
 
         Ok(jwe)
     }

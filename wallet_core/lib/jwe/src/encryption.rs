@@ -184,6 +184,12 @@ pub struct JweEncrypter {
     encrypter: EcdhEsJweEncrypter,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum JweCompression {
+    None,
+    Deflate,
+}
+
 impl JweEncrypter {
     fn new(id: Option<String>, public_key: PublicKey, algorithm: EcdhAlgorithm) -> Self {
         let der = public_key
@@ -207,6 +213,7 @@ impl JweEncrypter {
         encryption_algorithm: EncryptionAlgorithm,
         apu: Option<&[u8]>,
         apv: Option<&[u8]>,
+        use_compression: JweCompression,
     ) -> Result<String, JweEncrypterError>
     where
         T: Serialize,
@@ -226,6 +233,10 @@ impl JweEncrypter {
         }
         if let Some(apv) = apv {
             header.set_agreement_partyvinfo(apv);
+        }
+
+        if matches!(use_compression, JweCompression::Deflate) {
+            header.set_compression("DEF");
         }
 
         let jwe = josekit::jwe::serialize_compact(&payload, &header, &self.encrypter)
@@ -255,6 +266,7 @@ mod tests {
     use crate::algorithm::EcdhAlgorithm;
     use crate::algorithm::EncryptionAlgorithm;
 
+    use super::JweCompression;
     use super::JweEncrypter;
     use super::JweEncrypterError;
     use super::JwePublicKey;
@@ -428,6 +440,7 @@ mod tests {
         encryption_algorithm: EncryptionAlgorithm,
         #[values(None, Some("apu"))] apu: Option<&str>,
         #[values(None, Some("apv"))] apv: Option<&str>,
+        #[values(JweCompression::None, JweCompression::Deflate)] use_compression: JweCompression,
     ) where
         T: Serialize,
     {
@@ -441,6 +454,7 @@ mod tests {
                 encryption_algorithm,
                 apu.map(str::as_bytes),
                 apv.map(str::as_bytes),
+                use_compression,
             )
             .expect("encrypting data with JweEncrypter should succeed");
 
@@ -459,6 +473,12 @@ mod tests {
         assert_eq!(header.claim("kid").and_then(serde_json::Value::as_str), jwk.kid());
         assert_eq!(header.claim("apu").is_some(), apu.is_some());
         assert_eq!(header.claim("apv").is_some(), apv.is_some());
+
+        if matches!(use_compression, JweCompression::Deflate) {
+            assert_eq!(header.claim("zip").and_then(serde_json::Value::as_str), Some("DEF"));
+        } else {
+            assert!(header.claim("zip").is_none())
+        }
     }
 
     #[test]
@@ -468,7 +488,7 @@ mod tests {
         let encrypter = JweEncrypter::from(key);
 
         let data = HashMap::from([(("one".to_string(), "two".to_string()), "three".to_string())]);
-        let result = encrypter.encrypt(&data, EncryptionAlgorithm::A256Gcm, None, None);
+        let result = encrypter.encrypt(&data, EncryptionAlgorithm::A256Gcm, None, None, JweCompression::None);
 
         let error = result.expect_err("encrypting data with JweEncrypter should fail");
 

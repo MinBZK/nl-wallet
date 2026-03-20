@@ -4,6 +4,7 @@ use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweDecrypterError;
 use jwe::decryption::JweSecretKey;
+use jwe::encryption::JweCompression;
 use jwe::encryption::JweEncrypter;
 use jwe::encryption::JwePublicKey;
 use jwk_simple::Key;
@@ -32,7 +33,13 @@ where
     let public_key = JwePublicKey::try_from_jwk(jwk).expect("converting JWK to JwePublicKey should succeed");
 
     JweEncrypter::from(public_key)
-        .encrypt(&payload, EncryptionAlgorithm::A256Gcm, Some(b"apu"), Some(b"apv"))
+        .encrypt(
+            &payload,
+            EncryptionAlgorithm::A256Gcm,
+            Some(b"apu"),
+            Some(b"apv"),
+            JweCompression::Deflate,
+        )
         .expect("encrypting payload to JWE should succeed")
 }
 
