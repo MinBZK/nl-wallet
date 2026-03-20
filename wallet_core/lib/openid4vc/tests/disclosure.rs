@@ -226,8 +226,8 @@ fn disclosure_response_jwe_header_contains_selected_kid_and_enc() {
         None,
     );
     iso_auth_request.client_metadata.encrypted_response_enc_values_supported = Some(vec_nonempty![
-        JweEncryptionAlgorithm::Other("A512GCM".to_string()),
-        JweEncryptionAlgorithm::A256Gcm,
+        JweEncryptionAlgorithm::Unknown("A512GCM".to_string()),
+        jwe::algorithm::JweEncryptionAlgorithm::A256Gcm.into(),
     ]);
 
     let auth_request = iso_auth_request.clone().into();

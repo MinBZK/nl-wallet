@@ -52,7 +52,7 @@ impl From<JweAlgorithm> for EcdhEsJweAlgorithm {
 
 /// A type representing the "enc" header parameter value for JWE, i.e. the JWE encryption algorithm. It contains only
 /// those algorithms supported by this crate. See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-5>
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "UPPERCASE")]
 pub enum JweEncryptionAlgorithm {
     #[strum(serialize = "A128CBC-HS256")]

@@ -764,7 +764,6 @@ mod tests {
     use serde_json::json;
 
     use crate::jwe::JweCompressionAlgorithm;
-    use crate::jwe::JweEncryptionAlgorithm;
 
     use super::CoseAlgorithmIdentifier;
     use super::CredentialConfiguration;
@@ -940,7 +939,7 @@ mod tests {
             request_encryption
                 .enc_values_supported
                 .iter()
-                .eq(&[JweEncryptionAlgorithm::A128Gcm])
+                .eq(&[jwe::algorithm::JweEncryptionAlgorithm::A128Gcm.into()])
         );
         assert!(
             request_encryption
@@ -961,7 +960,7 @@ mod tests {
             response_encryption
                 .enc_values_supported
                 .iter()
-                .eq(&[JweEncryptionAlgorithm::A128Gcm])
+                .eq(&[jwe::algorithm::JweEncryptionAlgorithm::A128Gcm.into()])
         );
         assert!(
             response_encryption

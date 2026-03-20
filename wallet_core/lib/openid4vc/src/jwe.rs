@@ -1,33 +1,58 @@
+use std::str::FromStr;
+
+use derive_more::Display;
+use derive_more::From;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 use strum::EnumString;
 
-/// A type representing the "alg" header parameter value for JWE, i.e. the JWE encryption algorithm.
+/// A type representing the "enc" header parameter value for JWE, i.e. the JWE encryption algorithm.
 /// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-5>
-#[derive(Debug, Clone, Default, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
-#[strum(serialize_all = "UPPERCASE")]
+#[derive(Debug, Clone, PartialEq, Eq, From, Display, SerializeDisplay, DeserializeFromStr)]
 pub enum JweEncryptionAlgorithm {
-    A256Gcm,
-    A192Gcm,
-    #[default]
-    A128Gcm,
+    #[from]
+    Known(jwe::algorithm::JweEncryptionAlgorithm),
+    Unknown(String),
+}
 
-    #[strum(default)]
-    Other(String),
+impl From<&str> for JweEncryptionAlgorithm {
+    fn from(value: &str) -> Self {
+        match value.parse::<jwe::algorithm::JweEncryptionAlgorithm>() {
+            Ok(algorithm) => Self::Known(algorithm),
+            Err(_) => Self::Unknown(value.to_string()),
+        }
+    }
+}
+
+impl FromStr for JweEncryptionAlgorithm {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(s.into())
+    }
+}
+
+impl Default for JweEncryptionAlgorithm {
+    fn default() -> Self {
+        // This is the default value for OpenID4VP.
+        // See: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.1-2.4.2.2
+        Self::Known(jwe::algorithm::JweEncryptionAlgorithm::A128Gcm)
+    }
 }
 
 impl JweEncryptionAlgorithm {
-    pub fn is_supported(&self) -> bool {
-        self.preference_rank().is_some()
-    }
-
-    // This is explicitly ranking the algorithms to prevent mis-interpretation of the Ord order
+    /// Explicitly rank the supported algorithms in order of preference.
     pub fn preference_rank(&self) -> Option<u8> {
         match self {
-            Self::A128Gcm => Some(1),
-            Self::A192Gcm => Some(2),
-            Self::A256Gcm => Some(3),
-            Self::Other(_) => None,
+            Self::Known(algorithm) => Some(match algorithm {
+                jwe::algorithm::JweEncryptionAlgorithm::A128Gcm => 1,
+                jwe::algorithm::JweEncryptionAlgorithm::A128CbcHs256 => 2,
+                jwe::algorithm::JweEncryptionAlgorithm::A192Gcm => 3,
+                jwe::algorithm::JweEncryptionAlgorithm::A192CbcHs384 => 4,
+                jwe::algorithm::JweEncryptionAlgorithm::A256Gcm => 5,
+                jwe::algorithm::JweEncryptionAlgorithm::A256CbcHs512 => 6,
+            }),
+            Self::Unknown(_) => None,
         }
     }
 }
@@ -50,10 +75,23 @@ mod tests {
     use super::JweEncryptionAlgorithm;
 
     #[rstest]
-    #[case::a128gcm("A128GCM", JweEncryptionAlgorithm::A128Gcm)]
-    #[case::a192gcm("A192GCM", JweEncryptionAlgorithm::A192Gcm)]
-    #[case::a256gcm("A256GCM", JweEncryptionAlgorithm::A256Gcm)]
-    #[case::a128cbc_hs256("A128CBC-HS256", JweEncryptionAlgorithm::Other("A128CBC-HS256".to_string()))]
+    #[case::a128gcm(
+        "A128GCM",
+        JweEncryptionAlgorithm::Known(jwe::algorithm::JweEncryptionAlgorithm::A128Gcm)
+    )]
+    #[case::a256gcm(
+        "A256GCM",
+        JweEncryptionAlgorithm::Known(jwe::algorithm::JweEncryptionAlgorithm::A256Gcm)
+    )]
+    #[case::a128cbc_hs256(
+        "A128CBC-HS256",
+        JweEncryptionAlgorithm::Known(jwe::algorithm::JweEncryptionAlgorithm::A128CbcHs256)
+    )]
+    #[case::a256cbc_hs512(
+        "A256CBC-HS512",
+        JweEncryptionAlgorithm::Known(jwe::algorithm::JweEncryptionAlgorithm::A256CbcHs512)
+    )]
+    #[case::a512gcm("A512GCM", JweEncryptionAlgorithm::Unknown("A512GCM".to_string()))]
     fn test_jwe_encryption_algorithm_parse(#[case] input: &str, #[case] expected_jwe_enc: JweEncryptionAlgorithm) {
         let jwe_enc = input
             .parse::<JweEncryptionAlgorithm>()
