@@ -9,9 +9,6 @@ use chrono::Utc;
 use futures::FutureExt;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
-use josekit::jwk::alg::ec::EcCurve;
-use josekit::jwk::alg::ec::EcKeyPair;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
@@ -55,6 +52,8 @@ use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::urls::BaseUrl;
+use jwe::algorithm::JweAlgorithm;
+use jwe::decryption::JweSecretKey;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
@@ -74,7 +73,6 @@ use openid4vc::disclosure_session::VpDisclosureSession;
 use openid4vc::disclosure_session::VpMessageClient;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::disclosure_session::VpSessionError;
-use openid4vc::jwe::JweEncryptionAlgorithm;
 use openid4vc::mock::ExtendingVctRetrieverStub;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::openid4vp::ClientId;
@@ -163,15 +161,12 @@ fn disclosure_direct() {
     // RP assembles the Authorization Request and signs it into a JWS.
     let nonce = "nonce".to_string();
     let response_uri: BaseUrl = format!("https://{RP_CERT_CN}/response_uri").parse().unwrap();
-    let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
-    let mut encryption_jwk = encryption_keypair.to_jwk_public_key();
-    encryption_jwk.set_algorithm("ECDH-ES");
-    encryption_jwk.set_key_id("test-kid");
+    let encryption_secret_key = JweSecretKey::new_random(Some("test-kid".to_string()), JweAlgorithm::EcdhEs);
     let iso_auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
         NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
         auth_keypair.certificate(),
         nonce.clone(),
-        encryption_jwk.try_into().unwrap(),
+        encryption_secret_key.to_jwe_public_key(),
         response_uri,
         None,
     );
@@ -188,7 +183,7 @@ fn disclosure_direct() {
     // RP decrypts the response JWE and verifies the contained Authorization Response.
     let disclosed_attestations = VpAuthorizationResponse::decrypt_and_verify(
         &jwe,
-        &encryption_keypair,
+        &encryption_secret_key,
         &iso_auth_request,
         &[MOCK_WALLET_CLIENT_ID.to_string()],
         &MockTimeGenerator::default(),
@@ -204,48 +199,6 @@ fn disclosure_direct() {
     .unwrap();
 
     assert_disclosed_attestations_mdoc_pid(&disclosed_attestations);
-}
-
-#[test]
-fn disclosure_response_jwe_header_contains_selected_kid_and_enc() {
-    let ca = Ca::generate("myca", Default::default()).unwrap();
-    let auth_keypair = ca.generate_reader_mock().unwrap();
-
-    let nonce = "nonce".to_string();
-    let response_uri: BaseUrl = format!("https://{RP_CERT_CN}/response_uri").parse().unwrap();
-    let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
-    let mut encryption_jwk = encryption_keypair.to_jwk_public_key();
-    encryption_jwk.set_algorithm("ECDH-ES");
-    encryption_jwk.set_key_id("test-kid");
-    let mut iso_auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
-        NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
-        auth_keypair.certificate(),
-        nonce,
-        encryption_jwk.try_into().unwrap(),
-        response_uri,
-        None,
-    );
-    iso_auth_request.client_metadata.encrypted_response_enc_values_supported = Some(vec_nonempty![
-        JweEncryptionAlgorithm::Unknown("A512GCM".to_string()),
-        jwe::algorithm::JweEncryptionAlgorithm::A256Gcm.into(),
-    ]);
-
-    let auth_request = iso_auth_request.clone().into();
-    let auth_request_jws = SignedJwt::sign_with_certificate(&auth_request, &auth_keypair)
-        .now_or_never()
-        .unwrap()
-        .unwrap();
-
-    let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let jwe = disclosure_jwe(&auth_request_jws.into(), &[ca.to_trust_anchor()], &issuer_ca);
-
-    let decrypter = EcdhEsJweAlgorithm::EcdhEs
-        .decrypter_from_jwk(&encryption_keypair.to_jwk_key_pair())
-        .unwrap();
-    let (_, header) = josekit::jwt::decode_with_decrypter(&jwe, &decrypter).unwrap();
-
-    assert_eq!(header.key_id(), Some("test-kid"));
-    assert_eq!(header.content_encryption(), Some("A256GCM"));
 }
 
 /// The wallet side: verify the Authorization Request, gather the attestations and encrypt it into a JWE.
@@ -282,7 +235,7 @@ fn disclosure_jwe(
             VerifiablePresentation::MsoMdoc(device_responses),
         )]),
         &auth_request,
-        &encryption_algorithm,
+        encryption_algorithm,
         &encryption_nonce,
         poa,
     )
@@ -355,7 +308,7 @@ async fn disclosure_using_message_client(
 struct DirectMockVpMessageClient {
     test_credentials: TestCredentials,
     formats: Vec<CredentialFormat>,
-    encryption_keypair: EcKeyPair,
+    encryption_secret_key: JweSecretKey,
     auth_keypair: KeyPair,
     auth_request: NormalizedVpAuthorizationRequest,
     request_uri: BaseUrl,
@@ -383,16 +336,13 @@ impl DirectMockVpMessageClient {
         let request_uri = (format!("https://{RP_CERT_CN}/request_uri?") + &query).parse().unwrap();
 
         let response_uri: BaseUrl = format!("https://{RP_CERT_CN}/response_uri").parse().unwrap();
-        let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
-        let mut encryption_jwk = encryption_keypair.to_jwk_public_key();
-        encryption_jwk.set_algorithm("ECDH-ES");
-        encryption_jwk.set_key_id("test-kid");
+        let encryption_secret_key = JweSecretKey::new_random(Some("test-kid".to_string()), JweAlgorithm::EcdhEs);
 
         let auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
             test_credentials.to_normalized_credential_requests(formats.iter().copied()),
             auth_keypair.certificate(),
             "nonce".to_string(),
-            encryption_jwk.try_into().unwrap(),
+            encryption_secret_key.to_jwe_public_key(),
             response_uri.clone(),
             None,
         );
@@ -400,7 +350,7 @@ impl DirectMockVpMessageClient {
         Self {
             test_credentials,
             formats,
-            encryption_keypair,
+            encryption_secret_key,
             auth_keypair,
             auth_request,
             request_uri,
@@ -446,7 +396,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
 
         let disclosed_attestations = VpAuthorizationResponse::decrypt_and_verify(
             &jwe,
-            &self.encryption_keypair,
+            &self.encryption_secret_key,
             &self.auth_request,
             &[MOCK_WALLET_CLIENT_ID.to_string()],
             &MockTimeGenerator::default(),

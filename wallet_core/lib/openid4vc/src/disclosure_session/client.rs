@@ -523,7 +523,7 @@ mod tests {
         // Decrypt and verify the response that was sent by `VpDisclosureSession`.
         let disclosed_attestations = VpAuthorizationResponse::decrypt_and_verify(
             jwe,
-            &verifier_session.encryption_keypair,
+            &verifier_session.encryption_secret_key,
             &verifier_session.normalized_auth_request(wallet_nonce),
             &[MOCK_WALLET_CLIENT_ID.to_string()],
             &MockTimeGenerator::default(),

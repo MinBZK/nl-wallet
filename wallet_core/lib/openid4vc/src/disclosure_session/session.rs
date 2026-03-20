@@ -19,7 +19,6 @@ use utils::generator::Generator;
 use wscd::Poa;
 use wscd::wscd::JwtPoaInput;
 
-use crate::jwe::JweEncryptionAlgorithm;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::VerifiablePresentation;
 use crate::openid4vp::VpAuthorizationResponse;
@@ -40,7 +39,7 @@ pub struct VpDisclosureSession<H> {
     session_type: SessionType,
     verifier_certificate: VerifierCertificate,
     auth_request: NormalizedVpAuthorizationRequest,
-    selected_encryption_algorithm: JweEncryptionAlgorithm,
+    selected_encryption_algorithm: jwe::algorithm::JweEncryptionAlgorithm,
 }
 
 impl<H> VpDisclosureSession<H> {
@@ -49,7 +48,7 @@ impl<H> VpDisclosureSession<H> {
         session_type: SessionType,
         verifier_certificate: VerifierCertificate,
         auth_request: NormalizedVpAuthorizationRequest,
-        selected_encryption_algorithm: JweEncryptionAlgorithm,
+        selected_encryption_algorithm: jwe::algorithm::JweEncryptionAlgorithm,
     ) -> Self {
         Self {
             client,
@@ -241,7 +240,7 @@ where
         let result = VpAuthorizationResponse::new_encrypted(
             vp_token,
             &self.auth_request,
-            &self.selected_encryption_algorithm,
+            self.selected_encryption_algorithm,
             &encryption_nonce,
             poa,
         );
@@ -305,7 +304,6 @@ mod tests {
     use crate::disclosure_session::error::DataDisclosed;
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
-    use crate::jwe::JweEncryptionAlgorithm;
     use crate::openid4vp::VpRequestUriMethod;
     use crate::verifier::SessionType;
 
@@ -349,7 +347,7 @@ mod tests {
 
         let mock_client = MockVerifierVpMessageClient::new(Arc::clone(&verifier_session));
         let auth_request = verifier_session.normalized_auth_request(None);
-        let selected_encryption_algorithm = JweEncryptionAlgorithm::default();
+        let selected_encryption_algorithm = jwe::algorithm::JweEncryptionAlgorithm::A256Gcm;
         let disclosure_session = VpDisclosureSession {
             client: mock_client,
             session_type,

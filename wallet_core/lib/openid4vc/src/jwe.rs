@@ -32,28 +32,30 @@ impl FromStr for JweEncryptionAlgorithm {
     }
 }
 
-impl Default for JweEncryptionAlgorithm {
-    fn default() -> Self {
-        // This is the default value for OpenID4VP.
-        // See: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.1-2.4.2.2
-        Self::Known(jwe::algorithm::JweEncryptionAlgorithm::A128Gcm)
-    }
-}
-
 impl JweEncryptionAlgorithm {
     /// Explicitly rank the supported algorithms in order of preference.
-    pub fn preference_rank(&self) -> Option<u8> {
-        match self {
-            Self::Known(algorithm) => Some(match algorithm {
-                jwe::algorithm::JweEncryptionAlgorithm::A128Gcm => 1,
-                jwe::algorithm::JweEncryptionAlgorithm::A128CbcHs256 => 2,
-                jwe::algorithm::JweEncryptionAlgorithm::A192Gcm => 3,
-                jwe::algorithm::JweEncryptionAlgorithm::A192CbcHs384 => 4,
-                jwe::algorithm::JweEncryptionAlgorithm::A256Gcm => 5,
-                jwe::algorithm::JweEncryptionAlgorithm::A256CbcHs512 => 6,
-            }),
-            Self::Unknown(_) => None,
+    fn preference_rank(algorithm: jwe::algorithm::JweEncryptionAlgorithm) -> u8 {
+        match algorithm {
+            jwe::algorithm::JweEncryptionAlgorithm::A128Gcm => 1,
+            jwe::algorithm::JweEncryptionAlgorithm::A128CbcHs256 => 2,
+            jwe::algorithm::JweEncryptionAlgorithm::A192Gcm => 3,
+            jwe::algorithm::JweEncryptionAlgorithm::A192CbcHs384 => 4,
+            jwe::algorithm::JweEncryptionAlgorithm::A256Gcm => 5,
+            jwe::algorithm::JweEncryptionAlgorithm::A256CbcHs512 => 6,
         }
+    }
+
+    pub fn find_preferred_known<'a>(
+        algorithms: impl IntoIterator<Item = &'a Self>,
+    ) -> Option<jwe::algorithm::JweEncryptionAlgorithm> {
+        algorithms
+            .into_iter()
+            .filter_map(|algorithm| match algorithm {
+                Self::Known(algorithm) => Some(algorithm),
+                Self::Unknown(_) => None,
+            })
+            .copied()
+            .max_by_key(|algorithm| Self::preference_rank(*algorithm))
     }
 }
 
