@@ -29,6 +29,7 @@ pub mod verifier;
 pub mod errors;
 pub use errors::*;
 
+pub mod cose;
 pub mod nonce;
 pub mod oidc;
 pub mod server_state;

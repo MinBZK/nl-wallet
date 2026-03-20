@@ -22,10 +22,10 @@ use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 use utils::vec_nonempty;
 
+use crate::cose::KnownCoseAlgorithmIdentifier;
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
 use crate::issuer_metadata::JwsAlgorithm;
-use crate::issuer_metadata::KnownCoseAlgorithmIdentifier;
 use crate::openid4vp::MsoMdocAlgValues;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::SdJwtAlgValues;
