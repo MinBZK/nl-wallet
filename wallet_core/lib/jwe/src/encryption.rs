@@ -24,7 +24,7 @@ use serde_with::DisplayFromStr;
 use serde_with::serde_as;
 
 use crate::algorithm::EcdhAlgorithm;
-use crate::algorithm::JweEncryptionAlgorithm;
+use crate::algorithm::EncryptionAlgorithm;
 
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(test, derive(strum::EnumDiscriminants))]
@@ -194,7 +194,7 @@ impl JweEncrypter {
     pub fn encrypt<T>(
         &self,
         data: &T,
-        encryption_algorithm: JweEncryptionAlgorithm,
+        encryption_algorithm: EncryptionAlgorithm,
         apu: Option<&[u8]>,
         apv: Option<&[u8]>,
     ) -> Result<String, JweEncrypterError>
@@ -243,7 +243,7 @@ mod tests {
     use serde_json::json;
 
     use crate::algorithm::EcdhAlgorithm;
-    use crate::algorithm::JweEncryptionAlgorithm;
+    use crate::algorithm::EncryptionAlgorithm;
 
     use super::JweEncrypter;
     use super::JweEncrypterError;
@@ -410,12 +410,12 @@ mod tests {
         #[case] data: T,
         #[case] jwk_json: serde_json::Value,
         #[values(
-            JweEncryptionAlgorithm::A128CbcHs256,
-            JweEncryptionAlgorithm::A256CbcHs512,
-            JweEncryptionAlgorithm::A128Gcm,
-            JweEncryptionAlgorithm::A256Gcm
+            EncryptionAlgorithm::A128CbcHs256,
+            EncryptionAlgorithm::A256CbcHs512,
+            EncryptionAlgorithm::A128Gcm,
+            EncryptionAlgorithm::A256Gcm
         )]
-        encryption_algorithm: JweEncryptionAlgorithm,
+        encryption_algorithm: EncryptionAlgorithm,
         #[values(None, Some("apu"))] apu: Option<&str>,
         #[values(None, Some("apv"))] apv: Option<&str>,
     ) where
@@ -458,7 +458,7 @@ mod tests {
         let encrypter = JweEncrypter::from(key);
 
         let data = HashMap::from([(("one".to_string(), "two".to_string()), "three".to_string())]);
-        let result = encrypter.encrypt(&data, JweEncryptionAlgorithm::A256Gcm, None, None);
+        let result = encrypter.encrypt(&data, EncryptionAlgorithm::A256Gcm, None, None);
 
         let error = result.expect_err("encrypting data with JweEncrypter should fail");
 

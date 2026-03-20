@@ -43,6 +43,7 @@ use dcql::normalized::UnsupportedDcqlFeatures;
 use dcql::unique_id_vec::UniqueIdVec;
 use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
+use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweDecrypterError;
 use jwe::decryption::JweSecretKey;
@@ -404,8 +405,7 @@ impl VpAuthorizationRequest {
         self,
         rp_cert: &BorrowingCertificate,
         wallet_nonce: Option<&str>,
-    ) -> Result<(NormalizedVpAuthorizationRequest, jwe::algorithm::JweEncryptionAlgorithm), AuthRequestValidationError>
-    {
+    ) -> Result<(NormalizedVpAuthorizationRequest, EncryptionAlgorithm), AuthRequestValidationError> {
         let dns_sans = rp_cert.san_dns_names()?;
         if dns_sans.is_empty() {
             return Err(AuthRequestValidationError::MissingSAN);
@@ -510,8 +510,8 @@ impl NormalizedVpAuthorizationRequest {
                 // https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5
                 // The JWE enc (encryption algorithm) header parameter (see Section 4.1.2 of [RFC7516]) values A128GCM and A256GCM (as defined in Section 5.3 of [RFC7518]) MUST be supported by Verifiers.
                 encrypted_response_enc_values_supported: Some(vec_nonempty![
-                    jwe::algorithm::JweEncryptionAlgorithm::A128Gcm.into(),
-                    jwe::algorithm::JweEncryptionAlgorithm::A256Gcm.into(),
+                    EncryptionAlgorithm::A128Gcm.into(),
+                    EncryptionAlgorithm::A256Gcm.into(),
                 ]),
             },
             state: None,
@@ -521,7 +521,7 @@ impl NormalizedVpAuthorizationRequest {
 
     fn select_encryption_algorithm(
         client_metadata: &VpClientMetadata,
-    ) -> Result<jwe::algorithm::JweEncryptionAlgorithm, AuthRequestValidationError> {
+    ) -> Result<EncryptionAlgorithm, AuthRequestValidationError> {
         let encryption_algorithm = client_metadata
             .encrypted_response_enc_values_supported
             .as_ref()
@@ -532,7 +532,7 @@ impl NormalizedVpAuthorizationRequest {
             .transpose()?
             // Use this value by default for OpenID4VP.
             // See: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.1-2.4.2.2
-            .unwrap_or(jwe::algorithm::JweEncryptionAlgorithm::A128Gcm);
+            .unwrap_or(EncryptionAlgorithm::A128Gcm);
 
         Ok(encryption_algorithm)
     }
@@ -787,7 +787,7 @@ impl VpAuthorizationResponse {
     pub fn new_encrypted(
         vp_token: HashMap<CredentialQueryIdentifier, VerifiablePresentation>,
         auth_request: &NormalizedVpAuthorizationRequest,
-        encryption_algorithm: jwe::algorithm::JweEncryptionAlgorithm,
+        encryption_algorithm: EncryptionAlgorithm,
         encryption_nonce: &str,
         poa: Option<Poa>,
     ) -> Result<String, AuthResponseError> {
@@ -801,7 +801,7 @@ impl VpAuthorizationResponse {
     fn encrypt(
         &self,
         auth_request: &NormalizedVpAuthorizationRequest,
-        encryption_algorithm: jwe::algorithm::JweEncryptionAlgorithm,
+        encryption_algorithm: EncryptionAlgorithm,
         encryption_nonce: &str,
     ) -> Result<String, JweEncrypterError> {
         let encrypter = JweEncrypter::from(auth_request.encryption_pubkey.clone());
@@ -1145,6 +1145,7 @@ mod tests {
     use dcql::normalized::NormalizedCredentialRequests;
     use http_utils::urls::BaseUrl;
     use jwe::algorithm::EcdhAlgorithm;
+    use jwe::algorithm::EncryptionAlgorithm;
     use jwe::decryption::JweSecretKey;
     use jwt::SignedJwt;
     use jwt::pop::JwtPopClaims;
@@ -1332,11 +1333,7 @@ mod tests {
         );
 
         let jwe = auth_response
-            .encrypt(
-                &auth_request,
-                jwe::algorithm::JweEncryptionAlgorithm::A256Gcm,
-                &encryption_nonce,
-            )
+            .encrypt(&auth_request, EncryptionAlgorithm::A256Gcm, &encryption_nonce)
             .unwrap();
         let decrypted = VpAuthorizationResponse::decrypt(&jwe, &encryption_secret_key).unwrap();
 
@@ -1559,7 +1556,7 @@ mod tests {
             normalized_request
                 .client_metadata
                 .encrypted_response_enc_values_supported,
-            Some(vec_nonempty![jwe::algorithm::JweEncryptionAlgorithm::A256Gcm.into()])
+            Some(vec_nonempty![EncryptionAlgorithm::A256Gcm.into()])
         );
     }
 
@@ -1622,7 +1619,7 @@ mod tests {
         let encryption_algorithm =
             NormalizedVpAuthorizationRequest::select_encryption_algorithm(&client_metadata).unwrap();
 
-        assert_eq!(encryption_algorithm, jwe::algorithm::JweEncryptionAlgorithm::A128Gcm);
+        assert_eq!(encryption_algorithm, EncryptionAlgorithm::A128Gcm);
     }
 
     #[test]
@@ -1631,13 +1628,13 @@ mod tests {
         let mut client_metadata = auth_request.client_metadata.clone();
         client_metadata.encrypted_response_enc_values_supported = Some(vec_nonempty![
             JweEncryptionAlgorithm::Unknown("A512GCM".to_string()),
-            jwe::algorithm::JweEncryptionAlgorithm::A256Gcm.into()
+            EncryptionAlgorithm::A256Gcm.into()
         ]);
 
         let encryption_algorithm =
             NormalizedVpAuthorizationRequest::select_encryption_algorithm(&client_metadata).unwrap();
 
-        assert_eq!(encryption_algorithm, jwe::algorithm::JweEncryptionAlgorithm::A256Gcm);
+        assert_eq!(encryption_algorithm, EncryptionAlgorithm::A256Gcm);
     }
 
     #[test]
@@ -1645,14 +1642,14 @@ mod tests {
         let (_, _, _, auth_request) = setup_mdoc();
         let mut client_metadata = auth_request.client_metadata.clone();
         client_metadata.encrypted_response_enc_values_supported = Some(vec_nonempty![
-            jwe::algorithm::JweEncryptionAlgorithm::A128Gcm.into(),
-            jwe::algorithm::JweEncryptionAlgorithm::A256Gcm.into()
+            EncryptionAlgorithm::A128Gcm.into(),
+            EncryptionAlgorithm::A256Gcm.into()
         ]);
 
         let encryption_algorithm =
             NormalizedVpAuthorizationRequest::select_encryption_algorithm(&client_metadata).unwrap();
 
-        assert_eq!(encryption_algorithm, jwe::algorithm::JweEncryptionAlgorithm::A256Gcm);
+        assert_eq!(encryption_algorithm, EncryptionAlgorithm::A256Gcm);
     }
 
     #[test]
@@ -1665,12 +1662,12 @@ mod tests {
             .unwrap()
             .encrypted_response_enc_values_supported = Some(vec_nonempty![
             JweEncryptionAlgorithm::Unknown("A512GCM".to_string()),
-            jwe::algorithm::JweEncryptionAlgorithm::A256Gcm.into()
+            EncryptionAlgorithm::A256Gcm.into()
         ]);
 
         let (_, encryption_algorithm) = auth_request.validate(rp_keypair.certificate(), None).unwrap();
 
-        assert_eq!(encryption_algorithm, jwe::algorithm::JweEncryptionAlgorithm::A256Gcm);
+        assert_eq!(encryption_algorithm, EncryptionAlgorithm::A256Gcm);
     }
 
     #[test]
@@ -1722,7 +1719,7 @@ mod tests {
                 .encrypted_response_enc_values_supported,
             Some(vec_nonempty![
                 JweEncryptionAlgorithm::Unknown("A512GCM".to_string()),
-                jwe::algorithm::JweEncryptionAlgorithm::A256Gcm.into()
+                EncryptionAlgorithm::A256Gcm.into()
             ])
         );
     }

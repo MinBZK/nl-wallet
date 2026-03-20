@@ -55,7 +55,7 @@ impl From<EcdhAlgorithm> for EcdhEsJweAlgorithm {
 /// those algorithms supported by this crate. See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-5>
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "UPPERCASE")]
-pub enum JweEncryptionAlgorithm {
+pub enum EncryptionAlgorithm {
     #[strum(serialize = "A128CBC-HS256")]
     A128CbcHs256,
     #[strum(serialize = "A192CBC-HS384")]

@@ -12,6 +12,7 @@ use crypto::utils::random_string;
 use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
+use jwe::algorithm::EncryptionAlgorithm;
 use mdoc::iso::disclosure::DeviceResponse;
 use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
@@ -39,7 +40,7 @@ pub struct VpDisclosureSession<H> {
     session_type: SessionType,
     verifier_certificate: VerifierCertificate,
     auth_request: NormalizedVpAuthorizationRequest,
-    selected_encryption_algorithm: jwe::algorithm::JweEncryptionAlgorithm,
+    selected_encryption_algorithm: EncryptionAlgorithm,
 }
 
 impl<H> VpDisclosureSession<H> {
@@ -48,7 +49,7 @@ impl<H> VpDisclosureSession<H> {
         session_type: SessionType,
         verifier_certificate: VerifierCertificate,
         auth_request: NormalizedVpAuthorizationRequest,
-        selected_encryption_algorithm: jwe::algorithm::JweEncryptionAlgorithm,
+        selected_encryption_algorithm: EncryptionAlgorithm,
     ) -> Self {
         Self {
             client,
@@ -295,6 +296,7 @@ mod tests {
     use crypto::x509::CertificateUsage;
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
+    use jwe::algorithm::EncryptionAlgorithm;
     use mdoc::holder::disclosure::PartialMdoc;
     use sd_jwt::builder::SignedSdJwt;
     use utils::generator::mock::MockTimeGenerator;
@@ -347,7 +349,7 @@ mod tests {
 
         let mock_client = MockVerifierVpMessageClient::new(Arc::clone(&verifier_session));
         let auth_request = verifier_session.normalized_auth_request(None);
-        let selected_encryption_algorithm = jwe::algorithm::JweEncryptionAlgorithm::A256Gcm;
+        let selected_encryption_algorithm = EncryptionAlgorithm::A256Gcm;
         let disclosure_session = VpDisclosureSession {
             client: mock_client,
             session_type,

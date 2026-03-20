@@ -6,18 +6,20 @@ use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 use strum::EnumString;
 
+use jwe::algorithm::EncryptionAlgorithm;
+
 /// A type representing the "enc" header parameter value for JWE, i.e. the JWE encryption algorithm.
 /// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-5>
 #[derive(Debug, Clone, PartialEq, Eq, From, Display, SerializeDisplay, DeserializeFromStr)]
 pub enum JweEncryptionAlgorithm {
     #[from]
-    Known(jwe::algorithm::JweEncryptionAlgorithm),
+    Known(EncryptionAlgorithm),
     Unknown(String),
 }
 
 impl From<&str> for JweEncryptionAlgorithm {
     fn from(value: &str) -> Self {
-        match value.parse::<jwe::algorithm::JweEncryptionAlgorithm>() {
+        match value.parse::<EncryptionAlgorithm>() {
             Ok(algorithm) => Self::Known(algorithm),
             Err(_) => Self::Unknown(value.to_string()),
         }
@@ -34,20 +36,18 @@ impl FromStr for JweEncryptionAlgorithm {
 
 impl JweEncryptionAlgorithm {
     /// Explicitly rank the supported algorithms in order of preference.
-    fn preference_rank(algorithm: jwe::algorithm::JweEncryptionAlgorithm) -> u8 {
+    fn preference_rank(algorithm: EncryptionAlgorithm) -> u8 {
         match algorithm {
-            jwe::algorithm::JweEncryptionAlgorithm::A128CbcHs256 => 1,
-            jwe::algorithm::JweEncryptionAlgorithm::A192CbcHs384 => 2,
-            jwe::algorithm::JweEncryptionAlgorithm::A256CbcHs512 => 3,
-            jwe::algorithm::JweEncryptionAlgorithm::A128Gcm => 4,
-            jwe::algorithm::JweEncryptionAlgorithm::A192Gcm => 5,
-            jwe::algorithm::JweEncryptionAlgorithm::A256Gcm => 6,
+            EncryptionAlgorithm::A128CbcHs256 => 1,
+            EncryptionAlgorithm::A192CbcHs384 => 2,
+            EncryptionAlgorithm::A256CbcHs512 => 3,
+            EncryptionAlgorithm::A128Gcm => 4,
+            EncryptionAlgorithm::A192Gcm => 5,
+            EncryptionAlgorithm::A256Gcm => 6,
         }
     }
 
-    pub fn find_preferred_known<'a>(
-        algorithms: impl IntoIterator<Item = &'a Self>,
-    ) -> Option<jwe::algorithm::JweEncryptionAlgorithm> {
+    pub fn find_preferred_known<'a>(algorithms: impl IntoIterator<Item = &'a Self>) -> Option<EncryptionAlgorithm> {
         algorithms
             .into_iter()
             .filter_map(|algorithm| match algorithm {
@@ -73,26 +73,16 @@ pub enum JweCompressionAlgorithm {
 mod tests {
     use rstest::rstest;
 
+    use jwe::algorithm::EncryptionAlgorithm;
+
     use super::JweCompressionAlgorithm;
     use super::JweEncryptionAlgorithm;
 
     #[rstest]
-    #[case::a128gcm(
-        "A128GCM",
-        JweEncryptionAlgorithm::Known(jwe::algorithm::JweEncryptionAlgorithm::A128Gcm)
-    )]
-    #[case::a256gcm(
-        "A256GCM",
-        JweEncryptionAlgorithm::Known(jwe::algorithm::JweEncryptionAlgorithm::A256Gcm)
-    )]
-    #[case::a128cbc_hs256(
-        "A128CBC-HS256",
-        JweEncryptionAlgorithm::Known(jwe::algorithm::JweEncryptionAlgorithm::A128CbcHs256)
-    )]
-    #[case::a256cbc_hs512(
-        "A256CBC-HS512",
-        JweEncryptionAlgorithm::Known(jwe::algorithm::JweEncryptionAlgorithm::A256CbcHs512)
-    )]
+    #[case::a128gcm("A128GCM", JweEncryptionAlgorithm::Known(EncryptionAlgorithm::A128Gcm))]
+    #[case::a256gcm("A256GCM", JweEncryptionAlgorithm::Known(EncryptionAlgorithm::A256Gcm))]
+    #[case::a128cbc_hs256("A128CBC-HS256", JweEncryptionAlgorithm::Known(EncryptionAlgorithm::A128CbcHs256))]
+    #[case::a256cbc_hs512("A256CBC-HS512", JweEncryptionAlgorithm::Known(EncryptionAlgorithm::A256CbcHs512))]
     #[case::a512gcm("A512GCM", JweEncryptionAlgorithm::Unknown("A512GCM".to_string()))]
     fn test_jwe_encryption_algorithm_parse(#[case] input: &str, #[case] expected_jwe_enc: JweEncryptionAlgorithm) {
         let jwe_enc = input

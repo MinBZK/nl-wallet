@@ -1,6 +1,6 @@
 use assert_matches::assert_matches;
 use jwe::algorithm::EcdhAlgorithm;
-use jwe::algorithm::JweEncryptionAlgorithm;
+use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweDecrypterError;
 use jwe::decryption::JweSecretKey;
@@ -32,7 +32,7 @@ where
     let public_key = JwePublicKey::try_from_jwk(jwk).expect("converting JWK to JwePublicKey should succeed");
 
     JweEncrypter::from(public_key)
-        .encrypt(&payload, JweEncryptionAlgorithm::A256Gcm, Some(b"apu"), Some(b"apv"))
+        .encrypt(&payload, EncryptionAlgorithm::A256Gcm, Some(b"apu"), Some(b"apv"))
         .expect("encrypting payload to JWE should succeed")
 }
 
