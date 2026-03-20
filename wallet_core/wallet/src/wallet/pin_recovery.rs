@@ -500,6 +500,7 @@ mod tests {
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockCredentialIssuer;
     use openid4vc::mock::MockIssuanceSession;
+    use openid4vc::oidc::AuthorizationServerMetadata;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
@@ -546,12 +547,14 @@ mod tests {
                 issuer.expect_get_metadata().return_const(issuer_metadata.clone());
                 issuer
                     .expect_get_oauth_metadata()
-                    .return_const(openid4vc::oidc::Config::new(
-                        "http://example.com".parse().unwrap(),
-                        Url::parse(AUTH_URL).unwrap(),
-                        Url::parse(AUTH_URL).unwrap(),
-                        Url::parse(AUTH_URL).unwrap(),
-                    ));
+                    .return_const(AuthorizationServerMetadata {
+                        authorization_endpoint: Some(Url::parse(AUTH_URL).unwrap()),
+                        jwks_uri: Some(Url::parse(AUTH_URL).unwrap()),
+                        ..AuthorizationServerMetadata::new(
+                            "http://example.com".parse().unwrap(),
+                            Url::parse(AUTH_URL).unwrap(),
+                        )
+                    });
                 Ok(issuer)
             });
     }

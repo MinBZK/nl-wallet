@@ -117,6 +117,7 @@ async fn main() {
         authorization_url,
         discovered
             .authorization_endpoint()
+            .expect("DigiD metadata must have an authorization endpoint")
             .origin()
             .unicode_serialization()
             .as_str()

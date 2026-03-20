@@ -46,7 +46,7 @@ use openid4vc::issuer::WuaConfig;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::nonce::memory_store::MemoryNonceStore;
-use openid4vc::oidc;
+use openid4vc::oidc::AuthorizationServerMetadata;
 use openid4vc::preview::CredentialPreviewRequest;
 use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::MemorySessionStore;
@@ -163,7 +163,7 @@ async fn accept_issuance(#[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap
     let copy_count = 4;
 
     let issuer_metadata = message_client.issuer.metadata().clone();
-    let token_endpoint = oidc::Config::new_mock(issuer_identifier).token_endpoint;
+    let token_endpoint = AuthorizationServerMetadata::new_mock(issuer_identifier).token_endpoint;
     let session = HttpIssuanceSession::start_issuance_inner(
         message_client,
         issuer_metadata,
@@ -207,7 +207,7 @@ async fn reject_issuance() {
     let message_client = MockOpenidMessageClient::new(issuer);
 
     let issuer_metadata = message_client.issuer.metadata().clone();
-    let token_endpoint = oidc::Config::new_mock(issuer_identifier).token_endpoint;
+    let token_endpoint = AuthorizationServerMetadata::new_mock(issuer_identifier).token_endpoint;
     let session = HttpIssuanceSession::start_issuance_inner(
         message_client,
         issuer_metadata,
@@ -229,7 +229,7 @@ async fn start_and_accept_err(
 ) -> IssuanceSessionError {
     let trust_anchors = &[trust_anchor];
     let issuer_metadata = message_client.issuer.metadata().clone();
-    let token_endpoint = oidc::Config::new_mock(issuer_identifier).token_endpoint;
+    let token_endpoint = AuthorizationServerMetadata::new_mock(issuer_identifier).token_endpoint;
     let session = HttpIssuanceSession::start_issuance_inner(
         message_client,
         issuer_metadata,
@@ -612,9 +612,5 @@ impl AttributeService for MockAttributeService {
 
     async fn attributes(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
         Ok(self.documents.clone())
-    }
-
-    async fn oauth_metadata(&self, issuer_identifier: &IssuerIdentifier) -> Result<oidc::Config, Self::Error> {
-        Ok(oidc::Config::new_mock(issuer_identifier.clone()))
     }
 }

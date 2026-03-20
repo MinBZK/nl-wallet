@@ -68,7 +68,7 @@ use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_metadata::IssuerMetadata;
-use crate::oidc;
+use crate::oidc::AuthorizationServerMetadata;
 use crate::oidc::OidcReqwestClient;
 use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
@@ -336,8 +336,8 @@ pub trait CredentialIssuer {
     type Session: IssuanceSession + std::fmt::Debug;
 
     fn authorization_server_url(&self) -> &IssuerIdentifier;
-    fn authorization_endpoint(&self) -> Url;
-    fn oauth_metadata(&self) -> oidc::Config;
+    fn authorization_endpoint(&self) -> Option<Url>;
+    fn oauth_metadata(&self) -> AuthorizationServerMetadata;
 
     async fn start_issuance(
         self,
@@ -382,7 +382,7 @@ impl CredentialIssuerDiscovery for HttpCredentialIssuerDiscovery {
 #[derive(Debug)]
 pub struct HttpCredentialIssuer {
     metadata: IssuerMetadata,
-    oauth_metadata: oidc::Config,
+    oauth_metadata: AuthorizationServerMetadata,
     client_id: String,
     oidc_client: OidcReqwestClient,
 }
@@ -395,11 +395,11 @@ impl CredentialIssuer for HttpCredentialIssuer {
         self.metadata.authorization_servers().into_first()
     }
 
-    fn authorization_endpoint(&self) -> Url {
+    fn authorization_endpoint(&self) -> Option<Url> {
         self.oauth_metadata.authorization_endpoint.clone()
     }
 
-    fn oauth_metadata(&self) -> oidc::Config {
+    fn oauth_metadata(&self) -> AuthorizationServerMetadata {
         self.oauth_metadata.clone()
     }
 
@@ -470,7 +470,7 @@ pub trait VcMessageClient {
 async fn fetch_oauth_metadata(
     oidc_client: &OidcReqwestClient,
     auth_server: &IssuerIdentifier,
-) -> Result<oidc::Config, IssuanceSessionError> {
+) -> Result<AuthorizationServerMetadata, IssuanceSessionError> {
     well_known::fetch_well_known(oidc_client, auth_server, WellKnownPath::OauthAuthorizationServer)
         .await
         .map_err(IssuanceSessionError::OauthDiscovery)
@@ -1329,7 +1329,7 @@ mod tests {
 
         let issuer_identifier: IssuerIdentifier = "https://issuer.example.com".parse().unwrap();
         let issuer_metadata = IssuerMetadata::new_mock(issuer_identifier.clone(), PID_ATTESTATION_TYPE);
-        let token_endpoint = oidc::Config::new_mock(issuer_identifier).token_endpoint;
+        let token_endpoint = AuthorizationServerMetadata::new_mock(issuer_identifier).token_endpoint;
 
         HttpIssuanceSession::start_issuance_inner(
             mock_msg_client,
@@ -1495,7 +1495,7 @@ mod tests {
 
         let issuer_identifier: IssuerIdentifier = "https://issuer.example.com".parse().unwrap();
         let issuer_metadata = IssuerMetadata::new_mock(issuer_identifier.clone(), PID_ATTESTATION_TYPE);
-        let token_endpoint = oidc::Config::new_mock(issuer_identifier).token_endpoint;
+        let token_endpoint = AuthorizationServerMetadata::new_mock(issuer_identifier).token_endpoint;
 
         let error = HttpIssuanceSession::start_issuance_inner(
             mock_msg_client,

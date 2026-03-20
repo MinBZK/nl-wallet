@@ -45,6 +45,7 @@ use openid4vc::issuance_session::IssuedCredentialCopies;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::mock::MockCredentialIssuerDiscovery;
 use openid4vc::mock::MockIssuanceSession;
+use openid4vc::oidc::AuthorizationServerMetadata;
 use openid4vc::oidc::HttpAuthorizationServer;
 use openid4vc::token::CredentialPreviewContent;
 use platform_support::attested_key::AttestedKey;
@@ -655,12 +656,11 @@ pub fn mock_issuance_session(
 pub fn create_real_oidc_session(redirect_uri: &str) -> (OidcSession<HttpAuthorizationServer>, Url) {
     let redirect_uri = Url::parse(redirect_uri).unwrap();
     let oidc_session = build_oidc_session(
-        openid4vc::oidc::Config::new(
-            "http://example.com".parse().unwrap(),
-            Url::parse(AUTH_URL).unwrap(),
-            Url::parse(AUTH_URL).unwrap(),
-            Url::parse(AUTH_URL).unwrap(),
-        ),
+        AuthorizationServerMetadata {
+            authorization_endpoint: Some(Url::parse(AUTH_URL).unwrap()),
+            jwks_uri: Some(Url::parse(AUTH_URL).unwrap()),
+            ..AuthorizationServerMetadata::new("http://example.com".parse().unwrap(), Url::parse(AUTH_URL).unwrap())
+        },
         "client_id".to_string(),
         redirect_uri.clone(),
     )

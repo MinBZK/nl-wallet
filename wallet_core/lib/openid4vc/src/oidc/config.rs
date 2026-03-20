@@ -24,11 +24,13 @@ use super::OidcReqwestClient;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
     pub issuer: IssuerIdentifier,
-    pub authorization_endpoint: Url,
+    #[serde(default)]
+    pub authorization_endpoint: Option<Url>,
     pub token_endpoint: Url,
     #[serde(default)]
     pub userinfo_endpoint: Option<Url>,
-    pub jwks_uri: Url,
+    #[serde(default)]
+    pub jwks_uri: Option<Url>,
     #[serde(default)]
     pub registration_endpoint: Option<Url>,
     #[serde(default)]
@@ -104,15 +106,18 @@ pub struct Config {
     pub code_challenge_methods_supported: Option<IndexSet<String>>,
 }
 
+/// Type alias for [`Config`] using the RFC 8414 terminology.
+pub type AuthorizationServerMetadata = Config;
+
 impl Config {
     /// Returns a new instance with the specified URLs, and all other parameters set to none/empty/false.
-    pub fn new(issuer: IssuerIdentifier, authorization_endpoint: Url, token_endpoint: Url, jwks_uri: Url) -> Self {
+    pub fn new(issuer: IssuerIdentifier, token_endpoint: Url) -> Self {
         Self {
             issuer,
-            authorization_endpoint,
+            authorization_endpoint: None,
             token_endpoint,
             userinfo_endpoint: None,
-            jwks_uri,
+            jwks_uri: None,
             registration_endpoint: None,
             scopes_supported: None,
             response_types_supported: IndexSet::new(),
@@ -150,7 +155,8 @@ impl Config {
     /// Get the JWK set from the given Url. Errors are either a reqwest error or an Insecure error if
     /// the url isn't https.
     pub(super) async fn jwks(&self, http_client: &OidcReqwestClient) -> Result<JwkSet, OidcError> {
-        let jwks = http_client.get(self.jwks_uri.clone()).await?;
+        let jwks_uri = self.jwks_uri.clone().ok_or(OidcError::NoJwksUri)?;
+        let jwks = http_client.get(jwks_uri).await?;
 
         Ok(jwks)
     }

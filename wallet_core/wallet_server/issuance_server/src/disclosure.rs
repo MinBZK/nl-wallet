@@ -201,7 +201,6 @@ mod tests {
     use openid4vc::issuer::AttestationTypeConfig;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;
-    use openid4vc::issuer::TrivialAttributeService;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
     use openid4vc::server_state::MemorySessionStore;
     use openid4vc::server_state::SessionStore;
@@ -273,13 +272,7 @@ mod tests {
         }
     }
 
-    type MockIssuer = Issuer<
-        SigningKey,
-        TrivialAttributeService,
-        MemorySessionStore<IssuanceData>,
-        MemoryNonceStore,
-        MockStatusListServices,
-    >;
+    type MockIssuer = Issuer<SigningKey, (), MemorySessionStore<IssuanceData>, MemoryNonceStore, MockStatusListServices>;
 
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
         Issuer::new(
@@ -287,7 +280,7 @@ mod tests {
             vec![],
             HashMap::<String, AttestationTypeConfig<SigningKey>>::new().into(),
             None,
-            TrivialAttributeService,
+            (),
             sessions,
             MemoryNonceStore::default(),
             Arc::new(MockStatusListServices::default()),

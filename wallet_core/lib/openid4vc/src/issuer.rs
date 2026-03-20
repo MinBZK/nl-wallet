@@ -70,7 +70,7 @@ use crate::issuer_metadata::IssuerMetadata;
 use crate::issuer_metadata::ProofType;
 use crate::nonce::store::NonceStore;
 use crate::nonce::store::NonceStoreError;
-use crate::oidc;
+use crate::oidc::AuthorizationServerMetadata;
 use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
 use crate::server_state::CLEANUP_INTERVAL_SECONDS;
@@ -325,42 +325,20 @@ pub struct Session<S: IssuanceState> {
     pub state: SessionState<S>,
 }
 
-/// Implementations of this trait are responsible for determine the attributes to be issued, given the session and
+/// Implementations of this trait are responsible for determining the attributes to be issued, given the session and
 /// the token request. See for example the [`BrpPidAttributeService`].
 #[trait_variant::make(Send)]
 pub trait AttributeService {
     type Error: std::error::Error + Send + Sync + 'static;
 
     async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error>;
-
-    async fn oauth_metadata(&self, issuer_identifier: &IssuerIdentifier) -> Result<oidc::Config, Self::Error>;
 }
 
-pub struct TrivialAttributeService;
-
-impl AttributeService for TrivialAttributeService {
+impl AttributeService for () {
     type Error = Infallible;
 
-    async fn attributes(&self, _: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
-        unimplemented!()
-    }
-
-    async fn oauth_metadata(&self, issuer_identifier: &IssuerIdentifier) -> Result<oidc::Config, Self::Error> {
-        // TODO (PVW-4257): we don't use the `authorize` and `jwks` endpoint here, but we need to specify them
-        // because they are mandatory in an OIDC Provider Metadata document (see
-        // <https://openid.net/specs/openid-connect-discovery-1_0.html>).
-        // However, OpenID4VCI says that this should return not an OIDC Provider Metadata document but an OAuth
-        // Authorization Metadata document instead, see <https://www.rfc-editor.org/rfc/rfc8414.html>, which to
-        // a large extent has the same fields but `authorize` and `jwks` are optional there.
-
-        let issuer_url = issuer_identifier.as_base_url().clone();
-        let auth_url = issuer_url.join("authorize");
-        let token_url = issuer_url.join("issuance/token");
-        let jwks_url = issuer_url.join("jwks");
-
-        let config = oidc::Config::new(issuer_identifier.clone(), auth_url, token_url, jwks_url);
-
-        Ok(config)
+    async fn attributes(&self, _: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Infallible> {
+        unimplemented!("() AttributeService does not provide attributes")
     }
 }
 
@@ -843,10 +821,12 @@ where
         Ok(())
     }
 
-    pub async fn oauth_metadata(&self) -> Result<oidc::Config, A::Error> {
-        self.attr_service
-            .oauth_metadata(&self.issuer_data.metadata.credential_issuer)
-            .await
+    pub fn oauth_metadata(&self) -> AuthorizationServerMetadata {
+        let issuer_url = self.issuer_data.metadata.credential_issuer.as_base_url();
+        AuthorizationServerMetadata::new(
+            self.issuer_data.metadata.credential_issuer.clone(),
+            issuer_url.join("issuance/token"),
+        )
     }
 }
 

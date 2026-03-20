@@ -132,6 +132,7 @@ mod tests {
     use assert_matches::assert_matches;
     use url::Url;
 
+    use openid4vc::oidc::AuthorizationServerMetadata;
     use openid4vc::oidc::HttpAuthorizationServer;
 
     use crate::config::UNIVERSAL_LINK_BASE_URL;
@@ -176,12 +177,14 @@ mod tests {
 
         let make_stub_oidc_session = || -> OidcSession<HttpAuthorizationServer> {
             build_oidc_session(
-                openid4vc::oidc::Config::new(
-                    "http://example.com".parse().unwrap(),
-                    Url::parse(AUTH_URL).unwrap(),
-                    Url::parse(AUTH_URL).unwrap(),
-                    Url::parse(AUTH_URL).unwrap(),
-                ),
+                AuthorizationServerMetadata {
+                    authorization_endpoint: Some(Url::parse(AUTH_URL).unwrap()),
+                    jwks_uri: Some(Url::parse(AUTH_URL).unwrap()),
+                    ..AuthorizationServerMetadata::new(
+                        "http://example.com".parse().unwrap(),
+                        Url::parse(AUTH_URL).unwrap(),
+                    )
+                },
                 "client_id".to_string(),
                 Url::parse(AUTH_URL).unwrap(),
             )

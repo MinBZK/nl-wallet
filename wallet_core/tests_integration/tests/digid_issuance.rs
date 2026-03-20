@@ -68,7 +68,6 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
                 None,
             )
             .unwrap(),
-            public_url.clone(),
         )
         .unwrap()
     })

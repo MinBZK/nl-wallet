@@ -102,6 +102,14 @@ pub enum OidcError {
     #[category(critical)]
     NoUserinfoUrl,
 
+    #[error("config has no authorization endpoint")]
+    #[category(critical)]
+    NoAuthorizationEndpoint,
+
+    #[error("config has no JWKS URI")]
+    #[category(critical)]
+    NoJwksUri,
+
     #[error("user denied authentication")]
     #[category(expected)]
     Denied,
@@ -181,7 +189,11 @@ impl<P: PkcePair> HttpAuthorizationServer<P> {
             response_mode: None,
         };
 
-        let mut url = self.provider.authorization_endpoint.clone();
+        let mut url = self
+            .provider
+            .authorization_endpoint
+            .clone()
+            .ok_or(OidcError::NoAuthorizationEndpoint)?;
         url.set_query(Some(&serde_urlencoded::to_string(params)?));
         Ok(url)
     }

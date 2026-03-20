@@ -42,7 +42,7 @@ use openid4vc::issuer::Issuer;
 use openid4vc::issuer_metadata::IssuerMetadata;
 use openid4vc::nonce::response::NonceResponse;
 use openid4vc::nonce::store::NonceStore;
-use openid4vc::oidc;
+use openid4vc::oidc::AuthorizationServerMetadata;
 use openid4vc::preview::CredentialPreviewRequest;
 use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::SessionStore;
@@ -100,24 +100,14 @@ where
 // for consistency with the other endpoints.
 async fn oauth_metadata<K, A, S, N, L>(
     State(state): State<ApplicationState<K, A, S, N, L>>,
-) -> Result<Json<oidc::Config>, ErrorResponse<MetadataError>>
+) -> Result<Json<AuthorizationServerMetadata>, ErrorResponse<MetadataError>>
 where
     K: EcdsaKeySend,
     A: AttributeService,
     S: SessionStore<IssuanceData>,
     L: StatusListServices,
 {
-    let metadata = state.issuer.oauth_metadata().await.map_err(|error| {
-        warn!("retrieving OAuth metadata failed: {}", error);
-
-        openid4vc::ErrorResponse {
-            error: MetadataError::Metadata,
-            error_description: Some(error.to_string()),
-            error_uri: None,
-        }
-    })?;
-
-    Ok(Json(metadata))
+    Ok(Json(state.issuer.oauth_metadata()))
 }
 
 async fn metadata<K, A, S, N, L>(State(state): State<ApplicationState<K, A, S, N, L>>) -> Json<IssuerMetadata> {

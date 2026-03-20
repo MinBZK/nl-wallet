@@ -20,6 +20,7 @@ use crate::issuer_metadata::CredentialConfiguration;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::issuer_metadata::NonZeroOrOneU64;
 use crate::issuer_metadata::ProofType;
+use crate::oidc::AuthorizationServerMetadata;
 use crate::oidc::Config;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
@@ -72,8 +73,8 @@ mockall::mock! {
     #[derive(Debug)]
     pub CredentialIssuer {
         pub fn get_metadata(&self) -> &IssuerMetadata;
-        pub fn get_authorization_endpoint_url(&self) -> Url;
-        pub fn get_oauth_metadata(&self) -> Config;
+        pub fn get_authorization_endpoint_url(&self) -> Option<Url>;
+        pub fn get_oauth_metadata(&self) -> AuthorizationServerMetadata;
         pub fn start(&mut self, token_request: TokenRequest) -> Result<MockIssuanceSession, IssuanceSessionError>;
     }
 }
@@ -85,7 +86,7 @@ impl CredentialIssuer for MockCredentialIssuer {
         self.get_metadata().authorization_servers().into_first()
     }
 
-    fn authorization_endpoint(&self) -> Url {
+    fn authorization_endpoint(&self) -> Option<Url> {
         self.get_authorization_endpoint_url()
     }
 
@@ -133,6 +134,8 @@ impl Config {
         let jwks_url = issuer_url.join("/jwks.json");
 
         Self {
+            authorization_endpoint: Some(auth_url),
+            jwks_uri: Some(jwks_url),
             userinfo_endpoint: Some(issuer_url.join("/userinfo")),
             registration_endpoint: None,
             scopes_supported: Some(IndexSet::from_iter(["openid".to_string()])),
@@ -141,7 +144,7 @@ impl Config {
             ),
             id_token_signing_alg_values_supported: IndexSet::from_iter(["RS256".to_string()]),
 
-            ..Config::new(issuer_identifier, auth_url, token_url, jwks_url)
+            ..Config::new(issuer_identifier, token_url)
         }
     }
 }

@@ -5,6 +5,7 @@ use http_utils::client::TlsPinningConfig;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::oidc;
 use openid4vc::oidc::Algorithm;
+use openid4vc::oidc::AuthorizationServerMetadata;
 use openid4vc::oidc::JoseError;
 use openid4vc::oidc::OidcError;
 use openid4vc::oidc::OidcReqwestClient;
@@ -84,7 +85,7 @@ impl OpenIdClient {
         Ok(decrypter)
     }
 
-    pub async fn discover_metadata(&self) -> Result<oidc::Config> {
+    pub async fn discover_metadata(&self) -> Result<AuthorizationServerMetadata> {
         let metadata = well_known::fetch_well_known_unvalidated(
             &self.http_client,
             &self.authorization_server,

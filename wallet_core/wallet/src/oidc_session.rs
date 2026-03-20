@@ -2,8 +2,8 @@ use tracing::info;
 use url::Url;
 
 use error_category::ErrorCategory;
-use openid4vc::oidc;
 use openid4vc::oidc::AuthorizationServer;
+use openid4vc::oidc::AuthorizationServerMetadata;
 use openid4vc::oidc::HttpAuthorizationServer;
 use openid4vc::oidc::OidcError;
 use openid4vc::token::TokenRequest;
@@ -41,7 +41,7 @@ impl<S: AuthorizationServer> OidcSession<S> {
 }
 
 pub fn build_oidc_session(
-    config: oidc::Config,
+    config: AuthorizationServerMetadata,
     client_id: String,
     redirect_uri: Url,
 ) -> Result<OidcSession<HttpAuthorizationServer>, OidcSessionError> {

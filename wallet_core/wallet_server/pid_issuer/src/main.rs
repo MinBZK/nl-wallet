@@ -56,7 +56,6 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         settings.digid.client_id,
         &settings.digid.http_config,
         SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?,
-        issuer_settings.public_url.clone(),
     )?;
 
     let (db_connection, status_list_checker) = match (store_connection, settings.status_lists.storage_url.as_ref()) {
