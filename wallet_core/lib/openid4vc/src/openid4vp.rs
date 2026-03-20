@@ -287,11 +287,11 @@ pub struct VpJwks {
     pub keys: VecNonEmpty<Jwk>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VpFormatsSupported {
-    #[serde(rename = "mso_mdoc", skip_serializing_if = "Option::is_none")]
     pub mso_mdoc: Option<MsoMdocAlgValues>,
-    #[serde(rename = "dc+sd-jwt", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "dc+sd-jwt")]
     pub sd_jwt: Option<SdJwtAlgValues>,
 }
 
