@@ -1169,15 +1169,26 @@ impl VpAuthorizationResponse {
     where
         C: StatusListClient,
     {
-        // Check that all COSE objects use the ES256 algorithm identifier.
-        let expected_alg = RegisteredLabelWithPrivate::Assigned(iana::Algorithm::ES256);
+        // Check that all COSE objects use a supported algorithm.
+        let supported_algs = [
+            RegisteredLabelWithPrivate::Assigned(iana::Algorithm::ES256), // i.e. -7
+            RegisteredLabelWithPrivate::PrivateUse(-9),
+        ];
         for document in device_response.documents.iter().flatten() {
-            if document.issuer_signed.issuer_auth.0.protected.header.alg.as_ref() != Some(&expected_alg) {
+            if let Some(issuer_signature_alg) = document.issuer_signed.issuer_auth.0.protected.header.alg.as_ref()
+                && supported_algs.contains(issuer_signature_alg)
+            {
+                // OK, we need this case because of the let binding
+            } else {
                 return Err(AuthResponseError::UnsupportedAlgorithm);
             }
+
             if let DeviceAuth::DeviceSignature(device_sig) = &document.device_signed.device_auth
-                && device_sig.0.protected.header.alg.as_ref() != Some(&expected_alg)
+                && let Some(device_signature_alg) = device_sig.0.protected.header.alg.as_ref()
+                && supported_algs.contains(device_signature_alg)
             {
+                // OK, we need this case because of the let binding
+            } else {
                 return Err(AuthResponseError::UnsupportedAlgorithm);
             }
         }
