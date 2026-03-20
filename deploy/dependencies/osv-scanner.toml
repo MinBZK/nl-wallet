@@ -27,3 +27,8 @@ reason = "We are not vulnerable as ajv is only run as dev-dependency. Also eslin
 id = "RUSTSEC-2025-0134"
 ignoreUntil = 2026-07-01
 reason = "This is a transitive dependency that is no longer maintained. Waiting for testcontainers_modules to update to new testcontainers version in which it should be fixed."
+
+[[IgnoredVulns]]
+id = "GHSA-6gx3-4362-rf54"
+ignoreUntil = 2026-07-01
+reason = "This is a transitive dependency that is only run as a dev-dependency. Waiting for testcontainers to update to new astral-tokio-tar version in which it should be fixed."
