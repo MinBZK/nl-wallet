@@ -18,7 +18,7 @@ use openid4vc::TokenErrorCode;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::oauth::AuthorizationServerMetadata;
 use openid4vc::oauth::HttpJsonClient;
-use openid4vc::oauth::OidcError;
+use openid4vc::oauth::OAuthError;
 use openid4vc::well_known;
 use openid4vc::well_known::WellKnownError;
 
@@ -148,8 +148,8 @@ where
     let (jwt, jwks) = try_join!(
         request_userinfo_jwt(http_client, &config, token_request),
         config.jwks(http_client).map_err(|e| match e {
-            OidcError::Http(e) => UserInfoError::Http(e),
-            OidcError::NoJwksUri => UserInfoError::NoJwksUri,
+            OAuthError::Http(e) => UserInfoError::Http(e),
+            OAuthError::NoJwksUri => UserInfoError::NoJwksUri,
             _ => unreachable!("jwks() only returns Http or NoJwksUri"),
         })
     )?;

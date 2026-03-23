@@ -29,7 +29,7 @@ use wallet::errors::WalletRegistrationError;
 use wallet::errors::WalletUnlockError;
 use wallet::errors::openid4vc::AuthorizationErrorCode;
 use wallet::errors::openid4vc::IssuanceSessionError;
-use wallet::errors::openid4vc::OidcError;
+use wallet::errors::openid4vc::OAuthError;
 use wallet::errors::openid4vc::VpClientError;
 use wallet::errors::openid4vc::VpMessageClientError;
 use wallet::errors::openid4vc::VpMessageClientErrorType;
@@ -255,14 +255,14 @@ impl FlutterApiErrorFields for IssuanceError {
             IssuanceError::NotRegistered | IssuanceError::Locked | IssuanceError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
-            IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OidcError::RedirectUriError(_))) => {
+            IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OAuthError::RedirectUriError(_))) => {
                 FlutterApiErrorType::RedirectUri
             }
             IssuanceError::IssuanceSession(IssuanceSessionError::TokenRequest(_))
             | IssuanceError::IssuanceSession(IssuanceSessionError::CredentialRequest(_))
-            | IssuanceError::OidcSessionStart(OidcSessionError::Oidc(OidcError::RedirectUriError(_)))
-            | IssuanceError::OidcSessionStart(OidcSessionError::Oidc(OidcError::RequestingAccessToken(_)))
-            | IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OidcError::RequestingAccessToken(_))) => {
+            | IssuanceError::OidcSessionStart(OidcSessionError::Oidc(OAuthError::RedirectUriError(_)))
+            | IssuanceError::OidcSessionStart(OidcSessionError::Oidc(OAuthError::RequestingAccessToken(_)))
+            | IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OAuthError::RequestingAccessToken(_))) => {
                 FlutterApiErrorType::Server
             }
             IssuanceError::AttestationPreview(_)
@@ -280,7 +280,7 @@ impl FlutterApiErrorFields for IssuanceError {
 
     fn data(&self) -> serde_json::Value {
         let redirect_error =
-            if let Self::OidcSessionFinish(OidcSessionError::Oidc(OidcError::RedirectUriError(err))) = self {
+            if let Self::OidcSessionFinish(OidcSessionError::Oidc(OAuthError::RedirectUriError(err))) = self {
                 Some(err.error.clone())
             } else {
                 None
@@ -652,7 +652,7 @@ mod tests {
     use wallet::errors::WalletUnlockError;
     use wallet::errors::openid4vc::AuthorizationErrorCode;
     use wallet::errors::openid4vc::ErrorResponse;
-    use wallet::errors::openid4vc::OidcError;
+    use wallet::errors::openid4vc::OAuthError;
 
     use super::FlutterApiError;
     use super::FlutterApiErrorType;
@@ -676,7 +676,7 @@ mod tests {
         serde_json::Value::Null
     )]
     #[case(
-        IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OidcError::RedirectUriError(
+        IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OAuthError::RedirectUriError(
             Box::new(ErrorResponse {
                 error: AuthorizationErrorCode::InvalidRequest,
                 error_description: None,
@@ -687,7 +687,7 @@ mod tests {
         json!({"redirect_error": "invalid_request"})
     )]
     #[case(
-        IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OidcError::RedirectUriError(
+        IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OAuthError::RedirectUriError(
             Box::new(ErrorResponse {
                 error: AuthorizationErrorCode::Other("some_error".to_string()),
                 error_description: None,
@@ -698,7 +698,7 @@ mod tests {
         json!({"redirect_error": "some_error"})
     )]
     #[case(
-        IssuanceError::OidcSessionStart(OidcSessionError::Oidc(OidcError::RedirectUriError(Box::new(ErrorResponse {
+        IssuanceError::OidcSessionStart(OidcSessionError::Oidc(OAuthError::RedirectUriError(Box::new(ErrorResponse {
             error: AuthorizationErrorCode::InvalidRequest,
             error_description: None,
             error_uri: None,

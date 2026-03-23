@@ -26,7 +26,7 @@ use super::HttpJsonClient;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
-pub enum OidcError {
+pub enum OAuthError {
     #[error("transport error: {0}")]
     #[category(expected)]
     Http(#[from] reqwest::Error),
@@ -83,7 +83,7 @@ pub trait OidcDiscovery {
         authorization_server: &IssuerIdentifier,
         client_id: String,
         redirect_uri: Url,
-    ) -> Result<(Self::Server, Url), OidcError>;
+    ) -> Result<(Self::Server, Url), OAuthError>;
 }
 
 /// Returned by [`OidcDiscovery::discover`]. Holds the state of an in-progress authorization code flow
@@ -94,7 +94,7 @@ pub trait AuthorizationServer {
     /// Create an OpenID Token Request based on the contents of the redirect URI received.
     ///
     /// Note that this consumes the [`AuthorizationServer`], either on success or failure.
-    fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, OidcError>;
+    fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, OAuthError>;
 }
 
 /// The discovered authorization server state for an in-progress OIDC authorization code flow.
@@ -129,7 +129,7 @@ impl<P: PkcePair> HttpAuthorizationServer<P> {
     }
 
     /// Returns the authorization URL to redirect the user to, with all PKCE/CSRF/nonce parameters encoded.
-    pub fn auth_url(&self) -> Result<Url, OidcError> {
+    pub fn auth_url(&self) -> Result<Url, OAuthError> {
         let params = AuthorizationRequest {
             response_type: ResponseType::Code.into(),
             client_id: self.client_id.clone(),
@@ -149,7 +149,7 @@ impl<P: PkcePair> HttpAuthorizationServer<P> {
             .provider
             .authorization_endpoint
             .clone()
-            .ok_or(OidcError::NoAuthorizationEndpoint)?;
+            .ok_or(OAuthError::NoAuthorizationEndpoint)?;
         url.set_query(Some(&serde_urlencoded::to_string(params)?));
         Ok(url)
     }
@@ -158,27 +158,27 @@ impl<P: PkcePair> HttpAuthorizationServer<P> {
         received_redirect_uri.as_str().starts_with(self.redirect_uri.as_str())
     }
 
-    fn authorization_code(&self, received_redirect_uri: &Url) -> Result<AuthorizationCode, OidcError> {
+    fn authorization_code(&self, received_redirect_uri: &Url) -> Result<AuthorizationCode, OAuthError> {
         if !self.matches_received_redirect_uri(received_redirect_uri) {
-            return Err(OidcError::RedirectUriMismatch);
+            return Err(OAuthError::RedirectUriMismatch);
         }
 
-        let auth_response = received_redirect_uri.query().ok_or(OidcError::NoAuthCode)?;
+        let auth_response = received_redirect_uri.query().ok_or(OAuthError::NoAuthCode)?;
 
         // First see if we received an error
         if received_redirect_uri.query_pairs().any(|(key, _)| key == "error") {
             let err_response: ErrorResponse<AuthorizationErrorCode> = serde_urlencoded::from_str(auth_response)?;
 
             if err_response.error == AuthorizationErrorCode::AccessDenied {
-                return Err(OidcError::Denied);
+                return Err(OAuthError::Denied);
             } else {
-                return Err(OidcError::RedirectUriError(Box::new(err_response)));
+                return Err(OAuthError::RedirectUriError(Box::new(err_response)));
             }
         }
 
         let auth_response: AuthorizationResponse = serde_urlencoded::from_str(auth_response)?;
         if auth_response.state.as_ref() != Some(&self.state) {
-            return Err(OidcError::StateTokenMismatch);
+            return Err(OAuthError::StateTokenMismatch);
         }
 
         Ok(auth_response.code.into())
@@ -194,7 +194,7 @@ impl<P: PkcePair> HttpAuthorizationServer<P> {
 }
 
 impl<P: PkcePair> AuthorizationServer for HttpAuthorizationServer<P> {
-    fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, OidcError> {
+    fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, OAuthError> {
         let pre_authorized_code = self.authorization_code(received_redirect_uri)?;
 
         let token_request = TokenRequest {
@@ -224,9 +224,9 @@ impl HttpOidcDiscovery {
         client_id: String,
         redirect_uri: Url,
         discovery: &D,
-    ) -> Result<(HttpAuthorizationServer<P>, Url), OidcError>
+    ) -> Result<(HttpAuthorizationServer<P>, Url), OAuthError>
     where
-        D: Discover<AuthorizationServerMetadata, OidcError>,
+        D: Discover<AuthorizationServerMetadata, OAuthError>,
         P: PkcePair,
     {
         let config = discovery.discover(authorization_server).await?;
@@ -247,7 +247,7 @@ impl OidcDiscovery for HttpOidcDiscovery {
         authorization_server: &IssuerIdentifier,
         client_id: String,
         redirect_uri: Url,
-    ) -> Result<(HttpAuthorizationServer, Url), OidcError> {
+    ) -> Result<(HttpAuthorizationServer, Url), OAuthError> {
         let discovery = HttpDiscover::new(self.http_client.clone());
         self.start(authorization_server, client_id, redirect_uri, &discovery)
             .await
@@ -258,13 +258,13 @@ impl OidcDiscovery for HttpOidcDiscovery {
 mockall::mock! {
     #[derive(Debug)]
     pub AuthorizationServer {
-        pub fn token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, OidcError>;
+        pub fn token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, OAuthError>;
     }
 }
 
 #[cfg(any(test, feature = "mock"))]
 impl AuthorizationServer for MockAuthorizationServer {
-    fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, OidcError> {
+    fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, OAuthError> {
         self.token_request(received_redirect_uri)
     }
 }
@@ -278,7 +278,7 @@ mockall::mock! {
             authorization_server: &IssuerIdentifier,
             client_id: String,
             redirect_uri: Url,
-        ) -> Result<(MockAuthorizationServer, Url), OidcError>;
+        ) -> Result<(MockAuthorizationServer, Url), OAuthError>;
     }
 }
 
@@ -291,7 +291,7 @@ impl OidcDiscovery for MockOidcDiscovery {
         authorization_server: &IssuerIdentifier,
         client_id: String,
         redirect_uri: Url,
-    ) -> Result<(MockAuthorizationServer, Url), OidcError> {
+    ) -> Result<(MockAuthorizationServer, Url), OAuthError> {
         self.start_sync(authorization_server, client_id, redirect_uri)
     }
 }
@@ -318,16 +318,16 @@ mod tests {
     use super::HttpJsonClient;
     use super::HttpOidcDiscovery;
     use super::JwkSet;
-    use super::OidcError;
+    use super::OAuthError;
 
     /// A test discoverer that bypasses `IssuerIdentifier` HTTPS requirement by using a `BaseUrl` directly.
     struct TestDiscover(BaseUrl);
 
-    impl Discover<AuthorizationServerMetadata, OidcError> for TestDiscover {
-        async fn discover(&self, _identifier: &IssuerIdentifier) -> Result<AuthorizationServerMetadata, OidcError> {
+    impl Discover<AuthorizationServerMetadata, OAuthError> for TestDiscover {
+        async fn discover(&self, _identifier: &IssuerIdentifier) -> Result<AuthorizationServerMetadata, OAuthError> {
             let client = HttpJsonClient::try_new().unwrap();
             let url = self.0.join("/.well-known/openid-configuration");
-            client.get(url).await.map_err(OidcError::Http)
+            client.get(url).await.map_err(OAuthError::Http)
         }
     }
 
@@ -435,7 +435,7 @@ mod tests {
             )
             .unwrap_err();
 
-        assert_matches!(error, OidcError::Denied);
+        assert_matches!(error, OAuthError::Denied);
     }
 
     fn create_server() -> HttpAuthorizationServer<MockPkcePair> {
@@ -492,7 +492,7 @@ mod tests {
     }
 
     // Helper function for testing `AuthorizationServer::into_token_request()` calls that should result in an error.
-    fn parse_request_uri(uri: &Url) -> OidcError {
+    fn parse_request_uri(uri: &Url) -> OAuthError {
         let server = HttpAuthorizationServer::<MockPkcePair> {
             provider: AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
             jwks: Some(JwkSet { keys: vec![] }),
@@ -514,7 +514,7 @@ mod tests {
         let uri = Url::parse("http://not-the-redirect-uri.com").unwrap();
         let error = parse_request_uri(&uri);
 
-        assert_matches!(error, OidcError::RedirectUriMismatch);
+        assert_matches!(error, OAuthError::RedirectUriMismatch);
     }
 
     #[tokio::test]
@@ -532,7 +532,7 @@ mod tests {
 
         assert_matches!(
             error,
-            OidcError::RedirectUriError(response) if matches!(response.error, AuthorizationErrorCode::InvalidRequest)
+            OAuthError::RedirectUriError(response) if matches!(response.error, AuthorizationErrorCode::InvalidRequest)
                 && response.error_description == Some("this is the error description".to_string()
             )
         );
@@ -548,7 +548,7 @@ mod tests {
 
         let error = parse_request_uri(&uri);
 
-        assert_matches!(error, OidcError::StateTokenMismatch);
+        assert_matches!(error, OAuthError::StateTokenMismatch);
     }
 
     #[tokio::test]
@@ -558,7 +558,7 @@ mod tests {
 
         let error = parse_request_uri(&uri);
 
-        assert_matches!(error, OidcError::UrlDecoding(err) if err.to_string() == "missing field `code`");
+        assert_matches!(error, OAuthError::UrlDecoding(err) if err.to_string() == "missing field `code`");
     }
 
     #[test]

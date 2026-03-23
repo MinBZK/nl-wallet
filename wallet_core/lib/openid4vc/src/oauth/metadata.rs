@@ -15,7 +15,7 @@ use crate::well_known::WellKnownPath;
 use super::Discover;
 use super::HttpDiscover;
 use super::HttpJsonClient;
-use super::OidcError;
+use super::OAuthError;
 
 /// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414),
 /// to be published at `.well-known/oauth-authorization-server`, and a superset of the OpenID Connect
@@ -151,8 +151,8 @@ impl AuthorizationServerMetadata {
 
     /// Get the JWK set from the given Url. Errors are either a reqwest error or an Insecure error if
     /// the url isn't https.
-    pub async fn jwks(&self, http_client: &HttpJsonClient) -> Result<JwkSet, OidcError> {
-        let jwks_uri = self.jwks_uri.clone().ok_or(OidcError::NoJwksUri)?;
+    pub async fn jwks(&self, http_client: &HttpJsonClient) -> Result<JwkSet, OAuthError> {
+        let jwks_uri = self.jwks_uri.clone().ok_or(OAuthError::NoJwksUri)?;
         let jwks = http_client.get(jwks_uri).await?;
 
         Ok(jwks)
@@ -165,8 +165,8 @@ impl WellKnownMetadata for AuthorizationServerMetadata {
     }
 }
 
-impl Discover<AuthorizationServerMetadata, OidcError> for HttpDiscover {
-    async fn discover(&self, identifier: &IssuerIdentifier) -> Result<AuthorizationServerMetadata, OidcError> {
+impl Discover<AuthorizationServerMetadata, OAuthError> for HttpDiscover {
+    async fn discover(&self, identifier: &IssuerIdentifier) -> Result<AuthorizationServerMetadata, OAuthError> {
         well_known::fetch_well_known(self.as_ref(), identifier, WellKnownPath::OpenidConfiguration)
             .await
             .map_err(Into::into)

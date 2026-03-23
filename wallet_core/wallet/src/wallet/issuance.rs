@@ -15,8 +15,8 @@ use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
-use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls;
 use jwt::error::JwtError;
@@ -28,7 +28,7 @@ use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
-use openid4vc::oauth::OidcError;
+use openid4vc::oauth::OAuthError;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::well_known::WellKnownError;
 use platform_support::attested_key::AppleAttestedKey;
@@ -58,8 +58,8 @@ use crate::instruction::InstructionClientParameters;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
-use crate::oidc_session::build_oidc_session;
 use crate::oidc_session::OidcSessionError;
+use crate::oidc_session::build_oidc_session;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -67,10 +67,10 @@ use crate::storage::StorageError;
 use crate::storage::StoredAttestationCopy;
 use crate::storage::TransferData;
 use crate::transfer::TransferSessionId;
+use crate::wallet::Session;
 use crate::wallet::attestations::AttestationsError;
 use crate::wallet::notifications::NotificationsError;
 use crate::wallet::recovery_code::RecoveryCodeError;
-use crate::wallet::Session;
 
 use super::Wallet;
 
@@ -196,7 +196,7 @@ pub enum IssuanceError {
 
 impl From<OidcSessionError> for IssuanceError {
     fn from(error: OidcSessionError) -> Self {
-        if matches!(error, OidcSessionError::Oidc(OidcError::Denied)) {
+        if matches!(error, OidcSessionError::Oidc(OAuthError::Denied)) {
             IssuanceError::DeniedDigiD
         } else {
             IssuanceError::OidcSessionFinish(error)
@@ -800,12 +800,12 @@ mod tests {
     use attestation_data::x509::CertificateType;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::server_keys::generate::Ca;
+    use openid4vc::Format;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockCredentialIssuer;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::oauth::AuthorizationServerMetadata;
     use openid4vc::oauth::HttpAuthorizationServer;
-    use openid4vc::Format;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
@@ -815,6 +815,7 @@ mod tests {
     use wallet_account::messages::instructions::Instruction;
     use wallet_configuration::wallet_config::PidAttributePaths;
 
+    use crate::WalletEvent;
     use crate::attestation::AttestationAttributeValue;
     use crate::oidc_session::OidcSession;
     use crate::storage::ChangePinData;
@@ -822,6 +823,7 @@ mod tests {
     use crate::storage::RegistrationData;
     use crate::storage::StorageState;
     use crate::storage::StoredAttestation;
+    use crate::wallet::test::AUTH_URL;
     use crate::wallet::test::create_example_credential_payload;
     use crate::wallet::test::create_example_pid_credential_payload;
     use crate::wallet::test::create_example_pid_preview_data;
@@ -830,8 +832,6 @@ mod tests {
     use crate::wallet::test::create_real_oidc_session;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::mock_issuance_session;
-    use crate::wallet::test::AUTH_URL;
-    use crate::WalletEvent;
 
     use super::super::test;
     use super::super::test::TestWalletMockStorage;

@@ -5,7 +5,7 @@ use error_category::ErrorCategory;
 use openid4vc::oauth::AuthorizationServer;
 use openid4vc::oauth::AuthorizationServerMetadata;
 use openid4vc::oauth::HttpAuthorizationServer;
-use openid4vc::oauth::OidcError;
+use openid4vc::oauth::OAuthError;
 use openid4vc::token::TokenRequest;
 use openid4vc::well_known::WellKnownError;
 
@@ -17,7 +17,7 @@ pub enum OidcSessionError {
     Http(#[from] reqwest::Error),
 
     #[error("OIDC error: {0}")]
-    Oidc(#[from] OidcError),
+    Oidc(#[from] OAuthError),
 
     #[error("issuer metadata error: {0}")]
     #[category(expected)]

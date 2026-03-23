@@ -7,8 +7,8 @@ use tracing::info;
 use tracing::instrument;
 use url::Url;
 
-use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use error_category::sentry_capture_error;
 use http_utils::urls;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::CredentialIssuer;
@@ -16,7 +16,7 @@ use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::oauth::HttpAuthorizationServer;
-use openid4vc::oauth::OidcError;
+use openid4vc::oauth::OAuthError;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
@@ -33,23 +33,23 @@ use crate::instruction::InstructionClient;
 use crate::instruction::InstructionClientParameters;
 use crate::instruction::PinRecoveryRemoteEcdsaWscd;
 use crate::instruction::PinRecoveryWscd;
-use crate::oidc_session::build_oidc_session;
 use crate::oidc_session::OidcSession;
 use crate::oidc_session::OidcSessionError;
-use crate::pin::key::new_pin_salt;
+use crate::oidc_session::build_oidc_session;
 use crate::pin::key::PinKey;
+use crate::pin::key::new_pin_salt;
 use crate::repository::Repository;
 use crate::storage::PinRecoveryData;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::validate_pin;
 
-use super::issuance::PidAttestationFormat;
-use super::recovery_code::RecoveryCodeError;
 use super::IssuanceError;
 use super::Session;
 use super::Wallet;
 use super::WalletRegistration;
+use super::issuance::PidAttestationFormat;
+use super::recovery_code::RecoveryCodeError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -105,7 +105,7 @@ pub enum PinRecoveryError {
 
 impl From<OidcSessionError> for PinRecoveryError {
     fn from(error: OidcSessionError) -> Self {
-        if matches!(error, OidcSessionError::Oidc(OidcError::Denied)) {
+        if matches!(error, OidcSessionError::Oidc(OAuthError::Denied)) {
             PinRecoveryError::DeniedDigiD
         } else {
             PinRecoveryError::Issuance(IssuanceError::OidcSessionFinish(error))
@@ -496,11 +496,11 @@ mod tests {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use jwt::UnverifiedJwt;
+    use openid4vc::Format;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockCredentialIssuer;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::oauth::AuthorizationServerMetadata;
-    use openid4vc::Format;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
@@ -508,8 +508,8 @@ mod tests {
     use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::registration::WalletCertificateClaims;
-    use wscd::wscd::IssuanceWscd;
     use wscd::Poa;
+    use wscd::wscd::IssuanceWscd;
 
     use crate::errors::PinValidationError;
     use crate::instruction::PinRecoveryWscd;
@@ -520,17 +520,17 @@ mod tests {
     use crate::storage::RegistrationData;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
+    use crate::wallet::PinRecoverySession;
+    use crate::wallet::Session;
     use crate::wallet::recovery_code::RecoveryCodeError;
+    use crate::wallet::test::AUTH_URL;
+    use crate::wallet::test::TestWalletMockStorage;
+    use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::create_example_pid_preview_data;
     use crate::wallet::test::create_example_pid_sd_jwt;
     use crate::wallet::test::create_real_oidc_session;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::mock_issuance_session;
-    use crate::wallet::test::TestWalletMockStorage;
-    use crate::wallet::test::WalletDeviceVendor;
-    use crate::wallet::test::AUTH_URL;
-    use crate::wallet::PinRecoverySession;
-    use crate::wallet::Session;
 
     use super::PinRecoveryError;
 
