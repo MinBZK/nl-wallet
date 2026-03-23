@@ -3,7 +3,7 @@ default:
   image: "${HARBOR_REGISTRY}/docker-hub-proxy/alpine/k8s:${K8S_IMAGE_VERSION}"
 
 variables:
-  HELM_CHARTS_PATH: deploy/kubernetes/helm-charts
+  HELM_CHARTS_PATH: deploy/helm-charts
 
 .deploy-base:
   rules:
