@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
-use josekit::JoseError;
-use josekit::jwk::KeyPair;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
+use josekit::jwk::KeyPair;
+use josekit::JoseError;
 use tempfile::NamedTempFile;
 use tracing::info;
 use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
-use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
+use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::CredentialIssuerDiscovery;
 
@@ -30,7 +30,6 @@ use wallet_account::messages::instructions::SendWalletPayload;
 use wallet_account::messages::transfer::TransferSessionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
-use crate::Wallet;
 use crate::account_provider::AccountProviderClient;
 use crate::errors::ChangePinError;
 use crate::errors::InstructionError;
@@ -45,10 +44,11 @@ use crate::transfer::database_payload::DatabasePayloadError;
 use crate::transfer::database_payload::WalletDatabasePayload;
 use crate::transfer::uri::TransferQuery;
 use crate::transfer::uri::TransferUriError;
-use crate::wallet::HistoryError;
-use crate::wallet::WalletRegistration;
 use crate::wallet::attestations::AttestationsError;
 use crate::wallet::notifications::NotificationsError;
+use crate::wallet::HistoryError;
+use crate::wallet::WalletRegistration;
+use crate::Wallet;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -474,25 +474,25 @@ mod tests {
     use uuid::Uuid;
 
     use crypto::utils::random_bytes;
-    use openid4vc::oidc::AuthorizationServerMetadata;
-    use openid4vc::oidc::HttpAuthorizationServer;
+    use openid4vc::oauth::AuthorizationServerMetadata;
+    use openid4vc::oauth::HttpAuthorizationServer;
     use wallet_account::messages::errors::AccountError;
     use wallet_account::messages::instructions::HwSignedInstruction;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::instructions::ReceiveWalletPayloadResult;
 
-    use crate::PidIssuancePurpose;
     use crate::account_provider::AccountProviderError;
     use crate::account_provider::AccountProviderResponseError;
-    use crate::oidc_session::OidcSession;
     use crate::oidc_session::build_oidc_session;
+    use crate::oidc_session::OidcSession;
+    use crate::storage::test::SqlCipherKey;
     use crate::storage::ChangePinData;
     use crate::storage::DatabaseExport;
     use crate::storage::InstructionData;
-    use crate::storage::test::SqlCipherKey;
-    use crate::wallet::Session;
-    use crate::wallet::test::AUTH_URL;
     use crate::wallet::test::create_wp_result;
+    use crate::wallet::test::AUTH_URL;
+    use crate::wallet::Session;
+    use crate::PidIssuancePurpose;
 
     use super::super::test::TestWalletInMemoryStorage;
     use super::super::test::TestWalletMockStorage;

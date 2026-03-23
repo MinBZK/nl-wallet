@@ -2,10 +2,10 @@ use tracing::info;
 use url::Url;
 
 use error_category::ErrorCategory;
-use openid4vc::oidc::AuthorizationServer;
-use openid4vc::oidc::AuthorizationServerMetadata;
-use openid4vc::oidc::HttpAuthorizationServer;
-use openid4vc::oidc::OidcError;
+use openid4vc::oauth::AuthorizationServer;
+use openid4vc::oauth::AuthorizationServerMetadata;
+use openid4vc::oauth::HttpAuthorizationServer;
+use openid4vc::oauth::OidcError;
 use openid4vc::token::TokenRequest;
 use openid4vc::well_known::WellKnownError;
 
@@ -55,7 +55,7 @@ pub fn build_oidc_session(
 
 #[cfg(test)]
 mod test {
-    use openid4vc::oidc::MockAuthorizationServer;
+    use openid4vc::oauth::MockAuthorizationServer;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
 

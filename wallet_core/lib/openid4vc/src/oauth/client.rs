@@ -1,25 +1,21 @@
-pub use josekit::JoseError;
-pub use josekit::jwe::JweContentEncryption;
-pub use josekit::jwe::JweDecrypter;
 pub use josekit::jwe::alg;
 pub use josekit::jwe::enc;
-pub use jsonwebtoken::Algorithm;
+pub use josekit::jwe::JweContentEncryption;
+pub use josekit::jwe::JweDecrypter;
+pub use josekit::JoseError;
 pub use jsonwebtoken::jwk::JwkSet;
+pub use jsonwebtoken::Algorithm;
 
 use base64::prelude::*;
 use error_category::ErrorCategory;
-use futures::TryFutureExt;
 use futures::try_join;
+use futures::TryFutureExt;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::Validation;
 use reqwest::header;
 use serde::de::DeserializeOwned;
 use url::Url;
 
-use crate::AuthBearerErrorCode;
-use crate::AuthorizationErrorCode;
-use crate::ErrorResponse;
-use crate::TokenErrorCode;
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::AuthorizationResponse;
 use crate::authorization::PkceCodeChallenge;
@@ -33,6 +29,10 @@ use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
 use crate::well_known;
 use crate::well_known::WellKnownError;
+use crate::AuthBearerErrorCode;
+use crate::AuthorizationErrorCode;
+use crate::ErrorResponse;
+use crate::TokenErrorCode;
 
 use super::AuthorizationServerMetadata;
 use super::Discover;
@@ -160,7 +160,12 @@ pub struct HttpAuthorizationServer<P = S256PkcePair> {
 }
 
 impl<P: PkcePair> HttpAuthorizationServer<P> {
-    pub fn new(config: AuthorizationServerMetadata, jwks: Option<JwkSet>, client_id: String, redirect_uri: Url) -> Self {
+    pub fn new(
+        config: AuthorizationServerMetadata,
+        jwks: Option<JwkSet>,
+        client_id: String,
+        redirect_uri: Url,
+    ) -> Self {
         Self {
             provider: config,
             jwks,
@@ -465,14 +470,14 @@ mod tests {
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
-    use josekit::jwe::ECDH_ES_A256KW;
-    use josekit::jwe::JweHeader;
     use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
     use josekit::jwe::enc::aescbc_hmac::AescbcHmacJweEncryption;
-    use josekit::jwk::Jwk;
-    use josekit::jwk::KeyPair;
+    use josekit::jwe::JweHeader;
+    use josekit::jwe::ECDH_ES_A256KW;
     use josekit::jwk::alg::ec::EcCurve;
     use josekit::jwk::alg::ec::EcKeyPair;
+    use josekit::jwk::Jwk;
+    use josekit::jwk::KeyPair;
     use jsonwebtoken::Algorithm;
     use jsonwebtoken::EncodingKey;
     use jsonwebtoken::Header;
@@ -483,22 +488,22 @@ mod tests {
 
     use http_utils::urls::BaseUrl;
 
-    use crate::AuthorizationErrorCode;
     use crate::issuer_identifier::IssuerIdentifier;
-    use crate::oidc::Discover;
-    use crate::oidc::tests::start_discovery_server;
+    use crate::oauth::tests::start_discovery_server;
+    use crate::oauth::Discover;
     use crate::pkce::MockPkcePair;
     use crate::token::TokenRequestGrantType;
+    use crate::AuthorizationErrorCode;
 
+    use super::decrypt_jwe;
+    use super::verify_against_keys;
     use super::AuthorizationServer;
     use super::AuthorizationServerMetadata;
     use super::HttpAuthorizationServer;
+    use super::HttpJsonClient;
     use super::HttpOidcDiscovery;
     use super::JwkSet;
     use super::OidcError;
-    use super::HttpJsonClient;
-    use super::decrypt_jwe;
-    use super::verify_against_keys;
 
     /// A test discoverer that bypasses `IssuerIdentifier` HTTPS requirement by using a `BaseUrl` directly.
     struct TestDiscover(BaseUrl);

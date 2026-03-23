@@ -70,7 +70,7 @@ use crate::issuer_metadata::IssuerMetadata;
 use crate::issuer_metadata::ProofType;
 use crate::nonce::store::NonceStore;
 use crate::nonce::store::NonceStoreError;
-use crate::oidc::AuthorizationServerMetadata;
+use crate::oauth::AuthorizationServerMetadata;
 use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
 use crate::server_state::CLEANUP_INTERVAL_SECONDS;
@@ -823,10 +823,13 @@ where
 
     pub fn oauth_metadata(&self) -> AuthorizationServerMetadata {
         let issuer_url = self.issuer_data.metadata.credential_issuer.as_base_url();
-        AuthorizationServerMetadata::new(
-            self.issuer_data.metadata.credential_issuer.clone(),
-            issuer_url.join("issuance/token"),
-        )
+        AuthorizationServerMetadata {
+            authorization_endpoint: Some(issuer_url.join("authorize")),
+            ..AuthorizationServerMetadata::new(
+                self.issuer_data.metadata.credential_issuer.clone(),
+                issuer_url.join("issuance/token"),
+            )
+        }
     }
 }
 

@@ -2,7 +2,7 @@ use serde::de::DeserializeOwned;
 use url::Url;
 
 use crate::issuer_identifier::IssuerIdentifier;
-use crate::oidc::HttpJsonClient;
+use crate::oauth::HttpJsonClient;
 
 pub enum WellKnownPath {
     CredentialIssuer,

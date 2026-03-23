@@ -20,7 +20,7 @@ use crate::issuer_metadata::CredentialConfiguration;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::issuer_metadata::NonZeroOrOneU64;
 use crate::issuer_metadata::ProofType;
-use crate::oidc::AuthorizationServerMetadata;
+use crate::oauth::AuthorizationServerMetadata;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 

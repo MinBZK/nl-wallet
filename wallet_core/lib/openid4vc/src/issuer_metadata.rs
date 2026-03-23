@@ -7,9 +7,9 @@ use itertools::Itertools;
 use josekit::jwk::Jwk;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::MapPreventDuplicates;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
+use serde_with::MapPreventDuplicates;
 use url::Url;
 
 use attestation_types::claim_path::ClaimPath;
@@ -27,8 +27,8 @@ use crate::issuer_identifier::IssuerUrl;
 use crate::jwe::JweAlgorithm;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
-use crate::oidc::Discover;
-use crate::oidc::HttpDiscover;
+use crate::oauth::Discover;
+use crate::oauth::HttpDiscover;
 use crate::well_known;
 use crate::well_known::WellKnownError;
 use crate::well_known::WellKnownMetadata;
@@ -908,46 +908,36 @@ mod tests {
             .expect("IssuerMetadata should contain CredentialRequestEncryption");
         assert_eq!(request_encryption.jwks.len().get(), 1);
         assert_eq!(request_encryption.jwks.first().curve(), Some("P-256"));
-        assert!(
-            request_encryption
-                .enc_values_supported
-                .iter()
-                .eq(&[JweEncryptionAlgorithm::A128Gcm])
-        );
-        assert!(
-            request_encryption
-                .zip_values_supported
-                .as_ref()
-                .map(|values| values.iter())
-                .unwrap_or_default()
-                .eq(&[JweCompressionAlgorithm::Deflate])
-        );
+        assert!(request_encryption
+            .enc_values_supported
+            .iter()
+            .eq(&[JweEncryptionAlgorithm::A128Gcm]));
+        assert!(request_encryption
+            .zip_values_supported
+            .as_ref()
+            .map(|values| values.iter())
+            .unwrap_or_default()
+            .eq(&[JweCompressionAlgorithm::Deflate]));
         assert!(request_encryption.encryption_required);
 
         let response_encryption = metadata
             .credential_response_encryption
             .as_ref()
             .expect("IssuerMetadata should contain CredentialResponseEncryption");
-        assert!(
-            response_encryption
-                .alg_values_supported
-                .iter()
-                .eq(&[JweAlgorithm::EcdhEs])
-        );
-        assert!(
-            response_encryption
-                .enc_values_supported
-                .iter()
-                .eq(&[JweEncryptionAlgorithm::A128Gcm])
-        );
-        assert!(
-            response_encryption
-                .zip_values_supported
-                .as_ref()
-                .map(|values| values.iter())
-                .unwrap_or_default()
-                .eq(&[JweCompressionAlgorithm::Deflate])
-        );
+        assert!(response_encryption
+            .alg_values_supported
+            .iter()
+            .eq(&[JweAlgorithm::EcdhEs]));
+        assert!(response_encryption
+            .enc_values_supported
+            .iter()
+            .eq(&[JweEncryptionAlgorithm::A128Gcm]));
+        assert!(response_encryption
+            .zip_values_supported
+            .as_ref()
+            .map(|values| values.iter())
+            .unwrap_or_default()
+            .eq(&[JweCompressionAlgorithm::Deflate]));
         assert!(response_encryption.encryption_required);
 
         assert_eq!(metadata.batch_size().get(), 10);
@@ -959,27 +949,23 @@ mod tests {
                 .unwrap_or_default(),
             2
         );
-        assert!(
-            metadata
-                .display
-                .as_ref()
-                .map(|display| display.iter())
-                .unwrap_or_default()
-                .map(|display| display.name_locale.locale.as_deref())
-                .eq([Some("en-US"), Some("fr-FR")])
-        );
-        assert!(
-            metadata
-                .display
-                .as_ref()
-                .map(|display| display.iter())
-                .unwrap_or_default()
-                .map(|display| display.logo.as_ref().map(|logo| logo.uri.as_str()))
-                .eq([
-                    Some("https://university.example.edu/public/logo.png"),
-                    Some("https://university.example.edu/public/logo.png")
-                ])
-        );
+        assert!(metadata
+            .display
+            .as_ref()
+            .map(|display| display.iter())
+            .unwrap_or_default()
+            .map(|display| display.name_locale.locale.as_deref())
+            .eq([Some("en-US"), Some("fr-FR")]));
+        assert!(metadata
+            .display
+            .as_ref()
+            .map(|display| display.iter())
+            .unwrap_or_default()
+            .map(|display| display.logo.as_ref().map(|logo| logo.uri.as_str()))
+            .eq([
+                Some("https://university.example.edu/public/logo.png"),
+                Some("https://university.example.edu/public/logo.png")
+            ]));
 
         assert_eq!(metadata.credential_configurations_supported.len(), 1);
         let (config_id, config) = metadata.credential_configurations_supported.iter().next().unwrap();
@@ -1003,26 +989,22 @@ mod tests {
             .cryptographic_binding
             .as_ref()
             .expect("CredentialConfiguration should contain CryptographicBinding");
-        assert!(
-            binding
-                .cryptographic_binding_methods_supported
-                .iter()
-                .eq(&[CryptographicBindingMethod::Jwk])
-        );
+        assert!(binding
+            .cryptographic_binding_methods_supported
+            .iter()
+            .eq(&[CryptographicBindingMethod::Jwk]));
 
         let credential_metadata = config
             .credential_metadata
             .as_ref()
             .expect("CredentialConfiguration should contain CredentialMetadata");
-        assert!(
-            credential_metadata
-                .display
-                .as_ref()
-                .map(|display| display.iter())
-                .unwrap_or_default()
-                .map(|display| display.name_locale.name.as_deref())
-                .eq([Some("IdentityCredential")])
-        );
+        assert!(credential_metadata
+            .display
+            .as_ref()
+            .map(|display| display.iter())
+            .unwrap_or_default()
+            .map(|display| display.name_locale.name.as_deref())
+            .eq([Some("IdentityCredential")]));
         assert_eq!(
             credential_metadata
                 .claims
@@ -1145,15 +1127,13 @@ mod tests {
             .credential_metadata
             .as_ref()
             .expect("CredentialConfiguration should contain CredentialMetadata");
-        assert!(
-            credential_metadata
-                .display
-                .as_ref()
-                .map(|display| display.iter())
-                .unwrap_or_default()
-                .map(|display| (display.background_color.as_deref(), display.text_color.as_deref()))
-                .eq([(Some("#12107c"), Some("#FFFFFF")), (Some("#12107c"), Some("#FFFFFF"))])
-        );
+        assert!(credential_metadata
+            .display
+            .as_ref()
+            .map(|display| display.iter())
+            .unwrap_or_default()
+            .map(|display| (display.background_color.as_deref(), display.text_color.as_deref()))
+            .eq([(Some("#12107c"), Some("#FFFFFF")), (Some("#12107c"), Some("#FFFFFF"))]));
         assert_eq!(
             credential_metadata
                 .claims
@@ -1250,13 +1230,11 @@ mod tests {
         let (_, credential_config) = credential_configs.iter().next().unwrap();
 
         assert_matches!(&credential_config.format, CredentialFormat::Other { format } if format == "jwt_vc_json");
-        assert!(
-            credential_config
-                .cryptographic_binding
-                .as_ref()
-                .map(|binding| binding.cryptographic_binding_methods_supported.iter())
-                .unwrap_or_default()
-                .eq(&[CryptographicBindingMethod::Other("did:example".to_string())])
-        );
+        assert!(credential_config
+            .cryptographic_binding
+            .as_ref()
+            .map(|binding| binding.cryptographic_binding_methods_supported.iter())
+            .unwrap_or_default()
+            .eq(&[CryptographicBindingMethod::Other("did:example".to_string())]));
     }
 }

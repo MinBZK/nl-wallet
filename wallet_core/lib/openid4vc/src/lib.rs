@@ -30,7 +30,7 @@ pub mod errors;
 pub use errors::*;
 
 pub mod nonce;
-pub mod oidc;
+pub mod oauth;
 pub mod server_state;
 pub mod well_known;
 

@@ -11,7 +11,7 @@ pub mod openid4vc {
     pub use openid4vc::errors::AuthorizationErrorCode;
     pub use openid4vc::errors::ErrorResponse;
     pub use openid4vc::issuance_session::IssuanceSessionError;
-    pub use openid4vc::oidc::OidcError;
+    pub use openid4vc::oauth::OidcError;
 }
 
 pub use crate::account_provider::AccountProviderError;

@@ -13,9 +13,9 @@ use crate::well_known::WellKnownPath;
 
 use super::Discover;
 use super::HttpDiscover;
+use super::HttpJsonClient;
 use super::JwkSet;
 use super::OidcError;
-use super::HttpJsonClient;
 
 /// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414),
 /// to be published at `.well-known/oauth-authorization-server`, and a superset of the OpenID Connect
@@ -180,11 +180,11 @@ const fn bool_value<const B: bool>() -> bool {
 #[cfg(test)]
 pub mod tests {
     use serde_json::json;
+    use wiremock::matchers::method;
+    use wiremock::matchers::path;
     use wiremock::Mock;
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
-    use wiremock::matchers::method;
-    use wiremock::matchers::path;
 
     use http_utils::urls::BaseUrl;
 

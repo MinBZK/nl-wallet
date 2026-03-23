@@ -36,7 +36,7 @@ use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::CredentialIssuer;
 use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
-use openid4vc::oidc::HttpAuthorizationServer;
+use openid4vc::oauth::HttpAuthorizationServer;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::hardware::HardwareCloseProximityDisclosureClient;

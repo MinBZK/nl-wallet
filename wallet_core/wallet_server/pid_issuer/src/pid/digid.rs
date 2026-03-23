@@ -3,15 +3,15 @@ use serde::Serialize;
 
 use http_utils::client::TlsPinningConfig;
 use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::oidc;
-use openid4vc::oidc::Algorithm;
-use openid4vc::oidc::AuthorizationServerMetadata;
-use openid4vc::oidc::JoseError;
-use openid4vc::oidc::OidcError;
-use openid4vc::oidc::HttpJsonClient;
-use openid4vc::oidc::alg::rsaes::RsaesJweAlgorithm;
-use openid4vc::oidc::alg::rsaes::RsaesJweDecrypter;
-use openid4vc::oidc::enc::aescbc_hmac::AescbcHmacJweEncryption;
+use openid4vc::oauth as oidc;
+use openid4vc::oauth::alg::rsaes::RsaesJweAlgorithm;
+use openid4vc::oauth::alg::rsaes::RsaesJweDecrypter;
+use openid4vc::oauth::enc::aescbc_hmac::AescbcHmacJweEncryption;
+use openid4vc::oauth::Algorithm;
+use openid4vc::oauth::AuthorizationServerMetadata;
+use openid4vc::oauth::HttpJsonClient;
+use openid4vc::oauth::JoseError;
+use openid4vc::oauth::OidcError;
 use openid4vc::token::TokenRequest;
 use openid4vc::well_known;
 

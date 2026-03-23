@@ -20,14 +20,12 @@ use axum_extra::headers::CacheControl;
 use axum_extra::headers::Header;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::authorization::Credentials;
-use serde::Serialize;
 use tracing::warn;
 
 use crypto::keys::EcdsaKeySend;
 use openid4vc::CredentialErrorCode;
 use openid4vc::CredentialPreviewErrorCode;
 use openid4vc::ErrorResponse;
-use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
@@ -42,7 +40,7 @@ use openid4vc::issuer::Issuer;
 use openid4vc::issuer_metadata::IssuerMetadata;
 use openid4vc::nonce::response::NonceResponse;
 use openid4vc::nonce::store::NonceStore;
-use openid4vc::oidc::AuthorizationServerMetadata;
+use openid4vc::oauth::AuthorizationServerMetadata;
 use openid4vc::preview::CredentialPreviewRequest;
 use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::SessionStore;
@@ -100,14 +98,14 @@ where
 // for consistency with the other endpoints.
 async fn oauth_metadata<K, A, S, N, L>(
     State(state): State<ApplicationState<K, A, S, N, L>>,
-) -> Result<Json<AuthorizationServerMetadata>, ErrorResponse<MetadataError>>
+) -> Json<AuthorizationServerMetadata>
 where
     K: EcdsaKeySend,
     A: AttributeService,
     S: SessionStore<IssuanceData>,
     L: StatusListServices,
 {
-    Ok(Json(state.issuer.oauth_metadata()))
+    Json(state.issuer.oauth_metadata())
 }
 
 async fn metadata<K, A, S, N, L>(State(state): State<ApplicationState<K, A, S, N, L>>) -> Json<IssuerMetadata> {
@@ -305,17 +303,5 @@ impl Credentials for DpopBearer {
 
     fn encode(&self) -> HeaderValue {
         HeaderValue::from_str(&(DPOP_HEADER_NAME.to_string() + " " + &self.0)).unwrap()
-    }
-}
-
-#[derive(Serialize, Debug, Clone)]
-#[serde(rename_all = "snake_case")]
-enum MetadataError {
-    Metadata,
-}
-
-impl ErrorStatusCode for MetadataError {
-    fn status_code(&self) -> StatusCode {
-        StatusCode::INTERNAL_SERVER_ERROR
     }
 }

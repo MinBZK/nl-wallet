@@ -11,7 +11,7 @@ use openid4vc::issuance_session::CredentialIssuer;
 use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
 use openid4vc::issuance_session::IssuanceSession;
-use openid4vc::oidc::HttpJsonClient;
+use openid4vc::oauth::HttpJsonClient;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
 use server_utils::keys::SecretKeyVariant;
