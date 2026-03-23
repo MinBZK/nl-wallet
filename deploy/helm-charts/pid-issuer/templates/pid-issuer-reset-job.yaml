@@ -31,6 +31,7 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          serviceAccountName: {{ .Values.serviceAccountName }}
           containers:
             - name: {{ .Values.nameOverride | default .Chart.Name }}-migrations
               image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageMigrations.repository }}:{{ .Values.image.tag }}"

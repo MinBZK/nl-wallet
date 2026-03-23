@@ -31,11 +31,11 @@ spec:
           imagePullSecrets:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          serviceAccountName: {{ .Values.serviceAccountName }}
           {{- with .Values.podSecurityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          serviceAccountName: {{ .Values.serviceAccountName }}
           containers:
             - name: {{ .Values.gbaEncryptTestData.name }}
               image: {{ .Values.global.imageRegistry }}/{{ .Values.imagePreload.repository }}:{{ .Values.image.tag }}
