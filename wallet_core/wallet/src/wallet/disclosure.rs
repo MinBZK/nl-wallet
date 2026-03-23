@@ -997,6 +997,8 @@ mod tests {
     use std::sync::atomic::Ordering;
 
     use assert_matches::assert_matches;
+    use dcql::normalized::MdocAttributeRequest;
+    use dcql::normalized::SdJwtAttributeRequest;
     use indexmap::IndexMap;
     use itertools::Itertools;
     use mockall::predicate::always;
@@ -1007,6 +1009,7 @@ mod tests {
     use rstest::rstest;
     use serde::de::Error;
     use url::Url;
+    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
     use uuid::Uuid;
 
@@ -1031,6 +1034,7 @@ mod tests {
     use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
     use crypto::server_keys::generate::Ca;
     use dcql::CredentialFormat;
+    use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
     use http_utils::urls;
@@ -1061,6 +1065,8 @@ mod tests {
     use utils::generator::mock::MockTimeGenerator;
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
+    use wallet_configuration::wallet_config::PidAttributePaths;
+    use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
@@ -1088,6 +1094,7 @@ mod tests {
     use super::RedirectUriPurpose;
     use super::WalletDisclosureAttestations;
     use super::WalletDisclosureSession;
+    use super::is_request_for_recovery_code;
 
     static DISCLOSURE_URI: LazyLock<Url> =
         LazyLock::new(|| urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy?foo=bar"));
@@ -3183,5 +3190,88 @@ mod tests {
                 InstructionError::AccountRevoked(data),
             )))),
         )))
+    }
+
+    fn setup_pid_attributes_config() -> PidAttributesConfiguration {
+        PidAttributesConfiguration {
+            mso_mdoc: HashMap::from([(
+                PID_ATTESTATION_TYPE.to_owned(),
+                PidAttributePaths {
+                    login: vec_nonempty!["login".to_owned()],
+                    recovery_code: vec_nonempty![PID_ATTESTATION_TYPE.to_owned(), PID_RECOVERY_CODE.to_owned()],
+                },
+            )]),
+            sd_jwt: HashMap::from([(
+                PID_ATTESTATION_TYPE.to_owned(),
+                PidAttributePaths {
+                    login: vec_nonempty!["login".to_owned()],
+                    recovery_code: vec_nonempty![PID_RECOVERY_CODE.to_owned()],
+                },
+            )]),
+        }
+    }
+
+    #[rstest]
+    #[case::mdoc_reco(
+        CredentialFormat::MsoMdoc,
+        PID_ATTESTATION_TYPE,
+        vec_nonempty![ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_owned()), ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())],
+        true,
+    )]
+    #[case::mdoc_not_reco(
+        CredentialFormat::MsoMdoc,
+        PID_ATTESTATION_TYPE,
+        vec_nonempty![ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_owned()), ClaimPath::SelectByKey(PID_FAMILY_NAME.to_owned())],
+        false,
+    )]
+    #[case::mdoc_unknown(
+        CredentialFormat::MsoMdoc,
+        "unknown_doctype",
+        vec_nonempty![ClaimPath::SelectByKey("unknown_doctype".to_owned()), ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())],
+        false,
+    )]
+    #[case::sdjwt_reco(
+        CredentialFormat::SdJwt,
+        PID_ATTESTATION_TYPE,
+        vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())],
+        true,
+    )]
+    #[case::sdjwt_not_reco(
+        CredentialFormat::SdJwt,
+        PID_ATTESTATION_TYPE,
+        vec_nonempty![ClaimPath::SelectByKey(PID_FAMILY_NAME.to_owned())],
+        false,
+    )]
+    #[case::sdjwt_unknown(
+        CredentialFormat::SdJwt,
+        "unknown_vct",
+        vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())],
+        false,
+    )]
+    fn test_is_request_for_recovery_code(
+        #[case] format: CredentialFormat,
+        #[case] credential_type: &str,
+        #[case] path: VecNonEmpty<ClaimPath>,
+        #[case] expected: bool,
+    ) {
+        let pid_attributes = setup_pid_attributes_config();
+
+        let request = match format {
+            CredentialFormat::MsoMdoc => NormalizedCredentialRequest::MsoMdoc {
+                id: "identifier".try_into().unwrap(),
+                doctype_value: credential_type.to_owned(),
+                claims: vec_nonempty![MdocAttributeRequest {
+                    path,
+                    intent_to_retain: Some(false),
+                }],
+            },
+            CredentialFormat::SdJwt => NormalizedCredentialRequest::SdJwt {
+                id: "identifier".try_into().unwrap(),
+                vct_values: vec_nonempty![credential_type.to_owned()],
+                claims: vec_nonempty![SdJwtAttributeRequest { path }],
+            },
+        };
+
+        assert_eq!(is_request_for_recovery_code(request, &pid_attributes), expected);
     }
 }
