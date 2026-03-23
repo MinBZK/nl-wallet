@@ -1131,6 +1131,51 @@ where
 
         Ok(())
     }
+
+    async fn fetch_key_identifiers_by_attestation_id(&self, attestation_id: Uuid) -> StorageResult<Vec<String>> {
+        let key_identifiers = attestation_copy::Entity::find()
+            .select_only()
+            .column(attestation_copy::Column::KeyIdentifier)
+            .filter(attestation_copy::Column::AttestationId.eq(attestation_id))
+            .into_tuple()
+            .all(self.database()?.connection())
+            .await?;
+
+        Ok(key_identifiers)
+    }
+
+    async fn delete_attestation(&mut self, attestation_id: Uuid) -> StorageResult<()> {
+        let tx = self.database()?.connection().begin().await?;
+
+        attestation_copy::Entity::delete_many()
+            .filter(attestation_copy::Column::AttestationId.eq(attestation_id))
+            .exec(&tx)
+            .await?;
+
+        issuance_event_attestation::Entity::update_many()
+            .col_expr(
+                issuance_event_attestation::Column::AttestationId,
+                Expr::value(Option::<Uuid>::None),
+            )
+            .filter(issuance_event_attestation::Column::AttestationId.eq(attestation_id))
+            .exec(&tx)
+            .await?;
+
+        disclosure_event_attestation::Entity::update_many()
+            .col_expr(
+                disclosure_event_attestation::Column::AttestationId,
+                Expr::value(Option::<Uuid>::None),
+            )
+            .filter(disclosure_event_attestation::Column::AttestationId.eq(attestation_id))
+            .exec(&tx)
+            .await?;
+
+        attestation::Entity::delete_by_id(attestation_id).exec(&tx).await?;
+
+        tx.commit().await?;
+
+        Ok(())
+    }
 }
 
 fn create_attestation_copy_models(

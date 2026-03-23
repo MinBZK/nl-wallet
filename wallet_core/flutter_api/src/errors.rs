@@ -10,6 +10,7 @@ use wallet::AccountRevokedData;
 use wallet::attestation_data::LocalizedStrings;
 use wallet::errors::AccountProviderError;
 use wallet::errors::ChangePinError;
+use wallet::errors::DeleteCardError;
 use wallet::errors::DigidError;
 use wallet::errors::DisclosureBasedIssuanceError;
 use wallet::errors::DisclosureError;
@@ -151,6 +152,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .or_else(|e| e.downcast::<PinRecoveryError>().map(Self::from))
             .or_else(|e| e.downcast::<TransferError>().map(Self::from))
             .or_else(|e| e.downcast::<RevocationCodeError>().map(Self::from))
+            .or_else(|e| e.downcast::<DeleteCardError>().map(Self::from))
     }
 }
 
@@ -625,6 +627,28 @@ impl FlutterApiErrorFields for RevocationCodeError {
     fn data(&self) -> serde_json::Value {
         match self {
             RevocationCodeError::Unlock(WalletUnlockError::Instruction(InstructionError::AccountRevoked(data))) => {
+                serde_json::to_value(RevocationErrorData { revocation_data: *data }).unwrap() // This conversion should never fail.
+            }
+            _ => serde_json::Value::Null,
+        }
+    }
+}
+
+impl FlutterApiErrorFields for DeleteCardError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            Self::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            Self::NotRegistered | Self::Locked => FlutterApiErrorType::WalletState,
+            Self::Instruction(e) => FlutterApiErrorType::from(e),
+            Self::UpdatePolicy(e) => FlutterApiErrorType::from(e),
+            Self::ChangePin(e) => e.typ(),
+            _ => FlutterApiErrorType::Generic,
+        }
+    }
+
+    fn data(&self) -> serde_json::Value {
+        match self {
+            Self::Instruction(InstructionError::AccountRevoked(data)) => {
                 serde_json::to_value(RevocationErrorData { revocation_data: *data }).unwrap() // This conversion should never fail.
             }
             _ => serde_json::Value::Null,
