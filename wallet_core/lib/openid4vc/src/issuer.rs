@@ -68,6 +68,7 @@ use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_metadata::CredentialConfiguration;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::issuer_metadata::ProofType;
+use crate::nonce::generate_nonce;
 use crate::nonce::store::NonceStore;
 use crate::nonce::store::NonceStoreError;
 use crate::oidc;
@@ -90,8 +91,6 @@ use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
 use crate::token::TokenType;
-
-pub const C_NONCE_LENGTH: usize = 32;
 
 // Errors are structured as follows in this module: the handler for a token request on the one hand, and the handlers
 // for the other endpoints on the other hand, have specific error types. (There is also a general error type included
@@ -588,7 +587,7 @@ where
     N: NonceStore,
 {
     pub async fn generate_proof_nonce(&self) -> Result<String, NonceStoreError<N::Error>> {
-        let nonce = random_string(C_NONCE_LENGTH);
+        let nonce = generate_nonce();
 
         self.nonce_store.store_nonce(nonce.clone()).await?;
 
