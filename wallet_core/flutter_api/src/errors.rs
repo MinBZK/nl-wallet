@@ -262,9 +262,7 @@ impl FlutterApiErrorFields for IssuanceError {
             | IssuanceError::IssuanceSession(IssuanceSessionError::CredentialRequest(_))
             | IssuanceError::OidcSessionStart(OidcSessionError::Oidc(OidcError::RedirectUriError(_)))
             | IssuanceError::OidcSessionStart(OidcSessionError::Oidc(OidcError::RequestingAccessToken(_)))
-            | IssuanceError::OidcSessionStart(OidcSessionError::Oidc(OidcError::RequestingUserInfo(_)))
-            | IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OidcError::RequestingAccessToken(_)))
-            | IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OidcError::RequestingUserInfo(_))) => {
+            | IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OidcError::RequestingAccessToken(_))) => {
                 FlutterApiErrorType::Server
             }
             IssuanceError::AttestationPreview(_)

@@ -1,37 +1,33 @@
-use serde::Deserialize;
-use serde::Serialize;
+use josekit::JoseError;
+use josekit::jwe::alg::rsaes::RsaesJweAlgorithm;
+use josekit::jwe::alg::rsaes::RsaesJweDecrypter;
+use josekit::jwe::enc::aescbc_hmac::AescbcHmacJweEncryption;
+use jsonwebtoken::Algorithm;
 
 use http_utils::client::TlsPinningConfig;
 use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::oauth as oidc;
-use openid4vc::oauth::alg::rsaes::RsaesJweAlgorithm;
-use openid4vc::oauth::alg::rsaes::RsaesJweDecrypter;
-use openid4vc::oauth::enc::aescbc_hmac::AescbcHmacJweEncryption;
-use openid4vc::oauth::Algorithm;
-use openid4vc::oauth::AuthorizationServerMetadata;
 use openid4vc::oauth::HttpJsonClient;
-use openid4vc::oauth::JoseError;
-use openid4vc::oauth::OidcError;
 use openid4vc::token::TokenRequest;
-use openid4vc::well_known;
 
-#[derive(Serialize, Deserialize)]
-struct UserInfo {
-    bsn: String,
-}
+use crate::pid::userinfo;
+use crate::pid::userinfo::UserInfo;
+use crate::pid::userinfo::UserInfoError;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("OpenID Connect error: {0}")]
-    Oidc(#[from] OidcError),
+    #[error("transport error: {0}")]
+    Http(#[from] reqwest::Error),
+
     #[error("JSON error: {0}")]
     Serde(#[from] serde_json::Error),
+
     #[error("JOSE error: {0}")]
     JoseKit(#[from] JoseError),
-    #[error("HTTP error: {0}")]
-    Http(#[from] reqwest::Error),
+
+    #[error("userinfo error: {0}")]
+    UserInfo(#[from] UserInfoError),
 }
 
 /// An OIDC client for exchanging an access token provided by the user for their BSN at the IdP.
@@ -65,7 +61,7 @@ impl OpenIdClient {
     }
 
     pub async fn bsn(&self, token_request: TokenRequest) -> Result<String> {
-        let userinfo_claims = oidc::request_userinfo::<UserInfo>(
+        let userinfo_claims = userinfo::request_userinfo::<UserInfo>(
             &self.http_client,
             &self.authorization_server,
             token_request,
@@ -83,17 +79,5 @@ impl OpenIdClient {
         let decrypter = RsaesJweAlgorithm::RsaOaep.decrypter_from_jwk(&jwk)?;
 
         Ok(decrypter)
-    }
-
-    pub async fn discover_metadata(&self) -> Result<AuthorizationServerMetadata> {
-        let metadata = well_known::fetch_well_known_unvalidated(
-            &self.http_client,
-            &self.authorization_server,
-            well_known::WellKnownPath::OpenidConfiguration,
-        )
-        .await
-        .map_err(OidcError::from)?;
-
-        Ok(metadata)
     }
 }

@@ -37,6 +37,8 @@ config = { workspace = true, features = ["toml", "preserve_order"] }
 derive_more = { workspace = true, features = ["debug"] }
 futures.workspace = true
 hex.workspace = true
+josekit.workspace = true
+jsonwebtoken.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 p256 = { workspace = true, features = ["pkcs8"] }
@@ -66,6 +68,7 @@ status_lists = { path = "../../lib/status_lists", features = ["axum"] }
 token_status_list.path = "../../lib/token_status_list"
 
 [dev-dependencies]
+assert_matches.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 

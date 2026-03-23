@@ -1,6 +1,7 @@
 //! OAuth 2.0 Authorization Server Metadata, loosely based on https://crates.io/crates/openid.
 
 use indexmap::IndexSet;
+use jsonwebtoken::jwk::JwkSet;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
@@ -14,7 +15,6 @@ use crate::well_known::WellKnownPath;
 use super::Discover;
 use super::HttpDiscover;
 use super::HttpJsonClient;
-use super::JwkSet;
 use super::OidcError;
 
 /// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414),
@@ -151,7 +151,7 @@ impl AuthorizationServerMetadata {
 
     /// Get the JWK set from the given Url. Errors are either a reqwest error or an Insecure error if
     /// the url isn't https.
-    pub(super) async fn jwks(&self, http_client: &HttpJsonClient) -> Result<JwkSet, OidcError> {
+    pub async fn jwks(&self, http_client: &HttpJsonClient) -> Result<JwkSet, OidcError> {
         let jwks_uri = self.jwks_uri.clone().ok_or(OidcError::NoJwksUri)?;
         let jwks = http_client.get(jwks_uri).await?;
 
@@ -180,11 +180,11 @@ const fn bool_value<const B: bool>() -> bool {
 #[cfg(test)]
 pub mod tests {
     use serde_json::json;
-    use wiremock::matchers::method;
-    use wiremock::matchers::path;
     use wiremock::Mock;
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
+    use wiremock::matchers::method;
+    use wiremock::matchers::path;
 
     use http_utils::urls::BaseUrl;
 

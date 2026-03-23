@@ -97,7 +97,6 @@ impl AttributeService for BrpPidAttributeService {
 
         Ok(vec_nonempty![issuable_document])
     }
-
 }
 
 impl BrpPidAttributeService {

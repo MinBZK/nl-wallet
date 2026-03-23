@@ -5482,6 +5482,7 @@ name = "pid_issuer"
 version = "0.5.0-dev"
 dependencies = [
  "anyhow",
+ "assert_matches",
  "attestation_data",
  "attestation_types",
  "axum",
@@ -5497,6 +5498,8 @@ dependencies = [
  "indexmap 2.12.1",
  "issuer_common",
  "itertools 0.14.0",
+ "josekit",
+ "jsonwebtoken",
  "openid4vc",
  "openid4vc_server",
  "p256",

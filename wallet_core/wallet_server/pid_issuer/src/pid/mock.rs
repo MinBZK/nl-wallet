@@ -54,7 +54,6 @@ impl AttributeService for MockAttributeService {
 
         Ok(documents)
     }
-
 }
 
 /// Represents a single card with both PID and address claims
