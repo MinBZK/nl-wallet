@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-03-19T14:53:35+01:00",
+    "@@last_modified": "2026-03-20T12:26:52+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -33,9 +33,12 @@
     "appBlockedScreenByUserTitle": "Your NL Wallet was deleted",
     "appBlockedScreenDescription": "You can no longer use your NL Wallet app. This may have several reasons.\n\nClose this app or create a new wallet to use the NL Wallet again.\n\nNeed help? Contact the helpdesk.",
     "appBlockedScreenHelpdeskCta": "To help desk",
+    "appBlockedScreenMoreInfoCta": "Read more information",
     "appBlockedScreenNewWalletCta": "Create a new NL Wallet",
     "appBlockedScreenPermanentDescription": "You cannot use NL Wallet right now. You also cannot create a new NL Wallet. This may have several reasons.\n\nContact the help desk for help and more information.",
     "appBlockedScreenPermanentTitle": "You have been blocked",
+    "appBlockedScreenSolutionRevokedDescription": "You cannot use NL Wallet right now due to a technical problem on our side.\n\nWant to know more? Read more information.",
+    "appBlockedScreenSolutionRevokedTitle": "NL Wallet can no longer be used",
     "appBlockedScreenTitle": "Your NL Wallet is blocked",
     "appTitle": "NL Wallet",
     "applicationErrorDetailsTitle": "Technical details",

@@ -23,6 +23,7 @@ pub enum WalletState {
 pub enum BlockedReason {
     RequiresAppUpdate,
     BlockedByWalletProvider,
+    WalletSolutionRevoked,
 }
 
 pub enum TransferRole {
@@ -69,6 +70,7 @@ impl From<wallet::BlockedReason> for BlockedReason {
         match source {
             wallet::BlockedReason::RequiresAppUpdate => BlockedReason::RequiresAppUpdate,
             wallet::BlockedReason::BlockedByWalletProvider => BlockedReason::BlockedByWalletProvider,
+            wallet::BlockedReason::WalletSolutionRevoked => BlockedReason::WalletSolutionRevoked,
         }
     }
 }

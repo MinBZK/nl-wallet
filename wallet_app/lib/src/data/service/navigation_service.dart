@@ -20,6 +20,10 @@ import '../../feature/notification/sheet/request_notification_permission_sheet.d
 import '../../util/helper/dialog_helper.dart';
 import '../../wallet_core/error/core_error.dart';
 
+// Slight delay before navigation to 'AppBlocked' is triggered. This is added to allow the app to 'settle'
+// (i.e. finish any lingering navigation events) before showing the [AppBlockedScreen].
+const kAppBlockedNavigationDelay = Duration(milliseconds: 50);
+
 class NavigationService extends AppEventListener {
   /// Key that holds [NavigatorState], used to perform navigation from a non-Widget.
   final GlobalKey<NavigatorState> _navigatorKey;
@@ -47,6 +51,7 @@ class NavigationService extends AppEventListener {
   FutureOr<void> onCoreError(CoreError error) async {
     if (error is CoreAccountRevokedError) {
       Fimber.d('Account revoked, navigating to app blocked screen. Reason: ${error.revocationData.revocationReason}');
+      await Future.delayed(kAppBlockedNavigationDelay);
       final navRequest = NavigationRequest.appBlocked(reason: error.revocationData.revocationReason);
       await _navigate(navRequest);
     }

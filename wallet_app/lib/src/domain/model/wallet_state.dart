@@ -69,4 +69,4 @@ class WalletStateBlocked extends WalletState {
 
 enum TransferRole { source, destination }
 
-enum BlockedReason { requiresAppUpdate, blockedByWalletProvider }
+enum BlockedReason { requiresAppUpdate, blockedByWalletProvider, solutionRevoked }

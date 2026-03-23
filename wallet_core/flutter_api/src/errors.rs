@@ -185,7 +185,17 @@ impl FlutterApiErrorFields for WalletRegistrationError {
             WalletRegistrationError::ChallengeRequest(e) => FlutterApiErrorType::from(e),
             WalletRegistrationError::RegistrationRequest(e) => FlutterApiErrorType::from(e),
             WalletRegistrationError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
+            WalletRegistrationError::AccountRevoked(_) => FlutterApiErrorType::Revoked,
             _ => FlutterApiErrorType::Generic,
+        }
+    }
+
+    fn data(&self) -> serde_json::Value {
+        match self {
+            WalletRegistrationError::AccountRevoked(data) => {
+                serde_json::to_value(RevocationErrorData { revocation_data: *data }).unwrap() // This conversion should never fail.
+            }
+            _ => serde_json::Value::Null,
         }
     }
 }

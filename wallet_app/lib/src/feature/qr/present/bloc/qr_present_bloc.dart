@@ -5,13 +5,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../domain/model/bloc/error_state.dart';
 import '../../../../domain/model/result/application_error.dart';
+import '../../../../domain/model/result/result.dart';
 import '../../../../domain/usecase/engagement/start_qr_engagement_usecase.dart';
 
 part 'qr_present_event.dart';
-
 part 'qr_present_state.dart';
 
 class QrPresentBloc extends Bloc<QrPresentEvent, QrPresentState> {
+  // ignore: unused_field
   final StartQrEngagementUseCase _startQrEngagementUseCase;
 
   QrPresentBloc(this._startQrEngagementUseCase) : super(const QrPresentInitial()) {
@@ -22,7 +23,9 @@ class QrPresentBloc extends Bloc<QrPresentEvent, QrPresentState> {
 
   FutureOr<void> _onStartRequested(QrPresentStartRequested event, Emitter<QrPresentState> emit) async {
     emit(const QrPresentInitial());
-    final result = await _startQrEngagementUseCase.invoke();
+
+    // final result = await _startQrEngagementUseCase.invoke();
+    final result = const Result.success('qr_content'); // TODO(Rob): Replace with start when stop is ready
     await result.process(
       onSuccess: (qrContents) => emit(QrPresentServerStarted(qrContents)),
       onError: (error) => emit(QrPresentError(error)),

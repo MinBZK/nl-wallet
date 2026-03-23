@@ -1426,6 +1426,7 @@ impl CstDecode<crate::models::wallet_state::BlockedReason> for i32 {
         match self {
             0 => crate::models::wallet_state::BlockedReason::RequiresAppUpdate,
             1 => crate::models::wallet_state::BlockedReason::BlockedByWalletProvider,
+            2 => crate::models::wallet_state::BlockedReason::WalletSolutionRevoked,
             _ => unreachable!("Invalid variant for BlockedReason: {}", self),
         }
     }
@@ -1792,6 +1793,7 @@ impl SseDecode for crate::models::wallet_state::BlockedReason {
         return match inner {
             0 => crate::models::wallet_state::BlockedReason::RequiresAppUpdate,
             1 => crate::models::wallet_state::BlockedReason::BlockedByWalletProvider,
+            2 => crate::models::wallet_state::BlockedReason::WalletSolutionRevoked,
             _ => unreachable!("Invalid variant for BlockedReason: {}", inner),
         };
     }
@@ -3039,6 +3041,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_state::BlockedReaso
         match self {
             Self::RequiresAppUpdate => 0.into_dart(),
             Self::BlockedByWalletProvider => 1.into_dart(),
+            Self::WalletSolutionRevoked => 2.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -4015,6 +4018,7 @@ impl SseEncode for crate::models::wallet_state::BlockedReason {
             match self {
                 crate::models::wallet_state::BlockedReason::RequiresAppUpdate => 0,
                 crate::models::wallet_state::BlockedReason::BlockedByWalletProvider => 1,
+                crate::models::wallet_state::BlockedReason::WalletSolutionRevoked => 2,
                 _ => {
                     unimplemented!("");
                 }

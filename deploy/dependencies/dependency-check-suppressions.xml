@@ -45,14 +45,6 @@
 
   <!-- Start group: [MEDIUM] -->
   <suppress>
-     <notes><![CDATA[
-     We are not vulnerable as there are no user controlled URI paths.
-     ]]></notes>
-     <packageUrl regex="true">^pkg:gem/faraday@.*$</packageUrl>
-     <vulnerabilityName>CVE-2026-25765</vulnerabilityName>
-  </suppress>
-
-  <suppress>
     <notes><![CDATA[
     Reports issue in Dart < 3.11 and Flutter < 3.41, but we use Dart ^3.11.0 and Flutter ^3.41.2
     ]]></notes>
