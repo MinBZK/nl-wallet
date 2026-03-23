@@ -15,7 +15,7 @@ use super::Discover;
 use super::HttpDiscover;
 use super::JwkSet;
 use super::OidcError;
-use super::OidcReqwestClient;
+use super::HttpJsonClient;
 
 /// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414),
 /// to be published at `.well-known/oauth-authorization-server`, and a superset of the OpenID Connect
@@ -151,7 +151,7 @@ impl AuthorizationServerMetadata {
 
     /// Get the JWK set from the given Url. Errors are either a reqwest error or an Insecure error if
     /// the url isn't https.
-    pub(super) async fn jwks(&self, http_client: &OidcReqwestClient) -> Result<JwkSet, OidcError> {
+    pub(super) async fn jwks(&self, http_client: &HttpJsonClient) -> Result<JwkSet, OidcError> {
         let jwks_uri = self.jwks_uri.clone().ok_or(OidcError::NoJwksUri)?;
         let jwks = http_client.get(jwks_uri).await?;
 
@@ -188,7 +188,7 @@ pub mod tests {
 
     use http_utils::urls::BaseUrl;
 
-    use super::super::OidcReqwestClient;
+    use super::super::HttpJsonClient;
     use super::AuthorizationServerMetadata;
 
     pub async fn start_discovery_server() -> (MockServer, BaseUrl) {
@@ -226,7 +226,7 @@ pub mod tests {
     #[tokio::test]
     async fn test_discovery() {
         let (_server, server_url) = start_discovery_server().await;
-        let client = OidcReqwestClient::try_new().unwrap();
+        let client = HttpJsonClient::try_new().unwrap();
         let discovery_url = server_url.join(".well-known/openid-configuration");
 
         let discovered: AuthorizationServerMetadata = client.get(discovery_url).await.unwrap();

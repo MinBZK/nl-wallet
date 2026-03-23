@@ -15,7 +15,7 @@ use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
-use openid4vc::oidc::OidcReqwestClient;
+use openid4vc::oidc::HttpJsonClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use platform_support::utils::PlatformUtilities;
@@ -141,7 +141,7 @@ where
         let config = config_repository.get();
 
         let oidc_reqwest_client =
-            OidcReqwestClient::try_new_with_borrowing_trust_anchors(config.issuer_trust_anchors.clone())?;
+            HttpJsonClient::try_new_with_borrowing_trust_anchors(config.issuer_trust_anchors.clone())?;
         let credential_issuer_discovery =
             HttpCredentialIssuerDiscovery::new(config.pid_issuance.client_id.clone(), oidc_reqwest_client);
 

@@ -9,13 +9,13 @@ use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::reqwest::trusted_reqwest_client_builder;
 
 #[derive(Debug, Clone)]
-pub struct OidcReqwestClient(reqwest::Client);
+pub struct HttpJsonClient(reqwest::Client);
 
-impl OidcReqwestClient {
+impl HttpJsonClient {
     pub fn try_new() -> Result<Self, reqwest::Error> {
         let client = client_builder_accept_json(default_reqwest_client_builder()).build()?;
 
-        Ok(OidcReqwestClient(client))
+        Ok(HttpJsonClient(client))
     }
 
     pub fn try_new_with_borrowing_trust_anchors(
@@ -34,7 +34,7 @@ impl OidcReqwestClient {
     ) -> Result<Self, reqwest::Error> {
         let client = client_builder_accept_json(trusted_reqwest_client_builder(trust_anchors)).build()?;
 
-        Ok(OidcReqwestClient(client))
+        Ok(HttpJsonClient(client))
     }
 
     pub async fn get<U, T>(&self, url: U) -> Result<T, reqwest::Error>

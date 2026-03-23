@@ -37,7 +37,7 @@ use crate::well_known::WellKnownError;
 use super::AuthorizationServerMetadata;
 use super::Discover;
 use super::HttpDiscover;
-use super::OidcReqwestClient;
+use super::HttpJsonClient;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
@@ -254,11 +254,11 @@ impl<P: PkcePair> AuthorizationServer for HttpAuthorizationServer<P> {
 
 /// Performs OIDC discovery to produce an [`HttpAuthorizationServer`].
 pub struct HttpOidcDiscovery {
-    http_client: OidcReqwestClient,
+    http_client: HttpJsonClient,
 }
 
 impl HttpOidcDiscovery {
-    pub fn new(http_client: OidcReqwestClient) -> Self {
+    pub fn new(http_client: HttpJsonClient) -> Self {
         Self { http_client }
     }
 
@@ -299,7 +299,7 @@ impl OidcDiscovery for HttpOidcDiscovery {
 }
 
 async fn request_userinfo_jwt(
-    http_client: &OidcReqwestClient,
+    http_client: &HttpJsonClient,
     config: &AuthorizationServerMetadata,
     token_request: TokenRequest,
 ) -> Result<String, OidcError> {
@@ -365,7 +365,7 @@ fn decrypt_jwe(
 }
 
 pub async fn request_userinfo<C>(
-    http_client: &OidcReqwestClient,
+    http_client: &HttpJsonClient,
     authorization_server: &IssuerIdentifier,
     token_request: TokenRequest,
     client_id: &str,
@@ -496,7 +496,7 @@ mod tests {
     use super::HttpOidcDiscovery;
     use super::JwkSet;
     use super::OidcError;
-    use super::OidcReqwestClient;
+    use super::HttpJsonClient;
     use super::decrypt_jwe;
     use super::verify_against_keys;
 
@@ -505,7 +505,7 @@ mod tests {
 
     impl Discover<AuthorizationServerMetadata, OidcError> for TestDiscover {
         async fn discover(&self, _identifier: &IssuerIdentifier) -> Result<AuthorizationServerMetadata, OidcError> {
-            let client = OidcReqwestClient::try_new().unwrap();
+            let client = HttpJsonClient::try_new().unwrap();
             let url = self.0.join("/.well-known/openid-configuration");
             client.get(url).await.map_err(OidcError::Http)
         }
@@ -543,7 +543,7 @@ mod tests {
 
         // Create an OIDC discovery with start_with_discover()
         let (_server, server_url) = start_discovery_server().await;
-        let http_client = OidcReqwestClient::try_new().unwrap();
+        let http_client = HttpJsonClient::try_new().unwrap();
         let authorization_server: IssuerIdentifier = "https://example.com/".parse().unwrap();
         let redirect_uri: Url = REDIRECT_URI.parse().unwrap();
         let discovery = HttpOidcDiscovery::new(http_client);
@@ -591,7 +591,7 @@ mod tests {
         });
 
         let (_server, server_url) = start_discovery_server().await;
-        let http_client = OidcReqwestClient::try_new().unwrap();
+        let http_client = HttpJsonClient::try_new().unwrap();
         let authorization_server: IssuerIdentifier = "https://example.com/".parse().unwrap();
         let redirect_uri: Url = REDIRECT_URI.parse().unwrap();
         let discovery = HttpOidcDiscovery::new(http_client);

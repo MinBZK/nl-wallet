@@ -8,7 +8,7 @@ use openid4vc::oidc::Algorithm;
 use openid4vc::oidc::AuthorizationServerMetadata;
 use openid4vc::oidc::JoseError;
 use openid4vc::oidc::OidcError;
-use openid4vc::oidc::OidcReqwestClient;
+use openid4vc::oidc::HttpJsonClient;
 use openid4vc::oidc::alg::rsaes::RsaesJweAlgorithm;
 use openid4vc::oidc::alg::rsaes::RsaesJweDecrypter;
 use openid4vc::oidc::enc::aescbc_hmac::AescbcHmacJweEncryption;
@@ -38,7 +38,7 @@ pub enum Error {
 pub struct OpenIdClient {
     decrypter_private_key: RsaesJweDecrypter,
     client_id: String,
-    http_client: OidcReqwestClient,
+    http_client: HttpJsonClient,
     authorization_server: IssuerIdentifier,
 }
 
@@ -57,7 +57,7 @@ impl OpenIdClient {
         let userinfo_client = OpenIdClient {
             decrypter_private_key: Self::decrypter(bsn_privkey)?,
             client_id: client_id.into(),
-            http_client: OidcReqwestClient::try_new_with_trust_anchors(certs)?,
+            http_client: HttpJsonClient::try_new_with_trust_anchors(certs)?,
             authorization_server,
         };
 

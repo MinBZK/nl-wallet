@@ -11,7 +11,7 @@ use openid4vc::issuance_session::CredentialIssuer;
 use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
 use openid4vc::issuance_session::IssuanceSession;
-use openid4vc::oidc::OidcReqwestClient;
+use openid4vc::oidc::HttpJsonClient;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
 use server_utils::keys::SecretKeyVariant;
@@ -78,7 +78,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let wallet_config = default_wallet_config();
 
     // Discover the credential issuer and authorization server URL from issuer metadata
-    let oidc_client = OidcReqwestClient::try_new().unwrap();
+    let oidc_client = HttpJsonClient::try_new().unwrap();
     let credential_issuer_discovery =
         HttpCredentialIssuerDiscovery::new(wallet_config.pid_issuance.client_id.clone(), oidc_client);
     let credential_issuer = credential_issuer_discovery.discover(&issuer_url.public).await.unwrap();

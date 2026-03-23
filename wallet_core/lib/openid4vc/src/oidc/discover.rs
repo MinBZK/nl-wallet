@@ -1,7 +1,7 @@
 use crate::issuer_identifier::IssuerIdentifier;
 use derive_more::AsRef;
 
-use super::OidcReqwestClient;
+use super::HttpJsonClient;
 
 pub trait Discover<M, E> {
     async fn discover(&self, identifier: &IssuerIdentifier) -> Result<M, E>;
@@ -9,10 +9,10 @@ pub trait Discover<M, E> {
 
 /// Implementation that performs HTTP discovery.
 #[derive(Debug, AsRef)]
-pub struct HttpDiscover(OidcReqwestClient);
+pub struct HttpDiscover(HttpJsonClient);
 
 impl HttpDiscover {
-    pub fn new(client: OidcReqwestClient) -> Self {
+    pub fn new(client: HttpJsonClient) -> Self {
         Self(client)
     }
 }

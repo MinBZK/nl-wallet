@@ -58,7 +58,7 @@ use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::oidc::OidcReqwestClient;
+use openid4vc::oidc::HttpJsonClient;
 use openid4vc::openid4vp::ClientId;
 use openid4vc::openid4vp::VpRequestUri;
 use openid4vc::openid4vp::VpRequestUriMethod;
@@ -424,7 +424,7 @@ where
 
     let update_policy_repository = UpdatePolicyRepository::init();
 
-    let oidc_reqwest_client = OidcReqwestClient::try_new().unwrap();
+    let oidc_reqwest_client = HttpJsonClient::try_new().unwrap();
     let credential_issuer_discovery = HttpCredentialIssuerDiscovery::new(
         config_repository.get().pid_issuance.client_id.clone(),
         oidc_reqwest_client,

@@ -2,7 +2,7 @@ use serde::de::DeserializeOwned;
 use url::Url;
 
 use crate::issuer_identifier::IssuerIdentifier;
-use crate::oidc::OidcReqwestClient;
+use crate::oidc::HttpJsonClient;
 
 pub enum WellKnownPath {
     CredentialIssuer,
@@ -44,7 +44,7 @@ fn well_known_url(issuer: &IssuerIdentifier, suffix: &str) -> Url {
 }
 
 pub async fn fetch_well_known_unvalidated<T>(
-    client: &OidcReqwestClient,
+    client: &HttpJsonClient,
     issuer: &IssuerIdentifier,
     path: WellKnownPath,
 ) -> Result<T, WellKnownError>
@@ -57,7 +57,7 @@ where
 }
 
 pub async fn fetch_well_known<T>(
-    client: &OidcReqwestClient,
+    client: &HttpJsonClient,
     issuer: &IssuerIdentifier,
     path: WellKnownPath,
 ) -> Result<T, WellKnownError>

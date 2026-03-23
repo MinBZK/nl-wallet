@@ -69,7 +69,7 @@ use crate::dpop::DpopError;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::oidc::AuthorizationServerMetadata;
-use crate::oidc::OidcReqwestClient;
+use crate::oidc::HttpJsonClient;
 use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
 use crate::token::AccessToken;
@@ -348,11 +348,11 @@ pub trait CredentialIssuer {
 
 pub struct HttpCredentialIssuerDiscovery {
     client_id: String,
-    oidc_client: OidcReqwestClient,
+    oidc_client: HttpJsonClient,
 }
 
 impl HttpCredentialIssuerDiscovery {
-    pub fn new(client_id: String, oidc_client: OidcReqwestClient) -> Self {
+    pub fn new(client_id: String, oidc_client: HttpJsonClient) -> Self {
         Self { client_id, oidc_client }
     }
 }
@@ -384,7 +384,7 @@ pub struct HttpCredentialIssuer {
     metadata: IssuerMetadata,
     oauth_metadata: AuthorizationServerMetadata,
     client_id: String,
-    oidc_client: OidcReqwestClient,
+    oidc_client: HttpJsonClient,
 }
 
 impl CredentialIssuer for HttpCredentialIssuer {
@@ -468,7 +468,7 @@ pub trait VcMessageClient {
 }
 
 async fn fetch_oauth_metadata(
-    oidc_client: &OidcReqwestClient,
+    oidc_client: &HttpJsonClient,
     auth_server: &IssuerIdentifier,
 ) -> Result<AuthorizationServerMetadata, IssuanceSessionError> {
     well_known::fetch_well_known(oidc_client, auth_server, WellKnownPath::OauthAuthorizationServer)
@@ -479,11 +479,11 @@ async fn fetch_oauth_metadata(
 #[derive(Debug)]
 pub struct HttpVcMessageClient {
     client_id: String,
-    http_client: OidcReqwestClient,
+    http_client: HttpJsonClient,
 }
 
 impl HttpVcMessageClient {
-    pub fn new(client_id: String, http_client: OidcReqwestClient) -> Self {
+    pub fn new(client_id: String, http_client: HttpJsonClient) -> Self {
         Self { client_id, http_client }
     }
 }

@@ -8,7 +8,7 @@ use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::CredentialIssuer;
 use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
-use openid4vc::oidc::OidcReqwestClient;
+use openid4vc::oidc::HttpJsonClient;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
 use openid4vc_server::verifier::StartDisclosureRequest;
@@ -77,7 +77,7 @@ async fn main() {
     let config = config_repository.get();
 
     let oidc_reqwest_client =
-        OidcReqwestClient::try_new_with_borrowing_trust_anchors(config.issuer_trust_anchors.clone()).unwrap();
+        HttpJsonClient::try_new_with_borrowing_trust_anchors(config.issuer_trust_anchors.clone()).unwrap();
     let credential_issuer_discovery =
         HttpCredentialIssuerDiscovery::new(config.pid_issuance.client_id.clone(), oidc_reqwest_client.clone());
 
