@@ -24,7 +24,7 @@ class ScanWithWalletDialog extends StatelessWidget {
           onPressed: () async {
             final navigator = Navigator.of(context);
             await navigator.pushNamedAndRemoveUntil(
-              WalletRoutes.qrRoute,
+              WalletRoutes.qrScanRoute,
               ModalRoute.withName(WalletRoutes.dashboardRoute),
             );
           },

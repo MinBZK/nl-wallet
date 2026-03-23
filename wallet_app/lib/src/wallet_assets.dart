@@ -75,6 +75,7 @@ class WalletAssets {
   static const svg_update_app = 'assets/non-free/svg/NL_WALLET_update_android.svg';
   static const svg_update_app_ios = 'assets/non-free/svg/NL_WALLET_update_ios.svg';
   static const svg_url_check = 'assets/non-free/svg/NL_WALLET_url_check.svg';
+  static const svg_error_bluetooth = 'assets/non-free/svg/NL_WALLET_error_bluetooth.svg';
 
   static const svg_icon_face_id = 'assets/non-free/svg/icon_face_id.svg';
 
@@ -94,6 +95,7 @@ class WalletAssets {
   // LOGOS
   static const logo_sign_provider = 'assets/non-free/logos/sign_provider.png';
   static const logo_wallet = 'assets/non-free/logos/wallet.png';
+  static const logo_wallet_qr = 'assets/non-free/logos/logo_nl_wallet_qr.png';
   static const logo_card_rijksoverheid = 'assets/non-free/logos/card_rijksoverheid.png';
   static const logo_ecommerce = 'assets/non-free/logos/ecommerce.png';
   static const logo_car_rental = 'assets/non-free/logos/car_rental.png';
@@ -122,6 +124,7 @@ class WalletAssets {
   static const icon_wallet_transfer = 'assets/non-free/icons/wallet_transfer.png';
   static const icon_disclose = 'assets/non-free/icons/disclose.png';
   static const icon_manage_notifications = 'assets/non-free/icons/manage_notifications.png';
+  static const icon_qr_scan = 'assets/non-free/icons/qr_scan.png';
 
   // VIDEOS
   static const slug_placeholder = '{slug}';

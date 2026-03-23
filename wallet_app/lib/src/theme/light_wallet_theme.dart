@@ -41,6 +41,8 @@ class LightWalletTheme {
 
   // DialogTheme
   static final dialogTheme = DialogThemeData(
+    backgroundColor: _Colors.modalBg,
+    barrierColor: _Colors.modalBarrierColor,
     titleTextStyle: textTheme.headlineMedium,
     surfaceTintColor: Colors.transparent,
     shape: RoundedRectangleBorder(
@@ -150,6 +152,8 @@ class LightWalletTheme {
   );
 
   static final bottomSheetTheme = BaseWalletTheme.baseBottomSheetTheme.copyWith(
+    backgroundColor: _Colors.modalBg,
+    modalBarrierColor: _Colors.modalBarrierColor,
     surfaceTintColor: Colors.transparent,
   );
 
@@ -210,10 +214,14 @@ class _Colors {
   static const Color actionActive = Color(0xFF152A62);
   static const Color actionDestructive = Color(0xFFAB0065);
   static const Color actionPrimary = Color(0xFF383EDE);
-  static const Color actionPrimaryBg = Color(0xFFFCFCFC);
+  static const Color actionPrimaryBg = Colors.transparent;
   static const Color actionPrimaryHover = Color(0xFF0C1195);
   static const Color actionFocused = Color(0xFF3237C4);
   static const Color actionPrimaryBgHover = Color(0x1A7F8CB0);
+
+  // Modals (dialogs & bottom sheets)
+  static const Color modalBg = Color(0xFFFCFCFC);
+  static const Color modalBarrierColor = Color(0x33152A62);
 
   // Pages
   static const Color pageOverlay = Color(0xFFFFFFFF);

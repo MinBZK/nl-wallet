@@ -23,7 +23,7 @@ class AppBlockedBloc extends Bloc<AppBlockedEvent, AppBlockedState> {
     emit(AppBlockedInitial());
     await Future.delayed(const Duration(milliseconds: 400)); // Loading is practically instant, UX specified delay
 
-    // Check if wallet was blocked as per user request
+    // Check if wallet was blocked as per user request, wallet will have been reset to [WalletStateEmpty].
     if (event.reason == .userRequest) {
       emit(const AppBlockedByUser());
       return;

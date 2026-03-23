@@ -9,10 +9,10 @@ import '../../../../../wallet_app_test_widget.dart';
 import '../../../../mocks/wallet_mock_data.dart';
 import '../../../../test_util/golden_utils.dart';
 
-const _defaultTestSurfaceSize = Size(328, 208);
+const _defaultTestSurfaceSize = Size(328, 206);
 const _expiredFooterTestSurfaceSize = Size(328, 243);
 const _largeTestSurfaceSize = Size(328, 261);
-const _extraLargeTestSurfaceSize = Size(328, 320);
+const _extraLargeTestSurfaceSize = Size(328, 316);
 
 void main() {
   group('widgets', () {

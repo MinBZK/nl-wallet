@@ -8,9 +8,9 @@ import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
 import '../../../../util/mapper/card/status/card_status_metadata_mapper.dart';
 import '../../../../util/mapper/card/status/card_status_render_type.dart';
-import '../../decoration/shadow_decoration.dart';
 import '../button/button_content.dart';
 import '../default_text_and_focus_style.dart';
+import 'card_shadow_container.dart';
 import 'status/card_status_info_text.dart';
 import 'wallet_card_item.dart';
 
@@ -73,8 +73,7 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const CardShadowDecoration(),
+    return CardShadowContainer(
       child: Column(
         children: [
           TextButton(
@@ -231,9 +230,17 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
           padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 24)),
           side: _resolveBorderSide(context),
           shape: WidgetStateOutlinedBorder.resolveWith(
-            (states) => const RoundedRectangleBorder(
-              borderRadius: BorderRadiusGeometry.vertical(bottom: _kCornerRadius),
-            ),
+            // In the default state the top border is omitted to prevent a
+            // doubled (2 px) line at the seam with the main card button above.
+            // For focused/pressed the full border is needed so the focus ring
+            // is visible on all four sides.
+            (states) => states.isPressedOrFocused
+                ? const RoundedRectangleBorder(
+                    borderRadius: BorderRadiusGeometry.vertical(bottom: _kCornerRadius),
+                  )
+                : const _NoTopBorderRoundedRectangleBorder(
+                    borderRadius: BorderRadiusGeometry.vertical(bottom: _kCornerRadius),
+                  ),
           ),
         ),
         onPressed: widget.onChangeCardPressed,
@@ -269,4 +276,46 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
     strokeAlign: BorderSide.strokeAlignOutside,
     width: 1,
   );
+}
+
+/// A [RoundedRectangleBorder] that paints only the left, bottom, and right
+/// edges — the top edge is omitted.
+///
+/// Used for the "change card" CTA that sits directly below the main card
+/// button. Both widgets use [BorderSide.strokeAlignOutside]; without omitting
+/// the CTA's top border the two adjacent strokes would produce a doubled
+/// (2 px) line at the seam.
+class _NoTopBorderRoundedRectangleBorder extends RoundedRectangleBorder {
+  const _NoTopBorderRoundedRectangleBorder({super.side, super.borderRadius});
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
+    if (side.style == BorderStyle.none) return;
+
+    final RRect borderRect = borderRadius.resolve(textDirection).toRRect(rect);
+    final RRect outer = borderRect.inflate(side.strokeOutset);
+    final RRect inner = borderRect.deflate(side.strokeInset);
+
+    // Build the full border ring (area between outer and inner rounded rects).
+    final borderRing = Path.combine(
+      PathOperation.difference,
+      Path()..addRRect(outer),
+      Path()..addRRect(inner),
+    );
+
+    // Keep only the portion at or below the inner rect's top edge, which
+    // effectively removes the top border segment.
+    final clip = Path()..addRect(Rect.fromLTRB(outer.left, inner.top, outer.right, outer.bottom));
+    final clipped = Path.combine(PathOperation.intersect, borderRing, clip);
+
+    canvas.drawPath(clipped, Paint()..color = side.color);
+  }
+
+  @override
+  RoundedRectangleBorder copyWith({BorderSide? side, BorderRadiusGeometry? borderRadius}) {
+    return _NoTopBorderRoundedRectangleBorder(
+      side: side ?? this.side,
+      borderRadius: borderRadius ?? this.borderRadius,
+    );
+  }
 }

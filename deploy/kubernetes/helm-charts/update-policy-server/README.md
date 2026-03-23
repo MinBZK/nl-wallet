@@ -52,16 +52,16 @@
 | ----------------- | ---------------------------------- | ----- |
 | `securityContext` | Security context for the container | `{}`  |
 
-### Ingress parameters
+### HTTP route parameters
 
-| Name                    | Description                            | Value   |
-| ----------------------- | -------------------------------------- | ------- |
-| `ingress.className`     | Ingress class name                     | `nginx` |
-| `ingress.hostname`      | Hostname for the ingress               | `nil`   |
-| `ingress.contextPath`   | Optional context path for the ingress  | `nil`   |
-| `ingress.tlsSecretName` | TLS secret name for the ingress        | `nil`   |
-| `ingress.labels`        | Additional labels for the ingress      | `{}`    |
-| `ingress.annotations`   | Additional annotations for the ingress | `{}`    |
+| Name                    | Description                          | Value  |
+| ----------------------- | ------------------------------------ | ------ |
+| `httpRoute.enabled`     | Enable or disable the route          | `true` |
+| `httpRoute.parentRefs`  | Parent references to the gateway     | `[]`   |
+| `httpRoute.hostnames`   | Hostnames for the route              | `[]`   |
+| `httpRoute.contextPath` | Optional context path for the route  | `nil`  |
+| `httpRoute.labels`      | Additional labels for the route      | `{}`   |
+| `httpRoute.annotations` | Additional annotations for the route | `{}`   |
 
 ### Container probes
 

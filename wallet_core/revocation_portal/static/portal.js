@@ -1,5 +1,7 @@
 export const ALLOWED_REGEX = /[^0-9A-HJKMNP-TV-Z]/g
 
+export const DELETION_CODE_LENGTH = 18
+
 /**
  * Normalizes and formats a raw deletion code input string.
  * - Converts to uppercase
@@ -15,7 +17,7 @@ export function formatDeletionCode(value) {
   const parts = rawValue.match(/.{1,4}/g)
   let formatted = parts ? parts.join("-") : rawValue
 
-  const addTrailingHyphen = rawValue.length > 0 && rawValue.length < 18 && rawValue.length % 4 === 0
+  const addTrailingHyphen = rawValue.length > 0 && rawValue.length < DELETION_CODE_LENGTH && rawValue.length % 4 === 0
   if (addTrailingHyphen) {
     formatted += "-"
   }
@@ -47,6 +49,6 @@ export function calculateCursorPosition(oldVal, oldPos, formatted, rawValue, add
  */
 export function validateDeletionCode(rawValue) {
   if (rawValue.length === 0) return "required"
-  if (rawValue.length !== 18) return "invalid_length"
+  if (rawValue.length !== DELETION_CODE_LENGTH) return "invalid_length"
   return null
 }

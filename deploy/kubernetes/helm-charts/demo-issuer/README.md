@@ -51,28 +51,26 @@
 | ------------------ | -------------------------------------------- | ----- |
 | `imagePullSecrets` | Array of secret names for private registries | `[]`  |
 
-### Ingress internal parameters
+### HTTP route parameters
 
-| Name                            | Description                                     | Value   |
-| ------------------------------- | ----------------------------------------------- | ------- |
-| `ingressInternal.enabled`       | Enable or disable the internal ingress          | `false` |
-| `ingressInternal.className`     | Ingress class name                              | `nginx` |
-| `ingressInternal.hostname`      | Hostname for the internal ingress               | `nil`   |
-| `ingressInternal.tlsSecretName` | Name of the TLS secret for the internal ingress | `nil`   |
-| `ingressInternal.labels`        | Additional labels for the internal ingress      | `{}`    |
-| `ingressInternal.annotations`   | Additional annotations for the internal ingress | `{}`    |
+| Name                    | Description                          | Value  |
+| ----------------------- | ------------------------------------ | ------ |
+| `httpRoute.enabled`     | Enable or disable the route          | `true` |
+| `httpRoute.parentRefs`  | Parent references to the gateway     | `[]`   |
+| `httpRoute.hostnames`   | Hostnames for the route              | `[]`   |
+| `httpRoute.contextPath` | Optional context path for the route  | `nil`  |
+| `httpRoute.labels`      | Additional labels for the route      | `{}`   |
+| `httpRoute.annotations` | Additional annotations for the route | `{}`   |
 
-### Ingress parameters
+### HTTP route internal parameters
 
-| Name                    | Description                            | Value   |
-| ----------------------- | -------------------------------------- | ------- |
-| `ingress.enabled`       | Enable or disable the ingress          | `true`  |
-| `ingress.className`     | Ingress class name                     | `nginx` |
-| `ingress.hostname`      | Hostname for the ingress               | `nil`   |
-| `ingress.contextPath`   | Optional context path for the ingress  | `nil`   |
-| `ingress.tlsSecretName` | Name of the TLS secret for the ingress | `nil`   |
-| `ingress.labels`        | Additional labels for the ingress      | `{}`    |
-| `ingress.annotations`   | Additional annotations for the ingress | `{}`    |
+| Name                            | Description                          | Value  |
+| ------------------------------- | ------------------------------------ | ------ |
+| `httpRouteInternal.enabled`     | Enable or disable the route          | `true` |
+| `httpRouteInternal.parentRefs`  | Parent references to the gateway     | `[]`   |
+| `httpRouteInternal.hostnames`   | Hostnames for the route              | `[]`   |
+| `httpRouteInternal.labels`      | Additional labels for the route      | `{}`   |
+| `httpRouteInternal.annotations` | Additional annotations for the route | `{}`   |
 
 ### Container probes
 

@@ -8,6 +8,7 @@ import 'package:mockito/mockito.dart';
 import 'package:video_player/video_player.dart';
 import 'package:wallet/src/data/repository/biometric/biometric_repository.dart';
 import 'package:wallet/src/data/repository/card/wallet_card_repository.dart';
+import 'package:wallet/src/data/repository/close_proximity/close_proximity_repository.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
 import 'package:wallet/src/data/repository/event/wallet_event_repository.dart';
 import 'package:wallet/src/data/repository/issuance/issuance_repository.dart';
@@ -48,6 +49,7 @@ import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart';
+import 'package:wallet/src/domain/usecase/engagement/start_qr_engagement_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_for_card_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_usecase.dart';
@@ -170,6 +172,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<FlutterLocalNotificationsPlugin>()])
 @GenerateNiceMocks([MockSpec<LocalNotificationService>()])
 @GenerateNiceMocks([MockSpec<Workmanager>()])
+@GenerateNiceMocks([MockSpec<CloseProximityRepository>()])
 /// Mock use cases
 @GenerateNiceMocks([MockSpec<DecodeUriUseCase>()])
 @GenerateNiceMocks([MockSpec<IsWalletInitializedUseCase>()])
@@ -250,6 +253,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<GetRevocationCodeUseCase>()])
 @GenerateNiceMocks([MockSpec<GetRegistrationRevocationCodeUseCase>()])
 @GenerateNiceMocks([MockSpec<SetDirectOsNotificationCallbackUsecase>()])
+@GenerateNiceMocks([MockSpec<StartQrEngagementUseCase>()])
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCoreApi>()])
 /// Constants
@@ -331,10 +335,12 @@ class Mocks {
     sl.registerFactory<GetSupportedBiometricsUseCase>(MockGetSupportedBiometricsUseCase.new);
     sl.registerFactory<IsBiometricLoginEnabledUseCase>(MockIsBiometricLoginEnabledUseCase.new);
     sl.registerFactory<GetVersionStringUseCase>(MockGetVersionStringUseCase.new);
+    sl.registerFactory<StartQrEngagementUseCase>(MockStartQrEngagementUseCase.new);
 
     // Repositories
     sl.registerFactory<PidRepository>(getMockPidRepository);
     sl.registerFactory<DisclosureRepository>(MockDisclosureRepository.new);
+    sl.registerFactory<CloseProximityRepository>(MockCloseProximityRepository.new);
     sl.registerFactory<WalletRepository>(MockWalletRepository.new);
     sl.registerFactory<WalletCardRepository>(MockWalletCardRepository.new);
     sl.registerFactory<WalletEventRepository>(MockWalletEventRepository.new);

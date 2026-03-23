@@ -3,9 +3,9 @@ env:
   contexts:
   - name: "Default Context"
     urls:
-    - "${WALLET_PROVIDER_BASE_URL}"
+    - "${WALLET_PROVIDER_URL}"
     includePaths:
-    - "${WALLET_PROVIDER_BASE_URL}.*"
+    - "${WALLET_PROVIDER_URL}.*"
     excludePaths: []
     authentication:
       parameters: {}

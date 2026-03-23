@@ -15,4 +15,5 @@ kubectl exec -t $POD -- sh -c 'rm -rf /usr/share/nginx/html/wua/*'
 kubectl delete pvc --wait=true \
     demo-issuer-issuance-server \
     pid-issuer \
-    preloaded-gba-v-data
+    preloaded-gba-v-data \
+    redis

@@ -621,6 +621,15 @@ impl FlutterApiErrorFields for RevocationCodeError {
             Self::Unlock(error) => error.typ(),
         }
     }
+
+    fn data(&self) -> serde_json::Value {
+        match self {
+            RevocationCodeError::Unlock(WalletUnlockError::Instruction(InstructionError::AccountRevoked(data))) => {
+                serde_json::to_value(RevocationErrorData { revocation_data: *data }).unwrap() // This conversion should never fail.
+            }
+            _ => serde_json::Value::Null,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -640,6 +649,7 @@ mod tests {
     use wallet::errors::OidcSessionError;
     use wallet::errors::PinRecoveryError;
     use wallet::errors::RecoveryCodeError;
+    use wallet::errors::RevocationCodeError;
     use wallet::errors::TransferError;
     use wallet::errors::WalletUnlockError;
     use wallet::errors::openid4vc::AuthorizationErrorCode;
@@ -782,6 +792,17 @@ mod tests {
             revocation_reason: RevocationReason::UserRequest,
             can_register_new_account: true
         })),
+        FlutterApiErrorType::Revoked,
+        json!({"revocation_data": {
+            "revocation_reason": "user_request",
+            "can_register_new_account": true
+        }})
+    )]
+    #[case(
+        RevocationCodeError::Unlock(WalletUnlockError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+            revocation_reason: RevocationReason::UserRequest,
+            can_register_new_account: true
+        }))),
         FlutterApiErrorType::Revoked,
         json!({"revocation_data": {
             "revocation_reason": "user_request",

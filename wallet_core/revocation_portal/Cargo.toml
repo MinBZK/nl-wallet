@@ -16,9 +16,11 @@ askama.workspace = true
 askama_web = { workspace = true, features = ["axum-0.8"] }
 axum = { workspace = true, features = ["form"] }
 axum_csrf = { workspace = true, features = ["layer"] }
+axum-extra = { workspace = true, features = ["cookie"] }
 base64.workspace = true
 chrono.workspace = true
 config = { workspace = true, features = ["toml"] }
+cookie.workspace = true
 derive_more = { workspace = true, features = ["from"] }
 itertools.workspace = true
 reqwest.workspace = true

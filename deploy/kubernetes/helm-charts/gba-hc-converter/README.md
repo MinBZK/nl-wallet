@@ -109,9 +109,12 @@
 | `frontend.name`                          | Name of the GBA Fetch frontend application         | `gba-fetch-frontend` |
 | `frontend.extraAnnotations`              | Additional annotations for the frontend deployment | `{}`                 |
 | `frontend.extraPodLabels`                | Additional labels for the frontend pods            | `{}`                 |
-| `frontend.ingress.className`             | Ingress class name for the frontend                | `nginx`              |
-| `frontend.ingress.hostname`              | Ingress hostname for the frontend                  | `nil`                |
-| `frontend.ingress.tlsSecretName`         | Secret name for the ingress TLS configuration      | `nil`                |
+| `frontend.httpRoute.enabled`             | Enable or disable the route                        | `true`               |
+| `frontend.httpRoute.parentRefs`          | Parent references to the gateway                   | `[]`                 |
+| `frontend.httpRoute.hostnames`           | Hostnames for the route                            | `[]`                 |
+| `frontend.httpRoute.contextPath`         | Optional context path for the route                | `nil`                |
+| `frontend.httpRoute.labels`              | Additional labels for the route                    | `{}`                 |
+| `frontend.httpRoute.annotations`         | Additional annotations for the route               | `{}`                 |
 | `frontend.probes.config.liveness`        | Additional configuration for liveness probe        | `{}`                 |
 | `frontend.probes.config.readiness`       | Additional configuration for readiness probe       | `{}`                 |
 | `frontend.probes.config.startup`         | Additional configuration for startup probe         | `{}`                 |

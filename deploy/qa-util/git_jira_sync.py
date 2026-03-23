@@ -239,6 +239,10 @@ def sync_nightly():
             print(f"[WARN] MR {mr_id} — Jira issue {jira_key} not found. message: {getattr(e, 'text', str(e))}")
             continue
 
+        if issue is None:
+            print(f"[WARN] MR {mr_id} — Jira issue {jira_key} not found.")
+            continue
+
         parent = getattr(issue.fields, "parent", None)
         parent_key = parent.key if parent else None
         target_key = parent_key or jira_key

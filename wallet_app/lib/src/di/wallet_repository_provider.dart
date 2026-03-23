@@ -11,6 +11,8 @@ import '../data/repository/card/data_attribute_repository.dart';
 import '../data/repository/card/impl/data_attribute_repository_impl.dart';
 import '../data/repository/card/impl/wallet_card_repository_impl.dart';
 import '../data/repository/card/wallet_card_repository.dart';
+import '../data/repository/close_proximity/close_proximity_repository.dart';
+import '../data/repository/close_proximity/impl/close_proximity_repository_impl.dart';
 import '../data/repository/configuration/configuration_repository.dart';
 import '../data/repository/configuration/impl/configuration_repository_impl.dart';
 import '../data/repository/disclosure/core/core_disclosure_repository.dart';
@@ -154,6 +156,9 @@ class WalletRepositoryProvider extends StatelessWidget {
             CoreErrorExtension.networkRepository = networkRepository;
             return networkRepository;
           },
+        ),
+        RepositoryProvider<CloseProximityRepository>(
+          create: (context) => CloseProximityRepositoryImpl(context.read()),
         ),
       ],
       child: child,

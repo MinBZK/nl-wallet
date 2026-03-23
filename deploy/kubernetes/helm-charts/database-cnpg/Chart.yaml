@@ -6,7 +6,7 @@ type: application
 
 version: 3.0.0
 
-appVersion: "16.7-bookworm"
+appVersion: "18.2-standard-trixie"
 
 dependencies:
   - name: sp-common

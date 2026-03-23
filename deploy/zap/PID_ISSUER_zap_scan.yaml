@@ -3,9 +3,9 @@ env:
   contexts:
   - name: "Default Context"
     urls:
-    - "${PID_ISSUER_BASE_URL}"
+    - "${PID_ISSUER_URL}"
     includePaths:
-    - "${PID_ISSUER_BASE_URL}.*"
+    - "${PID_ISSUER_URL}.*"
     excludePaths: []
     authentication:
       parameters: {}

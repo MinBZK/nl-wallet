@@ -59,7 +59,7 @@ class UniversalLinkTests : TestBase() {
     fun verifyUlOpensApp(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Dashboard)
-        val issuanceUniversalLink = "https://app.example.com/deeplink/disclosure_based_issuance?request_uri=https%3A%2F%2Fexample.com%2Fcd96997cf3772b54a9a0c9f2d261a401%2Fdisclosure%2Finsurance%2Frequest_uri%3Fsession_type%3Dsame_device&request_uri_method=post&client_id=insurance.example.com"
+        val issuanceUniversalLink = "https://app.example.com/deeplink/disclosure_based_issuance?client_id=x509_san_dns%3Aexample.com&request_uri=https%3A%2F%2Fexample.com%2Fcd96997cf3772b54a9a0c9f2d261a401%2Fdisclosure%2Finsurance%2Frequest_uri%3Fsession_type%3Dsame_device&request_uri_method=post"
         dashboardScreen.closeApp()
         dashboardScreen.openUniversalLink(issuanceUniversalLink)
         pinScreen.enterPin(DEFAULT_PIN)

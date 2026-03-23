@@ -17,6 +17,7 @@ use axum::http::request::Parts;
 use axum::middleware;
 use axum::middleware::Next;
 use axum::response::IntoResponse;
+use axum::response::Redirect;
 use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
@@ -25,6 +26,8 @@ use axum_csrf::CsrfLayer;
 use axum_csrf::CsrfToken;
 use axum_csrf::Key;
 use axum_csrf::SameSite;
+use axum_extra::extract::CookieJar;
+use axum_extra::extract::cookie::Cookie;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
 use derive_more::AsRef;
@@ -67,6 +70,8 @@ pub static LOKALIZE_JS_SHA256: LazyLock<String> =
 // Bundled CSS constant - placeholder in dev mode, full bundle in release mode.
 // In dev mode, CSS is served from the filesystem via ServeDir.
 pub const PORTAL_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/style.css"));
+
+const REVOKED_AT_COOKIE_NAME: &str = "revoked_at";
 
 #[derive(Deserialize)]
 struct DeleteForm {
@@ -138,7 +143,9 @@ where
 
     let app = Router::new()
         .route("/support/delete", get(index::<C>))
-        .route("/support/delete", post(delete_wallet::<C>));
+        .route("/support/delete", post(delete_wallet::<C>))
+        .route("/support/delete/success", get(success::<C>))
+        .route("/support/delete/error", get(error::<C>));
 
     // In release mode, serve bundled CSS from route handlers.
     // In debug mode, CSS is served from the filesystem via the ServeDir fallback.
@@ -258,33 +265,32 @@ async fn delete_wallet<C: RevocationClient>(
 
     if let Err(err) = token.verify(&delete_form.csrf_token) {
         warn!("CSRF error: {}", err);
-        return (StatusCode::UNPROCESSABLE_ENTITY, ErrorTemplate { base }).into_response();
+        return (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Redirect::to(format!("/support/delete/error?lang={}", language).as_ref()),
+        )
+            .into_response();
     }
 
     match delete_form.deletion_code.parse() {
         Ok(deletion_code) => match state.revocation_client.revoke(deletion_code).await {
             Ok(result) => {
-                let date = result
-                    .revoked_at
-                    .format_localized(TRANSLATIONS[language].date_format, language.chrono_locale())
-                    .to_string();
-                let time = result
-                    .revoked_at
-                    .format_localized(TRANSLATIONS[language].time_format, language.chrono_locale())
-                    .to_string();
+                let cookie = Cookie::build((REVOKED_AT_COOKIE_NAME, result.revoked_at.timestamp().to_string()))
+                    .path("/")
+                    .http_only(true)
+                    .same_site(SameSite::Strict)
+                    .secure(true)
+                    .max_age(cookie::time::Duration::hours(1));
 
-                SuccessTemplate {
-                    base,
-                    revoked_at_rfc3339: result.revoked_at.to_rfc3339(),
-                    success_message: strfmt!(TRANSLATIONS[language].success_wb_confirmation, date, time)
-                        .expect("success message formatting should succeed"),
-                    success_message_template: String::from(TRANSLATIONS[language].success_wb_confirmation),
-                }
-                .into_response()
+                (
+                    CookieJar::new().add(cookie),
+                    Redirect::to(format!("/support/delete/success?lang={}", language).as_ref()),
+                )
+                    .into_response()
             }
             Err(err) => {
                 warn!("Error revoking wallet: {:?}", err);
-                ErrorTemplate { base }.into_response()
+                Redirect::to(format!("/support/delete/error?lang={}", language).as_ref()).into_response()
             }
         },
         Err(err) => {
@@ -294,7 +300,7 @@ async fn delete_wallet<C: RevocationClient>(
                 Ok(csrf_token) => csrf_token,
                 Err(err) => {
                     warn!("Error getting hashed csrf token: {}", err);
-                    return ErrorTemplate { base }.into_response();
+                    return Redirect::to(format!("/support/delete/error?lang={}", language).as_ref()).into_response();
                 }
             };
 
@@ -306,6 +312,70 @@ async fn delete_wallet<C: RevocationClient>(
             .into_response()
         }
     }
+}
+
+async fn success<C: RevocationClient>(
+    State(_state): State<Arc<ApplicationState<C>>>,
+    nonce: Nonce,
+    language: Language,
+    jar: CookieJar,
+) -> Response {
+    let base = BaseTemplate {
+        selected_lang: language,
+        trans: &TRANSLATIONS[language],
+        available_languages: &Language::iter().collect_vec(),
+        language_js_sha256: &LANGUAGE_JS_SHA256,
+        portal_js_sha256: &PORTAL_JS_SHA256,
+        portal_ui_js_sha256: &PORTAL_UI_JS_SHA256,
+        lokalize_js_sha256: &LOKALIZE_JS_SHA256,
+        nonce: nonce.as_ref(),
+    };
+
+    let revoked_at = jar
+        .get(REVOKED_AT_COOKIE_NAME)
+        .and_then(|cookie| cookie.value().parse::<i64>().ok())
+        .and_then(|ts| chrono::DateTime::from_timestamp(ts, 0));
+
+    // Redirect to the index when there is no revoked_at cookie
+    let Some(revoked_at) = revoked_at else {
+        return Redirect::to("/support/delete").into_response();
+    };
+
+    let date = revoked_at
+        .format_localized(TRANSLATIONS[language].date_format, language.chrono_locale())
+        .to_string();
+
+    let time = revoked_at
+        .format_localized(TRANSLATIONS[language].time_format, language.chrono_locale())
+        .to_string();
+
+    SuccessTemplate {
+        base,
+        revoked_at_rfc3339: revoked_at.to_rfc3339(),
+        success_message: strfmt!(TRANSLATIONS[language].success_wb_confirmation, date, time)
+            .expect("success message formatting should succeed"),
+        success_message_template: String::from(TRANSLATIONS[language].success_wb_confirmation),
+    }
+    .into_response()
+}
+
+async fn error<C: RevocationClient>(
+    State(_state): State<Arc<ApplicationState<C>>>,
+    nonce: Nonce,
+    language: Language,
+) -> Response {
+    let base = BaseTemplate {
+        selected_lang: language,
+        trans: &TRANSLATIONS[language],
+        available_languages: &Language::iter().collect_vec(),
+        language_js_sha256: &LANGUAGE_JS_SHA256,
+        portal_js_sha256: &PORTAL_JS_SHA256,
+        portal_ui_js_sha256: &PORTAL_UI_JS_SHA256,
+        lokalize_js_sha256: &LOKALIZE_JS_SHA256,
+        nonce: nonce.as_ref(),
+    };
+
+    ErrorTemplate { base }.into_response()
 }
 
 #[cfg(test)]
@@ -359,6 +429,34 @@ mod tests {
             .to_string();
 
         (token, cookie)
+    }
+
+    async fn follow_redirect(app: &mut Router, response: Response, with_cookie: bool) -> Response {
+        assert_eq!(response.status(), StatusCode::SEE_OTHER);
+
+        let location = response
+            .headers()
+            .get(header::LOCATION)
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+
+        let mut request_builder = Request::builder().uri(location);
+
+        if with_cookie {
+            let cookie = response
+                .headers()
+                .get(header::SET_COOKIE)
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string();
+
+            request_builder = request_builder.header(header::COOKIE, cookie);
+        }
+
+        app.oneshot(request_builder.body(Body::empty()).unwrap()).await.unwrap()
     }
 
     async fn post_delete_with_lang(app: &mut Router, deletion_code: &str, lang: &str) -> Response {
@@ -516,6 +614,8 @@ mod tests {
         let mut app = create_router(&random_bytes(64).into(), false, client);
 
         let response = post_delete_with_lang(&mut app, "C20C-KF0R-D32B-A5E3-2X", "nl").await;
+        let response = follow_redirect(&mut app, response, false).await;
+
         assert_eq!(response.status(), StatusCode::OK);
 
         let body = axum_body_bytes(response.into_body()).await;
@@ -543,6 +643,7 @@ mod tests {
         let mut app = create_router(&random_bytes(64).into(), false, client);
 
         let response = post_delete_with_lang(&mut app, "C20C-KF0R-D32B-A5E3-2X", "nl").await;
+        let response = follow_redirect(&mut app, response, true).await;
         assert_eq!(response.status(), StatusCode::OK);
 
         let body = axum_body_bytes(response.into_body()).await;
@@ -580,6 +681,7 @@ mod tests {
         let mut app = create_router(&random_bytes(64).into(), false, client);
 
         let response = post_delete_with_lang(&mut app, "C20C-KF0R-D32B-A5E3-2X", lang_param).await;
+        let response = follow_redirect(&mut app, response, true).await;
         assert_eq!(response.status(), StatusCode::OK);
 
         let body = axum_body_bytes(response.into_body()).await;
@@ -609,6 +711,35 @@ mod tests {
             body_str.contains(&expected_time),
             "expected body to contain formatted time ({expected_time}), got:\n{body_str}"
         );
+    }
+
+    #[tokio::test]
+    async fn test_success_page_redirects_to_index_when_cookie_missing() {
+        let client = MockRevocationClient::default();
+        let app = create_router(&random_bytes(64).into(), false, client);
+
+        // 1. Request the success page directly without any cookies
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/support/delete/success")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        // 2. Verify it returns a redirect (303 See Other)
+        assert_eq!(response.status(), StatusCode::SEE_OTHER);
+
+        // 3. Verify it redirects to the support delete index page
+        let location = response
+            .headers()
+            .get(header::LOCATION)
+            .and_then(|l| l.to_str().ok())
+            .expect("Location header should be present");
+
+        assert_eq!(location, "/support/delete");
     }
 
     #[tokio::test]
