@@ -19,12 +19,15 @@ use platform_support::attested_key::hardware::AttestedKeyError;
 use platform_support::attested_key::hardware::HardwareAttestedKeyError;
 use update_policy_model::update_policy::VersionState;
 use utils::vec_at_least::VecAtLeastNError;
+use wallet_account::messages::errors::AccountError;
+use wallet_account::messages::errors::AccountRevokedData;
 use wallet_account::messages::registration::Registration;
 use wallet_account::signed::ChallengeResponse;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
 use crate::account_provider::AccountProviderError;
+use crate::errors::AccountProviderResponseError;
 use crate::errors::UpdatePolicyError;
 use crate::pin::key::PinKey;
 use crate::pin::key::{self as pin_key};
@@ -78,6 +81,9 @@ pub enum WalletRegistrationError {
     StoreRegistrationState(#[source] StorageError),
     #[error("error fetching update policy: {0}")]
     UpdatePolicy(#[from] UpdatePolicyError),
+    #[error("account is revoked with data: {0:?}")]
+    #[category(expected)]
+    AccountRevoked(AccountRevokedData),
 }
 
 impl WalletRegistrationError {
@@ -163,7 +169,13 @@ where
             .account_provider_client
             .registration_challenge(&config.account_server.http_config)
             .await
-            .map_err(WalletRegistrationError::ChallengeRequest)?;
+            .map_err(|error| match error {
+                AccountProviderError::Response(AccountProviderResponseError::Account(
+                    AccountError::AccountRevoked(data),
+                    _,
+                )) => WalletRegistrationError::AccountRevoked(data),
+                _ => WalletRegistrationError::ChallengeRequest(error),
+            })?;
 
         info!("Challenge received from account server, generating attested key");
 

@@ -9,6 +9,7 @@ import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/navigator_state_extension.dart';
 import '../../wallet_assets.dart';
+import '../common/screen/placeholder_screen.dart';
 import '../common/screen/terminal_screen.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/secondary_button.dart';
@@ -19,7 +20,13 @@ import '../error/error_page.dart';
 import 'argument/app_blocked_screen_argument.dart';
 import 'bloc/app_blocked_bloc.dart';
 
+/// Screen displayed when the app/wallet has been blocked or revoked.
+///
+/// This screen provides information to the user about why they cannot access their wallet
+/// and offers next steps, such as contacting the helpdesk or creating a new wallet
+/// (if permitted).
 class AppBlockedScreen extends StatelessWidget {
+  /// Extracts [AppBlockedScreenArgument] from [RouteSettings].
   static AppBlockedScreenArgument? getArgument(RouteSettings settings) {
     final args = settings.arguments;
     try {
@@ -41,6 +48,7 @@ class AppBlockedScreen extends StatelessWidget {
           AppBlockedError() => _buildError(context),
           AppBlockedByAdmin() => _buildBlockedByAdmin(context, state.canRegisterNewAccount),
           AppBlockedByUser() => _buildBlockedByUser(context),
+          AppBlockedSolutionCompromised() => _buildSolutionCompromised(context),
         };
       },
     );
@@ -68,6 +76,7 @@ class AppBlockedScreen extends StatelessWidget {
     );
   }
 
+  /// UI for when the user intentionally revoked the wallet.
   Widget _buildBlockedByUser(BuildContext context) {
     return TerminalScreen(
       title: context.l10n.appBlockedScreenByUserTitle,
@@ -77,6 +86,9 @@ class AppBlockedScreen extends StatelessWidget {
     );
   }
 
+  /// UI for when the wallet was blocked by the administrative side.
+  ///
+  /// [canRegisterNewAccount] determines if the "Create new wallet" button is shown.
   Widget _buildBlockedByAdmin(BuildContext context, bool canRegisterNewAccount) {
     final title = canRegisterNewAccount
         ? context.l10n.appBlockedScreenTitle
@@ -93,6 +105,16 @@ class AppBlockedScreen extends StatelessWidget {
     );
   }
 
+  /// UI for when the wallet solution is revoked/compromised.
+  Widget _buildSolutionCompromised(BuildContext context) {
+    return TerminalScreen(
+      title: context.l10n.appBlockedScreenSolutionRevokedTitle,
+      description: context.l10n.appBlockedScreenSolutionRevokedDescription,
+      primaryButton: _buildMoreInfoButton(context),
+      illustration: WalletAssets.svg_blocked_final,
+    );
+  }
+
   FitsWidthWidget _buildCreateWalletButton(BuildContext context) => SecondaryButton(
     text: Text(context.l10n.appBlockedScreenNewWalletCta),
     onPressed: () async {
@@ -105,5 +127,11 @@ class AppBlockedScreen extends StatelessWidget {
   FitsWidthWidget _buildHelpdeskButton(BuildContext context) => TertiaryButton(
     text: Text(context.l10n.appBlockedScreenHelpdeskCta),
     onPressed: () => Navigator.of(context).pushNamed(WalletRoutes.contactRoute),
+  );
+
+  FitsWidthWidget _buildMoreInfoButton(BuildContext context) => TertiaryButton(
+    text: Text(context.l10n.appBlockedScreenMoreInfoCta),
+    icon: const Icon(Icons.north_east_outlined),
+    onPressed: () => PlaceholderScreen.showGeneric(context, secured: false),
   );
 }
