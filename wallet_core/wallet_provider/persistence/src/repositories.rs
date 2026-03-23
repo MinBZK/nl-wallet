@@ -228,6 +228,7 @@ impl WalletUserRepository for Repositories {
         wallet_user_key::delete_all_blocked_keys(transaction, wallet_user_id).await
     }
 
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn delete_keys(
         &self,
         transaction: &Self::TransactionType,
