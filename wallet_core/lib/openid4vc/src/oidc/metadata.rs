@@ -1,4 +1,4 @@
-//! OpenID discovery, loosely based on https://crates.io/crates/openid.
+//! OAuth 2.0 Authorization Server Metadata, loosely based on https://crates.io/crates/openid.
 
 use indexmap::IndexSet;
 use serde::Deserialize;
@@ -22,7 +22,7 @@ use super::OidcReqwestClient;
 /// Discovery 1.0 metadata published at `.well-known/openid-configuration`.
 #[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Config {
+pub struct AuthorizationServerMetadata {
     pub issuer: IssuerIdentifier,
     #[serde(default)]
     pub authorization_endpoint: Option<Url>,
@@ -106,10 +106,7 @@ pub struct Config {
     pub code_challenge_methods_supported: Option<IndexSet<String>>,
 }
 
-/// Type alias for [`Config`] using the RFC 8414 terminology.
-pub type AuthorizationServerMetadata = Config;
-
-impl Config {
+impl AuthorizationServerMetadata {
     /// Returns a new instance with the specified URLs, and all other parameters set to none/empty/false.
     pub fn new(issuer: IssuerIdentifier, token_endpoint: Url) -> Self {
         Self {
@@ -162,14 +159,14 @@ impl Config {
     }
 }
 
-impl WellKnownMetadata for Config {
+impl WellKnownMetadata for AuthorizationServerMetadata {
     fn issuer_identifier(&self) -> &IssuerIdentifier {
         &self.issuer
     }
 }
 
-impl Discover<Config, OidcError> for HttpDiscover {
-    async fn discover(&self, identifier: &IssuerIdentifier) -> Result<Config, OidcError> {
+impl Discover<AuthorizationServerMetadata, OidcError> for HttpDiscover {
+    async fn discover(&self, identifier: &IssuerIdentifier) -> Result<AuthorizationServerMetadata, OidcError> {
         well_known::fetch_well_known(self.as_ref(), identifier, WellKnownPath::OpenidConfiguration)
             .await
             .map_err(Into::into)
@@ -192,7 +189,7 @@ pub mod tests {
     use http_utils::urls::BaseUrl;
 
     use super::super::OidcReqwestClient;
-    use super::Config;
+    use super::AuthorizationServerMetadata;
 
     pub async fn start_discovery_server() -> (MockServer, BaseUrl) {
         let server = MockServer::start().await;
@@ -232,7 +229,7 @@ pub mod tests {
         let client = OidcReqwestClient::try_new().unwrap();
         let discovery_url = server_url.join(".well-known/openid-configuration");
 
-        let discovered: Config = client.get(discovery_url).await.unwrap();
+        let discovered: AuthorizationServerMetadata = client.get(discovery_url).await.unwrap();
 
         assert_eq!(discovered.issuer.as_ref(), "https://example.com/");
 

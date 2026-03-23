@@ -34,7 +34,7 @@ use crate::token::TokenResponse;
 use crate::well_known;
 use crate::well_known::WellKnownError;
 
-use super::Config;
+use super::AuthorizationServerMetadata;
 use super::Discover;
 use super::HttpDiscover;
 use super::OidcReqwestClient;
@@ -149,7 +149,7 @@ pub trait AuthorizationServer {
 /// The discovered authorization server state for an in-progress OIDC authorization code flow.
 #[derive(Debug)]
 pub struct HttpAuthorizationServer<P = S256PkcePair> {
-    provider: Config,
+    provider: AuthorizationServerMetadata,
     #[expect(dead_code)]
     jwks: Option<JwkSet>,
     client_id: String,
@@ -160,7 +160,7 @@ pub struct HttpAuthorizationServer<P = S256PkcePair> {
 }
 
 impl<P: PkcePair> HttpAuthorizationServer<P> {
-    pub fn new(config: Config, jwks: Option<JwkSet>, client_id: String, redirect_uri: Url) -> Self {
+    pub fn new(config: AuthorizationServerMetadata, jwks: Option<JwkSet>, client_id: String, redirect_uri: Url) -> Self {
         Self {
             provider: config,
             jwks,
@@ -270,7 +270,7 @@ impl HttpOidcDiscovery {
         discovery: &D,
     ) -> Result<(HttpAuthorizationServer<P>, Url), OidcError>
     where
-        D: Discover<Config, OidcError>,
+        D: Discover<AuthorizationServerMetadata, OidcError>,
         P: PkcePair,
     {
         let config = discovery.discover(authorization_server).await?;
@@ -300,7 +300,7 @@ impl OidcDiscovery for HttpOidcDiscovery {
 
 async fn request_userinfo_jwt(
     http_client: &OidcReqwestClient,
-    config: &Config,
+    config: &AuthorizationServerMetadata,
     token_request: TokenRequest,
 ) -> Result<String, OidcError> {
     // Get userinfo endpoint from discovery, throw an error otherwise.
@@ -375,7 +375,7 @@ pub async fn request_userinfo<C>(
 where
     C: DeserializeOwned,
 {
-    let config: Config = well_known::fetch_well_known_unvalidated(
+    let config: AuthorizationServerMetadata = well_known::fetch_well_known_unvalidated(
         http_client,
         authorization_server,
         well_known::WellKnownPath::OpenidConfiguration,
@@ -491,7 +491,7 @@ mod tests {
     use crate::token::TokenRequestGrantType;
 
     use super::AuthorizationServer;
-    use super::Config;
+    use super::AuthorizationServerMetadata;
     use super::HttpAuthorizationServer;
     use super::HttpOidcDiscovery;
     use super::JwkSet;
@@ -503,8 +503,8 @@ mod tests {
     /// A test discoverer that bypasses `IssuerIdentifier` HTTPS requirement by using a `BaseUrl` directly.
     struct TestDiscover(BaseUrl);
 
-    impl Discover<Config, OidcError> for TestDiscover {
-        async fn discover(&self, _identifier: &IssuerIdentifier) -> Result<Config, OidcError> {
+    impl Discover<AuthorizationServerMetadata, OidcError> for TestDiscover {
+        async fn discover(&self, _identifier: &IssuerIdentifier) -> Result<AuthorizationServerMetadata, OidcError> {
             let client = OidcReqwestClient::try_new().unwrap();
             let url = self.0.join("/.well-known/openid-configuration");
             client.get(url).await.map_err(OidcError::Http)
@@ -625,7 +625,7 @@ mod tests {
         pkce_pair.expect_code_challenge().return_const("challenge".to_string());
 
         HttpAuthorizationServer {
-            provider: Config::new_mock(issuer_identifier),
+            provider: AuthorizationServerMetadata::new_mock(issuer_identifier),
             jwks: Some(JwkSet { keys: vec![] }),
             client_id: CLIENT_ID.to_string(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),
@@ -674,7 +674,7 @@ mod tests {
     // Helper function for testing `AuthorizationServer::into_token_request()` calls that should result in an error.
     fn parse_request_uri(uri: &Url) -> OidcError {
         let server = HttpAuthorizationServer::<MockPkcePair> {
-            provider: Config::new_mock(ISSUER_URL.parse().unwrap()),
+            provider: AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
             jwks: Some(JwkSet { keys: vec![] }),
             client_id: CLIENT_ID.to_string(),
             redirect_uri: REDIRECT_URI.parse().unwrap(),

@@ -1,9 +1,9 @@
 pub use client::*;
-pub use config::*;
+pub use metadata::*;
 pub use discover::*;
 pub use reqwest::*;
 
 mod client;
-mod config;
+mod metadata;
 mod discover;
 mod reqwest;

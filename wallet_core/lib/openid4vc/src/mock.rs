@@ -21,7 +21,6 @@ use crate::issuer_metadata::IssuerMetadata;
 use crate::issuer_metadata::NonZeroOrOneU64;
 use crate::issuer_metadata::ProofType;
 use crate::oidc::AuthorizationServerMetadata;
-use crate::oidc::Config;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 
@@ -90,7 +89,7 @@ impl CredentialIssuer for MockCredentialIssuer {
         self.get_authorization_endpoint_url()
     }
 
-    fn oauth_metadata(&self) -> Config {
+    fn oauth_metadata(&self) -> AuthorizationServerMetadata {
         self.get_oauth_metadata()
     }
 
@@ -125,7 +124,7 @@ impl ExtendingVctRetriever for ExtendingVctRetrieverStub {
     }
 }
 
-impl Config {
+impl AuthorizationServerMetadata {
     /// Construct a new `Config` based on the OP's URL and some standardized or reasonable defaults.
     pub fn new_mock(issuer_identifier: IssuerIdentifier) -> Self {
         let issuer_url = issuer_identifier.as_base_url();
@@ -144,7 +143,7 @@ impl Config {
             ),
             id_token_signing_alg_values_supported: IndexSet::from_iter(["RS256".to_string()]),
 
-            ..Config::new(issuer_identifier, token_url)
+            ..AuthorizationServerMetadata::new(issuer_identifier, token_url)
         }
     }
 }
