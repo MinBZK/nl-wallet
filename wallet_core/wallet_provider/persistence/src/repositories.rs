@@ -228,6 +228,15 @@ impl WalletUserRepository for Repositories {
         wallet_user_key::delete_all_blocked_keys(transaction, wallet_user_id).await
     }
 
+    async fn delete_keys(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+        key_identifiers: &[String],
+    ) -> Result<(), PersistenceError> {
+        wallet_user_key::delete_keys(transaction, wallet_user_id, key_identifiers).await
+    }
+
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn unblock_blocked_keys_in_batch(
         &self,
@@ -705,6 +714,13 @@ pub mod mock {
                 wallet_user_id: Uuid,
             ) -> Result<(), PersistenceError>;
 
+            async fn delete_keys(
+                &self,
+                transaction: &MockTransaction,
+                wallet_user_id: Uuid,
+                key_identifiers: &[String],
+            ) -> Result<(), PersistenceError>;
+
             async fn find_active_keys_by_identifiers(
                 &self,
                 transaction: &MockTransaction,
@@ -1076,6 +1092,15 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
+        ) -> Result<(), PersistenceError> {
+            Ok(())
+        }
+
+        async fn delete_keys(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _key_identifiers: &[String],
         ) -> Result<(), PersistenceError> {
             Ok(())
         }
