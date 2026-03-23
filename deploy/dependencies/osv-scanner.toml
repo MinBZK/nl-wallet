@@ -19,6 +19,6 @@ ignoreUntil = 2026-07-01
 reason = "`bincode` is a transitive dependency that is no longer maintained but considered complete and used by `http-cache`. Waiting for `http-cache` to find alternatives."
 
 [[IgnoredVulns]]
-id = "GHSA-6gx3-4362-rf54"
+id = "RUSTSEC-2026-0066"
 ignoreUntil = 2026-07-01
 reason = "This is a transitive dependency that is only run as a dev-dependency. Waiting for testcontainers to update to new astral-tokio-tar version in which it should be fixed."
