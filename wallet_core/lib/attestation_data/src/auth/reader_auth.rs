@@ -6,17 +6,18 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
+use utils::vec_at_least::NonEmptyIterator;
 use x509_parser::der_parser::Oid;
 use x509_parser::der_parser::asn1_rs::oid;
 
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificateExtension;
-use dcql::normalized::NormalizedCredentialRequest;
 use error_category::ErrorCategory;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::auth::LocalizedStrings;
 use crate::auth::Organization;
+use crate::disclosure::AttestationRequest;
 use crate::x509::CertificateType;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -46,29 +47,30 @@ pub struct ReaderRegistration {
 
 impl ReaderRegistration {
     /// Verify whether all requested attributes exist in the registration.
-    pub fn verify_requested_attributes<'a>(
-        &'a self,
-        requests: impl IntoIterator<Item = &'a NormalizedCredentialRequest>,
-    ) -> Result<(), ValidationError> {
+    pub fn verify_requested_attributes<I, R>(&self, requests: I) -> Result<(), ValidationError>
+    where
+        I: IntoIterator<Item = R>,
+        R: AttestationRequest + Clone,
+    {
         let unregistered_attributes = requests
             .into_iter()
             .flat_map(|request| {
                 let request_attributes = request.claim_paths().collect::<HashSet<_>>();
+                let mut authorized_attributes = self.authorized_attributes.clone();
 
+                let credential_types: VecNonEmpty<_> = request.credential_types().collect();
                 // Check if any of the requested attributes are missing from the
                 // authorized attributes for all requested attestation types.
-                request.credential_types().flat_map(move |credential_type| {
-                    let authorized_attributes = self
-                        .authorized_attributes
-                        .get(credential_type)
-                        .map(|attributes| attributes.iter().collect::<HashSet<_>>())
+                credential_types.into_iter().flat_map(move |credential_type| {
+                    let authorized_attributes: HashSet<VecNonEmpty<_>> = authorized_attributes
+                        .remove(&credential_type)
+                        .map(|attributes| attributes.into_iter().collect::<HashSet<_>>().to_owned())
                         .unwrap_or_default();
 
                     let unauthorized_attributes = request_attributes
                         .difference(&authorized_attributes)
-                        .copied()
                         .cloned()
-                        .collect::<HashSet<_>>();
+                        .collect::<HashSet<VecNonEmpty<_>>>();
 
                     (!unauthorized_attributes.is_empty())
                         .then(|| (credential_type.to_string(), unauthorized_attributes))
@@ -435,7 +437,7 @@ mod test {
         #[case] expected_unregistered: Option<HashMap<String, HashSet<VecNonEmpty<ClaimPath>>>>,
     ) {
         let registration = create_some_registration();
-        let result = registration.verify_requested_attributes(requested_attributes.as_ref());
+        let result = registration.verify_requested_attributes(requested_attributes);
 
         match expected_unregistered {
             Some(expected_unregistered) => {

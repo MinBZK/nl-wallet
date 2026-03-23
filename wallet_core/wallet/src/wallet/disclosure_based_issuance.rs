@@ -176,6 +176,7 @@ mod tests {
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::validity::ValidityWindow;
+    use attestation_data::verifier_certificate::VerifierCertificate;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
@@ -191,7 +192,6 @@ mod tests {
     use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
     use openid4vc::disclosure_session;
     use openid4vc::disclosure_session::DataDisclosed;
-    use openid4vc::disclosure_session::VerifierCertificate;
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpSessionError;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;

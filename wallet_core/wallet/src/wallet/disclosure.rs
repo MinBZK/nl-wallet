@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::hash::Hash;
 use std::sync::Arc;
 
 use chrono::Utc;
@@ -18,8 +19,10 @@ pub use openid4vc::disclosure_session::DisclosureUriSource;
 
 use attestation_data::auth::Organization;
 use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::disclosure::AttestationRequest;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
+use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequest;
 use entity::disclosure_event::EventStatus;
@@ -39,7 +42,7 @@ use openid4vc::disclosure_session::VpVerifierError;
 use openid4vc::oidc::OidcClient;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
-use platform_support::close_proximity_disclosure::CloseProximityDisclosureError;
+use platform_support::close_proximity_disclosure::CloseProximityDisclosureError as PlatformCloseProximityDisclosureError;
 use sd_jwt::claims::NonSelectivelyDisclosableClaimsError;
 use sd_jwt::error::SigningError;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
@@ -50,6 +53,7 @@ use utils::vec_at_least::VecAtLeastN;
 use utils::vec_at_least::VecAtLeastTwo;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
+use wallet_configuration::wallet_config::PidAttributePaths;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -70,6 +74,7 @@ use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::wallet::HistoryError;
 use crate::wallet::Session;
+use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureError;
 
 use super::UriType;
 use super::Wallet;
@@ -182,8 +187,12 @@ pub enum DisclosureError {
     #[category(critical)]
     NonSelectivelyDisclosableClaim(Box<Organization>, #[source] NonSelectivelyDisclosableClaimsError),
 
-    #[error("Close Proximity discolsure session error: {0}")]
+    #[error("Platform Close Proximity disclosure session error: {0}")]
     #[category(critical)]
+    PlatformCloseProximityDisclosureSessionError(#[from] PlatformCloseProximityDisclosureError),
+
+    #[error("Close Proximity disclosure session error: {0}")]
+    #[category(defer)]
     CloseProximityDisclosureSessionError(#[from] CloseProximityDisclosureError),
 }
 
@@ -254,19 +263,16 @@ pub enum RedirectUriPurpose {
 }
 
 #[derive(Debug, Clone)]
-pub(super) enum WalletDisclosureAttestations {
+pub(super) enum WalletDisclosureAttestations<T> {
     Missing,
-    Proposal(IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosableAttestation>>),
+    Proposal(IndexMap<T, VecNonEmpty<DisclosableAttestation>>),
 }
 
-impl WalletDisclosureAttestations {
+impl<T: Hash + Eq> WalletDisclosureAttestations<T> {
     /// Returns an [`IndexMap`] selecting one attestation per DCQL query from the proposal. Note that this panics when
     /// [`WalletDisclosureAttestations`] is not a propsal or any of the indices is out of bounds, as this is considered
     /// programmer error.
-    pub fn select_proposal(
-        &self,
-        selected_indices: &[usize],
-    ) -> IndexMap<&CredentialQueryIdentifier, &DisclosableAttestation> {
+    pub fn select_proposal(&self, selected_indices: &[usize]) -> IndexMap<&T, &DisclosableAttestation> {
         match self {
             Self::Missing => panic!("disclosure proposal selected when missing attributes"),
             Self::Proposal(attestations) => {
@@ -304,7 +310,7 @@ impl WalletDisclosureAttestations {
 pub(super) struct WalletDisclosureSession<DCS> {
     pub redirect_uri_purpose: RedirectUriPurpose,
     pub disclosure_type: DisclosureType,
-    pub attestations: WalletDisclosureAttestations,
+    pub attestations: WalletDisclosureAttestations<CredentialQueryIdentifier>,
     pub protocol_state: DCS,
 }
 
@@ -352,25 +358,24 @@ impl RedirectUriPurpose {
 }
 
 /// Check if the PID recovery code is part of a credential request.
-fn is_request_for_recovery_code(
-    request: &NormalizedCredentialRequest,
+pub(crate) fn is_request_for_recovery_code(
+    request: impl AttestationRequest,
     pid_attributes: &PidAttributesConfiguration,
 ) -> bool {
-    match &request {
-        NormalizedCredentialRequest::MsoMdoc {
-            doctype_value, claims, ..
-        } => pid_attributes.mso_mdoc.get(doctype_value).is_some_and(|pid_paths| {
-            claims.iter().any(|claim| {
-                ClaimPath::matches_key_path(&claim.path, pid_paths.recovery_code.iter().map(String::as_str))
-            })
-        }),
-        NormalizedCredentialRequest::SdJwt { vct_values, claims, .. } => vct_values.iter().any(|vct| {
-            pid_attributes.sd_jwt.get(vct).is_some_and(|pid_paths| {
-                claims.iter().any(|claim| {
-                    ClaimPath::matches_key_path(&claim.path, pid_paths.recovery_code.iter().map(String::as_str))
-                })
-            })
-        }),
+    let matches_recovery_code_paths = |pid_paths: &PidAttributePaths| {
+        request
+            .claim_paths()
+            .any(|claim| ClaimPath::matches_key_path(&claim, pid_paths.recovery_code.iter().map(String::as_str)))
+    };
+
+    match request.format() {
+        CredentialFormat::MsoMdoc => pid_attributes
+            .mso_mdoc
+            .get(request.credential_types().collect::<VecNonEmpty<_>>().first())
+            .is_some_and(matches_recovery_code_paths),
+        CredentialFormat::SdJwt => request
+            .credential_types()
+            .any(|vct| pid_attributes.sd_jwt.get(&vct).is_some_and(matches_recovery_code_paths)),
     }
 }
 
@@ -386,9 +391,9 @@ where
     /// Helper method that fetches attestation from the database based on their attestation type, filters out any of
     /// them that do not match the request and convert the remaining ones to a [`DisclosableAttestation`], which
     /// contains an [`AttestationPresentation`] to show to the user.
-    async fn fetch_candidate_attestations(
+    pub(crate) async fn fetch_candidate_attestations(
         storage: &S,
-        request: &NormalizedCredentialRequest,
+        request: &impl AttestationRequest,
         presentation_config: &impl AttestationPresentationConfig,
     ) -> Result<Option<VecNonEmpty<DisclosableAttestation>>, StorageError> {
         let credential_types = request.credential_types().collect();
@@ -403,14 +408,18 @@ where
                 // Only select those attestations that contain all of the requested attributes.
                 // TODO (PVW-4537): Have this be part of the database query using some index.
                 attestation_copy
-                    .matches_requested_attributes(request.claim_paths())
+                    .matches_requested_attributes(request.claim_paths().collect_vec().iter())
                     .then(|| {
                         // Create a disclosure proposal by removing any attributes that were not requested from the
                         // presentation attributes. Since the filtering above should remove any attestation in which the
                         // requested claim paths are not present and this is the only error condition, no error should
                         // occur.
-                        DisclosableAttestation::try_new(attestation_copy, request.claim_paths(), presentation_config)
-                            .expect("all claim paths should be present in attestation")
+                        DisclosableAttestation::try_new(
+                            attestation_copy,
+                            request.claim_paths().collect_vec().iter(),
+                            presentation_config,
+                        )
+                        .expect("all claim paths should be present in attestation")
                     })
             })
             .collect_vec();
@@ -1009,6 +1018,7 @@ mod tests {
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::validity::ValidityWindow;
+    use attestation_data::verifier_certificate::VerifierCertificate;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
@@ -1032,7 +1042,6 @@ mod tests {
     use openid4vc::disclosure_session::DataDisclosed;
     use openid4vc::disclosure_session::DisclosableAttestations;
     use openid4vc::disclosure_session::DisclosureUriSource;
-    use openid4vc::disclosure_session::VerifierCertificate;
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpMessageClientError;
     use openid4vc::disclosure_session::VpSessionError;
@@ -1366,7 +1375,7 @@ mod tests {
                 .mut_storage()
                 .expect_fetch_valid_unique_attestations_by_types_and_format()
                 .withf(move |attestation_types, format, _| {
-                    *attestation_types == HashSet::from([attestation_type]) && *format == requested_format
+                    *attestation_types == HashSet::from([attestation_type.to_owned()]) && *format == requested_format
                 })
                 .times(1)
                 .return_once(move |_, _, _| Ok(attestations));
@@ -1866,7 +1875,8 @@ mod tests {
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_types_and_format()
             .withf(move |attestation_types, format, _| {
-                *attestation_types == HashSet::from([PID_ATTESTATION_TYPE]) && *format == CredentialFormat::MsoMdoc
+                *attestation_types == HashSet::from([PID_ATTESTATION_TYPE.to_owned()])
+                    && *format == CredentialFormat::MsoMdoc
             })
             .times(1)
             .return_once(move |_, _, _| Ok(vec![expectation_attestation_copy.clone()]));
@@ -2999,7 +3009,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_types_and_format()
             .withf(move |attestation_types, format, _| {
-                *attestation_types == HashSet::from([attestation_type]) && *format == CredentialFormat::SdJwt
+                *attestation_types == HashSet::from([attestation_type.to_owned()]) && *format == CredentialFormat::SdJwt
             })
             .times(1)
             .return_once(move |_, _, _| Ok(attestations));

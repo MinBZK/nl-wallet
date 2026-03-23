@@ -23,12 +23,14 @@ use crate::errors::Result;
 use crate::iso::disclosure::*;
 use crate::utils::cose::CoseKey;
 use crate::utils::serialization;
+use crate::utils::serialization::CborError;
 use crate::utils::serialization::CborIntMap;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::DeviceAuthenticationString;
 use crate::utils::serialization::OpenID4VPHandoverString;
 use crate::utils::serialization::RequiredValue;
 use crate::utils::serialization::TaggedBytes;
+use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;
 
 /// The data structure that the holder signs with the mdoc private key when disclosing attributes out of that mdoc.
@@ -90,6 +92,10 @@ pub enum SessionTranscriptError {
 }
 
 impl SessionTranscript {
+    pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, CborError> {
+        cbor_deserialize(bytes)
+    }
+
     pub fn new_qr(
         reader_engagement: &ReaderEngagement,
         device_engagement: &DeviceEngagement,
@@ -220,7 +226,7 @@ pub enum CipherSuiteIdentifier {
 
 pub type ESenderKeyBytes = TaggedBytes<CoseKey>;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "mock"))]
 mod test {
     use super::SessionTranscript;
 

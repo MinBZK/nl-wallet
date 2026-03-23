@@ -1,7 +1,8 @@
-use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::x509::CertificateType;
-use attestation_data::x509::CertificateTypeError;
 use crypto::x509::BorrowingCertificate;
+
+use crate::auth::reader_auth::ReaderRegistration;
+use crate::x509::CertificateType;
+use crate::x509::CertificateTypeError;
 
 #[derive(Debug, Clone)]
 pub struct VerifierCertificate {

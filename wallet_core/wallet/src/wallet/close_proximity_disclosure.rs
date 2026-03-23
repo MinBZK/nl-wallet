@@ -2,8 +2,11 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
+use chrono::DateTime;
 use chrono::Utc;
 use derive_more::IsVariant;
+use futures::future::try_join_all;
+use itertools::Itertools;
 use nutype::nutype;
 use parking_lot::Mutex;
 use tokio::sync::mpsc;
@@ -12,26 +15,42 @@ use tracing::error;
 use tracing::info;
 use url::Url;
 
+use attestation_data::auth::reader_auth::ValidationError;
+use attestation_data::disclosure::AttestationRequest;
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_data::verifier_certificate::VerifierCertificate;
+use attestation_data::x509::CertificateTypeError;
 use crypto::x509::BorrowingCertificate;
 use entity::disclosure_event::EventStatus;
+use error_category::ErrorCategory;
 use mdoc::DeviceRequest;
+use mdoc::SessionTranscript;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::oidc::OidcClient;
+use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
+use rustls_pki_types::TrustAnchor;
 use update_policy_model::update_policy::VersionState;
+use utils::generator::Generator;
+use utils::generator::TimeGenerator;
+use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use crate::AttributesNotAvailable;
+use crate::DisclosureAttestationOptions;
 use crate::DisclosureProposalPresentation;
 use crate::Wallet;
 use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::wallet::DisclosureError;
 use crate::wallet::Session;
+use crate::wallet::disclosure::RedirectUriPurpose;
 use crate::wallet::disclosure::WalletDisclosureAttestations;
+use crate::wallet::disclosure::is_request_for_recovery_code;
 
 #[derive(Debug, Clone, Copy)]
 pub enum CloseProximityDisclosureUpdate {
@@ -61,10 +80,10 @@ enum CloseProximityDisclosureSessionState {
         device_request: Vec<u8>,
     },
     DisclosureProposed {
-        session_transcript: Vec<u8>,
+        session_transcript: Box<SessionTranscript>,
         device_request: DeviceRequest,
         reader_certificate: Box<BorrowingCertificate>,
-        attestations: WalletDisclosureAttestations,
+        attestations: WalletDisclosureAttestations<usize>,
     },
 }
 
@@ -112,7 +131,39 @@ fn spawn_listener(
     })
 }
 
-// ── Wallet methods ────────────────────────────────────────────────────────────
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
+pub enum CloseProximityDisclosureError {
+    #[error("Device Request does not have any doc requests")]
+    #[category(critical)]
+    EmptyRequest,
+
+    #[error("Device Request has no attributes")]
+    #[category(critical)]
+    NoAttributesRequested,
+
+    #[error("Device Request has no ReaderAuth")]
+    #[category(critical)]
+    MissingReaderAuth,
+
+    #[error("ReaderAuths are not all identical")]
+    #[category(critical)]
+    InconsistentReaderAuths,
+
+    #[error("Invalid DocRequest")]
+    InvalidDocRequest(#[from] mdoc::Error),
+
+    #[error("Missing ReaderRegistration in certificate")]
+    #[category(critical)]
+    MissingReaderRegistration,
+
+    #[error("Invalid certificate type: {0}")]
+    InvalidCertificateType(#[from] CertificateTypeError),
+
+    #[error("Requested unregistered attributes: {0}")]
+    #[category(pd)]
+    RequestedUnregisteredAttributes(#[from] ValidationError),
+}
 
 impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
 where
@@ -166,8 +217,220 @@ where
         Ok(uri)
     }
 
-    pub fn continue_close_proximity_disclosure(&mut self) -> Result<DisclosureProposalPresentation, DisclosureError> {
-        unimplemented!()
+    pub async fn continue_close_proximity_disclosure(
+        &mut self,
+    ) -> Result<DisclosureProposalPresentation, DisclosureError> {
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(DisclosureError::VersionBlocked);
+        }
+
+        info!("Checking if registered");
+        if !self.registration.is_registered() {
+            return Err(DisclosureError::NotRegistered);
+        }
+
+        info!("Checking if locked");
+        if self.lock.is_locked() {
+            return Err(DisclosureError::Locked);
+        }
+
+        info!("Checking if there is already an active session");
+        let Some(Session::CloseProximityDisclosure(CloseProximityDisclosureSession { session_state, .. })) =
+            self.session.as_ref()
+        else {
+            return Err(DisclosureError::SessionState);
+        };
+
+        let CloseProximityDisclosureSessionState::SessionEstablished {
+            device_request,
+            session_transcript,
+        } = session_state.lock().to_owned()
+        else {
+            return Err(DisclosureError::SessionState);
+        };
+
+        let wallet_config = &self.config_repository.get();
+
+        let device_request = DeviceRequest::try_from_bytes(&device_request).unwrap(); // TODO handle panic
+        let session_transcript = SessionTranscript::try_from_bytes(&session_transcript).unwrap();
+
+        let verifier_certificate = Self::verify_device_request(
+            &device_request,
+            &session_transcript,
+            &TimeGenerator,
+            &wallet_config.disclosure.rp_trust_anchors(),
+        )?;
+
+        // Check for recovery code request
+        if device_request
+            .doc_requests
+            .iter()
+            .any(|request| is_request_for_recovery_code(request.items_request.0.clone(), &wallet_config.pid_attributes))
+        {
+            return Err(DisclosureError::RecoveryCodeRequested);
+        }
+
+        // For each disclosure request, fetch the candidates from the database and convert
+        // each of them to an `AttestationPresentation` that can be shown to the user.
+        let storage = self.storage.read().await;
+        let candidate_attestations = try_join_all(device_request.doc_requests.iter().map(|request| {
+            Self::fetch_candidate_attestations(&*storage, &request.items_request.0, &wallet_config.pid_attributes)
+        }))
+        .await
+        .map_err(DisclosureError::AttestationRetrieval)?
+        .into_iter()
+        .flatten() // remove entries for which no suitable candidates were found
+        .collect::<Vec<_>>();
+
+        let shared_data_with_relying_party_before = self
+            .storage
+            .read()
+            .await
+            .did_share_data_with_relying_party(verifier_certificate.certificate())
+            .await
+            .map_err(DisclosureError::HistoryRetrieval)?;
+
+        let (reader_certificate, reader_registration) = verifier_certificate.into_certificate_and_registration();
+        let session_type = SessionType::CrossDevice; // all close proximity disclosure sessions are cross-device
+        let disclosure_type = DisclosureType::Regular; // all close proximity disclosure sessions are regular
+        let purpose = RedirectUriPurpose::Browser; // irrelevant for close proximity disclosure sessions
+
+        // If no suitable candidates were found for at least one of the requests, report this as an error to the UI.
+        if let Ok(candidate_attestations) = VecNonEmpty::try_from(candidate_attestations)
+            && candidate_attestations.len() == device_request.doc_requests.len()
+        {
+            info!(
+                "All attributes in the disclosure request are present in the database, return a proposal to the user"
+            );
+
+            // Place the proposed attestations in a `DisclosureProposalPresentation`,
+            // along with a copy of the `ReaderRegistration`.
+            let attestation_options = candidate_attestations
+                .nonempty_iter()
+                .map(|candidates| {
+                    let presentations = candidates
+                        .nonempty_iter()
+                        .map(|candidate| candidate.presentation().clone())
+                        .collect::<VecNonEmpty<_>>();
+
+                    if presentations.len().get() > 1 {
+                        DisclosureAttestationOptions::Multiple(presentations.into_inner().try_into().unwrap())
+                    } else {
+                        DisclosureAttestationOptions::Single(Box::new(presentations.into_first()))
+                    }
+                })
+                .collect();
+
+            let proposal = DisclosureProposalPresentation {
+                attestation_options,
+                reader_registration,
+                shared_data_with_relying_party_before,
+                session_type,
+                disclosure_type,
+                purpose,
+            };
+
+            *session_state.lock() = CloseProximityDisclosureSessionState::DisclosureProposed {
+                session_transcript: Box::new(session_transcript),
+                reader_certificate: Box::new(reader_certificate),
+                device_request,
+                attestations: WalletDisclosureAttestations::Proposal(
+                    candidate_attestations.into_iter().enumerate().collect(),
+                ),
+            };
+
+            return Ok(proposal);
+        }
+
+        info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
+
+        // For now we simply represent the requested attribute paths by joining all elements with a slash.
+        // TODO (PVW-3813): Attempt to translate the requested attributes using the TAS cache.
+        let requested_attributes = device_request
+            .doc_requests
+            .iter()
+            .flat_map(|request| {
+                request
+                    .items_request
+                    .0
+                    .credential_types()
+                    .into_iter()
+                    .flat_map(|attestation_type| {
+                        request
+                            .items_request
+                            .0
+                            .claim_paths()
+                            .map(move |claim_path| format!("{}/{}", attestation_type, claim_path.iter().join("/")))
+                    })
+            })
+            .collect();
+
+        // Store the session so that it will only be terminated on user interaction.
+        // This prevents gleaning of missing attributes by a verifier.
+        *session_state.lock() = CloseProximityDisclosureSessionState::DisclosureProposed {
+            session_transcript: Box::new(session_transcript),
+            device_request,
+            reader_certificate: Box::new(reader_certificate),
+            attestations: WalletDisclosureAttestations::Missing,
+        };
+
+        Err(DisclosureError::AttributesNotAvailable(AttributesNotAvailable {
+            reader_registration: Box::new(reader_registration),
+            requested_attributes,
+            shared_data_with_relying_party_before,
+            session_type,
+        }))
+    }
+
+    /// Verify device request and reader authentication.
+    /// Note that since each DocRequest carries its own reader authentication, the spec allows the DocRequests to be
+    /// signed by distinct readers. For now, this function requires all of the DocRequests to be signed by the same
+    /// reader.
+    pub fn verify_device_request(
+        device_request: &DeviceRequest,
+        session_transcript: &SessionTranscript,
+        time: &impl Generator<DateTime<Utc>>,
+        trust_anchors: &[TrustAnchor],
+    ) -> Result<VerifierCertificate, CloseProximityDisclosureError> {
+        // A device request without any attributes is useless, so return an error.
+        if !device_request.has_attributes() {
+            return Err(CloseProximityDisclosureError::NoAttributesRequested);
+        }
+
+        // Verify all `DocRequest` entries and make sure the resulting certificates are all exactly equal.
+        let certificate = device_request
+            .doc_requests
+            .iter()
+            .try_fold(None, {
+                |result_cert, doc_request| -> Result<_, _> {
+                    // `DocRequest::verify()` will return `None` if `reader_auth` is absent
+                    let doc_request_cert = doc_request
+                        .verify(session_transcript, time, trust_anchors)?
+                        .ok_or(CloseProximityDisclosureError::MissingReaderAuth)?;
+
+                    // If there is a certificate from a previous iteration, compare our certificate to that.
+                    if let Some(result_cert) = result_cert
+                        && doc_request_cert != result_cert
+                    {
+                        return Err(CloseProximityDisclosureError::InconsistentReaderAuths);
+                    }
+
+                    Ok(doc_request_cert.into())
+                }
+            })?
+            .unwrap(); // the try_fold either returns an error or return Some(certificate)
+
+        // Extract `ReaderRegistration` from the certificate.
+        let verifier_certificate = VerifierCertificate::try_new(certificate)?
+            .ok_or(CloseProximityDisclosureError::MissingReaderRegistration)?;
+
+        // Verify that the requested attributes are included in the reader authentication.
+        verifier_certificate
+            .registration()
+            .verify_requested_attributes(device_request.items_requests())?;
+
+        Ok(verifier_certificate)
     }
 
     pub async fn terminate_close_proximity_disclosure_session(
@@ -214,6 +477,10 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use entity::disclosure_event::EventStatus;
     use mdoc::DeviceRequest;
+    use mdoc::Handover;
+    use mdoc::SessionTranscriptKeyed;
+    use mdoc::examples::Example;
+    use mdoc::utils::serialization::CborSeq;
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureChannel;
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureChannelImpl;
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
@@ -374,8 +641,12 @@ mod tests {
         let session = CloseProximityDisclosureSession {
             listener: tokio::spawn(async {}),
             session_state: Arc::new(Mutex::new(CloseProximityDisclosureSessionState::DisclosureProposed {
-                session_transcript: vec![0x01, 0x02, 0x03],
-                device_request: DeviceRequest::default(),
+                session_transcript: Box::new(CborSeq(SessionTranscriptKeyed {
+                    device_engagement_bytes: None,
+                    ereader_key_bytes: None,
+                    handover: Handover::QrHandover,
+                })),
+                device_request: DeviceRequest::example(),
                 reader_certificate: Box::new(reader_certificate),
                 attestations: WalletDisclosureAttestations::Missing,
             })),

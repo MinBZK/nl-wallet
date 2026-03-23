@@ -11,7 +11,6 @@ use serde::de::DeserializeOwned;
 
 use utils::generator::Generator;
 
-#[cfg(test)]
 use crate::iso::device_retrieval::DeviceRequest;
 #[cfg(test)]
 use crate::iso::device_retrieval::ReaderAuthenticationBytes;
@@ -205,7 +204,6 @@ impl Example for ReaderAuthenticationBytes<'_> {
     }
 }
 
-#[cfg(test)]
 impl Example for DeviceRequest {
     fn example_hex() -> &'static str {
         "a26776657273696f6e63312e306b646f63526571756573747381a26c6974656d7352657175657374d8185893a267646f6354797065756\
