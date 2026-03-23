@@ -19,13 +19,10 @@ use wallet::BlockedReason;
 use wallet::PidIssuancePurpose;
 use wallet::RevocationReason;
 use wallet::WalletState;
-use wallet::errors::AccountProviderError;
-use wallet::errors::AccountProviderResponseError;
 use wallet::errors::InstructionError;
 use wallet::errors::IssuanceError;
 use wallet::errors::WalletRegistrationError;
 use wallet::errors::WalletUnlockError;
-use wallet_account::messages::errors::AccountError;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wallet_provider_persistence::test::clear_flags_dropper;
@@ -286,18 +283,7 @@ async fn test_revoke_wallet_solution() {
     .await;
     let err = wallet.register(pin).await.expect_err("Could still register");
 
-    assert_matches!(
-        err,
-        WalletRegistrationError::ChallengeRequest(AccountProviderError::Response(
-            AccountProviderResponseError::Account(
-                AccountError::AccountRevoked(AccountRevokedData {
-                    revocation_reason: RevocationReason::WalletSolutionCompromised,
-                    can_register_new_account: false,
-                }),
-                _
-            )
-        ))
-    );
+    assert_matches!(err, WalletRegistrationError::AccountRevoked(_));
 }
 
 /// Test if the wallet solution cannot be revoked if the option is not enabled

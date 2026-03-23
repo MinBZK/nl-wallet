@@ -5,6 +5,7 @@ import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/feature/disclosure/argument/disclosure_screen_argument.dart';
 import 'package:wallet/src/feature/issuance/argument/issuance_screen_argument.dart';
 import 'package:wallet/src/feature/sign/argument/sign_screen_argument.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../mocks/wallet_mocks.dart';
 
@@ -219,6 +220,66 @@ void main() {
       when(context.mounted).thenAnswer((_) => false);
       await service.showDialog(WalletDialogType.idleWarning);
       verifyNever(navigatorState.push(any));
+    });
+  });
+
+  group('onCoreError', () {
+    test('When CoreAccountRevokedError is received, navigate to app blocked screen', () async {
+      // Allow navigation (empty prerequisites for appBlocked)
+      when(mockCheckNavigationPrerequisitesUseCase.invoke([])).thenAnswer((_) async => true);
+
+      final error = CoreAccountRevokedError(
+        'Account revoked',
+        revocationData: RevocationData(
+          revocationReason: RevocationReason.adminRequest,
+          canRegisterNewAccount: false,
+        ),
+      );
+
+      await service.onCoreError(error);
+
+      final expectedRequest = NavigationRequest.appBlocked(reason: RevocationReason.adminRequest);
+
+      verify(
+        navigatorState.pushNamedAndRemoveUntil(
+          expectedRequest.destination,
+          any,
+          arguments: expectedRequest.argument,
+        ),
+      ).called(1);
+    });
+
+    test('When CoreAccountRevokedError with different reason is received, navigate with that reason', () async {
+      // Allow navigation (empty prerequisites for appBlocked)
+      when(mockCheckNavigationPrerequisitesUseCase.invoke([])).thenAnswer((_) async => true);
+
+      final error = CoreAccountRevokedError(
+        'Account revoked',
+        revocationData: RevocationData(
+          revocationReason: RevocationReason.solutionCompromised,
+          canRegisterNewAccount: true,
+        ),
+      );
+
+      await service.onCoreError(error);
+
+      final expectedRequest = NavigationRequest.appBlocked(reason: RevocationReason.solutionCompromised);
+
+      verify(
+        navigatorState.pushNamedAndRemoveUntil(
+          expectedRequest.destination,
+          any,
+          arguments: expectedRequest.argument,
+        ),
+      ).called(1);
+    });
+
+    test('When other CoreError is received, do nothing', () async {
+      const error = CoreGenericError('Some error');
+
+      await service.onCoreError(error);
+
+      verifyZeroInteractions(navigatorState);
     });
   });
 }
