@@ -863,10 +863,6 @@ pub enum AuthResponseError {
     #[error("not all revocation statuses are valid")]
     #[category(expected)]
     RevocationStatusNotAllValid,
-
-    #[error("unsupported signing algorithm: expected ES256")]
-    #[category(critical)]
-    UnsupportedAlgorithm,
 }
 
 /// Disclosure of a credential, generally containing the issuer-signed credential itself, the disclosed attributes,
@@ -1207,14 +1203,6 @@ impl VpAuthorizationResponse {
         let presentation = unverified_presentation
             .into_verified_against_trust_anchors(trust_anchors, &kb_verification_options, time, revocation_verifier)
             .await?;
-
-        // Check that the SD-JWT and KB-JWT use the ES256 algorithm identifier.
-        if presentation.sd_jwt().issuer_alg() != Algorithm::ES256 {
-            return Err(AuthResponseError::UnsupportedAlgorithm);
-        }
-        if presentation.key_binding_jwt().header().alg != Algorithm::ES256 {
-            return Err(AuthResponseError::UnsupportedAlgorithm);
-        }
 
         let holder_public_key = presentation
             .sd_jwt()
