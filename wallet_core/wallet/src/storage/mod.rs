@@ -245,9 +245,12 @@ pub trait Storage: Send {
         T: Generator<DateTime<Utc>> + Send + Send + Sync + 'static;
     async fn update_revocation_statuses(&self, updates: Vec<(Uuid, RevocationStatus)>) -> StorageResult<()>;
 
-    /// Returns the key identifiers of all copies of the attestation with the given id.
-    /// Returns an empty `Vec` if no attestation with that id exists.
-    async fn fetch_key_identifiers_by_attestation_id(&self, attestation_id: Uuid) -> StorageResult<Vec<String>>;
+    /// Returns the attestation type and the key identifiers of all copies of the attestation with the given id.
+    /// Returns `None` if no attestation with that id exists.
+    async fn fetch_type_and_key_identifiers_by_attestation_id(
+        &self,
+        attestation_id: Uuid,
+    ) -> StorageResult<Option<(String, Vec<String>)>>;
 
     /// Deletes all copies of the attestation with the given id, severs the links from history events
     /// to the attestation, and deletes the attestation itself. Does nothing if no attestation with

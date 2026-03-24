@@ -1132,16 +1132,31 @@ where
         Ok(())
     }
 
-    async fn fetch_key_identifiers_by_attestation_id(&self, attestation_id: Uuid) -> StorageResult<Vec<String>> {
+    async fn fetch_type_and_key_identifiers_by_attestation_id(
+        &self,
+        attestation_id: Uuid,
+    ) -> StorageResult<Option<(String, Vec<String>)>> {
+        let connection = self.database()?.connection();
+
+        let Some(attestation_type) = attestation::Entity::find_by_id(attestation_id)
+            .select_only()
+            .column(attestation::Column::AttestationType)
+            .into_tuple::<String>()
+            .one(connection)
+            .await?
+        else {
+            return Ok(None);
+        };
+
         let key_identifiers = attestation_copy::Entity::find()
             .select_only()
             .column(attestation_copy::Column::KeyIdentifier)
             .filter(attestation_copy::Column::AttestationId.eq(attestation_id))
             .into_tuple()
-            .all(self.database()?.connection())
+            .all(connection)
             .await?;
 
-        Ok(key_identifiers)
+        Ok(Some((attestation_type, key_identifiers)))
     }
 
     async fn delete_attestation(&mut self, attestation_id: Uuid) -> StorageResult<()> {
@@ -2731,20 +2746,23 @@ pub(crate) mod tests {
     async fn test_fetch_key_identifiers_by_attestation_id() {
         let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
-        // An unknown attestation ID should yield no key identifiers.
+        // An unknown attestation ID should yield nothing.
         let unknown_id = uuid::Uuid::new_v4();
-        let key_identifiers = storage
-            .fetch_key_identifiers_by_attestation_id(unknown_id)
-            .await
-            .expect("Could not fetch key identifiers");
-        assert!(key_identifiers.is_empty());
+        assert!(
+            storage
+                .fetch_type_and_key_identifiers_by_attestation_id(unknown_id)
+                .await
+                .expect("Could not fetch key identifiers")
+                .is_none()
+        );
 
         let attestation_id = insert_sd_jwt_credential(&mut storage, "test_key_id").await;
 
-        let key_identifiers = storage
-            .fetch_key_identifiers_by_attestation_id(attestation_id)
+        let (_, key_identifiers) = storage
+            .fetch_type_and_key_identifiers_by_attestation_id(attestation_id)
             .await
-            .expect("Could not fetch key identifiers");
+            .expect("Could not fetch key identifiers")
+            .expect("Should have found the attestation");
 
         assert_eq!(key_identifiers, vec!["test_key_id".to_string()]);
     }
@@ -2778,10 +2796,10 @@ pub(crate) mod tests {
         );
         assert!(
             storage
-                .fetch_key_identifiers_by_attestation_id(attestation_id)
+                .fetch_type_and_key_identifiers_by_attestation_id(attestation_id)
                 .await
                 .expect("Could not fetch key identifiers")
-                .is_empty()
+                .is_none()
         );
 
         // The issuance event should still exist but be unlinked from the attestation.

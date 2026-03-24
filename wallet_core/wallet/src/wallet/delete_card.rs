@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use itertools::Itertools;
 use tracing::info;
 use tracing::instrument;
 
@@ -30,6 +31,7 @@ use super::Wallet;
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum DeleteCardError {
+    // State errors
     #[error("app version is blocked")]
     #[category(expected)]
     VersionBlocked,
@@ -40,6 +42,7 @@ pub enum DeleteCardError {
     #[category(expected)]
     Locked,
 
+    // Errors from dependencies of this module
     #[error("error fetching update policy: {0}")]
     UpdatePolicy(#[from] UpdatePolicyError),
     #[error("error finalizing pin change: {0}")]
@@ -51,9 +54,13 @@ pub enum DeleteCardError {
     #[error("error emitting attestations: {0}")]
     Attestations(#[from] AttestationsError),
 
+    // Errors specific to deleting attestations
     #[error("attestation not found")]
     #[category(expected)]
     AttestationNotFound,
+    #[error("PID card cannot be deleted")]
+    #[category(expected)]
+    IsPidCard,
     #[error("could not parse attestation id: {0}")]
     #[category(critical)]
     AttestationIdParsing(#[from] uuid::Error),
@@ -101,14 +108,24 @@ where
         }
 
         info!("Fetching key identifiers for attestation");
-        let key_identifiers: VecNonEmpty<_> = self
+        let (attestation_type, key_identifiers) = self
             .storage
             .read()
             .await
-            .fetch_key_identifiers_by_attestation_id(attestation_id)
+            .fetch_type_and_key_identifiers_by_attestation_id(attestation_id)
             .await?
-            .try_into()
-            .map_err(|_| DeleteCardError::AttestationNotFound)?;
+            .ok_or(DeleteCardError::AttestationNotFound)?;
+
+        if config
+            .pid_attributes
+            .pid_attestation_types()
+            .contains(attestation_type.as_str())
+        {
+            return Err(DeleteCardError::IsPidCard);
+        }
+
+        // No attestation is ever stored without corresponding private keys.
+        let key_identifiers: VecNonEmpty<_> = key_identifiers.try_into().unwrap();
 
         let instruction_client = self
             .new_instruction_client(
@@ -151,6 +168,7 @@ mod tests {
     use mockall::predicate::eq;
     use uuid::Uuid;
 
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use update_policy_model::update_policy::VersionState;
     use wallet_account::messages::instructions::DeleteKeys;
     use wallet_account::messages::instructions::Instruction;
@@ -174,9 +192,9 @@ mod tests {
     ) {
         wallet
             .mut_storage()
-            .expect_fetch_key_identifiers_by_attestation_id()
+            .expect_fetch_type_and_key_identifiers_by_attestation_id()
             .with(eq(attestation_id))
-            .return_once(|_| Ok(vec!["test_key_id".to_string()]));
+            .return_once(|_| Ok(Some(("some_type".to_string(), vec!["test_key_id".to_string()]))));
 
         wallet
             .mut_storage()
@@ -272,9 +290,9 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_key_identifiers_by_attestation_id()
+            .expect_fetch_type_and_key_identifiers_by_attestation_id()
             .with(eq(attestation_id))
-            .return_once(|_| Ok(vec![]));
+            .return_once(|_| Ok(None));
 
         let error = wallet
             .delete_card(PIN.to_string(), attestation_id.to_string())
@@ -329,5 +347,34 @@ mod tests {
             .expect_err("delete_card should have resulted in an error");
 
         assert_matches!(error, DeleteCardError::Storage(_));
+    }
+
+    #[tokio::test]
+    async fn test_delete_card_error_delete_pid() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let attestation_id = Uuid::new_v4();
+
+        wallet
+            .mut_storage()
+            .expect_fetch_type_and_key_identifiers_by_attestation_id()
+            .with(eq(attestation_id))
+            .return_once(|_| {
+                Ok(Some((
+                    PID_ATTESTATION_TYPE.to_string(),
+                    vec!["test_key_id".to_string()],
+                )))
+            });
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        let error = wallet
+            .delete_card(PIN.to_string(), attestation_id.to_string())
+            .await
+            .expect_err("delete_card should have resulted in an error");
+
+        assert_matches!(error, DeleteCardError::IsPidCard);
     }
 }
