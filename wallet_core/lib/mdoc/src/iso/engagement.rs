@@ -74,8 +74,7 @@ impl<'a> DeviceAuthenticationKeyed<'a> {
     }
 }
 
-#[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionTranscriptKeyed {
     pub device_engagement_bytes: Option<DeviceEngagementBytes>,
     pub ereader_key_bytes: Option<ESenderKeyBytes>,
@@ -146,8 +145,7 @@ pub type DeviceEngagementBytes = TaggedBytes<DeviceEngagement>;
 /// Serde's `untagged` enum representation ignores the enum variant name, and serializes instead
 /// the contained data of the enum variant. It is unfortunately not able to deserialize the `SchemeHandoverBytes`
 /// variant, so there is a custom deserializer in `serialization.rs`.
-#[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Handover {
     QrHandover,
@@ -155,15 +153,13 @@ pub enum Handover {
     Oid4vpHandover(CborSeq<OID4VPHandover>),
 }
 
-#[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NFCHandover {
     pub handover_select_message: ByteBuf,
     pub handover_request_message: Option<ByteBuf>,
 }
 
-#[cfg_attr(any(test, feature = "examples"), derive(Deserialize))]
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OID4VPHandover {
     pub identifier: RequiredValue<OpenID4VPHandoverString>,
     pub info_hash: ByteBuf,
