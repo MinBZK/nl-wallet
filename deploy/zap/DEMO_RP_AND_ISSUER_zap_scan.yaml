@@ -25,7 +25,7 @@ env:
   vars: {}
 jobs:
 - alertFilters:
-# False positive analysis in pwv-3375 showed that this is not a vulnerability
+# False positive analysis in PVW-3375 showed that this is not a vulnerability
     - ruleId: "10202"
       ruleName: "Absence of Anti-CSRF Tokens (10202)"
       context: ""
@@ -39,7 +39,7 @@ jobs:
       evidence: ""
       evidenceRegex: false
       methods: []
-# False positive analysis in pwv-3375 showed that this is not a vulnerability
+# False positive analysis in PVW-3375 showed that this is not a vulnerability
     - ruleId: "20012"
       ruleName: "Anti-CSRF Tokens Check (20012)"
       context: ""
@@ -53,7 +53,7 @@ jobs:
       evidence: ""
       evidenceRegex: false
       methods: []
-# False positive analysis in pwv-3375 showed that this is not a vulnerability
+# False positive analysis in PVW-3375 showed that this is not a vulnerability
     - ruleId: "40025"
       ruleName: "Proxy Disclosure (40025)"
       context: ""
