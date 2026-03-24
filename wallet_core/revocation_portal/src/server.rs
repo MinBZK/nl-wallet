@@ -18,6 +18,7 @@ pub async fn serve(settings: Settings) -> Result<()> {
 
     let app = create_router(
         &settings.cookie_encryption_key,
+        settings.csrf_cookie_salt,
         settings.log_requests,
         revocation_client,
     );

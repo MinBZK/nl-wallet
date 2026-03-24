@@ -15,6 +15,7 @@ use utils::path::prefix_local_path;
 pub struct Settings {
     pub webserver: Server,
     pub cookie_encryption_key: SymmetricKey,
+    pub csrf_cookie_salt: String,
     pub revocation_endpoint: HttpServiceConfig,
     pub structured_logging: bool,
     pub log_requests: bool,
