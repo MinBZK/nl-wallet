@@ -2690,6 +2690,113 @@ pub(crate) mod tests {
         assert!(revocation_info.is_empty());
     }
 
+    async fn insert_sd_jwt_credential(storage: &mut MockHardwareDatabaseStorage, key_identifier: &str) -> Uuid {
+        let sd_jwt =
+            SignedSdJwt::pid_example(&ISSUER_KEY, SigningKey::random(&mut OsRng).verifying_key()).into_verified();
+        let credential = IssuedCredential::SdJwt {
+            key_identifier: key_identifier.to_string(),
+            sd_jwt: sd_jwt.clone(),
+        };
+        let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential].try_into().unwrap());
+
+        storage
+            .insert_credentials(
+                Utc::now(),
+                vec![(
+                    CredentialWithMetadata::new(
+                        issued_copies,
+                        sd_jwt.claims().vct.clone(),
+                        sd_jwt.claims().exp,
+                        sd_jwt.claims().nbf,
+                        NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
+                        VerifiedTypeMetadataDocuments::nl_pid_example(),
+                    ),
+                    AttestationPresentation::new_mock(),
+                )],
+            )
+            .await
+            .expect("Could not insert credential");
+
+        storage
+            .fetch_unique_attestations()
+            .await
+            .expect("Could not fetch unique attestations")
+            .into_iter()
+            .next()
+            .expect("Should have one attestation")
+            .attestation_id
+    }
+
+    #[tokio::test]
+    async fn test_fetch_key_identifiers_by_attestation_id() {
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
+
+        // An unknown attestation ID should yield no key identifiers.
+        let unknown_id = uuid::Uuid::new_v4();
+        let key_identifiers = storage
+            .fetch_key_identifiers_by_attestation_id(unknown_id)
+            .await
+            .expect("Could not fetch key identifiers");
+        assert!(key_identifiers.is_empty());
+
+        let attestation_id = insert_sd_jwt_credential(&mut storage, "test_key_id").await;
+
+        let key_identifiers = storage
+            .fetch_key_identifiers_by_attestation_id(attestation_id)
+            .await
+            .expect("Could not fetch key identifiers");
+
+        assert_eq!(key_identifiers, vec!["test_key_id".to_string()]);
+    }
+
+    #[tokio::test]
+    async fn test_delete_attestation() {
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
+
+        let attestation_id = insert_sd_jwt_credential(&mut storage, "test_key_id").await;
+
+        // The issuance event created by insert_credentials should be linked to the attestation.
+        let events_before_deletion = storage
+            .fetch_wallet_events_by_attestation_id(attestation_id)
+            .await
+            .expect("Could not fetch wallet events");
+        assert_eq!(events_before_deletion.len(), 1);
+        assert_matches!(events_before_deletion.first().unwrap(), WalletEvent::Issuance { .. });
+
+        storage
+            .delete_attestation(attestation_id)
+            .await
+            .expect("Could not delete attestation");
+
+        // The attestation and its copies should be gone.
+        assert!(
+            storage
+                .fetch_unique_attestations()
+                .await
+                .expect("Could not fetch attestations")
+                .is_empty()
+        );
+        assert!(
+            storage
+                .fetch_key_identifiers_by_attestation_id(attestation_id)
+                .await
+                .expect("Could not fetch key identifiers")
+                .is_empty()
+        );
+
+        // The issuance event should still exist but be unlinked from the attestation.
+        let events_after_deletion = storage
+            .fetch_wallet_events()
+            .await
+            .expect("Could not fetch wallet events");
+        assert_eq!(events_after_deletion.len(), 1);
+        let events_by_attestation = storage
+            .fetch_wallet_events_by_attestation_id(attestation_id)
+            .await
+            .expect("Could not fetch wallet events");
+        assert!(events_by_attestation.is_empty());
+    }
+
     #[rstest]
     // Rule 1: Valid if one copy is Valid
     #[case(vec![Some(RevocationStatus::Valid)], Some(RevocationStatus::Valid))]

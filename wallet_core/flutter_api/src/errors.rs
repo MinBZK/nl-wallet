@@ -667,6 +667,7 @@ mod tests {
     use wallet::RevocationReason;
     use wallet::attestation_data::AttributeValue;
     use wallet::errors::ChangePinError;
+    use wallet::errors::DeleteCardError;
     use wallet::errors::DigidError;
     use wallet::errors::DisclosureError;
     use wallet::errors::InstructionError;
@@ -827,6 +828,17 @@ mod tests {
             revocation_reason: RevocationReason::UserRequest,
             can_register_new_account: true
         }))),
+        FlutterApiErrorType::Revoked,
+        json!({"revocation_data": {
+            "revocation_reason": "user_request",
+            "can_register_new_account": true
+        }})
+    )]
+    #[case(
+        DeleteCardError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+            revocation_reason: RevocationReason::UserRequest,
+            can_register_new_account: true
+        })),
         FlutterApiErrorType::Revoked,
         json!({"revocation_data": {
             "revocation_reason": "user_request",
