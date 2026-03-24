@@ -45,7 +45,7 @@ pub fn build_oidc_session(
     client_id: String,
     redirect_uri: Url,
 ) -> Result<OidcSession<HttpAuthorizationServer>, OidcSessionError> {
-    let http_client = HttpAuthorizationServer::new(config, None, client_id, redirect_uri);
+    let http_client = HttpAuthorizationServer::new(config, client_id, redirect_uri);
     let auth_url = http_client.auth_url()?;
 
     info!("OIDC auth URL generated");

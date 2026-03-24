@@ -85,8 +85,6 @@ pub trait AuthorizationServer {
 #[derive(Debug)]
 pub struct HttpAuthorizationServer<P = S256PkcePair> {
     provider: AuthorizationServerMetadata,
-    #[expect(dead_code)]
-    jwks: Option<JwkSet>,
     client_id: String,
     redirect_uri: Url,
     pkce_pair: P,
@@ -95,15 +93,9 @@ pub struct HttpAuthorizationServer<P = S256PkcePair> {
 }
 
 impl<P: PkcePair> HttpAuthorizationServer<P> {
-    pub fn new(
-        provider: AuthorizationServerMetadata,
-        jwks: Option<JwkSet>,
-        client_id: String,
-        redirect_uri: Url,
-    ) -> Self {
+    pub fn new(provider: AuthorizationServerMetadata, client_id: String, redirect_uri: Url) -> Self {
         Self {
             provider,
-            jwks,
             client_id,
             redirect_uri,
             pkce_pair: P::generate(),
