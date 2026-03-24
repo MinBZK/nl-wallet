@@ -565,63 +565,64 @@ where
             .await
             .map_err(DisclosureError::HistoryRetrieval)?;
 
-        // If no suitable candidates were found for at least one of the requests, report this as an error to the UI.
-        if candidate_attestations.len() < session.credential_requests().as_ref().len() {
-            info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
+        if let Ok(disclosable_attestations) =
+            VecNonEmpty::try_from(candidate_attestations.values().cloned().collect_vec())
+            && disclosable_attestations.len().get() == session.credential_requests().as_ref().len()
+        {
+            info!(
+                "All attributes in the disclosure request are present in the database, return a proposal to the user"
+            );
 
-            // For now we simply represent the requested attribute paths by joining all elements with a slash.
-            // TODO (PVW-3813): Attempt to translate the requested attributes using the TAS cache.
-            let requested_attributes =
-                requested_attribute_paths(session.credential_requests().as_ref().iter()).collect();
-            let session_type = session.session_type();
+            // Place the proposed attestations in a `DisclosureProposalPresentation`,
+            // along with a copy of the `ReaderRegistration`.
+            let attestation_options = disclosable_attestations
+                .nonempty_iter()
+                .map(candidates_to_attestation_options)
+                .collect();
+            let proposal = DisclosureProposalPresentation {
+                attestation_options,
+                reader_registration,
+                shared_data_with_relying_party_before,
+                session_type: session.session_type(),
+                disclosure_type,
+                purpose,
+            };
 
-            // Store the session so that it will only be terminated on user interaction.
-            // This prevents gleaning of missing attributes by a verifier.
+            // Retain the session as `Wallet` state.
             self.session
-                .replace(Session::Disclosure(WalletDisclosureSession::new_missing_attributes(
+                .replace(Session::Disclosure(WalletDisclosureSession::new_proposal(
                     purpose,
                     disclosure_type,
+                    candidate_attestations,
                     session,
                 )));
 
-            return Err(DisclosureError::AttributesNotAvailable(AttributesNotAvailable {
-                reader_registration: Box::new(reader_registration),
-                requested_attributes,
-                shared_data_with_relying_party_before,
-                session_type,
-            }));
+            return Ok(proposal);
         }
 
-        info!("All attributes in the disclosure request are present in the database, return a proposal to the user");
+        // If no suitable candidates were found for at least one of the requests, report this as an error to the UI.
+        info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
 
-        // Place the proposed attestations in a `DisclosureProposalPresentation`,
-        // along with a copy of the `ReaderRegistration`.
-        let attestation_options = candidate_attestations
-            .values()
-            .map(candidates_to_attestation_options)
-            .collect_vec()
-            .try_into()
-            // This is safe, as `NormalizedCredentialRequests` guarantees that there is at least one request.
-            .unwrap();
-        let proposal = DisclosureProposalPresentation {
-            attestation_options,
-            reader_registration,
-            shared_data_with_relying_party_before,
-            session_type: session.session_type(),
-            disclosure_type,
-            purpose,
-        };
+        // For now we simply represent the requested attribute paths by joining all elements with a slash.
+        // TODO (PVW-3813): Attempt to translate the requested attributes using the TAS cache.
+        let requested_attributes = requested_attribute_paths(session.credential_requests().as_ref().iter()).collect();
+        let session_type = session.session_type();
 
-        // Retain the session as `Wallet` state.
+        // Store the session so that it will only be terminated on user interaction.
+        // This prevents gleaning of missing attributes by a verifier.
         self.session
-            .replace(Session::Disclosure(WalletDisclosureSession::new_proposal(
+            .replace(Session::Disclosure(WalletDisclosureSession::new_missing_attributes(
                 purpose,
                 disclosure_type,
-                candidate_attestations,
                 session,
             )));
 
-        Ok(proposal)
+        Err(DisclosureError::AttributesNotAvailable(AttributesNotAvailable {
+            reader_registration: Box::new(reader_registration),
+            requested_attributes,
+            shared_data_with_relying_party_before,
+            session_type,
+        }))
     }
 
     fn verify_non_selectively_disclosable_claims<'a>(

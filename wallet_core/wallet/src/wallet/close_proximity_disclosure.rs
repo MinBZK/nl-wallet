@@ -280,7 +280,6 @@ where
         let disclosure_type = DisclosureType::Regular; // all close proximity disclosure sessions are regular
         let purpose = RedirectUriPurpose::Browser; // irrelevant for close proximity disclosure sessions
 
-        // If no suitable candidates were found for at least one of the requests, report this as an error to the UI.
         if let Ok(candidate_attestations) = VecNonEmpty::try_from(candidate_attestations)
             && candidate_attestations.len() == device_request.doc_requests.len()
         {
@@ -316,6 +315,7 @@ where
             return Ok(proposal);
         }
 
+        // If no suitable candidates were found for at least one of the requests, report this as an error to the UI.
         info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
 
         // For now we simply represent the requested attribute paths by joining all elements with a slash.
