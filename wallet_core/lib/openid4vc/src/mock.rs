@@ -73,7 +73,7 @@ mockall::mock! {
     pub CredentialIssuer {
         pub fn get_metadata(&self) -> &IssuerMetadata;
         pub fn get_authorization_endpoint_url(&self) -> Option<Url>;
-        pub fn get_oauth_metadata(&self) -> AuthorizationServerMetadata;
+        pub fn get_oauth_metadata(&self) -> &AuthorizationServerMetadata;
         pub fn start(&mut self, token_request: TokenRequest) -> Result<MockIssuanceSession, IssuanceSessionError>;
     }
 }
@@ -81,15 +81,7 @@ mockall::mock! {
 impl CredentialIssuer for MockCredentialIssuer {
     type Session = MockIssuanceSession;
 
-    fn authorization_server_url(&self) -> &IssuerIdentifier {
-        self.get_metadata().authorization_servers().into_first()
-    }
-
-    fn authorization_endpoint(&self) -> Option<Url> {
-        self.get_authorization_endpoint_url()
-    }
-
-    fn oauth_metadata(&self) -> AuthorizationServerMetadata {
+    fn oauth_metadata(&self) -> &AuthorizationServerMetadata {
         self.get_oauth_metadata()
     }
 

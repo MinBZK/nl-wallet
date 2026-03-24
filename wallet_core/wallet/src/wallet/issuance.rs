@@ -314,7 +314,7 @@ where
             .await?;
 
         let oidc_session = build_oidc_session(
-            discovered.oauth_metadata(),
+            discovered.oauth_metadata().clone(),
             pid_issuance_config.client_id.clone(),
             urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
         )

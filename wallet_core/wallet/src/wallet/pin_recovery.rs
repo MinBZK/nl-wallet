@@ -178,7 +178,7 @@ where
             .map_err(IssuanceError::IssuanceSession)?;
 
         let oidc_session = build_oidc_session(
-            discovered.oauth_metadata(),
+            discovered.oauth_metadata().clone(),
             config.pid_issuance.client_id.clone(),
             urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
         )

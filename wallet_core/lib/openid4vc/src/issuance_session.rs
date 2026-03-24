@@ -335,9 +335,7 @@ pub trait CredentialIssuerDiscovery {
 pub trait CredentialIssuer {
     type Session: IssuanceSession + std::fmt::Debug;
 
-    fn authorization_server_url(&self) -> &IssuerIdentifier;
-    fn authorization_endpoint(&self) -> Option<Url>;
-    fn oauth_metadata(&self) -> AuthorizationServerMetadata;
+    fn oauth_metadata(&self) -> &AuthorizationServerMetadata;
 
     async fn start_issuance(
         self,
@@ -390,17 +388,8 @@ pub struct HttpCredentialIssuer {
 impl CredentialIssuer for HttpCredentialIssuer {
     type Session = HttpIssuanceSession;
 
-    fn authorization_server_url(&self) -> &IssuerIdentifier {
-        // Note: the spec allows multiple authorization servers, but we currently only support one.
-        self.metadata.authorization_servers().into_first()
-    }
-
-    fn authorization_endpoint(&self) -> Option<Url> {
-        self.oauth_metadata.authorization_endpoint.clone()
-    }
-
-    fn oauth_metadata(&self) -> AuthorizationServerMetadata {
-        self.oauth_metadata.clone()
+    fn oauth_metadata(&self) -> &AuthorizationServerMetadata {
+        &self.oauth_metadata
     }
 
     async fn start_issuance(

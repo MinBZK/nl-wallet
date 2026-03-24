@@ -116,7 +116,9 @@ async fn main() {
     let redirect_url = fake_digid_auth(
         authorization_url,
         discovered
-            .authorization_endpoint()
+            .oauth_metadata()
+            .authorization_endpoint
+            .clone()
             .expect("DigiD metadata must have an authorization endpoint")
             .origin()
             .unicode_serialization()
