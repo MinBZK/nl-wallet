@@ -325,9 +325,11 @@ pub async fn setup_env(
     let issuance_server_url =
         start_issuance_server(issuance_server_settings, Some(hsm.clone()), attributes_fetcher).await;
 
-    let pid_issuer_url = start_pid_issuer_server(issuer_settings, Some(hsm), |_| {
-        MockAttributeService::new(pid_issuable_documents)
-    })
+    let pid_issuer_url = start_pid_issuer_server(
+        issuer_settings,
+        Some(hsm),
+        MockAttributeService::new(pid_issuable_documents),
+    )
     .await;
 
     let issuer_urls = IssuerUrls {
@@ -837,20 +839,15 @@ pub async fn start_issuance_server(
     }
 }
 
-pub async fn start_pid_issuer_server<A, F>(
+pub async fn start_pid_issuer_server(
     mut settings: PidIssuerSettings,
     hsm: Option<Pkcs11Hsm>,
-    attr_service_factory: F,
-) -> IssuerUrl
-where
-    A: AttributeService + Send + Sync + 'static,
-    F: FnOnce(&IssuerIdentifier) -> A,
-{
+    attr_service: impl AttributeService + Sync + 'static,
+) -> IssuerUrl {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
     let public_url = local_http_issuer_identifier(public_port);
     settings.issuer_settings.public_url = public_url.clone();
-    let attr_service = attr_service_factory(&public_url);
 
     let internal_listener = get_internal_listener(&mut settings.issuer_settings.server_settings).await;
     let internal_port = internal_listener.as_ref().unwrap().local_addr().unwrap().port();
@@ -875,12 +872,22 @@ where
     )
     .await;
 
+    let authorization_server = settings
+        .digid
+        .http_config
+        .base_url()
+        .as_ref()
+        .clone()
+        .join("authorize")
+        .unwrap();
+
     tokio::spawn(
         async move {
             if let Err(error) = pid_issuer::server::serve_with_listeners(
                 public_listener,
                 internal_listener,
                 attr_service,
+                Some(authorization_server),
                 settings.issuer_settings,
                 hsm,
                 issuance_sessions,

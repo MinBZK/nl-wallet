@@ -55,7 +55,9 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .transpose()
         .unwrap();
 
-    let issuer_url = start_pid_issuer_server(settings.clone(), hsm, |public_url| {
+    let issuer_url = start_pid_issuer_server(
+        settings.clone(),
+        hsm,
         BrpPidAttributeService::try_new(
             HttpBrpClient::new(settings.brp_server.clone()),
             &settings.digid.bsn_privkey,
@@ -69,8 +71,8 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             )
             .unwrap(),
         )
-        .unwrap()
-    })
+        .unwrap(),
+    )
     .await;
 
     start_gba_hc_converter(gba_hc_converter_settings()).await;

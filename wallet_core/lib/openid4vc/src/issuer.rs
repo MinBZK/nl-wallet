@@ -14,6 +14,7 @@ use derive_more::Debug;
 use derive_more::From;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
@@ -414,6 +415,9 @@ pub struct IssuerData<K> {
     server_url: BaseUrl,
 
     metadata: IssuerMetadata,
+
+    /// The upstream OAuth authorization endpoint to include in this issuer's OAuth metadata, if any.
+    upstream_authorization_endpoint: Option<url::Url>,
 }
 
 pub struct WuaConfig {
@@ -444,6 +448,7 @@ where
         wallet_client_ids: Vec<String>,
         attestation_config: AttestationTypesConfig<K>,
         wua_config: Option<WuaConfig>,
+        upstream_authorization_endpoint: Option<url::Url>,
         attr_service: A,
         sessions: Arc<S>,
         nonce_store: N,
@@ -514,6 +519,7 @@ where
             attestation_config,
             accepted_wallet_client_ids: wallet_client_ids,
             wua_config,
+            upstream_authorization_endpoint,
 
             // In this implementation, the public server URL is composed of the
             // Credential Issuer Identifier appended with the "/issuance/" path.
@@ -823,8 +829,16 @@ where
 
     pub fn oauth_metadata(&self) -> AuthorizationServerMetadata {
         let issuer_url = self.issuer_data.metadata.credential_issuer.as_base_url();
+        let mut scopes = IndexSet::with_capacity(1);
+        scopes.insert("openid".to_string());
+
         AuthorizationServerMetadata {
-            authorization_endpoint: Some(issuer_url.join("authorize")),
+            authorization_endpoint: self
+                .issuer_data
+                .upstream_authorization_endpoint
+                .clone()
+                .and_then(|url| url.join("authorize").ok()),
+            scopes_supported: Some(scopes),
             ..AuthorizationServerMetadata::new(
                 self.issuer_data.metadata.credential_issuer.clone(),
                 issuer_url.join("issuance/token"),

@@ -272,13 +272,15 @@ mod tests {
         }
     }
 
-    type MockIssuer = Issuer<SigningKey, (), MemorySessionStore<IssuanceData>, MemoryNonceStore, MockStatusListServices>;
+    type MockIssuer =
+        Issuer<SigningKey, (), MemorySessionStore<IssuanceData>, MemoryNonceStore, MockStatusListServices>;
 
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
         Issuer::new(
             "https://example.com".parse().unwrap(),
             vec![],
             HashMap::<String, AttestationTypeConfig<SigningKey>>::new().into(),
+            None,
             None,
             (),
             sessions,

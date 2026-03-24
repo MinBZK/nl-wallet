@@ -19,19 +19,19 @@ use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
 use tests_integration::logging::init_logging;
 use tests_integration::test_credential::new_mock_mdoc_pid_example;
-use wallet::test::default_config_server_config;
-use wallet::test::default_wallet_config;
+use wallet::DisclosureUriSource;
+use wallet::PidIssuancePurpose;
+use wallet::Wallet;
+use wallet::WalletClients;
+use wallet::WalletRepositories;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
 use wallet::test::MockHardwareDatabaseStorage;
 use wallet::test::Repository;
 use wallet::test::UpdatePolicyRepository;
 use wallet::test::UpdateableRepository;
-use wallet::DisclosureUriSource;
-use wallet::PidIssuancePurpose;
-use wallet::Wallet;
-use wallet::WalletClients;
-use wallet::WalletRepositories;
+use wallet::test::default_config_server_config;
+use wallet::test::default_wallet_config;
 
 #[ctor]
 fn init() {

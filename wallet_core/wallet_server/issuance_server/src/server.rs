@@ -132,6 +132,7 @@ where
         issuer_settings.wallet_client_ids.clone(),
         attestation_config,
         None,
+        None,
         (),
         issuance_sessions,
         nonce_store,
