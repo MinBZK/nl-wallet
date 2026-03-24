@@ -138,11 +138,8 @@ where
         )
         .await?;
 
-        let config = config_repository.get();
-
         let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder())?;
-        let credential_issuer_discovery =
-            HttpCredentialIssuerDiscovery::new(config.pid_issuance.client_id.clone(), http_json_client);
+        let credential_issuer_discovery = HttpCredentialIssuerDiscovery::new(http_json_client);
 
         let repositories = WalletRepositories {
             config_repository,

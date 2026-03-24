@@ -78,8 +78,7 @@ async fn main() {
     let config = config_repository.get();
 
     let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
-    let credential_issuer_discovery =
-        HttpCredentialIssuerDiscovery::new(config.pid_issuance.client_id.clone(), http_json_client.clone());
+    let credential_issuer_discovery = HttpCredentialIssuerDiscovery::new(http_json_client.clone());
 
     let update_policy_repository = UpdatePolicyRepository::init();
     let wallet_clients = WalletClients::new().unwrap();
@@ -93,7 +92,7 @@ async fn main() {
             config_repository,
             update_policy_repository,
         },
-        HttpCredentialIssuerDiscovery::new(config.pid_issuance.client_id.clone(), http_json_client.clone()),
+        HttpCredentialIssuerDiscovery::new(http_json_client.clone()),
         wallet_clients,
     )
     .await

@@ -345,13 +345,12 @@ pub trait CredentialIssuer {
 }
 
 pub struct HttpCredentialIssuerDiscovery {
-    client_id: String,
     http_client: HttpJsonClient,
 }
 
 impl HttpCredentialIssuerDiscovery {
-    pub fn new(client_id: String, http_client: HttpJsonClient) -> Self {
-        Self { client_id, http_client }
+    pub fn new(http_client: HttpJsonClient) -> Self {
+        Self { http_client }
     }
 }
 
@@ -371,7 +370,6 @@ impl CredentialIssuerDiscovery for HttpCredentialIssuerDiscovery {
         Ok(HttpCredentialIssuer {
             metadata: issuer_metadata,
             oauth_metadata,
-            client_id: self.client_id.clone(),
             http_client: self.http_client.clone(),
         })
     }
@@ -381,7 +379,6 @@ impl CredentialIssuerDiscovery for HttpCredentialIssuerDiscovery {
 pub struct HttpCredentialIssuer {
     metadata: IssuerMetadata,
     oauth_metadata: AuthorizationServerMetadata,
-    client_id: String,
     http_client: HttpJsonClient,
 }
 
@@ -397,7 +394,7 @@ impl CredentialIssuer for HttpCredentialIssuer {
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<HttpIssuanceSession, IssuanceSessionError> {
-        let message_client = HttpVcMessageClient::new(self.client_id, self.http_client);
+        let message_client = HttpVcMessageClient::new(self.http_client);
         let token_endpoint = self.oauth_metadata.token_endpoint;
 
         HttpIssuanceSession::start_issuance_inner(
@@ -420,8 +417,6 @@ pub struct HttpIssuanceSession<H = HttpVcMessageClient> {
 /// Contract for sending OpenID4VCI protocol messages.
 #[cfg_attr(test, mockall::automock)]
 pub trait VcMessageClient {
-    fn client_id(&self) -> &str;
-
     async fn request_token(
         &self,
         url: &Url,
@@ -467,21 +462,16 @@ async fn fetch_oauth_metadata(
 
 #[derive(Debug)]
 pub struct HttpVcMessageClient {
-    client_id: String,
     http_client: HttpJsonClient,
 }
 
 impl HttpVcMessageClient {
-    pub fn new(client_id: String, http_client: HttpJsonClient) -> Self {
-        Self { client_id, http_client }
+    pub fn new(http_client: HttpJsonClient) -> Self {
+        Self { http_client }
     }
 }
 
 impl VcMessageClient for HttpVcMessageClient {
-    fn client_id(&self) -> &str {
-        &self.client_id
-    }
-
     async fn request_token(
         &self,
         url: &Url,
@@ -1260,21 +1250,11 @@ mod tests {
     use wscd::mock_remote::MockRemoteWscd;
 
     use crate::Format;
-    use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::preview::CredentialPreviewResponse;
     use crate::token::CredentialPreview;
     use crate::token::TokenResponse;
 
     use super::*;
-
-    fn mock_openid_message_client() -> MockVcMessageClient {
-        let mut mock_msg_client = MockVcMessageClient::new();
-        mock_msg_client
-            .expect_client_id()
-            .return_const(MOCK_WALLET_CLIENT_ID.to_string());
-
-        mock_msg_client
-    }
 
     fn test_start_issuance(
         ca: &Ca,
@@ -1285,7 +1265,7 @@ mod tests {
     ) -> Result<HttpIssuanceSession<MockVcMessageClient>, IssuanceSessionError> {
         let issuance_key = generate_pid_issuer_mock_with_registration(ca, IssuerRegistration::new_mock()).unwrap();
 
-        let mut mock_msg_client = mock_openid_message_client();
+        let mut mock_msg_client = MockVcMessageClient::new();
         mock_msg_client
             .expect_request_token()
             .return_once(move |_url, _token_request, _dpop_header| {
@@ -1446,7 +1426,7 @@ mod tests {
         let copies_per_format: IndexMap<Format, NonZeroU8> =
             IndexMap::from_iter([(Format::MsoMdoc, NonZeroU8::MIN), (Format::SdJwt, NonZeroU8::MIN)]);
 
-        let mut mock_msg_client = mock_openid_message_client();
+        let mut mock_msg_client = MockVcMessageClient::new();
         mock_msg_client
             .expect_request_token()
             .return_once(move |_url, _token_request, _dpop_header| {
@@ -1649,7 +1629,7 @@ mod tests {
             vec![preview_data].try_into().unwrap()
         });
 
-        let mut mock_msg_client = mock_openid_message_client();
+        let mut mock_msg_client = MockVcMessageClient::new();
 
         // The client must use `request_credentials()` (which uses `/batch_credentials`) iff more than one credential
         // is being issued, and `request_credential()` instead (which uses `/credential`).
@@ -1717,7 +1697,7 @@ mod tests {
         let (signer, preview_data) = MockCredentialSigner::new_with_preview_state();
         let trust_anchor = signer.trust_anchor.clone();
 
-        let mut mock_msg_client = mock_openid_message_client();
+        let mut mock_msg_client = MockVcMessageClient::new();
 
         mock_msg_client.expect_request_credentials().return_once(
             |_url, credential_requests, _dpop_header, _access_token_header| {
@@ -1765,7 +1745,7 @@ mod tests {
 
         let session_state = new_session_state(vec![preview_data].try_into().unwrap());
 
-        let mut mock_msg_client = mock_openid_message_client();
+        let mut mock_msg_client = MockVcMessageClient::new();
 
         mock_msg_client.expect_request_credential().times(1).return_once({
             move |_url, credential_request, _dpop_header, _access_token_header| {
@@ -1795,7 +1775,7 @@ mod tests {
         // Include a random resource integrity in the MSO of the returned mdoc.
         signer.metadata_integrity = Integrity::from(crypto::utils::random_bytes(32));
 
-        let mut mock_msg_client = mock_openid_message_client();
+        let mut mock_msg_client = MockVcMessageClient::new();
 
         mock_msg_client.expect_request_credential().return_once(
             |_url, credential_request, _dpop_header, _access_token_header| {
@@ -1825,7 +1805,7 @@ mod tests {
         let (signer, preview_data) = MockCredentialSigner::new_with_preview_state();
         let trust_anchor = signer.trust_anchor.clone();
 
-        let mut mock_msg_client = mock_openid_message_client();
+        let mut mock_msg_client = MockVcMessageClient::new();
 
         let response = CredentialResponse::Deferred {
             transaction_id: "12345".to_string(),

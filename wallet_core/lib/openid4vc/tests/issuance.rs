@@ -479,10 +479,6 @@ fn invalidate_jwt(jwt: &str) -> String {
 }
 
 impl VcMessageClient for MockOpenidMessageClient {
-    fn client_id(&self) -> &str {
-        MOCK_WALLET_CLIENT_ID
-    }
-
     async fn request_token(
         &self,
         _url: &Url,

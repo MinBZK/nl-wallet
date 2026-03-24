@@ -92,7 +92,6 @@ use wallet::WalletRepositories;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
 use wallet::test::MockHardwareDatabaseStorage;
-use wallet::test::Repository;
 use wallet::test::UpdatePolicyRepository;
 use wallet::test::UpdateableRepository;
 use wallet::test::default_config_server_config;
@@ -427,8 +426,7 @@ where
     let update_policy_repository = UpdatePolicyRepository::init();
 
     let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
-    let credential_issuer_discovery =
-        HttpCredentialIssuerDiscovery::new(config_repository.get().pid_issuance.client_id.clone(), http_json_client);
+    let credential_issuer_discovery = HttpCredentialIssuerDiscovery::new(http_json_client);
 
     let wallet_clients = WalletClients::new().unwrap();
 
