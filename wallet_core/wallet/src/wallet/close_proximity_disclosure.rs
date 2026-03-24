@@ -25,6 +25,7 @@ use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
 use mdoc::DeviceRequest;
 use mdoc::SessionTranscript;
+use mdoc::utils::serialization::CborError;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::oidc::OidcClient;
@@ -163,6 +164,10 @@ pub enum CloseProximityDisclosureError {
     #[error("Requested unregistered attributes: {0}")]
     #[category(pd)]
     RequestedUnregisteredAttributes(#[from] ValidationError),
+
+    #[error("Received invalid CBOR from reader: {0}")]
+    #[category(critical)]
+    InvalidCbor(#[from] CborError),
 }
 
 impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
@@ -252,8 +257,11 @@ where
 
         let wallet_config = &self.config_repository.get();
 
-        let device_request = DeviceRequest::try_from_bytes(&device_request).unwrap(); // TODO handle panic
-        let session_transcript = SessionTranscript::try_from_bytes(&session_transcript).unwrap();
+        // TODO send error to reader (PVW-5710)
+        let device_request =
+            DeviceRequest::try_from_bytes(&device_request).map_err(CloseProximityDisclosureError::InvalidCbor)?;
+        let session_transcript = SessionTranscript::try_from_bytes(&session_transcript)
+            .map_err(CloseProximityDisclosureError::InvalidCbor)?;
 
         let verifier_certificate = Self::verify_device_request(
             &device_request,
