@@ -10,7 +10,7 @@ use wallet::AccountRevokedData;
 use wallet::attestation_data::LocalizedStrings;
 use wallet::errors::AccountProviderError;
 use wallet::errors::ChangePinError;
-use wallet::errors::DeleteCardError;
+use wallet::errors::DeleteAttestationError;
 use wallet::errors::DigidError;
 use wallet::errors::DisclosureBasedIssuanceError;
 use wallet::errors::DisclosureError;
@@ -152,7 +152,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .or_else(|e| e.downcast::<PinRecoveryError>().map(Self::from))
             .or_else(|e| e.downcast::<TransferError>().map(Self::from))
             .or_else(|e| e.downcast::<RevocationCodeError>().map(Self::from))
-            .or_else(|e| e.downcast::<DeleteCardError>().map(Self::from))
+            .or_else(|e| e.downcast::<DeleteAttestationError>().map(Self::from))
     }
 }
 
@@ -634,7 +634,7 @@ impl FlutterApiErrorFields for RevocationCodeError {
     }
 }
 
-impl FlutterApiErrorFields for DeleteCardError {
+impl FlutterApiErrorFields for DeleteAttestationError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
             Self::VersionBlocked => FlutterApiErrorType::VersionBlocked,
@@ -667,7 +667,7 @@ mod tests {
     use wallet::RevocationReason;
     use wallet::attestation_data::AttributeValue;
     use wallet::errors::ChangePinError;
-    use wallet::errors::DeleteCardError;
+    use wallet::errors::DeleteAttestationError;
     use wallet::errors::DigidError;
     use wallet::errors::DisclosureError;
     use wallet::errors::InstructionError;
@@ -835,7 +835,7 @@ mod tests {
         }})
     )]
     #[case(
-        DeleteCardError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+        DeleteAttestationError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
             revocation_reason: RevocationReason::UserRequest,
             can_register_new_account: true
         })),

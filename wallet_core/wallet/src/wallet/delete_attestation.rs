@@ -30,7 +30,7 @@ use super::Wallet;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
-pub enum DeleteCardError {
+pub enum DeleteAttestationError {
     // State errors
     #[error("app version is blocked")]
     #[category(expected)]
@@ -58,9 +58,9 @@ pub enum DeleteCardError {
     #[error("attestation not found")]
     #[category(expected)]
     AttestationNotFound,
-    #[error("PID card cannot be deleted")]
+    #[error("PID cannot be deleted")]
     #[category(expected)]
-    IsPidCard,
+    CannotDeletePid,
     #[error("could not parse attestation id: {0}")]
     #[category(critical)]
     AttestationIdParsing(#[from] uuid::Error),
@@ -78,8 +78,12 @@ where
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn delete_card(&mut self, pin: String, attestation_id: String) -> Result<(), DeleteCardError> {
-        info!("Deleting card {attestation_id}");
+    pub async fn delete_attestation(
+        &mut self,
+        pin: String,
+        attestation_id: String,
+    ) -> Result<(), DeleteAttestationError> {
+        info!("Deleting attestation {attestation_id}");
 
         let attestation_id = attestation_id.parse()?;
 
@@ -92,19 +96,19 @@ where
 
         info!("Checking if blocked");
         if self.is_blocked() {
-            return Err(DeleteCardError::VersionBlocked);
+            return Err(DeleteAttestationError::VersionBlocked);
         }
 
         info!("Checking if registered");
         let (attested_key, registration_data) = self
             .registration
             .as_key_and_registration_data()
-            .ok_or(DeleteCardError::NotRegistered)?;
+            .ok_or(DeleteAttestationError::NotRegistered)?;
         let attested_key = Arc::clone(attested_key);
 
         info!("Checking if locked");
         if self.lock.is_locked() {
-            return Err(DeleteCardError::Locked);
+            return Err(DeleteAttestationError::Locked);
         }
 
         info!("Fetching key identifiers for attestation");
@@ -114,14 +118,14 @@ where
             .await
             .fetch_type_and_key_identifiers_by_attestation_id(attestation_id)
             .await?
-            .ok_or(DeleteCardError::AttestationNotFound)?;
+            .ok_or(DeleteAttestationError::AttestationNotFound)?;
 
         if config
             .pid_attributes
             .pid_attestation_types()
             .contains(attestation_type.as_str())
         {
-            return Err(DeleteCardError::IsPidCard);
+            return Err(DeleteAttestationError::CannotDeletePid);
         }
 
         // No attestation is ever stored without corresponding private keys.
@@ -185,7 +189,7 @@ mod tests {
 
     const PIN: &str = "051097";
 
-    fn setup_delete_card_mocks(
+    fn setup_delete_attestation_mocks(
         wallet: &mut TestWalletMockStorage,
         attestation_id: Uuid,
         delete_result: Result<(), StorageError>,
@@ -234,57 +238,57 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_delete_card_error_invalid_uuid() {
+    async fn test_delete_attestation_error_invalid_uuid() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let error = wallet
-            .delete_card(PIN.to_string(), "not-a-valid-uuid".to_owned())
+            .delete_attestation(PIN.to_string(), "not-a-valid-uuid".to_owned())
             .await
-            .expect_err("delete_card should have resulted in an error");
+            .expect_err("delete_attestation should have resulted in an error");
 
-        assert_matches!(error, DeleteCardError::AttestationIdParsing(_));
+        assert_matches!(error, DeleteAttestationError::AttestationIdParsing(_));
     }
 
     #[tokio::test]
-    async fn test_delete_card_error_not_registered() {
+    async fn test_delete_attestation_error_not_registered() {
         let mut wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         let error = wallet
-            .delete_card(PIN.to_string(), Uuid::new_v4().to_string())
+            .delete_attestation(PIN.to_string(), Uuid::new_v4().to_string())
             .await
-            .expect_err("delete_card should have resulted in an error");
+            .expect_err("delete_attestation should have resulted in an error");
 
-        assert_matches!(error, DeleteCardError::NotRegistered);
+        assert_matches!(error, DeleteAttestationError::NotRegistered);
     }
 
     #[tokio::test]
-    async fn test_delete_card_error_locked() {
+    async fn test_delete_attestation_error_locked() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         wallet.lock();
 
         let error = wallet
-            .delete_card(PIN.to_string(), Uuid::new_v4().to_string())
+            .delete_attestation(PIN.to_string(), Uuid::new_v4().to_string())
             .await
-            .expect_err("delete_card should have resulted in an error");
+            .expect_err("delete_attestation should have resulted in an error");
 
-        assert_matches!(error, DeleteCardError::Locked);
+        assert_matches!(error, DeleteAttestationError::Locked);
     }
 
     #[tokio::test]
-    async fn test_delete_card_error_version_blocked() {
+    async fn test_delete_attestation_error_version_blocked() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         wallet.update_policy_repository.state = VersionState::Block;
 
         let error = wallet
-            .delete_card(PIN.to_string(), Uuid::new_v4().to_string())
+            .delete_attestation(PIN.to_string(), Uuid::new_v4().to_string())
             .await
-            .expect_err("delete_card should have resulted in an error");
+            .expect_err("delete_attestation should have resulted in an error");
 
-        assert_matches!(error, DeleteCardError::VersionBlocked);
+        assert_matches!(error, DeleteAttestationError::VersionBlocked);
     }
 
     #[tokio::test]
-    async fn test_delete_card_error_attestation_not_found() {
+    async fn test_delete_attestation_error_attestation_not_found() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let attestation_id = Uuid::new_v4();
 
@@ -295,18 +299,18 @@ mod tests {
             .return_once(|_| Ok(None));
 
         let error = wallet
-            .delete_card(PIN.to_string(), attestation_id.to_string())
+            .delete_attestation(PIN.to_string(), attestation_id.to_string())
             .await
-            .expect_err("delete_card should have resulted in an error");
+            .expect_err("delete_attestation should have resulted in an error");
 
-        assert_matches!(error, DeleteCardError::AttestationNotFound);
+        assert_matches!(error, DeleteAttestationError::AttestationNotFound);
     }
 
     #[tokio::test]
-    async fn test_delete_card_success() {
+    async fn test_delete_attestation_success() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        // Called by setup_mock_attestations_callback() and wallet.delete_card().
+        // Called by setup_mock_attestations_callback() and wallet.delete_attestation().
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations()
@@ -321,12 +325,12 @@ mod tests {
 
         let attestation_id = Uuid::new_v4();
 
-        setup_delete_card_mocks(&mut wallet, attestation_id, Ok(()));
+        setup_delete_attestation_mocks(&mut wallet, attestation_id, Ok(()));
 
         wallet
-            .delete_card(PIN.to_string(), attestation_id.to_string())
+            .delete_attestation(PIN.to_string(), attestation_id.to_string())
             .await
-            .expect("delete_card should succeed");
+            .expect("delete_attestation should succeed");
 
         // The attestations callback should have been called once with an empty list.
         let attestations = attestations.lock();
@@ -335,22 +339,22 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_delete_card_error_storage_delete() {
+    async fn test_delete_attestation_error_storage_delete() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let attestation_id = Uuid::new_v4();
 
-        setup_delete_card_mocks(&mut wallet, attestation_id, Err(StorageError::AlreadyOpened));
+        setup_delete_attestation_mocks(&mut wallet, attestation_id, Err(StorageError::AlreadyOpened));
 
         let error = wallet
-            .delete_card(PIN.to_string(), attestation_id.to_string())
+            .delete_attestation(PIN.to_string(), attestation_id.to_string())
             .await
-            .expect_err("delete_card should have resulted in an error");
+            .expect_err("delete_attestation should have resulted in an error");
 
-        assert_matches!(error, DeleteCardError::Storage(_));
+        assert_matches!(error, DeleteAttestationError::Storage(_));
     }
 
     #[tokio::test]
-    async fn test_delete_card_error_delete_pid() {
+    async fn test_delete_attestation_error_delete_pid() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let attestation_id = Uuid::new_v4();
 
@@ -371,10 +375,10 @@ mod tests {
             .returning(|| Ok(None));
 
         let error = wallet
-            .delete_card(PIN.to_string(), attestation_id.to_string())
+            .delete_attestation(PIN.to_string(), attestation_id.to_string())
             .await
-            .expect_err("delete_card should have resulted in an error");
+            .expect_err("delete_attestation should have resulted in an error");
 
-        assert_matches!(error, DeleteCardError::IsPidCard);
+        assert_matches!(error, DeleteAttestationError::CannotDeletePid);
     }
 }
