@@ -5,13 +5,14 @@ use std::sync::Arc;
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::IsVariant;
-use futures::future::try_join_all;
+use itertools::Itertools;
 use nutype::nutype;
 use parking_lot::Mutex;
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tracing::error;
 use tracing::info;
+use tracing::instrument;
 use url::Url;
 
 use attestation_data::auth::reader_auth::ValidationError;
@@ -21,6 +22,7 @@ use attestation_data::x509::CertificateTypeError;
 use crypto::x509::BorrowingCertificate;
 use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
+use error_category::sentry_capture_error;
 use mdoc::DeviceRequest;
 use mdoc::SessionTranscript;
 use mdoc::utils::serialization::CborError;
@@ -35,7 +37,6 @@ use rustls_pki_types::TrustAnchor;
 use update_policy_model::update_policy::VersionState;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
-use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -48,8 +49,6 @@ use crate::wallet::DisclosureError;
 use crate::wallet::Session;
 use crate::wallet::disclosure::RedirectUriPurpose;
 use crate::wallet::disclosure::WalletDisclosureAttestations;
-use crate::wallet::disclosure::candidates_to_attestation_options;
-use crate::wallet::disclosure::is_request_for_recovery_code;
 use crate::wallet::disclosure::requested_attribute_paths;
 
 #[derive(Debug, Clone, Copy)]
@@ -179,6 +178,8 @@ where
     CPC: CloseProximityDisclosureClient,
     S: Storage,
 {
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn start_close_proximity_disclosure(
         &mut self,
         callback: CloseProximityDisclosureCallback,
@@ -208,6 +209,8 @@ where
         Ok(uri)
     }
 
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
     pub async fn continue_close_proximity_disclosure(
         &mut self,
     ) -> Result<DisclosureProposalPresentation, DisclosureError> {
@@ -245,35 +248,18 @@ where
             &wallet_config.disclosure.rp_trust_anchors(),
         )?;
 
-        // Check for recovery code request
-        if device_request
-            .items_requests()
-            .any(|request| is_request_for_recovery_code(request.clone(), &wallet_config.pid_attributes))
-        {
-            return Err(DisclosureError::RecoveryCodeRequested);
-        }
+        let (candidate_attestations, shared_data_with_relying_party_before) = self
+            .prepare_disclosure(
+                &device_request.items_requests().collect_vec(),
+                &wallet_config.pid_attributes,
+                verifier_certificate.certificate(),
+            )
+            .await?;
 
-        // For each disclosure request, fetch the candidates from the database and convert
-        // each of them to an `AttestationPresentation` that can be shown to the user.
-        let storage = self.storage.read().await;
-        let candidate_attestations = try_join_all(
-            device_request
-                .items_requests()
-                .map(|request| Self::fetch_candidate_attestations(&*storage, request, &wallet_config.pid_attributes)),
-        )
-        .await
-        .map_err(DisclosureError::AttestationRetrieval)?
-        .into_iter()
-        .flatten() // remove entries for which no suitable candidates were found
-        .collect::<Vec<_>>();
-
-        let shared_data_with_relying_party_before = self
-            .storage
-            .read()
-            .await
-            .did_share_data_with_relying_party(verifier_certificate.certificate())
-            .await
-            .map_err(DisclosureError::HistoryRetrieval)?;
+        let candidate_attestations = candidate_attestations
+            .into_iter()
+            .flatten() // remove entries for which no suitable candidates were found
+            .collect::<Vec<_>>();
 
         let (reader_certificate, reader_registration) = verifier_certificate.into_certificate_and_registration();
         let session_type = SessionType::CrossDevice; // all close proximity disclosure sessions are cross-device
@@ -287,21 +273,14 @@ where
                 "All attributes in the disclosure request are present in the database, return a proposal to the user"
             );
 
-            // Place the proposed attestations in a `DisclosureProposalPresentation`,
-            // along with a copy of the `ReaderRegistration`.
-            let attestation_options = candidate_attestations
-                .nonempty_iter()
-                .map(candidates_to_attestation_options)
-                .collect();
-
-            let proposal = DisclosureProposalPresentation {
-                attestation_options,
+            let proposal = DisclosureProposalPresentation::from_candidates(
+                candidate_attestations.clone(),
                 reader_registration,
                 shared_data_with_relying_party_before,
                 session_type,
                 disclosure_type,
                 purpose,
-            };
+            );
 
             *session_state.lock() = CloseProximityDisclosureSessionState::DisclosureProposed {
                 session_transcript: Box::new(session_transcript),
@@ -318,8 +297,6 @@ where
         // If no suitable candidates were found for at least one of the requests, report this as an error to the UI.
         info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
 
-        // For now we simply represent the requested attribute paths by joining all elements with a slash.
-        // TODO (PVW-3813): Attempt to translate the requested attributes using the TAS cache.
         let requested_attributes = requested_attribute_paths(device_request.items_requests()).collect();
 
         // Store the session so that it will only be terminated on user interaction.

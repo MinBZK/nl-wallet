@@ -5,6 +5,7 @@ use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use chrono::Utc;
+use crypto::x509::BorrowingCertificate;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
@@ -49,6 +50,7 @@ use sd_jwt::error::SigningError;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use update_policy_model::update_policy::VersionState;
 use utils::generator::TimeGenerator;
+use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecAtLeastN;
 use utils::vec_at_least::VecAtLeastTwo;
@@ -359,7 +361,7 @@ impl RedirectUriPurpose {
 }
 
 /// Check if the PID recovery code is part of a credential request.
-pub(crate) fn is_request_for_recovery_code(
+pub(super) fn is_request_for_recovery_code(
     request: impl AttestationRequest,
     pid_attributes: &PidAttributesConfiguration,
 ) -> bool {
@@ -380,23 +382,47 @@ pub(crate) fn is_request_for_recovery_code(
     }
 }
 
-/// Converts a collection of candidate attestations into a [`DisclosureAttestationOptions`] for display to the user.
-pub(super) fn candidates_to_attestation_options(
-    candidates: &VecNonEmpty<DisclosableAttestation>,
-) -> DisclosureAttestationOptions {
-    let presentations = candidates
-        .nonempty_iter()
-        .map(|candidate| candidate.presentation().clone())
-        .collect::<VecNonEmpty<_>>();
+impl DisclosureProposalPresentation {
+    /// Converts a collection of candidate attestations into a [`DisclosureProposalPresentation`].
+    pub(super) fn from_candidates(
+        candidate_attestations: VecNonEmpty<VecNonEmpty<DisclosableAttestation>>,
+        reader_registration: ReaderRegistration,
+        shared_data_with_relying_party_before: bool,
+        session_type: SessionType,
+        disclosure_type: DisclosureType,
+        purpose: RedirectUriPurpose,
+    ) -> Self {
+        // Place the proposed attestations in a `DisclosureProposalPresentation`,
+        // along with a copy of the `ReaderRegistration`.
+        let attestation_options = candidate_attestations
+            .into_nonempty_iter()
+            .map(|candidates| {
+                let presentations = candidates
+                    .into_nonempty_iter()
+                    .map(|candidate| candidate.into_presentation())
+                    .collect::<VecNonEmpty<_>>();
 
-    if presentations.len() != NonZeroUsize::MIN {
-        DisclosureAttestationOptions::Multiple(presentations.into_inner().try_into().unwrap())
-    } else {
-        DisclosureAttestationOptions::Single(Box::new(presentations.into_first()))
+                if presentations.len() == NonZeroUsize::MIN {
+                    DisclosureAttestationOptions::Single(Box::new(presentations.into_first()))
+                } else {
+                    DisclosureAttestationOptions::Multiple(presentations.into_inner().try_into().unwrap())
+                }
+            })
+            .collect();
+
+        DisclosureProposalPresentation {
+            attestation_options,
+            reader_registration,
+            shared_data_with_relying_party_before,
+            session_type,
+            disclosure_type,
+            purpose,
+        }
     }
 }
 
 /// Builds a list of requested attribute paths from disclosure requests, formatted as `"attestation_type/claim/path"`.
+// TODO (PVW-3813): Attempt to translate the requested attributes using the TAS cache.
 pub(super) fn requested_attribute_paths<'a, T: AttestationRequest + 'a>(
     requests: impl Iterator<Item = &'a T>,
 ) -> impl Iterator<Item = String> {
@@ -476,9 +502,40 @@ where
             .collect_vec();
 
         // Return `None` if the list of candidates is empty.
-        let candidate_attestations = VecNonEmpty::try_from(candidate_attestations).ok();
+        Ok(VecNonEmpty::try_from(candidate_attestations).ok())
+    }
 
-        Ok(candidate_attestations)
+    pub(super) async fn prepare_disclosure(
+        &self,
+        attestation_requests: &[&impl AttestationRequest],
+        pid_attributes: &PidAttributesConfiguration,
+        verifier_certificate: &BorrowingCertificate,
+    ) -> Result<(Vec<Option<VecNonEmpty<DisclosableAttestation>>>, bool), DisclosureError> {
+        // Check for recovery code request
+        if attestation_requests
+            .iter()
+            .any(|request| is_request_for_recovery_code(request, pid_attributes))
+        {
+            return Err(DisclosureError::RecoveryCodeRequested);
+        }
+
+        // For each disclosure request, fetch the candidates from the database and convert
+        // each of them to an `AttestationPresentation` that can be shown to the user.
+        let storage = self.storage.read().await;
+        let candidate_attestations = try_join_all(
+            attestation_requests
+                .iter()
+                .map(|request| Self::fetch_candidate_attestations(&*storage, request, pid_attributes)),
+        )
+        .await
+        .map_err(DisclosureError::AttestationRetrieval)?;
+
+        let shared_data_with_relying_party_before = storage
+            .did_share_data_with_relying_party(verifier_certificate)
+            .await
+            .map_err(DisclosureError::HistoryRetrieval)?;
+
+        Ok((candidate_attestations, shared_data_with_relying_party_before))
     }
 
     #[instrument(skip_all)]
@@ -498,7 +555,6 @@ where
         }
 
         let wallet_config = &self.config_repository.get();
-        let pid_attributes = &wallet_config.pid_attributes;
 
         let purpose = RedirectUriPurpose::from_uri(uri)?;
         let disclosure_uri_query = uri
@@ -515,34 +571,20 @@ where
             )
             .await?;
 
-        // Check for recovery code request
-        if session
-            .credential_requests()
-            .as_ref()
-            .iter()
-            .any(|request| is_request_for_recovery_code(request, pid_attributes))
-        {
-            return Err(DisclosureError::RecoveryCodeRequested);
-        }
+        let (candidate_attestations, shared_data_with_relying_party_before) = self
+            .prepare_disclosure(
+                &session.credential_requests().as_ref().iter().collect_vec(),
+                &wallet_config.pid_attributes,
+                session.verifier_certificate().certificate(),
+            )
+            .await?;
 
-        // For each disclosure request, fetch the candidates from the database and convert
-        // each of them to an `AttestationPresentation` that can be shown to the user.
-        let storage = self.storage.read().await;
-        let candidate_attestations = try_join_all(
-            session
-                .credential_requests()
-                .as_ref()
-                .iter()
-                .map(|request| Self::fetch_candidate_attestations(&*storage, request, pid_attributes)),
-        )
-        .await
-        .map_err(DisclosureError::AttestationRetrieval)?
-        .into_iter()
-        .zip(session.credential_requests().as_ref());
+        let candidate_attestations = candidate_attestations
+            .into_iter()
+            .zip(session.credential_requests().as_ref());
 
         // Verify whether all non selectively disclosable claims are requested
-        let verifier_certificate = session.verifier_certificate();
-        let reader_registration = verifier_certificate.registration().clone();
+        let reader_registration = session.verifier_certificate().registration().clone();
         Self::verify_non_selectively_disclosable_claims(
             candidate_attestations.clone(),
             &reader_registration.organization,
@@ -554,16 +596,10 @@ where
 
         // At this point, determine the disclosure type and if data was ever shared with this RP before, as the UI
         // needs this context both for when all requested attributes are present and for when attributes are missing.
-        let disclosure_type =
-            DisclosureType::from_credential_requests(session.credential_requests().as_ref(), pid_attributes);
-
-        let shared_data_with_relying_party_before = self
-            .storage
-            .read()
-            .await
-            .did_share_data_with_relying_party(verifier_certificate.certificate())
-            .await
-            .map_err(DisclosureError::HistoryRetrieval)?;
+        let disclosure_type = DisclosureType::from_credential_requests(
+            session.credential_requests().as_ref(),
+            &wallet_config.pid_attributes,
+        );
 
         if let Ok(disclosable_attestations) =
             VecNonEmpty::try_from(candidate_attestations.values().cloned().collect_vec())
@@ -573,20 +609,14 @@ where
                 "All attributes in the disclosure request are present in the database, return a proposal to the user"
             );
 
-            // Place the proposed attestations in a `DisclosureProposalPresentation`,
-            // along with a copy of the `ReaderRegistration`.
-            let attestation_options = disclosable_attestations
-                .nonempty_iter()
-                .map(candidates_to_attestation_options)
-                .collect();
-            let proposal = DisclosureProposalPresentation {
-                attestation_options,
+            let proposal = DisclosureProposalPresentation::from_candidates(
+                disclosable_attestations,
                 reader_registration,
                 shared_data_with_relying_party_before,
-                session_type: session.session_type(),
+                session.session_type(),
                 disclosure_type,
                 purpose,
-            };
+            );
 
             // Retain the session as `Wallet` state.
             self.session
@@ -603,8 +633,6 @@ where
         // If no suitable candidates were found for at least one of the requests, report this as an error to the UI.
         info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
 
-        // For now we simply represent the requested attribute paths by joining all elements with a slash.
-        // TODO (PVW-3813): Attempt to translate the requested attributes using the TAS cache.
         let requested_attributes = requested_attribute_paths(session.credential_requests().as_ref().iter()).collect();
         let session_type = session.session_type();
 
