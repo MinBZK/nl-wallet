@@ -21,7 +21,6 @@ use crate::well_known::WellKnownError;
 
 use super::AuthorizationServerMetadata;
 use super::Discover;
-use super::HttpDiscover;
 use super::HttpJsonClient;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -70,20 +69,6 @@ pub enum OAuthError {
     #[error("error fetching well-known metadata: {0}")]
     #[category(critical)]
     WellKnown(#[from] WellKnownError),
-}
-
-/// Produces an [`AuthorizationServer`] by performing OIDC discovery.
-pub trait OidcDiscovery {
-    type Server: AuthorizationServer;
-
-    /// Perform OIDC discovery and start an authorization flow, returning an [`AuthorizationServer`]
-    /// (for later token exchange) and the authorization URL to redirect the user to.
-    async fn discover(
-        &self,
-        authorization_server: &IssuerIdentifier,
-        client_id: String,
-        redirect_uri: Url,
-    ) -> Result<(Self::Server, Url), OAuthError>;
 }
 
 /// Returned by [`OidcDiscovery::discover`]. Holds the state of an in-progress authorization code flow
@@ -239,21 +224,6 @@ impl HttpOidcDiscovery {
     }
 }
 
-impl OidcDiscovery for HttpOidcDiscovery {
-    type Server = HttpAuthorizationServer;
-
-    async fn discover(
-        &self,
-        authorization_server: &IssuerIdentifier,
-        client_id: String,
-        redirect_uri: Url,
-    ) -> Result<(HttpAuthorizationServer, Url), OAuthError> {
-        let discovery = HttpDiscover::new(self.http_client.clone());
-        self.start(authorization_server, client_id, redirect_uri, &discovery)
-            .await
-    }
-}
-
 #[cfg(any(test, feature = "mock"))]
 mockall::mock! {
     #[derive(Debug)]
@@ -279,20 +249,6 @@ mockall::mock! {
             client_id: String,
             redirect_uri: Url,
         ) -> Result<(MockAuthorizationServer, Url), OAuthError>;
-    }
-}
-
-#[cfg(any(test, feature = "mock"))]
-impl OidcDiscovery for MockOidcDiscovery {
-    type Server = MockAuthorizationServer;
-
-    async fn discover(
-        &self,
-        authorization_server: &IssuerIdentifier,
-        client_id: String,
-        redirect_uri: Url,
-    ) -> Result<(MockAuthorizationServer, Url), OAuthError> {
-        self.start_sync(authorization_server, client_id, redirect_uri)
     }
 }
 
