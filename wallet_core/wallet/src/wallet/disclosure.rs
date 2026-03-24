@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::hash::Hash;
+use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use chrono::Utc;
@@ -379,6 +380,35 @@ pub(crate) fn is_request_for_recovery_code(
     }
 }
 
+/// Converts a collection of candidate attestations into a [`DisclosureAttestationOptions`] for display to the user.
+pub(super) fn candidates_to_attestation_options(
+    candidates: &VecNonEmpty<DisclosableAttestation>,
+) -> DisclosureAttestationOptions {
+    let presentations = candidates
+        .nonempty_iter()
+        .map(|candidate| candidate.presentation().clone())
+        .collect::<VecNonEmpty<_>>();
+
+    if presentations.len() != NonZeroUsize::MIN {
+        DisclosureAttestationOptions::Multiple(presentations.into_inner().try_into().unwrap())
+    } else {
+        DisclosureAttestationOptions::Single(Box::new(presentations.into_first()))
+    }
+}
+
+/// Builds a list of requested attribute paths from disclosure requests, formatted as `"attestation_type/claim/path"`.
+pub(super) fn requested_attribute_paths<'a, T: AttestationRequest + 'a>(
+    requests: impl Iterator<Item = &'a T>,
+) -> impl Iterator<Item = String> {
+    requests.flat_map(|request| {
+        request.credential_types().into_iter().flat_map(|attestation_type| {
+            request
+                .claim_paths()
+                .map(move |claim_path| format!("{}/{}", attestation_type, claim_path.iter().join("/")))
+        })
+    })
+}
+
 impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
@@ -388,10 +418,31 @@ where
     DCC: DisclosureClient,
     S: Storage,
 {
+    /// Checks the common preconditions for disclosure-related operations: version not blocked, wallet registered,
+    /// and wallet not locked.
+    pub(super) fn check_disclosure_preconditions(&self) -> Result<(), DisclosureError> {
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(DisclosureError::VersionBlocked);
+        }
+
+        info!("Checking if registered");
+        if !self.registration.is_registered() {
+            return Err(DisclosureError::NotRegistered);
+        }
+
+        info!("Checking if locked");
+        if self.lock.is_locked() {
+            return Err(DisclosureError::Locked);
+        }
+
+        Ok(())
+    }
+
     /// Helper method that fetches attestation from the database based on their attestation type, filters out any of
     /// them that do not match the request and convert the remaining ones to a [`DisclosableAttestation`], which
     /// contains an [`AttestationPresentation`] to show to the user.
-    pub(crate) async fn fetch_candidate_attestations(
+    pub(super) async fn fetch_candidate_attestations(
         storage: &S,
         request: &impl AttestationRequest,
         presentation_config: &impl AttestationPresentationConfig,
@@ -439,20 +490,7 @@ where
     ) -> Result<DisclosureProposalPresentation, DisclosureError> {
         info!("Performing disclosure based on received URI: {}", uri);
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(DisclosureError::VersionBlocked);
-        }
-
-        info!("Checking if registered");
-        if !self.registration.is_registered() {
-            return Err(DisclosureError::NotRegistered);
-        }
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(DisclosureError::Locked);
-        }
+        self.check_disclosure_preconditions()?;
 
         info!("Checking if there is already an active session");
         if self.session.is_some() {
@@ -533,18 +571,8 @@ where
 
             // For now we simply represent the requested attribute paths by joining all elements with a slash.
             // TODO (PVW-3813): Attempt to translate the requested attributes using the TAS cache.
-            let requested_attributes = session
-                .credential_requests()
-                .as_ref()
-                .iter()
-                .flat_map(|request| {
-                    request.credential_types().flat_map(|attestation_type| {
-                        request
-                            .claim_paths()
-                            .map(move |claim_path| format!("{}/{}", attestation_type, claim_path.iter().join("/")))
-                    })
-                })
-                .collect();
+            let requested_attributes =
+                requested_attribute_paths(session.credential_requests().as_ref().iter()).collect();
             let session_type = session.session_type();
 
             // Store the session so that it will only be terminated on user interaction.
@@ -570,18 +598,7 @@ where
         // along with a copy of the `ReaderRegistration`.
         let attestation_options = candidate_attestations
             .values()
-            .map(|candidates| {
-                let presentations = candidates
-                    .nonempty_iter()
-                    .map(|candidate| candidate.presentation().clone())
-                    .collect::<VecNonEmpty<_>>();
-
-                if presentations.len().get() > 1 {
-                    DisclosureAttestationOptions::Multiple(presentations.into_inner().try_into().unwrap())
-                } else {
-                    DisclosureAttestationOptions::Single(Box::new(presentations.into_first()))
-                }
-            })
+            .map(candidates_to_attestation_options)
             .collect_vec()
             .try_into()
             // This is safe, as `NormalizedCredentialRequests` guarantees that there is at least one request.
@@ -684,20 +701,7 @@ where
     {
         info!("Cancelling disclosure");
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(DisclosureError::VersionBlocked);
-        }
-
-        info!("Checking if registered");
-        if !self.registration.is_registered() {
-            return Err(DisclosureError::NotRegistered);
-        }
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(DisclosureError::Locked);
-        }
+        self.check_disclosure_preconditions()?;
 
         info!("Checking if a disclosure session is present");
 

@@ -6,7 +6,6 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::IsVariant;
 use futures::future::try_join_all;
-use itertools::Itertools;
 use nutype::nutype;
 use parking_lot::Mutex;
 use tokio::sync::mpsc;
@@ -16,7 +15,6 @@ use tracing::info;
 use url::Url;
 
 use attestation_data::auth::reader_auth::ValidationError;
-use attestation_data::disclosure::AttestationRequest;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::verifier_certificate::VerifierCertificate;
 use attestation_data::x509::CertificateTypeError;
@@ -42,7 +40,6 @@ use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::AttributesNotAvailable;
-use crate::DisclosureAttestationOptions;
 use crate::DisclosureProposalPresentation;
 use crate::Wallet;
 use crate::repository::Repository;
@@ -51,7 +48,9 @@ use crate::wallet::DisclosureError;
 use crate::wallet::Session;
 use crate::wallet::disclosure::RedirectUriPurpose;
 use crate::wallet::disclosure::WalletDisclosureAttestations;
+use crate::wallet::disclosure::candidates_to_attestation_options;
 use crate::wallet::disclosure::is_request_for_recovery_code;
+use crate::wallet::disclosure::requested_attribute_paths;
 
 #[derive(Debug, Clone, Copy)]
 pub enum CloseProximityDisclosureUpdate {
@@ -186,20 +185,7 @@ where
     ) -> Result<MdocUri, DisclosureError> {
         info!("Starting close proximity disclosure");
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(DisclosureError::VersionBlocked);
-        }
-
-        info!("Checking if registered");
-        if !self.registration.is_registered() {
-            return Err(DisclosureError::NotRegistered);
-        }
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(DisclosureError::Locked);
-        }
+        self.check_disclosure_preconditions()?;
 
         info!("Checking if there is already an active session");
         if self.session.is_some() {
@@ -225,22 +211,11 @@ where
     pub async fn continue_close_proximity_disclosure(
         &mut self,
     ) -> Result<DisclosureProposalPresentation, DisclosureError> {
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(DisclosureError::VersionBlocked);
-        }
+        info!("Continuing close proximity disclosure");
 
-        info!("Checking if registered");
-        if !self.registration.is_registered() {
-            return Err(DisclosureError::NotRegistered);
-        }
+        self.check_disclosure_preconditions()?;
 
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(DisclosureError::Locked);
-        }
-
-        info!("Checking if there is already an active session");
+        info!("Checking if there is an active close prosession");
         let Some(Session::CloseProximityDisclosure(CloseProximityDisclosureSession { session_state, .. })) =
             self.session.as_ref()
         else {
@@ -272,9 +247,8 @@ where
 
         // Check for recovery code request
         if device_request
-            .doc_requests
-            .iter()
-            .any(|request| is_request_for_recovery_code(request.items_request.0.clone(), &wallet_config.pid_attributes))
+            .items_requests()
+            .any(|request| is_request_for_recovery_code(request.clone(), &wallet_config.pid_attributes))
         {
             return Err(DisclosureError::RecoveryCodeRequested);
         }
@@ -282,9 +256,11 @@ where
         // For each disclosure request, fetch the candidates from the database and convert
         // each of them to an `AttestationPresentation` that can be shown to the user.
         let storage = self.storage.read().await;
-        let candidate_attestations = try_join_all(device_request.doc_requests.iter().map(|request| {
-            Self::fetch_candidate_attestations(&*storage, &request.items_request.0, &wallet_config.pid_attributes)
-        }))
+        let candidate_attestations = try_join_all(
+            device_request
+                .items_requests()
+                .map(|request| Self::fetch_candidate_attestations(&*storage, request, &wallet_config.pid_attributes)),
+        )
         .await
         .map_err(DisclosureError::AttestationRetrieval)?
         .into_iter()
@@ -316,18 +292,7 @@ where
             // along with a copy of the `ReaderRegistration`.
             let attestation_options = candidate_attestations
                 .nonempty_iter()
-                .map(|candidates| {
-                    let presentations = candidates
-                        .nonempty_iter()
-                        .map(|candidate| candidate.presentation().clone())
-                        .collect::<VecNonEmpty<_>>();
-
-                    if presentations.len().get() > 1 {
-                        DisclosureAttestationOptions::Multiple(presentations.into_inner().try_into().unwrap())
-                    } else {
-                        DisclosureAttestationOptions::Single(Box::new(presentations.into_first()))
-                    }
-                })
+                .map(candidates_to_attestation_options)
                 .collect();
 
             let proposal = DisclosureProposalPresentation {
@@ -355,24 +320,7 @@ where
 
         // For now we simply represent the requested attribute paths by joining all elements with a slash.
         // TODO (PVW-3813): Attempt to translate the requested attributes using the TAS cache.
-        let requested_attributes = device_request
-            .doc_requests
-            .iter()
-            .flat_map(|request| {
-                request
-                    .items_request
-                    .0
-                    .credential_types()
-                    .into_iter()
-                    .flat_map(|attestation_type| {
-                        request
-                            .items_request
-                            .0
-                            .claim_paths()
-                            .map(move |claim_path| format!("{}/{}", attestation_type, claim_path.iter().join("/")))
-                    })
-            })
-            .collect();
+        let requested_attributes = requested_attribute_paths(device_request.items_requests()).collect();
 
         // Store the session so that it will only be terminated on user interaction.
         // This prevents gleaning of missing attributes by a verifier.
