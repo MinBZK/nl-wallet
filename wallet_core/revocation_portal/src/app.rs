@@ -73,6 +73,7 @@ pub static LOKALIZE_JS_SHA256: LazyLock<String> =
 pub const PORTAL_CSS: &str = include_str!(concat!(env!("OUT_DIR"), "/style.css"));
 
 const REVOKED_AT_COOKIE_NAME: &str = "revoked_at";
+const CSRF_ERROR_REASON: &str = "csrf";
 
 #[derive(Deserialize)]
 struct DeleteForm {
@@ -272,10 +273,7 @@ async fn delete_wallet<C: RevocationClient>(
 
     if let Err(err) = token.verify(&delete_form.csrf_token) {
         warn!("CSRF error: {}", err);
-        return (
-            StatusCode::UNPROCESSABLE_ENTITY,
-            Redirect::to(format!("/support/delete/error?lang={}", language).as_ref()),
-        )
+        return Redirect::to(format!("/support/delete/error?lang={language}&reason={CSRF_ERROR_REASON}").as_ref())
             .into_response();
     }
 
@@ -496,13 +494,13 @@ mod tests {
     }
 
     #[rstest]
-    #[case::same_salt("1375258003d2cfe0", None, StatusCode::SEE_OTHER)]
-    #[case::different_salt("1375258003d2cfe0", Some("57c03dd8da3c12c6"), StatusCode::UNPROCESSABLE_ENTITY)]
+    #[case::same_salt("1375258003d2cfe0", None, false)]
+    #[case::different_salt("1375258003d2cfe0", Some("57c03dd8da3c12c6"), true)]
     #[tokio::test]
     async fn test_csrf_token_from_one_router_is_accepted_by_another(
         #[case] csrf_token_router_a: &'static str,
         #[case] csrf_token_router_b: Option<&'static str>,
-        #[case] expected_status_code: StatusCode,
+        #[case] location_contains_csrf_reason: bool,
     ) {
         let client_a = MockRevocationClient::default();
         let client_b = MockRevocationClient::default();
@@ -524,7 +522,15 @@ mod tests {
         let body = serde_urlencoded::to_string(form).unwrap();
 
         let response = post_delete(&mut router_b, "/support/delete", cookie, body).await;
-        assert_eq!(response.status(), expected_status_code);
+        assert_eq!(response.status(), StatusCode::SEE_OTHER);
+        let location = response
+            .headers()
+            .get(header::LOCATION)
+            .and_then(|l| l.to_str().ok())
+            .unwrap();
+        if location_contains_csrf_reason {
+            assert!(location.contains("reason=csrf"));
+        }
     }
 
     #[rstest]
@@ -595,7 +601,13 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(response.status(), StatusCode::SEE_OTHER);
+        let location = response
+            .headers()
+            .get(header::LOCATION)
+            .and_then(|l| l.to_str().ok())
+            .unwrap();
+        assert!(location.contains("reason=csrf"));
     }
 
     #[tokio::test]
@@ -624,7 +636,13 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(response.status(), StatusCode::SEE_OTHER);
+        let location = response
+            .headers()
+            .get(header::LOCATION)
+            .and_then(|l| l.to_str().ok())
+            .unwrap();
+        assert!(location.contains("reason=csrf"));
     }
 
     #[tokio::test]
