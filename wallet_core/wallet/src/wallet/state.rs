@@ -9,6 +9,7 @@ use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::errors::AccountRevokedData;
 use wallet_account::messages::errors::RevocationReason;
 
+use crate::Wallet;
 use crate::errors::StorageError;
 use crate::pin::change::ChangePinStorage;
 use crate::repository::Repository;
@@ -17,7 +18,6 @@ use crate::storage::Storage;
 use crate::storage::TransferData;
 use crate::storage::TransferKeyData;
 use crate::wallet::Session;
-use crate::Wallet;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -148,9 +148,9 @@ where
 #[expect(clippy::too_many_arguments)] // Doesn't work at `fn` level in combination with `rstest`
 mod tests {
     use futures::FutureExt;
+    use josekit::jwk::Jwk;
     use josekit::jwk::alg::ec::EcCurve;
     use josekit::jwk::alg::ec::EcKeyPair;
-    use josekit::jwk::Jwk;
     use rstest::rstest;
     use url::Url;
     use uuid::Uuid;
@@ -167,28 +167,28 @@ mod tests {
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
 
-    use crate::oidc_session::build_oidc_session;
+    use crate::BlockedReason;
+    use crate::PidIssuancePurpose;
+    use crate::TransferRole;
+    use crate::WalletState;
     use crate::oidc_session::OidcSession;
+    use crate::oidc_session::build_oidc_session;
     use crate::pin::change::State;
     use crate::repository::Repository;
     use crate::storage::ChangePinData;
     use crate::storage::PinRecoveryData;
     use crate::storage::TransferData;
     use crate::storage::TransferKeyData;
-    use crate::wallet::disclosure::RedirectUriPurpose;
-    use crate::wallet::issuance::WalletIssuanceSession;
-    use crate::wallet::test::create_example_pid_sd_jwt;
-    use crate::wallet::test::mock_issuance_session;
-    use crate::wallet::test::TestWalletMockStorage;
-    use crate::wallet::test::WalletDeviceVendor;
-    use crate::wallet::test::AUTH_URL;
     use crate::wallet::PinRecoverySession;
     use crate::wallet::Session;
     use crate::wallet::WalletDisclosureSession;
-    use crate::BlockedReason;
-    use crate::PidIssuancePurpose;
-    use crate::TransferRole;
-    use crate::WalletState;
+    use crate::wallet::disclosure::RedirectUriPurpose;
+    use crate::wallet::issuance::WalletIssuanceSession;
+    use crate::wallet::test::AUTH_URL;
+    use crate::wallet::test::TestWalletMockStorage;
+    use crate::wallet::test::WalletDeviceVendor;
+    use crate::wallet::test::create_example_pid_sd_jwt;
+    use crate::wallet::test::mock_issuance_session;
 
     impl WalletState {
         fn lock(self) -> Self {
@@ -548,11 +548,7 @@ mod tests {
 
     fn create_stub_oidc_session() -> OidcSession<HttpAuthorizationServer> {
         build_oidc_session(
-            AuthorizationServerMetadata {
-                authorization_endpoint: Some(Url::parse(AUTH_URL).unwrap()),
-                jwks_uri: Some(Url::parse(AUTH_URL).unwrap()),
-                ..AuthorizationServerMetadata::new("http://example.com".parse().unwrap(), Url::parse(AUTH_URL).unwrap())
-            },
+            AuthorizationServerMetadata::new_with_auth_url(AUTH_URL),
             "client_id".to_string(),
             Url::parse(AUTH_URL).unwrap(),
         )

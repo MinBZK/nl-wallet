@@ -1196,11 +1196,7 @@ mod tests {
         use crate::oidc_session::build_oidc_session;
 
         build_oidc_session(
-            AuthorizationServerMetadata {
-                authorization_endpoint: Some(Url::parse(AUTH_URL).unwrap()),
-                jwks_uri: Some(Url::parse(AUTH_URL).unwrap()),
-                ..AuthorizationServerMetadata::new("http://example.com".parse().unwrap(), Url::parse(AUTH_URL).unwrap())
-            },
+            AuthorizationServerMetadata::new_with_auth_url(AUTH_URL),
             "client_id".to_string(),
             Url::parse(REDIRECT_URI).unwrap(),
         )

@@ -72,9 +72,9 @@ mod test {
 
     #[tokio::test]
     async fn test_into_token_request() {
-        let mut http_client = MockAuthorizationServer::default();
+        let mut http_client = MockAuthorizationServer::new();
         http_client
-            .expect_token_request()
+            .expect_into_token_request()
             .return_once(|_| Ok(default_token_request()));
 
         let session = super::OidcSession {
