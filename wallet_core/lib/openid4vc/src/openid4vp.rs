@@ -8,8 +8,6 @@ use std::time::Duration;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
-use coset::RegisteredLabelWithPrivate;
-use coset::iana;
 use derive_more::Constructor;
 use futures::future::try_join_all;
 use itertools::Itertools;
@@ -57,7 +55,6 @@ use jwt::UnverifiedJwt;
 use jwt::Validation;
 use jwt::error::JwtX5cError;
 use jwt::headers::HeaderWithX5c;
-use mdoc::DeviceAuth;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::utils::serialization::CborBase64;
@@ -1169,30 +1166,6 @@ impl VpAuthorizationResponse {
     where
         C: StatusListClient,
     {
-        // Check that all COSE objects use a supported algorithm.
-        let supported_algs = [
-            RegisteredLabelWithPrivate::Assigned(iana::Algorithm::ES256), // i.e. -7
-            RegisteredLabelWithPrivate::PrivateUse(-9),
-        ];
-        for document in device_response.documents.iter().flatten() {
-            if let Some(issuer_signature_alg) = document.issuer_signed.issuer_auth.0.protected.header.alg.as_ref()
-                && supported_algs.contains(issuer_signature_alg)
-            {
-                // OK, we need this case because of the let binding
-            } else {
-                return Err(AuthResponseError::UnsupportedAlgorithm);
-            }
-
-            if let DeviceAuth::DeviceSignature(device_sig) = &document.device_signed.device_auth
-                && let Some(device_signature_alg) = device_sig.0.protected.header.alg.as_ref()
-                && supported_algs.contains(device_signature_alg)
-            {
-                // OK, we need this case because of the let binding
-            } else {
-                return Err(AuthResponseError::UnsupportedAlgorithm);
-            }
-        }
-
         // Verify the cryptographic integrity of each mdoc `DeviceResponse`
         // and obtain a `DisclosedDocuments` for each.
         let disclosed_documents = device_response

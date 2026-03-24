@@ -43,6 +43,7 @@ use crate::utils::serialization::cbor_serialize;
 pub trait Cose {
     type Key;
     fn payload(&self) -> Option<&[u8]>;
+    fn protected(&self) -> &ProtectedHeader;
     fn unprotected(&self) -> &Header;
     fn verify(&self, key: &Self::Key) -> Result<(), CoseError>;
 }
@@ -87,6 +88,10 @@ impl Cose for CoseSign1 {
         self.payload.as_deref()
     }
 
+    fn protected(&self) -> &ProtectedHeader {
+        &self.protected
+    }
+
     fn unprotected(&self) -> &Header {
         &self.unprotected
     }
@@ -110,6 +115,10 @@ impl Cose for CoseMac0 {
 
     fn payload(&self) -> Option<&[u8]> {
         self.payload.as_deref()
+    }
+
+    fn protected(&self) -> &ProtectedHeader {
+        &self.protected
     }
 
     fn unprotected(&self) -> &Header {
@@ -168,6 +177,10 @@ where
             .ok_or_else(|| CoseError::MissingLabel(label.clone()))?
             .1;
         Ok(header_item)
+    }
+
+    pub fn protected_header(&self) -> &Header {
+        &self.0.protected().header
     }
 }
 

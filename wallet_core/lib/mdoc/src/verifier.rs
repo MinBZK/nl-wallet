@@ -2,6 +2,8 @@
 
 use chrono::DateTime;
 use chrono::Utc;
+use coset::RegisteredLabelWithPrivate;
+use coset::iana::Algorithm;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -78,6 +80,10 @@ pub enum VerificationError {
     MissingIssuerUri,
     #[error("missing attestation qualification")]
     MissingAttestationQualification,
+    #[error("unsupported algorithm: {0:?}")]
+    UnsupportedAlgorithm(RegisteredLabelWithPrivate<Algorithm>),
+    #[error("missing algorithm")]
+    MissingAlgorithm,
 }
 
 impl DeviceResponse {
@@ -261,6 +267,11 @@ impl MobileSecurityObject {
     }
 }
 
+const SUPPORTED_ALGS: [RegisteredLabelWithPrivate<Algorithm>; 2] = [
+    RegisteredLabelWithPrivate::Assigned(Algorithm::ES256), // i.e. -7
+    RegisteredLabelWithPrivate::PrivateUse(-9),
+];
+
 impl Document {
     pub async fn verify<C>(
         &self,
@@ -273,6 +284,10 @@ impl Document {
     where
         C: StatusListClient,
     {
+        // Check that all COSE objects use a supported algorithm.
+        self.verify_issuer_signature_alg()?;
+        self.verify_device_signature_alg()?;
+
         debug!("verifying document with doc_type: {:?}", &self.doc_type);
         debug!("verify issuer_signed");
         let IssuerSignedVerificationResult {
@@ -353,6 +368,28 @@ impl Document {
         };
 
         Ok(disclosed_document)
+    }
+
+    fn verify_issuer_signature_alg(&self) -> Result<()> {
+        let issuer_signature_alg = self.issuer_signed.issuer_auth.protected_header().alg.as_ref();
+        match issuer_signature_alg {
+            Some(issuer_signature_alg) if SUPPORTED_ALGS.contains(issuer_signature_alg) => Ok(()),
+            Some(issuer_signature_alg) => Err(VerificationError::UnsupportedAlgorithm(issuer_signature_alg.clone()))?,
+            None => Err(VerificationError::MissingAlgorithm)?,
+        }
+    }
+
+    fn verify_device_signature_alg(&self) -> Result<()> {
+        let device_signature_alg = match &self.device_signed.device_auth {
+            DeviceAuth::DeviceSignature(device_sig) => device_sig.protected_header().alg.as_ref(),
+            DeviceAuth::DeviceMac(device_mac) => device_mac.protected_header().alg.as_ref(),
+        };
+
+        match device_signature_alg {
+            Some(device_signature_alg) if SUPPORTED_ALGS.contains(device_signature_alg) => Ok(()),
+            Some(device_signature_alg) => Err(VerificationError::UnsupportedAlgorithm(device_signature_alg.clone()))?,
+            None => Err(VerificationError::MissingAlgorithm)?,
+        }
     }
 }
 
