@@ -14,8 +14,10 @@ use mime::Mime;
 use reqwest::Certificate;
 use reqwest::Client;
 use reqwest::ClientBuilder;
+use reqwest::IntoUrl;
 use reqwest::RequestBuilder;
 use reqwest::Response;
+use serde::de::DeserializeOwned;
 use url::Url;
 use x509_parser::error::X509Error;
 use x509_parser::prelude::FromDer;
@@ -227,6 +229,41 @@ pub fn client_builder_accept_json(builder: ClientBuilder) -> ClientBuilder {
         header::ACCEPT,
         HeaderValue::from_static(APPLICATION_JSON.as_ref()),
     )]))
+}
+
+#[derive(Debug, Clone)]
+pub struct HttpJsonClient(reqwest::Client);
+
+impl HttpJsonClient {
+    pub fn try_new(client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
+        let client = client_builder_accept_json(client_builder).build()?;
+
+        Ok(HttpJsonClient(client))
+    }
+
+    pub async fn get<U, T>(&self, url: U) -> Result<T, reqwest::Error>
+    where
+        U: IntoUrl,
+        T: DeserializeOwned,
+    {
+        self.0.get(url).send().await?.error_for_status()?.json().await
+    }
+
+    pub async fn post<U, F>(&self, url: U, adapter: F) -> Result<Response, reqwest::Error>
+    where
+        U: IntoUrl,
+        F: FnOnce(RequestBuilder) -> RequestBuilder,
+    {
+        adapter(self.0.post(url)).send().await
+    }
+
+    pub async fn delete<U, F>(&self, url: U, adapter: F) -> Result<Response, reqwest::Error>
+    where
+        U: IntoUrl,
+        F: FnOnce(RequestBuilder) -> RequestBuilder,
+    {
+        adapter(self.0.delete(url)).send().await
+    }
 }
 
 #[cfg(any(test, feature = "test"))]

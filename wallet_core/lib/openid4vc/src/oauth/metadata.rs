@@ -7,6 +7,8 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
+use http_utils::reqwest::HttpJsonClient;
+
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::well_known;
 use crate::well_known::WellKnownMetadata;
@@ -14,7 +16,6 @@ use crate::well_known::WellKnownPath;
 
 use super::Discover;
 use super::HttpDiscover;
-use super::HttpJsonClient;
 use super::OAuthError;
 
 /// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414),
@@ -179,6 +180,8 @@ const fn bool_value<const B: bool>() -> bool {
 
 #[cfg(test)]
 pub mod tests {
+    use http_utils::reqwest::default_reqwest_client_builder;
+    use http_utils::urls::BaseUrl;
     use serde_json::json;
     use wiremock::Mock;
     use wiremock::MockServer;
@@ -186,10 +189,8 @@ pub mod tests {
     use wiremock::matchers::method;
     use wiremock::matchers::path;
 
-    use http_utils::urls::BaseUrl;
-
-    use super::super::HttpJsonClient;
     use super::AuthorizationServerMetadata;
+    use http_utils::reqwest::HttpJsonClient;
 
     pub async fn start_discovery_server() -> (MockServer, BaseUrl) {
         let server = MockServer::start().await;
@@ -226,7 +227,7 @@ pub mod tests {
     #[tokio::test]
     async fn test_discovery() {
         let (_server, server_url) = start_discovery_server().await;
-        let client = HttpJsonClient::try_new().unwrap();
+        let client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
         let discovery_url = server_url.join(".well-known/openid-configuration");
 
         let discovered: AuthorizationServerMetadata = client.get(discovery_url).await.unwrap();

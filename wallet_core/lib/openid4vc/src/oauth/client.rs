@@ -1,8 +1,10 @@
 pub use jsonwebtoken::jwk::JwkSet;
 
 use base64::prelude::*;
-use error_category::ErrorCategory;
 use url::Url;
+
+use error_category::ErrorCategory;
+use http_utils::reqwest::HttpJsonClient;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
@@ -21,7 +23,6 @@ use crate::well_known::WellKnownError;
 
 use super::AuthorizationServerMetadata;
 use super::Discover;
-use super::HttpJsonClient;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
@@ -193,12 +194,12 @@ impl<P: PkcePair> AuthorizationServer for HttpAuthorizationServer<P> {
     }
 }
 
-/// Performs OIDC discovery to produce an [`HttpAuthorizationServer`].
-pub struct HttpOidcDiscovery {
+/// Performs OAuth discovery to produce an [`HttpAuthorizationServer`].
+pub struct HttpOAuthDiscovery {
     http_client: HttpJsonClient,
 }
 
-impl HttpOidcDiscovery {
+impl HttpOAuthDiscovery {
     pub fn new(http_client: HttpJsonClient) -> Self {
         Self { http_client }
     }
@@ -214,10 +215,10 @@ impl HttpOidcDiscovery {
         D: Discover<AuthorizationServerMetadata, OAuthError>,
         P: PkcePair,
     {
-        let config = discovery.discover(authorization_server).await?;
-        let jwks = config.jwks(&self.http_client).await?;
+        let oauth_metadata = discovery.discover(authorization_server).await?;
+        let jwks = oauth_metadata.jwks(&self.http_client).await?;
 
-        let server = HttpAuthorizationServer::new(config, Some(jwks), client_id, redirect_uri);
+        let server = HttpAuthorizationServer::new(oauth_metadata, Some(jwks), client_id, redirect_uri);
         let url = server.auth_url()?;
 
         Ok((server, url))
@@ -259,6 +260,8 @@ mod tests {
     use serial_test::serial;
     use url::Url;
 
+    use http_utils::reqwest::HttpJsonClient;
+    use http_utils::reqwest::default_reqwest_client_builder;
     use http_utils::urls::BaseUrl;
 
     use crate::AuthorizationErrorCode;
@@ -271,8 +274,7 @@ mod tests {
     use super::AuthorizationServer;
     use super::AuthorizationServerMetadata;
     use super::HttpAuthorizationServer;
-    use super::HttpJsonClient;
-    use super::HttpOidcDiscovery;
+    use super::HttpOAuthDiscovery;
     use super::JwkSet;
     use super::OAuthError;
 
@@ -281,7 +283,7 @@ mod tests {
 
     impl Discover<AuthorizationServerMetadata, OAuthError> for TestDiscover {
         async fn discover(&self, _identifier: &IssuerIdentifier) -> Result<AuthorizationServerMetadata, OAuthError> {
-            let client = HttpJsonClient::try_new().unwrap();
+            let client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
             let url = self.0.join("/.well-known/openid-configuration");
             client.get(url).await.map_err(OAuthError::Http)
         }
@@ -319,10 +321,10 @@ mod tests {
 
         // Create an OIDC discovery with start_with_discover()
         let (_server, server_url) = start_discovery_server().await;
-        let http_client = HttpJsonClient::try_new().unwrap();
+        let http_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
         let authorization_server: IssuerIdentifier = "https://example.com/".parse().unwrap();
         let redirect_uri: Url = REDIRECT_URI.parse().unwrap();
-        let discovery = HttpOidcDiscovery::new(http_client);
+        let discovery = HttpOAuthDiscovery::new(http_client);
         let (server, auth_url) = discovery
             .start::<_, MockPkcePair>(
                 &authorization_server,
@@ -367,10 +369,10 @@ mod tests {
         });
 
         let (_server, server_url) = start_discovery_server().await;
-        let http_client = HttpJsonClient::try_new().unwrap();
+        let http_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
         let authorization_server: IssuerIdentifier = "https://example.com/".parse().unwrap();
         let redirect_uri: Url = REDIRECT_URI.parse().unwrap();
-        let discovery = HttpOidcDiscovery::new(http_client);
+        let discovery = HttpOAuthDiscovery::new(http_client);
         let (server, _) = discovery
             .start::<_, MockPkcePair>(
                 &authorization_server,

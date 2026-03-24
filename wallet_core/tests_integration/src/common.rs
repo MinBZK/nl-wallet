@@ -38,6 +38,7 @@ use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
 use http_utils::client::TlsPinningConfig;
 use http_utils::health::create_health_router;
+use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::reqwest::trusted_reqwest_client_builder;
@@ -58,7 +59,6 @@ use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::oauth::HttpJsonClient;
 use openid4vc::openid4vp::ClientId;
 use openid4vc::openid4vp::VpRequestUri;
 use openid4vc::openid4vp::VpRequestUriMethod;
@@ -426,11 +426,9 @@ where
 
     let update_policy_repository = UpdatePolicyRepository::init();
 
-    let oidc_reqwest_client = HttpJsonClient::try_new().unwrap();
-    let credential_issuer_discovery = HttpCredentialIssuerDiscovery::new(
-        config_repository.get().pid_issuance.client_id.clone(),
-        oidc_reqwest_client,
-    );
+    let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
+    let credential_issuer_discovery =
+        HttpCredentialIssuerDiscovery::new(config_repository.get().pid_issuance.client_id.clone(), http_json_client);
 
     let wallet_clients = WalletClients::new().unwrap();
 

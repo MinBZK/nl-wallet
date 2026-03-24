@@ -1,7 +1,8 @@
-use crate::issuer_identifier::IssuerIdentifier;
 use derive_more::AsRef;
 
-use super::HttpJsonClient;
+use http_utils::reqwest::HttpJsonClient;
+
+use crate::issuer_identifier::IssuerIdentifier;
 
 pub trait Discover<M, E> {
     async fn discover(&self, identifier: &IssuerIdentifier) -> Result<M, E>;

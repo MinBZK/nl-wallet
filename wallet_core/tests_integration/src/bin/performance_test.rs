@@ -4,11 +4,12 @@ use tracing::instrument;
 use url::Url;
 
 use http_utils::client::TlsPinningConfig;
+use http_utils::reqwest::HttpJsonClient;
+use http_utils::reqwest::default_reqwest_client_builder;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::CredentialIssuer;
 use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
-use openid4vc::oauth::HttpJsonClient;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
 use openid4vc_server::verifier::StartDisclosureRequest;
@@ -76,10 +77,9 @@ async fn main() {
         .unwrap();
     let config = config_repository.get();
 
-    let oidc_reqwest_client =
-        HttpJsonClient::try_new_with_borrowing_trust_anchors(config.issuer_trust_anchors.clone()).unwrap();
+    let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
     let credential_issuer_discovery =
-        HttpCredentialIssuerDiscovery::new(config.pid_issuance.client_id.clone(), oidc_reqwest_client.clone());
+        HttpCredentialIssuerDiscovery::new(config.pid_issuance.client_id.clone(), http_json_client.clone());
 
     let update_policy_repository = UpdatePolicyRepository::init();
     let wallet_clients = WalletClients::new().unwrap();
@@ -93,7 +93,7 @@ async fn main() {
             config_repository,
             update_policy_repository,
         },
-        HttpCredentialIssuerDiscovery::new(config.pid_issuance.client_id.clone(), oidc_reqwest_client.clone()),
+        HttpCredentialIssuerDiscovery::new(config.pid_issuance.client_id.clone(), http_json_client.clone()),
         wallet_clients,
     )
     .await

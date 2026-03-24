@@ -5,13 +5,14 @@ use serial_test::serial;
 use crypto::p256_der::DerVerifyingKey;
 use db_test::DbSetup;
 use hsm::service::Pkcs11Hsm;
+use http_utils::reqwest::HttpJsonClient;
+use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use openid4vc::issuance_session::CredentialIssuer;
 use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
 use openid4vc::issuance_session::IssuanceSession;
-use openid4vc::oauth::HttpJsonClient;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
 use server_utils::keys::SecretKeyVariant;
@@ -80,9 +81,9 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let wallet_config = default_wallet_config();
 
     // Discover the credential issuer and authorization server URL from issuer metadata
-    let oidc_client = HttpJsonClient::try_new().unwrap();
+    let http_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
     let credential_issuer_discovery =
-        HttpCredentialIssuerDiscovery::new(wallet_config.pid_issuance.client_id.clone(), oidc_client);
+        HttpCredentialIssuerDiscovery::new(wallet_config.pid_issuance.client_id.clone(), http_client);
     let credential_issuer = credential_issuer_discovery.discover(&issuer_url.public).await.unwrap();
     // Prepare DigiD flow
     let redirect_uri = urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap())

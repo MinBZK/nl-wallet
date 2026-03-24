@@ -5,8 +5,9 @@ use josekit::jwe::enc::aescbc_hmac::AescbcHmacJweEncryption;
 use jsonwebtoken::Algorithm;
 
 use http_utils::client::TlsPinningConfig;
+use http_utils::reqwest::HttpJsonClient;
+use http_utils::reqwest::trusted_reqwest_client_builder;
 use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::oauth::HttpJsonClient;
 use openid4vc::token::TokenRequest;
 
 use crate::pid::userinfo;
@@ -53,7 +54,7 @@ impl OpenIdClient {
         let userinfo_client = OpenIdClient {
             decrypter_private_key: Self::decrypter(bsn_privkey)?,
             client_id: client_id.into(),
-            http_client: HttpJsonClient::try_new_with_trust_anchors(certs)?,
+            http_client: HttpJsonClient::try_new(trusted_reqwest_client_builder(certs))?,
             authorization_server,
         };
 

@@ -28,13 +28,13 @@ pub enum OidcSessionError {
 /// Contains the authorization server (for token exchange) and the authorization URL.
 #[derive(Debug)]
 pub struct OidcSession<S: AuthorizationServer> {
-    pub oidc_client: S,
+    pub http_client: S,
     pub auth_url: Url,
 }
 
 impl<S: AuthorizationServer> OidcSession<S> {
     pub fn into_token_request(self, redirect_uri: &Url) -> Result<TokenRequest, OidcSessionError> {
-        let token_request = self.oidc_client.into_token_request(redirect_uri)?;
+        let token_request = self.http_client.into_token_request(redirect_uri)?;
 
         Ok(token_request)
     }
@@ -45,12 +45,12 @@ pub fn build_oidc_session(
     client_id: String,
     redirect_uri: Url,
 ) -> Result<OidcSession<HttpAuthorizationServer>, OidcSessionError> {
-    let oidc_client = HttpAuthorizationServer::new(config, None, client_id, redirect_uri);
-    let auth_url = oidc_client.auth_url()?;
+    let http_client = HttpAuthorizationServer::new(config, None, client_id, redirect_uri);
+    let auth_url = http_client.auth_url()?;
 
     info!("OIDC auth URL generated");
 
-    Ok(OidcSession { oidc_client, auth_url })
+    Ok(OidcSession { http_client, auth_url })
 }
 
 #[cfg(test)]
@@ -72,13 +72,13 @@ mod test {
 
     #[tokio::test]
     async fn test_into_token_request() {
-        let mut oidc_client = MockAuthorizationServer::default();
-        oidc_client
+        let mut http_client = MockAuthorizationServer::default();
+        http_client
             .expect_token_request()
             .return_once(|_| Ok(default_token_request()));
 
         let session = super::OidcSession {
-            oidc_client,
+            http_client,
             auth_url: "https://example.com/".parse().unwrap(),
         };
 

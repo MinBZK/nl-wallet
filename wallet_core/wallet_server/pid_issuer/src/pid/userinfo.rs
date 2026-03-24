@@ -12,12 +12,12 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
+use http_utils::reqwest::HttpJsonClient;
 use openid4vc::AuthBearerErrorCode;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::oauth::AuthorizationServerMetadata;
-use openid4vc::oauth::HttpJsonClient;
 use openid4vc::oauth::OAuthError;
 use openid4vc::well_known;
 use openid4vc::well_known::WellKnownError;

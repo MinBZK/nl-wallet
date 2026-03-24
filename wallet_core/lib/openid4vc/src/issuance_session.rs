@@ -28,6 +28,7 @@ use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
+use http_utils::reqwest::HttpJsonClient;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::wua::WuaDisclosure;
@@ -69,7 +70,6 @@ use crate::dpop::DpopError;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::oauth::AuthorizationServerMetadata;
-use crate::oauth::HttpJsonClient;
 use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
 use crate::token::AccessToken;
@@ -348,12 +348,12 @@ pub trait CredentialIssuer {
 
 pub struct HttpCredentialIssuerDiscovery {
     client_id: String,
-    oidc_client: HttpJsonClient,
+    http_client: HttpJsonClient,
 }
 
 impl HttpCredentialIssuerDiscovery {
-    pub fn new(client_id: String, oidc_client: HttpJsonClient) -> Self {
-        Self { client_id, oidc_client }
+    pub fn new(client_id: String, http_client: HttpJsonClient) -> Self {
+        Self { client_id, http_client }
     }
 }
 
@@ -361,20 +361,20 @@ impl CredentialIssuerDiscovery for HttpCredentialIssuerDiscovery {
     type Issuer = HttpCredentialIssuer;
 
     async fn discover(&self, identifier: &IssuerIdentifier) -> Result<HttpCredentialIssuer, IssuanceSessionError> {
-        let metadata: IssuerMetadata =
-            well_known::fetch_well_known(&self.oidc_client, identifier, WellKnownPath::CredentialIssuer)
+        let issuer_metadata: IssuerMetadata =
+            well_known::fetch_well_known(&self.http_client, identifier, WellKnownPath::CredentialIssuer)
                 .await
                 .map_err(IssuanceSessionError::OpenId4vciDiscovery)?;
 
         // Note: the spec allows multiple authorization servers, but we currently only support one.
-        let auth_server = metadata.authorization_servers().into_first().clone();
-        let oauth_metadata = fetch_oauth_metadata(&self.oidc_client, &auth_server).await?;
+        let auth_server = issuer_metadata.authorization_servers().into_first().clone();
+        let oauth_metadata = fetch_oauth_metadata(&self.http_client, &auth_server).await?;
 
         Ok(HttpCredentialIssuer {
-            metadata,
+            metadata: issuer_metadata,
             oauth_metadata,
             client_id: self.client_id.clone(),
-            oidc_client: self.oidc_client.clone(),
+            http_client: self.http_client.clone(),
         })
     }
 }
@@ -384,7 +384,7 @@ pub struct HttpCredentialIssuer {
     metadata: IssuerMetadata,
     oauth_metadata: AuthorizationServerMetadata,
     client_id: String,
-    oidc_client: HttpJsonClient,
+    http_client: HttpJsonClient,
 }
 
 impl CredentialIssuer for HttpCredentialIssuer {
@@ -408,7 +408,7 @@ impl CredentialIssuer for HttpCredentialIssuer {
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<HttpIssuanceSession, IssuanceSessionError> {
-        let message_client = HttpVcMessageClient::new(self.client_id, self.oidc_client);
+        let message_client = HttpVcMessageClient::new(self.client_id, self.http_client);
         let token_endpoint = self.oauth_metadata.token_endpoint;
 
         HttpIssuanceSession::start_issuance_inner(
@@ -468,10 +468,10 @@ pub trait VcMessageClient {
 }
 
 async fn fetch_oauth_metadata(
-    oidc_client: &HttpJsonClient,
+    http_client: &HttpJsonClient,
     auth_server: &IssuerIdentifier,
 ) -> Result<AuthorizationServerMetadata, IssuanceSessionError> {
-    well_known::fetch_well_known(oidc_client, auth_server, WellKnownPath::OauthAuthorizationServer)
+    well_known::fetch_well_known(http_client, auth_server, WellKnownPath::OauthAuthorizationServer)
         .await
         .map_err(IssuanceSessionError::OauthDiscovery)
 }

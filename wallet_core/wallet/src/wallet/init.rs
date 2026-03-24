@@ -10,12 +10,12 @@ use tokio::sync::RwLock;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
+use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
-use openid4vc::oauth::HttpJsonClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use platform_support::utils::PlatformUtilities;
@@ -140,10 +140,9 @@ where
 
         let config = config_repository.get();
 
-        let oidc_reqwest_client =
-            HttpJsonClient::try_new_with_borrowing_trust_anchors(config.issuer_trust_anchors.clone())?;
+        let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder())?;
         let credential_issuer_discovery =
-            HttpCredentialIssuerDiscovery::new(config.pid_issuance.client_id.clone(), oidc_reqwest_client);
+            HttpCredentialIssuerDiscovery::new(config.pid_issuance.client_id.clone(), http_json_client);
 
         let repositories = WalletRepositories {
             config_repository,
