@@ -63,3 +63,8 @@ spec:
                 secretKeyRef:
                   name: nl-wallet-revocation-portal-secrets
                   key: cookie_encryption_key
+            - name: REVOCATION_PORTAL__CSRF_COOKIE_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-revocation-portal-secrets
+                  key: csrf_cookie_salt
