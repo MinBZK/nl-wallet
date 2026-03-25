@@ -84,7 +84,7 @@ where
             Some(UriType::PidIssuance)
                 if matches!(
                     self.session,
-                    Some(Session::Oidc {
+                    Some(Session::OAuth {
                         purpose: PidIssuancePurpose::Enrollment,
                         ..
                     }),
@@ -95,7 +95,7 @@ where
             Some(UriType::PidIssuance)
                 if matches!(
                     self.session,
-                    Some(Session::Oidc {
+                    Some(Session::OAuth {
                         purpose: PidIssuancePurpose::Renewal,
                         ..
                     }),
@@ -107,7 +107,7 @@ where
                 if matches!(
                     self.session,
                     Some(Session::PinRecovery {
-                        session: PinRecoverySession::Oidc { .. },
+                        session: PinRecoverySession::OAuth { .. },
                         ..
                     })
                 ) =>
@@ -190,7 +190,7 @@ mod tests {
         };
 
         // Set up an enrollment `DigidSession` that will match the URI.
-        wallet.session = Some(Session::Oidc {
+        wallet.session = Some(Session::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
             authorization_server: Box::new(make_stub_authorization_server()),
             discovered: Box::new(openid4vc::mock::MockCredentialIssuer::new()),
@@ -200,7 +200,7 @@ mod tests {
         assert_matches!(wallet.identify_uri(digid_uri).unwrap(), UriType::PidIssuance);
 
         // Set up a PID renewal `DigidSession` that will match the URI.
-        wallet.session = Some(Session::Oidc {
+        wallet.session = Some(Session::OAuth {
             purpose: PidIssuancePurpose::Renewal,
             authorization_server: Box::new(make_stub_authorization_server()),
             discovered: Box::new(openid4vc::mock::MockCredentialIssuer::new()),

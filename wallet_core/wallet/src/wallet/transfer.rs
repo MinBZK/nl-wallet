@@ -544,7 +544,7 @@ mod tests {
             Url::parse(AUTH_URL).unwrap(),
         )
         .unwrap();
-        wallet.session = Some(Session::Oidc {
+        wallet.session = Some(Session::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
             authorization_server: Box::new(stub_authorization_server),
             discovered: Box::new(openid4vc::mock::MockCredentialIssuer::new()),

@@ -322,7 +322,7 @@ where
 
         info!("DigiD auth URL generated");
         let auth_url = authorization_server.auth_url.clone();
-        self.session.replace(Session::Oidc {
+        self.session.replace(Session::OAuth {
             purpose,
             authorization_server: Box::new(authorization_server),
             discovered: Box::new(discovered),
@@ -352,7 +352,7 @@ where
         }
 
         info!("Checking if there is an active issuance session");
-        if !matches!(self.session, Some(Session::Oidc { .. }) | Some(Session::Issuance(..))) {
+        if !matches!(self.session, Some(Session::OAuth { .. }) | Some(Session::Issuance(..))) {
             return Err(IssuanceError::SessionState);
         }
 
@@ -402,12 +402,12 @@ where
         }
 
         info!("Checking if there is an active DigiD issuance session");
-        if !matches!(self.session, Some(Session::Oidc { .. })) {
+        if !matches!(self.session, Some(Session::OAuth { .. })) {
             return Err(IssuanceError::SessionState);
         }
 
         // Take ownership of the active session, now that we know that it exists.
-        let Some(Session::Oidc {
+        let Some(Session::OAuth {
             authorization_server,
             purpose,
             discovered,
@@ -951,7 +951,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Set up a mock DigiD session.
-        wallet.session = Some(Session::Oidc {
+        wallet.session = Some(Session::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
             authorization_server: Box::new(create_stub_authorization_server()),
             discovered: Box::new(MockCredentialIssuer::new()),
@@ -996,7 +996,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Set up a mock DigiD session.
-        wallet.session = Some(Session::Oidc {
+        wallet.session = Some(Session::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
             authorization_server: Box::new(create_stub_authorization_server()),
             discovered: Box::new(MockCredentialIssuer::new()),
@@ -1204,7 +1204,7 @@ mod tests {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let (authorization_server, redirect_uri) = create_authorization_server(REDIRECT_URI);
-        wallet.session = Some(Session::Oidc {
+        wallet.session = Some(Session::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
             authorization_server: Box::new(authorization_server),
             discovered: Box::new(MockCredentialIssuer::new()),
@@ -1217,7 +1217,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let (authorization_server, redirect_uri) = create_authorization_server(REDIRECT_URI);
         // Set up the credential issuer discovery mock with a start expectation for continue_pid_issuance
-        wallet.session = Some(Session::Oidc {
+        wallet.session = Some(Session::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
             authorization_server: Box::new(authorization_server),
             discovered: Box::new({
@@ -1247,7 +1247,7 @@ mod tests {
             .expect_start()
             .return_once(|_| Err(IssuanceSessionError::MissingNonce));
 
-        wallet.session = Some(Session::Oidc {
+        wallet.session = Some(Session::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
             authorization_server: Box::new(authorization_server),
             discovered: Box::new(issuer),

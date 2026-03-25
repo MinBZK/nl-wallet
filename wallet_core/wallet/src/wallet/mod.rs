@@ -123,7 +123,7 @@ impl<A, G> WalletRegistration<A, G> {
 
 #[derive(Debug)]
 enum Session<CID: IssuanceDiscovery, DCS> {
-    Oidc {
+    OAuth {
         purpose: PidIssuancePurpose,
         authorization_server: Box<HttpAuthorizationServer>,
         discovered: Box<CID::Issuer>,

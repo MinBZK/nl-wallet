@@ -113,7 +113,7 @@ impl From<OAuthError> for PinRecoveryError {
 
 #[derive(Debug)]
 pub(super) enum PinRecoverySession<CID: IssuanceDiscovery> {
-    Oidc {
+    OAuth {
         authorization_server: Box<HttpAuthorizationServer>,
         discovered: Box<CID::Issuer>,
     },
@@ -186,7 +186,7 @@ where
         let auth_url = authorization_server.auth_url.clone();
         self.session.replace(Session::PinRecovery {
             pid_config: config.pid_attributes.clone(),
-            session: PinRecoverySession::Oidc {
+            session: PinRecoverySession::OAuth {
                 authorization_server: Box::new(authorization_server),
                 discovered: Box::new(discovered),
             },
@@ -216,7 +216,7 @@ where
         if !matches!(
             self.session,
             Some(Session::PinRecovery {
-                session: PinRecoverySession::Oidc { .. },
+                session: PinRecoverySession::OAuth { .. },
                 ..
             })
         ) {
@@ -225,7 +225,7 @@ where
 
         let Some(Session::PinRecovery {
             session:
-                PinRecoverySession::Oidc {
+                PinRecoverySession::OAuth {
                     authorization_server,
                     discovered,
                 },
@@ -609,7 +609,7 @@ mod tests {
 
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Oidc {
+            session: PinRecoverySession::OAuth {
                 authorization_server: Box::new(authorization_server),
                 discovered: Box::new(discovered),
             },
@@ -795,7 +795,7 @@ mod tests {
 
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Oidc {
+            session: PinRecoverySession::OAuth {
                 authorization_server: Box::new(authorization_server),
                 discovered: Box::new(MockCredentialIssuer::new()),
             },
@@ -838,7 +838,7 @@ mod tests {
 
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Oidc {
+            session: PinRecoverySession::OAuth {
                 authorization_server: Box::new(authorization_server),
                 discovered: Box::new(discovered),
             },
@@ -884,7 +884,7 @@ mod tests {
 
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Oidc {
+            session: PinRecoverySession::OAuth {
                 authorization_server: Box::new(authorization_server),
                 discovered: Box::new(discovered),
             },

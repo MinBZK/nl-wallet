@@ -122,7 +122,7 @@ where
 
         if let Some(session) = &self.session {
             return match session {
-                Session::Oidc { .. } | Session::Issuance(_) => Ok(WalletState::InIssuanceFlow),
+                Session::OAuth { .. } | Session::Issuance(_) => Ok(WalletState::InIssuanceFlow),
                 Session::Disclosure(_) | Session::CloseProximityDisclosure => Ok(WalletState::InDisclosureFlow),
                 Session::PinRecovery { .. } => Ok(WalletState::InPinRecoveryFlow),
             };
@@ -554,7 +554,7 @@ mod tests {
     }
 
     fn digid_session() -> Session<MockCredentialIssuerDiscovery, MockDisclosureSession> {
-        Session::Oidc {
+        Session::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
             authorization_server: Box::new(create_stub_authorization_server()),
             discovered: Box::new(MockCredentialIssuer::new()),
@@ -595,7 +595,7 @@ mod tests {
 
         Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Oidc {
+            session: PinRecoverySession::OAuth {
                 authorization_server: Box::new(create_stub_authorization_server()),
                 discovered: Box::new(MockCredentialIssuer::new()),
             },
