@@ -16,9 +16,9 @@ import screen.issuance.PersonalizePidPreviewScreen
 import screen.issuance.PersonalizeSuccessScreen
 import screen.issuance.TransferWalletScreen
 import screen.menu.MenuScreen
+import screen.revocation.RevocationCodeSettingsScreen
+import screen.revocation.RevocationCodeSetupScreen
 import screen.security.PinScreen
-import screen.security.RevocationCodeSettingsScreen
-import screen.security.RevocationCodeSetupScreen
 import screen.settings.SettingsScreen
 import screen.web.digid.DigidLoginMockWebPage
 import screen.web.digid.DigidLoginStartWebPage
@@ -65,7 +65,7 @@ class ViewRevocationCodeTests : TestBase() {
         setUp(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.RevocationCode)
         val revocationCodeFromSetup = revocationCodeSetupScreen.getRevocationCode()
-        revocationCodeSetupScreen.confirmReceival()
+        revocationCodeSetupScreen.confirmReceive()
         personalizeInformScreen.clickDigidLoginButton()
 
         digidLoginStartWebPage.switchToWebViewContext()
