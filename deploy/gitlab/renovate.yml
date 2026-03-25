@@ -4,9 +4,7 @@ renovate:
     entrypoint: [""]
   rules:
     - !reference [.on-schedule-scan, rules]
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: manual
-      allow_failure: true
+    - !reference [.default-branch-manual, rules]
   variables:
     RENOVATE_PLATFORM: gitlab
     RENOVATE_ENDPOINT: $CI_SERVER_URL/api/v4

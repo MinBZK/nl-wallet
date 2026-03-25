@@ -38,6 +38,15 @@ variables:
       variables:
         CACHE_POLICY: pull-push
 
+.default-branch-manual:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "parent_pipeline"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      variables:
+        CACHE_POLICY: pull-push
+      when: manual
+
 .merge-request:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
