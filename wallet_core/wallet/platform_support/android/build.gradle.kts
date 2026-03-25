@@ -73,8 +73,8 @@ android {
     // That indicates that a transitive dependency still has VERSION_1_8 specified. It is emphatically
     // *not* due to the sourceCompatibility, targetCompatibility and jvmTarget settings configured below
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     sourceSets {
@@ -87,7 +87,7 @@ android {
 
 kotlin {
     compilerOptions {
-        jvmTarget = JvmTarget.JVM_11
+        jvmTarget = JvmTarget.JVM_17
         freeCompilerArgs = listOf("-Xstring-concat=inline")
     }
 }
@@ -133,6 +133,8 @@ dependencies {
     implementation("androidx.startup:startup-runtime:1.1.1") // Auto initialization
     implementation("com.google.android.play:integrity:1.4.0") // Play Integrity API
     implementation("net.java.dev.jna:jna:5.14.0@aar") // Java Native Access, Android Archive version
+    implementation("org.multipaz:multipaz:0.96.0") // Multipaz core library
+    implementation("org.multipaz:multipaz-android:0.96.0") // Multipaz Android BLE support
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1") // Kotlin coroutines, core library
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3") // Kotlin coroutines for play-services
 
@@ -144,6 +146,7 @@ dependencies {
 
     // Android test dependencies
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:rules:1.6.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
 }
