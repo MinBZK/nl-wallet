@@ -3,8 +3,8 @@ renovate:
     name: "${HARBOR_REGISTRY}/docker-hub-proxy/renovate/renovate:39@sha256:f2209c61a9c3c8c74ac58eecb5f15ec43651f1ba694aa33493ff2062b90ff4d3"
     entrypoint: [""]
   rules:
-    - !reference [.on-schedule-scan, rules]
-    #    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    #- !reference [.on-schedule-scan, rules]
+    #- if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
     - when: manual
       allow_failure: true
   variables:
