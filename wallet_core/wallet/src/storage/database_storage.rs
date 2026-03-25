@@ -2773,13 +2773,36 @@ pub(crate) mod tests {
 
         let attestation_id = insert_sd_jwt_credential(&mut storage, "test_key_id").await;
 
-        // The issuance event created by insert_credentials should be linked to the attestation.
+        // Manually crate and store a disclosure event linked to the attestation.
+        let mut disclosed_attestation = AttestationPresentation::new_mock();
+        disclosed_attestation.identity = AttestationIdentity::Fixed { id: attestation_id };
+        storage
+            .log_disclosure_event(
+                Utc::now(),
+                vec![disclosed_attestation],
+                READER_KEY.certificate().clone(),
+                DisclosureStatus::Success,
+                DisclosureType::Regular,
+            )
+            .await
+            .expect("Could not log disclosure event");
+
+        // Both the issuance event and the disclosure event should be linked to the attestation.
         let events_before_deletion = storage
             .fetch_wallet_events_by_attestation_id(attestation_id)
             .await
             .expect("Could not fetch wallet events");
-        assert_eq!(events_before_deletion.len(), 1);
-        assert_matches!(events_before_deletion.first().unwrap(), WalletEvent::Issuance { .. });
+        assert_eq!(events_before_deletion.len(), 2);
+        assert!(
+            events_before_deletion
+                .iter()
+                .any(|e| matches!(e, WalletEvent::Issuance { .. }))
+        );
+        assert!(
+            events_before_deletion
+                .iter()
+                .any(|e| matches!(e, WalletEvent::Disclosure { .. }))
+        );
 
         storage
             .delete_attestation(attestation_id)
@@ -2802,12 +2825,12 @@ pub(crate) mod tests {
                 .is_none()
         );
 
-        // The issuance event should still exist but be unlinked from the attestation.
+        // Both events should still exist but be unlinked from the attestation.
         let events_after_deletion = storage
             .fetch_wallet_events()
             .await
             .expect("Could not fetch wallet events");
-        assert_eq!(events_after_deletion.len(), 1);
+        assert_eq!(events_after_deletion.len(), 2);
         let events_by_attestation = storage
             .fetch_wallet_events_by_attestation_id(attestation_id)
             .await
