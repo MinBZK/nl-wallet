@@ -1167,25 +1167,10 @@ where
             .exec(&tx)
             .await?;
 
-        issuance_event_attestation::Entity::update_many()
-            .col_expr(
-                issuance_event_attestation::Column::AttestationId,
-                Expr::value(Option::<Uuid>::None),
-            )
-            .filter(issuance_event_attestation::Column::AttestationId.eq(attestation_id))
-            .exec(&tx)
-            .await?;
-
-        disclosure_event_attestation::Entity::update_many()
-            .col_expr(
-                disclosure_event_attestation::Column::AttestationId,
-                Expr::value(Option::<Uuid>::None),
-            )
-            .filter(disclosure_event_attestation::Column::AttestationId.eq(attestation_id))
-            .exec(&tx)
-            .await?;
-
         attestation::Entity::delete_by_id(attestation_id).exec(&tx).await?;
+
+        // Leave the history events of the deleted attestations in place.
+        // Their `attestation_id` is set to NULL automatically by the foreign key action.
 
         tx.commit().await?;
 
