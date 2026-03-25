@@ -40,6 +40,7 @@ use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::CompleteTransfer;
 use wallet_account::messages::instructions::ConfirmTransfer;
+use wallet_account::messages::instructions::DeleteKeys;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
 use wallet_account::messages::instructions::GetTransferStatus;
@@ -179,6 +180,10 @@ where
                 .route(
                     &format!("/instructions/{}", ConfirmTransfer::NAME),
                     post(handle_instruction::<ConfirmTransfer, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/{}", DeleteKeys::NAME),
+                    post(handle_instruction::<DeleteKeys, _, _, _>),
                 )
                 .layer(RequestDecompressionLayer::new().zstd(true))
                 .layer(TraceLayer::new_for_http())
