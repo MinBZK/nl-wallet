@@ -43,6 +43,20 @@ jobs:
       evidence: ""
       evidenceRegex: false
       methods: []
+# False positive analysis in PVW-5483 showed that this is not a vulnerability
+    - ruleId: "40039"
+      ruleName: "Web Cache Deception (40025)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
   parameters:
     deleteGlobalAlerts: false
   name: "alertFilter"
