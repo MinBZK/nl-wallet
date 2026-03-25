@@ -65,6 +65,8 @@
   stored one.
 - Introduce the 'Present QR' screen, this is the entry point for close proximity
   disclosure flows.
+- The Wallet Provider and Rust core now support deletion of attestations, as
+  well as their corresponding private keys.
 
 ## Interoperability improvements
 
