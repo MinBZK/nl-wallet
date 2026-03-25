@@ -369,11 +369,6 @@ mod tests {
                 )))
             });
 
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<ChangePinData>()
-            .returning(|| Ok(None));
-
         let error = wallet
             .delete_attestation(PIN.to_string(), attestation_id.to_string())
             .await
