@@ -936,3 +936,46 @@ Cases:
 **When** user selects 'View your deletion code' from the settings menu<br>
 **And** use confirms with PIN to view the revocation code<br>
 **Then** system displays the revocation code<br>
+
+---
+
+### LTC74
+
+#### Revoke wallet with revocation code
+
+**Given** user visits the revocation portal<br>
+**When** user submits the revocation code<br>
+**And** user opens the app<br>
+**Then** a wallet is deleted message is displayed<br>
+
+---
+
+### LTC75
+
+#### Revoke wallet by wallet id
+
+**When** wallet is revoked by wallet id<br>
+**And** user opens the app<br>
+**Then** a your wallet is blocked message is displayed<br>
+
+---
+
+### LTC76
+
+#### Revoke wallet by recovery id
+
+**Given** user visits the revocation portal<br>
+**When** user submits the revocation code<br>
+**And** user opens the app<br>
+**Then** a you have been blocked message is displayed<br>
+
+---
+
+### LTC77
+
+#### Revoke wallet solution
+
+**Given** user visits the revocation portal<br>
+**When** user submits the revocation code<br>
+**And** user opens the app<br>
+**Then** a wallet solution is revoked message is displayed<br>

@@ -85,6 +85,7 @@
 <li class="toctree-l2"><a class="reference internal" href="UC1.1_IntroduceTheApp.html">Use Case 1.1 Introduce the app</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Use Case 1.2 Open the app</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC10.1_DeleteWalletUsingRevocationCode.html">Use Case 10.1 Revoke the wallet using the revocation code</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
@@ -282,71 +283,75 @@
 <td><p>2.3</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>2.4</strong></p></td>
-<td><p><strong>System determines whether remote PIN is set up</strong></p></td>
+<td><p><strong>System determines wallet status</strong></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p>2.4a</p></td>
-<td><p>Case: User has setup a remote PIN</p></td>
-<td><p>Go to: <a class="reference internal" href="UC2.3_UnlockTheApp.html"><span class="std std-doc">UC2.3 Unlock the app</span></a></p></td>
+<td><p>Case: Wallet is active</p></td>
+<td><p>2.5</p></td>
 </tr>
 <tr class="row-even"><td><p>2.4b</p></td>
-<td><p>Case: User has not setup a remote PIN</p></td>
-<td><p>Go to: <a class="reference internal" href="UC1.1_IntroduceTheApp.html"><span class="std std-doc">UC1.1 Introduce the app</span></a></p></td>
+<td><p>Case: Wallet is revoked by user</p></td>
+<td><p>4</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>3</strong></p></td>
-<td><p><strong>WHEN APP RESUMES</strong></p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p>2.4c</p></td>
+<td><p>Case: Wallet ID is revoked by admin</p></td>
+<td><p>5</p></td>
 </tr>
-<tr class="row-even"><td><p><strong>3.1</strong></p></td>
-<td><p><strong>System determines whether remote PIN is set up</strong></p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p>2.4d</p></td>
+<td><p>Case: Wallet recovery code is revoked by admin</p></td>
+<td><p>6</p></td>
 </tr>
-<tr class="row-odd"><td><p>3.1a</p></td>
-<td><p>Case: User has setup a remote PIN</p></td>
-<td><p>3.2</p></td>
-</tr>
-<tr class="row-even"><td><p>3.1b</p></td>
-<td><p>Case: User has not setup a remote PIN</p></td>
-<td><p>Resume<sup>3</sup></p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>3.2</strong></p></td>
-<td><p><strong>System determines whether app is locked</strong></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p>3.2a</p></td>
-<td><p>Case: Wallet is unlocked</p></td>
-<td><p>3.3</p></td>
-</tr>
-<tr class="row-odd"><td><p>3.2b</p></td>
-<td><p>Case: Wallet is locked</p></td>
-<td><p>Go to: <a class="reference internal" href="UC2.3_UnlockTheApp.html"><span class="std std-doc">UC2.3 Unlock the app</span></a></p></td>
-</tr>
-<tr class="row-even"><td><p><strong>3.3</strong></p></td>
-<td><p><strong>System determines whether user has obtained PID</strong></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-odd"><td><p>3.3a</p></td>
-<td><p>Case: User has obtained PID</p></td>
-<td><p>3.4</p></td>
-</tr>
-<tr class="row-even"><td><p>3.3a</p></td>
-<td><p>Case: User has not obtained PID</p></td>
-<td><p>Resume<sup>3</sup></p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>3.4</strong></p></td>
-<td><p><strong>System executes partial flow <a class="reference internal" href="../partial-flows/PF2.7_ResolveUniversalLink.html"><span class="std std-doc">PF2.7 Resolve a universal link</span></a></strong></p></td>
-<td><p></p></td>
-</tr>
-<tr class="row-even"><td><p>3.4a</p></td>
-<td><p>Result: No (valid) universal link</p></td>
-<td><p>Resume<sup>3</sup></p></td>
-</tr>
-<tr class="row-odd"><td><p>3.4b</p></td>
-<td><p>Result: Wallet rejects universal link</p></td>
-<td><p>Resume<sup>3</sup></p></td>
+<tr class="row-odd"><td><p>2.4e</p></td>
+<td><p>Case: Wallet solution is revoked by admin</p></td>
+<td><p>7</p></td>
 </tr>
 </tbody>
 </table>
+<p>| <strong>2.5</strong> | <strong>System determines whether remote PIN is set up</strong>                                                                |                                                             |
+| 2.5a    | Case: User has setup a remote PIN                                                                                 | Go to: <a class="reference internal" href="UC2.3_UnlockTheApp.html"><span class="std std-doc">UC2.3 Unlock the app</span></a>        |
+| 2.5b    | Case: User has not setup a remote PIN                                                                             | Go to: <a class="reference internal" href="UC1.1_IntroduceTheApp.html"><span class="std std-doc">UC1.1 Introduce the app</span></a>  |
+| <strong>3</strong>   | <strong>WHEN APP RESUMES</strong>                                                                                              |                                                             |
+| <strong>3.1</strong> | <strong>System determines whether remote PIN is set up</strong>                                                                |                                                             |
+| 3.1a    | Case: User has setup a remote PIN                                                                                 | 3.2                                                         |
+| 3.1b    | Case: User has not setup a remote PIN                                                                             | Resume<sup>3</sup>                                          |
+| <strong>3.2</strong> | <strong>System determines whether app is locked</strong>                                                                       |                                                             |
+| 3.2a    | Case: Wallet is unlocked                                                                                          | 3.3                                                         |
+| 3.2b    | Case: Wallet is locked                                                                                            | Go to: <a class="reference internal" href="UC2.3_UnlockTheApp.html"><span class="std std-doc">UC2.3 Unlock the app</span></a>        |
+| <strong>3.3</strong> | <strong>System determines whether user has obtained PID</strong>                                                               |                                                             |
+| 3.3a    | Case: User has obtained PID                                                                                       | 3.4                                                         |
+| 3.3a    | Case: User has not obtained PID                                                                                   | Resume<sup>3</sup>                                          |
+| <strong>3.4</strong> | <strong>System executes partial flow <a class="reference internal" href="../partial-flows/PF2.7_ResolveUniversalLink.html"><span class="std std-doc">PF2.7 Resolve a universal link</span></a></strong> |                                                             |
+| 3.4a    | Result: No (valid) universal link                                                                                 | Resume<sup>3</sup>                                          |
+| 3.4b    | Result: Wallet rejects universal link                                                                             | Resume<sup>3</sup>                                          |
+| <strong>4</strong>   | <strong>WHEN WALLET IS REVOKED BY USER</strong>                                                                                                                                                                            |                                                                        |
+| <strong>4.1</strong> | <strong>System displays screen ‘Your wallet was deleted’</strong><ul><li>Message: You deleted this wallet with your deletion code</li>li&gt;Actions: To help desk, Help</li></ul>                                             |                                                                        |
+| 4.1a    | User selects To help desk                                                                                                                                                                                     | 4.2                                                                    |
+| 4.1b    | User selects Help                                                                                                                                                                                             | Show placeholder ‘under construction’                                  |
+| <strong>4.2</strong> | <strong>System displays screen ‘Contact’</strong><ul><li>Message: Check our website or contact us</li>li&gt;Actions: Call, Back</li></ul>                                                                                     |                                                                        |
+| 4.2a    | User selects Call<br>→ System opens phone and suspends app                                                                                                                                               |                                                                        |
+| 4.2b    | User selects Back                                                                                                                                                                                             | Back                                                                   |
+| <strong>5</strong>   | <strong>WHEN WALLET ID IS REVOKED BY ADMIN</strong>                                                                                                                                                                        |                                                                        |
+| <strong>5.1</strong> | <strong>System displays screen ‘Your wallet is blocked’</strong><ul><li>Message: Close this app or creat e a new wallet to use the app again.</li>li&gt;Actions: Create new NL Wallet, To help desk, Help</li></ul>           |                                                                        |
+| 5.1a    | User selects To help desk                                                                                                                                                                                     | 5.2                                                                    |
+| 5.1b    | User selects Help                                                                                                                                                                                             | Show placeholder ‘under construction’                                  |
+| 5.1c    | User selects Create new NL Wallet                                                                                                                                                                             | Go to: <a class="reference internal" href="UC1.1_IntroduceTheApp.html"><span class="std std-doc">UC1.1 Introduce the app</span></a>             |
+| <strong>5.2</strong> | <strong>System displays screen ‘Contact’</strong><ul><li>Message: Check our website or contact us</li>li&gt;Actions: Call, Back</li></ul>                                                                                     |                                                                        |
+| 5.2a    | User selects Call<br>→ System opens phone and suspends app                                                                                                                                               |                                                                        |
+| 5.2b    | User selects Back                                                                                                                                                                                             | Back                                                                   |
+| <strong>6</strong>   | <strong>WHEN WALLET RECOVERY CODE IS REVOKED BY ADMIN</strong>                                                                                                                                                             |                                                                        |
+| <strong>6.1</strong> | <strong>System displays screen ‘Your have been blocked’</strong><ul><li>Message: You cannot use NL WALLET right now.</li>li&gt;Actions: To help desk, Help</li></ul>                                                          |                                                                        |
+| 6.1a    | User selects To help desk                                                                                                                                                                                     | 6.2                                                                    |
+| 6.1b    | User selects Help                                                                                                                                                                                             | Show placeholder ‘under construction’                                  |
+| <strong>6.2</strong> | <strong>System displays screen ‘Contact’</strong><ul><li>Message: Check our website or contact us</li>li&gt;Actions: Call, Back</li></ul>                                                                                     |                                                                        |
+| 6.2a    | User selects Call<br>→ System opens phone and suspends app                                                                                                                                               |                                                                        |
+| 6.2b    | User selects Back                                                                                                                                                                                             | Back                                                                   |
+| <strong>7</strong>   | <strong>WHEN WALLET SOLUTION IS REVOKED BY ADMIN</strong>                                                                                                                                                                  |                                                                        |
+| <strong>7.1</strong> | <strong>System displays screen ‘NL Wallet can no longer be used’</strong><ul><li>Message: You cannot use NL WALLET right now due to a technical problem on our side.</li>li&gt;Actions: Read more information, Help</li></ul> |                                                                        |
+| 7.1a    | User selects Read more information                                                                                                                                                                            | 7.2                                                                    |
+| 7.1b    | User selects Help                                                                                                                                                                                             | Show placeholder ‘under construction’                                  |
+| <strong>7.2</strong> | <strong>System displays screen ‘More information’</strong><ul>li&gt;Actions: Back</li></ul>                                                                                                                                   |                                                                        |
+| 7.2a    | User selects Back                                                                                                                                                                                             | Back                                                                   |</p>
 <div class="table-notes">1. We use the iOS terminology 'launch' to that no process was active when opening the app. In Android, this matches the 'cold startup' or 'warm startup' processes. Even without an active process, some resources may already be loaded into memory.</div>
 <div class="table-notes">2. We use the iOS terminology 'resume' to that the app process was already active when opening the app. In Android, this matches the 'hot startup' process.</div>
 <div class="table-notes">3. Resume the state when the app backgrounded/suspended.</div></section>
