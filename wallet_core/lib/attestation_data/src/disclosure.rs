@@ -264,7 +264,7 @@ impl AttestationRequest for ItemsRequest {
     }
 
     fn claim_paths(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>> {
-        self.clone().into_claims()
+        self.claims()
     }
 }
 

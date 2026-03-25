@@ -396,34 +396,59 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+    use std::collections::HashSet;
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
+    use indexmap::IndexMap;
+    use itertools::Itertools;
     use mockall::predicate::always;
     use mockall::predicate::eq;
     use parking_lot::Mutex;
     use serial_test::serial;
 
+    use attestation_data::attributes::Attribute;
+    use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
+    use attestation_data::verifier_certificate::VerifierCertificate;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_GIVEN_NAME;
+    use crypto::WithVerifyingKey;
     use crypto::server_keys::generate::Ca;
+    use dcql::CredentialFormat;
     use entity::disclosure_event::EventStatus;
     use mdoc::DeviceRequest;
     use mdoc::Handover;
+    use mdoc::ItemsRequest;
+    use mdoc::SessionTranscript;
     use mdoc::SessionTranscriptKeyed;
     use mdoc::examples::Example;
+    use mdoc::holder::disclosure::create_doc_request;
+    use mdoc::utils::cose::CoseKey;
     use mdoc::utils::serialization::CborSeq;
+    use mdoc::utils::serialization::cbor_serialize;
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureChannel;
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureChannelImpl;
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
     use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_nonempty;
 
+    use crate::DisclosureAttestationOptions;
+    use crate::DisclosureProposalPresentation;
     use crate::wallet::Session;
     use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureSession;
     use crate::wallet::disclosure::WalletDisclosureAttestations;
+    use crate::wallet::test::READER_CA;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
+    use crate::wallet::test::example_pid_stored_attestation_copy;
+    use crate::wallet::test::example_stored_attestation_copy;
 
     use super::CloseProximityDisclosureSessionState;
     use super::CloseProximityDisclosureUpdate;
@@ -576,7 +601,7 @@ mod tests {
             session_state: Arc::new(Mutex::new(CloseProximityDisclosureSessionState::DisclosureProposed {
                 session_transcript: Box::new(CborSeq(SessionTranscriptKeyed {
                     device_engagement_bytes: None,
-                    ereader_key_bytes: None,
+                    e_reader_key_bytes: None,
                     handover: Handover::QrHandover,
                 })),
                 device_request: DeviceRequest::example(),
@@ -589,5 +614,125 @@ mod tests {
             .terminate_close_proximity_disclosure_session(session)
             .await
             .expect("terminating close proximity disclosure session should succeed");
+    }
+
+    // Set up properties for a close proximity disclosure session.
+    async fn setup_close_proximity_disclosure_session(
+        wallet: &mut TestWalletMockStorage,
+        items_request: ItemsRequest,
+    ) -> VerifierCertificate {
+        let mut reader_registration = ReaderRegistration::new_mock();
+        let (doc_type, claims) = items_request.clone().into_doctype_and_claims();
+        reader_registration.authorized_attributes = HashMap::from_iter([(doc_type, claims.collect_vec())]);
+
+        let key_pair = generate_reader_mock_with_registration(&READER_CA, reader_registration).unwrap();
+
+        let verifier_certificate = VerifierCertificate::try_new(key_pair.certificate().to_owned())
+            .unwrap()
+            .unwrap();
+
+        let cose_key: CoseKey = (&key_pair.verifying_key().await.unwrap()).try_into().unwrap();
+        let session_transcript = SessionTranscript::new_qr(cose_key, None);
+
+        let doc_request = create_doc_request(items_request, &session_transcript, &key_pair).await;
+
+        wallet.session = Some(Session::CloseProximityDisclosure(CloseProximityDisclosureSession {
+            listener: tokio::task::spawn(async {}),
+            session_state: Arc::new(Mutex::new(CloseProximityDisclosureSessionState::SessionEstablished {
+                session_transcript: cbor_serialize(&session_transcript).unwrap(),
+                device_request: cbor_serialize(&DeviceRequest::from_doc_requests(vec_nonempty![doc_request])).unwrap(),
+            })),
+        }));
+
+        verifier_certificate
+    }
+
+    /// This tests `Wallet::continue_close_proximity_disclosure()` from a session that has already been established.
+    #[tokio::test]
+    async fn test_wallet_continue_close_proximity_disclosure() {
+        // Populate a registered wallet with an example PID.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        let items_request = ItemsRequest {
+            doc_type: PID_ATTESTATION_TYPE.to_owned(),
+            name_spaces: IndexMap::from_iter(vec![(
+                PID_ATTESTATION_TYPE.to_owned(),
+                IndexMap::from_iter(vec![(PID_GIVEN_NAME.to_owned(), true)]),
+            )]),
+            request_info: None,
+        };
+
+        let verifier_certificate = setup_close_proximity_disclosure_session(&mut wallet, items_request).await;
+
+        // Create three PID attestations.
+        let mut pid_credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+        let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
+        *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() = Attribute::Single(AttributeValue::Text("Jane".to_string()));
+        pid_credential_payload.previewable_payload.attributes = attributes_root.into();
+        let pid1 = example_stored_attestation_copy(
+            CredentialFormat::MsoMdoc,
+            pid_credential_payload.clone(),
+            NormalizedTypeMetadata::nl_pid_example(),
+        );
+
+        let pid2 = example_pid_stored_attestation_copy(CredentialFormat::MsoMdoc);
+
+        let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
+        *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() = Attribute::Single(AttributeValue::Text("John".to_string()));
+        pid_credential_payload.previewable_payload.attributes = attributes_root.into();
+        let pid3 = example_stored_attestation_copy(
+            CredentialFormat::MsoMdoc,
+            pid_credential_payload,
+            NormalizedTypeMetadata::nl_pid_example(),
+        );
+
+        wallet
+            .mut_storage()
+            .expect_fetch_valid_unique_attestations_by_types_and_format()
+            .withf(move |attestation_types, format, _| {
+                *attestation_types == HashSet::from([PID_ATTESTATION_TYPE.to_owned()])
+                    && *format == CredentialFormat::MsoMdoc
+            })
+            .times(1)
+            .return_once(move |_, _, _| Ok(vec![pid1, pid2.clone(), pid3]));
+
+        // The wallet will check in the database if data was shared with the RP before.
+        wallet
+            .mut_storage()
+            .expect_did_share_data_with_relying_party()
+            .times(1)
+            .returning(|_| Ok(false));
+
+        // Starting disclosure should not cause attestation copy usage counts to be incremented.
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .never();
+
+        // Starting disclosure should not cause a disclosure event to be recorded yet.
+        wallet.mut_storage().expect_log_disclosure_event().never();
+
+        // Starting disclosure should not fail.
+        let proposal = wallet
+            .continue_close_proximity_disclosure()
+            .await
+            .expect("starting disclosure should succeed");
+
+        wallet.mut_storage().checkpoint();
+
+        // Test that the returned `DisclosureProposalPresentation` contains the processed data we set up earlier.
+        assert_matches!(
+            proposal,
+            DisclosureProposalPresentation {
+                reader_registration,
+                shared_data_with_relying_party_before,
+                ..
+            } if reader_registration == *verifier_certificate.registration() && !shared_data_with_relying_party_before
+        );
+        assert_eq!(proposal.attestation_options.len().get(), 1);
+        assert!(matches!(
+            proposal.attestation_options.first(),
+            DisclosureAttestationOptions::Multiple(options) if options.len().get() == 3
+        ));
     }
 }

@@ -77,42 +77,26 @@ impl<'a> DeviceAuthenticationKeyed<'a> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionTranscriptKeyed {
     pub device_engagement_bytes: Option<DeviceEngagementBytes>,
-    pub ereader_key_bytes: Option<ESenderKeyBytes>,
+    pub e_reader_key_bytes: Option<EDeviceKeyBytes>,
     pub handover: Handover,
 }
 
 /// Transcript of the session so far. Used in [`DeviceAuthentication`].
 pub type SessionTranscript = CborSeq<SessionTranscriptKeyed>;
 
-#[derive(Debug, thiserror::Error)]
-pub enum SessionTranscriptError {
-    #[error("reader engagement is missing security information")]
-    MissingReaderEngagementSecurity,
-}
-
 impl SessionTranscript {
     pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, CborError> {
         cbor_deserialize(bytes)
     }
 
-    pub fn new_qr(
-        reader_engagement: &ReaderEngagement,
-        device_engagement: &DeviceEngagement,
-    ) -> Result<Self, SessionTranscriptError> {
-        let reader_security = reader_engagement
-            .0
-            .security
-            .as_ref()
-            .ok_or(SessionTranscriptError::MissingReaderEngagementSecurity)?;
-
-        let transcript = SessionTranscriptKeyed {
-            device_engagement_bytes: Some(device_engagement.clone().into()),
+    pub fn new_qr(e_reader_key: impl Into<CoseKey>, device_engagement: Option<DeviceEngagement>) -> Self {
+        let cose_key: CoseKey = e_reader_key.into();
+        SessionTranscriptKeyed {
+            device_engagement_bytes: device_engagement.map(Into::into),
+            e_reader_key_bytes: Some(cose_key.into()),
             handover: Handover::QrHandover,
-            ereader_key_bytes: Some(reader_security.0.e_sender_key_bytes.clone()),
         }
-        .into();
-
-        Ok(transcript)
+        .into()
     }
 
     pub fn new_oid4vp(client_id: &str, nonce: &str, jwk_thumbprint: Option<&[u8]>, response_uri: &BaseUrl) -> Self {
@@ -126,7 +110,7 @@ impl SessionTranscript {
 
         let keyed = SessionTranscriptKeyed {
             device_engagement_bytes: None,
-            ereader_key_bytes: None,
+            e_reader_key_bytes: None,
             handover: Handover::Oid4vpHandover(CborSeq(handover)),
         };
 
@@ -211,7 +195,7 @@ pub type Security = CborSeq<SecurityKeyed>;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityKeyed {
     pub cipher_suite_identifier: CipherSuiteIdentifier,
-    pub e_sender_key_bytes: ESenderKeyBytes,
+    pub e_device_key_bytes: EDeviceKeyBytes,
 }
 
 #[derive(Debug, Clone, Copy, Serialize_repr, Deserialize_repr)]
@@ -220,7 +204,7 @@ pub enum CipherSuiteIdentifier {
     P256 = 1,
 }
 
-pub type ESenderKeyBytes = TaggedBytes<CoseKey>;
+pub type EDeviceKeyBytes = TaggedBytes<CoseKey>;
 
 #[cfg(any(test, feature = "mock"))]
 mod test {

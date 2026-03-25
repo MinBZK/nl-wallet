@@ -16,6 +16,9 @@ mod request;
 pub use issuer_signed::claim_path_to_mdoc_path;
 pub use mdoc::PartialMdoc;
 
+#[cfg(any(test, feature = "test"))]
+pub use device_retrieval::test::create_doc_request;
+
 #[cfg(test)]
 mod iso_tests;
 

@@ -1044,18 +1044,14 @@ mod tests {
     use url::Url;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
-    use uuid::Uuid;
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::Organization;
-    use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
-    use attestation_data::validity::ValidityWindow;
     use attestation_data::verifier_certificate::VerifierCertificate;
-    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ADDRESS_GROUP;
@@ -1065,7 +1061,6 @@ mod tests {
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
     use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
-    use crypto::server_keys::generate::Ca;
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
@@ -1110,16 +1105,14 @@ mod tests {
     use crate::errors::StorageError;
     use crate::storage::ChangePinData;
     use crate::storage::DisclosableAttestation;
-    use crate::storage::StoredAttestation;
-    use crate::storage::StoredAttestationCopy;
+    use crate::wallet::test::example_pid_stored_attestation_copy;
+    use crate::wallet::test::example_stored_attestation_copy;
+    use crate::wallet::test::mock_verifier_certificate;
 
     use super::super::Session;
-    use super::super::test::ISSUER_KEY;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
-    use super::super::test::mdoc_from_credential_payload;
     use super::super::test::setup_mock_recent_history_callback;
-    use super::super::test::verified_sd_jwt_from_credential_payload;
     use super::AttributesNotAvailable;
     use super::DisclosureAttestationOptions;
     use super::DisclosureError;
@@ -1151,51 +1144,6 @@ mod tests {
         }
     }
 
-    fn example_stored_attestation_copy(
-        format: CredentialFormat,
-        credential_payload: CredentialPayload,
-        metadata: NormalizedTypeMetadata,
-    ) -> StoredAttestationCopy {
-        match format {
-            CredentialFormat::MsoMdoc => StoredAttestationCopy::new(
-                Uuid::new_v4(),
-                Uuid::new_v4(),
-                ValidityWindow::new_valid_mock(),
-                StoredAttestation::MsoMdoc {
-                    mdoc: mdoc_from_credential_payload(
-                        credential_payload.previewable_payload,
-                        &ISSUER_KEY.issuance_key,
-                    ),
-                },
-                metadata,
-                None,
-            ),
-            CredentialFormat::SdJwt => StoredAttestationCopy::new(
-                Uuid::new_v4(),
-                Uuid::new_v4(),
-                ValidityWindow::new_valid_mock(),
-                StoredAttestation::SdJwt {
-                    key_identifier: crypto::utils::random_string(16),
-                    sd_jwt: verified_sd_jwt_from_credential_payload(
-                        credential_payload,
-                        &metadata,
-                        &ISSUER_KEY.issuance_key,
-                    ),
-                },
-                metadata,
-                None,
-            ),
-        }
-    }
-
-    fn example_pid_stored_attestation_copy(format: CredentialFormat) -> StoredAttestationCopy {
-        example_stored_attestation_copy(
-            format,
-            CredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
-            NormalizedTypeMetadata::nl_pid_example(),
-        )
-    }
-
     // Set up properties for a `MockDisclosureSession`.
     fn setup_disclosure_session_verifier_certificate(
         verifier_certificate: VerifierCertificate,
@@ -1219,10 +1167,7 @@ mod tests {
     fn setup_disclosure_session(
         credential_requests: NormalizedCredentialRequests,
     ) -> (MockDisclosureSession, VerifierCertificate) {
-        let ca = Ca::generate_reader_mock_ca().unwrap();
-        let reader_registration = ReaderRegistration::new_mock();
-        let key_pair = generate_reader_mock_with_registration(&ca, reader_registration).unwrap();
-        let verifier_certificate = VerifierCertificate::try_new(key_pair.into()).unwrap().unwrap();
+        let verifier_certificate = mock_verifier_certificate();
 
         let disclosure_session =
             setup_disclosure_session_verifier_certificate(verifier_certificate.clone(), credential_requests);

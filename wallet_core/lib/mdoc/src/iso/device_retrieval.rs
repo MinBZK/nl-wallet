@@ -96,18 +96,35 @@ pub struct ItemsRequest {
 }
 
 impl ItemsRequest {
-    pub fn into_claims(self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>> {
-        self.name_spaces.into_iter().flat_map(|(namespace, identifiers)| {
+    pub fn claims(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>> {
+        self.name_spaces.iter().flat_map(|(namespace, identifiers)| {
             identifiers
                 .into_iter()
                 .map(|(identifier, _)| {
                     vec_nonempty![
                         ClaimPath::SelectByKey(namespace.clone()),
-                        ClaimPath::SelectByKey(identifier),
+                        ClaimPath::SelectByKey(identifier.clone()),
                     ]
                 })
                 .collect_vec()
         })
+    }
+
+    pub fn into_doctype_and_claims(self) -> (DocType, impl Iterator<Item = VecNonEmpty<ClaimPath>>) {
+        (
+            self.doc_type,
+            self.name_spaces.into_iter().flat_map(|(namespace, identifiers)| {
+                identifiers
+                    .into_iter()
+                    .map(|(identifier, _)| {
+                        vec_nonempty![
+                            ClaimPath::SelectByKey(namespace.clone()),
+                            ClaimPath::SelectByKey(identifier),
+                        ]
+                    })
+                    .collect_vec()
+            }),
+        )
     }
 }
 

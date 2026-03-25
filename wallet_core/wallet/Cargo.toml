@@ -125,7 +125,7 @@ openid4vc = { path = "../lib/openid4vc", features = [
     "example_credential_payloads",
     "example_constructors",
 ] }
-mdoc = { path = "../lib/mdoc", features = ["examples"] }
+mdoc = { path = "../lib/mdoc", features = ["examples", "test"] }
 # enable the "mock" feature for platform_support when running tests
 platform_support = { path = "platform_support", features = ["mock"] }
 sd_jwt = { path = "../lib/sd_jwt", features = ["examples", "mock"] }
