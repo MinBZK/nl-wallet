@@ -1,5 +1,3 @@
-# This component library YAML file is included
-# by the public and private OpenAP documents.
 components:
   parameters:
     session_token:
