@@ -2,6 +2,7 @@ mod attestations;
 mod change_pin;
 mod close_proximity_disclosure;
 mod config;
+mod delete_attestation;
 mod disclosure;
 mod disclosure_based_issuance;
 mod history;
@@ -57,6 +58,7 @@ use self::attestations::AttestationsCallback;
 use self::disclosure::WalletDisclosureSession;
 use self::issuance::WalletIssuanceSession;
 
+pub use self::delete_attestation::DeleteAttestationError;
 pub use self::disclosure::DisclosureAttestationOptions;
 pub use self::disclosure::DisclosureError;
 pub use self::disclosure::DisclosureProposalPresentation;

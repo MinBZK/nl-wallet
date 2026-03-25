@@ -15,6 +15,7 @@ use wallet_provider_persistence::test::WalletDeviceVendor;
 use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
 use wallet_provider_persistence::test::db_from_setup;
 use wallet_provider_persistence::wallet_user_key::delete_blocked_keys_in_same_batch;
+use wallet_provider_persistence::wallet_user_key::delete_keys;
 use wallet_provider_persistence::wallet_user_key::find_active_keys_by_identifiers;
 use wallet_provider_persistence::wallet_user_key::is_blocked_key;
 use wallet_provider_persistence::wallet_user_key::move_keys;
@@ -335,4 +336,98 @@ async fn test_delete_blocked_keys() {
     .await
     .unwrap();
     assert!(active_keys.is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_delete_keys() {
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
+
+    let key1 = test_wallet_user_key();
+    let key2 = test_wallet_user_key();
+    let key3 = test_wallet_user_key();
+
+    let wallet_user_id =
+        create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Apple, random_string(32).into()).await;
+
+    persist_keys(
+        &db,
+        WalletUserKeys {
+            wallet_user_id,
+            batch_id: Uuid::new_v4(),
+            keys: vec![key1.clone(), key2.clone(), key3.clone()],
+        },
+    )
+    .await
+    .unwrap();
+
+    // Delete key1 and key2 by identifier
+    delete_keys(
+        &db,
+        wallet_user_id,
+        &[key1.sha256_fingerprint(), key2.sha256_fingerprint()],
+    )
+    .await
+    .unwrap();
+
+    // key1 and key2 should no longer be found
+    let active_keys = find_active_keys_by_identifiers(
+        &db,
+        wallet_user_id,
+        &[key1.sha256_fingerprint(), key2.sha256_fingerprint()],
+    )
+    .await
+    .unwrap();
+    assert!(active_keys.is_empty());
+
+    // key3 should still exist
+    let active_keys = find_active_keys_by_identifiers(&db, wallet_user_id, &[key3.sha256_fingerprint()])
+        .await
+        .unwrap();
+    assert_eq!(active_keys.len(), 1);
+
+    // Deleting keys is idempotent; try deleting key1 and key2 again
+    delete_keys(
+        &db,
+        wallet_user_id,
+        &[key1.sha256_fingerprint(), key2.sha256_fingerprint()],
+    )
+    .await
+    .unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_delete_keys_of_other_user() {
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
+
+    let key1 = test_wallet_user_key();
+    let key2 = test_wallet_user_key();
+
+    let user1 = create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Apple, random_string(32).into()).await;
+    let user2 = create_wallet_user_with_random_keys(&db, WalletDeviceVendor::Apple, random_string(32).into()).await;
+
+    for (user, key) in [(user1, key1.clone()), (user2, key2.clone())] {
+        persist_keys(
+            &db,
+            WalletUserKeys {
+                wallet_user_id: user,
+                batch_id: Uuid::new_v4(),
+                keys: vec![key],
+            },
+        )
+        .await
+        .unwrap();
+    }
+
+    // user1 tries to delete both keys
+    delete_keys(&db, user1, &[key1.sha256_fingerprint(), key2.sha256_fingerprint()])
+        .await
+        .unwrap();
+
+    // user2 still has key2
+    let active_keys = find_active_keys_by_identifiers(&db, user2, &[key2.sha256_fingerprint()])
+        .await
+        .unwrap();
+    assert_eq!(active_keys.keys().collect::<Vec<_>>(), vec![&key2.sha256_fingerprint()]);
 }

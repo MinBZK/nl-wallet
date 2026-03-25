@@ -61,8 +61,6 @@ class PinBloc extends Bloc<PinEvent, PinState> {
             emit(PinValidateNetworkError(error: error, hasInternet: error.hasInternet));
           case CheckPinError():
             _handleCheckPinErrors(emit, error.result);
-          case AccountRevokedError():
-            return; // Handled up-stream (by navigating) in [NavigationService]
           default:
             emit(PinValidateGenericError(error: error));
         }

@@ -385,6 +385,32 @@ run-fallback-pages-browsertest-test-ont:
     reports:
       junit: browsertests/packages/fallback-pages/test-results/*.xml
 
+run-revocation-portal-browsertest-test-ont:
+  extends: .run-browsertest-common
+  rules:
+    - !reference [.default-branch, rules]
+  needs:
+    - !reference [.run-browsertest-common, needs]
+    - job: deploy-apps-ont
+      artifacts: false
+  script: |
+    cd browsertests
+    npm ci --ignore-scripts
+    cd packages/revocation-portal
+    npx playwright install chromium webkit
+    npm run test:ci
+  after_script:
+    - deploy/bin/store-artifact.sh browsertests/packages/revocation-portal/test-results/results.xml qt/quality-time/junit-results/browsertest-revocation-portal.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-revocation-portal.zip browsertests/packages/revocation-portal/allure-results/*
+  artifacts:
+    name: browsertest-revocation-portal
+    when: always
+    paths:
+      - browsertests/packages/revocation-portal/test-results/
+      - browsertests/packages/revocation-portal/allure-results/
+    reports:
+      junit: browsertests/packages/revocation-portal/test-results/*.xml
+
 run-performance-test-ont:
   extends: .env-k8s
   rules:

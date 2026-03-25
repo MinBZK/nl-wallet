@@ -8033,6 +8033,21 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Future<String>);
 
   @override
+  _i10.Future<void> crateApiFullDeleteAttestation({
+    required String? pin,
+    required String? attestationId,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiFullDeleteAttestation, [], {
+              #pin: pin,
+              #attestationId: attestationId,
+            }),
+            returnValue: _i10.Future<void>.value(),
+            returnValueForMissingStub: _i10.Future<void>.value(),
+          )
+          as _i10.Future<void>);
+
+  @override
   _i10.Future<List<_i26.WalletEvent>> crateApiFullGetHistory() =>
       (super.noSuchMethod(
             Invocation.method(#crateApiFullGetHistory, []),

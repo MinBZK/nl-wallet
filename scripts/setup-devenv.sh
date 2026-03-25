@@ -625,6 +625,10 @@ cp "${STATIC_SERVER_DIR}/static_server.toml" "${BASE_DIR}/wallet_core/tests_inte
 REVOCATION_PORTAL_COOKIE_ENCRYPTION_KEY=$(openssl rand -hex 64)
 export REVOCATION_PORTAL_COOKIE_ENCRYPTION_KEY
 
+# Salt used for hashing the CSRF key for use in the HTML form
+REVOCATION_PORTAL_CSRF_COOKIE_SALT=$(openssl rand -hex 32 | tr -d '\n')
+export REVOCATION_PORTAL_CSRF_COOKIE_SALT
+
 render_template "${DEVENV}/revocation_portal.toml.template" "${REVOCATION_PORTAL_DIR}/revocation_portal.toml"
 
 

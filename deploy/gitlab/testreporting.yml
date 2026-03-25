@@ -36,7 +36,7 @@ build-test-report:
     - job: run-fallback-pages-browsertest-test-ont
       artifacts: false
       optional: true
-    - job: run-gba-fetch-browsertest-test-ont
+    - job: run-revocation-portal-browsertest-test-ont
       artifacts: false
       optional: true
     - job: wallet-web
@@ -51,7 +51,7 @@ build-test-report:
     - npm run fetch-history || true
     - npm run fetch-results
     - >
-      npm run generate allure-results/browsertest-{wallet-web,fallback-pages}.zip
+      npm run generate allure-results/browsertest-{wallet-web,fallback-pages,revocation-portal}.zip
       allure-results/{e2e,revocation-portal,web}.zip junit-results/{android,flutter,flutter-ui,ios,rust}.xml
     - mv allure-report/index.html allure-report-$CI_COMMIT_SHORT_SHA.html
     - zip -j allure-report.zip allure-report-$CI_COMMIT_SHORT_SHA.html

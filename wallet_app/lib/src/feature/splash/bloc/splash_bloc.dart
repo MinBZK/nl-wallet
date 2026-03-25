@@ -54,6 +54,7 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
         switch (reason) {
           case BlockedReason.requiresAppUpdate:
             emit(const SplashLoaded(.none));
+          case BlockedReason.solutionRevoked:
           case BlockedReason.blockedByWalletProvider:
             emit(const SplashLoaded(.blocked));
         }

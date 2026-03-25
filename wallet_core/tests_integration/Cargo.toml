@@ -75,6 +75,11 @@ path = "tests/wallet_revocation.rs"
 required-features = ["integration_test"]
 
 [[test]]
+name = "delete_attestation"
+path = "tests/delete_attestation.rs"
+required-features = ["integration_test"]
+
+[[test]]
 name = "transfer"
 path = "tests/transfer.rs"
 required-features = ["integration_test"]

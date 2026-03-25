@@ -61,7 +61,7 @@ class UniversalLinkTests : TestBase() {
         MenuNavigator().toScreen(MenuNavigatorScreen.Dashboard)
         val issuanceUniversalLink = "https://app.example.com/deeplink/disclosure_based_issuance?client_id=x509_san_dns%3Aexample.com&request_uri=https%3A%2F%2Fexample.com%2Fcd96997cf3772b54a9a0c9f2d261a401%2Fdisclosure%2Finsurance%2Frequest_uri%3Fsession_type%3Dsame_device&request_uri_method=post"
         dashboardScreen.closeApp()
-        dashboardScreen.openUniversalLink(issuanceUniversalLink)
+        dashboardScreen.openLink(issuanceUniversalLink)
         pinScreen.enterPin(DEFAULT_PIN)
 
         assertTrue(disclosureForIssuanceScreen.organizationNameVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", INSURANCE)))
@@ -73,7 +73,7 @@ class UniversalLinkTests : TestBase() {
     fun verifyScanInAppDialog(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
-        dashboardScreen.openUniversalLink(expiredDisclosureUniversalLinkFromCameraApp)
+        dashboardScreen.openLink(expiredDisclosureUniversalLinkFromCameraApp)
         assertAll(
             { assertTrue(scanWithWalletDialog.visible(), "scan with wallet dialog is not visible") },
             { assertTrue(scanWithWalletDialog.scanWithWalletDialogBodyVisible(), "scan with wallet dialog subtitle is not visible") },
@@ -85,7 +85,7 @@ class UniversalLinkTests : TestBase() {
     @DisplayName("LTC44 Wallet not created when universal link is invoked")
     fun verifyWhenAppNotActivated(testInfo: TestInfo) {
         setUp(testInfo)
-        demoScreen.openUniversalLink(expiredDisclosureUniversalLinkFromCameraApp)
+        demoScreen.openLink(expiredDisclosureUniversalLinkFromCameraApp)
         finishWalletDialog.clickOkButton()
         assertTrue(demoScreen.visible(), "demo screen is not visible")
     }
@@ -96,7 +96,7 @@ class UniversalLinkTests : TestBase() {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Dashboard)
         val invalidIssuanceUniversalLink = "https://app.example.com/deeplink/disclosure_based_issuance?request_uri=https%3A%2F%2Fexample.com%2Fcd96997cf3772b54a9a0c9f2d261a401%2Fdisclosure%2Finsurance%2Frequest_uri%3Fsession_type%3Dsame_device&request_uri_method=post&client_id=fake.example.com"
-        dashboardScreen.openUniversalLink(invalidIssuanceUniversalLink)
+        dashboardScreen.openLink(invalidIssuanceUniversalLink)
         assertAll(
             { assertTrue(invalidIssuanceULErrorScreen.headlineVisible(), "Headline is not visible") },
             { assertTrue(invalidIssuanceULErrorScreen.closeButtonVisible(), "Close button is not visible") },
@@ -117,7 +117,7 @@ class UniversalLinkTests : TestBase() {
     fun verifyWhenAppIsBeingPersonalized(testInfo: TestInfo) {
         setUp(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.SecurityChoosePin)
-        pinScreen.openUniversalLink(expiredDisclosureUniversalLinkFromCameraApp)
+        pinScreen.openLink(expiredDisclosureUniversalLinkFromCameraApp)
         assertTrue(finishWalletDialog.visible(), "Finish wallet dialog is not visible")
     }
 }

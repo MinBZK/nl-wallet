@@ -10,6 +10,7 @@ use wallet::AccountRevokedData;
 use wallet::attestation_data::LocalizedStrings;
 use wallet::errors::AccountProviderError;
 use wallet::errors::ChangePinError;
+use wallet::errors::DeleteAttestationError;
 use wallet::errors::DisclosureBasedIssuanceError;
 use wallet::errors::DisclosureError;
 use wallet::errors::HistoryError;
@@ -150,6 +151,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .or_else(|e| e.downcast::<PinRecoveryError>().map(Self::from))
             .or_else(|e| e.downcast::<TransferError>().map(Self::from))
             .or_else(|e| e.downcast::<RevocationCodeError>().map(Self::from))
+            .or_else(|e| e.downcast::<DeleteAttestationError>().map(Self::from))
     }
 }
 
@@ -184,7 +186,17 @@ impl FlutterApiErrorFields for WalletRegistrationError {
             WalletRegistrationError::ChallengeRequest(e) => FlutterApiErrorType::from(e),
             WalletRegistrationError::RegistrationRequest(e) => FlutterApiErrorType::from(e),
             WalletRegistrationError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
+            WalletRegistrationError::AccountRevoked(_) => FlutterApiErrorType::Revoked,
             _ => FlutterApiErrorType::Generic,
+        }
+    }
+
+    fn data(&self) -> serde_json::Value {
+        match self {
+            WalletRegistrationError::AccountRevoked(data) => {
+                serde_json::to_value(RevocationErrorData { revocation_data: *data }).unwrap() // This conversion should never fail.
+            }
+            _ => serde_json::Value::Null,
         }
     }
 }
@@ -624,6 +636,28 @@ impl FlutterApiErrorFields for RevocationCodeError {
     }
 }
 
+impl FlutterApiErrorFields for DeleteAttestationError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            Self::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            Self::NotRegistered | Self::Locked => FlutterApiErrorType::WalletState,
+            Self::Instruction(e) => FlutterApiErrorType::from(e),
+            Self::UpdatePolicy(e) => FlutterApiErrorType::from(e),
+            Self::ChangePin(e) => e.typ(),
+            _ => FlutterApiErrorType::Generic,
+        }
+    }
+
+    fn data(&self) -> serde_json::Value {
+        match self {
+            Self::Instruction(InstructionError::AccountRevoked(data)) => {
+                serde_json::to_value(RevocationErrorData { revocation_data: *data }).unwrap() // This conversion should never fail.
+            }
+            _ => serde_json::Value::Null,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::error::Error;
@@ -635,6 +669,7 @@ mod tests {
     use wallet::RevocationReason;
     use wallet::attestation_data::AttributeValue;
     use wallet::errors::ChangePinError;
+    use wallet::errors::DeleteAttestationError;
     use wallet::errors::DisclosureError;
     use wallet::errors::InstructionError;
     use wallet::errors::IssuanceError;
@@ -794,6 +829,17 @@ mod tests {
             revocation_reason: RevocationReason::UserRequest,
             can_register_new_account: true
         }))),
+        FlutterApiErrorType::Revoked,
+        json!({"revocation_data": {
+            "revocation_reason": "user_request",
+            "can_register_new_account": true
+        }})
+    )]
+    #[case(
+        DeleteAttestationError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
+            revocation_reason: RevocationReason::UserRequest,
+            can_register_new_account: true
+        })),
         FlutterApiErrorType::Revoked,
         json!({"revocation_data": {
             "revocation_reason": "user_request",

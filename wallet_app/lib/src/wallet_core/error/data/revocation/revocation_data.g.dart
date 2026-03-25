@@ -25,5 +25,6 @@ Map<String, dynamic> _$RevocationDataToJson(
 const _$RevocationReasonEnumMap = {
   RevocationReason.adminRequest: 'admin_request',
   RevocationReason.userRequest: 'user_request',
+  RevocationReason.solutionCompromised: 'wallet_solution_compromised',
   RevocationReason.unknown: 'unknown',
 };

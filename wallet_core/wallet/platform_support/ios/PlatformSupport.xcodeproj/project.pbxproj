@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		611A828A2F62DE7B00DDB6B5 /* Multipaz in Frameworks */ = {isa = PBXBuildFile; productRef = 611A82892F62DE7B00DDB6B5 /* Multipaz */; };
 		6133004629A8E350004D9CC7 /* libPlatformSupport.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 61F5335E29A8AB4100624E46 /* libPlatformSupport.a */; };
 		6133004D29A8E38B004D9CC7 /* SecureEnclaveKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6133004C29A8E38B004D9CC7 /* SecureEnclaveKeyTests.swift */; };
 		6150E5F129A8B7E60036E736 /* SigningKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6150E5F029A8B7E60036E736 /* SigningKey.swift */; };
@@ -121,6 +122,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				611A829A2F62DE7B00DDB6B5 /* Multipaz in Frameworks */,
 				6133004629A8E350004D9CC7 /* libPlatformSupport.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -136,6 +138,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				611A828A2F62DE7B00DDB6B5 /* Multipaz in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -361,6 +364,9 @@
 				61D577CC29A8FF3600030578 /* PBXTargetDependency */,
 			);
 			name = "Integration Tests";
+			packageProductDependencies = (
+				611A82892F62DE7B00DDB6B5 /* Multipaz */,
+			);
 			productName = "Integration Tests";
 			productReference = 6133004229A8E350004D9CC7 /* Integration Tests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -396,6 +402,9 @@
 			dependencies = (
 			);
 			name = PlatformSupport;
+			packageProductDependencies = (
+				611A82892F62DE7B00DDB6B5 /* Multipaz */,
+			);
 			productName = PlatformSupport;
 			productReference = 61F5335E29A8AB4100624E46 /* libPlatformSupport.a */;
 			productType = "com.apple.product-type.library.static";
@@ -431,6 +440,9 @@
 				Base,
 			);
 			mainGroup = 61F5335529A8AB4100624E46;
+			packageReferences = (
+				611A82882F62DE7B00DDB6B5 /* XCRemoteSwiftPackageReference "multipaz" */,
+			);
 			productRefGroup = 61F5335F29A8AB4100624E46 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -994,6 +1006,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		611A82882F62DE7B00DDB6B5 /* XCRemoteSwiftPackageReference "multipaz" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/openwallet-foundation/multipaz";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 0.96.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		611A82892F62DE7B00DDB6B5 /* Multipaz */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 611A82882F62DE7B00DDB6B5 /* XCRemoteSwiftPackageReference "multipaz" */;
+			productName = Multipaz;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 61F5335629A8AB4100624E46 /* Project object */;
 }
