@@ -5,7 +5,7 @@ use tracing::info;
 use url::Url;
 
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::CredentialIssuerDiscovery;
+use openid4vc::issuance_session::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
 use update_policy_model::update_policy::VersionState;
@@ -25,7 +25,7 @@ where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
-    CID: CredentialIssuerDiscovery,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
     CPC: CloseProximityDisclosureClient,
     S: Storage,

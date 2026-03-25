@@ -22,8 +22,8 @@ use http_utils::urls;
 use jwt::error::JwtError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::CredentialIssuer;
-use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::CredentialWithMetadata;
+use openid4vc::issuance_session::IssuanceDiscovery;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredential;
@@ -232,7 +232,7 @@ impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, D
 where
     S: Storage,
     AKH: AttestedKeyHolder,
-    CID: CredentialIssuerDiscovery,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
 {
     pub(super) async fn has_pid(
@@ -259,7 +259,7 @@ where
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    CID: CredentialIssuerDiscovery,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
     APC: AccountProviderClient,
 {

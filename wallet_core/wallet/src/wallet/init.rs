@@ -14,8 +14,8 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
-use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
+use openid4vc::issuance_session::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use platform_support::utils::PlatformUtilities;
@@ -193,7 +193,7 @@ where
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     AKH: AttestedKeyHolder,
-    CID: CredentialIssuerDiscovery,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
     SLC: StatusListClient,
 {
@@ -290,7 +290,7 @@ impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, D
 where
     S: Storage,
     AKH: AttestedKeyHolder,
-    CID: CredentialIssuerDiscovery,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
     SLC: StatusListClient,
 {

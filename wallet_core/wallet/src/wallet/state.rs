@@ -2,7 +2,7 @@ use tracing::instrument;
 
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::CredentialIssuerDiscovery;
+use openid4vc::issuance_session::IssuanceDiscovery;
 
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
@@ -66,7 +66,7 @@ where
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    CID: CredentialIssuerDiscovery,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
 {
     #[instrument(skip_all)]

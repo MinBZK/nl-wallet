@@ -12,7 +12,7 @@ use error_category::sentry_capture_error;
 use http_utils::urls;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::CredentialIssuer;
-use openid4vc::issuance_session::CredentialIssuerDiscovery;
+use openid4vc::issuance_session::IssuanceDiscovery;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::oauth::HttpAuthorizationServer;
@@ -114,7 +114,7 @@ impl From<OidcSessionError> for PinRecoveryError {
 }
 
 #[derive(Debug)]
-pub(super) enum PinRecoverySession<CID: CredentialIssuerDiscovery> {
+pub(super) enum PinRecoverySession<CID: IssuanceDiscovery> {
     Oidc {
         oidc_session: Box<OidcSession<HttpAuthorizationServer>>,
         discovered: Box<CID::Issuer>,
@@ -131,7 +131,7 @@ where
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    CID: CredentialIssuerDiscovery,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
     APC: AccountProviderClient,
 {

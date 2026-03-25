@@ -8,7 +8,7 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::CredentialIssuerDiscovery;
+use openid4vc::issuance_session::IssuanceDiscovery;
 
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
@@ -64,7 +64,7 @@ pub enum WalletUnlockError {
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     AKH: AttestedKeyHolder,
-    CID: CredentialIssuerDiscovery,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
 {
     pub fn is_locked(&self) -> bool {

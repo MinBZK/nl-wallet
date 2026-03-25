@@ -324,8 +324,8 @@ pub trait IssuanceSession {
     fn issuer_registration(&self) -> &IssuerRegistration;
 }
 
-/// Produces a `CredentialIssuer` by discovering credential issuer metadata.
-pub trait CredentialIssuerDiscovery {
+/// Produces a `CredentialIssuer` by discovering credential issuer and oauth metadata.
+pub trait IssuanceDiscovery {
     type Issuer: CredentialIssuer;
 
     async fn discover(&self, identifier: &IssuerIdentifier) -> Result<Self::Issuer, IssuanceSessionError>;
@@ -354,7 +354,7 @@ impl HttpCredentialIssuerDiscovery {
     }
 }
 
-impl CredentialIssuerDiscovery for HttpCredentialIssuerDiscovery {
+impl IssuanceDiscovery for HttpCredentialIssuerDiscovery {
     type Issuer = HttpCredentialIssuer;
 
     async fn discover(&self, identifier: &IssuerIdentifier) -> Result<HttpCredentialIssuer, IssuanceSessionError> {

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::CredentialIssuerDiscovery;
+use openid4vc::issuance_session::IssuanceDiscovery;
 
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
@@ -17,7 +17,7 @@ impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, D
 where
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
-    CID: CredentialIssuerDiscovery,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
 {
     pub fn is_blocked(&self) -> bool {
@@ -30,7 +30,7 @@ where
     CR: ObservableRepository<Arc<WalletConfiguration>>,
     UR: ObservableRepository<VersionState>,
     AKH: AttestedKeyHolder,
-    CID: CredentialIssuerDiscovery,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
 {
     pub fn set_config_callback(

@@ -9,8 +9,8 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use dcql::disclosure::ExtendingVctRetriever;
 
 use crate::issuance_session::CredentialIssuer;
-use crate::issuance_session::CredentialIssuerDiscovery;
 use crate::issuance_session::CredentialWithMetadata;
+use crate::issuance_session::IssuanceDiscovery;
 use crate::issuance_session::IssuanceSession;
 use crate::issuance_session::IssuanceSessionError;
 use crate::issuance_session::NormalizedCredentialPreview;
@@ -101,7 +101,7 @@ mockall::mock! {
     }
 }
 
-impl CredentialIssuerDiscovery for MockCredentialIssuerDiscovery {
+impl IssuanceDiscovery for MockCredentialIssuerDiscovery {
     type Issuer = MockCredentialIssuer;
 
     async fn discover(&self, identifier: &IssuerIdentifier) -> Result<MockCredentialIssuer, IssuanceSessionError> {

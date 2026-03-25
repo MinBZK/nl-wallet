@@ -34,8 +34,8 @@ use tokio::task::JoinHandle;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::CredentialIssuer;
-use openid4vc::issuance_session::CredentialIssuerDiscovery;
 use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
+use openid4vc::issuance_session::IssuanceDiscovery;
 use openid4vc::oauth::HttpAuthorizationServer;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -123,7 +123,7 @@ impl<A, G> WalletRegistration<A, G> {
 }
 
 #[derive(Debug)]
-enum Session<CID: CredentialIssuerDiscovery, DCS> {
+enum Session<CID: IssuanceDiscovery, DCS> {
     Oidc {
         purpose: PidIssuancePurpose,
         oidc_session: Box<OidcSession<HttpAuthorizationServer>>,
@@ -150,7 +150,7 @@ pub struct Wallet<
     SLC = HttpStatusListClient,                   // StatusListClient,
 > where
     AKH: AttestedKeyHolder,
-    CID: CredentialIssuerDiscovery,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
 {
     config_repository: Arc<CR>,

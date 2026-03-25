@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::CredentialIssuerDiscovery;
+use openid4vc::issuance_session::IssuanceDiscovery;
 
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -26,7 +26,7 @@ where
     S: Storage,
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
-    CID: CredentialIssuerDiscovery,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
 {
     /// Construct an [`InstructionClient`] for this [`Wallet`].

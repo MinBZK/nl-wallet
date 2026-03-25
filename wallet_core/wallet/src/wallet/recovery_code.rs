@@ -5,7 +5,7 @@ use dcql::CredentialFormat;
 use error_category::ErrorCategory;
 use openid4vc::Format;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::CredentialIssuerDiscovery;
+use openid4vc::issuance_session::IssuanceDiscovery;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 
 use platform_support::attested_key::AttestedKeyHolder;
@@ -46,7 +46,7 @@ impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, D
 where
     S: Storage,
     AKH: AttestedKeyHolder,
-    CID: CredentialIssuerDiscovery,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
 {
     pub(super) fn pid_preview<'a>(

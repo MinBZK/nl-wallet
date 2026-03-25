@@ -4,20 +4,20 @@ use tracing::info;
 use tracing::instrument;
 use url::Url;
 
-use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use error_category::sentry_capture_error;
 use http_utils::urls;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::CredentialIssuerDiscovery;
+use openid4vc::issuance_session::IssuanceDiscovery;
 
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use crate::PidIssuancePurpose;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::repository::Repository;
 use crate::wallet::PinRecoverySession;
 use crate::wallet::Session;
-use crate::PidIssuancePurpose;
 
 use super::Wallet;
 
@@ -70,7 +70,7 @@ impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, D
 where
     CR: Repository<Arc<WalletConfiguration>>,
     AKH: AttestedKeyHolder,
-    CID: CredentialIssuerDiscovery,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
 {
     #[instrument(skip_all)]
@@ -136,8 +136,8 @@ mod tests {
     use openid4vc::oauth::HttpAuthorizationServer;
 
     use crate::config::UNIVERSAL_LINK_BASE_URL;
-    use crate::oidc_session::build_oidc_session;
     use crate::oidc_session::OidcSession;
+    use crate::oidc_session::build_oidc_session;
     use crate::wallet::test::AUTH_URL;
 
     use super::super::test::TestWalletMockStorage;
