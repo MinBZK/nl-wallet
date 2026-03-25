@@ -13,8 +13,8 @@ import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.about.AboutScreen
 import screen.issuance.PersonalizeInformScreen
+import screen.revocation.RevocationCodeSetupScreen
 import screen.security.PinScreen
-import screen.security.RevocationCodeSetupScreen
 import screen.security.SecuritySetupCompletedScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
@@ -66,7 +66,7 @@ class SetupSecurityTests : TestBase() {
         assertTrue(revocationCodeSetupScreen.visible(), "Revocation code screen is not visible")
         assertTrue(revocationCodeSetupScreen.getRevocationCode().length == 18, "Revocation code is not displayed correctly")
 
-        revocationCodeSetupScreen.confirmReceival()
+        revocationCodeSetupScreen.confirmReceive()
         assertTrue(personalizeInformScreen.visible(), "personalize inform screen is not visible")
     }
 

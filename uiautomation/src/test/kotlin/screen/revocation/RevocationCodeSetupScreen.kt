@@ -1,16 +1,16 @@
-package screen.security
+package screen.revocation
 
 import util.MobileActions
 
-class RevocationCodeSettingsScreen : MobileActions() {
+class RevocationCodeSetupScreen : MobileActions() {
 
-    private val title = l10n.getString("reviewRevocationCodeScreenSuccessTitle")
-    private val viewButton =l10n.getString("reviewRevocationCodeScreenViewCta")
+    private val title = l10n.getString("revocationCodeScreenTitle")
+    private val confirmButton =l10n.getString("revocationCodeScreenContinueCta")
     private val revocationCodeSelector = "-\n-\n-\n-"
 
     fun visible() = elementWithTextVisible(title)
 
-    fun clickViewButton() = clickElementWithText(viewButton)
+    fun confirmReceive() = clickElementWithText(confirmButton)
 
     fun getRevocationCode(): String {
         return getTextFromAllChildElementsFromElementWithText(revocationCodeSelector).replace(revocationCodeSelector, "")

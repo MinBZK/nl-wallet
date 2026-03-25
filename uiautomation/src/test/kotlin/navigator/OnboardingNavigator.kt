@@ -10,8 +10,8 @@ import screen.issuance.PersonalizeInformScreen
 import screen.issuance.PersonalizePidPreviewScreen
 import screen.issuance.PersonalizeSuccessScreen
 import screen.issuance.TransferWalletScreen
+import screen.revocation.RevocationCodeSetupScreen
 import screen.security.PinScreen
-import screen.security.RevocationCodeSetupScreen
 import screen.security.SecuritySetupCompletedScreen
 import screen.web.digid.DigidLoginMockWebPage
 import screen.web.digid.DigidLoginStartWebPage
@@ -26,7 +26,7 @@ class OnboardingNavigator {
         if (screen > OnboardingNavigatorScreen.SecurityConfirmPin) PinScreen().confirmPin(DEFAULT_PIN)
         if (screen > OnboardingNavigatorScreen.SetupSecurityConfigureBiometrics) PinScreen().skipBiometricsIfConfigurable()
         if (screen > OnboardingNavigatorScreen.SecuritySetupCompleted) SecuritySetupCompletedScreen().clickNextButton()
-        if (screen > OnboardingNavigatorScreen.RevocationCode) RevocationCodeSetupScreen().confirmReceival()
+        if (screen > OnboardingNavigatorScreen.RevocationCode) RevocationCodeSetupScreen().confirmReceive()
         if (screen > OnboardingNavigatorScreen.PersonalizeInform) PersonalizeInformScreen().clickDigidLoginButton()
         if (screen > OnboardingNavigatorScreen.DigidLoginStartWebPage) DigidLoginStartWebPage().clickMockLoginButton()
         if (screen > OnboardingNavigatorScreen.DigidLoginMockWebPage) DigidLoginMockWebPage().login(bsn)

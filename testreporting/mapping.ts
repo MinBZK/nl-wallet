@@ -4,6 +4,7 @@ import { basename, extname } from "node:path"
 const filenameToGroupMapping: Record<string, string> = {
   "browsertest-wallet-web": "Browsertests",
   "browsertest-fallback-pages": "Browsertests",
+  "browsertest-revocation-portal": "Browsertests",
   e2e: "End-to-end tests",
   flutter: "Wallet App",
   "flutter-ui": "Golden Tests",
