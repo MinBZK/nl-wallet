@@ -56,10 +56,10 @@ pub enum DeleteAttestationError {
 
     // Errors specific to deleting attestations
     #[error("attestation not found")]
-    #[category(expected)]
+    #[category(critical)]
     AttestationNotFound,
     #[error("PID cannot be deleted")]
-    #[category(expected)]
+    #[category(critical)]
     CannotDeletePid,
     #[error("could not parse attestation id: {0}")]
     #[category(critical)]
