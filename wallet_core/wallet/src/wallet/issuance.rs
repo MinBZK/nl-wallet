@@ -266,7 +266,7 @@ where
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn create_pid_issuance_auth_url(&mut self, purpose: PidIssuancePurpose) -> Result<Url, IssuanceError> {
-        info!("Generating DigiD auth URL, starting OpenID connect discovery");
+        info!("Generating DigiD auth URL, starting OAuth discovery");
 
         info!("Checking if blocked");
         if self.is_blocked() {
@@ -858,14 +858,7 @@ mod tests {
                 issuer.expect_get_metadata().return_const(issuer_metadata);
                 issuer
                     .expect_get_oauth_metadata()
-                    .return_const(AuthorizationServerMetadata {
-                        authorization_endpoint: Some(Url::parse(AUTH_URL).unwrap()),
-                        jwks_uri: Some(Url::parse(AUTH_URL).unwrap()),
-                        ..AuthorizationServerMetadata::new(
-                            "http://example.com".parse().unwrap(),
-                            Url::parse(AUTH_URL).unwrap(),
-                        )
-                    });
+                    .return_const(AuthorizationServerMetadata::new_with_auth_url(AUTH_URL));
                 Ok(issuer)
             });
 
@@ -945,7 +938,7 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_create_pid_issuance_auth_url_error_session_state_oidc(
+    async fn test_create_pid_issuance_auth_url_error_session_state_oauth(
         #[values(PidIssuancePurpose::Enrollment, PidIssuancePurpose::Renewal)] purpose: PidIssuancePurpose,
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -992,7 +985,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_cancel_pid_issuance_oidc() {
+    async fn test_cancel_pid_issuance_oauth() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Set up a mock DigiD session.
@@ -1083,8 +1076,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_continue_pid_issuance() {
-        // `setup_wallet_with_oidc_session_and_database_mock` already sets up the mock `start` expectation.
-        let (mut wallet, redirect_uri) = setup_wallet_with_oidc_session_and_database_mock().await;
+        // `setup_wallet_with_oauth_session_and_database_mock` already sets up the mock `start` expectation.
+        let (mut wallet, redirect_uri) = setup_wallet_with_oauth_session_and_database_mock().await;
 
         let stored = {
             let (sd_jwt, metadata) = create_example_pid_sd_jwt();
@@ -1134,7 +1127,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_continue_pid_issuance_user_cancelled() {
-        let (mut wallet, _) = setup_wallet_with_oidc_session().await;
+        let (mut wallet, _) = setup_wallet_with_oauth_session().await;
 
         let denied_redirect = Url::parse(&(REDIRECT_URI.to_string() + "?error=access_denied&state=whatever")).unwrap();
         let error = wallet
@@ -1200,7 +1193,7 @@ mod tests {
         .unwrap()
     }
 
-    async fn setup_wallet_with_oidc_session() -> (TestWalletMockStorage, Url) {
+    async fn setup_wallet_with_oauth_session() -> (TestWalletMockStorage, Url) {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let (authorization_server, redirect_uri) = create_authorization_server(REDIRECT_URI);
@@ -1212,7 +1205,7 @@ mod tests {
         (wallet, redirect_uri)
     }
 
-    async fn setup_wallet_with_oidc_session_and_database_mock() -> (TestWalletMockStorage, Url) {
+    async fn setup_wallet_with_oauth_session_and_database_mock() -> (TestWalletMockStorage, Url) {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let (authorization_server, redirect_uri) = create_authorization_server(REDIRECT_URI);

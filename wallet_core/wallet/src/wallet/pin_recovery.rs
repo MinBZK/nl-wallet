@@ -136,7 +136,7 @@ where
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn create_pin_recovery_redirect_uri(&mut self) -> Result<Url, PinRecoveryError> {
-        info!("Generating DigiD auth URL, starting OpenID connect discovery");
+        info!("Generating DigiD auth URL, starting OAuth discovery");
 
         info!("Checking if blocked");
         if self.is_blocked() {

@@ -75,7 +75,7 @@ pub enum OAuthError {
 /// [`into_token_request`]: AuthorizationServer::into_token_request
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait AuthorizationServer {
-    /// Create an OpenID Token Request based on the contents of the redirect URI received.
+    /// Create an OAuth Token Request based on the contents of the redirect URI received.
     ///
     /// Note that this consumes the [`AuthorizationServer`], either on success or failure.
     fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, OAuthError>;
