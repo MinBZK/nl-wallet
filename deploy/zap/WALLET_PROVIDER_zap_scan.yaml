@@ -4,8 +4,10 @@ env:
   - name: "Default Context"
     urls:
     - "${WALLET_PROVIDER_URL}"
+    - "${INTERNAL_WALLET_PROVIDER_URL}"
     includePaths:
     - "${WALLET_PROVIDER_URL}.*"
+    - "${INTERNAL_WALLET_PROVIDER_URL}.*"
     excludePaths: []
     authentication:
       parameters: {}
@@ -38,32 +40,30 @@ jobs:
       attackRegex: false
       evidence: ""
       evidenceRegex: false
-      methods: [ ]
+      methods: []
   parameters:
     deleteGlobalAlerts: false
   name: "alertFilter"
   type: "alertFilter"
 - parameters:
+    maxAlertsPerRule: 0
+    scanOnlyInScope: true
+    maxBodySizeInBytesToScan: 0
+    enableTags: false
+    disableAllRules: false
+  rules: []
+  name: "passiveScan-config"
+  type: "passiveScan-config"
+- parameters:
     type: "url"
     fileName: "WALLET_PROVIDER_urls.txt"
   name: "import"
   type: "import"
-- parameters:
-    context: "Default Context"
-    user: ""
-    policy: ""
-    maxRuleDurationInMins: 0
-    maxScanDurationInMins: 0
-    addQueryParam: true
-    delayInMs: 0
-    handleAntiCSRFTokens: true
-    injectPluginIdInHeader: true
-    scanHeadersAllRequests: true
-    threadPerHost: 24
-    maxAlertsPerRule: 0
+- parameters: {}
+  name: "passiveScan-wait"
+  type: "passiveScan-wait"
+- parameters: {}
   policyDefinition:
-    defaultStrength: "medium"
-    defaultThreshold: "medium"
     rules: []
   name: "activeScan"
   type: "activeScan"

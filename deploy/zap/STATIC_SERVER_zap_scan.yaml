@@ -42,7 +42,7 @@ jobs:
       attackRegex: false
       evidence: ""
       evidenceRegex: false
-      methods: [ ]
+      methods: []
   parameters:
     deleteGlobalAlerts: false
   name: "alertFilter"
@@ -90,8 +90,6 @@ jobs:
     threadPerHost: 24
     maxAlertsPerRule: 0
   policyDefinition:
-    defaultStrength: "medium"
-    defaultThreshold: "medium"
     rules: []
   name: "activeScan"
   type: "activeScan"

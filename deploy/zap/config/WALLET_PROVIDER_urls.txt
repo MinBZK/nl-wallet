@@ -6,3 +6,7 @@ ${WALLET_PROVIDER_URL}api/v1/instructions/sign
 ${WALLET_PROVIDER_URL}api/v1/instructions/change_pin_rollback
 ${WALLET_PROVIDER_URL}api/v1/instructions/change_pin_commit
 ${WALLET_PROVIDER_URL}api/v1/instructions/change_pin_start
+${INTERNAL_WALLET_PROVIDER_URL}internal/deny-list/
+${INTERNAL_WALLET_PROVIDER_URL}internal/revoke-wallets-by-recovery-code/
+${INTERNAL_WALLET_PROVIDER_URL}internal/revoke-wallets-by-revocation-code
+${INTERNAL_WALLET_PROVIDER_URL}internal/revoke-wallets-by-id/

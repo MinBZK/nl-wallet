@@ -1,5 +1,0 @@
-${INTERNAL_WALLET_PROVIDER_URL}internal/deny-list/
-${INTERNAL_WALLET_PROVIDER_URL}internal/revoke-wallets-by-recovery-code/
-${INTERNAL_WALLET_PROVIDER_URL}internal/revoke-wallets-by-revocation-code/
-${INTERNAL_WALLET_PROVIDER_URL}internal/revoke-wallets-by-id/
-${INTERNAL_WALLET_PROVIDER_URL}internal/wallet/
