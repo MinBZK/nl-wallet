@@ -2631,8 +2631,7 @@ pub(crate) mod tests {
             key_identifier: key_identifier.to_string(),
             sd_jwt: sd_jwt.clone(),
         };
-        let issued_copies =
-            IssuedCredentialCopies::new_or_panic(vec![credential; copies].try_into().unwrap());
+        let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential; copies].try_into().unwrap());
 
         storage
             .insert_credentials(
