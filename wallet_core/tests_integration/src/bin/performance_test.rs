@@ -8,7 +8,7 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::CredentialIssuer;
-use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
+use openid4vc::issuance_session::HttpIssuanceDiscovery;
 use openid4vc::issuance_session::IssuanceDiscovery;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
@@ -45,7 +45,7 @@ type PerformanceTestWallet = Wallet<
     MockHardwareDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
-    HttpCredentialIssuerDiscovery,
+    HttpIssuanceDiscovery,
     VpDisclosureClient,
 >;
 
@@ -78,7 +78,7 @@ async fn main() {
     let config = config_repository.get();
 
     let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
-    let credential_issuer_discovery = HttpCredentialIssuerDiscovery::new(http_json_client.clone());
+    let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_json_client.clone());
 
     let update_policy_repository = UpdatePolicyRepository::init();
     let wallet_clients = WalletClients::new().unwrap();
@@ -92,7 +92,7 @@ async fn main() {
             config_repository,
             update_policy_repository,
         },
-        HttpCredentialIssuerDiscovery::new(http_json_client.clone()),
+        HttpIssuanceDiscovery::new(http_json_client.clone()),
         wallet_clients,
     )
     .await

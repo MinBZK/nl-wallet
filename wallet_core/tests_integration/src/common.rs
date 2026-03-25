@@ -56,7 +56,7 @@ use issuer_common::settings::StatusListAttestationSettings;
 use jwt::SignedJwt;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
-use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
+use openid4vc::issuance_session::HttpIssuanceDiscovery;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::openid4vp::ClientId;
@@ -163,7 +163,7 @@ pub type WalletWithStorage = Wallet<
     MockHardwareDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
-    HttpCredentialIssuerDiscovery,
+    HttpIssuanceDiscovery,
     VpDisclosureClient,
 >;
 
@@ -426,7 +426,7 @@ where
     let update_policy_repository = UpdatePolicyRepository::init();
 
     let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
-    let credential_issuer_discovery = HttpCredentialIssuerDiscovery::new(http_json_client);
+    let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_json_client);
 
     let wallet_clients = WalletClients::new().unwrap();
 

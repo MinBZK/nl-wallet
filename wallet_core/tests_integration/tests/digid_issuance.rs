@@ -10,7 +10,7 @@ use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use openid4vc::issuance_session::CredentialIssuer;
-use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
+use openid4vc::issuance_session::HttpIssuanceDiscovery;
 use openid4vc::issuance_session::IssuanceDiscovery;
 use openid4vc::issuance_session::IssuanceSession;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
@@ -83,7 +83,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     // Discover the credential issuer and authorization server URL from issuer metadata
     let http_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
     let credential_issuer_discovery =
-        HttpCredentialIssuerDiscovery::new(wallet_config.pid_issuance.client_id.clone(), http_client);
+        HttpIssuanceDiscovery::new(wallet_config.pid_issuance.client_id.clone(), http_client);
     let credential_issuer = credential_issuer_discovery.discover(&issuer_url.public).await.unwrap();
     // Prepare DigiD flow
     let redirect_uri = urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap())

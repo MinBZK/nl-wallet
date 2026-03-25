@@ -34,7 +34,7 @@ use tokio::task::JoinHandle;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::CredentialIssuer;
-use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
+use openid4vc::issuance_session::HttpIssuanceDiscovery;
 use openid4vc::issuance_session::IssuanceDiscovery;
 use openid4vc::oauth::HttpAuthorizationServer;
 use platform_support::attested_key::AttestedKey;
@@ -144,7 +144,7 @@ pub struct Wallet<
     S = DatabaseStorage<HardwareEncryptionKey>,   // Storage
     AKH = KeyHolderType,                          // AttestedKeyHolder
     APC = HttpAccountProviderClient,              // AccountProviderClient
-    CID = HttpCredentialIssuerDiscovery,          // CredentialIssuerDiscovery
+    CID = HttpIssuanceDiscovery,                  // CredentialIssuerDiscovery
     DCC = VpDisclosureClient,                     // DisclosureClient
     CPC = HardwareCloseProximityDisclosureClient, // CloseProximityDisclosureClient
     SLC = HttpStatusListClient,                   // StatusListClient,

@@ -344,17 +344,17 @@ pub trait CredentialIssuer {
     ) -> Result<Self::Session, IssuanceSessionError>;
 }
 
-pub struct HttpCredentialIssuerDiscovery {
+pub struct HttpIssuanceDiscovery {
     http_client: HttpJsonClient,
 }
 
-impl HttpCredentialIssuerDiscovery {
+impl HttpIssuanceDiscovery {
     pub fn new(http_client: HttpJsonClient) -> Self {
         Self { http_client }
     }
 }
 
-impl IssuanceDiscovery for HttpCredentialIssuerDiscovery {
+impl IssuanceDiscovery for HttpIssuanceDiscovery {
     type Issuer = HttpCredentialIssuer;
 
     async fn discover(&self, identifier: &IssuerIdentifier) -> Result<HttpCredentialIssuer, IssuanceSessionError> {

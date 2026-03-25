@@ -14,7 +14,7 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
-use openid4vc::issuance_session::HttpCredentialIssuerDiscovery;
+use openid4vc::issuance_session::HttpIssuanceDiscovery;
 use openid4vc::issuance_session::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
@@ -108,7 +108,7 @@ impl<APC>
         DatabaseStorage<HardwareEncryptionKey>,
         KeyHolderType,
         APC,
-        HttpCredentialIssuerDiscovery,
+        HttpIssuanceDiscovery,
         VpDisclosureClient,
     >
 where
@@ -139,7 +139,7 @@ where
         .await?;
 
         let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder())?;
-        let credential_issuer_discovery = HttpCredentialIssuerDiscovery::new(http_json_client);
+        let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_json_client);
 
         let repositories = WalletRepositories {
             config_repository,
