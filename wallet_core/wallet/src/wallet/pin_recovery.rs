@@ -12,11 +12,10 @@ use error_category::sentry_capture_error;
 use http_utils::urls;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::CredentialIssuer;
+use openid4vc::issuance_session::IssuanceAuthFlow;
 use openid4vc::issuance_session::IssuanceDiscovery;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuedCredential;
-use openid4vc::oauth::AuthorizationServer;
-use openid4vc::oauth::HttpAuthorizationServer;
 use openid4vc::oauth::OAuthError;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
@@ -114,8 +113,7 @@ impl From<OAuthError> for PinRecoveryError {
 #[derive(Debug)]
 pub(super) enum PinRecoverySession<CID: IssuanceDiscovery> {
     OAuth {
-        authorization_server: Box<HttpAuthorizationServer>,
-        discovered: Box<CID::Issuer>,
+        auth_flow: Box<IssuanceAuthFlow<CID::Issuer>>,
     },
     Issuance {
         pid_attestation_type: String,
@@ -175,20 +173,19 @@ where
             .await
             .map_err(IssuanceError::IssuanceSession)?;
 
-        let authorization_server = HttpAuthorizationServer::try_new(
-            discovered.oauth_metadata().clone(),
+        let auth_flow = IssuanceAuthFlow::try_new(
+            discovered,
             config.pid_issuance.client_id.clone(),
             urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
         )
         .map_err(IssuanceError::AuthSessionStart)?;
 
         info!("PIN recovery DigiD auth URL generated");
-        let auth_url = authorization_server.auth_url.clone();
+        let auth_url = auth_flow.auth_url().clone();
         self.session.replace(Session::PinRecovery {
             pid_config: config.pid_attributes.clone(),
             session: PinRecoverySession::OAuth {
-                authorization_server: Box::new(authorization_server),
-                discovered: Box::new(discovered),
+                auth_flow: Box::new(auth_flow),
             },
         });
 
@@ -224,11 +221,7 @@ where
         }
 
         let Some(Session::PinRecovery {
-            session:
-                PinRecoverySession::OAuth {
-                    authorization_server,
-                    discovered,
-                },
+            session: PinRecoverySession::OAuth { auth_flow },
             pid_config,
         }) = self.session.take()
         else {
@@ -237,8 +230,8 @@ where
 
         // Fetch issuance previews
         let config = self.config_repository.get();
-        let token_request = authorization_server.into_token_request(&redirect_uri)?;
-        let issuance_session = discovered
+        let (token_request, issuer) = auth_flow.into_token_request(&redirect_uri)?;
+        let issuance_session = issuer
             .start_issuance(token_request, &config.issuer_trust_anchors())
             .await
             .map_err(IssuanceError::from)?;
@@ -496,6 +489,7 @@ mod tests {
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use jwt::UnverifiedJwt;
     use openid4vc::Format;
+    use openid4vc::issuance_session::IssuanceAuthFlow;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockCredentialIssuer;
     use openid4vc::mock::MockIssuanceSession;
@@ -610,8 +604,7 @@ mod tests {
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
             session: PinRecoverySession::OAuth {
-                authorization_server: Box::new(authorization_server),
-                discovered: Box::new(discovered),
+                auth_flow: Box::new(IssuanceAuthFlow::from_parts(authorization_server, discovered)),
             },
         });
 
@@ -796,8 +789,10 @@ mod tests {
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
             session: PinRecoverySession::OAuth {
-                authorization_server: Box::new(authorization_server),
-                discovered: Box::new(MockCredentialIssuer::new()),
+                auth_flow: Box::new(IssuanceAuthFlow::from_parts(
+                    authorization_server,
+                    MockCredentialIssuer::new(),
+                )),
             },
         });
 
@@ -839,8 +834,7 @@ mod tests {
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
             session: PinRecoverySession::OAuth {
-                authorization_server: Box::new(authorization_server),
-                discovered: Box::new(discovered),
+                auth_flow: Box::new(IssuanceAuthFlow::from_parts(authorization_server, discovered)),
             },
         });
 
@@ -885,8 +879,7 @@ mod tests {
         wallet.session = Some(Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
             session: PinRecoverySession::OAuth {
-                authorization_server: Box::new(authorization_server),
-                discovered: Box::new(discovered),
+                auth_flow: Box::new(IssuanceAuthFlow::from_parts(authorization_server, discovered)),
             },
         });
 

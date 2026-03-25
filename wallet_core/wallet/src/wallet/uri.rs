@@ -132,6 +132,7 @@ mod tests {
     use assert_matches::assert_matches;
     use url::Url;
 
+    use openid4vc::issuance_session::IssuanceAuthFlow;
     use openid4vc::oauth::AuthorizationServerMetadata;
     use openid4vc::oauth::HttpAuthorizationServer;
 
@@ -192,8 +193,10 @@ mod tests {
         // Set up an enrollment `DigidSession` that will match the URI.
         wallet.session = Some(Session::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_server: Box::new(make_stub_authorization_server()),
-            discovered: Box::new(openid4vc::mock::MockCredentialIssuer::new()),
+            auth_flow: Box::new(IssuanceAuthFlow::from_parts(
+                make_stub_authorization_server(),
+                openid4vc::mock::MockCredentialIssuer::new(),
+            )),
         });
 
         // The wallet should now recognise the DigiD URI.
@@ -202,8 +205,10 @@ mod tests {
         // Set up a PID renewal `DigidSession` that will match the URI.
         wallet.session = Some(Session::OAuth {
             purpose: PidIssuancePurpose::Renewal,
-            authorization_server: Box::new(make_stub_authorization_server()),
-            discovered: Box::new(openid4vc::mock::MockCredentialIssuer::new()),
+            auth_flow: Box::new(IssuanceAuthFlow::from_parts(
+                make_stub_authorization_server(),
+                openid4vc::mock::MockCredentialIssuer::new(),
+            )),
         });
 
         // The wallet should now recognise the DigiD URI.

@@ -23,13 +23,12 @@ use jwt::error::JwtError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::CredentialIssuer;
 use openid4vc::issuance_session::CredentialWithMetadata;
+use openid4vc::issuance_session::IssuanceAuthFlow;
 use openid4vc::issuance_session::IssuanceDiscovery;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
-use openid4vc::oauth::AuthorizationServer;
-use openid4vc::oauth::HttpAuthorizationServer;
 use openid4vc::oauth::OAuthError;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::well_known::WellKnownError;
@@ -313,19 +312,18 @@ where
             .discover(&pid_issuance_config.url)
             .await?;
 
-        let authorization_server = HttpAuthorizationServer::try_new(
-            discovered.oauth_metadata().clone(),
+        let auth_flow = IssuanceAuthFlow::try_new(
+            discovered,
             pid_issuance_config.client_id.clone(),
             urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
         )
         .map_err(IssuanceError::AuthSessionStart)?;
 
         info!("DigiD auth URL generated");
-        let auth_url = authorization_server.auth_url.clone();
+        let auth_url = auth_flow.auth_url().clone();
         self.session.replace(Session::OAuth {
             purpose,
-            authorization_server: Box::new(authorization_server),
-            discovered: Box::new(discovered),
+            auth_flow: Box::new(auth_flow),
         });
 
         Ok(auth_url)
@@ -407,21 +405,16 @@ where
         }
 
         // Take ownership of the active session, now that we know that it exists.
-        let Some(Session::OAuth {
-            authorization_server,
-            purpose,
-            discovered,
-        }) = self.session.take()
-        else {
+        let Some(Session::OAuth { auth_flow, purpose }) = self.session.take() else {
             panic!()
         };
 
-        let token_request = authorization_server.into_token_request(&redirect_uri)?;
+        let (token_request, issuer) = auth_flow.into_token_request(&redirect_uri)?;
 
         let config = self.config_repository.get();
         let trust_anchors = config.issuer_trust_anchors();
 
-        let issuance_session = discovered
+        let issuance_session = issuer
             .start_issuance(token_request, &trust_anchors)
             .await
             .map_err(IssuanceError::IssuanceSession)?;
@@ -946,8 +939,10 @@ mod tests {
         // Set up a mock DigiD session.
         wallet.session = Some(Session::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_server: Box::new(create_stub_authorization_server()),
-            discovered: Box::new(MockCredentialIssuer::new()),
+            auth_flow: Box::new(IssuanceAuthFlow::from_parts(
+                create_stub_authorization_server(),
+                MockCredentialIssuer::new(),
+            )),
         });
 
         // Creating a DigiD authentication URL on a `Wallet` that
@@ -991,8 +986,10 @@ mod tests {
         // Set up a mock DigiD session.
         wallet.session = Some(Session::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_server: Box::new(create_stub_authorization_server()),
-            discovered: Box::new(MockCredentialIssuer::new()),
+            auth_flow: Box::new(IssuanceAuthFlow::from_parts(
+                create_stub_authorization_server(),
+                MockCredentialIssuer::new(),
+            )),
         });
 
         assert!(wallet.session.is_some());
@@ -1199,8 +1196,10 @@ mod tests {
         let (authorization_server, redirect_uri) = create_authorization_server(REDIRECT_URI);
         wallet.session = Some(Session::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_server: Box::new(authorization_server),
-            discovered: Box::new(MockCredentialIssuer::new()),
+            auth_flow: Box::new(IssuanceAuthFlow::from_parts(
+                authorization_server,
+                MockCredentialIssuer::new(),
+            )),
         });
         (wallet, redirect_uri)
     }
@@ -1210,21 +1209,21 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let (authorization_server, redirect_uri) = create_authorization_server(REDIRECT_URI);
         // Set up the credential issuer discovery mock with a start expectation for continue_pid_issuance
+        let mut issuer = MockCredentialIssuer::new();
+        issuer.expect_start().return_once(|_| {
+            let mut session = MockIssuanceSession::new();
+            session
+                .expect_normalized_credential_previews()
+                .return_const(vec![create_example_pid_preview_data(
+                    &MockTimeGenerator::default(),
+                    Format::SdJwt,
+                )]);
+            session.expect_issuer().return_const(IssuerRegistration::new_mock());
+            Ok(session)
+        });
         wallet.session = Some(Session::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_server: Box::new(authorization_server),
-            discovered: Box::new({
-                let mut issuer = MockCredentialIssuer::new();
-                issuer.expect_start().return_once(|_| {
-                    let mut session = MockIssuanceSession::new();
-                    session.expect_normalized_credential_previews().return_const(vec![
-                        create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt),
-                    ]);
-                    session.expect_issuer().return_const(IssuerRegistration::new_mock());
-                    Ok(session)
-                });
-                issuer
-            }),
+            auth_flow: Box::new(IssuanceAuthFlow::from_parts(authorization_server, issuer)),
         });
         (wallet, redirect_uri)
     }
@@ -1242,8 +1241,7 @@ mod tests {
 
         wallet.session = Some(Session::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_server: Box::new(authorization_server),
-            discovered: Box::new(issuer),
+            auth_flow: Box::new(IssuanceAuthFlow::from_parts(authorization_server, issuer)),
         });
 
         // Continuing PID issuance on a wallet should forward this error.

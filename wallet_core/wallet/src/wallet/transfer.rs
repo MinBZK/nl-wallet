@@ -474,6 +474,7 @@ mod tests {
     use uuid::Uuid;
 
     use crypto::utils::random_bytes;
+    use openid4vc::issuance_session::IssuanceAuthFlow;
     use openid4vc::oauth::AuthorizationServerMetadata;
     use openid4vc::oauth::HttpAuthorizationServer;
     use wallet_account::messages::errors::AccountError;
@@ -546,8 +547,10 @@ mod tests {
         .unwrap();
         wallet.session = Some(Session::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_server: Box::new(stub_authorization_server),
-            discovered: Box::new(openid4vc::mock::MockCredentialIssuer::new()),
+            auth_flow: Box::new(IssuanceAuthFlow::from_parts(
+                stub_authorization_server,
+                openid4vc::mock::MockCredentialIssuer::new(),
+            )),
         });
 
         let error = wallet

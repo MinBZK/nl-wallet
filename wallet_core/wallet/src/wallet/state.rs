@@ -158,6 +158,7 @@ mod tests {
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
+    use openid4vc::issuance_session::IssuanceAuthFlow;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockCredentialIssuer;
     use openid4vc::mock::MockCredentialIssuerDiscovery;
@@ -556,8 +557,10 @@ mod tests {
     fn digid_session() -> Session<MockCredentialIssuerDiscovery, MockDisclosureSession> {
         Session::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_server: Box::new(create_stub_authorization_server()),
-            discovered: Box::new(MockCredentialIssuer::new()),
+            auth_flow: Box::new(IssuanceAuthFlow::from_parts(
+                create_stub_authorization_server(),
+                MockCredentialIssuer::new(),
+            )),
         }
     }
 
@@ -596,8 +599,10 @@ mod tests {
         Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
             session: PinRecoverySession::OAuth {
-                authorization_server: Box::new(create_stub_authorization_server()),
-                discovered: Box::new(MockCredentialIssuer::new()),
+                auth_flow: Box::new(IssuanceAuthFlow::from_parts(
+                    create_stub_authorization_server(),
+                    MockCredentialIssuer::new(),
+                )),
             },
         }
     }

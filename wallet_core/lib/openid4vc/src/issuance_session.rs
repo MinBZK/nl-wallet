@@ -69,7 +69,10 @@ use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_metadata::IssuerMetadata;
+use crate::oauth::AuthorizationServer;
 use crate::oauth::AuthorizationServerMetadata;
+use crate::oauth::HttpAuthorizationServer;
+use crate::oauth::OAuthError;
 use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
 use crate::token::AccessToken;
@@ -405,6 +408,39 @@ impl CredentialIssuer for HttpCredentialIssuer {
             trust_anchors,
         )
         .await
+    }
+}
+
+/// Combines a discovered [`CredentialIssuer`] with an [`HttpAuthorizationServer`] that was
+/// constructed from the issuer's OAuth metadata. Represents the state between generating
+/// the authorization URL and receiving the redirect back.
+#[derive(Debug)]
+pub struct IssuanceAuthFlow<I> {
+    auth_server: HttpAuthorizationServer,
+    issuer: I,
+}
+
+impl<I: CredentialIssuer> IssuanceAuthFlow<I> {
+    pub fn try_new(issuer: I, client_id: String, redirect_uri: Url) -> Result<Self, OAuthError> {
+        let auth_server = HttpAuthorizationServer::try_new(issuer.oauth_metadata().clone(), client_id, redirect_uri)?;
+        Ok(Self { auth_server, issuer })
+    }
+
+    pub fn auth_url(&self) -> &Url {
+        &self.auth_server.auth_url
+    }
+
+    pub fn into_token_request(self, received_redirect_uri: &Url) -> Result<(TokenRequest, I), OAuthError> {
+        let token_request = self.auth_server.into_token_request(received_redirect_uri)?;
+        Ok((token_request, self.issuer))
+    }
+}
+
+#[cfg(any(test, feature = "mock"))]
+impl<I> IssuanceAuthFlow<I> {
+    /// Test constructor that assembles from pre-built parts without requiring `I: CredentialIssuer`.
+    pub fn from_parts(auth_server: HttpAuthorizationServer, issuer: I) -> Self {
+        Self { auth_server, issuer }
     }
 }
 

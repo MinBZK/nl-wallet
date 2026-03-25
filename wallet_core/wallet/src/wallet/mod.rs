@@ -35,8 +35,8 @@ use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::CredentialIssuer;
 use openid4vc::issuance_session::HttpIssuanceDiscovery;
+use openid4vc::issuance_session::IssuanceAuthFlow;
 use openid4vc::issuance_session::IssuanceDiscovery;
-use openid4vc::oauth::HttpAuthorizationServer;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::hardware::HardwareCloseProximityDisclosureClient;
@@ -125,8 +125,7 @@ impl<A, G> WalletRegistration<A, G> {
 enum Session<CID: IssuanceDiscovery, DCS> {
     OAuth {
         purpose: PidIssuancePurpose,
-        authorization_server: Box<HttpAuthorizationServer>,
-        discovered: Box<CID::Issuer>,
+        auth_flow: Box<IssuanceAuthFlow<CID::Issuer>>,
     },
     Issuance(WalletIssuanceSession<<CID::Issuer as CredentialIssuer>::Session>),
     Disclosure(WalletDisclosureSession<DCS>),
