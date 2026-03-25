@@ -2309,54 +2309,8 @@ pub(crate) mod tests {
                 .unwrap()
         );
 
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
-        let credential = IssuedCredential::SdJwt {
-            key_identifier: "sd_jwt_key_id".to_string(),
-            sd_jwt: sd_jwt.clone(),
-        };
-
-        let issued_copies = IssuedCredentialCopies::new_or_panic(
-            vec![credential.clone(), credential.clone(), credential.clone()]
-                .try_into()
-                .unwrap(),
-        );
-
-        let attestation_type = sd_jwt.claims().vct.clone();
-
-        // Insert sd_jwt
-        storage
-            .insert_credentials(
-                issuance_timestamp,
-                vec![(
-                    CredentialWithMetadata::new(
-                        issued_copies,
-                        attestation_type,
-                        sd_jwt.claims().exp,
-                        sd_jwt.claims().nbf,
-                        NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
-                        VerifiedTypeMetadataDocuments::nl_pid_example(),
-                    ),
-                    AttestationPresentation::new_mock(),
-                )],
-            )
-            .await
-            .expect("Could not insert mdocs");
-
-        let StoredAttestationCopy {
-            attestation: StoredAttestation::SdJwt { sd_jwt, .. },
-            attestation_id,
-            ..
-        } = storage
-            .fetch_unique_attestations()
-            .await
-            .expect("Could not fetch unique attestations")
-            .first()
-            .cloned()
-            .unwrap()
-        else {
-            panic!("should fetch SD-JWT");
-        };
+        let (attestation_id, sd_jwt) =
+            insert_sd_jwt_credential(&mut storage, "sd_jwt_key_id", issuance_timestamp, 1).await;
 
         let normalized_metadata = VerifiedTypeMetadataDocuments::nl_pid_example().to_normalized().unwrap();
 
@@ -2601,32 +2555,7 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        // Create issued_copies that will be inserted into the database
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
-        let credential = IssuedCredential::SdJwt {
-            key_identifier: "sd_jwt_key_id".to_string(),
-            sd_jwt: sd_jwt.clone(),
-        };
-
-        // Insert sd_jwt
-        storage
-            .insert_credentials(
-                Utc::now(),
-                vec![(
-                    CredentialWithMetadata::new(
-                        IssuedCredentialCopies::new_or_panic(vec![credential.clone(), credential].try_into().unwrap()),
-                        sd_jwt.claims().vct.clone(),
-                        sd_jwt.claims().exp,
-                        sd_jwt.claims().nbf,
-                        NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
-                        VerifiedTypeMetadataDocuments::nl_pid_example(),
-                    ),
-                    AttestationPresentation::new_mock(),
-                )],
-            )
-            .await
-            .unwrap();
+        insert_sd_jwt_credential(&mut storage, "sd_jwt_key_id", Utc::now(), 2).await;
 
         let revocation_info = storage
             .fetch_all_revocation_info(&MockTimeGenerator::default())
@@ -2690,18 +2619,24 @@ pub(crate) mod tests {
         assert!(revocation_info.is_empty());
     }
 
-    async fn insert_sd_jwt_credential(storage: &mut MockHardwareDatabaseStorage, key_identifier: &str) -> Uuid {
+    async fn insert_sd_jwt_credential(
+        storage: &mut MockHardwareDatabaseStorage,
+        key_identifier: &str,
+        timestamp: DateTime<Utc>,
+        copies: usize,
+    ) -> (Uuid, VerifiedSdJwt) {
         let sd_jwt =
             SignedSdJwt::pid_example(&ISSUER_KEY, SigningKey::random(&mut OsRng).verifying_key()).into_verified();
         let credential = IssuedCredential::SdJwt {
             key_identifier: key_identifier.to_string(),
             sd_jwt: sd_jwt.clone(),
         };
-        let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential].try_into().unwrap());
+        let issued_copies =
+            IssuedCredentialCopies::new_or_panic(vec![credential; copies].try_into().unwrap());
 
         storage
             .insert_credentials(
-                Utc::now(),
+                timestamp,
                 vec![(
                     CredentialWithMetadata::new(
                         issued_copies,
@@ -2717,14 +2652,21 @@ pub(crate) mod tests {
             .await
             .expect("Could not insert credential");
 
-        storage
+        let copy = storage
             .fetch_unique_attestations()
             .await
             .expect("Could not fetch unique attestations")
             .into_iter()
-            .next()
-            .expect("Should have one attestation")
-            .attestation_id
+            .find(
+                |a| matches!(&a.attestation, StoredAttestation::SdJwt { key_identifier: k, .. } if k == key_identifier),
+            )
+            .expect("Should find the inserted attestation");
+
+        let StoredAttestation::SdJwt { sd_jwt, .. } = copy.attestation else {
+            panic!("Should be SdJwt");
+        };
+
+        (copy.attestation_id, sd_jwt)
     }
 
     #[tokio::test]
@@ -2741,7 +2683,7 @@ pub(crate) mod tests {
                 .is_none()
         );
 
-        let attestation_id = insert_sd_jwt_credential(&mut storage, "test_key_id").await;
+        let (attestation_id, _) = insert_sd_jwt_credential(&mut storage, "test_key_id", Utc::now(), 1).await;
 
         let (_, key_identifiers) = storage
             .fetch_type_and_key_identifiers_by_attestation_id(attestation_id)
@@ -2756,7 +2698,7 @@ pub(crate) mod tests {
     async fn test_delete_attestation() {
         let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
-        let attestation_id = insert_sd_jwt_credential(&mut storage, "test_key_id").await;
+        let (attestation_id, _) = insert_sd_jwt_credential(&mut storage, "test_key_id", Utc::now(), 1).await;
 
         // Manually crate and store a disclosure event linked to the attestation.
         let mut disclosed_attestation = AttestationPresentation::new_mock();
