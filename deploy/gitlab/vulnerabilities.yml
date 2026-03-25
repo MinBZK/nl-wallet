@@ -58,25 +58,6 @@ osv-scanner:
       - osv.sarif
   allow_failure: true
 
-rust-audit:
-  extends: .rust
-  rules:
-    - !reference [.on-schedule-scan, rules]
-    - !reference [.default-or-merge-request, rules]
-  before_script:
-    - mkdir -p $CI_PROJECT_DIR/.cargo
-    - cp $CI_PROJECT_DIR/deploy/dependencies/cargo-audit.toml $CI_PROJECT_DIR/.cargo/audit.toml
-  script:
-    - cargo audit --file wallet_core/Cargo.lock --json | tee audit.json | jq
-  after_script:
-    - deploy/bin/store-artifact.sh audit.json qt/quality-time/rust-audit.json
-  artifacts:
-    name: rust-audit
-    when: always
-    paths:
-      - audit.json
-  allow_failure: true
-
 .trivy:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   before_script:
