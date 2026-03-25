@@ -83,6 +83,20 @@ jobs:
       evidence: ""
       evidenceRegex: false
       methods: []
+# False positive analysis in PVW-5754 showed that this is not a vulnerability
+    - ruleId: "10205"
+      ruleName: "HTTPS Security Configuration Issues (10205)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
   parameters:
     deleteGlobalAlerts: false
   name: "alertFilter"
