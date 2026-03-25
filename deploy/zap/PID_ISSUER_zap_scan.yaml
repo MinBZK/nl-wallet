@@ -28,6 +28,20 @@ env:
 jobs:
 - alertFilters:
 # False positive analysis in PVW-3375 showed that this is not a vulnerability
+    - ruleId: "90028"
+      ruleName: "Insecure HTTP Method - DELETE (90028)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
+# False positive analysis in PVW-3375 showed that this is not a vulnerability
     - ruleId: "40025"
       ruleName: "Proxy Disclosure (40025)"
       context: ""

@@ -24,6 +24,39 @@ env:
     progressToStdout: true
   vars: {}
 jobs:
+- alertFilters:
+# False positive analysis in PVW-3375 showed that this is not a vulnerability
+    - ruleId: "20012"
+      ruleName: "Anti-CSRF Tokens Check (20012)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
+# False positive analysis in PVW-3375 showed that this is not a vulnerability
+    - ruleId: "40025"
+      ruleName: "Proxy Disclosure (40025)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
+  parameters:
+    deleteGlobalAlerts: false
+  name: "alertFilter"
+  type: "alertFilter"
 - parameters:
     maxAlertsPerRule: 0
     scanOnlyInScope: true
