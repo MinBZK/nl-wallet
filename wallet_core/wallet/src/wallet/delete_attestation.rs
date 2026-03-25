@@ -24,6 +24,7 @@ use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::update_policy::UpdatePolicyError;
+use crate::wallet::HistoryError;
 use crate::wallet::attestations::AttestationsError;
 
 use super::Wallet;
@@ -53,6 +54,8 @@ pub enum DeleteAttestationError {
     Storage(#[from] StorageError),
     #[error("error emitting attestations: {0}")]
     Attestations(#[from] AttestationsError),
+    #[error("error emitting history: {0}")]
+    History(#[from] HistoryError),
 
     // Errors specific to deleting attestations
     #[error("attestation not found")]
@@ -159,6 +162,7 @@ where
         self.storage.write().await.delete_attestation(attestation_id).await?;
 
         self.emit_attestations().await?;
+        self.emit_recent_history().await?;
 
         Ok(())
     }
