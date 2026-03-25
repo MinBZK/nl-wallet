@@ -31,7 +31,11 @@ class CloseProximityDisclosureBridge(val context: Context) : RustCloseProximityD
         return "some_qr_code"
     }
 
-    override suspend fun sendDeviceResponse(deviceResponse: List<kotlin.UByte>) {}
+    override suspend fun sendDeviceResponse(deviceResponse: List<kotlin.UByte>) {
+        TODO("Implement this feature")
+    }
 
-    override suspend fun stopBleServer() {}
+    override suspend fun stopBleServer() {
+        TODO("Implement this feature")
+    }
 }

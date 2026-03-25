@@ -24,7 +24,11 @@ extension CloseProximityDisclosure: CloseProximityDisclosureBridge {
         return "some_qr_code"
     }
 
-    func sendDeviceResponse(deviceResponse: [UInt8]) async throws {}
+    func sendDeviceResponse(deviceResponse: [UInt8]) async throws {
+        // not implemented yet
+    }
 
-    func stopBleServer() async throws {}
+    func stopBleServer() async throws {
+        // not implemented yet
+    }
 }
