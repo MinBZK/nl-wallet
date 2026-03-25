@@ -343,7 +343,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_delete_attestation_error_storage_delete() {
+    async fn test_delete_attestation_error_storage() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let attestation_id = Uuid::new_v4();
 
