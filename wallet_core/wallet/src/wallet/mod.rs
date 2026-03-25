@@ -47,7 +47,6 @@ use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use crate::account_provider::HttpAccountProviderClient;
 use crate::config::WalletConfigurationRepository;
 use crate::lock::WalletLock;
-use crate::oidc_session::OidcSession;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
@@ -126,7 +125,7 @@ impl<A, G> WalletRegistration<A, G> {
 enum Session<CID: IssuanceDiscovery, DCS> {
     Oidc {
         purpose: PidIssuancePurpose,
-        oidc_session: Box<OidcSession<HttpAuthorizationServer>>,
+        authorization_server: Box<HttpAuthorizationServer>,
         discovered: Box<CID::Issuer>,
     },
     Issuance(WalletIssuanceSession<<CID::Issuer as CredentialIssuer>::Session>),

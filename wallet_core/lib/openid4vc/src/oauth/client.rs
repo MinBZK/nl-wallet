@@ -84,50 +84,52 @@ pub trait AuthorizationServer {
 /// The state of an in-progress OAuth authorization code flow.
 #[derive(Debug)]
 pub struct HttpAuthorizationServer<P = S256PkcePair> {
-    provider: AuthorizationServerMetadata,
+    pub auth_url: Url,
     client_id: String,
     redirect_uri: Url,
     pkce_pair: P,
     state: String,
-    nonce: String,
 }
 
 impl<P: PkcePair> HttpAuthorizationServer<P> {
-    pub fn new(provider: AuthorizationServerMetadata, client_id: String, redirect_uri: Url) -> Self {
-        Self {
-            provider,
-            client_id,
-            redirect_uri,
-            pkce_pair: P::generate(),
-            state: BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16)),
-            nonce: BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16)),
-        }
-    }
+    /// Create a new authorization server session and compute the authorization URL.
+    /// Returns an error if the provider has no authorization endpoint or the URL cannot be encoded.
+    pub fn try_new(
+        provider: AuthorizationServerMetadata,
+        client_id: String,
+        redirect_uri: Url,
+    ) -> Result<Self, OAuthError> {
+        let pkce_pair = P::generate();
+        let state = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
+        let nonce = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
 
-    /// Returns the authorization URL to redirect the user to, with all PKCE/CSRF/nonce parameters encoded.
-    pub fn auth_url(&self) -> Result<Url, OAuthError> {
         let params = AuthorizationRequest {
             response_type: ResponseType::Code.into(),
-            client_id: self.client_id.clone(),
-            redirect_uri: Some(self.redirect_uri.clone()),
-            state: Some(self.state.clone()),
+            client_id: client_id.clone(),
+            redirect_uri: Some(redirect_uri.clone()),
+            state: Some(state.clone()),
             authorization_details: None,
             request_uri: None,
             code_challenge: Some(PkceCodeChallenge::S256 {
-                code_challenge: self.pkce_pair.code_challenge().to_string(),
+                code_challenge: pkce_pair.code_challenge().to_string(),
             }),
-            scope: self.provider.scopes_supported.clone(),
-            nonce: Some(self.nonce.clone()),
+            scope: provider.scopes_supported,
+            nonce: Some(nonce),
             response_mode: None,
         };
 
-        let mut url = self
-            .provider
+        let mut auth_url = provider
             .authorization_endpoint
-            .clone()
             .ok_or(OAuthError::NoAuthorizationEndpoint)?;
-        url.set_query(Some(&serde_urlencoded::to_string(params)?));
-        Ok(url)
+        auth_url.set_query(Some(&serde_urlencoded::to_string(params)?));
+
+        Ok(Self {
+            auth_url,
+            client_id,
+            redirect_uri,
+            pkce_pair,
+            state,
+        })
     }
 
     fn matches_received_redirect_uri(&self, received_redirect_uri: &Url) -> bool {

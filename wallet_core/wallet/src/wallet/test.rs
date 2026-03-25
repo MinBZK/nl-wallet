@@ -2,8 +2,6 @@ use std::num::NonZeroU8;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
-pub const AUTH_URL: &str = "http://example.com/auth";
-
 use chrono::DateTime;
 use chrono::Utc;
 use futures::future::FutureExt;
@@ -80,8 +78,6 @@ use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::default_config_server_config;
 use crate::config::test::test_wallet_config;
-use crate::oidc_session::OidcSession;
-use crate::oidc_session::build_oidc_session;
 use crate::pin::key as pin_key;
 use crate::storage::KeyData;
 use crate::storage::MockHardwareDatabaseStorage;
@@ -100,6 +96,8 @@ use super::Wallet;
 use super::WalletInitError;
 use super::WalletRegistration;
 use super::init::RegistrationStatus;
+
+pub const AUTH_URL: &str = "http://example.com/auth";
 
 /// This contains key material that is used to generate valid account server responses.
 pub struct AccountServerKeys {
@@ -651,11 +649,11 @@ pub fn mock_issuance_session(
     (client, attestations)
 }
 
-/// Creates a real `OidcSession<HttpAuthorizationServer>` and a redirect URI with the correct state
+/// Creates a real [`HttpAuthorizationServer`] and a redirect URI with the correct state
 /// that will successfully yield a token request when `into_token_request` is called.
-pub fn create_real_oidc_session(redirect_uri: &str) -> (OidcSession<HttpAuthorizationServer>, Url) {
+pub fn create_authorization_server(redirect_uri: &str) -> (HttpAuthorizationServer, Url) {
     let redirect_uri = Url::parse(redirect_uri).unwrap();
-    let oidc_session = build_oidc_session(
+    let authorization_server = HttpAuthorizationServer::try_new(
         AuthorizationServerMetadata {
             authorization_endpoint: Some(Url::parse(AUTH_URL).unwrap()),
             jwks_uri: Some(Url::parse(AUTH_URL).unwrap()),
@@ -667,9 +665,9 @@ pub fn create_real_oidc_session(redirect_uri: &str) -> (OidcSession<HttpAuthoriz
     .unwrap();
 
     // Build a redirect URI with the right CSRF state and a dummy code
-    let state = oidc_session.http_client.csrf_state().to_string();
+    let state = authorization_server.csrf_state().to_string();
     let mut redirect = redirect_uri.clone();
     redirect.set_query(Some(&format!("code=test_code&state={state}")));
 
-    (oidc_session, redirect)
+    (authorization_server, redirect)
 }

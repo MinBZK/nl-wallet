@@ -28,6 +28,8 @@ use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
+use openid4vc::oauth::AuthorizationServer;
+use openid4vc::oauth::HttpAuthorizationServer;
 use openid4vc::oauth::OAuthError;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::well_known::WellKnownError;
@@ -58,8 +60,6 @@ use crate::instruction::InstructionClientParameters;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
-use crate::oidc_session::OidcSessionError;
-use crate::oidc_session::build_oidc_session;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -106,10 +106,10 @@ pub enum IssuanceError {
     IssuerMetadataDiscovery(#[from] WellKnownError),
 
     #[error("could not start DigiD session: {0}")]
-    OidcSessionStart(#[source] OidcSessionError),
+    AuthSessionStart(#[source] OAuthError),
 
     #[error("could not finish DigiD session: {0}")]
-    OidcSessionFinish(#[source] OidcSessionError),
+    AuthSessionFinish(#[source] OAuthError),
 
     #[error("user denied DigiD authentication")]
     #[category(expected)]
@@ -194,12 +194,12 @@ pub enum IssuanceError {
     RecoveryCode(#[from] RecoveryCodeError),
 }
 
-impl From<OidcSessionError> for IssuanceError {
-    fn from(error: OidcSessionError) -> Self {
-        if matches!(error, OidcSessionError::Oidc(OAuthError::Denied)) {
+impl From<OAuthError> for IssuanceError {
+    fn from(error: OAuthError) -> Self {
+        if matches!(error, OAuthError::Denied) {
             IssuanceError::DeniedDigiD
         } else {
-            IssuanceError::OidcSessionFinish(error)
+            IssuanceError::AuthSessionFinish(error)
         }
     }
 }
@@ -313,18 +313,18 @@ where
             .discover(&pid_issuance_config.url)
             .await?;
 
-        let oidc_session = build_oidc_session(
+        let authorization_server = HttpAuthorizationServer::try_new(
             discovered.oauth_metadata().clone(),
             pid_issuance_config.client_id.clone(),
             urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
         )
-        .map_err(IssuanceError::OidcSessionStart)?;
+        .map_err(IssuanceError::AuthSessionStart)?;
 
         info!("DigiD auth URL generated");
-        let auth_url = oidc_session.auth_url.clone();
+        let auth_url = authorization_server.auth_url.clone();
         self.session.replace(Session::Oidc {
             purpose,
-            oidc_session: Box::new(oidc_session),
+            authorization_server: Box::new(authorization_server),
             discovered: Box::new(discovered),
         });
 
@@ -408,7 +408,7 @@ where
 
         // Take ownership of the active session, now that we know that it exists.
         let Some(Session::Oidc {
-            oidc_session,
+            authorization_server,
             purpose,
             discovered,
         }) = self.session.take()
@@ -416,7 +416,7 @@ where
             panic!()
         };
 
-        let token_request = oidc_session.into_token_request(&redirect_uri)?;
+        let token_request = authorization_server.into_token_request(&redirect_uri)?;
 
         let config = self.config_repository.get();
         let trust_anchors = config.issuer_trust_anchors();
@@ -817,19 +817,18 @@ mod tests {
 
     use crate::WalletEvent;
     use crate::attestation::AttestationAttributeValue;
-    use crate::oidc_session::OidcSession;
     use crate::storage::ChangePinData;
     use crate::storage::InstructionData;
     use crate::storage::RegistrationData;
     use crate::storage::StorageState;
     use crate::storage::StoredAttestation;
     use crate::wallet::test::AUTH_URL;
+    use crate::wallet::test::create_authorization_server;
     use crate::wallet::test::create_example_credential_payload;
     use crate::wallet::test::create_example_pid_credential_payload;
     use crate::wallet::test::create_example_pid_preview_data;
     use crate::wallet::test::create_example_pid_sd_jwt;
     use crate::wallet::test::create_example_preview_data;
-    use crate::wallet::test::create_real_oidc_session;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::mock_issuance_session;
 
@@ -954,7 +953,7 @@ mod tests {
         // Set up a mock DigiD session.
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: Box::new(create_stub_oidc_session()),
+            authorization_server: Box::new(create_stub_authorization_server()),
             discovered: Box::new(MockCredentialIssuer::new()),
         });
 
@@ -999,7 +998,7 @@ mod tests {
         // Set up a mock DigiD session.
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: Box::new(create_stub_oidc_session()),
+            authorization_server: Box::new(create_stub_authorization_server()),
             discovered: Box::new(MockCredentialIssuer::new()),
         });
 
@@ -1190,12 +1189,10 @@ mod tests {
         assert_matches!(error, IssuanceError::SessionState);
     }
 
-    /// Creates a real `OidcSession<HttpAuthorizationServer>` for tests that only need the session
+    /// Creates a stub [`HttpAuthorizationServer`] for tests that only need session state
     /// (e.g., they cancel or check session state, not calling `into_token_request`).
-    fn create_stub_oidc_session() -> OidcSession<HttpAuthorizationServer> {
-        use crate::oidc_session::build_oidc_session;
-
-        build_oidc_session(
+    fn create_stub_authorization_server() -> HttpAuthorizationServer {
+        HttpAuthorizationServer::try_new(
             AuthorizationServerMetadata::new_with_auth_url(AUTH_URL),
             "client_id".to_string(),
             Url::parse(REDIRECT_URI).unwrap(),
@@ -1206,10 +1203,10 @@ mod tests {
     async fn setup_wallet_with_oidc_session() -> (TestWalletMockStorage, Url) {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (oidc_session, redirect_uri) = create_real_oidc_session(REDIRECT_URI);
+        let (authorization_server, redirect_uri) = create_authorization_server(REDIRECT_URI);
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: Box::new(oidc_session),
+            authorization_server: Box::new(authorization_server),
             discovered: Box::new(MockCredentialIssuer::new()),
         });
         (wallet, redirect_uri)
@@ -1218,11 +1215,11 @@ mod tests {
     async fn setup_wallet_with_oidc_session_and_database_mock() -> (TestWalletMockStorage, Url) {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (oidc_session, redirect_uri) = create_real_oidc_session(REDIRECT_URI);
+        let (authorization_server, redirect_uri) = create_authorization_server(REDIRECT_URI);
         // Set up the credential issuer discovery mock with a start expectation for continue_pid_issuance
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: Box::new(oidc_session),
+            authorization_server: Box::new(authorization_server),
             discovered: Box::new({
                 let mut issuer = MockCredentialIssuer::new();
                 issuer.expect_start().return_once(|_| {
@@ -1242,7 +1239,7 @@ mod tests {
     #[tokio::test]
     async fn test_continue_pid_issuance_error_pid_issuer() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (oidc_session, redirect_uri) = create_real_oidc_session(REDIRECT_URI);
+        let (authorization_server, redirect_uri) = create_authorization_server(REDIRECT_URI);
 
         // Set up the credential issuer to return an error from start_issuance.
         let mut issuer = MockCredentialIssuer::new();
@@ -1252,7 +1249,7 @@ mod tests {
 
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: Box::new(oidc_session),
+            authorization_server: Box::new(authorization_server),
             discovered: Box::new(issuer),
         });
 

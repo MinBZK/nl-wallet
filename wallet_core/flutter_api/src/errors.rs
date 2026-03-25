@@ -16,7 +16,6 @@ use wallet::errors::HistoryError;
 use wallet::errors::HttpClientError;
 use wallet::errors::InstructionError;
 use wallet::errors::IssuanceError;
-use wallet::errors::OidcSessionError;
 use wallet::errors::PinRecoveryError;
 use wallet::errors::RecoveryCodeError;
 use wallet::errors::ResetError;
@@ -255,16 +254,12 @@ impl FlutterApiErrorFields for IssuanceError {
             IssuanceError::NotRegistered | IssuanceError::Locked | IssuanceError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
-            IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OAuthError::RedirectUriError(_))) => {
-                FlutterApiErrorType::RedirectUri
-            }
+            IssuanceError::AuthSessionFinish(OAuthError::RedirectUriError(_)) => FlutterApiErrorType::RedirectUri,
             IssuanceError::IssuanceSession(IssuanceSessionError::TokenRequest(_))
             | IssuanceError::IssuanceSession(IssuanceSessionError::CredentialRequest(_))
-            | IssuanceError::OidcSessionStart(OidcSessionError::Oidc(OAuthError::RedirectUriError(_)))
-            | IssuanceError::OidcSessionStart(OidcSessionError::Oidc(OAuthError::RequestingAccessToken(_)))
-            | IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OAuthError::RequestingAccessToken(_))) => {
-                FlutterApiErrorType::Server
-            }
+            | IssuanceError::AuthSessionStart(OAuthError::RedirectUriError(_))
+            | IssuanceError::AuthSessionStart(OAuthError::RequestingAccessToken(_))
+            | IssuanceError::AuthSessionFinish(OAuthError::RequestingAccessToken(_)) => FlutterApiErrorType::Server,
             IssuanceError::AttestationPreview(_)
             | IssuanceError::Attestation { .. }
             | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
@@ -279,12 +274,11 @@ impl FlutterApiErrorFields for IssuanceError {
     }
 
     fn data(&self) -> serde_json::Value {
-        let redirect_error =
-            if let Self::OidcSessionFinish(OidcSessionError::Oidc(OAuthError::RedirectUriError(err))) = self {
-                Some(err.error.clone())
-            } else {
-                None
-            };
+        let redirect_error = if let Self::AuthSessionFinish(OAuthError::RedirectUriError(err)) = self {
+            Some(err.error.clone())
+        } else {
+            None
+        };
 
         let organization_name = match self {
             IssuanceError::Attestation { organization, .. } | IssuanceError::IssuerServer { organization, .. } => {
@@ -644,7 +638,6 @@ mod tests {
     use wallet::errors::DisclosureError;
     use wallet::errors::InstructionError;
     use wallet::errors::IssuanceError;
-    use wallet::errors::OidcSessionError;
     use wallet::errors::PinRecoveryError;
     use wallet::errors::RecoveryCodeError;
     use wallet::errors::RevocationCodeError;
@@ -676,33 +669,33 @@ mod tests {
         serde_json::Value::Null
     )]
     #[case(
-        IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OAuthError::RedirectUriError(
+        IssuanceError::AuthSessionFinish(OAuthError::RedirectUriError(
             Box::new(ErrorResponse {
                 error: AuthorizationErrorCode::InvalidRequest,
                 error_description: None,
                 error_uri: None,
             })
-        ))),
+        )),
         FlutterApiErrorType::RedirectUri,
         json!({"redirect_error": "invalid_request"})
     )]
     #[case(
-        IssuanceError::OidcSessionFinish(OidcSessionError::Oidc(OAuthError::RedirectUriError(
+        IssuanceError::AuthSessionFinish(OAuthError::RedirectUriError(
             Box::new(ErrorResponse {
                 error: AuthorizationErrorCode::Other("some_error".to_string()),
                 error_description: None,
                 error_uri: None,
             })
-        ))),
+        )),
         FlutterApiErrorType::RedirectUri,
         json!({"redirect_error": "some_error"})
     )]
     #[case(
-        IssuanceError::OidcSessionStart(OidcSessionError::Oidc(OAuthError::RedirectUriError(Box::new(ErrorResponse {
+        IssuanceError::AuthSessionStart(OAuthError::RedirectUriError(Box::new(ErrorResponse {
             error: AuthorizationErrorCode::InvalidRequest,
             error_description: None,
             error_uri: None,
-        })))),
+        }))),
         FlutterApiErrorType::Server,
         serde_json::Value::Null
     )]

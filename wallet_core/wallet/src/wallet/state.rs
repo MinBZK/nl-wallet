@@ -171,8 +171,6 @@ mod tests {
     use crate::PidIssuancePurpose;
     use crate::TransferRole;
     use crate::WalletState;
-    use crate::oidc_session::OidcSession;
-    use crate::oidc_session::build_oidc_session;
     use crate::pin::change::State;
     use crate::repository::Repository;
     use crate::storage::ChangePinData;
@@ -546,8 +544,8 @@ mod tests {
         }
     }
 
-    fn create_stub_oidc_session() -> OidcSession<HttpAuthorizationServer> {
-        build_oidc_session(
+    fn create_stub_authorization_server() -> HttpAuthorizationServer {
+        HttpAuthorizationServer::try_new(
             AuthorizationServerMetadata::new_with_auth_url(AUTH_URL),
             "client_id".to_string(),
             Url::parse(AUTH_URL).unwrap(),
@@ -558,7 +556,7 @@ mod tests {
     fn digid_session() -> Session<MockCredentialIssuerDiscovery, MockDisclosureSession> {
         Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: Box::new(create_stub_oidc_session()),
+            authorization_server: Box::new(create_stub_authorization_server()),
             discovered: Box::new(MockCredentialIssuer::new()),
         }
     }
@@ -598,7 +596,7 @@ mod tests {
         Session::PinRecovery {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
             session: PinRecoverySession::Oidc {
-                oidc_session: Box::new(create_stub_oidc_session()),
+                authorization_server: Box::new(create_stub_authorization_server()),
                 discovered: Box::new(MockCredentialIssuer::new()),
             },
         }

@@ -484,8 +484,6 @@ mod tests {
     use crate::PidIssuancePurpose;
     use crate::account_provider::AccountProviderError;
     use crate::account_provider::AccountProviderResponseError;
-    use crate::oidc_session::OidcSession;
-    use crate::oidc_session::build_oidc_session;
     use crate::storage::ChangePinData;
     use crate::storage::DatabaseExport;
     use crate::storage::InstructionData;
@@ -540,7 +538,7 @@ mod tests {
     #[tokio::test]
     async fn test_transfer_error_issuance_session_active() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let stub_oidc_session: OidcSession<HttpAuthorizationServer> = build_oidc_session(
+        let stub_authorization_server = HttpAuthorizationServer::try_new(
             AuthorizationServerMetadata::new_with_auth_url(AUTH_URL),
             "client_id".to_string(),
             Url::parse(AUTH_URL).unwrap(),
@@ -548,7 +546,7 @@ mod tests {
         .unwrap();
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: Box::new(stub_oidc_session),
+            authorization_server: Box::new(stub_authorization_server),
             discovered: Box::new(openid4vc::mock::MockCredentialIssuer::new()),
         });
 

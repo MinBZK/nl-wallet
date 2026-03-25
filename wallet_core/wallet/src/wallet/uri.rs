@@ -136,8 +136,6 @@ mod tests {
     use openid4vc::oauth::HttpAuthorizationServer;
 
     use crate::config::UNIVERSAL_LINK_BASE_URL;
-    use crate::oidc_session::OidcSession;
-    use crate::oidc_session::build_oidc_session;
     use crate::wallet::test::AUTH_URL;
 
     use super::super::test::TestWalletMockStorage;
@@ -175,8 +173,8 @@ mod tests {
             UriIdentificationError::Unknown(uri) if uri.as_str() == digid_uri
         );
 
-        let make_stub_oidc_session = || -> OidcSession<HttpAuthorizationServer> {
-            build_oidc_session(
+        let make_stub_authorization_server = || -> HttpAuthorizationServer {
+            HttpAuthorizationServer::try_new(
                 AuthorizationServerMetadata {
                     authorization_endpoint: Some(Url::parse(AUTH_URL).unwrap()),
                     jwks_uri: Some(Url::parse(AUTH_URL).unwrap()),
@@ -194,7 +192,7 @@ mod tests {
         // Set up an enrollment `DigidSession` that will match the URI.
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Enrollment,
-            oidc_session: Box::new(make_stub_oidc_session()),
+            authorization_server: Box::new(make_stub_authorization_server()),
             discovered: Box::new(openid4vc::mock::MockCredentialIssuer::new()),
         });
 
@@ -204,7 +202,7 @@ mod tests {
         // Set up a PID renewal `DigidSession` that will match the URI.
         wallet.session = Some(Session::Oidc {
             purpose: PidIssuancePurpose::Renewal,
-            oidc_session: Box::new(make_stub_oidc_session()),
+            authorization_server: Box::new(make_stub_authorization_server()),
             discovered: Box::new(openid4vc::mock::MockCredentialIssuer::new()),
         });
 
