@@ -92,6 +92,15 @@ pub struct SupportedAlgorithms {
     pub device_algorithms: VecNonEmpty<RegisteredLabelWithPrivate<Algorithm>>,
 }
 
+impl Default for SupportedAlgorithms {
+    fn default() -> Self {
+        Self {
+            issuer_algorithms: vec_nonempty![RegisteredLabelWithPrivate::Assigned(Algorithm::ES256)],
+            device_algorithms: vec_nonempty![RegisteredLabelWithPrivate::Assigned(Algorithm::ES256)],
+        }
+    }
+}
+
 impl DeviceResponse {
     /// Verify a [`DeviceResponse`], returning the verified attributes, grouped per doctype and namespace.
     ///
@@ -112,18 +121,13 @@ impl DeviceResponse {
     where
         C: StatusListClient,
     {
-        let supported_algorithms = SupportedAlgorithms {
-            issuer_algorithms: vec_nonempty![RegisteredLabelWithPrivate::Assigned(Algorithm::ES256)],
-            device_algorithms: vec_nonempty![RegisteredLabelWithPrivate::Assigned(Algorithm::ES256)],
-        };
-
         self.verify_inner(
             eph_reader_key,
             session_transcript,
             time,
             trust_anchors,
             revocation_verifier,
-            &supported_algorithms,
+            &SupportedAlgorithms::default(),
         )
         .await
     }
