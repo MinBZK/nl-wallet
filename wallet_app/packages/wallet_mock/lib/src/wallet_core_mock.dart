@@ -1,7 +1,11 @@
+// ignore_for_file: implementation_imports, non_constant_identifier_names
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:flutter_rust_bridge/src/droppable/_io.dart';
+import 'package:flutter_rust_bridge/src/rust_arc/_common.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet_core/core.dart';
 
@@ -45,11 +49,6 @@ class WalletCoreMock implements WalletCoreApi {
     if (isDisclosureBasedIssuance) return _issuanceManager.startIssuance(uri);
     // Proceed with normal disclosure
     return _disclosureManager.startDisclosure(uri, isQrCode: isQrCode);
-  }
-
-  @override
-  Stream<CloseProximityDisclosureFlutterUpdate> crateApiFullStartCloseProximityDisclosure() {
-    throw UnimplementedError();
   }
 
   @override
@@ -397,4 +396,21 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Future<void> crateApiFullPerformBackgroundSync() => Future.delayed(const Duration(seconds: 2));
+
+  @override
+  Future<String> crateApiFullStartCloseProximityDisclosure({
+    required FutureOr<dynamic> Function(CloseProximityDisclosureUpdate) callback,
+  }) async => 'mdoc:example.org';
+
+  @override
+  RustArcDecrementStrongCountFnType get rust_arc_decrement_strong_count_CloseProximityDisclosureUpdate =>
+      throw UnimplementedError();
+
+  @override
+  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_CloseProximityDisclosureUpdatePtr =>
+      throw UnimplementedError();
+
+  @override
+  RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_CloseProximityDisclosureUpdate =>
+      throw UnimplementedError();
 }
