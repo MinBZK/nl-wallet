@@ -388,18 +388,8 @@ pub async fn start_disclosure(uri: String, is_qr_code: bool) -> anyhow::Result<S
 pub async fn start_close_proximity_disclosure(
     callback: impl Fn(CloseProximityDisclosureUpdate) -> DartFnFuture<()> + Send + Sync + 'static,
 ) -> anyhow::Result<String> {
-    let callback = Arc::new(callback);
-
     let mut wallet = wallet().write().await;
-    let result = wallet
-        .start_close_proximity_disclosure(Arc::new(move |update| {
-            let callback = Arc::clone(&callback);
-
-            Box::pin(async move {
-                callback(update).await;
-            })
-        }))
-        .await?;
+    let result = wallet.start_close_proximity_disclosure(Box::new(callback)).await?;
 
     Ok(result.into())
 }
