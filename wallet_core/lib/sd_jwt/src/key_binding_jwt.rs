@@ -21,8 +21,10 @@ use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
 use utils::generator::Generator;
+use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 
 use crate::error::KeyBindingError;
 use crate::error::SigningError;
@@ -177,8 +179,8 @@ impl KeyBindingJwtBuilder {
 
         let sd_jwt_count = sd_jwts_and_keys.len().get();
         let payloads_and_keys: VecNonEmpty<_> = sd_jwts_and_keys
-            .into_iter()
-            .zip(itertools::repeat_n(self, sd_jwt_count))
+            .into_nonempty_iter()
+            .zip(vec_nonempty![self; sd_jwt_count])
             .map(|((sd_jwt, key), builder)| {
                 let KeyBindingJwtBuilder { aud, nonce } = builder;
                 let sd_hash = Self::sd_hash_for_sd_jwt(sd_jwt)?;
@@ -192,9 +194,7 @@ impl KeyBindingJwtBuilder {
 
                 Ok((claims, key))
             })
-            .collect::<Result<Vec<_>, KeyBindingError>>()?
-            .try_into()
-            .unwrap_or_else(|_| unreachable!()); // The source is non-empty, so this is unreachable
+            .collect::<Result<VecNonEmpty<_>, KeyBindingError>>()?;
 
         // Create JWTs from all of these by having the WSCD sign the `KeyBindingJwtClaims` values.
         let (signed_jwts, poa) = SignedJwt::sign_multiple(

@@ -16,6 +16,7 @@ use ssri::Algorithm;
 use ssri::Integrity;
 use ssri::IntegrityChecker;
 
+use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -130,7 +131,8 @@ impl TypeMetadataDocuments {
 
         // Prepare variables to collect data and iterator over the whole chain, starting at the leaf `vct`.
         let documents_count = documents.len().get();
-        let mut metadata_chain_indices = Vec::with_capacity(documents_count);
+        // `documents.len()` is non-zero, so the unwrap is safe.
+        let mut metadata_chain_indices: VecNonEmpty<_> = Vec::with_capacity(documents_count).try_into().unwrap();
         let mut seen_vcts = HashSet::with_capacity(documents_count);
         let mut next_extends = Some((vct, None));
 
@@ -185,25 +187,20 @@ impl TypeMetadataDocuments {
 
         // Collect an owned `Vec` of the metadata documents by consuming the indices, which are all guaranteed to exist.
         let metadata_chain = metadata_chain_indices
-            .iter()
+            .nonempty_iter()
             .map(|index| metadata_by_index.remove(index).unwrap())
-            .collect_vec()
-            // Converting to a `VecNonEmpty` cannot fail, as the input is also `VecNonEmpty`.
-            .try_into()
-            .unwrap();
+            .collect();
 
         // Normalize the chain of type metadata by combining the individual entries into
         // one type and move the documents to a `SortedTypeMetadataDocuments` type.
         let normalized = NormalizedTypeMetadata::try_from_sorted_metadata(SortedTypeMetadata(metadata_chain))?;
 
         let sorted_documents = documents
-            .into_iter()
+            .into_nonempty_iter()
             .zip(metadata_chain_indices)
             .sorted_by_key(|(_, index)| *index)
             .map(|(json, _)| json)
-            .collect_vec()
-            .try_into()
-            .unwrap();
+            .collect();
         let sorted = SortedTypeMetadataDocuments(sorted_documents);
 
         Ok((normalized, sorted))
