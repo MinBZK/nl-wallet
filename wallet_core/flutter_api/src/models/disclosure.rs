@@ -2,7 +2,6 @@ use itertools::Itertools;
 use url::Url;
 
 use wallet::AttributesNotAvailable;
-use wallet::CloseProximityDisclosureUpdate;
 use wallet::DisclosureAttestationOptions;
 use wallet::DisclosureProposalPresentation;
 use wallet::attestation_data::ReaderRegistration;
@@ -84,24 +83,6 @@ pub struct DisclosureOptions(pub Vec<AttestationPresentation>);
 pub enum AcceptDisclosureResult {
     Ok { return_url: Option<String> },
     InstructionError { error: WalletInstructionError },
-}
-
-pub enum CloseProximityDisclosureFlutterUpdate {
-    Connecting,
-    Connected,
-    DeviceRequestReceived,
-    Disconnected,
-}
-
-impl From<CloseProximityDisclosureUpdate> for CloseProximityDisclosureFlutterUpdate {
-    fn from(value: CloseProximityDisclosureUpdate) -> Self {
-        match value {
-            CloseProximityDisclosureUpdate::Connecting => Self::Connecting,
-            CloseProximityDisclosureUpdate::Connected => Self::Connected,
-            CloseProximityDisclosureUpdate::DeviceRequestReceived => Self::DeviceRequestReceived,
-            CloseProximityDisclosureUpdate::Disconnected => Self::Disconnected,
-        }
-    }
 }
 
 pub struct RPLocalizedStrings(pub wallet::attestation_data::LocalizedStrings);

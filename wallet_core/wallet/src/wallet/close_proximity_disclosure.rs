@@ -1,3 +1,5 @@
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::Arc;
 
 use derive_more::IsVariant;
@@ -26,7 +28,7 @@ use crate::wallet::DisclosureError;
 use crate::wallet::Session;
 use crate::wallet::disclosure::WalletDisclosureAttestations;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum CloseProximityDisclosureUpdate {
     Connecting,
     Connected,
@@ -34,7 +36,10 @@ pub enum CloseProximityDisclosureUpdate {
     Disconnected,
 }
 
-pub type CloseProximityDisclosureCallback = Box<dyn Fn(CloseProximityDisclosureUpdate) + Send + Sync>;
+type CloseProximityDisclosureCallbackFuture = Pin<Box<dyn Future<Output = ()> + Send + 'static>>;
+
+pub type CloseProximityDisclosureCallback =
+    Arc<dyn Fn(CloseProximityDisclosureUpdate) -> CloseProximityDisclosureCallbackFuture + Send + Sync>;
 
 #[nutype(validate(predicate = |s| s.parse::<Url>().is_ok_and(|u| u.scheme() == "mdoc")), derive(Debug, Clone, TryFrom, FromStr, AsRef, Into, Display))]
 pub struct MdocUri(String);
@@ -100,7 +105,7 @@ fn spawn_listener(
             };
 
             info!("Close proximity disclosure update: {wallet_update:?}");
-            callback(wallet_update);
+            callback(wallet_update).await;
         }
     })
 }
@@ -166,6 +171,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use assert_matches::assert_matches;
 
     use crate::wallet::Session;
@@ -180,7 +187,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let qr = wallet
-            .start_close_proximity_disclosure(Box::new(|_| {}))
+            .start_close_proximity_disclosure(Arc::new(|_| Box::pin(async {})))
             .await
             .expect("starting proximity disclosure should succeed");
 
@@ -199,8 +206,9 @@ mod tests {
 
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<CloseProximityDisclosureUpdate>();
         wallet
-            .start_close_proximity_disclosure(Box::new(move |update| {
+            .start_close_proximity_disclosure(Arc::new(move |update| {
                 let _ = tx.send(update);
+                Box::pin(async {})
             }))
             .await
             .expect("starting proximity disclosure should succeed");

@@ -25,13 +25,6 @@ sealed class AcceptDisclosureResult with _$AcceptDisclosureResult {
   }) = AcceptDisclosureResult_InstructionError;
 }
 
-enum CloseProximityDisclosureFlutterUpdate {
-  Connecting,
-  Connected,
-  DeviceRequestReceived,
-  Disconnected,
-}
-
 class DisclosureOptions {
   final List<AttestationPresentation> field0;
 
