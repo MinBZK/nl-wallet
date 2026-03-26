@@ -2,6 +2,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
+use chrono::Utc;
 use derive_more::IsVariant;
 use nutype::nutype;
 use parking_lot::Mutex;
@@ -11,7 +12,11 @@ use tracing::error;
 use tracing::info;
 use url::Url;
 
+use attestation_data::disclosure_type::DisclosureType;
+use crypto::x509::BorrowingCertificate;
+use entity::disclosure_event::EventStatus;
 use mdoc::DeviceRequest;
+use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -58,15 +63,12 @@ enum CloseProximityDisclosureSessionState {
     DisclosureProposed {
         session_transcript: Vec<u8>,
         device_request: DeviceRequest,
+        reader_certificate: Box<BorrowingCertificate>,
         attestations: WalletDisclosureAttestations,
     },
 }
 
 #[derive(Debug)]
-#[expect(
-    unused,
-    reason = "will be used when continue_close_proximity_disclosure is implemented"
-)]
 pub struct CloseProximityDisclosureSession {
     listener: JoinHandle<()>,
     session_state: Arc<Mutex<CloseProximityDisclosureSessionState>>,
@@ -166,6 +168,32 @@ where
 
     pub fn continue_close_proximity_disclosure(&mut self) -> Result<DisclosureProposalPresentation, DisclosureError> {
         unimplemented!()
+    }
+
+    pub async fn terminate_close_proximity_disclosure_session(
+        &mut self,
+        session: CloseProximityDisclosureSession,
+    ) -> Result<(), DisclosureError> {
+        CPC::stop_ble_server().await?;
+
+        let state = session.session_state.lock().to_owned();
+        // Only store the event if the session is past SessionEstablished state (i.e. DisclosureProposed or later)
+        if let CloseProximityDisclosureSessionState::DisclosureProposed { reader_certificate, .. } = state {
+            self.store_disclosure_event(
+                Utc::now(),
+                // TODO (PVW-5078): Store credential requests in disclosure event.
+                None,
+                *reader_certificate,
+                DisclosureType::Regular,
+                EventStatus::Cancelled,
+                DataDisclosed::NotDisclosed,
+            )
+            .await?;
+        }
+
+        session.listener.abort();
+
+        Ok(())
     }
 }
 
