@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/feature/qr/scan/widget/flashlight_button.dart';
@@ -20,7 +21,7 @@ void main() {
           ),
           surfaceSize: flashlightButtonSize,
         );
-        await screenMatchesGolden('flashlight/light.on');
+        await screenMatchesGolden('flashlight_button/light.on');
       },
     );
 
@@ -34,7 +35,7 @@ void main() {
           ),
           surfaceSize: flashlightButtonSize,
         );
-        await screenMatchesGolden('flashlight/light.off');
+        await screenMatchesGolden('flashlight_button/light.off');
       },
     );
 
@@ -50,7 +51,7 @@ void main() {
         );
         await tester.sendKeyEvent(LogicalKeyboardKey.tab); // Trigger focused state
         await tester.pumpAndSettle();
-        await screenMatchesGolden('flashlight/focused.light');
+        await screenMatchesGolden('flashlight_button/focused.light');
       },
     );
 
@@ -65,7 +66,24 @@ void main() {
           surfaceSize: const Size(300, 128),
           textScaleSize: 2,
         );
-        await screenMatchesGolden('flashlight/scaled.light');
+        await screenMatchesGolden('flashlight_button/scaled.light');
+      },
+    );
+
+    testGoldens(
+      'light - visible background',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          ColoredBox(
+            color: Colors.red,
+            child: FlashlightButton(
+              onPressed: () {},
+              isOn: true,
+            ),
+          ),
+          surfaceSize: flashlightButtonSize,
+        );
+        await screenMatchesGolden('flashlight_button/light.visible_bg');
       },
     );
 
@@ -80,7 +98,7 @@ void main() {
           brightness: Brightness.dark,
           surfaceSize: flashlightButtonSize,
         );
-        await screenMatchesGolden('flashlight/dark');
+        await screenMatchesGolden('flashlight_button/dark');
       },
     );
 
@@ -97,7 +115,7 @@ void main() {
         );
         await tester.sendKeyEvent(LogicalKeyboardKey.tab); // Trigger focused state
         await tester.pumpAndSettle();
-        await screenMatchesGolden('flashlight/focused.dark');
+        await screenMatchesGolden('flashlight_button/focused.dark');
       },
     );
   });
