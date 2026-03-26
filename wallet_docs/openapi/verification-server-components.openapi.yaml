@@ -1,0 +1,211 @@
+components:
+  parameters:
+    session_token:
+      name: session_token
+      description: A unique identifier for the session
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/SessionToken'
+
+    nonce:
+      name: nonce
+      in: query
+      required: false
+      description: Optional nonce for verification
+      schema:
+        type: string
+
+  schemas:
+    SessionRequest:
+      description: A session request post body
+      type: object
+      properties:
+        usecase:
+          type: string
+        dcql_query:
+          $ref: '#/components/schemas/Query'
+        return_url_template:
+          type: string
+          format: uri
+      required:
+        - usecase
+        - dcql_query
+        - return_url_template
+
+    SessionToken:
+      description: The unique identifier of a session
+      type: string
+      minLength: 32
+      maxLength: 32
+      pattern: '^[a-zA-Z0-9]{32}$'
+
+    Query:
+      type: object
+      required:
+        - credentials
+      properties:
+        credentials:
+          type: array
+          items:
+            $ref: '#/components/schemas/CredentialQuery'
+
+    CredentialQuery:
+      type: object
+      required:
+        - id
+        - format
+        - meta
+      properties:
+        id:
+          type: string
+          pattern: '^[A-Za-z0-9_-]+$'
+        format:
+          type: string
+          description: Credential format identifier (e.g. sd+sd-jwt, mso_mdoc)
+        meta:
+          oneOf:
+            - $ref: '#/components/schemas/MsoMdocMeta'
+            - $ref: '#/components/schemas/SdJwtMeta'
+        claims:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClaimsQuery'
+
+    ClaimsQuery:
+      type: object
+      required:
+        - path
+      properties:
+        id:
+          type: string
+        path:
+          $ref: '#/components/schemas/ClaimPath'
+        intent_to_retain:
+          type: boolean
+
+    ClaimPath:
+      type: array
+      items:
+        oneOf:
+          - type: string
+          - type: integer
+            minimum: 0
+          - type: 'null'
+
+    MsoMdocMeta:
+      type: object
+      description: Metadata for mso_mdoc format
+      properties:
+        doctype_value:
+          type: string
+          description: Value for the ISO-compliant mdoc document type
+      required:
+        - doctype_value
+
+    SdJwtMeta:
+      type: object
+      description: Metadata for sd+sd-jwt format
+      properties:
+        vct_values:
+          type: array
+          description: Values for the credential type (vct) claim
+          items:
+            type: string
+      required:
+        - vct_values
+
+    SessionResponse:
+      description: An object containing a session token
+      type: object
+      required:
+        - session_token
+      properties:
+        session_token:
+          $ref: '#/components/schemas/SessionToken'
+
+    ErrorMessage:
+      type: object
+      required:
+        - type
+      properties:
+        # skipped if not set
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: int
+        detail:
+          type: string
+        instance:
+          type: string
+        extra:
+          type: object
+
+    DisclosedAttestations:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for this set of attestations
+        attestations:
+          type: array
+          items:
+            $ref: '#/components/schemas/DisclosedAttestation'
+          minItems: 1
+      required:
+        - id
+        - attestations
+
+    DisclosedAttestation:
+      type: object
+      properties:
+        attestation_type:
+          type: string
+          description: Type of attestation
+        attributes:
+          type: object
+          description: Disclosed attributes (format depends on attestation type)
+        issuer_uri:
+          type: string
+          format: uri
+          description: URI of the issuer
+        attestation_qualification:
+          type: string
+          enum:
+            - QEAA
+            - PuB-EAA
+            - EAA
+          description: Qualification level of the attestation
+        ca:
+          type: string
+          description: Certificate authority
+        issuance_validity:
+          $ref: '#/components/schemas/IssuanceValidity'
+        revocation_status:
+          type: ["string", "null"]
+          description: Revocation status
+      required:
+        - attestation_type
+        - attributes
+        - issuer_uri
+        - attestation_qualification
+        - ca
+        - issuance_validity
+
+    IssuanceValidity:
+      type: object
+      properties:
+        signed:
+          type: string
+          format: date-time
+          description: When the attestation was signed
+        valid_from:
+          type: ["string", "null"]
+          format: date-time
+          description: Start of validity period
+        valid_until:
+          type: ["string", "null"]
+          format: date-time
+          description: End of validity period

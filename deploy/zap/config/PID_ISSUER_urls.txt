@@ -1,5 +1,8 @@
 ${PID_ISSUER_URL}.well-known/openid-credential-issuer
 ${PID_ISSUER_URL}.well-known/oauth-authorization-server
-${PID_ISSUER_URL}issuer/token
-${PID_ISSUER_URL}issuer/credential
-${PID_ISSUER_URL}issuer/batch_credential
+${PID_ISSUER_URL}issuance/token
+${PID_ISSUER_URL}issuance/credential_preview
+${PID_ISSUER_URL}issuance/nonce
+${PID_ISSUER_URL}issuance/credential
+${PID_ISSUER_URL}issuance/batch_credential
+${INTERNAL_PID_ISSUER_URL}revoke/

@@ -4,7 +4,8 @@ use std::ops::Not;
 
 use derive_more::Into;
 use itertools::Itertools;
-use josekit::jwk::Jwk;
+use jwk_simple::Algorithm;
+use jwk_simple::Key;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::MapPreventDuplicates;
@@ -27,7 +28,6 @@ use crate::cose::KnownCoseAlgorithmIdentifier;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
 use crate::jose::JwsAlgorithm;
-use crate::jwe::JweAlgorithm;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 
@@ -182,7 +182,7 @@ pub struct CredentialRequestEncryption {
     /// ID) parameter that uniquely identifies the key.
     // TODO (PVW-5538): Wrap these in a type like `JwePublicKey` to perform validation when actually implementing
     //                  request encryption. Additionally this should check for the presence of `kid` parameters.
-    pub jwks: VecNonEmpty<Jwk>,
+    pub jwks: VecNonEmpty<Key>,
 
     /// A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (enc values) [RFC7518] supported
     /// by the Credential Endpoint to decode the Credential Request from a JWT.
@@ -206,7 +206,7 @@ pub struct CredentialRequestEncryption {
 pub struct CredentialResponseEncryption {
     /// A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (alg values) [RFC7518] supported
     /// by the Credential Endpoint to encode the Credential Response in a JWT.
-    pub alg_values_supported: VecNonEmpty<JweAlgorithm>,
+    pub alg_values_supported: VecNonEmpty<Algorithm>,
 
     /// A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (enc values) [RFC7518] supported
     /// by the Credential Endpoint to encode the Credential Response in a JWT
@@ -709,11 +709,13 @@ mod tests {
     use std::collections::HashMap;
 
     use assert_matches::assert_matches;
+    use jwk_simple::Algorithm;
+    use jwk_simple::KeyParams;
     use serde_json::json;
 
-    use crate::jwe::JweAlgorithm;
+    use jwe::algorithm::EncryptionAlgorithm;
+
     use crate::jwe::JweCompressionAlgorithm;
-    use crate::jwe::JweEncryptionAlgorithm;
 
     use super::CoseAlgorithmIdentifier;
     use super::CredentialConfiguration;
@@ -884,12 +886,12 @@ mod tests {
             .as_ref()
             .expect("IssuerMetadata should contain CredentialRequestEncryption");
         assert_eq!(request_encryption.jwks.len().get(), 1);
-        assert_eq!(request_encryption.jwks.first().curve(), Some("P-256"));
+        assert_matches!(request_encryption.jwks.first().params(), KeyParams::Ec(_));
         assert!(
             request_encryption
                 .enc_values_supported
                 .iter()
-                .eq(&[JweEncryptionAlgorithm::A128Gcm])
+                .eq(&[EncryptionAlgorithm::A128Gcm.into()])
         );
         assert!(
             request_encryption
@@ -905,17 +907,12 @@ mod tests {
             .credential_response_encryption
             .as_ref()
             .expect("IssuerMetadata should contain CredentialResponseEncryption");
-        assert!(
-            response_encryption
-                .alg_values_supported
-                .iter()
-                .eq(&[JweAlgorithm::EcdhEs])
-        );
+        assert!(response_encryption.alg_values_supported.iter().eq(&[Algorithm::EcdhEs]));
         assert!(
             response_encryption
                 .enc_values_supported
                 .iter()
-                .eq(&[JweEncryptionAlgorithm::A128Gcm])
+                .eq(&[EncryptionAlgorithm::A128Gcm.into()])
         );
         assert!(
             response_encryption

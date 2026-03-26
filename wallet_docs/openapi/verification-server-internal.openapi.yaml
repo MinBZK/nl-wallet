@@ -1,8 +1,8 @@
 openapi: 3.1.1
 info:
-  title: 'Wallet Server Disclosure API, Private Endpoint (Requester)'
+  title: 'Verification Server Internal API'
   description:
-    The API for the verification_server's private endpoint. Optionally
+    The API for the verification_server's internal endpoint. Optionally
     authenticated, intended to be accessible only to the relying party's
     application. It is used for session initiation and disclosed attribute
     retrieval.
@@ -43,19 +43,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionRequest'
+              $ref: 'verification-server-components.openapi.yaml#/components/schemas/SessionRequest'
       responses:
         '200':
           description: Session created
           content:
             application/json:
               schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/SessionResponse'
+                $ref: 'verification-server-components.openapi.yaml#/components/schemas/SessionResponse'
 
   /disclosure/sessions/{session_token}/disclosed_attributes:
     parameters:
-      - $ref: 'wallet-components.openapi.yaml#/components/parameters/session_token'
-      - $ref: 'wallet-components.openapi.yaml#/components/parameters/nonce'
+      - $ref: 'verification-server-components.openapi.yaml#/components/parameters/session_token'
+      - $ref: 'verification-server-components.openapi.yaml#/components/parameters/nonce'
     get:
       summary: Retrieve disclosed attributes
       responses:
@@ -64,16 +64,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/DisclosedAttestations'
+                $ref: 'verification-server-components.openapi.yaml#/components/schemas/DisclosedAttestations'
         '400':
           description: Session is not in the required state
           content:
             application/json:
               schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/ErrorMessage'
+                $ref: 'verification-server-components.openapi.yaml#/components/schemas/ErrorMessage'
         '404':
           description: Unknown session
           content:
             application/json:
               schema:
-                $ref: 'wallet-components.openapi.yaml#/components/schemas/ErrorMessage'
+                $ref: 'verification-server-components.openapi.yaml#/components/schemas/ErrorMessage'

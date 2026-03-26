@@ -43,7 +43,6 @@ create-release-artifacts:
     - job: build-wallet-web
       artifacts: true
   script: scripts/create-release-artifacts.sh
-  allow_failure: true
   artifacts:
     name: release
     paths:
