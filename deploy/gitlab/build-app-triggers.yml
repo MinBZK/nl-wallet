@@ -23,7 +23,6 @@ build-mock-trigger:
       - local: .gitlab-ci.yml
   variables:
     BUILD: 'mock'
-  allow_failure: true
 
 build-demo-trigger:
   rules:
@@ -50,4 +49,3 @@ build-demo-trigger:
       - local: .gitlab-ci.yml
   variables:
     BUILD: 'demo'
-  allow_failure: true

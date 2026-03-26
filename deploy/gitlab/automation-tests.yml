@@ -17,7 +17,6 @@ scheduled-automation-tests-trigger:
       - local: .gitlab-ci.yml
   variables:
     SCHEDULED: automation
-  allow_failure: true
 
 .run-automation-tests-base:
   extends: .env-k8s
@@ -471,7 +470,6 @@ extract-manual-test-set:
   rules: !reference [.default-branch-manual, rules]
   script:
     - ./deploy/qa-util/extract-manual-test-set.sh wallet_docs/functional-design/logical-test-cases.md manual-test-set.md
-  allow_failure: true
   artifacts:
     name: manual-test-set
     when: always
