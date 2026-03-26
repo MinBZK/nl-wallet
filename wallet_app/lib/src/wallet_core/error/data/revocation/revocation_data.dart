@@ -9,6 +9,8 @@ enum RevocationReason {
   adminRequest,
   @JsonValue('user_request')
   userRequest,
+  @JsonValue('wallet_solution_compromised')
+  solutionCompromised,
   @JsonValue('unknown')
   unknown,
 }

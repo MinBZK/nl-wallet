@@ -161,6 +161,24 @@ where
     Ok(())
 }
 
+pub async fn delete_keys<S, T>(db: &T, wallet_user_id: Uuid, key_identifiers: &[String]) -> Result<()>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    wallet_user_key::Entity::delete_many()
+        .filter(
+            wallet_user_key::Column::WalletUserId
+                .eq(wallet_user_id)
+                .and(wallet_user_key::Column::Identifier.is_in(key_identifiers)),
+        )
+        .exec(db.connection())
+        .await
+        .map_err(PersistenceError::Execution)?;
+
+    Ok(())
+}
+
 /// Retrieves all active (i.e. unblocked) keys for user `[wallet_user_id]` by `[identifiers]`.
 pub async fn find_active_keys_by_identifiers<S, T>(
     db: &T,

@@ -246,14 +246,7 @@ class ErrorPage extends StatelessWidget {
         return ErrorPage.sessionExpired(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
       case RelyingPartyError():
         return ErrorPage.relyingParty(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
-      case ValidatePinError():
-      case CheckPinError():
-      case HardwareUnsupportedError():
-      case RedirectUriError():
-      case ExternalScannerError():
-      case WrongDigidError():
-      case DeniedDigidError():
-      case AccountRevokedError():
+      default:
         Fimber.i('No specific handling defined for $error, defaulting to generic error page.');
         return ErrorPage.generic(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
     }

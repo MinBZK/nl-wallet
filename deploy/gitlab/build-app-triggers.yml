@@ -1,6 +1,6 @@
 build-mock-trigger:
   rules:
-    - !reference [.default-branch, rules]
+    - !reference [.default-branch-manual, rules]
   needs:
     - job: test-flutter
       artifacts: false
@@ -23,12 +23,11 @@ build-mock-trigger:
       - local: .gitlab-ci.yml
   variables:
     BUILD: 'mock'
-  when: manual
   allow_failure: true
 
 build-demo-trigger:
   rules:
-    - !reference [.default-branch, rules]
+    - !reference [.default-branch-manual, rules]
   needs:
     - job: test-flutter
       artifacts: false
@@ -51,5 +50,4 @@ build-demo-trigger:
       - local: .gitlab-ci.yml
   variables:
     BUILD: 'demo'
-  when: manual
   allow_failure: true

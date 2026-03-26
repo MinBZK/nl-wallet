@@ -595,6 +595,13 @@ pub async fn get_revocation_code(pin: String) -> anyhow::Result<RevocationCodeRe
 }
 
 #[flutter_api_error]
+pub async fn delete_attestation(pin: String, attestation_id: String) -> anyhow::Result<()> {
+    let mut wallet = wallet().write().await;
+    wallet.delete_attestation(pin, attestation_id).await?;
+    Ok(())
+}
+
+#[flutter_api_error]
 pub async fn reset_wallet() -> anyhow::Result<()> {
     wallet().write().await.reset().await?;
 

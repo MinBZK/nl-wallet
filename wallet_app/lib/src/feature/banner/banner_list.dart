@@ -12,7 +12,7 @@ import 'widget/update_banner.dart';
 
 /// A widget that displays a list of [WalletBanner]s with animations.
 ///
-/// This widget listens to a [BannerCubit] for updates to the list of banners
+/// This widget listens to a [BannerCubit] for updates to the list of banners.
 class BannerList extends StatefulWidget {
   const BannerList({super.key});
 
@@ -40,20 +40,25 @@ class _BannerListState extends State<BannerList> {
     return BlocConsumer<BannerCubit, List<WalletBanner>>(
       listener: (context, newBanners) => _updateAnimatedList(newBanners),
       builder: (context, banners) {
-        return AnimatedList.separated(
-          key: _banners.listKey,
-          padding: EdgeInsets.only(left: 16, top: banners.isEmpty ? 0 : 16, right: 16),
-          shrinkWrap: true,
-          initialItemCount: _banners.length,
-          itemBuilder: (context, index, animation) {
-            return _buildBannerItem(_banners[index], animation);
-          },
-          separatorBuilder: (BuildContext context, int index, Animation<double> animation) {
-            return SizeTransition(sizeFactor: animation, child: const SizedBox(height: 8));
-          },
-          removedSeparatorBuilder: (BuildContext context, int index, Animation<double> animation) {
-            return SizeTransition(sizeFactor: animation, child: const SizedBox(height: 8));
-          },
+        // FocusTraversalGroup ensures keyboard tab exits cleanly from the
+        // banner list to the next focusable widget in the parent ListView,
+        // preventing the nested AnimatedList scroll view from trapping focus.
+        return FocusTraversalGroup(
+          child: AnimatedList.separated(
+            key: _banners.listKey,
+            padding: EdgeInsets.only(left: 16, top: banners.isEmpty ? 0 : 16, right: 16),
+            shrinkWrap: true,
+            initialItemCount: _banners.length,
+            itemBuilder: (context, index, animation) {
+              return _buildBannerItem(_banners[index], animation);
+            },
+            separatorBuilder: (BuildContext context, int index, Animation<double> animation) {
+              return SizeTransition(sizeFactor: animation, child: const SizedBox(height: 8));
+            },
+            removedSeparatorBuilder: (BuildContext context, int index, Animation<double> animation) {
+              return SizeTransition(sizeFactor: animation, child: const SizedBox(height: 8));
+            },
+          ),
         );
       },
     );

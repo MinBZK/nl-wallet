@@ -54,7 +54,7 @@ class QrActionSheet extends StatelessWidget {
     Navigator.pop(context);
 
     if (result.isGranted) {
-      await Navigator.pushReplacementNamed(context, WalletRoutes.qrPresentRoute);
+      await Navigator.pushNamed(context, WalletRoutes.qrPresentRoute);
     } else if (result.isPermanentlyDenied) {
       // Permission permanently denied — show rationale dialog.
       await BlePermissionDialog.show(context);

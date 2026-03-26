@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../theme/base_wallet_theme.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
 import '../../../common/widget/button/button_content.dart';
@@ -26,10 +25,7 @@ class FlashlightButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: onPressed,
         style: context.theme.outlinedButtonTheme.style?.copyWith(
-          backgroundColor: WidgetStateProperty.resolveWith((states) {
-            if (states.isPressedOrFocused) return context.colorScheme.surface;
-            return context.theme.outlinedButtonTheme.style!.backgroundColor!.resolve(states);
-          }),
+          backgroundColor: WidgetStatePropertyAll(context.colorScheme.surface),
           shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(50))),
         ),
         child: ButtonContent(

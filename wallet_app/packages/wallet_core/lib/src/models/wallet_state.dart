@@ -11,6 +11,7 @@ part 'wallet_state.freezed.dart';
 enum BlockedReason {
   RequiresAppUpdate,
   BlockedByWalletProvider,
+  WalletSolutionRevoked,
 }
 
 enum TransferRole {

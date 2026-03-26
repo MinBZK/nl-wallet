@@ -1,0 +1,86 @@
+## Global Docker image parameters
+## Please, note that this will override the image parameters, including dependencies, configured to use the global value
+## Current available global Docker image parameters: imageRegistry
+## @section Global parameters
+## @param global.imageRegistry Global Docker image registry
+##
+global:
+  imageRegistry: ""
+
+## @section Common parameters
+## @param nameOverride String to partially override chart's fullname
+##
+nameOverride: ""
+
+## @section Common parameters
+## @param replicaCount Number of replicas
+##
+replicaCount: 1
+
+## @section Image parameters
+## @param image.repository Repository for the container image
+## @param image.pullPolicy Image pull policy
+## @param image.tag Image tag
+##
+image:
+  repository: ghcr-io-proxy/brp-api/haal-centraal-brp-bevragen-proxy
+  pullPolicy: IfNotPresent
+  tag: "2.1.2"
+
+## @section Image pull secrets
+## @param imagePullSecrets Array of secret names for private registries
+##
+imagePullSecrets: []
+
+## @section Deployment parameters
+## @param deployment.strategy Strategy used to replace old pods by new one
+## @param deployment.revisionHistoryLimit The number of old ReplicaSets to retain to allow rollback
+## @param deployment.progressDeadlineSeconds The number of seconds you want to wait for your Deployment to progress
+##
+deployment:
+  strategy: null
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 300
+
+## @section Security parameters
+## @param serviceAccountName Name of the service account
+## @param podSecurityContext Security context for the pod
+## @param securityContext Security context for the container
+##
+serviceAccountName: null
+podSecurityContext: {}
+securityContext: {}
+
+## @section Annotations and labels
+## Additional annotations and labels
+## @param extraAnnotations Additional annotations for the deployment
+## @param extraPodLabels Additional labels for the pods
+##
+extraAnnotations: {}
+extraPodLabels: {}
+
+## @section Resource requests and limits
+## @param resources.requests.cpu CPU request
+## @param resources.requests.memory Memory request
+## @param resources.limits.cpu CPU limit
+## @param resources.limits.memory Memory limit
+##
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "256Mi"
+
+## @section Routes configuration
+## Routes configuration of the proxy
+## @param routes[0].scheme URL scheme (http/https)
+## @param routes[0].downstreams[0].host Downstream host of the route
+## @param routes[0].downstreams[0].port Downstream port of the route
+##
+routes:
+  - scheme: http
+    downstreams:
+      - host: gba-hc-converter
+        port: 80

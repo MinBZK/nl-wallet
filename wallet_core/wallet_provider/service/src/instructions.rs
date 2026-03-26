@@ -38,6 +38,7 @@ use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::CompleteTransfer;
 use wallet_account::messages::instructions::ConfirmTransfer;
+use wallet_account::messages::instructions::DeleteKeys;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
 use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
@@ -155,6 +156,7 @@ impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for PerformIssuance {}
 impl ValidateInstruction for PerformIssuanceWithWua {}
 impl ValidateInstruction for DiscloseRecoveryCode {}
+impl ValidateInstruction for DeleteKeys {}
 
 impl ValidateInstruction for Sign {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
@@ -318,6 +320,7 @@ impl PinChecks for ChangePinRollback {}
 impl PinChecks for CheckPin {}
 impl PinChecks for Sign {}
 impl PinChecks for ConfirmTransfer {}
+impl PinChecks for DeleteKeys {}
 
 impl PinChecks for StartPinRecovery {
     fn pin_checks_options() -> PinCheckOptions {
@@ -1276,6 +1279,35 @@ impl HandleInstruction for CompleteTransfer {
     }
 }
 
+impl HandleInstruction for DeleteKeys {
+    type Result = ();
+
+    async fn handle<T, R, H, G>(
+        self,
+        wallet_user: &WalletUser,
+        _generators: &G,
+        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        _recovery_code_config: &RecoveryCodeConfig,
+    ) -> Result<Self::Result, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
+    {
+        let tx = user_state.repositories.begin_transaction().await?;
+
+        user_state
+            .repositories
+            .delete_keys(&tx, wallet_user.id, self.identifiers.as_ref())
+            .await?;
+
+        tx.commit().await?;
+
+        Ok(())
+    }
+}
+
 async fn check_transfer_instruction_prerequisites<T, R>(
     tx: &T,
     repositories: &R,
@@ -1422,6 +1454,7 @@ mod tests {
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
     use token_status_list::status_list_service::mock::MockStatusListService;
+    use utils::vec_nonempty;
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::errors::RevocationReason;
     use wallet_account::messages::instructions::CancelTransfer;
@@ -1431,6 +1464,7 @@ mod tests {
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::CompleteTransfer;
     use wallet_account::messages::instructions::ConfirmTransfer;
+    use wallet_account::messages::instructions::DeleteKeys;
     use wallet_account::messages::instructions::DiscloseRecoveryCode;
     use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
     use wallet_account::messages::instructions::GetTransferStatus;
@@ -1500,6 +1534,37 @@ mod tests {
         let wrapping_key_identifier = "my_wrapping_key_identifier";
 
         let instruction = CheckPin {};
+        instruction
+            .handle(
+                &wallet_user,
+                &MockGenerators,
+                &user_state(wallet_user_repo, wrapping_key_identifier).await,
+                &mock::RECOVERY_CODE_CONFIG,
+            )
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn should_handle_delete_keys() {
+        let wallet_user = wallet_user::mock::wallet_user_1();
+        let wrapping_key_identifier = "my_wrapping_key_identifier";
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_delete_keys()
+            .withf(|_, wallet_user_id, key_identifiers| {
+                *wallet_user_id == wallet_user::mock::wallet_user_1().id && key_identifiers == ["key1", "key2"]
+            })
+            .returning(|_, _, _| Ok(()));
+
+        let instruction = DeleteKeys {
+            identifiers: vec_nonempty!["key1".to_string(), "key2".to_string()],
+        };
+
         instruction
             .handle(
                 &wallet_user,
@@ -2212,6 +2277,7 @@ mod tests {
     #[case(Box::new(ChangePinCommit {}), false)]
     #[case(Box::new(ChangePinRollback {}), false)]
     #[case(Box::new(mock_sign_instruction()), false)]
+    #[case(Box::new(DeleteKeys { identifiers: vec_nonempty!["id".to_string()] }), false)]
     #[case(Box::new(mock_start_pin_recovery_instruction()), true)]
     fn test_instruction_validation_during_pin_recovery(
         #[case] instruction: Box<dyn ValidateInstruction>,
@@ -2247,6 +2313,7 @@ mod tests {
     #[case::send_wallet_payload(Box::new(SendWalletPayload { transfer_session_id: Uuid::new_v4(), payload: String::new() }))]
     #[case::receive_wallet_payload(Box::new(ReceiveWalletPayload { transfer_session_id: Uuid::new_v4() }))]
     #[case::complete_transfer(Box::new(CompleteTransfer { transfer_session_id: Uuid::new_v4() }))]
+    #[case::delete_keys(Box::new(DeleteKeys { identifiers: vec_nonempty!["id".to_string()] }))]
     #[case::disclose_recovery_code_pin_recovery(Box::new(DiscloseRecoveryCodePinRecovery { recovery_code_disclosure: "this.isan.sdjwt~".parse().unwrap() }))]
     fn test_instruction_validation_revoked_wallet(#[case] instruction: Box<dyn ValidateInstruction>) {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
@@ -2272,6 +2339,7 @@ mod tests {
     #[case(Box::new(ChangePinCommit {}), false)]
     #[case(Box::new(ChangePinRollback {}), false)]
     #[case(Box::new(CompleteTransfer { transfer_session_id: Uuid::new_v4() }), false)]
+    #[case(Box::new(DeleteKeys { identifiers: vec!["key1".to_string()].try_into().unwrap() }), false)]
     #[case(Box::new(GetTransferStatus { transfer_session_id: Uuid::new_v4() }), true)]
     fn validating_instructions_for_transferred_wallet_user(
         #[case] instruction: Box<dyn ValidateInstruction>,
