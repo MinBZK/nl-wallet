@@ -386,13 +386,13 @@ pub async fn start_disclosure(uri: String, is_qr_code: bool) -> anyhow::Result<S
 
 #[flutter_api_error]
 pub async fn start_close_proximity_disclosure(
-    sink: StreamSink<CloseProximityDisclosureFlutterUpdate>,
+    callback: impl Fn(CloseProximityDisclosureFlutterUpdate) -> DartFnFuture<()> + Send + Sync + 'static,
 ) -> anyhow::Result<String> {
     let mut wallet = wallet().write().await;
 
     let result = wallet
         .start_close_proximity_disclosure(Box::new(move |update| {
-            let _ = sink.add(update.into());
+            callback(update.into());
         }))
         .await?;
 

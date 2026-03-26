@@ -682,7 +682,7 @@ void frbgen_wallet_core_wire__crate__api__full__set_version_state_stream(int64_t
 void frbgen_wallet_core_wire__crate__api__full__skip_wallet_transfer(int64_t port_);
 
 void frbgen_wallet_core_wire__crate__api__full__start_close_proximity_disclosure(int64_t port_,
-                                                                                 struct wire_cst_list_prim_u_8_strict *sink);
+                                                                                 const void *callback);
 
 void frbgen_wallet_core_wire__crate__api__full__start_disclosure(int64_t port_,
                                                                  struct wire_cst_list_prim_u_8_strict *uri,

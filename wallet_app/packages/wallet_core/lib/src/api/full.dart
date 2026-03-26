@@ -112,8 +112,9 @@ Future<PidIssuanceResult> acceptPidIssuance({required String pin}) =>
 Future<StartDisclosureResult> startDisclosure({required String uri, required bool isQrCode}) =>
     WalletCore.instance.api.crateApiFullStartDisclosure(uri: uri, isQrCode: isQrCode);
 
-Stream<CloseProximityDisclosureFlutterUpdate> startCloseProximityDisclosure() =>
-    WalletCore.instance.api.crateApiFullStartCloseProximityDisclosure();
+Future<String> startCloseProximityDisclosure({
+  required FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) callback,
+}) => WalletCore.instance.api.crateApiFullStartCloseProximityDisclosure(callback: callback);
 
 Future<StartDisclosureResult> continueCloseProximityDisclosure() =>
     WalletCore.instance.api.crateApiFullContinueCloseProximityDisclosure();
