@@ -426,6 +426,7 @@ mod tests {
     #[rstest]
     #[case::ecdh_es(ValidPayload::new(), example_jwk_with_alg(EcdhAlgorithm::EcdhEs))]
     #[case::ecdh_es_a128kw(ValidPayload::new(), example_jwk_with_alg(EcdhAlgorithm::EcdhEsA128kw))]
+    #[case::ecdh_es_a192kw(ValidPayload::new(), example_jwk_with_alg(EcdhAlgorithm::EcdhEsA192kw))]
     #[case::ecdh_es_a256kw(ValidPayload::new(), example_jwk_with_alg(EcdhAlgorithm::EcdhEsA256kw))]
     #[case::no_kid(ValidPayload::new(), example_jwk_no_kid())]
     fn test_jwe_encrypter_ok<T>(
