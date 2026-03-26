@@ -47,6 +47,8 @@ variables:
       variables:
         CACHE_POLICY: pull-push
       when: manual
+      # jobs that have "when: manual" in rules are non optional in Gitlab CI/CD
+      allow_failure: true
 
 .merge-request:
   rules:
