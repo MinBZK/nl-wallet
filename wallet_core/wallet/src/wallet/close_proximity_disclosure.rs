@@ -86,9 +86,9 @@ fn spawn_listener(
                     session_transcript,
                     device_request,
                 } => {
-                    let current_state = session_state.lock().clone();
-                    if let CloseProximityDisclosureSessionState::Advertising = current_state {
-                        *session_state.lock() = CloseProximityDisclosureSessionState::SessionEstablished {
+                    let mut current_state = session_state.lock();
+                    if matches!(*current_state, CloseProximityDisclosureSessionState::Advertising) {
+                        *current_state = CloseProximityDisclosureSessionState::SessionEstablished {
                             session_transcript,
                             device_request,
                         };
