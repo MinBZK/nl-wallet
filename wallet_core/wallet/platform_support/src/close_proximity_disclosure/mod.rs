@@ -15,6 +15,7 @@ use crate::bridge::close_proximity_disclosure::CloseProximityDisclosureChannel;
 pub use crate::bridge::close_proximity_disclosure::CloseProximityDisclosureError;
 pub use crate::bridge::close_proximity_disclosure::CloseProximityDisclosureUpdate;
 
+#[cfg_attr(feature = "mock_close_proximity_disclosure", mockall::automock)]
 pub trait CloseProximityDisclosureClient {
     async fn start_qr_handover()
     -> Result<(String, mpsc::Receiver<CloseProximityDisclosureUpdate>), CloseProximityDisclosureError>;
