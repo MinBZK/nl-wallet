@@ -4,8 +4,6 @@ use chrono::Utc;
 use derive_more::Constructor;
 use derive_more::Debug;
 use futures::FutureExt;
-use josekit::jwk::alg::ec::EcCurve;
-use josekit::jwk::alg::ec::EcKeyPair;
 use parking_lot::Mutex;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
@@ -14,9 +12,11 @@ use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
-use crypto::utils as crypto_utils;
+use crypto::utils::random_string;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
+use jwe::algorithm::EcdhAlgorithm;
+use jwe::decryption::JweSecretKey;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
@@ -149,7 +149,7 @@ pub struct MockVerifierSession {
     pub credential_requests: NormalizedCredentialRequests,
     pub nonce: String,
     pub state: Option<String>,
-    pub encryption_keypair: EcKeyPair,
+    pub encryption_secret_key: JweSecretKey,
     pub client_id: String,
     pub request_uri: BaseUrl,
     pub request_uri_method: Option<VpRequestUriMethod>,
@@ -178,8 +178,8 @@ impl MockVerifierSession {
         };
 
         // Generate some OpenID4VP specific session material.
-        let nonce = crypto_utils::random_string(32);
-        let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let nonce = random_string(32);
+        let encryption_secret_key = JweSecretKey::new_random(Some(random_string(32)), EcdhAlgorithm::EcdhEs);
         let response_uri = verifier_url.join_base_url("response_uri");
         let client_id = format!(
             "x509_san_dns:{}",
@@ -196,7 +196,7 @@ impl MockVerifierSession {
             credential_requests,
             nonce,
             state: None,
-            encryption_keypair,
+            encryption_secret_key,
             client_id,
             request_uri,
             request_uri_method: Some(request_uri_method),
@@ -217,15 +217,11 @@ impl MockVerifierSession {
     }
 
     pub fn normalized_auth_request(&self, wallet_nonce: Option<String>) -> NormalizedVpAuthorizationRequest {
-        let mut encryption_jwk = self.encryption_keypair.to_jwk_public_key();
-        encryption_jwk.set_algorithm("ECDH-ES");
-        encryption_jwk.set_key_id(crypto_utils::random_string(32));
-
         let mut auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
             self.credential_requests.clone(),
             self.key_pair.certificate(),
             self.nonce.clone(),
-            encryption_jwk.try_into().unwrap(),
+            self.encryption_secret_key.to_jwe_public_key(),
             self.response_uri.clone(),
             wallet_nonce,
         );

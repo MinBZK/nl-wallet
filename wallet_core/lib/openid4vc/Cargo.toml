@@ -28,14 +28,7 @@ allow_insecure_url = ["http_utils/allow_insecure_url"]
 # Include mock implementations for testing
 mock = ["crypto/generate", "dep:mockall", "wscd/mock"]
 # Include miscellaneous test utilities
-test = [
-    "dep:assert_matches",
-    "dep:parking_lot",
-    "jwt/test",
-    "tokio/test-util",
-    "utils/mock_time",
-    "wscd/mock",
-]
+test = ["dep:assert_matches", "dep:parking_lot", "jwt/test", "tokio/test-util", "utils/mock_time", "wscd/mock"]
 # All features needed to run the integration test
 integration = ["example_constructors", "mock", "test"]
 # Credential payload examples
@@ -67,6 +60,7 @@ indexmap.workspace = true
 itertools.workspace = true
 josekit = { workspace = true, features = ["vendored"] }
 jsonwebtoken.workspace = true
+jwk-simple.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["serde"] }
@@ -99,6 +93,7 @@ crypto.path = "../crypto"
 dcql.path = "../dcql"
 error_category.path = "../error_category"
 http_utils = { path = "../http_utils", features = ["client"] }
+jwe.path = "../jwe"
 jwt.path = "../jwt"
 mdoc.path = "../mdoc"
 sd_jwt.path = "../sd_jwt"
