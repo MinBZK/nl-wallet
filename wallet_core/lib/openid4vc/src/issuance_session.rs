@@ -1631,9 +1631,9 @@ mod tests {
         let wscd = MockRemoteWscd::default();
 
         let session_state = new_session_state(if multiple_creds {
-            vec![preview_data.clone(), preview_data].try_into().unwrap()
+            vec_nonempty![preview_data.clone(), preview_data]
         } else {
-            vec![preview_data].try_into().unwrap()
+            vec_nonempty![preview_data]
         });
 
         let mut mock_msg_client = mock_openid_message_client();
@@ -1720,7 +1720,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(vec![preview_data.clone(), preview_data].try_into().unwrap()),
+            session_state: new_session_state(vec_nonempty![preview_data.clone(), preview_data]),
         }
         .accept_issuance(&[trust_anchor], &MockRemoteWscd::default(), false)
         .now_or_never()
@@ -1750,7 +1750,7 @@ mod tests {
         );
         let trust_anchor = signer.trust_anchor.clone();
 
-        let session_state = new_session_state(vec![preview_data].try_into().unwrap());
+        let session_state = new_session_state(vec_nonempty![preview_data]);
 
         let mut mock_msg_client = mock_openid_message_client();
 
@@ -1794,7 +1794,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(vec![preview_data].try_into().unwrap()),
+            session_state: new_session_state(vec_nonempty![preview_data]),
         }
         .accept_issuance(&[trust_anchor], &MockRemoteWscd::default(), false)
         .now_or_never()

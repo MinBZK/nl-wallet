@@ -1396,6 +1396,7 @@ pub(crate) mod tests {
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use test_storage::MockHardwareDatabaseStorage;
     use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_nonempty;
     use wallet_account::RevocationCode;
 
     use crate::attestation::AttestationValidity;
@@ -2406,7 +2407,7 @@ pub(crate) mod tests {
             sd_jwt: sd_jwt.clone(),
         };
 
-        let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential.clone()].try_into().unwrap());
+        let issued_copies = IssuedCredentialCopies::new_or_panic(vec_nonempty![credential.clone()]);
         let attestation_type = sd_jwt.claims().vct.clone();
 
         // Insert sd_jwts

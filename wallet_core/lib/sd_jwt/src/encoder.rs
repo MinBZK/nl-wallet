@@ -135,6 +135,7 @@ mod test {
     use serde_json::json;
 
     use attestation_types::claim_path::ClaimPath;
+    use utils::vec_nonempty;
 
     use crate::claims::ClaimName;
     use crate::claims::ObjectClaims;
@@ -184,7 +185,7 @@ mod test {
             )
             .unwrap();
         encoder
-            .conceal(vec![ClaimPath::SelectByKey(String::from("id"))].try_into().unwrap())
+            .conceal(vec_nonempty![ClaimPath::SelectByKey(String::from("id"))])
             .unwrap();
         encoder.add_decoys(&[], 10).unwrap();
         encoder
@@ -230,7 +231,7 @@ mod test {
             .unwrap();
 
         encoder
-            .conceal(vec![ClaimPath::SelectByKey(String::from("claim1"))].try_into().unwrap())
+            .conceal(vec_nonempty![ClaimPath::SelectByKey(String::from("claim1"))])
             .unwrap();
 
         assert!(
@@ -277,23 +278,17 @@ mod test {
         assert_matches!(
             encoder
                 .conceal(
-                    vec![ClaimPath::SelectByKey(String::from("claim12"))]
-                        .try_into()
-                        .unwrap()
+                    vec_nonempty![ClaimPath::SelectByKey(String::from("claim12"))]
                 )
                 .unwrap_err(),
             EncoderError::ClaimStructure(ClaimError::ObjectFieldNotFound(key, _)) if key == "claim12".parse().unwrap()
         );
         assert_matches!(
             encoder
-                .conceal(
-                    vec![
-                        ClaimPath::SelectByKey(String::from("claim12")),
-                        ClaimPath::SelectByIndex(0),
-                    ]
-                    .try_into()
-                    .unwrap(),
-                )
+                .conceal(vec_nonempty![
+                    ClaimPath::SelectByKey(String::from("claim12")),
+                    ClaimPath::SelectByIndex(0),
+                ])
                 .unwrap_err(),
             EncoderError::ClaimStructure(ClaimError::ParentNotFound(_))
         );

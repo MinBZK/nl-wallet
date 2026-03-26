@@ -66,6 +66,7 @@ use token_status_list::status_list_service::mock::MockStatusListServices;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use wscd::Poa;
 use wscd::PoaPayload;
 use wscd::mock_remote::MockRemoteWscd;
@@ -574,7 +575,7 @@ fn mock_type_metadata(vct: &str) -> TypeMetadata {
         claims: MOCK_ATTRS
             .iter()
             .map(|(key, _)| ClaimMetadata {
-                path: vec![ClaimPath::SelectByKey(key.to_string())].try_into().unwrap(),
+                path: vec_nonempty![ClaimPath::SelectByKey(key.to_string())],
                 display: vec![ClaimDisplayMetadata {
                     lang: "en".to_string(),
                     label: key.to_string(),

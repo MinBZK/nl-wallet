@@ -410,6 +410,7 @@ mod test {
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use utils::vec_at_least::NonEmptyIterator;
+    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
     use crate::VerifiedTypeMetadataDocuments;
@@ -429,8 +430,8 @@ mod test {
     use super::TypeMetadataDocuments;
 
     impl SortedTypeMetadata {
-        pub fn new_mock(chain: Vec<TypeMetadata>) -> Self {
-            Self(chain.try_into().unwrap())
+        pub fn new_mock(chain: VecNonEmpty<TypeMetadata>) -> Self {
+            Self(chain)
         }
 
         pub fn example_with_extensions() -> Self {
@@ -570,11 +571,8 @@ mod test {
 
     #[test]
     fn test_type_metadata_documents_error_excess_documents() {
-        let (_, documents) = TypeMetadataDocuments::example_with_extensions();
-        let TypeMetadataDocuments(documents_vec) = documents;
-        let mut json_documents = documents_vec.into_inner();
-        json_documents.push(PID_METADATA_BYTES.to_vec());
-        let documents = TypeMetadataDocuments::new(json_documents.try_into().unwrap());
+        let (_, mut documents) = TypeMetadataDocuments::example_with_extensions();
+        documents.0.push(PID_METADATA_BYTES.to_vec());
 
         let error = documents
             .into_normalized(VCT_EXAMPLE_CREDENTIAL_V3)

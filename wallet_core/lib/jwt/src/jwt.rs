@@ -838,7 +838,7 @@ impl From<VecNonEmpty<JsonJwtSignature>> for JsonJwtSignatures {
     fn from(signatures: VecNonEmpty<JsonJwtSignature>) -> Self {
         match signatures.len().get() {
             1 => Self::Flattened {
-                signature: signatures.into_inner().pop().unwrap(),
+                signature: signatures.into_first(),
             },
             _ => Self::General { signatures },
         }
@@ -1207,17 +1207,14 @@ mod tests {
             .unwrap()
             .into_unverified();
 
-        let json_jwt_one: JsonJwt<_> = VecNonEmpty::try_from(vec![jwt.clone()]).unwrap().try_into().unwrap();
+        let json_jwt_one: JsonJwt<_> = vec_nonempty![jwt.clone()].try_into().unwrap();
         assert_matches!(json_jwt_one.signatures, JsonJwtSignatures::Flattened { .. });
         let serialized = serde_json::to_string(&json_jwt_one).unwrap();
 
         let deserialized: JsonJwt<ToyMessage> = serde_json::from_str(&serialized).unwrap();
         assert_matches!(deserialized.signatures, JsonJwtSignatures::Flattened { .. });
 
-        let json_jwt_two: JsonJwt<_> = VecNonEmpty::try_from(vec![jwt.clone(), jwt.clone()])
-            .unwrap()
-            .try_into()
-            .unwrap();
+        let json_jwt_two: JsonJwt<_> = vec_nonempty![jwt.clone(), jwt.clone()].try_into().unwrap();
         assert_matches!(json_jwt_two.signatures, JsonJwtSignatures::General { .. });
         let serialized = serde_json::to_string(&json_jwt_two).unwrap();
         let deserialized: JsonJwt<ToyMessage> = serde_json::from_str(&serialized).unwrap();

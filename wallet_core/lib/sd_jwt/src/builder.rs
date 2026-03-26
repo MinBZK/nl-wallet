@@ -170,7 +170,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
     /// # use sd_jwt::builder::SdJwtBuilder;
     /// # use sd_jwt::sd_jwt::SdJwtVcClaims;
     /// # use utils::date_time_seconds::DateTimeSeconds;
-    /// # use utils::vec_at_least::VecNonEmpty;
+    /// # use utils::vec_nonempty;
     /// # use rand_core::OsRng;
     ///
     /// let builder = SdJwtBuilder::new(SdJwtVcClaims {
@@ -193,21 +193,17 @@ impl<H: Hasher> SdJwtBuilder<H> {
     ///     }))?,
     /// })
     /// // conceals "name": "alice"
-    /// .make_concealable(VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("name"))])?)?
+    /// .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("name"))])?
     /// // "house_number": 1
-    /// .make_concealable(VecNonEmpty::try_from(
-    ///     vec![
-    ///        ClaimPath::SelectByKey(String::from("address")),
-    ///        ClaimPath::SelectByKey(String::from("house_number"))
-    ///     ]
-    /// )?)?
+    /// .make_concealable(vec_nonempty![
+    ///     ClaimPath::SelectByKey(String::from("address")),
+    ///     ClaimPath::SelectByKey(String::from("house_number"))
+    /// ])?
     /// // conceals "Dutch"
-    /// .make_concealable(VecNonEmpty::try_from(
-    ///     vec![
-    ///        ClaimPath::SelectByKey(String::from("nationalities")),
-    ///        ClaimPath::SelectByIndex(0)
-    ///     ]
-    /// )?)?;
+    /// .make_concealable(vec_nonempty![
+    ///     ClaimPath::SelectByKey(String::from("nationalities")),
+    ///     ClaimPath::SelectByIndex(0)
+    /// ])?;
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// ```
     pub fn make_concealable(mut self, path: VecNonEmpty<ClaimPath>) -> Result<Self, EncoderError> {
@@ -249,6 +245,7 @@ mod examples {
     use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::KeyPair;
     use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_nonempty;
 
     use crate::sd_jwt::SdJwtVcClaims;
 
@@ -267,7 +264,7 @@ mod examples {
                         .unwrap(),
                 )
                 .unwrap()
-                .make_concealable(vec![ClaimPath::SelectByKey(String::from("bsn"))].try_into().unwrap())
+                .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("bsn"))])
                 .unwrap()
                 .add_decoys(&[], 2)
                 .unwrap()
@@ -371,6 +368,8 @@ mod test {
             use super::*;
 
             mod on_top_level {
+                use utils::vec_nonempty;
+
                 use crate::error::ClaimError;
 
                 use super::*;
@@ -378,7 +377,7 @@ mod test {
                 #[test]
                 fn returns_an_error_for_nonexistant_object_paths() {
                     let result = builder_from_json(json!({}))
-                        .make_concealable(vec![ClaimPath::SelectByKey(String::from("email"))].try_into().unwrap());
+                        .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("email"))]);
 
                     assert_matches!(result, Err(EncoderError::ClaimStructure(ClaimError::ObjectFieldNotFound(key, _))) if key == "email".parse().unwrap());
                 }

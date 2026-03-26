@@ -962,7 +962,7 @@ mod tests {
         // Setup a mock OpenID4VCI session.
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
             Some(purpose),
-            vec![AttestationPresentation::new_mock()].try_into().unwrap(),
+            vec_nonempty![AttestationPresentation::new_mock()],
             MockIssuanceSession::default(),
         )));
 
@@ -1033,7 +1033,7 @@ mod tests {
         };
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
             Some(PidIssuancePurpose::Enrollment),
-            vec![AttestationPresentation::new_mock()].try_into().unwrap(),
+            vec_nonempty![AttestationPresentation::new_mock()],
             pid_issuer,
         )));
 
@@ -1410,7 +1410,7 @@ mod tests {
         };
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
             Some(PidIssuancePurpose::Enrollment),
-            vec![AttestationPresentation::new_mock()].try_into().unwrap(),
+            vec_nonempty![AttestationPresentation::new_mock()],
             pid_issuer,
         )));
 
@@ -1675,7 +1675,7 @@ mod tests {
         };
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
             Some(PidIssuancePurpose::Enrollment),
-            vec![AttestationPresentation::new_mock()].try_into().unwrap(),
+            vec_nonempty![AttestationPresentation::new_mock()],
             pid_issuer,
         )));
 
@@ -1768,7 +1768,7 @@ mod tests {
         };
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
             Some(PidIssuancePurpose::Enrollment),
-            vec![AttestationPresentation::new_mock()].try_into().unwrap(),
+            vec_nonempty![AttestationPresentation::new_mock()],
             pid_issuer,
         )));
 
@@ -1975,7 +1975,7 @@ mod tests {
         };
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
             Some(PidIssuancePurpose::Enrollment),
-            vec![AttestationPresentation::new_mock()].try_into().unwrap(),
+            vec_nonempty![AttestationPresentation::new_mock()],
             pid_issuer,
         )));
 

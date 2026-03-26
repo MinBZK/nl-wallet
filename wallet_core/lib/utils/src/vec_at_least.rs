@@ -511,7 +511,7 @@ mod tests {
 
     #[test]
     fn test_vec_nonempty_index() {
-        let vec = VecNonEmpty::try_from(vec![1, 2, 3]).unwrap();
+        let vec = vec_nonempty![1, 2, 3];
         assert_eq!(vec[0], 1);
         assert_eq!(vec[1], 2);
         assert_eq!(vec[2], 3);

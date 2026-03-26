@@ -74,6 +74,7 @@ mod examples {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_nonempty;
 
     use crate::holder::Mdoc;
 
@@ -83,12 +84,10 @@ mod examples {
         ["bsn", "given_name", "family_name"]
             .iter()
             .map(|attr| {
-                vec![
+                vec_nonempty![
                     ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_string()),
                     ClaimPath::SelectByKey(attr.to_string()),
                 ]
-                .try_into()
-                .unwrap()
             })
             .collect()
     });
