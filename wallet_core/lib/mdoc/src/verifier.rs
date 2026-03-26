@@ -413,13 +413,10 @@ impl Document {
     ) -> Result<()> {
         let issuer_signature_alg = self.issuer_signed.issuer_auth.protected_header().alg.as_ref();
         match issuer_signature_alg {
-            Some(issuer_signature_alg) => {
-                if supported_algorithms.contains(issuer_signature_alg) {
-                    Ok(())
-                } else {
-                    Err(VerificationError::UnsupportedAlgorithm(issuer_signature_alg.clone()))?
-                }
+            Some(issuer_signature_alg) if !supported_algorithms.contains(issuer_signature_alg) => {
+                Err(VerificationError::UnsupportedAlgorithm(issuer_signature_alg.clone()))?
             }
+            Some(_) => Ok(()),
             None => Err(VerificationError::MissingAlgorithm)?,
         }
     }
@@ -434,13 +431,10 @@ impl Document {
         };
 
         match device_signature_alg {
-            Some(device_signature_alg) => {
-                if supported_algorithms.contains(device_signature_alg) {
-                    Ok(())
-                } else {
-                    Err(VerificationError::UnsupportedAlgorithm(device_signature_alg.clone()))?
-                }
+            Some(device_signature_alg) if !supported_algorithms.contains(device_signature_alg) => {
+                Err(VerificationError::UnsupportedAlgorithm(device_signature_alg.clone()))?
             }
+            Some(_) => Ok(()),
             None => Err(VerificationError::MissingAlgorithm)?,
         }
     }
