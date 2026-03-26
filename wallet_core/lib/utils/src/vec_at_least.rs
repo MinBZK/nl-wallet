@@ -20,7 +20,26 @@ pub use nonempty_collections::IntoNonEmptyIterator;
 pub use nonempty_collections::iter::NonEmptyIterator;
 
 #[derive(Debug, thiserror::Error)]
-pub enum VecAtLeastNError {
+#[error("{kind}")]
+pub struct VecAtLeastNError<T> {
+    inner: Vec<T>,
+
+    #[source]
+    kind: VecAtLeastNErrorKind,
+}
+
+impl<T> VecAtLeastNError<T> {
+    pub fn into_kind(self) -> VecAtLeastNErrorKind {
+        self.kind
+    }
+
+    pub fn into_inner(self) -> Vec<T> {
+        self.inner
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum VecAtLeastNErrorKind {
     #[error(
         "vector does not contain least {expected} {noun}, received {received}",
         noun=if *expected == 1 { "item" } else { "items" }
@@ -42,8 +61,9 @@ pub enum VecAtLeastNError {
 #[macro_export]
 macro_rules! vec_nonempty {
     // Version without type parameter (relies on type inference)
+    // .unwrap() requires `Debug` to be implemented for `T`, so `.unwrap_or_else` is used
     ($($x:expr),+ $(,)?) => (
-        $crate::vec_at_least::VecNonEmpty::try_from(vec![$($x),+]).unwrap()
+        $crate::vec_at_least::VecNonEmpty::try_from(vec![$($x),+]).unwrap_or_else(|_| panic!())
     );
 
     // Version with explicit type parameter
@@ -66,7 +86,7 @@ pub type VecAtLeastTwoUnique<T> = VecAtLeastN<T, 2, true>;
 pub struct VecAtLeastN<T, const N: usize, const UNIQUE: bool>(Vec<T>);
 
 impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
-    fn new(inner: Vec<T>) -> Result<Self, VecAtLeastNError> {
+    fn new(inner: Vec<T>) -> Result<Self, VecAtLeastNError<T>> {
         // Unfortunately this cannot be a compile time check on N, so
         // it is checked at runtime in the type's only constructor.
         assert!(N > 0, "minimum length N must be a positive integer");
@@ -77,9 +97,12 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
         if length >= N {
             Ok(Self(inner))
         } else {
-            Err(VecAtLeastNError::TooFewItems {
-                received: length,
-                expected: N,
+            Err(VecAtLeastNError {
+                inner,
+                kind: VecAtLeastNErrorKind::TooFewItems {
+                    received: length,
+                    expected: N,
+                },
             })
         }
     }
@@ -160,7 +183,7 @@ impl<A, const N: usize> Extend<A> for VecAtLeastN<A, N, false> {
 
 /// Should be used as the constructor for types where the uniqueness constraint is set.
 impl<T, const N: usize> TryFrom<Vec<T>> for VecAtLeastN<T, N, false> {
-    type Error = VecAtLeastNError;
+    type Error = VecAtLeastNError<T>;
 
     fn try_from(value: Vec<T>) -> Result<Self, Self::Error> {
         Self::new(value)
@@ -173,7 +196,7 @@ impl<T, const N: usize> TryFrom<Vec<T>> for VecAtLeastN<T, N, true>
 where
     T: Eq + Hash,
 {
-    type Error = VecAtLeastNError;
+    type Error = VecAtLeastNError<T>;
 
     fn try_from(value: Vec<T>) -> Result<Self, Self::Error> {
         // Perform the check on the number of items in the internal constructor.
@@ -181,7 +204,10 @@ where
 
         // Additionally check for uniqueness.
         if !vec_at_least.0.iter().all_unique() {
-            return Err(VecAtLeastNError::DuplicateItems);
+            return Err(VecAtLeastNError {
+                inner: vec_at_least.0,
+                kind: VecAtLeastNErrorKind::DuplicateItems,
+            });
         }
 
         Ok(vec_at_least)
@@ -332,7 +358,8 @@ impl<T> FromNonEmptyIterator<T> for VecNonEmpty<T> {
     where
         I: IntoNonEmptyIterator<Item = T>,
     {
-        VecNonEmpty::new(iter.into_iter().collect::<Vec<_>>()).unwrap()
+        // .unwrap() requires `Debug` to be implemented for `T`, so `.unwrap_or_else` is used
+        VecNonEmpty::new(iter.into_iter().collect::<Vec<_>>()).unwrap_or_else(|_| unreachable!())
     }
 }
 
@@ -342,7 +369,7 @@ impl<T> Singleton for VecNonEmpty<T> {
     type Item = T;
 
     fn singleton(item: Self::Item) -> Self {
-        VecNonEmpty::try_from(vec![item]).unwrap()
+        vec_nonempty![item]
     }
 }
 

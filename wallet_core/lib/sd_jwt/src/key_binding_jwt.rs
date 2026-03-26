@@ -194,7 +194,7 @@ impl KeyBindingJwtBuilder {
             })
             .collect::<Result<Vec<_>, KeyBindingError>>()?
             .try_into()
-            .unwrap();
+            .unwrap_or_else(|_| unreachable!()); // The source is non-empty, so this is unreachable
 
         // Create JWTs from all of these by having the WSCD sign the `KeyBindingJwtClaims` values.
         let (signed_jwts, poa) = SignedJwt::sign_multiple(

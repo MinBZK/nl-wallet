@@ -479,9 +479,9 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
             })
             .collect::<Result<Vec<_>, JwtError>>()?
             .try_into()
-            // We can unwrap to `VecNonEmpty` safely here, as the source iterator for `headers_and_payloads`
-            // is non-empty and we check the count of the returned signatures.
-            .unwrap();
+            // this is unreachable as the source iterator for `headers_and_payloads` is non-empty and we check the count
+            // of the returned signatures.
+            .unwrap_or_else(|_| unreachable!());
 
         Ok((jwts, poa))
     }
