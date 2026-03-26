@@ -141,6 +141,7 @@ mod tests {
     use openid4vc::mock::MockIssuanceSession;
     use utils::vec_nonempty;
 
+    use crate::AttestationPresentation;
     use crate::PidIssuancePurpose;
     use crate::errors::InstructionError;
     use crate::storage::StorageState;

@@ -55,8 +55,8 @@ pub enum VecAtLeastNErrorKind {
 /// ```
 /// use utils::vec_nonempty;
 ///
-/// let vec1 = vec_nonempty![1, 2, 3]; // Creates a VecNonEmpty<i32>
-/// let vec2 = vec_nonempty![u8; 1, 2, 3]; // Creates a VecNonEmpty<u8> by explicitly stating the type
+/// let vec1 = vec_nonempty![1, 2, 3]; // Creates a `VecNonEmpty<i32>`
+/// let vec2 = vec_nonempty![1; 3]; // Creates a `VecNonEmpty<i32>` with 3 times the element 1, similar to `vec![1; 3]`
 /// ```
 #[macro_export]
 macro_rules! vec_nonempty {
@@ -66,11 +66,10 @@ macro_rules! vec_nonempty {
         $crate::vec_at_least::VecNonEmpty::try_from(vec![$($x),+]).unwrap_or_else(|_| panic!())
     );
 
-    // Version with explicit type parameter
-    ($t:ty; $($x:expr),+ $(,)?) => {{
-        let vec: Vec<$t> = vec![$($x),+];
-        <Vec<$t> as TryInto<$crate::vec_at_least::VecNonEmpty<$t>>>::try_into(vec).unwrap()
-    }};
+    // Version with length parameter
+    ($x:expr; $l:expr) => (
+        $crate::vec_at_least::VecNonEmpty::try_from(vec![$x; $l]).unwrap_or_else(|_| panic!())
+    );
 }
 
 // These should cover the most common use cases of `VecAtLeastN`.
@@ -469,8 +468,9 @@ mod tests {
 
     #[test]
     fn test_vec_nonempty_macro() {
-        let uints = vec_nonempty![u32; 1, 2, 3];
-        assert_eq!(1, *uints.first());
+        let uints = vec_nonempty![1; 3];
+        assert_eq!(3, uints.len().get());
+        assert_eq!(vec![1, 1, 1], uints.0);
 
         let str_slices = vec_nonempty!["a", "b"];
         assert_eq!("a", *str_slices.first());
