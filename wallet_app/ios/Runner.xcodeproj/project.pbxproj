@@ -10,6 +10,7 @@
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		61723C812BADC2280030B4DE /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 61723C802BADC2280030B4DE /* PrivacyInfo.xcprivacy */; };
+		61F1A0012F7A000100A1B2C3 /* Multipaz in Frameworks */ = {isa = PBXBuildFile; productRef = 61F1A0042F7A000100A1B2C3 /* Multipaz */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		891BDE760E7FA86877ED2FC8 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 862C9931D126E4BFA4F24595 /* Pods_Runner.framework */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
@@ -86,6 +87,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				61F1A0012F7A000100A1B2C3 /* Multipaz in Frameworks */,
 				B96C8A6329E5792500470EBE /* libPlatformSupport.a in Frameworks */,
 				891BDE760E7FA86877ED2FC8 /* Pods_Runner.framework in Frameworks */,
 			);
@@ -206,6 +208,9 @@
 			dependencies = (
 			);
 			name = Runner;
+			packageProductDependencies = (
+				61F1A0042F7A000100A1B2C3 /* Multipaz */,
+			);
 			productName = Runner;
 			productReference = 97C146EE1CF9000F007C117D /* Runner.app */;
 			productType = "com.apple.product-type.application";
@@ -234,6 +239,9 @@
 				Base,
 			);
 			mainGroup = 97C146E51CF9000F007C117D;
+			packageReferences = (
+				61F1A0032F7A000100A1B2C3 /* XCRemoteSwiftPackageReference "multipaz" */,
+			);
 			productRefGroup = 97C146EF1CF9000F007C117D /* Products */;
 			projectDirPath = "";
 			projectReferences = (
@@ -695,6 +703,17 @@
 		};
 /* End XCBuildConfiguration section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		61F1A0032F7A000100A1B2C3 /* XCRemoteSwiftPackageReference "multipaz" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/openwallet-foundation/multipaz";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 0.96.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCConfigurationList section */
 		97C146E91CF9000F007C117D /* Build configuration list for PBXProject "Runner" */ = {
 			isa = XCConfigurationList;
@@ -717,6 +736,14 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		61F1A0042F7A000100A1B2C3 /* Multipaz */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 61F1A0032F7A000100A1B2C3 /* XCRemoteSwiftPackageReference "multipaz" */;
+			productName = Multipaz;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 97C146E61CF9000F007C117D /* Project object */;
 }
