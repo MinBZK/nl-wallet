@@ -4,8 +4,10 @@ env:
   - name: "Default Context"
     urls:
     - "${VERIFICATION_SERVER_URL}"
+    - "${INTERNAL_VERIFICATION_SERVER_URL}"
     includePaths:
     - "${VERIFICATION_SERVER_URL}.*"
+    - "${INTERNAL_VERIFICATION_SERVER_URL}.*"
     excludePaths: []
     authentication:
       parameters: {}
@@ -53,6 +55,20 @@ jobs:
       evidence: ""
       evidenceRegex: false
       methods: []
+# False positive analysis in PVW-5754 showed that this is not a vulnerability
+    - ruleId: "10205"
+      ruleName: "HTTPS Security Configuration Issues (10205)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
   parameters:
     deleteGlobalAlerts: false
   name: "alertFilter"
@@ -67,12 +83,10 @@ jobs:
   name: "passiveScan-config"
   type: "passiveScan-config"
 - parameters:
-    apiFile: "merged-public-wallet-disclosure.openapi.yaml"
-    apiUrl: ""
-    targetUrl: ""
-    context: "Default Context"
-  name: "openapi"
-  type: "openapi"
+    type: "url"
+    fileName: "VERIFICATION_SERVER_urls.txt"
+  name: "import"
+  type: "import"
 - parameters: {}
   name: "passiveScan-wait"
   type: "passiveScan-wait"
@@ -86,7 +100,7 @@ jobs:
     theme: "console"
     reportDir: "${CI_PROJECT_DIR}/zapreports"
     reportFile: ""
-    reportTitle: "PUBLIC_VERIFICATION_SERVER ZAP Scanning Report"
+    reportTitle: "VERIFICATION_SERVER ZAP Scanning Report"
     reportDescription: ""
     displayReport: false
   risks:
@@ -112,8 +126,8 @@ jobs:
 - parameters:
     template: "traditional-xml"
     reportDir: "${CI_PROJECT_DIR}/zapreports"
-    reportFile: "PUBLIC_VERIFICATION_SERVER-zap.xml"
-    reportTitle: "PUBLIC_VERIFICATION_SERVER ZAP Scanning Report"
+    reportFile: "VERIFICATION_SERVER-zap.xml"
+    reportTitle: "VERIFICATION_SERVER ZAP Scanning Report"
     reportDescription: ""
     displayReport: false
   risks:
@@ -133,8 +147,8 @@ jobs:
 - parameters:
     template: "traditional-json"
     reportDir: "${CI_PROJECT_DIR}/zapreports"
-    reportFile: "PUBLIC_VERIFICATION_SERVER-zap.json"
-    reportTitle: "PUBLIC_VERIFICATION_SERVER ZAP Scanning Report"
+    reportFile: "VERIFICATION_SERVER-zap.json"
+    reportTitle: "VERIFICATION_SERVER ZAP Scanning Report"
     reportDescription: ""
     displayReport: false
   risks:

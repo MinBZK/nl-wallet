@@ -93,7 +93,7 @@ intended for a production environment, more stringent rules might apply.
 <div class="admonition note">
 <p class="title">When you work on eventual production readiness</p>
 If you plan to eventually bring your issuer into production readiness, you might
-want to consider our [onboarding][11] process. When you are a member of the NL
+want to consider our [onboarding][10] process. When you are a member of the NL
 Wallet community, you have access to community resources that can help with
 validation of your TAS, `issuer_auth`, `reader_auth` and `issuance_server`
 configuration files.
@@ -323,7 +323,7 @@ regards to attributes you want to issue, what data we require from you, how to
 create an issuer certificate for your disclosure-based issuance setup (which is
 configured for usage within the `issuance_server` configuration).
 
-In this guide, we assume you have [onboarded succesfully][11] - i.e., you are
+In this guide, we assume you have [onboarded succesfully][10] - i.e., you are
 running your own CA and the public key of that CA has been shared with the
 operations team who will need to add your CA public key to the trust anchors of
 the app.
@@ -421,7 +421,7 @@ regards to attributes you want to verify, what data we require from you, how to
 create a reader certificate for your usecase (which is configured for usage
 within the `verification_server` configuration).
 
-In this guide, we assume you have [onboarded succesfully][11] - i.e., you are
+In this guide, we assume you have [onboarded succesfully][10] - i.e., you are
 running your own CA and the public key of that CA has been shared with the
 operations team who will need to add your CA public key to the trust anchors of
 the app.
@@ -436,7 +436,7 @@ do need to be onboarded to get access to those environments.
 
 <div class="admonition note">
 <p class="title">This chapter is also a part of creating a verifier</p>
-Note that when you've also [created a verifier][31], this section will look
+Note that when you've also [created a verifier][23], this section will look
 familiar to you; that is because an issuer, like a verifier, needs a reader
 authentication document. This is because of how disclosure-based-issuance works:
 with disclosure-based-issuance, an issuer is essentially also a verifier (i.e.,
@@ -481,7 +481,7 @@ to know or otherwise get your hands on the JSON documents that define the claim
 paths that belong to a given `vct` (a Verifiable Credential Type).
 
 For our own issuer(s), you can have a look at our
-[supported authorized attributes][32] document for an overview of claim paths
+[supported authorized attributes][24] document for an overview of claim paths
 you can use, and some background information on how the `authorizedAttributes`
 object works.
 
@@ -574,7 +574,7 @@ format.
 <div class="admonition caution">
 <p class="title">Do you have a working toolchain?</p>
 Make sure you have a working toolchain as documented in our GitHub project root
-`README.md` [here][19]. Specifically, you need to have `rust` and `openssl`
+`README.md` [here][12]. Specifically, you need to have `rust` and `openssl`
 installed and working.
 </div>
 
@@ -591,7 +591,7 @@ should have, if you followed along with the previous sections where we created
 You need a CA certificate and key. By default, when you're running locally, the
 `setup-devenv.sh` script will have created these for you. You can also opt to
 create your own custom self-signed CA certificate and key, which is documented
-in the [Create a CA][27] document, and which is required if you need to
+in the [Create a CA][19] document, and which is required if you need to
 participate in the NL Wallet community platform.
 </div>
 
@@ -602,7 +602,7 @@ You can test your issuer locally (more or less exactly like we do with our
 our git repository. But if you want to test your issuer with the NL Wallet
 platform (i.e., the NL Wallet apps on our Test Flight and Play Store Beta
 environments plus backends), you will need to have succesfully completed the
-[onboarding][11] process.
+[onboarding][10] process.
 </div>
 
 ```shell
@@ -672,12 +672,12 @@ generated CA certificate is automatically added to the trust anchors within the
 configuration files of `pid_issuer`, `demo_issuer`, `verification_server`,
 `issuance_server`, `demo_relying_party` and the NL Wallet app config.
 
-When you [create your own CA][27], you need to make sure the public key of your
+When you [create your own CA][19], you need to make sure the public key of your
 CA is in the relevant trust anchor configuration settings. When you are a
-member of the [NL Wallet community][11], and so using NL Wallet managed backend
+member of the [NL Wallet community][10], and so using NL Wallet managed backend
 services and mobile apps, this is done for you (i.e., you just need to sign
 your issuer certificate with your CA, which the `wallet_ca` utility invocation
-above did for you, and during the NL Wallet community [onboarding][11] process
+above did for you, and during the NL Wallet community [onboarding][10] process
 you shared your CA certificate with the operations team who ensure your CA is
 in the various trust anchor lists).
 
@@ -696,9 +696,9 @@ file.
 ### Obtaining the software
 
 The `issuance_server` binary can be obtained by downloading a pre-compiled
-binary from our [releases][20] page, or by compiling from source. To compile
+binary from our [releases][13] page, or by compiling from source. To compile
 from source, make sure you have our git repository checked out and make sure
-you've [configured your local development environment][19]. Then:
+you've [configured your local development environment][12]. Then:
 
 ```shell
 cd nl-wallet
@@ -758,8 +758,8 @@ and the hostname of the system running the PostgreSQL database (can be localhost
 or any fully-qualified domain name).
 
 When you don't have a PostgreSQL database service running, you can create one
-following the [installation instructions][22] or you can use something like
-[docker][23] to run a containerized PostgreSQL service, which we'll document
+following the [installation instructions][14] or you can use something like
+[docker][15] to run a containerized PostgreSQL service, which we'll document
 here.
 
 <div class="admonition note">
@@ -851,7 +851,7 @@ the actual `issuance_server.toml` file.
 
 <div class="admonition note">
 <p class="title">Example configuration file</p>
-For reference, we have an annotated [example configuration file][24] which you
+For reference, we have an annotated [example configuration file][16] which you
 can check for the various settings you can configure. We cover most (all?) of
 them here.
 </div>
@@ -880,7 +880,7 @@ EOF
 
 <div class="admonition note">
 <p class="title">Optional runtime logging using env_logger</p>
-In addition to the above, the NL Wallet uses [env_logger][17], which means you
+In addition to the above, the NL Wallet uses [env_logger][11], which means you
 can use the `RUST_LOG` environment variable when running `issuance_server`
 later on. For example, to run with debug log output, you can prefix the command
 with the `RUST_LOG` environment variable: `RUST_LOG=debug ./issuance_server`
@@ -890,8 +890,8 @@ with the `RUST_LOG` environment variable: `RUST_LOG=debug ./issuance_server`
 
 [When you created the issuer, reader and tsl certificates](#creating-issuer-reader-and-tsl-certificates),
 you signed those certificates using a CA, either generated by the development
-setup script or specifically [created by you][27] as part of the (optional)
-[community onboarding process][11].
+setup script or specifically [created by you][19] as part of the (optional)
+[community onboarding process][10].
 
 The `issuance_server` distinguishes two kinds of trust anchors:
 
@@ -910,14 +910,14 @@ We need to trust our own CA, whether it is created by the development setup
 scripts or explicitly by you. The development scripts create a separate CA for
 issuers and readers (usually at `scripts/devenv/target/ca.issuer.crt.der` and
 `scripts/devenv/target/ca.reader.crt.der`). When you create and use your own
-CA for community development purposes as [documented here][27], you can use that
+CA for community development purposes as [documented here][19], you can use that
 CA generally for signing both issuance and reader certificates, and hence, add
 it to both the issuer and reader trust anchors.
 
 The below code block will initialize the issuer and reader trust anchor
 environment variables with the CA certificates it can find, both generated by
 development scripts and any you created yourself, provided you [followed the CA
-creation instructions to the letter][27] and used the naming convention
+creation instructions to the letter][19] and used the naming convention
 documented there which means you would have a `target/ca-cert` directory with
 your CA certificates in DER format there. The code block assumes you have the
 `nl-wallet` git repository checked out.
@@ -979,7 +979,7 @@ on the link or scans the QR code.
 A universal link base URL is usually associated with a specific backend
 environment like pre-production or testing. When you're integrating with the
 NL Wallet platform, you would use a universal link base URL that was provided
-to you as part of our community [onboarding][11] process.
+to you as part of our community [onboarding][10] process.
 
 ```shell
 cd nl-wallet
@@ -993,8 +993,8 @@ EOF
 <p class="title">Make sure your domain is configured correctly</p>
 You as the owner of the domain (`example.com` in the above example setting)
 need to make sure the domain is configured correctly for universal links to
-work correctly. On Apple iOS devices this is done with [associated domains][25].
-On Google Android this is configured using [app links][26].
+work correctly. On Apple iOS devices this is done with [associated domains][17].
+On Google Android this is configured using [app links][18].
 </div>
 
 #### Configuring allowed client IDs
@@ -1124,7 +1124,7 @@ EOF
 <p class="title">Make sure you specify a correct library path</p>
 The HSM functionality depends on a PKCS#11 compatible shared library which will
 have been provided by your HSM vendor. Technically you can also use any PKCS#11
-implementation here. For development purposes we test with the [softhsm2][28]
+implementation here. For development purposes we test with the [softhsm2][20]
 library, which is usually called something like `libsofthsm2.so` (the path
 location and filename extension differs per operating system and/or packaging
 environment).
@@ -1218,7 +1218,7 @@ unset BASE64 IDENTIFIER
 
 ##### The DCQL query credentials
 
-Add the [DCQL query credentials][29] (note, the double brackets, i.e., `[[`,
+Add the [DCQL query credentials][21] (note, the double brackets, i.e., `[[`,
 and `]]`, are intentional):
 
 ```shell
@@ -1347,9 +1347,7 @@ cd nl-wallet/target/is-config
 ```
 
 If all went well, the server is now running and ready to serve requests. To test
-the service, you can send session initiation and status requests to it (check
-out the [API specifications](#issuer-api-specifications) section for how to do
-that).
+the service, you can send session initiation and status requests to it.
 
 Make sure to consider your [logging settings](#logging-settings-optional) if you
 need to troubleshoot.
@@ -1374,14 +1372,6 @@ performed:
 If this process discovers any configuration errors, the application will report
 an error and abort. For more insights into this process,
 [enable logging](#logging-settings-optional).
-
-## Issuer API specifications
-
-The API specifications for the issuer endpoints are available in the
-`wallet_docs/openapi` part of of the git repository.
-
-Have a look at the [OpenAPI Specifications][30] section to learn how to open
-and use these.
 
 ## Integrating your app with your issuance server
 
@@ -1430,18 +1420,18 @@ a UL within it) of a specific format. To create this UL, proceed as follows.
 [7]: ../architecture/use-cases/issuance-with-openid4vci
 [8]: ../architecture/use-cases/disclosure-based-issuance
 [9]: create-a-verifier
-[11]: ../community/onboarding
-[17]: https://docs.rs/env_logger/latest/env_logger/#enabling-logging
-[19]: https://github.com/MinBZK/nl-wallet#user-content-development-requirements
-[20]: https://github.com/MinBZK/nl-wallet/releases
-[22]: https://www.postgresql.org/download/
-[23]: https://www.docker.com/
-[24]: https://github.com/MinBZK/nl-wallet/blob/main/wallet_core/wallet_server/issuance_server/issuance_server.example.toml
-[25]: https://developer.apple.com/documentation/xcode/supporting-associated-domains
-[26]: https://developer.android.com/training/app-links
-[27]: ../community/create-a-ca
-[28]: https://github.com/softhsm/SoftHSMv2
-[29]: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-digital-credentials-query-l
-[30]: ../development/openapi-specifications
-[31]: create-a-verifier
-[32]: ../development/authorized-attributes
+[10]: ../community/onboarding
+[11]: https://docs.rs/env_logger/latest/env_logger/#enabling-logging
+[12]: https://github.com/MinBZK/nl-wallet#user-content-development-requirements
+[13]: https://github.com/MinBZK/nl-wallet/releases
+[14]: https://www.postgresql.org/download/
+[15]: https://www.docker.com/
+[16]: https://github.com/MinBZK/nl-wallet/blob/main/wallet_core/wallet_server/issuance_server/issuance_server.example.toml
+[17]: https://developer.apple.com/documentation/xcode/supporting-associated-domains
+[18]: https://developer.android.com/training/app-links
+[19]: ../community/create-a-ca
+[20]: https://github.com/softhsm/SoftHSMv2
+[21]: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-digital-credentials-query-l
+[22]: ../development/openapi-specifications
+[23]: create-a-verifier
+[24]: ../development/authorized-attributes

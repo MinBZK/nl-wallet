@@ -1,0 +1,5 @@
+${VERIFICATION_SERVER_URL}disclosure/sessions/${session_token}
+${VERIFICATION_SERVER_URL}disclosure/sessions/${session_token}/request_uri
+${VERIFICATION_SERVER_URL}disclosure/sessions/${session_token}/response_uri
+${INTERNAL_VERIFICATION_SERVER_URL}disclosure
+${INTERNAL_VERIFICATION_SERVER_URL}disclosure/${session_token}/disclosed_attributes

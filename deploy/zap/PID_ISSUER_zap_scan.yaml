@@ -4,8 +4,10 @@ env:
   - name: "Default Context"
     urls:
     - "${PID_ISSUER_URL}"
+    - "${INTERNAL_PID_ISSUER_URL}"
     includePaths:
     - "${PID_ISSUER_URL}.*"
+    - "${INTERNAL_PID_ISSUER_URL}.*"
     excludePaths: []
     authentication:
       parameters: {}
@@ -26,6 +28,20 @@ env:
 jobs:
 - alertFilters:
 # False positive analysis in PVW-3375 showed that this is not a vulnerability
+    - ruleId: "90028"
+      ruleName: "Insecure HTTP Method - DELETE (90028)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
+# False positive analysis in PVW-3375 showed that this is not a vulnerability
     - ruleId: "40025"
       ruleName: "Proxy Disclosure (40025)"
       context: ""
@@ -38,7 +54,7 @@ jobs:
       attackRegex: false
       evidence: ""
       evidenceRegex: false
-      methods: [ ]
+      methods: []
 # False positive analysis in PVW-5701 showed that this is not a vulnerability
     - ruleId: "90018"
       ruleName: "Advanced SQL Injection (90018)"
@@ -52,7 +68,7 @@ jobs:
       attackRegex: false
       evidence: ""
       evidenceRegex: false
-      methods: [ ]
+      methods: []
 # False positive analysis in PVW-5701 showed that this is not a vulnerability
     - ruleId: "40033"
       ruleName: "NoSQL Injection (40033)"
@@ -66,7 +82,7 @@ jobs:
       attackRegex: false
       evidence: ""
       evidenceRegex: false
-      methods: [ ]
+      methods: []
 # False positive analysis in PVW-5701 showed that this is not a vulnerability
     - ruleId: "40018"
       ruleName: "SQL Injection (40018)"
@@ -80,32 +96,44 @@ jobs:
       attackRegex: false
       evidence: ""
       evidenceRegex: false
-      methods: [ ]
+      methods: []
+# False positive analysis in PVW-5754 showed that this is not a vulnerability
+    - ruleId: "10205"
+      ruleName: "HTTPS Security Configuration Issues (10205)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
   parameters:
     deleteGlobalAlerts: false
   name: "alertFilter"
   type: "alertFilter"
 - parameters:
+    maxAlertsPerRule: 0
+    scanOnlyInScope: true
+    maxBodySizeInBytesToScan: 0
+    enableTags: false
+    disableAllRules: false
+  rules: []
+  name: "passiveScan-config"
+  type: "passiveScan-config"
+- parameters:
     type: "url"
     fileName: "PID_ISSUER_urls.txt"
   name: "import"
   type: "import"
-- parameters:
-    context: "Default Context"
-    user: ""
-    policy: ""
-    maxRuleDurationInMins: 0
-    maxScanDurationInMins: 0
-    addQueryParam: true
-    delayInMs: 0
-    handleAntiCSRFTokens: true
-    injectPluginIdInHeader: true
-    scanHeadersAllRequests: true
-    threadPerHost: 24
-    maxAlertsPerRule: 0
+- parameters: {}
+  name: "passiveScan-wait"
+  type: "passiveScan-wait"
+- parameters: {}
   policyDefinition:
-    defaultStrength: "medium"
-    defaultThreshold: "medium"
     rules: []
   name: "activeScan"
   type: "activeScan"
@@ -114,7 +142,7 @@ jobs:
     theme: "console"
     reportDir: "${CI_PROJECT_DIR}/zapreports"
     reportFile: ""
-    reportTitle: "PID_ISSUER ZAP Scanning Report"
+    reportTitle: "VERIFICATION_SERVER ZAP Scanning Report"
     reportDescription: ""
     displayReport: false
   risks:

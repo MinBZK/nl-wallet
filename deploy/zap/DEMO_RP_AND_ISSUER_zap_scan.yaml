@@ -114,8 +114,6 @@ jobs:
     threadPerHost: 24
     maxAlertsPerRule: 0
   policyDefinition:
-    defaultStrength: "medium"
-    defaultThreshold: "medium"
     rules: []
   name: "activeScan"
   type: "activeScan"
