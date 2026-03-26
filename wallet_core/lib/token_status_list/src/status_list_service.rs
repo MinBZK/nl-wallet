@@ -195,4 +195,25 @@ pub mod mock {
             Ok(claims)
         }
     }
+
+    impl StatusListRevocationService for MockStatusListService {
+        async fn republish_all(&self, _force: bool) -> Result<(), RevocationError> {
+            Ok(())
+        }
+
+        async fn revoke_attestation_batches(&self, _batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
+            Ok(())
+        }
+
+        async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError> {
+            Ok(BatchIsRevoked {
+                batch_id,
+                is_revoked: false,
+            })
+        }
+
+        async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError> {
+            Ok(vec![])
+        }
+    }
 }

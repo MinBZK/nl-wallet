@@ -149,7 +149,8 @@ impl From<WalletProviderError> for AccountError {
                 | InstructionError::Poa(_)
                 | InstructionError::PopSigning(_)
                 | InstructionError::JwkConversion(_)
-                | InstructionError::ObtainStatusClaim(_) => Self::Unexpected,
+                | InstructionError::ObtainStatusClaim(_)
+                | InstructionError::SystemRevocationError(_) => Self::Unexpected,
             },
             WalletProviderError::Hsm(_) => Self::Unexpected,
             WalletProviderError::Wua(_) => Self::Unexpected,

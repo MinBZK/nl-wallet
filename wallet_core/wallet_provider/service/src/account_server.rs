@@ -125,6 +125,7 @@ use crate::instructions::perform_issuance_with_wua;
 use crate::keys::InstructionResultSigningKey;
 use crate::keys::WalletCertificateSigningKey;
 use crate::pin_policy::PinRecoveryPinPolicy;
+use crate::revocation::RevocationError;
 use crate::wallet_certificate::new_wallet_certificate;
 use crate::wallet_certificate::parse_and_verify_wallet_cert_using_hw_pubkey;
 use crate::wallet_certificate::verify_wallet_certificate;
@@ -311,6 +312,9 @@ pub enum InstructionError {
 
     #[error("wallet solution revoked")]
     WalletSolutionRevoked,
+
+    #[error("system revocation error: {0}")]
+    SystemRevocationError(#[from] RevocationError),
 }
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
