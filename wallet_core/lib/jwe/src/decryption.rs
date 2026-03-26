@@ -29,7 +29,7 @@ use crate::encryption::JwePublicKey;
 )]
 struct PemSecretKey(SecretKey);
 
-/// Wraps a P-256 EC secret key, anoptional `kid` value and a JWE algorithm. This type is meant to be converted to a
+/// Wraps a P-256 EC secret key, an optional `kid` value and a JWE algorithm. This type is meant to be converted to a
 /// [`JwePublicKey`], which can then be converted to a JWK in the form of a [`jwk_simple::jwk::Key`] and sent to
 /// another party. JWEs from this other party can then be decrypted by converting it into a [`JweDecrypter`].
 #[serde_as]

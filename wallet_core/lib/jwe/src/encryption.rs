@@ -59,7 +59,7 @@ pub enum JwePublicKeyError {
 )]
 struct PemPublicKey(PublicKey);
 
-/// Wraps a P-256 EC public key, anoptional `kid` value and a JWE algorithm. This type is meant to be converted from a
+/// Wraps a P-256 EC public key, an optional `kid` value and a JWE algorithm. This type is meant to be converted from a
 /// JWK in the form of a [`Key`] type and used as key derivation input for encrypting a JWE.
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]

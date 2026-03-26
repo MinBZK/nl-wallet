@@ -95,7 +95,7 @@ pub enum TransferError {
     #[category(pd)]
     Encryption(#[source] JweEncrypterError),
 
-    #[error("could not encrypt database payload: {0}")]
+    #[error("could not decrypt database payload: {0}")]
     #[category(pd)]
     Decryption(#[source] JweDecrypterError),
 
