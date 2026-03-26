@@ -245,7 +245,7 @@ fi
 if [[ $DIGID_CONNECTOR == '0' || $POSTGRES == '0' || $BRP_PROXY == '0' ]]; then
     have docker
 fi
-if [[ $WALLET == '1' ]]; then
+if [[ $WALLET == '0' ]]; then
     have flutter
 fi
 

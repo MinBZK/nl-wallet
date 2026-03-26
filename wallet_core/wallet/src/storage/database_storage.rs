@@ -1131,6 +1131,51 @@ where
 
         Ok(())
     }
+
+    async fn fetch_type_and_key_identifiers_by_attestation_id(
+        &self,
+        attestation_id: Uuid,
+    ) -> StorageResult<Option<(String, Vec<String>)>> {
+        let connection = self.database()?.connection();
+
+        let Some(attestation_type) = attestation::Entity::find_by_id(attestation_id)
+            .select_only()
+            .column(attestation::Column::AttestationType)
+            .into_tuple::<String>()
+            .one(connection)
+            .await?
+        else {
+            return Ok(None);
+        };
+
+        let key_identifiers = attestation_copy::Entity::find()
+            .select_only()
+            .column(attestation_copy::Column::KeyIdentifier)
+            .filter(attestation_copy::Column::AttestationId.eq(attestation_id))
+            .into_tuple()
+            .all(connection)
+            .await?;
+
+        Ok(Some((attestation_type, key_identifiers)))
+    }
+
+    async fn delete_attestation(&mut self, attestation_id: Uuid) -> StorageResult<()> {
+        let tx = self.database()?.connection().begin().await?;
+
+        attestation_copy::Entity::delete_many()
+            .filter(attestation_copy::Column::AttestationId.eq(attestation_id))
+            .exec(&tx)
+            .await?;
+
+        attestation::Entity::delete_by_id(attestation_id).exec(&tx).await?;
+
+        // Leave the history events of the deleted attestations in place.
+        // Their `attestation_id` is set to NULL automatically by the foreign key action.
+
+        tx.commit().await?;
+
+        Ok(())
+    }
 }
 
 fn create_attestation_copy_models(
@@ -2264,54 +2309,8 @@ pub(crate) mod tests {
                 .unwrap()
         );
 
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
-        let credential = IssuedCredential::SdJwt {
-            key_identifier: "sd_jwt_key_id".to_string(),
-            sd_jwt: sd_jwt.clone(),
-        };
-
-        let issued_copies = IssuedCredentialCopies::new_or_panic(
-            vec![credential.clone(), credential.clone(), credential.clone()]
-                .try_into()
-                .unwrap(),
-        );
-
-        let attestation_type = sd_jwt.claims().vct.clone();
-
-        // Insert sd_jwt
-        storage
-            .insert_credentials(
-                issuance_timestamp,
-                vec![(
-                    CredentialWithMetadata::new(
-                        issued_copies,
-                        attestation_type,
-                        sd_jwt.claims().exp,
-                        sd_jwt.claims().nbf,
-                        NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
-                        VerifiedTypeMetadataDocuments::nl_pid_example(),
-                    ),
-                    AttestationPresentation::new_mock(),
-                )],
-            )
-            .await
-            .expect("Could not insert mdocs");
-
-        let StoredAttestationCopy {
-            attestation: StoredAttestation::SdJwt { sd_jwt, .. },
-            attestation_id,
-            ..
-        } = storage
-            .fetch_unique_attestations()
-            .await
-            .expect("Could not fetch unique attestations")
-            .first()
-            .cloned()
-            .unwrap()
-        else {
-            panic!("should fetch SD-JWT");
-        };
+        let (attestation_id, sd_jwt) =
+            insert_sd_jwt_credential(&mut storage, "sd_jwt_key_id", issuance_timestamp, 1).await;
 
         let normalized_metadata = VerifiedTypeMetadataDocuments::nl_pid_example().to_normalized().unwrap();
 
@@ -2556,32 +2555,7 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        // Create issued_copies that will be inserted into the database
-        let holder_key = SigningKey::random(&mut OsRng);
-        let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
-        let credential = IssuedCredential::SdJwt {
-            key_identifier: "sd_jwt_key_id".to_string(),
-            sd_jwt: sd_jwt.clone(),
-        };
-
-        // Insert sd_jwt
-        storage
-            .insert_credentials(
-                Utc::now(),
-                vec![(
-                    CredentialWithMetadata::new(
-                        IssuedCredentialCopies::new_or_panic(vec![credential.clone(), credential].try_into().unwrap()),
-                        sd_jwt.claims().vct.clone(),
-                        sd_jwt.claims().exp,
-                        sd_jwt.claims().nbf,
-                        NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
-                        VerifiedTypeMetadataDocuments::nl_pid_example(),
-                    ),
-                    AttestationPresentation::new_mock(),
-                )],
-            )
-            .await
-            .unwrap();
+        insert_sd_jwt_credential(&mut storage, "sd_jwt_key_id", Utc::now(), 2).await;
 
         let revocation_info = storage
             .fetch_all_revocation_info(&MockTimeGenerator::default())
@@ -2643,6 +2617,151 @@ pub(crate) mod tests {
             .await
             .unwrap();
         assert!(revocation_info.is_empty());
+    }
+
+    async fn insert_sd_jwt_credential(
+        storage: &mut MockHardwareDatabaseStorage,
+        key_identifier: &str,
+        timestamp: DateTime<Utc>,
+        copies: usize,
+    ) -> (Uuid, VerifiedSdJwt) {
+        let sd_jwt =
+            SignedSdJwt::pid_example(&ISSUER_KEY, SigningKey::random(&mut OsRng).verifying_key()).into_verified();
+        let credential = IssuedCredential::SdJwt {
+            key_identifier: key_identifier.to_string(),
+            sd_jwt: sd_jwt.clone(),
+        };
+        let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential; copies].try_into().unwrap());
+
+        storage
+            .insert_credentials(
+                timestamp,
+                vec![(
+                    CredentialWithMetadata::new(
+                        issued_copies,
+                        sd_jwt.claims().vct.clone(),
+                        sd_jwt.claims().exp,
+                        sd_jwt.claims().nbf,
+                        NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
+                        VerifiedTypeMetadataDocuments::nl_pid_example(),
+                    ),
+                    AttestationPresentation::new_mock(),
+                )],
+            )
+            .await
+            .expect("Could not insert credential");
+
+        let copy = storage
+            .fetch_unique_attestations()
+            .await
+            .expect("Could not fetch unique attestations")
+            .into_iter()
+            .find(
+                |a| matches!(&a.attestation, StoredAttestation::SdJwt { key_identifier: k, .. } if k == key_identifier),
+            )
+            .expect("Should find the inserted attestation");
+
+        let StoredAttestation::SdJwt { sd_jwt, .. } = copy.attestation else {
+            panic!("Should be SdJwt");
+        };
+
+        (copy.attestation_id, sd_jwt)
+    }
+
+    #[tokio::test]
+    async fn test_fetch_key_identifiers_by_attestation_id() {
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
+
+        // An unknown attestation ID should yield nothing.
+        let unknown_id = uuid::Uuid::new_v4();
+        assert!(
+            storage
+                .fetch_type_and_key_identifiers_by_attestation_id(unknown_id)
+                .await
+                .expect("Could not fetch key identifiers")
+                .is_none()
+        );
+
+        let (attestation_id, _) = insert_sd_jwt_credential(&mut storage, "test_key_id", Utc::now(), 1).await;
+
+        let (_, key_identifiers) = storage
+            .fetch_type_and_key_identifiers_by_attestation_id(attestation_id)
+            .await
+            .expect("Could not fetch key identifiers")
+            .expect("Should have found the attestation");
+
+        assert_eq!(key_identifiers, vec!["test_key_id".to_string()]);
+    }
+
+    #[tokio::test]
+    async fn test_delete_attestation() {
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
+
+        let (attestation_id, _) = insert_sd_jwt_credential(&mut storage, "test_key_id", Utc::now(), 1).await;
+
+        // Manually crate and store a disclosure event linked to the attestation.
+        let mut disclosed_attestation = AttestationPresentation::new_mock();
+        disclosed_attestation.identity = AttestationIdentity::Fixed { id: attestation_id };
+        storage
+            .log_disclosure_event(
+                Utc::now(),
+                vec![disclosed_attestation],
+                READER_KEY.certificate().clone(),
+                DisclosureStatus::Success,
+                DisclosureType::Regular,
+            )
+            .await
+            .expect("Could not log disclosure event");
+
+        // Both the issuance event and the disclosure event should be linked to the attestation.
+        let events_before_deletion = storage
+            .fetch_wallet_events_by_attestation_id(attestation_id)
+            .await
+            .expect("Could not fetch wallet events");
+        assert_eq!(events_before_deletion.len(), 2);
+        assert!(
+            events_before_deletion
+                .iter()
+                .any(|e| matches!(e, WalletEvent::Issuance { .. }))
+        );
+        assert!(
+            events_before_deletion
+                .iter()
+                .any(|e| matches!(e, WalletEvent::Disclosure { .. }))
+        );
+
+        storage
+            .delete_attestation(attestation_id)
+            .await
+            .expect("Could not delete attestation");
+
+        // The attestation and its copies should be gone.
+        assert!(
+            storage
+                .fetch_unique_attestations()
+                .await
+                .expect("Could not fetch attestations")
+                .is_empty()
+        );
+        assert!(
+            storage
+                .fetch_type_and_key_identifiers_by_attestation_id(attestation_id)
+                .await
+                .expect("Could not fetch key identifiers")
+                .is_none()
+        );
+
+        // Both events should still exist but be unlinked from the attestation.
+        let events_after_deletion = storage
+            .fetch_wallet_events()
+            .await
+            .expect("Could not fetch wallet events");
+        assert_eq!(events_after_deletion.len(), 2);
+        let events_by_attestation = storage
+            .fetch_wallet_events_by_attestation_id(attestation_id)
+            .await
+            .expect("Could not fetch wallet events");
+        assert!(events_by_attestation.is_empty());
     }
 
     #[rstest]

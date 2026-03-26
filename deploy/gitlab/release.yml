@@ -20,8 +20,7 @@ nightly-git-jira-check:
 
 verify-release-check:
   extends: .git-jira-check-base
-  rules: !reference [.default-branch, rules]
-  when: manual
+  rules: !reference [.default-branch-manual, rules]
   script:
     - python3 deploy/qa-util/git_jira_sync.py verify-release
   artifacts:
@@ -31,7 +30,7 @@ verify-release-check:
       - mrs_missing_jira.log
 
 create-release-artifacts:
-  rules: !reference [.default-branch, rules]
+  rules: !reference [.default-branch-manual, rules]
   needs:
     - job: build-issuance-server-binary
       artifacts: true
@@ -44,7 +43,6 @@ create-release-artifacts:
     - job: build-wallet-web
       artifacts: true
   script: scripts/create-release-artifacts.sh
-  when: manual
   allow_failure: true
   artifacts:
     name: release

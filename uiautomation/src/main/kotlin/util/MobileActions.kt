@@ -590,9 +590,9 @@ open class MobileActions {
         driver.runAppInBackground(Duration.ofSeconds(seconds.toLong()))
     }
 
-    fun openUniversalLink(expiredUniversalLinkFromCameraApp: String) {
+    fun openLink(url: String) {
         val driver = driver as AppiumDriver
-        driver.get(expiredUniversalLinkFromCameraApp)
+        driver.get(url)
         Thread.sleep(SET_FRAME_SYNC_MAX_WAIT_MILLIS)
     }
 

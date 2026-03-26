@@ -80,7 +80,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -2011647244;
+  int get rustContentHash => -2040892388;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -145,6 +145,8 @@ abstract class WalletCoreApi extends BaseApi {
   Future<String> crateApiFullCreatePidRenewalRedirectUri();
 
   Future<String> crateApiFullCreatePinRecoveryRedirectUri();
+
+  Future<void> crateApiFullDeleteAttestation({required String pin, required String attestationId});
 
   Future<List<WalletEvent>> crateApiFullGetHistory();
 
@@ -818,6 +820,31 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   TaskConstMeta get kCrateApiFullCreatePinRecoveryRedirectUriConstMeta => const TaskConstMeta(
     debugName: "create_pin_recovery_redirect_uri",
     argNames: [],
+  );
+
+  @override
+  Future<void> crateApiFullDeleteAttestation({required String pin, required String attestationId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          var arg0 = cst_encode_String(pin);
+          var arg1 = cst_encode_String(attestationId);
+          return wire.wire__crate__api__full__delete_attestation(port_, arg0, arg1);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullDeleteAttestationConstMeta,
+        argValues: [pin, attestationId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullDeleteAttestationConstMeta => const TaskConstMeta(
+    debugName: "delete_attestation",
+    argNames: ["pin", "attestationId"],
   );
 
   @override

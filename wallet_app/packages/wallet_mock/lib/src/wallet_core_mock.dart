@@ -386,5 +386,10 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
+  Future<void> crateApiFullDeleteAttestation({required String pin, required String attestationId}) async {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<void> crateApiFullPerformBackgroundSync() => Future.delayed(const Duration(seconds: 2));
 }

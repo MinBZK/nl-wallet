@@ -10,10 +10,11 @@ variables:
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
   APP_BUILD_OFFSET: 861
-  BUILD_TAG: 260323-752e8007
-  HSM_CLIENT_TAG: "2800ab75"
+  BUILD_TAG: 260319-15169eb4
+  HSM_CLIENT_TAG: "b68ed1d0"
   BUNDLE_DEPLOYMENT: "true"
   BUNDLE_RETRY: 10
+  PYTHONUNBUFFERED: 1
 
 # Kubernetes is used to deploy, but also to access our secrets for various services.
 # By default it uses the GitLab CI variables, but can be overridden using the variables repo.
@@ -37,6 +38,15 @@ variables:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       variables:
         CACHE_POLICY: pull-push
+
+.default-branch-manual:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "parent_pipeline"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      variables:
+        CACHE_POLICY: pull-push
+      when: manual
 
 .merge-request:
   rules:
