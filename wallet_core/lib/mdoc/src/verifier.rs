@@ -21,6 +21,7 @@ use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 
 use crate::Error;
 use crate::Result;
@@ -86,6 +87,11 @@ pub enum VerificationError {
     MissingAlgorithm,
 }
 
+pub struct SupportedAlgorithms {
+    pub issuer_algorithms: VecNonEmpty<RegisteredLabelWithPrivate<Algorithm>>,
+    pub device_algorithms: VecNonEmpty<RegisteredLabelWithPrivate<Algorithm>>,
+}
+
 impl DeviceResponse {
     /// Verify a [`DeviceResponse`], returning the verified attributes, grouped per doctype and namespace.
     ///
@@ -102,6 +108,35 @@ impl DeviceResponse {
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor<'_>],
         revocation_verifier: &RevocationVerifier<C>,
+    ) -> Result<Vec<DisclosedDocument>>
+    where
+        C: StatusListClient,
+    {
+        let supported_algorithms = SupportedAlgorithms {
+            issuer_algorithms: vec_nonempty![RegisteredLabelWithPrivate::Assigned(Algorithm::ES256)],
+            device_algorithms: vec_nonempty![RegisteredLabelWithPrivate::Assigned(Algorithm::ES256)],
+        };
+
+        self.verify_inner(
+            eph_reader_key,
+            session_transcript,
+            time,
+            trust_anchors,
+            revocation_verifier,
+            &supported_algorithms,
+        )
+        .await
+    }
+
+    #[expect(clippy::too_many_arguments, reason = "private function")]
+    async fn verify_inner<C>(
+        &self,
+        eph_reader_key: Option<&SecretKey>,
+        session_transcript: &SessionTranscript,
+        time: &impl Generator<DateTime<Utc>>,
+        trust_anchors: &[TrustAnchor<'_>],
+        revocation_verifier: &RevocationVerifier<C>,
+        supported_algorithms: &SupportedAlgorithms,
     ) -> Result<Vec<DisclosedDocument>>
     where
         C: StatusListClient,
@@ -129,6 +164,7 @@ impl DeviceResponse {
                             time,
                             trust_anchors,
                             revocation_verifier,
+                            supported_algorithms,
                         )
                         .await
                         .inspect_err(|error| {
@@ -267,26 +303,23 @@ impl MobileSecurityObject {
     }
 }
 
-const SUPPORTED_ALGS: [RegisteredLabelWithPrivate<Algorithm>; 2] = [
-    RegisteredLabelWithPrivate::Assigned(Algorithm::ES256), // i.e. -7
-    RegisteredLabelWithPrivate::PrivateUse(-9),
-];
-
 impl Document {
-    pub async fn verify<C>(
+    #[expect(clippy::too_many_arguments, reason = "crate internal function")]
+    pub(crate) async fn verify<C>(
         &self,
         eph_reader_key: Option<&SecretKey>,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor<'_>],
         revocation_verifier: &RevocationVerifier<C>,
+        supported_algorithms: &SupportedAlgorithms,
     ) -> Result<DisclosedDocument>
     where
         C: StatusListClient,
     {
         // Check that all COSE objects use a supported algorithm.
-        self.verify_issuer_signature_alg()?;
-        self.verify_device_signature_alg()?;
+        self.verify_issuer_signature_alg(supported_algorithms.issuer_algorithms.as_slice())?;
+        self.verify_device_signature_alg(supported_algorithms.device_algorithms.as_slice())?;
 
         debug!("verifying document with doc_type: {:?}", &self.doc_type);
         debug!("verify issuer_signed");
@@ -370,24 +403,40 @@ impl Document {
         Ok(disclosed_document)
     }
 
-    fn verify_issuer_signature_alg(&self) -> Result<()> {
+    fn verify_issuer_signature_alg(
+        &self,
+        supported_algorithms: &[RegisteredLabelWithPrivate<Algorithm>],
+    ) -> Result<()> {
         let issuer_signature_alg = self.issuer_signed.issuer_auth.protected_header().alg.as_ref();
         match issuer_signature_alg {
-            Some(issuer_signature_alg) if SUPPORTED_ALGS.contains(issuer_signature_alg) => Ok(()),
-            Some(issuer_signature_alg) => Err(VerificationError::UnsupportedAlgorithm(issuer_signature_alg.clone()))?,
+            Some(issuer_signature_alg) => {
+                if supported_algorithms.contains(issuer_signature_alg) {
+                    Ok(())
+                } else {
+                    Err(VerificationError::UnsupportedAlgorithm(issuer_signature_alg.clone()))?
+                }
+            }
             None => Err(VerificationError::MissingAlgorithm)?,
         }
     }
 
-    fn verify_device_signature_alg(&self) -> Result<()> {
+    fn verify_device_signature_alg(
+        &self,
+        supported_algorithms: &[RegisteredLabelWithPrivate<Algorithm>],
+    ) -> Result<()> {
         let device_signature_alg = match &self.device_signed.device_auth {
             DeviceAuth::DeviceSignature(device_sig) => device_sig.protected_header().alg.as_ref(),
             DeviceAuth::DeviceMac(device_mac) => device_mac.protected_header().alg.as_ref(),
         };
 
         match device_signature_alg {
-            Some(device_signature_alg) if SUPPORTED_ALGS.contains(device_signature_alg) => Ok(()),
-            Some(device_signature_alg) => Err(VerificationError::UnsupportedAlgorithm(device_signature_alg.clone()))?,
+            Some(device_signature_alg) => {
+                if supported_algorithms.contains(device_signature_alg) {
+                    Ok(())
+                } else {
+                    Err(VerificationError::UnsupportedAlgorithm(device_signature_alg.clone()))?
+                }
+            }
             None => Err(VerificationError::MissingAlgorithm)?,
         }
     }
@@ -404,6 +453,7 @@ mod tests {
     use crypto::examples::Examples;
     use crypto::server_keys::generate::Ca;
     use token_status_list::verification::client::mock::StatusListClientStub;
+    use utils::vec_nonempty;
 
     use crate::examples::EXAMPLE_ATTR_NAME;
     use crate::examples::EXAMPLE_ATTR_VALUE;
@@ -480,8 +530,13 @@ mod tests {
         // Do the verification
         let eph_reader_key = Examples::ephemeral_reader_key();
 
+        let supported_algorithms = SupportedAlgorithms {
+            issuer_algorithms: vec_nonempty![RegisteredLabelWithPrivate::Assigned(Algorithm::ES256)],
+            device_algorithms: vec_nonempty![RegisteredLabelWithPrivate::Assigned(Algorithm::HMAC_256_256)],
+        };
+
         let disclosed_attrs = device_response
-            .verify(
+            .verify_inner(
                 Some(&eph_reader_key),
                 &DeviceAuthenticationBytes::example().0.0.session_transcript,
                 &IsoCertTimeGenerator,
@@ -489,6 +544,7 @@ mod tests {
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
                 ))),
+                &supported_algorithms,
             )
             .await
             .unwrap();
