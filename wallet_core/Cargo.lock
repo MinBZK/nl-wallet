@@ -5075,7 +5075,6 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_json",
- "serde_repr",
  "serde_urlencoded",
  "serde_with",
  "serial_test",
