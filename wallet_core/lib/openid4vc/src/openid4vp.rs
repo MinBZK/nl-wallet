@@ -793,6 +793,8 @@ impl NormalizedVpAuthorizationRequest {
 
 impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
     fn from(value: NormalizedVpAuthorizationRequest) -> Self {
+        let state = value.state;
+
         Self {
             aud: VpAuthorizationRequestAudience::SelfIssued,
             oauth_request: AuthorizationRequest {
@@ -801,7 +803,7 @@ impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
                 nonce: Some(value.nonce),
                 response_mode: Some(ResponseMode::DirectPostJwt),
                 redirect_uri: None,
-                state: None,
+                state,
                 authorization_details: None,
                 request_uri: None,
                 code_challenge: None,
@@ -1618,7 +1620,8 @@ mod tests {
 
     #[test]
     fn test_authorization_request_jwt() {
-        let (trust_anchor, rp_keypair, _, auth_request) = setup_mdoc();
+        let (trust_anchor, rp_keypair, _, mut auth_request) = setup_mdoc();
+        auth_request.state = Some("authorization_state".to_string());
 
         let auth_request_jwt =
             SignedJwt::sign_with_certificate(&VpAuthorizationRequest::from(auth_request), &rp_keypair)
@@ -1627,7 +1630,8 @@ mod tests {
                 .unwrap();
 
         let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &[trust_anchor]).unwrap();
-        let _ = auth_request.validate(&cert, None).unwrap();
+        let (auth_request, _) = auth_request.validate(&cert, None).unwrap();
+        assert_eq!(auth_request.state.as_deref(), Some("authorization_state"));
     }
 
     #[test]

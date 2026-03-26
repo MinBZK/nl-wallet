@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "common.names.fullname" . }}
+  {{- with .Values.extraAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 6 }}
+  {{- with .Values.deployment }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 8 }}
+        {{- if .Values.extraPodLabels }}
+        {{- toYaml .Values.extraPodLabels | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.serviceAccountName }}
+      containers:
+        - name: {{ include "common.names.fullname" . }}
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- include "common.defineProbes" .Values.probes | fromYaml | toYaml | nindent 10 }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: 8001
+            - name: http-internal
+              containerPort: 8002
+          volumeMounts:
+            - name: settings
+              mountPath: /issuance_server.toml
+              subPath: issuance_server.toml
+            - name: metadata
+              mountPath: /com.example.degree.json
+              subPath: com.example.degree.json
+            - name: metadata
+              mountPath: /com.example.insurance.json
+              subPath: com.example.insurance.json
+            - name: metadata
+              mountPath: /com.example.housing.json
+              subPath: com.example.housing.json
+            - name: status-lists
+              mountPath: /status-lists
+          env:
+            - name: ISSUANCE_SERVER__INTERNAL_SERVER__IP
+              value: "0.0.0.0"
+            - name: ISSUANCE_SERVER__PUBLIC_URL
+              value: {{ include "common.urls.combineDomainAndContext" (list (first .Values.httpRoute.hostnames) .Values.httpRoute.contextPath) }}
+            - name: ISSUANCE_SERVER__UNIVERSAL_LINK_BASE_URL
+              value: {{ .Values.universalLinkBaseUrl }}
+            - name: ISSUANCE_SERVER__STRUCTURED_LOGGING
+              value: "true"
+            - name: ISSUANCE_SERVER__METADATA
+              value: "com.example.degree.json,com.example.insurance.json,com.example.housing.json"
+            - name: ISSUANCE_SERVER__STORAGE__URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: url
+            - name: ISSUANCE_SERVER__ISSUER_TRUST_ANCHORS
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-wallet-server-trust-anchors
+                  key: issuer_trust_anchors
+            - name: ISSUANCE_SERVER__READER_TRUST_ANCHORS
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-wallet-server-trust-anchors
+                  key: reader_trust_anchors
+            - name: RUST_LOG
+              value: "debug,hyper=warn"
+      volumes:
+        - name: settings
+          secret:
+            secretName: nl-wallet-demo-issuer-issuance-server-settings
+        - name: metadata
+          configMap:
+            name: nl-wallet-demo-issuer-metadata
+        - name: status-lists
+          persistentVolumeClaim:
+            claimName: {{ include "common.names.fullname" . }}

@@ -339,7 +339,7 @@ class DisclosureScreen extends StatelessWidget {
       onPrimaryActionPressed: () {
         if (userShouldRetryScan) {
           Navigator.popUntil(context, ModalRoute.withName(WalletRoutes.dashboardRoute));
-          Navigator.pushNamed(context, WalletRoutes.qrRoute);
+          Navigator.pushNamed(context, WalletRoutes.qrScanRoute);
         } else if (hasReturnUrl) {
           Navigator.maybePop(context);
           launchUrlStringCatching(state.returnUrl!, mode: LaunchMode.externalApplication);

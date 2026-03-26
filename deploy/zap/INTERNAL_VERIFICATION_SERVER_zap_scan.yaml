@@ -25,9 +25,23 @@ env:
   vars: {}
 jobs:
 - alertFilters:
-# False positive analysis in pwv-3375 showed that this is not a vulnerability
+# False positive analysis in PVW-3375 showed that this is not a vulnerability
     - ruleId: "40025"
       ruleName: "Proxy Disclosure (40025)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: [ ]
+# False positive analysis in PVW-5754 showed that this is not a vulnerability
+    - ruleId: "10205"
+      ruleName: "HTTPS Security Configuration Issues (10205)"
       context: ""
       newRisk: "False Positive"
       parameter: ""

@@ -43,6 +43,16 @@ void main() {
       await screenMatchesGolden('app_blocked_error');
     });
 
+    testGoldens('AppBlockedSolutionCompromised state', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const AppBlockedScreen().withState<AppBlockedBloc, AppBlockedState>(
+          bloc,
+          const AppBlockedSolutionCompromised(),
+        ),
+      );
+      await screenMatchesGolden('app_blocked_permanently');
+    });
+
     testGoldens('AppBlockedByUser state', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const AppBlockedScreen().withState<AppBlockedBloc, AppBlockedState>(

@@ -1,8 +1,8 @@
 [package]
 name = "uniffi-bindgen"
-version = "0.30.0"
+version = "0.31.0"
 edition = "2024"
 rust-version = "1.94"
 
 [dependencies]
-uniffi = { version = "0.30.0", features = ["cli"] }
+uniffi = { version = "0.31.0", features = ["cli"] }

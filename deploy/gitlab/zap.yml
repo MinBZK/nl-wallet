@@ -89,7 +89,7 @@ zap-scan-public-verification-server:
   script:
     - !reference [.get-session-token, script]
     - |
-      yq e ".servers[0].url=\"${PUBLIC_VERIFICATION_SERVER_URL}\"" -i wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
+      yq e ".servers[0].url=\"${VERIFICATION_SERVER_URL}\"" -i wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
       sed -i 's|wallet-components.openapi.yaml#|#|g' wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
       sed -i "s|application/x-www-form-urlencoded|application/json|g" wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
       sed -i "s|{session_token}|${SESSION_TOKEN}|g" wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
@@ -110,6 +110,29 @@ zap-scan-issuance-server:
   variables:
     SUT: "ISSUANCE_SERVER"
 
+zap-scan-revocation-portal:
+  extends: .zap-scan-base
+  script:
+    - !reference [.run-zap-scan, script]
+  variables:
+    SUT: "REVOCATION_PORTAL"
+
+zap-scan-internal-wallet-provider:
+  extends: .zap-scan-base
+  script:
+    - envsubst < deploy/zap/config/INTERNAL_WALLET_PROVIDER_urls.txt > ${ZAP_HOME}/INTERNAL_WALLET_PROVIDER_urls.txt
+    - !reference [.run-zap-scan, script]
+  variables:
+    SUT: "INTERNAL_WALLET_PROVIDER"
+
+zap-scan-internal-issuance-server:
+  extends: .zap-scan-base
+  script:
+    - envsubst < deploy/zap/config/INTERNAL_ISSUANCE_SERVER_urls.txt > ${ZAP_HOME}/INTERNAL_ISSUANCE_SERVER_urls.txt
+    - !reference [ .run-zap-scan, script ]
+  variables:
+    SUT: "INTERNAL_ISSUANCE_SERVER"
+
 zap-scan-publish-results:
   rules: !reference [.zap-base, rules]
   needs:
@@ -120,5 +143,8 @@ zap-scan-publish-results:
     - { job: zap-scan-internal-verification-server }
     - { job: zap-scan-public-verification-server }
     - { job: zap-scan-issuance-server }
+    - { job: zap-scan-revocation-portal }
+    - { job: zap-scan-internal-wallet-provider }
+    - { job: zap-scan-internal-issuance-server }
   script:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/zap.zip zapreports/*.xml

@@ -58,8 +58,10 @@ import '../feature/pin_timeout/pin_timeout_screen.dart';
 import '../feature/policy/policy_screen.dart';
 import '../feature/policy/policy_screen_arguments.dart';
 import '../feature/privacy_policy/privacy_policy_screen.dart';
-import '../feature/qr/bloc/qr_bloc.dart';
-import '../feature/qr/qr_screen.dart';
+import '../feature/qr/present/bloc/qr_present_bloc.dart';
+import '../feature/qr/present/qr_present_screen.dart';
+import '../feature/qr/scan/bloc/qr_scan_bloc.dart';
+import '../feature/qr/scan/qr_scan_screen.dart';
 import '../feature/recover_pin/bloc/recover_pin_bloc.dart';
 import '../feature/recover_pin/recover_pin_screen.dart';
 import '../feature/renew_pid/bloc/renew_pid_bloc.dart';
@@ -141,7 +143,8 @@ class WalletRoutes {
   static const pinTimeoutRoute = '/pin/timeout';
   static const policyRoute = '/policy';
   static const privacyPolicyRoute = '/privacy_policy';
-  static const qrRoute = '/qr';
+  static const qrPresentRoute = '/qr/present';
+  static const qrScanRoute = '/qr/scan';
   static const renewPidRoute = '/pid/renew';
   static const revocationCodeRoute = '/revocation_code';
   static const reviewRevocationCodeRoute = '/review_revocation_code';
@@ -162,7 +165,7 @@ class WalletRoutes {
 
   static final Map<String, WidgetBuilder Function(RouteSettings)> _routeBuilders = {
     WalletRoutes.splashRoute: (_) => _createSplashScreenBuilder,
-    WalletRoutes.qrRoute: (_) => _createQrScreenBuilder,
+    WalletRoutes.qrScanRoute: (_) => _createQrScanScreenBuilder,
     WalletRoutes.introductionRoute: (_) => _createIntroductionScreenBuilder,
     WalletRoutes.introductionPrivacyRoute: (_) => _createIntroductionPrivacyScreenBuilder,
     WalletRoutes.aboutRoute: (_) => _createAboutScreenBuilder,
@@ -206,6 +209,7 @@ class WalletRoutes {
     WalletRoutes.walletTransferFaqRoute: (_) => _createWalletTransferFaqScreenBuilder,
     WalletRoutes.manageNotificationsRoute: (_) => _createManageNotificationsScreenBuilder,
     WalletRoutes.appBlockedRoute: _createAppBlockedScreenBuilder,
+    WalletRoutes.qrPresentRoute: _createQrPresentScreenBuilder,
   };
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
@@ -240,10 +244,10 @@ Widget _createSplashScreenBuilder(BuildContext context) => BlocProvider<SplashBl
   child: const SplashScreen(),
 );
 
-Widget _createQrScreenBuilder(BuildContext context) => BlocProvider<QrBloc>(
+Widget _createQrScanScreenBuilder(BuildContext context) => BlocProvider<QrScanBloc>(
   create: (BuildContext context) =>
-      QrBloc(context.read(), context.read(), context.read())..add(const QrScanCheckPermission()),
-  child: const QrScreen(),
+      QrScanBloc(context.read(), context.read(), context.read())..add(const QrScanCheckPermission()),
+  child: const QrScanScreen(),
 );
 
 Widget _createIntroductionScreenBuilder(BuildContext context) => const IntroductionScreen();
@@ -649,6 +653,15 @@ WidgetBuilder _createAppBlockedScreenBuilder(RouteSettings settings) {
     return BlocProvider<AppBlockedBloc>(
       create: (BuildContext context) => AppBlockedBloc(context.read())..add(AppBlockedLoadTriggered(reason: reason)),
       child: const AppBlockedScreen(),
+    );
+  };
+}
+
+WidgetBuilder _createQrPresentScreenBuilder(RouteSettings settings) {
+  return (context) {
+    return BlocProvider<QrPresentBloc>(
+      create: (BuildContext context) => QrPresentBloc(context.read())..add(const QrPresentStartRequested()),
+      child: const QrPresentScreen(),
     );
   };
 }

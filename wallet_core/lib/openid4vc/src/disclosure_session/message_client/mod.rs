@@ -7,6 +7,7 @@ use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 
 use crate::errors::AuthorizationErrorCode;
+use crate::errors::AuthorizationErrorResponse;
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
 use crate::openid4vp::VpAuthorizationRequest;
@@ -44,16 +45,19 @@ pub trait VpMessageClient {
     async fn send_error(
         &self,
         url: BaseUrl,
-        error: ErrorResponse<VpAuthorizationErrorCode>,
+        error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError>;
 
-    async fn terminate(&self, url: BaseUrl) -> Result<Option<BaseUrl>, VpMessageClientError> {
+    async fn terminate(&self, url: BaseUrl, state: Option<String>) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.send_error(
             url,
-            ErrorResponse {
-                error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
-                error_description: None,
-                error_uri: None,
+            AuthorizationErrorResponse {
+                error_response: ErrorResponse {
+                    error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
+                    error_description: None,
+                    error_uri: None,
+                },
+                state,
             },
         )
         .await

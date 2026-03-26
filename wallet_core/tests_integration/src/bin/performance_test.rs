@@ -53,8 +53,7 @@ async fn main() {
     let temp_path = temp_dir.path();
 
     let relying_party_url = option_env!("RELYING_PARTY_URL").unwrap_or("http://localhost:3004/");
-    let public_verification_server_url =
-        option_env!("PUBLIC_VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3005/");
+    let verification_server_url = option_env!("VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3005/");
     let internal_verification_server_url =
         option_env!("INTERNAL_VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3006/");
 
@@ -123,7 +122,7 @@ async fn main() {
     };
 
     let internal_demo_rp_url: Url = internal_verification_server_url.parse().unwrap();
-    let public_demo_rp_url: Url = public_verification_server_url.parse().unwrap();
+    let demo_rp_url: Url = verification_server_url.parse().unwrap();
 
     let response = client
         .post(
@@ -139,7 +138,7 @@ async fn main() {
 
     let StartDisclosureResponse { session_token } = response.json::<StartDisclosureResponse>().await.unwrap();
 
-    let mut status_url = public_demo_rp_url
+    let mut status_url = demo_rp_url
         .join(&format!("disclosure/sessions/{session_token}"))
         .unwrap();
     let status_query = serde_urlencoded::to_string(StatusParams {

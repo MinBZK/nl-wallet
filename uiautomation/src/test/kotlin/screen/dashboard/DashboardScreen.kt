@@ -7,12 +7,13 @@ class DashboardScreen : MobileActions() {
     private val menuButton = l10n.getString("dashboardScreenMenuWCAGLabel")
     private val pidIdTitleText = cardMetadata.getPidDisplayName()
     private val showDetailsText = l10n.getString("showDetailsCta")
-    private val scanQRButton = l10n.getString("menuScreenScanQrCta")
+    private val actionButton = l10n.getString("qrActionButtonTitle")
     private val appTourBannerTitle = l10n.getString("tourBannerTitle")
     private val revokedLabel = l10n.getString("cardStatusMetadataWalletItemRevoked")
     private val cardRevocationBannerTitle = l10n.getString("cardRevocationBannerTitle")
+    private val actionDrawerScanQrButton = l10n.getString("qrActionSheetScanQrTitle")
 
-    fun visible() = elementContainingTextVisible(menuButton) && elementWithTextVisible(scanQRButton)
+    fun visible() = elementContainingTextVisible(menuButton) && elementContainingTextVisible(actionButton)
 
     fun cardFaceTextsInActiveLanguage() =
         elementContainingTextVisible(pidIdTitleText) && elementContainingTextVisible(showDetailsText)
@@ -29,7 +30,10 @@ class DashboardScreen : MobileActions() {
 
     fun cardSubtitleVisible(subtitle: String) = elementContainingTextVisible(subtitle)
 
-    fun openQRScanner() = clickElementWithText(scanQRButton)
+    fun openQRScanner() {
+        clickElementContainingText(actionButton)
+        clickElementContainingText(actionDrawerScanQrButton)
+    }
 
     fun cardVisible(cardDisplayContent: String) = elementContainingTextVisible(cardDisplayContent)
 

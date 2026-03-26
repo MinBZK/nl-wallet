@@ -13,6 +13,7 @@ use utils::single_unique::NonEmptySingleUnique;
 use utils::vec_at_least::NonEmptyIterator;
 
 use crate::errors::AuthorizationErrorCode;
+use crate::errors::AuthorizationErrorResponse;
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
 use crate::openid4vp::MsoMdocAlgValues;
@@ -50,7 +51,7 @@ impl VpDisclosureClient<HttpVpMessageClient> {
 
 impl<H> VpDisclosureClient<H> {
     /// Report an error back to the RP. Note: this function only reports errors that are the RP's fault.
-    async fn report_error_back(&self, url: BaseUrl, error: VpVerifierError) -> VpVerifierError
+    async fn report_error_back(&self, url: BaseUrl, state: Option<String>, error: VpVerifierError) -> VpVerifierError
     where
         H: VpMessageClient,
     {
@@ -63,10 +64,13 @@ impl<H> VpDisclosureClient<H> {
             | VpVerifierError::RequestedAttributesValidation(_) => {
                 let error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest);
 
-                let error_response = ErrorResponse {
-                    error: error_code,
-                    error_description: Some(error.to_string()),
-                    error_uri: None,
+                let error_response = AuthorizationErrorResponse {
+                    error_response: ErrorResponse {
+                        error: error_code,
+                        error_description: Some(error.to_string()),
+                        error_uri: None,
+                    },
+                    state,
                 };
 
                 // If sending the error results in an error, log it but do nothing else.
@@ -161,6 +165,7 @@ where
 
         let (vp_auth_request, certificate) = VpAuthorizationRequest::try_new(&jws, trust_anchors)?;
         let response_uri = vp_auth_request.response_uri.clone();
+        let state = vp_auth_request.oauth_request.state.clone();
 
         // The `client_id` in the Authorization Request, which has been authenticated, has to equal
         // the `client_id` that the RP sent in the request URI at the start of the session.
@@ -171,7 +176,7 @@ where
             };
 
             if let Some(response_uri) = response_uri {
-                return Err(self.report_error_back(response_uri, error).await)?;
+                return Err(self.report_error_back(response_uri, state, error).await)?;
             }
             return Err(error.into());
         }
@@ -181,7 +186,7 @@ where
             .map_err(VpVerifierError::AuthRequestValidation);
         let (auth_request, selected_encryption_algorithm) = match (auth_request_result, response_uri) {
             (Err(error), Some(response_uri)) => {
-                return Err(self.report_error_back(response_uri, error).await)?;
+                return Err(self.report_error_back(response_uri, state, error).await)?;
             }
             (result, _) => result?,
         };
@@ -189,7 +194,11 @@ where
         let process_request_result = Self::process_auth_request(&auth_request.credential_requests, certificate);
         let verifier_certificate = match process_request_result {
             Ok(value) => value,
-            Err(error) => return Err(self.report_error_back(auth_request.response_uri, error).await)?,
+            Err(error) => {
+                return Err(self
+                    .report_error_back(auth_request.response_uri, auth_request.state, error)
+                    .await)?;
+            }
         };
 
         // TODO (PVW-4955): Signing of disclosures using a mix of formats is currently unsupported, because of how we
@@ -204,7 +213,7 @@ where
         else {
             let _ = self
                 .client
-                .terminate(auth_request.response_uri)
+                .terminate(auth_request.response_uri, auth_request.state.clone())
                 .await
                 // If termination results in an error, log it and do not return it.
                 .inspect_err(|error| warn!("failed to send session termination to verifier: {error}"));
@@ -224,7 +233,9 @@ where
 
         if !format_supported {
             let error = VpVerifierError::VpFormatsNotSupported(format);
-            return Err(self.report_error_back(auth_request.response_uri, error).await)?;
+            return Err(self
+                .report_error_back(auth_request.response_uri, auth_request.state, error)
+                .await)?;
         }
 
         let session = VpDisclosureSession::new(
@@ -872,6 +883,7 @@ mod tests {
             CredentialFormat::MsoMdoc,
             |mut verifier_session| {
                 verifier_session.client_id = "other_client_id".to_string();
+                verifier_session.state = Some("authorization_state".to_string());
 
                 verifier_session
             },
@@ -894,7 +906,12 @@ mod tests {
         assert_matches!(&wallet_messages[0], WalletMessage::Request(_));
         // This error should be reported back to the verifier.
         let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest);
-        assert_matches!(&wallet_messages[1], WalletMessage::Error(response) if response.error == expected_error_code);
+        assert_matches!(
+            &wallet_messages[1],
+            WalletMessage::Error(response)
+                if response.error() == &expected_error_code
+                    && response.state.as_deref() == Some("authorization_state")
+        );
     }
 
     #[test]
@@ -929,7 +946,10 @@ mod tests {
         assert_matches!(&wallet_messages[0], WalletMessage::Request(_));
         // This error should be reported back to the verifier.
         let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest);
-        assert_matches!(&wallet_messages[1], WalletMessage::Error(response) if response.error == expected_error_code);
+        assert_matches!(
+            &wallet_messages[1],
+            WalletMessage::Error(response) if response.error() == &expected_error_code
+        );
     }
 
     #[test]
@@ -970,7 +990,10 @@ mod tests {
         assert_matches!(&wallet_messages[0], WalletMessage::Request(_));
         // This error should be reported back to the verifier.
         let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest);
-        assert_matches!(&wallet_messages[1], WalletMessage::Error(response) if response.error == expected_error_code);
+        assert_matches!(
+            &wallet_messages[1],
+            WalletMessage::Error(response) if response.error() == &expected_error_code
+        );
     }
 
     #[test]
@@ -999,7 +1022,11 @@ mod tests {
                 .try_into()
                 .unwrap(),
             Some(reader_registration),
-            std::convert::identity,
+            |mut verifier_session| {
+                verifier_session.state = Some("authorization_state".to_string());
+
+                verifier_session
+            },
         )
         .expect_err(
             "starting a new disclosure session with an authorization request that contains a credential request with \
@@ -1016,7 +1043,12 @@ mod tests {
         assert_matches!(&wallet_messages[0], WalletMessage::Request(_));
         // A termination message should be sent to the verifier.
         let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied);
-        assert_matches!(&wallet_messages[1], WalletMessage::Error(response) if response.error == expected_error_code);
+        assert_matches!(
+            &wallet_messages[1],
+            WalletMessage::Error(response)
+                if response.error() == &expected_error_code
+                    && response.state.as_deref() == Some("authorization_state")
+        );
     }
 
     #[rstest]

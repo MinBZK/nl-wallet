@@ -10,7 +10,7 @@ variables:
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
   APP_BUILD_OFFSET: 861
-  BUILD_TAG: 260309-cc399bbb
+  BUILD_TAG: 260319-15169eb4
   HSM_CLIENT_TAG: "2800ab75"
   BUNDLE_DEPLOYMENT: "true"
   BUNDLE_RETRY: 10
@@ -37,6 +37,15 @@ variables:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       variables:
         CACHE_POLICY: pull-push
+
+.default-branch-manual:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "parent_pipeline"
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      variables:
+        CACHE_POLICY: pull-push
+      when: manual
 
 .merge-request:
   rules:

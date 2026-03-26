@@ -23,7 +23,7 @@ use jwt::headers::HeaderWithX5c;
 use utils::vec_nonempty;
 
 use crate::cose::KnownCoseAlgorithmIdentifier;
-use crate::errors::ErrorResponse;
+use crate::errors::AuthorizationErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
 use crate::jose::JwsAlgorithm;
 use crate::openid4vp::MsoMdocAlgValues;
@@ -48,7 +48,7 @@ use super::VpMessageClientError;
 pub enum WalletMessage {
     Request(WalletRequest),
     Disclosure(String),
-    Error(ErrorResponse<VpAuthorizationErrorCode>),
+    Error(AuthorizationErrorResponse<VpAuthorizationErrorCode>),
 }
 
 /// An implementation of [`VpMessageClient`] that sends an error made by the response factory,
@@ -102,7 +102,7 @@ where
     async fn send_error(
         &self,
         _url: BaseUrl,
-        error: ErrorResponse<VpAuthorizationErrorCode>,
+        error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.wallet_messages.lock().push(WalletMessage::Error(error));
 
@@ -155,6 +155,7 @@ pub struct MockVerifierSession {
     pub trust_anchors: Vec<TrustAnchor<'static>>,
     pub credential_requests: NormalizedCredentialRequests,
     pub nonce: String,
+    pub state: Option<String>,
     pub encryption_keypair: EcKeyPair,
     pub client_id: String,
     pub request_uri: BaseUrl,
@@ -202,6 +203,7 @@ impl MockVerifierSession {
             key_pair,
             credential_requests,
             nonce,
+            state: None,
             encryption_keypair,
             client_id,
             request_uri,
@@ -249,6 +251,8 @@ impl MockVerifierSession {
             vp_formats_supported: self.vp_formats_supported.clone(),
             ..auth_request.client_metadata
         };
+        auth_request.state = self.state.clone();
+
         auth_request
     }
 
@@ -302,7 +306,7 @@ impl VpMessageClient for MockVerifierVpMessageClient {
     async fn send_error(
         &self,
         _url: BaseUrl,
-        error: ErrorResponse<VpAuthorizationErrorCode>,
+        error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.session.wallet_messages.lock().push(WalletMessage::Error(error));
         let redirect_uri = self.session.redirect_uri.clone();

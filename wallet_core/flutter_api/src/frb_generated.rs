@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -2011647244;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -2040892388;
 
 // Section: executor
 
@@ -612,6 +612,32 @@ fn wire__crate__api__full__create_pin_recovery_redirect_uri_impl(
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::create_pin_recovery_redirect_uri().await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__full__delete_attestation_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    pin: impl CstDecode<String>,
+    attestation_id: impl CstDecode<String>,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "delete_attestation",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let api_pin = pin.cst_decode();
+            let api_attestation_id = attestation_id.cst_decode();
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::delete_attestation(api_pin, api_attestation_id).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1426,6 +1452,7 @@ impl CstDecode<crate::models::wallet_state::BlockedReason> for i32 {
         match self {
             0 => crate::models::wallet_state::BlockedReason::RequiresAppUpdate,
             1 => crate::models::wallet_state::BlockedReason::BlockedByWalletProvider,
+            2 => crate::models::wallet_state::BlockedReason::WalletSolutionRevoked,
             _ => unreachable!("Invalid variant for BlockedReason: {}", self),
         }
     }
@@ -1792,6 +1819,7 @@ impl SseDecode for crate::models::wallet_state::BlockedReason {
         return match inner {
             0 => crate::models::wallet_state::BlockedReason::RequiresAppUpdate,
             1 => crate::models::wallet_state::BlockedReason::BlockedByWalletProvider,
+            2 => crate::models::wallet_state::BlockedReason::WalletSolutionRevoked,
             _ => unreachable!("Invalid variant for BlockedReason: {}", inner),
         };
     }
@@ -3039,6 +3067,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_state::BlockedReaso
         match self {
             Self::RequiresAppUpdate => 0.into_dart(),
             Self::BlockedByWalletProvider => 1.into_dart(),
+            Self::WalletSolutionRevoked => 2.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -4015,6 +4044,7 @@ impl SseEncode for crate::models::wallet_state::BlockedReason {
             match self {
                 crate::models::wallet_state::BlockedReason::RequiresAppUpdate => 0,
                 crate::models::wallet_state::BlockedReason::BlockedByWalletProvider => 1,
+                crate::models::wallet_state::BlockedReason::WalletSolutionRevoked => 2,
                 _ => {
                     unimplemented!("");
                 }
@@ -6472,6 +6502,15 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__create_pin_recovery_redirect_uri(port_: i64) {
         wire__crate__api__full__create_pin_recovery_redirect_uri_impl(port_)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__delete_attestation(
+        port_: i64,
+        pin: *mut wire_cst_list_prim_u_8_strict,
+        attestation_id: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__delete_attestation_impl(port_, pin, attestation_id)
     }
 
     #[unsafe(no_mangle)]

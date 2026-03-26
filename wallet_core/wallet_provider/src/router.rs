@@ -40,6 +40,7 @@ use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::CompleteTransfer;
 use wallet_account::messages::instructions::ConfirmTransfer;
+use wallet_account::messages::instructions::DeleteKeys;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
 use wallet_account::messages::instructions::GetTransferStatus;
@@ -180,6 +181,10 @@ where
                     &format!("/instructions/{}", ConfirmTransfer::NAME),
                     post(handle_instruction::<ConfirmTransfer, _, _, _>),
                 )
+                .route(
+                    &format!("/instructions/{}", DeleteKeys::NAME),
+                    post(handle_instruction::<DeleteKeys, _, _, _>),
+                )
                 .layer(RequestDecompressionLayer::new().zstd(true))
                 .layer(TraceLayer::new_for_http())
                 .layer(middleware::from_fn(log_headers))
@@ -198,7 +203,11 @@ where
     let openapi = ApiDocs::openapi().nest("/internal", internal_openapi);
 
     #[cfg(feature = "test_internal_ui")]
-    let router = router.merge(utoipa_swagger_ui::SwaggerUi::new("/api-docs").url("/openapi.json", openapi));
+    let router = router.merge(
+        utoipa_swagger_ui::SwaggerUi::new("/api-docs")
+            .config(utoipa_swagger_ui::Config::default().validator_url("none"))
+            .url("/openapi.json", openapi),
+    );
 
     #[cfg(not(feature = "test_internal_ui"))]
     let router = router.route("/openapi.json", get(Json(openapi)));

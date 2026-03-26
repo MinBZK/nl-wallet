@@ -1,0 +1,91 @@
+{{ if .Values.gbaEncryptTestData.enabled }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Values.gbaEncryptTestData.name }}
+  {{- with .Values.gbaEncryptTestData.extraAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  labels:
+    {{- include "common.labels.component" (list .Values.gbaEncryptTestData.name .) | nindent 4 }}
+spec:
+  schedule: "0 0 * * *"
+  suspend: true
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 600
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            {{- include "common.labels.component" (list .Values.gbaEncryptTestData.name .) | nindent 12 }}
+            {{- with .Values.gbaEncryptTestData.extraPodLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        spec:
+          restartPolicy: Never
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.podSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ .Values.serviceAccountName }}
+          containers:
+            - name: {{ .Values.gbaEncryptTestData.name }}
+              image: {{ .Values.global.imageRegistry }}/{{ .Values.imagePreload.repository }}:{{ .Values.image.tag }}
+              imagePullPolicy: {{ .Values.imagePreload.pullPolicy }}
+              command: ["sh", "-c", "--"]
+              args:
+                - ./encrypt_all.sh
+              {{ with .Values.gbaHcConverter.resources }}
+              resources:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              {{- with .Values.securityContext }}
+              securityContext:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              volumeMounts:
+                - mountPath: /data
+                  name: preloaded-gba-v-data-volume
+                - mountPath: /home/nonroot/encrypt_all.sh
+                  name: script-volume
+                  subPath: encrypt_all.sh
+                - mountPath: /home/nonroot/unencrypted-gba-v-responses/
+                  name: xml-files
+
+              env:
+                - name: RUST_BACKTRACE
+                  value: "1"
+                - name: RUST_LOG
+                  value: "debug,hyper=warn"
+                - name: GBA_HC_CONVERTER__RUN_MODE__PRELOADED__XML_PATH
+                  value: "/data"
+                - name: GBA_HC_CONVERTER__RUN_MODE__PRELOADED__ENCRYPTION_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: nl-wallet-gba-hc-converter-secrets
+                      key: encryption_key
+                - name: GBA_HC_CONVERTER__RUN_MODE__PRELOADED__HMAC_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: nl-wallet-gba-hc-converter-secrets
+                      key: hmac_key
+          volumes:
+            - name: preloaded-gba-v-data-volume
+              persistentVolumeClaim:
+                claimName: {{ .Values.preloadGba.volumeClaimName }}
+            - name: xml-files
+              configMap:
+                name: {{ include "common.names.fullname" . }}-xml-files
+            - name: script-volume
+              configMap:
+                name: {{ include "common.names.fullname" . }}-encrypt-script
+                defaultMode: 0777
+{{- end }}

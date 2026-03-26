@@ -114,7 +114,7 @@ class MenuScreen extends StatelessWidget {
       MenuItem(
         label: Text.rich(context.l10n.menuScreenScanQrCta.toTextSpan(context)),
         leftIcon: const Icon(Icons.qr_code_rounded),
-        onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.qrRoute),
+        onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.qrScanRoute),
       ),
       MenuItem(
         label: Text.rich(context.l10n.menuScreenHistoryCta.toTextSpan(context)),

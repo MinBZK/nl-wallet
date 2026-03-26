@@ -1,0 +1,38 @@
+import 'package:flutter/material.dart';
+
+import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/string_extension.dart';
+import '../../../common/widget/button/button_content.dart';
+
+class FlashlightButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final bool isOn;
+
+  const FlashlightButton({
+    required this.isOn,
+    required this.onPressed,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      onTap: onPressed,
+      excludeSemantics: true,
+      attributedLabel: (isOn ? context.l10n.qrScreenDisableTorchCta : context.l10n.qrScreenEnableTorchCta)
+          .toAttributedString(context),
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: context.theme.outlinedButtonTheme.style?.copyWith(
+          backgroundColor: WidgetStatePropertyAll(context.colorScheme.surface),
+          shape: WidgetStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(50))),
+        ),
+        child: ButtonContent(
+          text: Text(isOn ? context.l10n.qrScreenDisableTorchCta : context.l10n.qrScreenEnableTorchCta),
+          icon: isOn ? const Icon(Icons.flashlight_on_outlined) : const Icon(Icons.flashlight_off_outlined),
+        ),
+      ),
+    );
+  }
+}

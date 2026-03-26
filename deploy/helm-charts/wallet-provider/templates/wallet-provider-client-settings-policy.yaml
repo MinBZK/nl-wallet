@@ -1,0 +1,15 @@
+{{ $name := include "common.names.fullname" . }}
+{{- with .Values.httpRoute.nginxClientSettingsPolicy }}
+---
+apiVersion: gateway.nginx.org/v1alpha1
+kind: ClientSettingsPolicy
+metadata:
+  name: {{ $name }}
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: {{ $name }}
+  body:
+    {{- toYaml . | nindent 4 }}
+{{- end }}

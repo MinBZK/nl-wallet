@@ -1,0 +1,11 @@
+{
+  "name": "revocaton-portal-browsertests",
+  "description": "Browsertest for the revocation portal",
+  "scripts": {
+    "test:ci": "npx playwright test --config=config/ci.config.js",
+    "test:local": "npx playwright test --config=config/local.config.js"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.1"
+  }
+}

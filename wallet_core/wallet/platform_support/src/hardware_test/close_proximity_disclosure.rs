@@ -1,5 +1,5 @@
+use crate::close_proximity_disclosure::CloseProximityDisclosureClient;
 use crate::close_proximity_disclosure::hardware::HardwareCloseProximityDisclosureClient;
-use crate::close_proximity_disclosure::test;
 
 // this is the starting point for the integration test performed from Android / iOS.
 #[unsafe(no_mangle)]
@@ -10,7 +10,12 @@ extern "C" fn close_proximity_disclosure_test_start_qr_handover() {
             .build()
             .unwrap();
 
-        rt.block_on(test::test_start_qr_handover::<HardwareCloseProximityDisclosureClient>())
+        rt.block_on(async {
+            let (_qr, _receiver) = HardwareCloseProximityDisclosureClient::start_qr_handover()
+                .await
+                .unwrap();
+            HardwareCloseProximityDisclosureClient::stop_ble_server().await.unwrap();
+        })
     })
 }
 

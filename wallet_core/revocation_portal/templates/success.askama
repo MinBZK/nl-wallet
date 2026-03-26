@@ -1,7 +1,13 @@
 {% extends "base.askama" %}
+{%- import "../../lib/web_utils/templates/components/languages.askama" as languages -%}
 
 {% block scripts %}
+<script integrity="sha256-{{ base.language_js_sha256 }}" nonce="{{ base.nonce }}" src="/support/language.js" defer></script>
 <script integrity="sha256-{{ base.lokalize_js_sha256 }}" nonce="{{ base.nonce }}" src="/support/lokalize.js" defer></script>
+{% endblock %}
+
+{% block aside %}
+{% call languages::lang_selector(base.selected_lang, base.trans, base.available_languages, web_utils::OPTION_STR_NONE, web_utils::OPTION_STR_NONE) %}
 {% endblock %}
 
 {% block content %}
@@ -34,10 +40,10 @@
 <div class="app-download-section">
   <p class="download-text"><strong>{{ base.trans.download_text }}</strong></p>
   <div class="store-links">
-    <a href="#" class="store-button" aria-label="{{ base.trans.apple_app_store }}">
+    <a href="https://apps.apple.com/app/nl-wallet-latest/idSSSS" class="store-button" aria-label="{{ base.trans.apple_app_store }}">
       <img src="/support/images/apple_app_store.svg" alt="" height="40">
     </a>
-    <a href="#" class="store-button" aria-label="{{ base.trans.google_play_store }}">
+    <a href="https://play.google.com/apps/testing/nl.ictu.edi.wallet.latest" class="store-button" aria-label="{{ base.trans.google_play_store }}">
       <img src="/support/images/google_play_store.svg" alt="" height="40">
     </a>
   </div>

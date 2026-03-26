@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-wget --no-hsts -q -O /usr/local/bin/osv-scanner https://github.com/google/osv-scanner/releases/download/v1.9.2/osv-scanner_linux_amd64
-echo "d6af4b67fa5de658598bd2d445efb99e90d1734b3146962418719c4350ecb74b  /usr/local/bin/osv-scanner" | sha256sum -c
+wget --no-hsts -q -O /usr/local/bin/osv-scanner https://github.com/google/osv-scanner/releases/download/v2.3.3/osv-scanner_linux_amd64
+echo "777b4bb7ddd10bdcc8a1aa398d37d05e91e866e7586f9cff3fca2f72b8153033  /usr/local/bin/osv-scanner" | sha256sum -c
 chmod +x /usr/local/bin/osv-scanner

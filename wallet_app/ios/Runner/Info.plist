@@ -53,6 +53,8 @@
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Bluetooth is used for close proximity data sharing</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Camera can be used to scan QR codes</string>
 	<key>NSFaceIDUsageDescription</key>
