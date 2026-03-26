@@ -11,22 +11,32 @@ class WalletStateMapper extends Mapper<core.WalletState, WalletState> {
     return switch (input) {
       core.WalletState_Ready() => const WalletStateReady(),
       core.WalletState_Locked() => WalletStateLocked(map(input.subState)),
-      core.WalletState_Transferring() => WalletStateTransferring(switch (input.role) {
-        core.TransferRole.Source => .source,
-        core.TransferRole.Destination => .destination,
-      }),
+      core.WalletState_Transferring() => _mapTransferring(input),
       core.WalletState_TransferPossible() => const WalletStateTransferPossible(),
       core.WalletState_Unregistered() => const WalletStateUnregistered(),
       core.WalletState_InDisclosureFlow() => const WalletStateInDisclosureFlow(),
       core.WalletState_InIssuanceFlow() => const WalletStateInIssuanceFlow(),
       core.WalletState_InPinChangeFlow() => const WalletStateInPinChangeFlow(),
       core.WalletState_InPinRecoveryFlow() => const WalletStateInPinRecoveryFlow(),
-      core.WalletState_Blocked() => WalletStateBlocked(switch (input.reason) {
-        core.BlockedReason.RequiresAppUpdate => .requiresAppUpdate,
-        core.BlockedReason.BlockedByWalletProvider => .blockedByWalletProvider,
-        core.BlockedReason.WalletSolutionRevoked => .solutionRevoked,
-      }, canRegisterNewAccount: input.canRegisterNewAccount),
+      core.WalletState_Blocked() => _mapBlocked(input),
       core.WalletState_Empty() => const WalletStateEmpty(),
     };
+  }
+
+  WalletStateTransferring _mapTransferring(core.WalletState_Transferring input) {
+    final transferRole = switch (input.role) {
+      core.TransferRole.Source => TransferRole.source,
+      core.TransferRole.Destination => TransferRole.destination,
+    };
+    return WalletStateTransferring(transferRole);
+  }
+
+  WalletStateBlocked _mapBlocked(core.WalletState_Blocked input) {
+    final blockedReason = switch (input.reason) {
+      core.BlockedReason.RequiresAppUpdate => BlockedReason.requiresAppUpdate,
+      core.BlockedReason.BlockedByWalletProvider => BlockedReason.blockedByWalletProvider,
+      core.BlockedReason.WalletSolutionRevoked => BlockedReason.solutionRevoked,
+    };
+    return WalletStateBlocked(blockedReason, canRegisterNewAccount: input.canRegisterNewAccount);
   }
 }

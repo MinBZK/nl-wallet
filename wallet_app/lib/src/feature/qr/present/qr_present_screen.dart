@@ -40,7 +40,7 @@ class QrPresentScreen extends StatelessWidget {
         appBar: WalletAppBar(
           fadeInTitleOnScroll: _fadeInTitleOnScroll(state),
           title: Text(_resolveTitle(context, state)),
-          actions: [const HelpIconButton()],
+          actions: const [HelpIconButton()],
           automaticallyImplyLeading: false,
           leading: _leadingButton(state),
         ),
