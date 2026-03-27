@@ -4,4 +4,4 @@ set -euxo pipefail
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   build-essential \
   musl musl-tools musl-dev \
-  libssl-dev
+  pkg-config libssl-dev
