@@ -191,6 +191,7 @@ mod tests {
     use crate::storage::InstructionData;
     use crate::storage::StorageError;
     use crate::wallet::test::setup_mock_attestations_callback;
+    use crate::wallet::test::setup_mock_recent_history_callback;
 
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
@@ -346,6 +347,47 @@ mod tests {
         let attestations = attestations.lock();
         assert_eq!(attestations.len(), 1);
         assert!(attestations[0].is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_delete_attestation_success_emits_history() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Called once by setup_mock_attestations_callback() and once by wallet.delete_attestation().
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations()
+            .times(2)
+            .returning(|| Ok(vec![]));
+
+        // Called once by setup_mock_recent_history_callback() and once by wallet.delete_attestation().
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .times(2)
+            .returning(|| Ok(vec![]));
+
+        setup_mock_attestations_callback(&mut wallet)
+            .await
+            .expect("setting attestations callback should succeed");
+
+        let history = setup_mock_recent_history_callback(&mut wallet)
+            .await
+            .expect("setting recent history callback should succeed");
+
+        // The initial history emission from registration has occurred.
+        assert_eq!(history.lock().len(), 1);
+
+        let attestation_id = Uuid::new_v4();
+        setup_delete_attestation_mocks(&mut wallet, attestation_id, Ok(()));
+
+        wallet
+            .delete_attestation(PIN.to_string(), attestation_id.to_string())
+            .await
+            .expect("delete_attestation should succeed");
+
+        // Another history emission due to the deletion has occurred.
+        assert_eq!(history.lock().len(), 2);
     }
 
     #[tokio::test]
