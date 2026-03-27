@@ -7,7 +7,7 @@ use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
 
 #[trait_variant::make(Send)]
-pub trait StatusListServices {
+pub trait StatusListServices: StatusListRevocationService {
     type Error: std::error::Error + Send + Sync + 'static;
 
     async fn obtain_status_claims(
@@ -20,7 +20,7 @@ pub trait StatusListServices {
 }
 
 #[trait_variant::make(Send)]
-pub trait StatusListService {
+pub trait StatusListService: StatusListRevocationService {
     type Error: std::error::Error + Send + Sync + 'static;
 
     async fn obtain_status_claims(

@@ -912,18 +912,17 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         Ok(challenge.bytes)
     }
 
-    pub async fn handle_instruction<T, R, F, I, IR, G, H>(
+    pub async fn handle_instruction<T, R, I, IR, G, H>(
         &self,
         instruction: Instruction<I>,
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
     ) -> Result<InstructionResult<IR>, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        F: WalletFlags,
         I: HandleInstruction<Result = IR>
             + InstructionAndResult
             + ValidateInstruction
@@ -955,17 +954,16 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .await
     }
 
-    pub async fn handle_hw_signed_instruction<T, R, F, I, IR, G, H>(
+    pub async fn handle_hw_signed_instruction<T, R, I, IR, G, H>(
         &self,
         instruction: HwSignedInstruction<I>,
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
-        user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
     ) -> Result<InstructionResult<IR>, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        F: WalletFlags,
         I: HandleInstruction<Result = IR> + InstructionAndResult + ValidateInstruction + Serialize + DeserializeOwned,
         IR: Serialize + DeserializeOwned,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,

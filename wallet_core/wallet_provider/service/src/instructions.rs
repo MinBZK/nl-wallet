@@ -606,9 +606,9 @@ where
     Ok(pops)
 }
 
-fn attestation_key<'a, T, R, H, S>(
+fn attestation_key<'a, T, R, H>(
     wrapped_key: &'a WrappedKey,
-    user_state: &'a UserState<R, impl WalletFlags, H, impl WuaIssuer, S>,
+    user_state: &'a UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
 ) -> HsmCredentialSigningKey<'a, H>
 where
     T: Committable,
