@@ -131,8 +131,7 @@ impl TypeMetadataDocuments {
 
         // Prepare variables to collect data and iterator over the whole chain, starting at the leaf `vct`.
         let documents_count = documents.len().get();
-        // `documents.len()` is non-zero, so the unwrap is safe.
-        let mut metadata_chain_indices: VecNonEmpty<_> = Vec::with_capacity(documents_count).try_into().unwrap();
+        let mut metadata_chain_indices = Vec::with_capacity(documents_count);
         let mut seen_vcts = HashSet::with_capacity(documents_count);
         let mut next_extends = Some((vct, None));
 
@@ -170,6 +169,9 @@ impl TypeMetadataDocuments {
                 )
             });
         }
+
+        // Convert the collected indices into a `VecNonEmpty` (safe because `documents` is non-empty).
+        let metadata_chain_indices: VecNonEmpty<_> = metadata_chain_indices.try_into().unwrap();
 
         // Be extra strict by checking that the set of `vct`s that have not been processed is now 0, as they should have
         // all been consumed by walking the chain.
