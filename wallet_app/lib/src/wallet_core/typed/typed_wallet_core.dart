@@ -187,7 +187,9 @@ class TypedWalletCore {
 
   Future<core.RevocationCodeResult> getRevocationCode(String pin) => call(() => core.getRevocationCode(pin: pin));
 
-  Future<String> startCloseProximityDisclosure() => call(core.startCloseProximityDisclosure);
+  Future<String> startCloseProximityDisclosure({
+    required FutureOr<void> Function(core.CloseProximityDisclosureUpdate) callback,
+  }) => call(() => core.startCloseProximityDisclosure(callback: callback));
 
   /// This function should be used to call through to the core, as it makes sure potential exceptions are processed
   /// before they are (re)thrown.

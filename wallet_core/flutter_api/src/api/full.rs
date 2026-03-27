@@ -9,6 +9,7 @@ use tokio::sync::RwLock;
 use url::Url;
 
 use flutter_api_macros::flutter_api_error;
+pub use wallet::CloseProximityDisclosureUpdate;
 use wallet::DisclosureUriSource;
 use wallet::PidIssuancePurpose;
 use wallet::UnlockMethod;
@@ -384,12 +385,22 @@ pub async fn start_disclosure(uri: String, is_qr_code: bool) -> anyhow::Result<S
 }
 
 #[flutter_api_error]
-pub async fn start_close_proximity_disclosure() -> anyhow::Result<String> {
+pub async fn start_close_proximity_disclosure(
+    callback: impl Fn(CloseProximityDisclosureUpdate) -> DartFnFuture<()> + Send + Sync + 'static,
+) -> anyhow::Result<String> {
     let mut wallet = wallet().write().await;
-
-    let result = wallet.start_close_proximity_disclosure().await?;
+    let result = wallet.start_close_proximity_disclosure(Box::new(callback)).await?;
 
     Ok(result.into())
+}
+
+#[flutter_api_error]
+pub async fn continue_close_proximity_disclosure() -> anyhow::Result<StartDisclosureResult> {
+    let mut wallet = wallet().write().await;
+
+    let result = wallet.continue_close_proximity_disclosure().try_into()?;
+
+    Ok(result)
 }
 
 #[flutter_api_error]

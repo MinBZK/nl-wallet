@@ -51,6 +51,7 @@ use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
+use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureSession;
 use crate::wallet::notifications::DirectNotificationsCallback;
 use crate::wallet::pin_recovery::PinRecoverySession;
 
@@ -58,7 +59,9 @@ use self::attestations::AttestationsCallback;
 use self::disclosure::WalletDisclosureSession;
 use self::issuance::WalletIssuanceSession;
 
+pub use self::close_proximity_disclosure::CloseProximityDisclosureUpdate;
 pub use self::delete_attestation::DeleteAttestationError;
+pub use self::disclosure::AttributesNotAvailable;
 pub use self::disclosure::DisclosureAttestationOptions;
 pub use self::disclosure::DisclosureError;
 pub use self::disclosure::DisclosureProposalPresentation;
@@ -130,7 +133,16 @@ enum Session<OC: OidcClient, IS, DCS> {
     },
     Issuance(WalletIssuanceSession<IS>),
     Disclosure(WalletDisclosureSession<DCS>),
-    CloseProximityDisclosure,
+    CloseProximityDisclosure(
+        #[cfg_attr(
+            not(test),
+            expect(
+                unused,
+                reason = "will be used when continue_close_proximity_disclosure is implemented"
+            )
+        )]
+        CloseProximityDisclosureSession,
+    ),
     PinRecovery {
         pid_config: PidAttributesConfiguration,
         session: PinRecoverySession<OC, IS>,
@@ -160,7 +172,7 @@ pub struct Wallet<
     registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,
     account_provider_client: Arc<APC>,
     disclosure_client: DCC,
-    close_proximity_disclosure_client: PhantomData<CPC>,
+    close_proximity_disclosure: PhantomData<CPC>,
     status_list_client: Arc<SLC>,
     session: Option<Session<OC, IS, DCC::Session>>,
     lock: WalletLock,

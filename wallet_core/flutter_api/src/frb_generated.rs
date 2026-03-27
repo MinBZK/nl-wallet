@@ -25,6 +25,7 @@
 
 // Section: imports
 
+use crate::api::full::*;
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
 use flutter_rust_bridge::{Handler, IntoIntoDart};
@@ -37,7 +38,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -2040892388;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -282629852;
 
 // Section: executor
 
@@ -471,6 +472,28 @@ fn wire__crate__api__full__continue_change_pin_impl(
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::continue_change_pin(&api_pin).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__full__continue_close_proximity_disclosure_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "continue_close_proximity_disclosure",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::continue_close_proximity_disclosure().await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1300,25 +1323,13 @@ fn wire__crate__api__full__skip_wallet_transfer_impl(port_: flutter_rust_bridge:
 }
 fn wire__crate__api__full__start_close_proximity_disclosure_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
+    callback: impl CstDecode<flutter_rust_bridge::DartOpaque>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "start_close_proximity_disclosure",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::start_close_proximity_disclosure().await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    )
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "start_close_proximity_disclosure", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_callback = decode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate_Output_unit_AnyhowException(callback.cst_decode()); move |context| async move {
+                    transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || async move {
+                         let output_ok = crate::api::full::start_close_proximity_disclosure(api_callback).await?;   Ok(output_ok)
+                    })().await)
+                } })
 }
 fn wire__crate__api__full__start_disclosure_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1413,6 +1424,33 @@ fn wire__crate__api__full__unlock_wallet_with_biometrics_impl(port_: flutter_rus
 
 // Section: related_funcs
 
+fn decode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate_Output_unit_AnyhowException(
+    dart_opaque: flutter_rust_bridge::DartOpaque,
+) -> impl Fn(CloseProximityDisclosureUpdate) -> flutter_rust_bridge::DartFnFuture<()> {
+    use flutter_rust_bridge::IntoDart;
+
+    async fn body(dart_opaque: flutter_rust_bridge::DartOpaque, arg0: CloseProximityDisclosureUpdate) -> () {
+        let args = vec![arg0.into_into_dart().into_dart()];
+        let message = FLUTTER_RUST_BRIDGE_HANDLER.dart_fn_invoke(dart_opaque, args).await;
+
+        let mut deserializer = flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+        let action = deserializer.cursor.read_u8().unwrap();
+        let ans = match action {
+            0 => std::result::Result::Ok(<()>::sse_decode(&mut deserializer)),
+            1 => std::result::Result::Err(<flutter_rust_bridge::for_generated::anyhow::Error>::sse_decode(
+                &mut deserializer,
+            )),
+            _ => unreachable!(),
+        };
+        deserializer.end();
+        let ans = ans.expect("Dart throws exception but Rust side assume it is not failable");
+        ans
+    }
+
+    move |arg0: CloseProximityDisclosureUpdate| {
+        flutter_rust_bridge::for_generated::convert_into_dart_fn_future(body(dart_opaque.clone(), arg0))
+    }
+}
 fn decode_DartFn_Inputs_list_record_i_32_notification_type_Output_unit_AnyhowException(
     dart_opaque: flutter_rust_bridge::DartOpaque,
 ) -> impl Fn(Vec<(i32, crate::models::notification::NotificationType)>) -> flutter_rust_bridge::DartFnFuture<()> {
@@ -1607,11 +1645,31 @@ impl SseDecode for flutter_rust_bridge::for_generated::anyhow::Error {
     }
 }
 
+impl SseDecode for CloseProximityDisclosureUpdate {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <RustOpaqueNom<
+            flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>,
+        >>::sse_decode(deserializer);
+        return flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(inner);
+    }
+}
+
 impl SseDecode for flutter_rust_bridge::DartOpaque {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <usize>::sse_decode(deserializer);
         return unsafe { flutter_rust_bridge::for_generated::sse_decode_dart_opaque(inner) };
+    }
+}
+
+impl SseDecode
+    for RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>
+{
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <usize>::sse_decode(deserializer);
+        return unsafe { decode_rust_opaque_nom(inner) };
     }
 }
 
@@ -2917,6 +2975,20 @@ fn pde_ffi_dispatcher_sync_impl(
 // Section: rust2dart
 
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<CloseProximityDisclosureUpdate> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, StdArc<_>>(self.0).into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<CloseProximityDisclosureUpdate> {}
+
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<CloseProximityDisclosureUpdate>> for CloseProximityDisclosureUpdate {
+    fn into_into_dart(self) -> FrbWrapper<CloseProximityDisclosureUpdate> {
+        self.into()
+    }
+}
+
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::disclosure::AcceptDisclosureResult {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -3865,10 +3937,28 @@ impl SseEncode for flutter_rust_bridge::for_generated::anyhow::Error {
     }
 }
 
+impl SseEncode for CloseProximityDisclosureUpdate {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>>::sse_encode(flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, StdArc<_>>(self), serializer);
+    }
+}
+
 impl SseEncode for flutter_rust_bridge::DartOpaque {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <usize>::sse_encode(self.encode(), serializer);
+    }
+}
+
+impl SseEncode
+    for RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>
+{
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        let (ptr, size) = self.sse_encode_raw();
+        <usize>::sse_encode(ptr, serializer);
+        <i32>::sse_encode(size, serializer);
     }
 }
 
@@ -5011,6 +5101,7 @@ mod io {
     // Section: imports
 
     use super::*;
+    use crate::api::full::*;
     use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
     use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
@@ -5027,10 +5118,31 @@ mod io {
             unimplemented!()
         }
     }
+    impl CstDecode<CloseProximityDisclosureUpdate> for usize {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> CloseProximityDisclosureUpdate {
+            flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(CstDecode::<
+                RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>,
+            >::cst_decode(self))
+        }
+    }
     impl CstDecode<flutter_rust_bridge::DartOpaque> for *const std::ffi::c_void {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> flutter_rust_bridge::DartOpaque {
             unsafe { flutter_rust_bridge::for_generated::cst_decode_dart_opaque(self as _) }
+        }
+    }
+    impl
+        CstDecode<
+            RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>,
+        > for usize
+    {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(
+            self,
+        ) -> RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>
+        {
+            unsafe { decode_rust_opaque_nom(self as _) }
         }
     }
     impl CstDecode<StreamSink<bool, flutter_rust_bridge::for_generated::DcoCodec>> for *mut wire_cst_list_prim_u_8_strict {
@@ -6465,6 +6577,11 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__continue_close_proximity_disclosure(port_: i64) {
+        wire__crate__api__full__continue_close_proximity_disclosure_impl(port_)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__continue_disclosure_based_issuance(
         port_: i64,
         selected_indices: *mut wire_cst_list_prim_u_16_loose,
@@ -6698,8 +6815,11 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__start_close_proximity_disclosure(port_: i64) {
-        wire__crate__api__full__start_close_proximity_disclosure_impl(port_)
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__start_close_proximity_disclosure(
+        port_: i64,
+        callback: *const std::ffi::c_void,
+    ) {
+        wire__crate__api__full__start_close_proximity_disclosure_impl(port_, callback)
     }
 
     #[unsafe(no_mangle)]
@@ -6727,6 +6847,24 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__unlock_wallet_with_biometrics(port_: i64) {
         wire__crate__api__full__unlock_wallet_with_biometrics_impl(port_)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
+        ptr: *const std::ffi::c_void,
+    ) {
+        unsafe {
+            StdArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>::increment_strong_count(ptr as _);
+        }
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
+        ptr: *const std::ffi::c_void,
+    ) {
+        unsafe {
+            StdArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>::decrement_strong_count(ptr as _);
+        }
     }
 
     #[unsafe(no_mangle)]

@@ -4,6 +4,7 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i10;
+import 'dart:ffi' as _i167;
 import 'dart:ui' as _i11;
 
 import 'package:flutter/foundation.dart' as _i3;
@@ -22,6 +23,7 @@ import 'package:flutter_local_notifications/src/platform_specifics/android/sched
 import 'package:flutter_local_notifications/src/types.dart' as _i71;
 import 'package:flutter_local_notifications_platform_interface/flutter_local_notifications_platform_interface.dart'
     as _i67;
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart' as _i166;
 import 'package:internet_connection_checker/internet_connection_checker.dart' as _i8;
 import 'package:local_auth/src/local_auth.dart' as _i50;
 import 'package:local_auth_android/local_auth_android.dart' as _i51;
@@ -3297,19 +3299,27 @@ class MockTypedWalletCore extends _i1.Mock implements _i45.TypedWalletCore {
           as _i10.Future<_i26.RevocationCodeResult>);
 
   @override
-  _i10.Future<String> startCloseProximityDisclosure() =>
+  _i10.Future<String> startCloseProximityDisclosure({
+    required _i10.FutureOr<void> Function(_i26.CloseProximityDisclosureUpdate)? callback,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#startCloseProximityDisclosure, []),
+            Invocation.method(#startCloseProximityDisclosure, [], {
+              #callback: callback,
+            }),
             returnValue: _i10.Future<String>.value(
               _i14.dummyValue<String>(
                 this,
-                Invocation.method(#startCloseProximityDisclosure, []),
+                Invocation.method(#startCloseProximityDisclosure, [], {
+                  #callback: callback,
+                }),
               ),
             ),
             returnValueForMissingStub: _i10.Future<String>.value(
               _i14.dummyValue<String>(
                 this,
-                Invocation.method(#startCloseProximityDisclosure, []),
+                Invocation.method(#startCloseProximityDisclosure, [], {
+                  #callback: callback,
+                }),
               ),
             ),
           )
@@ -7605,6 +7615,52 @@ class MockStartQrEngagementUseCase extends _i1.Mock implements _i165.StartQrEnga
 /// See the documentation for Mockito's code generation for more information.
 class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
   @override
+  _i166.RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_CloseProximityDisclosureUpdate =>
+      (super.noSuchMethod(
+            Invocation.getter(
+              #rust_arc_increment_strong_count_CloseProximityDisclosureUpdate,
+            ),
+            returnValue: (_i167.Pointer<_i167.Void> __p0) {},
+            returnValueForMissingStub: (_i167.Pointer<_i167.Void> __p0) {},
+          )
+          as _i166.RustArcIncrementStrongCountFnType);
+
+  @override
+  _i166.RustArcDecrementStrongCountFnType get rust_arc_decrement_strong_count_CloseProximityDisclosureUpdate =>
+      (super.noSuchMethod(
+            Invocation.getter(
+              #rust_arc_decrement_strong_count_CloseProximityDisclosureUpdate,
+            ),
+            returnValue: (_i167.Pointer<_i167.Void> __p0) {},
+            returnValueForMissingStub: (_i167.Pointer<_i167.Void> __p0) {},
+          )
+          as _i166.RustArcDecrementStrongCountFnType);
+
+  @override
+  _i167.Pointer<_i167.NativeFunction<_i167.Void Function(_i167.Pointer<_i167.Void>)>>
+  get rust_arc_decrement_strong_count_CloseProximityDisclosureUpdatePtr =>
+      (super.noSuchMethod(
+            Invocation.getter(
+              #rust_arc_decrement_strong_count_CloseProximityDisclosureUpdatePtr,
+            ),
+            returnValue: _i14
+                .dummyValue<_i167.Pointer<_i167.NativeFunction<_i167.Void Function(_i167.Pointer<_i167.Void>)>>>(
+                  this,
+                  Invocation.getter(
+                    #rust_arc_decrement_strong_count_CloseProximityDisclosureUpdatePtr,
+                  ),
+                ),
+            returnValueForMissingStub: _i14
+                .dummyValue<_i167.Pointer<_i167.NativeFunction<_i167.Void Function(_i167.Pointer<_i167.Void>)>>>(
+                  this,
+                  Invocation.getter(
+                    #rust_arc_decrement_strong_count_CloseProximityDisclosureUpdatePtr,
+                  ),
+                ),
+          )
+          as _i167.Pointer<_i167.NativeFunction<_i167.Void Function(_i167.Pointer<_i167.Void>)>>);
+
+  @override
   _i10.Future<_i26.AcceptDisclosureResult> crateApiFullAcceptDisclosure({
     required List<int>? selectedIndices,
     required String? pin,
@@ -7902,6 +7958,34 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
             ),
           )
           as _i10.Future<_i26.WalletInstructionResult>);
+
+  @override
+  _i10.Future<_i26.StartDisclosureResult> crateApiFullContinueCloseProximityDisclosure() =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #crateApiFullContinueCloseProximityDisclosure,
+              [],
+            ),
+            returnValue: _i10.Future<_i26.StartDisclosureResult>.value(
+              _i14.dummyValue<_i26.StartDisclosureResult>(
+                this,
+                Invocation.method(
+                  #crateApiFullContinueCloseProximityDisclosure,
+                  [],
+                ),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<_i26.StartDisclosureResult>.value(
+              _i14.dummyValue<_i26.StartDisclosureResult>(
+                this,
+                Invocation.method(
+                  #crateApiFullContinueCloseProximityDisclosure,
+                  [],
+                ),
+              ),
+            ),
+          )
+          as _i10.Future<_i26.StartDisclosureResult>);
 
   @override
   _i10.Future<_i26.DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({
@@ -8401,15 +8485,20 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Future<void>);
 
   @override
-  _i10.Future<String> crateApiFullStartCloseProximityDisclosure() =>
+  _i10.Future<String> crateApiFullStartCloseProximityDisclosure({
+    required _i10.FutureOr<void> Function(_i26.CloseProximityDisclosureUpdate)? callback,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#crateApiFullStartCloseProximityDisclosure, []),
+            Invocation.method(#crateApiFullStartCloseProximityDisclosure, [], {
+              #callback: callback,
+            }),
             returnValue: _i10.Future<String>.value(
               _i14.dummyValue<String>(
                 this,
                 Invocation.method(
                   #crateApiFullStartCloseProximityDisclosure,
                   [],
+                  {#callback: callback},
                 ),
               ),
             ),
@@ -8419,6 +8508,7 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
                 Invocation.method(
                   #crateApiFullStartCloseProximityDisclosure,
                   [],
+                  {#callback: callback},
                 ),
               ),
             ),

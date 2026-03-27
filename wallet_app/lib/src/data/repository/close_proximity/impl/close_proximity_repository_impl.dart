@@ -1,3 +1,5 @@
+import 'package:fimber/fimber.dart';
+
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../close_proximity_repository.dart';
 
@@ -7,7 +9,9 @@ class CloseProximityRepositoryImpl extends CloseProximityRepository {
   CloseProximityRepositoryImpl(this._core);
 
   @override
-  Future<String> startCloseProximityDisclosure() => _core.startCloseProximityDisclosure();
+  Future<String> startCloseProximityDisclosure() => _core.startCloseProximityDisclosure(
+    callback: (update) => Fimber.d('CloseProximityDisclosureUpdate: $update'),
+  );
 
   @override
   Future<void> stopCloseProximityDisclosure() {

@@ -32,6 +32,7 @@ use tests_integration::test_credential::nl_pid_credentials_full_name;
 use tests_integration::test_credential::nl_pid_credentials_given_name;
 use tests_integration::test_credential::nl_pid_credentials_given_name_for_query_id;
 use tests_integration::test_credential::nl_pid_full_name_and_minimal_address;
+use wallet::AttributesNotAvailable;
 use wallet::DisclosureUriSource;
 use wallet::errors::DisclosureError;
 
@@ -350,10 +351,10 @@ async fn ltc20_test_disclosure_without_pid() {
 
     assert_matches!(
         error,
-        DisclosureError::AttributesNotAvailable {
+        DisclosureError::AttributesNotAvailable(AttributesNotAvailable {
             requested_attributes,
             ..
-        } if requested_attributes == HashSet::from([
+        }) if requested_attributes == HashSet::from([
             "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/bsn".to_string(),
             "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/given_name".to_string(),
             "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/family_name".to_string(),

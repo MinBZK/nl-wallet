@@ -163,7 +163,7 @@ where
         &mut self,
         callback: RecentHistoryCallback,
     ) -> HistoryResult<Option<RecentHistoryCallback>> {
-        let previous_callback = self.recent_history_callback.replace(Box::new(callback));
+        let previous_callback = self.recent_history_callback.replace(callback);
 
         // If the `Wallet` is not registered, the database will not be open.
         // In that case don't emit anything.

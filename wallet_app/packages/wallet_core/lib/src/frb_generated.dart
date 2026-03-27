@@ -80,7 +80,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -2040892388;
+  int get rustContentHash => -282629852;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -130,6 +130,8 @@ abstract class WalletCoreApi extends BaseApi {
   Future<WalletInstructionResult> crateApiFullConfirmWalletTransfer({required String pin});
 
   Future<WalletInstructionResult> crateApiFullContinueChangePin({required String pin});
+
+  Future<StartDisclosureResult> crateApiFullContinueCloseProximityDisclosure();
 
   Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({
     required List<int> selectedIndices,
@@ -208,7 +210,9 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<void> crateApiFullSkipWalletTransfer();
 
-  Future<String> crateApiFullStartCloseProximityDisclosure();
+  Future<String> crateApiFullStartCloseProximityDisclosure({
+    required FutureOr<void> Function(CloseProximityDisclosureUpdate) callback,
+  });
 
   Future<StartDisclosureResult> crateApiFullStartDisclosure({required String uri, required bool isQrCode});
 
@@ -217,6 +221,12 @@ abstract class WalletCoreApi extends BaseApi {
   Future<WalletInstructionResult> crateApiFullUnlockWallet({required String pin});
 
   Future<void> crateApiFullUnlockWalletWithBiometrics();
+
+  RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_CloseProximityDisclosureUpdate;
+
+  RustArcDecrementStrongCountFnType get rust_arc_decrement_strong_count_CloseProximityDisclosureUpdate;
+
+  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_CloseProximityDisclosureUpdatePtr;
 }
 
 class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreApi {
@@ -675,6 +685,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   TaskConstMeta get kCrateApiFullContinueChangePinConstMeta => const TaskConstMeta(
     debugName: "continue_change_pin",
     argNames: ["pin"],
+  );
+
+  @override
+  Future<StartDisclosureResult> crateApiFullContinueCloseProximityDisclosure() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__full__continue_close_proximity_disclosure(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_start_disclosure_result,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullContinueCloseProximityDisclosureConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullContinueCloseProximityDisclosureConstMeta => const TaskConstMeta(
+    debugName: "continue_close_proximity_disclosure",
+    argNames: [],
   );
 
   @override
@@ -1555,18 +1588,24 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Future<String> crateApiFullStartCloseProximityDisclosure() {
+  Future<String> crateApiFullStartCloseProximityDisclosure({
+    required FutureOr<void> Function(CloseProximityDisclosureUpdate) callback,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          return wire.wire__crate__api__full__start_close_proximity_disclosure(port_);
+          var arg0 =
+              cst_encode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate_Output_unit_AnyhowException(
+                callback,
+              );
+          return wire.wire__crate__api__full__start_close_proximity_disclosure(port_, arg0);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_String,
           decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullStartCloseProximityDisclosureConstMeta,
-        argValues: [],
+        argValues: [callback],
         apiImpl: this,
       ),
     );
@@ -1574,7 +1613,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullStartCloseProximityDisclosureConstMeta => const TaskConstMeta(
     debugName: "start_close_proximity_disclosure",
-    argNames: [],
+    argNames: ["callback"],
   );
 
   @override
@@ -1673,6 +1712,44 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   Future<void> Function(int, dynamic)
+  encode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate_Output_unit_AnyhowException(
+    FutureOr<void> Function(CloseProximityDisclosureUpdate) raw,
+  ) {
+    return (callId, rawArg0) async {
+      final arg0 =
+          dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
+            rawArg0,
+          );
+
+      Box<void>? rawOutput;
+      Box<AnyhowException>? rawError;
+      try {
+        rawOutput = Box(await raw(arg0));
+      } catch (e, s) {
+        rawError = Box(AnyhowException("$e\n\n$s"));
+      }
+
+      final serializer = SseSerializer(generalizedFrbRustBinding);
+      assert((rawOutput != null) ^ (rawError != null));
+      if (rawOutput != null) {
+        serializer.buffer.putUint8(0);
+        sse_encode_unit(rawOutput.value, serializer);
+      } else {
+        serializer.buffer.putUint8(1);
+        sse_encode_AnyhowException(rawError!.value, serializer);
+      }
+      final output = serializer.intoRaw();
+
+      generalizedFrbRustBinding.dartFnDeliverOutput(
+        callId: callId,
+        ptr: output.ptr,
+        rustVecLen: output.rustVecLen,
+        dataLen: output.dataLen,
+      );
+    };
+  }
+
+  Future<void> Function(int, dynamic)
   encode_DartFn_Inputs_list_record_i_32_notification_type_Output_unit_AnyhowException(
     FutureOr<void> Function(List<(int, NotificationType)>) raw,
   ) {
@@ -1707,10 +1784,34 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     };
   }
 
+  RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_CloseProximityDisclosureUpdate => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate;
+
+  RustArcDecrementStrongCountFnType get rust_arc_decrement_strong_count_CloseProximityDisclosureUpdate => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate;
+
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return AnyhowException(raw as String);
+  }
+
+  @protected
+  CloseProximityDisclosureUpdate
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return CloseProximityDisclosureUpdateImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  FutureOr<void> Function(CloseProximityDisclosureUpdate)
+  dco_decode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate_Output_unit_AnyhowException(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError('');
   }
 
   @protected
@@ -1724,6 +1825,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Object dco_decode_DartOpaque(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return decodeDartOpaque(raw, generalizedFrbRustBinding);
+  }
+
+  @protected
+  CloseProximityDisclosureUpdate
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return CloseProximityDisclosureUpdateImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
@@ -2653,10 +2761,34 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  CloseProximityDisclosureUpdate
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return CloseProximityDisclosureUpdateImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
   Object sse_decode_DartOpaque(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_isize(deserializer);
     return decodeDartOpaque(inner, generalizedFrbRustBinding);
+  }
+
+  @protected
+  CloseProximityDisclosureUpdate
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return CloseProximityDisclosureUpdateImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
   }
 
   @protected
@@ -3739,6 +3871,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  int
+  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
+    CloseProximityDisclosureUpdate raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as CloseProximityDisclosureUpdateImpl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  PlatformPointer
+  cst_encode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate_Output_unit_AnyhowException(
+    FutureOr<void> Function(CloseProximityDisclosureUpdate) raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_DartOpaque(
+      encode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate_Output_unit_AnyhowException(
+        raw,
+      ),
+    );
+  }
+
+  @protected
   PlatformPointer cst_encode_DartFn_Inputs_list_record_i_32_notification_type_Output_unit_AnyhowException(
     FutureOr<void> Function(List<(int, NotificationType)>) raw,
   ) {
@@ -3752,6 +3907,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   PlatformPointer cst_encode_DartOpaque(Object raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return encodeDartOpaque(raw, portManager.dartHandlerPort, generalizedFrbRustBinding);
+  }
+
+  @protected
+  int cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
+    CloseProximityDisclosureUpdate raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as CloseProximityDisclosureUpdateImpl).frbInternalCstEncode();
   }
 
   @protected
@@ -3845,6 +4009,31 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
+    CloseProximityDisclosureUpdate self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize((self as CloseProximityDisclosureUpdateImpl).frbInternalSseEncode(move: true), serializer);
+  }
+
+  @protected
+  void
+  sse_encode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate_Output_unit_AnyhowException(
+    FutureOr<void> Function(CloseProximityDisclosureUpdate) self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_DartOpaque(
+      encode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate_Output_unit_AnyhowException(
+        self,
+      ),
+      serializer,
+    );
+  }
+
+  @protected
   void sse_encode_DartFn_Inputs_list_record_i_32_notification_type_Output_unit_AnyhowException(
     FutureOr<void> Function(List<(int, NotificationType)>) self,
     SseSerializer serializer,
@@ -3865,6 +4054,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       ),
       serializer,
     );
+  }
+
+  @protected
+  void sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
+    CloseProximityDisclosureUpdate self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize((self as CloseProximityDisclosureUpdateImpl).frbInternalSseEncode(move: null), serializer);
   }
 
   @protected
@@ -4827,4 +5025,22 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_i_32(10, serializer);
     }
   }
+}
+
+@sealed
+class CloseProximityDisclosureUpdateImpl extends RustOpaque implements CloseProximityDisclosureUpdate {
+  // Not to be used by end users
+  CloseProximityDisclosureUpdateImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  CloseProximityDisclosureUpdateImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
+    : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: WalletCore.instance.api.rust_arc_increment_strong_count_CloseProximityDisclosureUpdate,
+    rustArcDecrementStrongCount: WalletCore.instance.api.rust_arc_decrement_strong_count_CloseProximityDisclosureUpdate,
+    rustArcDecrementStrongCountPtr:
+        WalletCore.instance.api.rust_arc_decrement_strong_count_CloseProximityDisclosureUpdatePtr,
+  );
 }
