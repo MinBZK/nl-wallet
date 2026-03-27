@@ -5,6 +5,7 @@ use derive_more::Display;
 
 use attestation_data::auth::reader_auth::ValidationError;
 use attestation_data::x509::CertificateTypeError;
+use dcql::CredentialFormat;
 use error_category::ErrorCategory;
 
 use crate::openid4vp::AuthRequestValidationError;
@@ -104,6 +105,10 @@ pub enum VpVerifierError {
 
     #[error("error validating requested attributes: {0}")]
     RequestedAttributesValidation(#[source] ValidationError),
+
+    #[error("verifier vp_formats_supported does not include required algorithm for format {0}")]
+    #[category(critical)]
+    VpFormatsNotSupported(CredentialFormat),
 }
 
 #[derive(Debug, thiserror::Error)]

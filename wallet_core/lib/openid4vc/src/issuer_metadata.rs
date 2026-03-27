@@ -23,8 +23,11 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
+use crate::cose::CoseAlgorithmIdentifier;
+use crate::cose::KnownCoseAlgorithmIdentifier;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
+use crate::jose::JwsAlgorithm;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 
@@ -429,9 +432,7 @@ impl CredentialFormat {
     fn new_mdoc_ecdsa_p256_sha256(doctype: String) -> Self {
         Self::MsoMdoc {
             doctype,
-            credential_signing_alg_values_supported: Some(vec_nonempty![CoseAlgorithmIdentifier::Known(
-                KnownCoseAlgorithmIdentifier::Esp256
-            )]),
+            credential_signing_alg_values_supported: Some(vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()]),
         }
     }
 
@@ -440,46 +441,6 @@ impl CredentialFormat {
             vct,
             credential_signing_alg_values_supported: Some(vec_nonempty![JwsAlgorithm::ES256]),
         }
-    }
-}
-
-#[derive(Debug, Clone, Copy, Eq, Serialize, Deserialize)]
-#[serde(from = "i64", into = "i64")]
-pub enum CoseAlgorithmIdentifier {
-    Known(KnownCoseAlgorithmIdentifier),
-
-    // Allow the issuer to COSE algorithm identifiers that the wallet doesn't support.
-    Unknown(i64),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::FromRepr)]
-#[repr(i64)]
-pub enum KnownCoseAlgorithmIdentifier {
-    Es256 = -7,
-    Esp256 = -9,
-}
-
-impl From<CoseAlgorithmIdentifier> for i64 {
-    fn from(value: CoseAlgorithmIdentifier) -> Self {
-        match value {
-            CoseAlgorithmIdentifier::Known(known_identifier) => known_identifier as i64,
-            CoseAlgorithmIdentifier::Unknown(identifier) => identifier,
-        }
-    }
-}
-
-impl From<i64> for CoseAlgorithmIdentifier {
-    fn from(value: i64) -> Self {
-        match KnownCoseAlgorithmIdentifier::from_repr(value) {
-            Some(known_identifier) => Self::Known(known_identifier),
-            None => Self::Unknown(value),
-        }
-    }
-}
-
-impl PartialEq for CoseAlgorithmIdentifier {
-    fn eq(&self, other: &Self) -> bool {
-        i64::from(*self) == i64::from(*other)
     }
 }
 
@@ -574,17 +535,6 @@ impl ProofMetadata {
             key_attestations_required: None,
         }
     }
-}
-
-/// Algorithms that the Issuer supports for a proof, as defined in [IANA.JOSE]. The Wallet uses one of them to sign the
-/// proof.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum JwsAlgorithm {
-    ES256,
-
-    // Allow the issuer to announce algorithms that the wallet doesn't support.
-    #[serde(untagged)]
-    Other(String),
 }
 
 /// Requirement for key attestations as described in Appendix D, which the Credential Issuer expects the Wallet to send

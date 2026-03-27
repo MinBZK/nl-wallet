@@ -10,7 +10,6 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Constructor;
 use futures::future::try_join_all;
-use indexmap::IndexSet;
 use itertools::Itertools;
 use jwk_simple::Key;
 use p256::ecdsa::VerifyingKey;
@@ -78,6 +77,9 @@ use wscd::PoaVerificationError;
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
+use crate::cose::CoseAlgorithmIdentifier;
+use crate::cose::KnownCoseAlgorithmIdentifier;
+use crate::jose::JwsAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 
 /// Leeway used in the lower end of the `iat` verification, used to account for clock skew.
@@ -205,7 +207,7 @@ pub enum VpAuthorizationRequestAudience {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpClientMetadata {
     pub jwks: VpJwks,
-    pub vp_formats: VpFormat,
+    pub vp_formats_supported: VpFormatsSupported,
 
     /// Non-empty array of strings, where each string is a JWE [RFC7516] enc algorithm that can be used as the content
     /// encryption algorithm for encrypting the Response. When a response_mode requiring encryption of the Response
@@ -285,17 +287,53 @@ pub struct VpJwks {
     pub keys: VecNonEmpty<Key>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum VpFormat {
-    MsoMdoc { alg: IndexSet<FormatAlg> },
-    SdJwt { alg: IndexSet<FormatAlg> },
+#[skip_serializing_none]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VpFormatsSupported {
+    pub mso_mdoc: Option<MsoMdocAlgValues>,
+    #[serde(rename = "dc+sd-jwt")]
+    pub sd_jwt: Option<SdJwtAlgValues>,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum FormatAlg {
-    #[default]
-    ES256,
+/// Alg values for mso_mdoc.
+/// <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.2.2>
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MsoMdocAlgValues {
+    /// OPTIONAL. A non-empty array containing cryptographic algorithm identifiers.
+    pub issuerauth_alg_values: Option<VecNonEmpty<CoseAlgorithmIdentifier>>,
+    /// OPTIONAL. A non-empty array containing cryptographic algorithm identifiers.
+    pub deviceauth_alg_values: Option<VecNonEmpty<CoseAlgorithmIdentifier>>,
+}
+
+impl MsoMdocAlgValues {
+    pub fn contains_ecdsa_p256(&self) -> bool {
+        let contains_ecdsa_p256 =
+            |alg: &VecNonEmpty<CoseAlgorithmIdentifier>| alg.iter().any(CoseAlgorithmIdentifier::is_ecdsa_p256);
+        self.issuerauth_alg_values.as_ref().is_some_and(contains_ecdsa_p256)
+            && self.deviceauth_alg_values.as_ref().is_some_and(contains_ecdsa_p256)
+    }
+}
+
+/// Alg values for dc+sd-jwt.
+/// <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.3.4>
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SdJwtAlgValues {
+    /// OPTIONAL. A non-empty array containing fully-specified identifiers of cryptographic algorithms supported for an
+    /// Issuer-signed JWT of an SD-JWT.
+    #[serde(rename = "sd-jwt_alg_values")]
+    pub sd_jwt_alg_values: Option<VecNonEmpty<JwsAlgorithm>>,
+    /// OPTIONAL. A non-empty array containing fully-specified identifiers of cryptographic algorithms supported for a
+    /// Key Binding JWT (KB-JWT).
+    #[serde(rename = "kb-jwt_alg_values")]
+    pub kb_jwt_alg_values: Option<VecNonEmpty<JwsAlgorithm>>,
+}
+
+impl SdJwtAlgValues {
+    pub fn contains_es_256(&self) -> bool {
+        let contains_es_256 = |alg: &VecNonEmpty<JwsAlgorithm>| alg.iter().contains(&JwsAlgorithm::ES256);
+        self.sd_jwt_alg_values.as_ref().is_some_and(contains_es_256)
+            && self.kb_jwt_alg_values.as_ref().is_some_and(contains_es_256)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -500,8 +538,15 @@ impl NormalizedVpAuthorizationRequest {
                 jwks: VpJwks {
                     keys: vec_nonempty![jwk],
                 },
-                vp_formats: VpFormat::MsoMdoc {
-                    alg: IndexSet::from([FormatAlg::ES256]),
+                vp_formats_supported: VpFormatsSupported {
+                    mso_mdoc: Some(MsoMdocAlgValues {
+                        issuerauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                        deviceauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                    }),
+                    sd_jwt: Some(SdJwtAlgValues {
+                        sd_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
+                        kb_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
+                    }),
                 },
                 // HAIP requires verifiers to list both A128GCM and A256GCM in
                 // `encrypted_response_enc_values_supported`:
@@ -1168,9 +1213,14 @@ mod tests {
 
     use crate::AuthorizationErrorCode;
     use crate::VpAuthorizationErrorCode;
+    use crate::cose::KnownCoseAlgorithmIdentifier;
+    use crate::jose::JwsAlgorithm;
     use crate::jwe::JweEncryptionAlgorithm;
     use crate::mock::ExtendingVctRetrieverStub;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
+    use crate::openid4vp::MsoMdocAlgValues;
+    use crate::openid4vp::SdJwtAlgValues;
+    use crate::openid4vp::VpFormatsSupported;
 
     use super::AuthRequestValidationError;
     use super::AuthResponseError;
@@ -1480,9 +1530,14 @@ mod tests {
                         }]
                     },
                     "encrypted_response_enc_values_supported": ["A256GCM"],
-                    "vp_formats": {
+                    "vp_formats_supported": {
                         "mso_mdoc": {
-                            "alg": [ "ES256" ]
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
                         }
                     }
                 },
@@ -1527,9 +1582,14 @@ mod tests {
                         }]
                     },
                     "encrypted_response_enc_values_supported": ["A256GCM"],
-                    "vp_formats": {
+                    "vp_formats_supported": {
                         "mso_mdoc": {
-                            "alg": [ "ES256" ]
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
                         }
                     }
                 },
@@ -1577,9 +1637,14 @@ mod tests {
                             "y": "-5-QtFqJqGwOjEL3Ut89nrE0MeaUp5RozksKHpBiyw0"
                         }]
                     },
-                    "vp_formats": {
+                    "vp_formats_supported": {
                         "mso_mdoc": {
-                            "alg": [ "ES256" ]
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
                         }
                     }
                 },
@@ -1688,9 +1753,14 @@ mod tests {
                         }]
                     },
                     "encrypted_response_enc_values_supported": ["A512GCM", "A256GCM"],
-                    "vp_formats": {
+                    "vp_formats_supported": {
                         "mso_mdoc": {
-                            "alg": [ "ES256" ]
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
                         }
                     }
                 },
@@ -1762,9 +1832,14 @@ mod tests {
                         }]
                     },
                     "encrypted_response_enc_values_supported": ["A256GCM"],
-                    "vp_formats": {
+                    "vp_formats_supported": {
                         "mso_mdoc": {
-                            "alg": [ "ES256" ]
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
                         }
                     }
                 },
@@ -1816,9 +1891,14 @@ mod tests {
                         ]
                     },
                     "encrypted_response_enc_values_supported": ["A256GCM"],
-                    "vp_formats": {
+                    "vp_formats_supported": {
                         "mso_mdoc": {
-                            "alg": [ "ES256" ]
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
                         }
                     }
                 },
@@ -1871,9 +1951,14 @@ mod tests {
                         ]
                     },
                     "encrypted_response_enc_values_supported": ["A256GCM"],
-                    "vp_formats": {
+                    "vp_formats_supported": {
                         "mso_mdoc": {
-                            "alg": [ "ES256" ]
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
                         }
                     }
                 },
@@ -1913,9 +1998,14 @@ mod tests {
                         "keys": []
                     },
                     "encrypted_response_enc_values_supported": ["A256GCM"],
-                    "vp_formats": {
+                    "vp_formats_supported": {
                         "mso_mdoc": {
-                            "alg": [ "ES256" ]
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
                         }
                     }
                 },
@@ -1951,9 +2041,14 @@ mod tests {
                 "client_metadata": {
                     "jwks_uri": "https://example.com/jwks.json",
                     "encrypted_response_enc_values_supported": ["A256GCM"],
-                    "vp_formats": {
+                    "vp_formats_supported": {
                         "mso_mdoc": {
-                            "alg": [ "ES256" ]
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
                         }
                     }
                 },
@@ -1994,9 +2089,14 @@ mod tests {
                         }]
                     },
                     "encrypted_response_enc_values_supported": ["A256GCM"],
-                    "vp_formats": {
+                    "vp_formats_supported": {
                         "mso_mdoc": {
-                            "alg": [ "ES256" ]
+                            "issuerauth_alg_values": [-9],
+                            "deviceauth_alg_values": [-9]
+                        },
+                        "dc+sd-jwt": {
+                            "sd-jwt_alg_values": ["ES256"],
+                            "kb-jwt_alg_values": ["ES256"]
                         }
                     }
                 },
@@ -2731,5 +2831,36 @@ mod tests {
             .expect_err("unrecognized request object should fail to parse as VpRequestUri");
 
         assert_matches!(result, crate::disclosure_session::VpClientError::RequestUri(_));
+    }
+
+    #[test]
+    fn deserialize_vp_formats_supported() {
+        let json = json!({
+            "mso_mdoc": {
+                "issuerauth_alg_values": [-9],
+                "deviceauth_alg_values": [-9]
+            },
+            "dc+sd-jwt": {
+                "sd-jwt_alg_values": ["ES256"],
+                "kb-jwt_alg_values": ["ES256"]
+            }
+        });
+
+        let deserialized: VpFormatsSupported = serde_json::from_value(json).unwrap();
+
+        assert_eq!(
+            deserialized.mso_mdoc,
+            Some(MsoMdocAlgValues {
+                issuerauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                deviceauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+            })
+        );
+        assert_eq!(
+            deserialized.sd_jwt,
+            Some(SdJwtAlgValues {
+                sd_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
+                kb_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
+            })
+        );
     }
 }

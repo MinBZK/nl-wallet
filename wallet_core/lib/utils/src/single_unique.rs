@@ -1,3 +1,5 @@
+use nonempty_collections::NonEmptyIterator;
+
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 #[error("Multiple items found")]
 pub struct MultipleItemsFound;
@@ -28,6 +30,27 @@ where
         } else {
             Ok(None)
         }
+    }
+}
+
+pub trait NonEmptySingleUnique<T> {
+    /// Reduces a non-empty collection or iterator into a single unique value.
+    ///
+    /// Returns
+    /// - `Ok(value)` if all elements in `T` are equal to `value`
+    /// - `Err(MultipleItemsFound)` if there are multiple different values in `T`
+    fn single_unique(self) -> Result<T, MultipleItemsFound>;
+}
+
+impl<I, T> NonEmptySingleUnique<T> for I
+where
+    I: NonEmptyIterator<Item = T>,
+    T: PartialEq,
+{
+    fn single_unique(self) -> Result<T, MultipleItemsFound> {
+        self.map(Some)
+            .reduce(|acc, item| if acc == item { acc } else { None })
+            .ok_or(MultipleItemsFound)
     }
 }
 

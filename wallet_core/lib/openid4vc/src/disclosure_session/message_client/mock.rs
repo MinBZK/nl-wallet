@@ -20,11 +20,18 @@ use jwe::decryption::JweSecretKey;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
+use utils::vec_nonempty;
 
+use crate::cose::KnownCoseAlgorithmIdentifier;
 use crate::errors::AuthorizationErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
+use crate::jose::JwsAlgorithm;
+use crate::openid4vp::MsoMdocAlgValues;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
+use crate::openid4vp::SdJwtAlgValues;
 use crate::openid4vp::VpAuthorizationRequest;
+use crate::openid4vp::VpClientMetadata;
+use crate::openid4vp::VpFormatsSupported;
 use crate::openid4vp::VpRequestUri;
 use crate::openid4vp::VpRequestUriMethod;
 use crate::openid4vp::VpRequestUriObject;
@@ -156,6 +163,7 @@ pub struct MockVerifierSession {
     pub response_uri: BaseUrl,
     pub wallet_messages: Mutex<Vec<WalletMessage>>,
     pub key_pair: KeyPair,
+    pub vp_formats_supported: VpFormatsSupported,
 }
 
 impl MockVerifierSession {
@@ -202,6 +210,16 @@ impl MockVerifierSession {
             request_uri_method: Some(request_uri_method),
             response_uri,
             wallet_messages: Mutex::new(Vec::new()),
+            vp_formats_supported: VpFormatsSupported {
+                mso_mdoc: Some(MsoMdocAlgValues {
+                    issuerauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                    deviceauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                }),
+                sd_jwt: Some(SdJwtAlgValues {
+                    sd_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
+                    kb_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
+                }),
+            },
         }
     }
 
@@ -225,6 +243,10 @@ impl MockVerifierSession {
             self.response_uri.clone(),
             wallet_nonce,
         );
+        auth_request.client_metadata = VpClientMetadata {
+            vp_formats_supported: self.vp_formats_supported.clone(),
+            ..auth_request.client_metadata
+        };
         auth_request.state = self.state.clone();
 
         auth_request
