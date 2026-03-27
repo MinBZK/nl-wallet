@@ -212,6 +212,9 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use entity::disclosure_event::EventStatus;
     use mdoc::DeviceRequest;
+    use platform_support::close_proximity_disclosure::CloseProximityDisclosureChannel;
+    use platform_support::close_proximity_disclosure::CloseProximityDisclosureChannelImpl;
+    use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
     use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
 
     use crate::wallet::Session;
@@ -225,6 +228,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_start_close_proximity_disclosure() {
+        let context = MockCloseProximityDisclosureClient::start_qr_handover_context();
+        context.expect().once().returning(|| {
+            let (_channel, receiver) = CloseProximityDisclosureChannelImpl::new();
+            Ok(("some_qr_code".to_owned(), receiver))
+        });
+
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let qr = wallet
@@ -243,6 +252,21 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_close_proximity_disclosure_callback_updates() {
+        let context = MockCloseProximityDisclosureClient::start_qr_handover_context();
+        context.expect().once().returning(|| {
+            let (channel, receiver) = CloseProximityDisclosureChannelImpl::new();
+            tokio::spawn(async move {
+                let _ = channel
+                    .send_update(PlatformUpdate::SessionEstablished {
+                        session_transcript: vec![0x01, 0x02, 0x03],
+                        device_request: vec![0x04, 0x05, 0x06],
+                    })
+                    .await;
+            });
+
+            Ok(("some_qr_code".to_owned(), receiver))
+        });
+
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<CloseProximityDisclosureUpdate>();
@@ -255,12 +279,6 @@ mod tests {
             .expect("starting proximity disclosure should succeed");
 
         // Matching the mock close proximity disclosure updates.
-        let update = rx.recv().await.expect("should receive Connecting update");
-        assert_matches!(update, CloseProximityDisclosureUpdate::Connecting);
-
-        let update = rx.recv().await.expect("should receive Connected update");
-        assert_matches!(update, CloseProximityDisclosureUpdate::Connected);
-
         let update = rx.recv().await.expect("should receive DeviceRequestReceived update");
         assert_matches!(update, CloseProximityDisclosureUpdate::DeviceRequestReceived);
 
@@ -272,16 +290,12 @@ mod tests {
             }
         });
         assert!(data.is_some());
-
-        let update = rx.recv().await.expect("should receive Disconnected update");
-        assert_matches!(update, CloseProximityDisclosureUpdate::Disconnected);
     }
 
     #[tokio::test]
     async fn test_terminate_close_proximity_disclosure_session_advertising() {
         let context = MockCloseProximityDisclosureClient::stop_ble_server_context();
-        // These expectations are global, therefore no specific number of calls is specified
-        context.expect().returning(|| Ok(()));
+        context.expect().once().returning(|| Ok(()));
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -304,7 +318,7 @@ mod tests {
     async fn test_terminate_close_proximity_disclosure_session_session_established() {
         let context = MockCloseProximityDisclosureClient::stop_ble_server_context();
         // These expectations are global, therefore no specific number of calls is specified
-        context.expect().returning(|| Ok(()));
+        context.expect().once().returning(|| Ok(()));
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -329,8 +343,7 @@ mod tests {
     #[tokio::test]
     async fn test_terminate_close_proximity_disclosure_session_disclosure_proposed() {
         let context = MockCloseProximityDisclosureClient::stop_ble_server_context();
-        // These expectations are global, therefore no specific number of calls is specified
-        context.expect().returning(|| Ok(()));
+        context.expect().once().returning(|| Ok(()));
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 

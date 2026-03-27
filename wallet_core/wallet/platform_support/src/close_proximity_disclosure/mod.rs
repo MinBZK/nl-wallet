@@ -11,7 +11,7 @@ pub mod test;
 use async_trait::async_trait;
 use tokio::sync::mpsc;
 
-use crate::bridge::close_proximity_disclosure::CloseProximityDisclosureChannel;
+pub use crate::bridge::close_proximity_disclosure::CloseProximityDisclosureChannel;
 pub use crate::bridge::close_proximity_disclosure::CloseProximityDisclosureError;
 pub use crate::bridge::close_proximity_disclosure::CloseProximityDisclosureUpdate;
 
