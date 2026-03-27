@@ -1189,7 +1189,7 @@ where
         Ok(Some((attestation_type, key_identifiers)))
     }
 
-    async fn delete_attestation(&mut self, attestation_id: Uuid) -> StorageResult<()> {
+    async fn delete_attestation(&mut self, timestamp: DateTime<Utc>, attestation_id: Uuid) -> StorageResult<()> {
         let tx = self.database()?.connection().begin().await?;
 
         let Some(attestation_presentation) = issuance_event_attestation::Entity::find()
@@ -1211,7 +1211,7 @@ where
 
         deletion_event::Entity::insert(deletion_event::ActiveModel {
             id: Set(Uuid::now_v7()),
-            timestamp: Set(Utc::now()),
+            timestamp: Set(timestamp),
             attestation_presentation: Set(attestation_presentation),
         })
         .exec(&tx)
@@ -2779,7 +2779,7 @@ pub(crate) mod tests {
         assert_matches!(events_before_deletion[1], WalletEvent::Issuance { .. });
 
         storage
-            .delete_attestation(attestation_id)
+            .delete_attestation(Utc::now(), attestation_id)
             .await
             .expect("Could not delete attestation");
 

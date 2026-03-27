@@ -255,5 +255,5 @@ pub trait Storage: Send {
     /// Deletes all copies of the attestation with the given id, severs the links from history events
     /// to the attestation, and deletes the attestation itself. Does nothing if no attestation with
     /// that id exists.
-    async fn delete_attestation(&mut self, attestation_id: Uuid) -> StorageResult<()>;
+    async fn delete_attestation(&mut self, timestamp: DateTime<Utc>, attestation_id: Uuid) -> StorageResult<()>;
 }

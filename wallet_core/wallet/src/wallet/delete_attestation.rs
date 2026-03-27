@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use chrono::Utc;
 use itertools::Itertools;
 use tracing::info;
 use tracing::instrument;
@@ -159,7 +160,11 @@ where
         .await?;
 
         info!("Deleting attestation from local storage");
-        self.storage.write().await.delete_attestation(attestation_id).await?;
+        self.storage
+            .write()
+            .await
+            .delete_attestation(Utc::now(), attestation_id)
+            .await?;
 
         self.emit_attestations().await?;
         self.emit_recent_history().await?;
@@ -173,6 +178,7 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
+    use mockall::predicate::always;
     use mockall::predicate::eq;
     use uuid::Uuid;
 
@@ -237,8 +243,8 @@ mod tests {
         wallet
             .mut_storage()
             .expect_delete_attestation()
-            .with(eq(attestation_id))
-            .return_once(move |_| delete_result);
+            .with(always(), eq(attestation_id))
+            .return_once(move |_, _| delete_result);
     }
 
     #[tokio::test]
