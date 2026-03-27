@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Releases Howto &mdash; NL Wallet 0.5.0 documentation</title>
+  <title>Releases Howto &mdash; NL Wallet 0.6.0-dev documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=79eb5478" />
@@ -15,7 +15,7 @@
     <link rel="shortcut icon" href="../_static/favicon.ico"/>
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../_static/documentation_options.js?v=9ff6a3c4"></script>
       <script src="../_static/doctools.js?v=9a2dae69"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../_static/js/custom.js?v=48752f09"></script>
@@ -158,6 +158,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.0.html">v0.4.0</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.1.html">v0.4.1</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.5.0.html">v0.5.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.6.0.html">v0.6.0 (dev)</a></li>
 </ul>
 
         </div>
@@ -327,6 +328,7 @@ and can show you which versions we have already.</p>
 <p>Start a new MR and run <code class="docutils literal notranslate"><span class="pre">version.sh</span> <span class="pre">-s</span> <span class="pre">RELEASE_VERSION</span></code> (where <code class="docutils literal notranslate"><span class="pre">RELEASE_VERSION</span></code>
 is something like <code class="docutils literal notranslate"><span class="pre">v0.2.2</span></code>). Run <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">status</span></code> to see what changed and verify the
 sanity of the changes (should be small and easy to comprehend).</p>
+<p>Remove the <code class="docutils literal notranslate"><span class="pre">(dev)</span></code> from the release notes header of this version.</p>
 <p>Get the MR merged and after merge, run <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">RELEASE_VERSION</span></code> (where
 <code class="docutils literal notranslate"><span class="pre">RELEASE_VERSION</span></code> is something like <code class="docutils literal notranslate"><span class="pre">v0.2.2</span></code>). After tagging, push the tag with
 <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">--tags</span></code>.</p>
@@ -340,6 +342,11 @@ are indicating that this is the development version of the upcoming <code class=
 This development version <code class="docutils literal notranslate"><span class="pre">v0.2.3-dev</span></code> will remain set in the component project
 files, until we are ready to release, which then leads us to repeat the cycle,
 set <code class="docutils literal notranslate"><span class="pre">v0.2.3</span></code> and tag, set the next dev version, etc.</p>
+<p>Add a new release notes file for the new development version, with the name
+<code class="docutils literal notranslate"><span class="pre">vX.Y.Z.md</span></code> and the content:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># vX.Y.Z (dev)</span>
+</pre></div>
+</div>
 <p>After you’ve set the development version, merge the MR. It is best if this is
 done quickly so people don’t accidentally start doing work under the older
 version tags.</p>
