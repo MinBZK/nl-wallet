@@ -154,6 +154,8 @@ Start a new MR and run `version.sh -s RELEASE_VERSION` (where `RELEASE_VERSION`
 is something like `v0.2.2`). Run `git status` to see what changed and verify the
 sanity of the changes (should be small and easy to comprehend).
 
+Remove the `(dev)` from the release notes header of this version.
+
 Get the MR merged and after merge, run `git tag RELEASE_VERSION` (where
 `RELEASE_VERSION` is something like `v0.2.2`). After tagging, push the tag with
 `git push --tags`.
@@ -167,6 +169,13 @@ are indicating that this is the development version of the upcoming `v0.2.3`.
 This development version `v0.2.3-dev` will remain set in the component project
 files, until we are ready to release, which then leads us to repeat the cycle,
 set `v0.2.3` and tag, set the next dev version, etc.
+
+Add a new release notes file for the new development version, with the name
+`vX.Y.Z.md` and the content:
+
+```
+# vX.Y.Z (dev)
+```
 
 After you've set the development version, merge the MR. It is best if this is
 done quickly so people don't accidentally start doing work under the older
@@ -301,8 +310,8 @@ release description.
 
 ### Pre-Approval Checklist (Steps 1-4)
 
-The checklist below can be used to verify everything is in place before release approval can be 
-requested by the software quality engineer. Alternatively it can be used to explain possible exceptions 
+The checklist below can be used to verify everything is in place before release approval can be
+requested by the software quality engineer. Alternatively it can be used to explain possible exceptions
 from the different aspects and steps.
 
 | Aspect/Step                                                  | Ok/Nok | Explain                                                                                          |
