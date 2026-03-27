@@ -51,6 +51,7 @@ use entity::attestation::TypeMetadataModel;
 use entity::attestation_copy;
 use entity::attestation_copy::AttestationFormat;
 use entity::compressed_blob::CompressedBlob;
+use entity::deletion_event;
 use entity::disclosure_event;
 use entity::disclosure_event::EventStatus;
 use entity::disclosure_event_attestation;
@@ -331,6 +332,7 @@ impl<K> DatabaseStorage<K> {
     fn combine_events(
         issuance_events: Vec<(issuance_event::Model, issuance_event_attestation::Model)>,
         disclosure_events: Vec<(disclosure_event::Model, Option<disclosure_event_attestation::Model>)>,
+        deletion_events: Vec<deletion_event::Model>,
     ) -> StorageResult<Vec<WalletEvent>> {
         // Collect issuance events into a Vec of WalletEvents
         let mut wallet_events = issuance_events
@@ -385,8 +387,23 @@ impl<K> DatabaseStorage<K> {
             },
         )?;
 
-        // Merge issuance and disclosure events
+        // Collect deletion events
+        let mut deletion_events = deletion_events
+            .into_iter()
+            .map(|event| {
+                let attestation = serde_json::from_value::<AttestationPresentation>(event.attestation_presentation)?;
+
+                Ok(WalletEvent::Deletion {
+                    id: event.id,
+                    timestamp: event.timestamp,
+                    attestation: Box::new(attestation),
+                })
+            })
+            .collect::<Result<Vec<_>, serde_json::Error>>()?;
+
+        // Merge issuance, disclosure and deletion events
         wallet_events.append(&mut disclosure_events.into_values().collect());
+        wallet_events.append(&mut deletion_events);
 
         // Sort by timestamp descending
         wallet_events.sort_by(|a, b| b.timestamp().cmp(a.timestamp()));
@@ -959,7 +976,12 @@ where
             .order_by_desc(disclosure_event::Column::Timestamp)
             .all(connection);
 
-        let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
+        let fetch_deletion_events = deletion_event::Entity::find()
+            .order_by_desc(deletion_event::Column::Timestamp)
+            .all(connection);
+
+        let (issuance_events, disclosure_events, deletion_events) =
+            try_join!(fetch_issuance_events, fetch_disclosure_events, fetch_deletion_events)?;
 
         let issuance_events = issuance_events
             .into_iter()
@@ -968,7 +990,7 @@ where
                 (event, att.unwrap()))
             .collect_vec();
 
-        Self::combine_events(issuance_events, disclosure_events)
+        Self::combine_events(issuance_events, disclosure_events, deletion_events)
     }
 
     async fn fetch_recent_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
@@ -988,7 +1010,13 @@ where
             .order_by_desc(disclosure_event::Column::Timestamp)
             .all(connection);
 
-        let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
+        let fetch_deletion_events = deletion_event::Entity::find()
+            .order_by_desc(deletion_event::Column::Timestamp)
+            .filter(Self::newer_than_31_days(deletion_event::Column::Timestamp))
+            .all(connection);
+
+        let (issuance_events, disclosure_events, deletion_events) =
+            try_join!(fetch_issuance_events, fetch_disclosure_events, fetch_deletion_events)?;
 
         let issuance_events = issuance_events
             .into_iter()
@@ -997,7 +1025,7 @@ where
                 (event, att.unwrap()))
             .collect_vec();
 
-        Self::combine_events(issuance_events, disclosure_events)
+        Self::combine_events(issuance_events, disclosure_events, deletion_events)
     }
 
     async fn fetch_wallet_events_by_attestation_id(&self, attestation_id: Uuid) -> StorageResult<Vec<WalletEvent>> {
@@ -1026,7 +1054,9 @@ where
                 (event, att.unwrap()))
             .collect_vec();
 
-        Self::combine_events(issuance_events, disclosure_events)
+        // Deletion events are not linked to a specific attestation, as that attestation has been deleted,
+        // so we don't have any of those to pass.
+        Self::combine_events(issuance_events, disclosure_events, vec![])
     }
 
     // TODO (PVW-4135): Fix logic to uniquely identify an RP, since its certificate may change.
@@ -1161,6 +1191,31 @@ where
 
     async fn delete_attestation(&mut self, attestation_id: Uuid) -> StorageResult<()> {
         let tx = self.database()?.connection().begin().await?;
+
+        let Some(attestation_presentation) = issuance_event_attestation::Entity::find()
+            .select_only()
+            .column(issuance_event_attestation::Column::AttestationPresentation)
+            .filter(issuance_event_attestation::Column::AttestationId.eq(attestation_id))
+            .order_by_desc(issuance_event_attestation::Column::Id)
+            .into_tuple::<serde_json::Value>()
+            .one(&tx)
+            .await?
+        else {
+            // If we get None here, no rows were returned. That means no `issuance_event_attestation` row
+            // for the specified `attestation_id` exists. Since those are always inserted together with the
+            // actual corresponding attestation, that means the attestation itself doesn't exist; we're
+            // attempting to delete an attestation that doesn't exist.
+            // We just return here, to mirror the behaviour of DELETE statements in such cases: do nothing.
+            return Ok(());
+        };
+
+        deletion_event::Entity::insert(deletion_event::ActiveModel {
+            id: Set(Uuid::now_v7()),
+            timestamp: Set(Utc::now()),
+            attestation_presentation: Set(attestation_presentation),
+        })
+        .exec(&tx)
+        .await?;
 
         attestation_copy::Entity::delete_many()
             .filter(attestation_copy::Column::AttestationId.eq(attestation_id))
@@ -2720,16 +2775,8 @@ pub(crate) mod tests {
             .await
             .expect("Could not fetch wallet events");
         assert_eq!(events_before_deletion.len(), 2);
-        assert!(
-            events_before_deletion
-                .iter()
-                .any(|e| matches!(e, WalletEvent::Issuance { .. }))
-        );
-        assert!(
-            events_before_deletion
-                .iter()
-                .any(|e| matches!(e, WalletEvent::Disclosure { .. }))
-        );
+        assert_matches!(events_before_deletion[0], WalletEvent::Disclosure { .. });
+        assert_matches!(events_before_deletion[1], WalletEvent::Issuance { .. });
 
         storage
             .delete_attestation(attestation_id)
@@ -2753,11 +2800,30 @@ pub(crate) mod tests {
         );
 
         // Both events should still exist but be unlinked from the attestation.
+        // In addition, there will be a deletion event.
         let events_after_deletion = storage
             .fetch_wallet_events()
             .await
             .expect("Could not fetch wallet events");
-        assert_eq!(events_after_deletion.len(), 2);
+        assert_eq!(events_after_deletion.len(), 3);
+        assert_matches!(events_after_deletion[1], WalletEvent::Disclosure { .. });
+        let WalletEvent::Deletion {
+            attestation: deleted, ..
+        } = &events_after_deletion[0]
+        else {
+            panic!("should have been a deletion event");
+        };
+        let WalletEvent::Issuance {
+            attestation: issued, ..
+        } = &events_after_deletion[2]
+        else {
+            panic!("should have been an issuance event");
+        };
+
+        // The issuance and deletion events will contain identical attestation payloads.
+        assert_eq!(*issued, *deleted);
+
+        // No events are linked anymore to the deleted attestation.
         let events_by_attestation = storage
             .fetch_wallet_events_by_attestation_id(attestation_id)
             .await

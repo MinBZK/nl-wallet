@@ -29,6 +29,11 @@ pub enum WalletEvent {
         status: DisclosureStatus,
         r#type: DisclosureType,
     },
+    Deletion {
+        id: Uuid,
+        timestamp: DateTime<Utc>,
+        attestation: Box<AttestationPresentation>,
+    },
 }
 
 impl WalletEvent {
@@ -36,6 +41,7 @@ impl WalletEvent {
         match self {
             Self::Issuance { timestamp, .. } => timestamp,
             Self::Disclosure { timestamp, .. } => timestamp,
+            Self::Deletion { timestamp, .. } => timestamp,
         }
     }
 }
