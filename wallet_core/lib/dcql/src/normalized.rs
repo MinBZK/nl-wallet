@@ -5,6 +5,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use error_category::ErrorCategory;
+use utils::vec_at_least::Iter;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -28,6 +29,12 @@ impl AsRef<[NormalizedCredentialRequest]> for NormalizedCredentialRequests {
         let Self(unique_vec) = self;
 
         unique_vec.as_ref()
+    }
+}
+
+impl NormalizedCredentialRequests {
+    pub fn nonempty_iter<'a>(&'a self) -> Iter<'a, NormalizedCredentialRequest> {
+        self.0.nonempty_iter()
     }
 }
 

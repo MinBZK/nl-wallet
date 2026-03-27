@@ -295,8 +295,7 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
                     GetRequestErrorCode::CancelledSession
                 }
                 GetAuthRequestError::Session(SessionError::UnknownSession(_)) => GetRequestErrorCode::UnknownSession,
-                GetAuthRequestError::EncryptionKey(_)
-                | GetAuthRequestError::Jwt(_)
+                GetAuthRequestError::Jwt(_)
                 | GetAuthRequestError::ReturnUrlConfigurationMismatch
                 | GetAuthRequestError::UnknownUseCase(_)
                 | GetAuthRequestError::Session(SessionError::SessionStore(_)) => GetRequestErrorCode::ServerError,

@@ -1,44 +1,61 @@
+use std::str::FromStr;
+
+use derive_more::Display;
+use derive_more::From;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 use strum::EnumString;
 
-/// A type representing the "alg" header parameter value for JWE, i.e. the JWE algorithm.
-/// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-4>
-#[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
-#[strum(serialize_all = "SCREAMING-KEBAB-CASE")]
-pub enum JweAlgorithm {
-    EcdhEs,
-    #[strum(default)]
-    Other(String),
+use jwe::algorithm::EncryptionAlgorithm;
+
+/// A type representing the "enc" header parameter value for JWE, i.e. the JWE encryption algorithm.
+/// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-5>
+#[derive(Debug, Clone, PartialEq, Eq, From, Display, SerializeDisplay, DeserializeFromStr)]
+pub enum JweEncryptionAlgorithm {
+    #[from]
+    Known(EncryptionAlgorithm),
+    Unknown(String),
 }
 
-/// A type representing the "alg" header parameter value for JWE, i.e. the JWE encryption algorithm.
-/// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-5>
-#[derive(Debug, Clone, Default, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
-#[strum(serialize_all = "UPPERCASE")]
-pub enum JweEncryptionAlgorithm {
-    A256Gcm,
-    A192Gcm,
-    #[default]
-    A128Gcm,
+impl From<&str> for JweEncryptionAlgorithm {
+    fn from(value: &str) -> Self {
+        match value.parse::<EncryptionAlgorithm>() {
+            Ok(algorithm) => Self::Known(algorithm),
+            Err(_) => Self::Unknown(value.to_string()),
+        }
+    }
+}
 
-    #[strum(default)]
-    Other(String),
+impl FromStr for JweEncryptionAlgorithm {
+    type Err = std::convert::Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(s.into())
+    }
 }
 
 impl JweEncryptionAlgorithm {
-    pub fn is_supported(&self) -> bool {
-        self.preference_rank().is_some()
+    /// Explicitly rank the supported algorithms in order of preference.
+    fn preference_rank(algorithm: EncryptionAlgorithm) -> u8 {
+        match algorithm {
+            EncryptionAlgorithm::A128CbcHs256 => 1,
+            EncryptionAlgorithm::A192CbcHs384 => 2,
+            EncryptionAlgorithm::A256CbcHs512 => 3,
+            EncryptionAlgorithm::A128Gcm => 4,
+            EncryptionAlgorithm::A192Gcm => 5,
+            EncryptionAlgorithm::A256Gcm => 6,
+        }
     }
 
-    // This is explicitly ranking the algorithms to prevent mis-interpretation of the Ord order
-    pub fn preference_rank(&self) -> Option<u8> {
-        match self {
-            Self::A128Gcm => Some(1),
-            Self::A192Gcm => Some(2),
-            Self::A256Gcm => Some(3),
-            Self::Other(_) => None,
-        }
+    pub fn find_preferred_known<'a>(algorithms: impl IntoIterator<Item = &'a Self>) -> Option<EncryptionAlgorithm> {
+        algorithms
+            .into_iter()
+            .filter_map(|algorithm| match algorithm {
+                Self::Known(algorithm) => Some(algorithm),
+                Self::Unknown(_) => None,
+            })
+            .copied()
+            .max_by_key(|algorithm| Self::preference_rank(*algorithm))
     }
 }
 
@@ -56,27 +73,17 @@ pub enum JweCompressionAlgorithm {
 mod tests {
     use rstest::rstest;
 
-    use super::JweAlgorithm;
+    use jwe::algorithm::EncryptionAlgorithm;
+
     use super::JweCompressionAlgorithm;
     use super::JweEncryptionAlgorithm;
 
     #[rstest]
-    #[case::ecdh_es("ECDH-ES", JweAlgorithm::EcdhEs)]
-    #[case::ecdh_es("dir", JweAlgorithm::Other("dir".to_string()))]
-    fn test_jwe_algorithm_parse(#[case] input: &str, #[case] expected_jwe_alg: JweAlgorithm) {
-        let jwe_alg = input
-            .parse::<JweAlgorithm>()
-            .expect("parsing JweAlgorithm from string should succeed");
-
-        assert_eq!(jwe_alg, expected_jwe_alg);
-        assert_eq!(jwe_alg.to_string(), *input);
-    }
-
-    #[rstest]
-    #[case::a128gcm("A128GCM", JweEncryptionAlgorithm::A128Gcm)]
-    #[case::a192gcm("A192GCM", JweEncryptionAlgorithm::A192Gcm)]
-    #[case::a256gcm("A256GCM", JweEncryptionAlgorithm::A256Gcm)]
-    #[case::a128cbc_hs256("A128CBC-HS256", JweEncryptionAlgorithm::Other("A128CBC-HS256".to_string()))]
+    #[case::a128gcm("A128GCM", JweEncryptionAlgorithm::Known(EncryptionAlgorithm::A128Gcm))]
+    #[case::a256gcm("A256GCM", JweEncryptionAlgorithm::Known(EncryptionAlgorithm::A256Gcm))]
+    #[case::a128cbc_hs256("A128CBC-HS256", JweEncryptionAlgorithm::Known(EncryptionAlgorithm::A128CbcHs256))]
+    #[case::a256cbc_hs512("A256CBC-HS512", JweEncryptionAlgorithm::Known(EncryptionAlgorithm::A256CbcHs512))]
+    #[case::a512gcm("A512GCM", JweEncryptionAlgorithm::Unknown("A512GCM".to_string()))]
     fn test_jwe_encryption_algorithm_parse(#[case] input: &str, #[case] expected_jwe_enc: JweEncryptionAlgorithm) {
         let jwe_enc = input
             .parse::<JweEncryptionAlgorithm>()

@@ -3,9 +3,13 @@ env:
   contexts:
   - name: "Default Context"
     urls:
+    - "https://${UL_HOSTNAME}/deeplink"
+    - "https://${UL_HOSTNAME}/help"
     - "https://${STATIC_HOSTNAME}/config/v1/wallet-config"
     includePaths:
-    - "https://${STATIC_HOSTNAME}/config/v1/wallet-config.*"
+    - "https://${STATIC_HOSTNAME}/deeplink.*"
+    - "https://${STATIC_HOSTNAME}/help.*"
+    - "https://${UL_HOSTNAME}/config.*"
     excludePaths: []
     authentication:
       parameters: {}
@@ -38,7 +42,21 @@ jobs:
       attackRegex: false
       evidence: ""
       evidenceRegex: false
-      methods: [ ]
+      methods: []
+# False positive analysis in PVW-5483 showed that this is not a vulnerability
+    - ruleId: "40039"
+      ruleName: "Web Cache Deception (40025)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
   parameters:
     deleteGlobalAlerts: false
   name: "alertFilter"
@@ -86,8 +104,6 @@ jobs:
     threadPerHost: 24
     maxAlertsPerRule: 0
   policyDefinition:
-    defaultStrength: "medium"
-    defaultThreshold: "medium"
     rules: []
   name: "activeScan"
   type: "activeScan"

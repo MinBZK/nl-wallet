@@ -7,7 +7,7 @@ automation-compile-check:
 
 scheduled-automation-tests-trigger:
   rules:
-    - !reference [.default-branch, rules]
+    - !reference [.default-branch-manual, rules]
   needs:
     - job: deploy-apps-ont
       artifacts: false
@@ -17,8 +17,6 @@ scheduled-automation-tests-trigger:
       - local: .gitlab-ci.yml
   variables:
     SCHEDULED: automation
-  when: manual
-  allow_failure: true
 
 .run-automation-tests-base:
   extends: .env-k8s
@@ -469,11 +467,9 @@ retrieve-performance-test-results-ont:
     TESTS:
 
 extract-manual-test-set:
-  rules: !reference [.default-branch, rules]
+  rules: !reference [.default-branch-manual, rules]
   script:
     - ./deploy/qa-util/extract-manual-test-set.sh wallet_docs/functional-design/logical-test-cases.md manual-test-set.md
-  when: manual
-  allow_failure: true
   artifacts:
     name: manual-test-set
     when: always

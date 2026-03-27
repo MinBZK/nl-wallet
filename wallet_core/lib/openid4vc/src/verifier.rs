@@ -13,11 +13,6 @@ use chrono::Utc;
 use derive_more::AsRef;
 use derive_more::Constructor;
 use derive_more::Debug;
-use derive_more::From;
-use josekit::JoseError;
-use josekit::jwk::Jwk;
-use josekit::jwk::alg::ec::EcCurve;
-use josekit::jwk::alg::ec::EcKeyPair;
 use ring::hmac;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
@@ -44,6 +39,8 @@ use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::urls::BaseUrl;
+use jwe::algorithm::EcdhAlgorithm;
+use jwe::decryption::JweSecretKey;
 use jwt::SignedJwt;
 use jwt::error::JwtError;
 use jwt::headers::HeaderWithX5c;
@@ -139,8 +136,6 @@ pub enum GetAuthRequestError {
     InvalidEphemeralId(Vec<u8>),
     #[error("the ephemeral ID {} has expired", hex::encode(.0))]
     ExpiredEphemeralId(Vec<u8>),
-    #[error("error creating ephemeral encryption keypair: {0}")]
-    EncryptionKey(#[from] JoseError),
     #[error("error signing Authorization Request JWE: {0}")]
     Jwt(#[from] JwtError),
     #[error("presence or absence of return url template does not match configuration for the required use case")]
@@ -231,7 +226,7 @@ pub struct Created {
 pub struct WaitingForResponse {
     auth_request: NormalizedVpAuthorizationRequest,
     usecase_id: String,
-    encryption_key: EncryptionPrivateKey,
+    encryption_secret_key: JweSecretKey,
     redirect_uri: Option<RedirectUri>,
     accept_undetermined_revocation_status: bool,
 }
@@ -268,28 +263,6 @@ pub struct RedirectUri {
     uri: BaseUrl,
     nonce: String,
     share_on_error: bool,
-}
-
-/// Wrapper for [`EcKeyPair`] that can be serialized.
-#[derive(Debug, Clone, AsRef, From)]
-struct EncryptionPrivateKey(EcKeyPair);
-
-// Ordinarily we might use DER encoding here instead of PEM, but `EcKeyPair::to_der_private_key()` does not encode
-// to PKCS8 which is expected by `EcKeyPair::from_der()`. A workaround would be to explicitly pass the EC curve
-// (P256 currently in our case) as a parameter to `EcKeyPair::from_der()`, but that would hinder a potential future
-// implementation of other curves or signature schemes. So we use the JWK functions instead, which don't have
-// this issue.
-impl Serialize for EncryptionPrivateKey {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        self.as_ref().to_jwk_private_key().serialize(serializer)
-    }
-}
-impl<'de> Deserialize<'de> for EncryptionPrivateKey {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Ok(EncryptionPrivateKey::from(
-            EcKeyPair::from_jwk(&Jwk::deserialize(deserializer)?).map_err(serde::de::Error::custom)?,
-        ))
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -1292,11 +1265,11 @@ impl Session<Created> {
             .process_get_request_inner(&self.state.token, response_uri, session_type, wallet_nonce, use_cases)
             .await
         {
-            Ok((jws, auth_request, redirect_uri, enc_keypair)) => {
+            Ok((jws, auth_request, redirect_uri, encryption_secret_key)) => {
                 let next = WaitingForResponse {
                     auth_request,
                     redirect_uri,
-                    encryption_key: EncryptionPrivateKey::from(enc_keypair),
+                    encryption_secret_key,
                     usecase_id: self.state.data.usecase_id.clone(),
                     accept_undetermined_revocation_status: self.state().accept_undetermined_revocation_status,
                 };
@@ -1329,7 +1302,7 @@ impl Session<Created> {
             SignedJwt<VpAuthorizationRequest, HeaderWithX5c>,
             NormalizedVpAuthorizationRequest,
             Option<RedirectUri>,
-            EcKeyPair,
+            JweSecretKey,
         ),
         WithRedirectUri<GetAuthRequestError>,
     >
@@ -1357,16 +1330,17 @@ impl Session<Created> {
 
         // Construct the Authorization Request.
         let nonce = random_string(32);
-        let encryption_keypair =
-            EcKeyPair::generate(EcCurve::P256).map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
-        let mut encryption_pubkey = encryption_keypair.to_jwk_public_key();
-        encryption_pubkey.set_algorithm("ECDH-ES");
-        encryption_pubkey.set_key_id(random_string(32));
+
+        // Use the session token as the `kid` value of the JWK. HAIP mandates `ECDH-ES` as JWE algorithm.
+        // See: https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5-2.5
+        let encryption_secret_key = JweSecretKey::new_random(Some(session_token.clone().into()), EcdhAlgorithm::EcdhEs);
+        let encryption_public_key = encryption_secret_key.to_jwe_public_key();
+
         let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
             self.state.data.credential_requests.clone(),
             self.state.data.client_id.clone(),
             nonce.clone(),
-            encryption_pubkey.try_into().unwrap(), // safe because we just constructed this key
+            encryption_public_key,
             response_uri,
             wallet_nonce,
         );
@@ -1376,7 +1350,7 @@ impl Session<Created> {
             .await
             .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
 
-        Ok((jws, auth_request, redirect_uri, encryption_keypair))
+        Ok((jws, auth_request, redirect_uri, encryption_secret_key))
     }
 
     fn redirect_uri_and_nonce(
@@ -1483,7 +1457,7 @@ impl Session<WaitingForResponse> {
         // We can't use ? here, because of the return type of this method and because the error branches consume self.
         let disclosed = match VpAuthorizationResponse::decrypt_and_verify(
             &jwe,
-            self.state().encryption_key.as_ref(),
+            &self.state().encryption_secret_key,
             &self.state().auth_request,
             accepted_wallet_client_ids,
             time,

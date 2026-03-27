@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothManager
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.RequiresDevice
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
 import kotlinx.coroutines.async
@@ -32,6 +33,7 @@ import uniffi.platform_support.CloseProximityDisclosureUpdate
 import uniffi.platform_support.NoHandle
 
 @RunWith(AndroidJUnit4::class)
+@RequiresDevice
 class CloseProximityDisclosureBridgeInstrumentedTest {
     private sealed interface RecordedUpdate {
         data object Connecting : RecordedUpdate

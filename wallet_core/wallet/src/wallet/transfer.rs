@@ -1,9 +1,5 @@
 use std::sync::Arc;
 
-use josekit::JoseError;
-use josekit::jwk::KeyPair;
-use josekit::jwk::alg::ec::EcCurve;
-use josekit::jwk::alg::ec::EcKeyPair;
 use tempfile::NamedTempFile;
 use tracing::info;
 use tracing::instrument;
@@ -12,6 +8,10 @@ use uuid::Uuid;
 
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
+use jwe::algorithm::EcdhAlgorithm;
+use jwe::decryption::JweDecrypterError;
+use jwe::decryption::JweSecretKey;
+use jwe::encryption::JweEncrypterError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::issuance_session::IssuanceDiscovery;
 
@@ -41,7 +41,6 @@ use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::TransferData;
 use crate::storage::TransferKeyData;
-use crate::transfer::database_payload::DatabasePayloadError;
 use crate::transfer::database_payload::WalletDatabasePayload;
 use crate::transfer::uri::TransferQuery;
 use crate::transfer::uri::TransferUriError;
@@ -92,13 +91,13 @@ pub enum TransferError {
     #[category(critical)]
     IllegalWalletState,
 
-    #[error("error generating transfer key pair: {0}")]
-    #[category(critical)]
-    TransferKeyPairGeneration(#[from] JoseError),
-
-    #[error("database payload error: {0}")]
+    #[error("could not encrypt database payload: {0}")]
     #[category(pd)]
-    DatabasePayload(#[from] DatabasePayloadError),
+    Encryption(#[source] JweEncrypterError),
+
+    #[error("could not decrypt database payload: {0}")]
+    #[category(pd)]
+    Decryption(#[source] JweDecrypterError),
 
     #[error("invalid transfer uri: {0}")]
     #[category(pd)]
@@ -146,16 +145,15 @@ where
             .await?;
         }
 
-        let key_pair = EcKeyPair::generate(EcCurve::P256)?;
+        let secret_key = JweSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw);
+        let public_key = secret_key.to_jwe_public_key();
 
-        transfer_data.key_data = Some(TransferKeyData::Destination {
-            private_key: key_pair.to_jwk_private_key(),
-        });
+        transfer_data.key_data = Some(TransferKeyData::Destination { secret_key });
         self.storage.write().await.upsert_data(&transfer_data).await?;
 
         let query = TransferQuery {
             session_id: transfer_data.transfer_session_id,
-            public_key: key_pair.to_jwk_public_key(),
+            public_key,
         };
 
         let url: Url = query.try_into()?;
@@ -317,7 +315,9 @@ where
 
         let database_export = self.storage.write().await.export().await?;
         let database_payload = WalletDatabasePayload::new(database_export);
-        let payload = database_payload.encrypt(&public_key)?;
+        let payload = database_payload
+            .encrypt(public_key)
+            .map_err(TransferError::Encryption)?;
 
         self.send_transfer_instruction(SendWalletPayload {
             transfer_session_id,
@@ -333,7 +333,7 @@ where
             return Err(TransferError::MissingTransferSessionId);
         };
 
-        let Some(TransferKeyData::Destination { private_key }) = transfer_data.key_data else {
+        let Some(TransferKeyData::Destination { secret_key }) = transfer_data.key_data else {
             return Err(TransferError::IllegalWalletState);
         };
 
@@ -343,7 +343,8 @@ where
             })
             .await?;
 
-        let database_payload = WalletDatabasePayload::decrypt(&result.payload, &private_key)?;
+        let database_payload =
+            WalletDatabasePayload::decrypt(&result.payload, &secret_key).map_err(TransferError::Decryption)?;
 
         // Use temporary file to create encrypted imported database file
         let encrypted_file = NamedTempFile::new().map_err(TransferError::TempFileCreation)?;
@@ -467,7 +468,6 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use josekit::jwk::Jwk;
     use parking_lot::Mutex;
     use url::Host;
     use url::Url;
@@ -597,8 +597,7 @@ mod tests {
 
         let query: TransferQuery = serde_urlencoded::from_str(url.fragment().unwrap()).unwrap();
         assert_eq!(query.session_id, transfer_session_id.into());
-        assert_eq!(query.public_key.key_type(), "EC");
-        assert_eq!(query.public_key.curve(), Some("P-256"));
+        assert_eq!(query.public_key.algorithm(), EcdhAlgorithm::EcdhEsA256kw);
     }
 
     #[tokio::test]
@@ -640,11 +639,11 @@ mod tests {
             .once()
             .return_once(move |_, _: HwSignedInstruction<PairTransfer>| Ok(wp_result));
 
-        let key_pair = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let secret_key = JweSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw);
 
         let transfer_uri = TransferQuery {
             session_id: transfer_session_id.into(),
-            public_key: key_pair.to_jwk_public_key(),
+            public_key: secret_key.to_jwe_public_key(),
         };
 
         wallet
@@ -932,15 +931,15 @@ mod tests {
                 }))
             });
 
-        let private_key_param: Arc<Mutex<Option<Jwk>>> = Arc::new(Mutex::new(None));
-        let private_key_param_clone = Arc::clone(&private_key_param);
+        let secret_key_param: Arc<Mutex<Option<JweSecretKey>>> = Arc::new(Mutex::new(None));
+        let secret_key_param_clone = Arc::clone(&secret_key_param);
 
         destination_wallet
             .mut_storage()
             .expect_upsert_data::<TransferData>()
             .withf(move |transfer_data| {
-                if let Some(TransferKeyData::Destination { private_key }) = &transfer_data.key_data {
-                    private_key_param_clone.lock().replace(private_key.clone());
+                if let Some(TransferKeyData::Destination { secret_key }) = &transfer_data.key_data {
+                    secret_key_param_clone.lock().replace(secret_key.clone());
                 }
 
                 true
@@ -1106,17 +1105,15 @@ mod tests {
         // Receive payload on the destination
         destination_wallet.mut_storage().checkpoint();
 
-        let private_key = private_key_param.lock().as_ref().unwrap().clone();
+        let secret_key = secret_key_param.lock().as_ref().unwrap().clone();
 
         destination_wallet
             .mut_storage()
             .expect_fetch_data::<TransferData>()
-            .returning(move || {
+            .return_once(move || {
                 Ok(Some(TransferData {
                     transfer_session_id: transfer_session_id.into(),
-                    key_data: Some(TransferKeyData::Destination {
-                        private_key: private_key.clone(),
-                    }),
+                    key_data: Some(TransferKeyData::Destination { secret_key }),
                 }))
             });
 
@@ -1217,7 +1214,7 @@ mod tests {
         assert_eq!(transfer_session_id, payload.transfer_session_id);
 
         let decrypted_database_export =
-            WalletDatabasePayload::decrypt(payload.payload.as_str(), private_key_param.lock().as_ref().unwrap())
+            WalletDatabasePayload::decrypt(payload.payload.as_str(), secret_key_param.lock().as_ref().unwrap())
                 .unwrap();
 
         assert!(decrypted_database_export.as_ref() == &expected_database_export)
@@ -1255,23 +1252,20 @@ mod tests {
         // Receive payload
         destination_wallet.mut_storage().checkpoint();
 
-        let key_pair = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let secret_key = JweSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw);
         let database_export_bytes = random_bytes(256);
         let database_export_key = SqlCipherKey::new_random_with_salt();
         let database_export = DatabaseExport::new(database_export_key, database_export_bytes.clone());
         let database_payload = WalletDatabasePayload::new(database_export);
-        let payload = database_payload.encrypt(&key_pair.to_jwk_public_key()).unwrap();
-        let private_key = key_pair.to_jwk_private_key();
+        let payload = database_payload.encrypt(secret_key.to_jwe_public_key()).unwrap();
 
         destination_wallet
             .mut_storage()
             .expect_fetch_data::<TransferData>()
-            .returning(move || {
+            .return_once(move || {
                 Ok(Some(TransferData {
                     transfer_session_id: transfer_session_id.into(),
-                    key_data: Some(TransferKeyData::Destination {
-                        private_key: private_key.clone(),
-                    }),
+                    key_data: Some(TransferKeyData::Destination { secret_key }),
                 }))
             });
 
@@ -1381,23 +1375,20 @@ mod tests {
         // Receive payload
         destination_wallet.mut_storage().checkpoint();
 
-        let key_pair = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let secret_key = JweSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw);
         let database_export_bytes = random_bytes(256);
         let database_export_key = SqlCipherKey::new_random_with_salt();
         let database_export = DatabaseExport::new(database_export_key, database_export_bytes.clone());
         let database_payload = WalletDatabasePayload::new(database_export);
-        let payload = database_payload.encrypt(&key_pair.to_jwk_public_key()).unwrap();
-        let private_key = key_pair.to_jwk_private_key();
+        let payload = database_payload.encrypt(secret_key.to_jwe_public_key()).unwrap();
 
         destination_wallet
             .mut_storage()
             .expect_fetch_data::<TransferData>()
-            .returning(move || {
+            .return_once(move || {
                 Ok(Some(TransferData {
                     transfer_session_id: transfer_session_id.into(),
-                    key_data: Some(TransferKeyData::Destination {
-                        private_key: private_key.clone(),
-                    }),
+                    key_data: Some(TransferKeyData::Destination { secret_key }),
                 }))
             });
 
@@ -1490,7 +1481,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let transfer_session_id = Uuid::new_v4();
-        let key_pair = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let secret_key = JweSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw);
 
         wallet
             .mut_storage()
@@ -1508,7 +1499,7 @@ mod tests {
                 Ok(Some(TransferData {
                     transfer_session_id: transfer_session_id.into(),
                     key_data: Some(TransferKeyData::Source {
-                        public_key: key_pair.to_jwk_public_key(),
+                        public_key: secret_key.to_jwe_public_key(),
                     }),
                 }))
             });

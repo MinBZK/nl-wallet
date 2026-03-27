@@ -28,18 +28,12 @@
       envsubst < deploy/zap/${SUT}_zap_scan.yaml > ${ZAP_HOME}/${SUT}_zap_scan.yaml
       zap.sh -cmd -autorun ${SUT}_zap_scan.yaml
       ALERT_COUNT=$(jq '[.site[].alerts[] | select(.riskdesc | contains("Informational") | not) | select(.riskdesc | contains("False Positive") | not)] | length' zapreports/${SUT}-zap.json)
-      if [ "$ALERT_COUNT" -gt 0 ]; then
+      if [[ $ALERT_COUNT -gt 0 ]]; then
         echo "ZAP Scan Completed: Non informational alerts found: $ALERT_COUNT"
         exit 1
       else
         echo "ZAP Scan Completed: No non informational alerts found"
       fi
-
-.get-session-token:
-  script:
-    - |
-      envsubst < deploy/zap/get_session_token_payload.json > deploy/zap/get_session_token_payload_temp.json
-      SESSION_TOKEN=$(curl -s -X POST -d @deploy/zap/get_session_token_payload_temp.json -H "Content-Type: application/json" "${INTERNAL_VERIFICATION_SERVER_URL}/disclosure/sessions" | jq -r '.session_token')
 
 zap-scan-demo:
   extends: .zap-scan-base
@@ -71,44 +65,33 @@ zap-scan-pid-issuer:
   variables:
     SUT: "PID_ISSUER"
 
-zap-scan-internal-verification-server:
-  extends: .zap-scan-base
-  script:
-    - !reference [.get-session-token, script]
-    - |
-      yq e ".servers[0].url=\"${INTERNAL_VERIFICATION_SERVER_URL}\"" -i wallet_docs/openapi/wallet-disclosure-private.openapi.yaml
-      sed -i 's|wallet-components.openapi.yaml#|#|g' wallet_docs/openapi/wallet-disclosure-private.openapi.yaml
-      sed -i "s|{session_token}|${SESSION_TOKEN}|g" wallet_docs/openapi/wallet-disclosure-private.openapi.yaml
-      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' wallet_docs/openapi/wallet-disclosure-private.openapi.yaml wallet_docs/openapi/wallet-components.openapi.yaml > ${ZAP_HOME}/merged-internal-wallet-disclosure.openapi.yaml
-    - !reference [.run-zap-scan, script]
-  variables:
-    SUT: "INTERNAL_VERIFICATION_SERVER"
-
-zap-scan-public-verification-server:
-  extends: .zap-scan-base
-  script:
-    - !reference [.get-session-token, script]
-    - |
-      yq e ".servers[0].url=\"${VERIFICATION_SERVER_URL}\"" -i wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
-      sed -i 's|wallet-components.openapi.yaml#|#|g' wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
-      sed -i "s|application/x-www-form-urlencoded|application/json|g" wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
-      sed -i "s|{session_token}|${SESSION_TOKEN}|g" wallet_docs/openapi/wallet-disclosure-public.openapi.yaml
-      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' wallet_docs/openapi/wallet-disclosure-public.openapi.yaml wallet_docs/openapi/wallet-components.openapi.yaml > ${ZAP_HOME}/merged-public-wallet-disclosure.openapi.yaml
-    - !reference [.run-zap-scan, script]
-  variables:
-    SUT: "PUBLIC_VERIFICATION_SERVER"
-
 zap-scan-issuance-server:
   extends: .zap-scan-base
   script:
     - |
-      yq e ".servers[0].url=\"${ISSUANCE_SERVER_URL}\"" -i wallet_docs/openapi/wallet-issuance.openapi.yaml
-      sed -i 's|wallet-components.openapi.yaml#|#|g' wallet_docs/openapi/wallet-issuance.openapi.yaml
-      sed -i "s|application/x-www-form-urlencoded|application/json|g" wallet_docs/openapi/wallet-issuance.openapi.yaml
-      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' wallet_docs/openapi/wallet-issuance.openapi.yaml wallet_docs/openapi/wallet-components.openapi.yaml > ${ZAP_HOME}/merged-issuance.openapi.yaml
+      AUTH_REQUEST=$(curl -fsS -H "Content-Type: application/json" "${ISSUANCE_SERVER_URL}disclosure/university_sd_jwt/request_uri?session_type=same_device")
+      session_token=$(ruby -e 'require "base64"; require "json"; print (%r{/([^/]+)/response_uri$}.match JSON.parse(Base64.urlsafe_decode64(STDIN.read.split(".")[1]))["response_uri"])[1]' <<< $AUTH_REQUEST)
+    - envsubst < deploy/zap/config/ISSUANCE_SERVER_urls.txt > ${ZAP_HOME}/ISSUANCE_SERVER_urls.txt
     - !reference [.run-zap-scan, script]
   variables:
     SUT: "ISSUANCE_SERVER"
+
+zap-scan-verification-server:
+  extends: .zap-scan-base
+  script:
+    - |
+      PAYLOAD=$(envsubst <<EOD
+      {
+        "usecase": "mijn_amsterdam_sd_jwt",
+        "return_url_template": "${RELYING_PARTY_URL}mijn_amsterdam/"
+      }
+      EOD
+      )
+      session_token=$(curl -fsS -X POST -d "$PAYLOAD" -H "Content-Type: application/json" "${INTERNAL_VERIFICATION_SERVER_URL}disclosure/sessions" | jq -r '.session_token')
+    - envsubst < deploy/zap/config/VERIFICATION_SERVER_urls.txt > ${ZAP_HOME}/VERIFICATION_SERVER_urls.txt
+    - !reference [.run-zap-scan, script]
+  variables:
+    SUT: "VERIFICATION_SERVER"
 
 zap-scan-revocation-portal:
   extends: .zap-scan-base
@@ -117,22 +100,6 @@ zap-scan-revocation-portal:
   variables:
     SUT: "REVOCATION_PORTAL"
 
-zap-scan-internal-wallet-provider:
-  extends: .zap-scan-base
-  script:
-    - envsubst < deploy/zap/config/INTERNAL_WALLET_PROVIDER_urls.txt > ${ZAP_HOME}/INTERNAL_WALLET_PROVIDER_urls.txt
-    - !reference [.run-zap-scan, script]
-  variables:
-    SUT: "INTERNAL_WALLET_PROVIDER"
-
-zap-scan-internal-issuance-server:
-  extends: .zap-scan-base
-  script:
-    - envsubst < deploy/zap/config/INTERNAL_ISSUANCE_SERVER_urls.txt > ${ZAP_HOME}/INTERNAL_ISSUANCE_SERVER_urls.txt
-    - !reference [ .run-zap-scan, script ]
-  variables:
-    SUT: "INTERNAL_ISSUANCE_SERVER"
-
 zap-scan-publish-results:
   rules: !reference [.zap-base, rules]
   needs:
@@ -140,11 +107,8 @@ zap-scan-publish-results:
     - { job: zap-scan-static-server }
     - { job: zap-scan-wallet-provider }
     - { job: zap-scan-pid-issuer }
-    - { job: zap-scan-internal-verification-server }
-    - { job: zap-scan-public-verification-server }
     - { job: zap-scan-issuance-server }
+    - { job: zap-scan-verification-server }
     - { job: zap-scan-revocation-portal }
-    - { job: zap-scan-internal-wallet-provider }
-    - { job: zap-scan-internal-issuance-server }
   script:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/zap.zip zapreports/*.xml

@@ -34,14 +34,15 @@ base64.workspace = true
 chrono = { workspace = true, features = ["now"] }
 cfg-if.workspace = true
 ciborium.workspace = true
-derive_more = { workspace = true, features = ["constructor", "debug", "display"] }
+derive_more = { workspace = true, features = ["constructor", "debug", "display", "is_variant"] }
 futures = { workspace = true, features = ["async-await"] }
 http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
-# This feature is necessary on the transitive dependency sqlx.sqlite so it doesn't rely on a local dynamic library
-libsqlite3-sys = { workspace = true, features = ["bundled-sqlcipher-vendored-openssl"] }
-josekit.workspace = true
+jwk-simple.workspace = true
+# This feature is necessary on the transitive dependency sqlx.sqlite
+# so it does not rely on a local dynamic library for SQLCipher.
+libsqlite3-sys = { workspace = true, features = ["bundled-sqlcipher"] }
 mime.workspace = true
 nutype.workspace = true
 p256.workspace = true
@@ -76,6 +77,7 @@ dcql.path = "../lib/dcql"
 entity.path = "entity"
 error_category = { path = "../lib/error_category", features = ["sentry"] }
 http_utils.path = "../lib/http_utils"
+jwe.path = "../lib/jwe"
 jwt.path = "../lib/jwt"
 mdoc.path = "../lib/mdoc"
 openid4vc.path = "../lib/openid4vc"
@@ -91,6 +93,13 @@ wallet_migrations.path = "migrations"
 wscd.path = "../lib/wscd"
 
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true }
+
+[target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
+# When compiling for either Android or iOS, make sure that the "vendored" feature of "openssl-sys" is enabled.
+# This compiles and statically links OpenSSL, so that a dynamic library does not need to be present on the system.
+# Note that "openssl-sys" is used both by "libsqlite3-sys" and "josekit".
+openssl-sys = { workspace = true, features = ["vendored"] }
+libsqlite3-sys = { workspace = true, features = ["bundled-sqlcipher-vendored-openssl"] }
 
 [dev-dependencies]
 aes-gcm.workspace = true

@@ -4,7 +4,8 @@ use std::ops::Not;
 
 use derive_more::Into;
 use itertools::Itertools;
-use josekit::jwk::Jwk;
+use jwk_simple::Algorithm;
+use jwk_simple::Key;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::MapPreventDuplicates;
@@ -22,9 +23,11 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
+use crate::cose::CoseAlgorithmIdentifier;
+use crate::cose::KnownCoseAlgorithmIdentifier;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_identifier::IssuerUrl;
-use crate::jwe::JweAlgorithm;
+use crate::jose::JwsAlgorithm;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 use crate::oauth::Discover;
@@ -152,7 +155,7 @@ pub struct CredentialRequestEncryption {
     /// ID) parameter that uniquely identifies the key.
     // TODO (PVW-5538): Wrap these in a type like `JwePublicKey` to perform validation when actually implementing
     //                  request encryption. Additionally this should check for the presence of `kid` parameters.
-    pub jwks: VecNonEmpty<Jwk>,
+    pub jwks: VecNonEmpty<Key>,
 
     /// A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (enc values) [RFC7518] supported
     /// by the Credential Endpoint to decode the Credential Request from a JWT.
@@ -176,7 +179,7 @@ pub struct CredentialRequestEncryption {
 pub struct CredentialResponseEncryption {
     /// A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (alg values) [RFC7518] supported
     /// by the Credential Endpoint to encode the Credential Response in a JWT.
-    pub alg_values_supported: VecNonEmpty<JweAlgorithm>,
+    pub alg_values_supported: VecNonEmpty<Algorithm>,
 
     /// A non-empty array containing a list of the JWE [RFC7516] encryption algorithms (enc values) [RFC7518] supported
     /// by the Credential Endpoint to encode the Credential Response in a JWT
@@ -402,9 +405,7 @@ impl CredentialFormat {
     fn new_mdoc_ecdsa_p256_sha256(doctype: String) -> Self {
         Self::MsoMdoc {
             doctype,
-            credential_signing_alg_values_supported: Some(vec_nonempty![CoseAlgorithmIdentifier::Known(
-                KnownCoseAlgorithmIdentifier::Esp256
-            )]),
+            credential_signing_alg_values_supported: Some(vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()]),
         }
     }
 
@@ -413,46 +414,6 @@ impl CredentialFormat {
             vct,
             credential_signing_alg_values_supported: Some(vec_nonempty![JwsAlgorithm::ES256]),
         }
-    }
-}
-
-#[derive(Debug, Clone, Copy, Eq, Serialize, Deserialize)]
-#[serde(from = "i64", into = "i64")]
-pub enum CoseAlgorithmIdentifier {
-    Known(KnownCoseAlgorithmIdentifier),
-
-    // Allow the issuer to COSE algorithm identifiers that the wallet doesn't support.
-    Unknown(i64),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::FromRepr)]
-#[repr(i64)]
-pub enum KnownCoseAlgorithmIdentifier {
-    Es256 = -7,
-    Esp256 = -9,
-}
-
-impl From<CoseAlgorithmIdentifier> for i64 {
-    fn from(value: CoseAlgorithmIdentifier) -> Self {
-        match value {
-            CoseAlgorithmIdentifier::Known(known_identifier) => known_identifier as i64,
-            CoseAlgorithmIdentifier::Unknown(identifier) => identifier,
-        }
-    }
-}
-
-impl From<i64> for CoseAlgorithmIdentifier {
-    fn from(value: i64) -> Self {
-        match KnownCoseAlgorithmIdentifier::from_repr(value) {
-            Some(known_identifier) => Self::Known(known_identifier),
-            None => Self::Unknown(value),
-        }
-    }
-}
-
-impl PartialEq for CoseAlgorithmIdentifier {
-    fn eq(&self, other: &Self) -> bool {
-        i64::from(*self) == i64::from(*other)
     }
 }
 
@@ -547,17 +508,6 @@ impl ProofMetadata {
             key_attestations_required: None,
         }
     }
-}
-
-/// Algorithms that the Issuer supports for a proof, as defined in [IANA.JOSE]. The Wallet uses one of them to sign the
-/// proof.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum JwsAlgorithm {
-    ES256,
-
-    // Allow the issuer to announce algorithms that the wallet doesn't support.
-    #[serde(untagged)]
-    Other(String),
 }
 
 /// Requirement for key attestations as described in Appendix D, which the Credential Issuer expects the Wallet to send
@@ -732,11 +682,13 @@ mod tests {
     use std::collections::HashMap;
 
     use assert_matches::assert_matches;
+    use jwk_simple::Algorithm;
+    use jwk_simple::KeyParams;
     use serde_json::json;
 
-    use crate::jwe::JweAlgorithm;
+    use jwe::algorithm::EncryptionAlgorithm;
+
     use crate::jwe::JweCompressionAlgorithm;
-    use crate::jwe::JweEncryptionAlgorithm;
 
     use super::CoseAlgorithmIdentifier;
     use super::CredentialConfiguration;
@@ -907,12 +859,12 @@ mod tests {
             .as_ref()
             .expect("IssuerMetadata should contain CredentialRequestEncryption");
         assert_eq!(request_encryption.jwks.len().get(), 1);
-        assert_eq!(request_encryption.jwks.first().curve(), Some("P-256"));
+        assert_matches!(request_encryption.jwks.first().params(), KeyParams::Ec(_));
         assert!(
             request_encryption
                 .enc_values_supported
                 .iter()
-                .eq(&[JweEncryptionAlgorithm::A128Gcm])
+                .eq(&[EncryptionAlgorithm::A128Gcm.into()])
         );
         assert!(
             request_encryption
@@ -928,17 +880,12 @@ mod tests {
             .credential_response_encryption
             .as_ref()
             .expect("IssuerMetadata should contain CredentialResponseEncryption");
-        assert!(
-            response_encryption
-                .alg_values_supported
-                .iter()
-                .eq(&[JweAlgorithm::EcdhEs])
-        );
+        assert!(response_encryption.alg_values_supported.iter().eq(&[Algorithm::EcdhEs]));
         assert!(
             response_encryption
                 .enc_values_supported
                 .iter()
-                .eq(&[JweEncryptionAlgorithm::A128Gcm])
+                .eq(&[EncryptionAlgorithm::A128Gcm.into()])
         );
         assert!(
             response_encryption
