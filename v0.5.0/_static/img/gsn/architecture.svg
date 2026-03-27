@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg class="gsndiagram" viewBox="0 0 452 282" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<marker id="supportedby_arrow" markerHeight="9" markerUnits="userSpaceOnUse" markerWidth="10" orient="auto-start-reverse" refX="0" refY="4.5">
+<polyline fill="black" points="0 0, 10 4.5, 0 9"/>
+</marker>
+<marker id="incontextof_arrow" markerHeight="9" markerUnits="userSpaceOnUse" markerWidth="10" orient="auto-start-reverse" refX="0" refY="4.5">
+<polyline fill-opacity="0" points="0 0, 10 4.5, 0 9, 0 0" stroke="black" stroke-width="1"/>
+</marker>
+</defs>
+<a href="rp_session.svg">
+<g class="gsn_module_ gsnelem gsnmodule" id="node_rp_session_attribute">
+<title>rp_session_attribute</title>
+<path class="border" d="M82,20 h30 v10 L212,30 L212,74 L82,74 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="89" y="50">rp_session_attribute</text>
+</g>
+</a>
+<a href="sole-control-2fa-registration.gsn.svg">
+<g class="gsn_module_ gsnelem gsnmodule" id="node_sole_control_2fa_registration">
+<title>sole_control_2fa_registration</title>
+<path class="border" d="M252,20 h30 v10 L432,30 L432,74 L252,74 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="259" y="50">sole_control_2fa_registration</text>
+</g>
+</a>
+<a href="PID_issuer.gsn.svg">
+<g class="gsn_module_ gsnelem gsnmodule" id="node_pid_issuer">
+<title>pid_issuer</title>
+<path class="border" d="M20,114 h30 v10 L124,124 L124,168 L20,168 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="27" y="144">pid_issuer</text>
+</g>
+</a>
+<a href="sole-control.gsn.svg">
+<g class="gsn_module_ gsnelem gsnmodule" id="node_sole_control_main">
+<title>sole_control_main</title>
+<path class="border" d="M164,114 h30 v10 L282,124 L282,168 L164,168 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="171" y="144">sole_control_main</text>
+</g>
+</a>
+<a href="sole-control-2fa.gsn.svg">
+<g class="gsn_module_ gsnelem gsnmodule" id="node_sole_control_2fa">
+<title>sole_control_2fa</title>
+<path class="border" d="M228,208 h30 v10 L336,218 L336,262 L228,262 z" fill-opacity="0" stroke="black" stroke-width="1"/>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="235" y="238">sole_control_2fa</text>
+</g>
+</a>
+<path class="gsnedge gsninctxt" d="M124,141 C154,141,134,141,154,141" fill-opacity="0" marker-end="url(#incontextof_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M147,74 C147,104,72,94,72,114" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M147,74 C147,104,223,94,223,114" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninctxt" d="M342,84 C342,104,302,54,302,141 S282,188,282,208" fill-opacity="0" marker-end="url(#incontextof_arrow)" marker-start="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+<path class="gsnedge gsninspby" d="M223,168 C223,198,282,188,282,208" fill-opacity="0" marker-end="url(#supportedby_arrow)" stroke="black" stroke-width="1"/>
+</svg>

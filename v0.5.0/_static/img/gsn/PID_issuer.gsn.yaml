@@ -1,0 +1,80 @@
+module:
+  name: pid_issuer
+
+G_IssuePidAtLoAHigh:
+  text: PID issuer issues at LoA High to wallets implementing Sole Control and ensures all issued attributes are factually correct during the lifetime of the attestations
+  supportedBy:
+    - S_IdpAuthenticationAtLoAHigh
+    - S_AssureAttributeCorrectness
+    - S_AssureIssuanceToCorrectWallet
+    - S_AssuranceWalletSoleControl
+
+S_IdpAuthenticationAtLoAHigh:
+  text: PID issuer identifies and authenticates at LoA high
+  undeveloped: true
+  inContextOf: [C_IdpAuthAtLoAHighExpl]
+  horizontalIndex:
+    relative: -2
+
+C_IdpAuthAtLoAHighExpl:
+  text: Method not in scope of this GSN
+
+
+S_AssureAttributeCorrectness:
+  text: Assure factual correctness of all issued attributes during the lifetimes of the attestations
+  supportedBy:
+    - G_DetermineAttributesFromAuthoritativeSources
+    - G_MaintainAttributeValidity
+
+G_DetermineAttributesFromAuthoritativeSources:
+  text: PID issuer determines attribute values using authoritative and governed sources
+  inContextOf: [A_AuthoritativeRegistersAreGoverned]
+  supportedBy: [Sn_UseAuthoritativeRegisters]
+  horizontalIndex:
+    relative: -1
+
+A_AuthoritativeRegistersAreGoverned:
+  text: Authoritative source registers are governed, accurate, and audited within the applicable trust framework
+
+Sn_UseAuthoritativeRegisters:
+  text: PID issuer uses approved authoritative registers and has evidence of governance, audits and data origin
+
+G_MaintainAttributeValidity:
+  text: PID issuer ensures attribute validity during attestation lifetime
+  supportedBy: [Sn_ManageAttributeValidity]
+
+Sn_ManageAttributeValidity:
+  text: PID issuer revokes attributes in case of non validity
+
+
+S_AssureIssuanceToCorrectWallet:
+  text: Assure that the PID is issued to the same wallet that authenticated the user and disclosed the WUA
+  supportedBy:
+    - G_ProveWalletIssuanceAssociation
+    - G_ProveWalletAuthenticationAssociation
+
+G_ProveWalletAuthenticationAssociation:
+  text: PID issuer ensures that the wallet from which user authentication and identification started is the same wallet that receives the attribute
+  supportedBy: [Sn_DpopPkce]
+
+Sn_DpopPkce:
+  text: PID issuer enforces usage of PKCE and DPoP proofs
+
+
+G_ProveWalletIssuanceAssociation:
+  text: PID issuer ensures that the PID is issued to the same wallet that disclosed the WUA
+  supportedBy: [Sn_VerifyProofOfAssociation]
+
+Sn_VerifyProofOfAssociation:
+  text: PID issuer requires a valid Proof of Association (PoA) that proves that the WUA disclosure public key and the fresh PID public key come from the same wallet
+
+
+S_AssuranceWalletSoleControl:
+  text: PID issuer enforces that the PID is issued to a wallet implementing Sole Control
+  horizontalIndex:
+    relative: +1
+  supportedBy: [Sn_EnforceWUA]
+  inContextOf: [A_PidIssuerTrustsWb]
+
+Sn_EnforceWUA:
+  text: PID issuer requires WUA disclosure before issuance

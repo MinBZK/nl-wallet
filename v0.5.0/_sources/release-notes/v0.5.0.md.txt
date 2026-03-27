@@ -1,0 +1,95 @@
+# v0.5.0 (dev)
+
+## Upgrading
+
+- This release changes the PID issuer to issue a single card with both personal
+  and address claims instead of two distinct cards. Any verifiers must be
+  updated to reflect this change.
+- Verifier certificates must now contain a `san_dns_name` that matches the
+  hostname in the OpenID4VP `response_uri`. If these do not match, disclosure
+  sessions are rejected.
+- The Wallet configuration JSON now includes a `maintenance_window` field, which
+  contains both a `start` and `end` values encoded as RFC 3339 strings. Note
+  that this field may also be `null` if no maintenance window is set.
+- The pid issuer now contains a `client_id` setting in the `digid` section,
+  which should equal the DigiD client ID in the wallet configuration.
+
+## New features
+
+- The Wallet Provider generates a Revocation Key during registration and sends
+  this to the Wallet, while it stores an HMAC of the key in its database.
+- Add 'manage notifications' screen to the app's settings menu.
+- Add 'maintenance mode' screen to the app.
+- Display revocation code in the onboarding process.
+- Ability to review revocation code from settings.
+- Show the build environment alongside the app version in the app.
+- The wallet now shows notifications on the dashboard as well as in the mobile
+  Operating System whenever an attestation is about to expire or has expired.
+- Add support for 'direct' OS notifications, e.g. used when cards are revoked.
+- The PID issuer now issues a single card with both personal and address claims.
+- Tapping a notification navigates to the detail page for that specific card.
+- Notify user about unhandled deeplinks. Previously the app silently queued or
+  dismissed deeplinks if the user tried to open them while the app was not
+  'ready' (e.g. in initial setup, or in an active disclosure session). This is
+  now handled more gracefully by notifying the user if a deepink can not be
+  processed.
+- The Wallet Provider now has an endpoint to revoke a wallet based on its wallet
+  ID. This will be used by the Wallet Provider's admin interface to allow manual
+  revocation of wallets.
+- The Wallet Provider now has an endpoint to revoke a wallet based on a user's
+  recovery code. This will also deny the user to register new wallets by placing
+  it on a deny list.
+- The Wallet Provider now has an endpoint to revoke a wallet based on a user's
+  revocation code. This will be used by the Revocation portal to allow a user to
+  revoke their wallet.
+- The Wallet Provider now has an endpoint to revoke the solution which will
+  effectively revoke all wallets and disallow registering new wallets. This will
+  be used by the Wallet Provider's admin interface. The endpoint is disabled by
+  default and needs to be enabled via a setting change.
+- The Wallet Provider now has an endpoint to list and remove recovery codes from
+  the deny list.
+- The Wallet Provider will write audit logs for all admin operations to another
+  PostgreSQL database, which must be configured in the Wallet Provider settings
+  at `audit_log.url`.
+- Before entering the 'forgot pin' flow from a disclosure/issuance/transfer
+  session, the user is now preemptively informed that doing so will cause the
+  active session will be aborted.
+- When the wallet has been revoked by the Wallet Provider, it will now inform
+  the user and reset the wallet to its initial state if the revocation was
+  initiated remotely by the user.
+- Updated Flutter to 3.41.2
+- The wallet now stores the signed wallet configuration (as a JWT) on disk. On
+  startup, the stored configuration is loaded and its signature verified,
+  preventing a tampered configuration from being used without detection. When a
+  newer configuration is fetched from the server, it replaces the previously
+  stored one.
+- Introduce the 'Present QR' screen, this is the entry point for close proximity
+  disclosure flows.
+- The Wallet Provider and Rust core now support deletion of attestations, as
+  well as their corresponding private keys.
+
+## Interoperability improvements
+
+- Sections of both the wallet and issuer code have been updated to be compliant
+  with OpenID4VCI 1.0:
+    - The `CredentialResponse` type has been updated to conform to version 1.0
+      of the specification and deferred issuance is explicitly rejected.
+    - The `IssuerMetadata` type has been updated to be fully compliant with
+      version 1.0.
+- Sections of both the wallet and verifier code have been updated to be
+  compliant with OpenID4VP 1.0:
+    - The contents the `SessionTranscript`, which is used when disclosing
+      credentials in the mdoc format, has been updated to version 1.0.
+    - OpenID4VP response encryption metadata now uses
+      `encrypted_response_enc_values_supported`, and the wallet selects a
+      mutually supported JWE `enc` value for the response.
+
+## Removed features
+
+- Support for DigiD app2app is removed, as it is technically not possible to
+  support it with the Authorization Code Flow (ACF) of OpenID4VCI 1.0.
+
+## Bug fixes
+
+- The `lst` field of a StatusList was not properly encoded and missing the last
+  few bytes.

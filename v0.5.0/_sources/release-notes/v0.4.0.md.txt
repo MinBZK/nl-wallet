@@ -1,0 +1,176 @@
+# v0.4.0
+
+## Upgrading
+
+- This release changes the identifiers used by the wallet and Wallet Provider to
+  refer to the wallet's keys, invalidating existing keys and their identifiers.
+  The WP's database will therefore have to be cleared when deploying this.
+- Specifying for which attributes a relying party is authorized in a certificate
+  has been made attestation format agnostic, meaning all existing certificates
+  are invalid and should be regenerated to accommodate the new structure.
+- The minimum size for the `ephemeral_id_secret` in the configuration of the
+  `verification_server` has been increased from 16 to 32 bytes.
+- The Wallet Provider no longer tracks in the database for each user if that
+  user received a WUA. The corresponding column in the WP's user table has been
+  removed, so the WP's database will therefore have to be cleared when deploying
+  this.
+- Switched configuration of mock relying party, issuance and verification server
+  to use DCQL (Digital Credential Query Language) for defining credential
+  queries. (see issuance_server.example.toml)
+- The `disclosed_attributes` endpoint of the verifier no longer returns a JSON
+  object keyed by the attestation type. Instead, it returns an array of
+  attestation objects, with `attestation_type` added as a field in that object.
+  This effectively removes the limitation that a particular attestation type can
+  only appear once in disclosed attributes.
+- The WTE acronym has been replaced by WUA across the codebase, including in the
+  Wallet Provider and PID issuer configurations, as well as their database table
+  and column names. These configurations will need to be updated and the
+  database migrations will need to be fresly run. In addition, a variable in the
+  wallet configuration has been renamed, so an updated wallet configuration will
+  need to be deployed. Also the name of the HSM key has been changed.
+- The database table `used_wuas` (previously known as `used_wtes`) is removed.
+- flutter_rust_bridge has been updated to 2.11.1, run
+  `cargo install flutter_rust_bridge_codegen --locked --version 2.11.1` to
+  update.
+- In the wallet configuration `mdoc_trust_anchors` is renamed to
+  `issuer_trust_anchors`.
+- The Recovery Code will now be disclosed to the Wallet Provider after PID
+  issuance. It will be stored in the Wallet Provider's database, so therefore
+  the database will have to migrated when deploying this. For the Wallet
+  Provider to be able to verify the disclosed Recovery Code, the Wallet
+  Provider's configuration will need to be updated with the
+  `pid_issuer_trust_anchors`.
+- The disclosure query language used by OpenID4VP is now DCQL instead of
+  Presentation Exchange. This has caused the JSON for both the verifier's
+  `disclosed_attributes` endpoint and the `POST` endpoint of the attestation
+  server as used for disclosure-based issuance to be changed. Please refer to
+  the relevant portions of the documentation.
+- The `/disclosed_attributes` of the `verification_server` now instead of
+  returning a JSON object returns a JSON array, whose order matches that of the
+  DCQL query that started the session.
+- The pid_issuer, issuance_server and verification_server have now separate
+  migration binaries.
+- The `typ` field of JWTs is now consistently verified across the codebase.
+  Previously, the Wallet configuration was erroneously set to `"JOSE+JSON"`,
+  which should be changed to `"jwt"`.
+- The minimum supported iOS version has been upgraded to iOS 15.0 (from iOS
+  14.0).
+- The minimum supported Android version has been upgraded to Android 10.0 - API
+  29 (from Android 7.0 - API 24).
+- The status field is now required in issued attestations. The field should be
+  added to the SD-JWT VC Type metadata of issued attestations.
+- The Wallet Provider now requires a keypair for signing Token Status Lists for
+  the WUA.
+- The configuration-server is renamed to static server.
+- The issuance server and PID issuer now require an internal server to be
+  configured. The requester server configuration in the verification server is
+  also renamed to internal server.
+- Regarding the `disclosed_attributes` endpoint of the verifier, the
+  `validity_info` field has been renamed to `issuance_validity`.
+
+## New features
+
+- The wallet and Wallet Provider now use the SHA256 of the public keys to refer
+  to the wallet's keys, so that the wallet's signing instructions to the WP are
+  non-repudiable.
+- The wallet now supports issued attributes containing 'null' and array values.
+- The PID issuer now includes a new attribute called the recovery code, which is
+  computed as the HMAC of the user's BSN.
+- When identical attestations are issued, the wallet detects if the attestation
+  already exists and renews the existing attestation. The only exception is that
+  if the attestation will be valid in the future, the attestation will be
+  treated as new.
+- The wallet now start with an empty database on every new version.
+- The `disclosed_attributes` endpoint of the verifier now includes the
+  `attestation_qualification` field per disclosed attestation.
+- The wallet now supports disclosing SD-JWT credentials and the verification
+  server supports receiving them.
+- The recovery code and login claims can be configured per PID attestation type
+  in the wallet configuration.
+- If the wallet user forgot their PIN, the wallet and wallet provider now
+  support a protocol that allows the user to reauthenticate using DigiD and
+  choose a new PIN.
+- The PID issuer and the Issuance Server now maintain a table of issued
+  attestation batches and the corresponding issued Status Token Claims.
+- The PID issuer and the Issuance Server can now serve the Status List Token for
+  the attestations they issue.
+- The PID attestation types with recovery code has to be configured for the
+  wallet-provider.
+- The wallet supports selecting one of a set of candidate attestations for
+  disclosure, if more than one matches the request.
+- Issued attestations must now contain a `status` field, which is used to
+  determine the revocation status of an attestation.
+- When disclosing SD-JWT attestations, the wallet can now disclose an
+  attestation having an attestation type that is extending the requested
+  attestation type. The verification server should be configured to accept such
+  attestations.
+- The Wallet Provider now keeps track of the issued WUAs and their revocation
+  status.
+- The PID can now be renewed in the wallet from the PID card detail screen.
+- The revocation status of attestations is checked in the Verification Server.
+- The issuance server now supports revoking attestations based on their batch
+  ID. This is done via an internal endpoint.
+- The issuance server and PID issuer optionally support openapi generation and
+  Swagger UI for their internal endpoints. This can be enabled using the
+  `openapi` feature (which is currently enabled by default).
+- The wallet shows when an attestation is revoked. In addition, it checks
+  periodically the revocation status of issued attestations in the background.
+- A verifier can now configure whether disclosed attestations having an
+  undetermined revocation status should be accepted or rejected.
+- All Rust services now exposes a MicroProfile compatible `/health` endpoint for
+  probing liveness, readiness and started.
+- The Wallet Provider now exposes a `/metrics` endpoint for monitoring purposes.
+- The token status list generated by our services now always contain an exp
+  field and will automatically, in a background job, be re-signed before hitting
+  expiration.
+- Wallet Provider errors are now measured and exposed via the `/metrics`
+  endpoint.
+
+## Code improvements
+
+- `ReaderRegistration` has been made attestation format agnostic, meaning the
+  attributes specified in the reader certificate for which the relying party is
+  authorized to request them are specified in a manner that works for both mdoc
+  and SD-JWT attestations.
+- The various instructions that the wallet used to send to the Wallet Provider
+  during issuance and disclosure are now consolidated into two instructions, one
+  for issuance and one for disclosure, that handle everything the wallet needs
+  at once.
+- The code now contains types that deal with Token Status Lists.
+- The GBA tooling accepts a client certificate chain.
+
+## Wallet app improvements
+
+- The wallet now includes a 'video tour' screen, where users can watch short
+  short video tutorials to learn about the functionalities of the app.
+- New 'Need help' and 'Contact' pages have been added to the menu, these are
+  placeholders which will provide help for the end-user in the future.
+- Add a new 'Demo' screen, shown on the initial start of the app to inform the
+  user about the current pilot phase.
+- Add (local) notification support. Will be used to notify the user about card
+  related events (e.g. expiry).
+
+## Bug fixes
+
+- The PoA provided by the wallet during disclosure now uses the nonce generated
+  by the the verifier, instead of the nonce generated by the holder, in order to
+  prevent a possible replay attack.
+
+## CI changes
+
+- Configure volume mounts more naturally (and aligned with other charts) via
+  Helm values for update-policy-server and wallet-provider.
+- Configure wallet-provider directly via Deployment instead of separate
+  ConfigMap.
+- Capture stdout/stderr from PKCS#11 library and log lines via log library to
+  get structured logging.
+- Base CI images on Debian Trixie.
+- Using `extraPodLabels` (previously `extraPodlabels`) correctly cased in Helm
+  charts.
+- Using a Deployment for preload-gba-v-data pod to always keep pod alive.
+- Helm charts have option to add additional annotations on Deployment or Cronjob
+  resources.
+- Checksum annotations in Helm charts for GBA pods is removed.
+- Split building and signing for iOS build
+- The wallet-provider ingress has an option to set the max client body size.
+- Only publicly expose the Wallet Provider `/api/v1` routes via ingress.
