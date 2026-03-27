@@ -1513,6 +1513,7 @@ mod tests {
     use crate::account_server::InstructionValidationError;
     use crate::account_server::UserState;
     use crate::account_server::mock;
+    use crate::account_server::mock::mock_status_list_service;
     use crate::account_server::mock::user_state as mock_user_state;
     use crate::flags::mock::StubWalletFlags;
     use crate::instructions::HandleInstruction;
@@ -1532,7 +1533,7 @@ mod tests {
             setup_hsm().await,
             wrapping_key_identifier.to_string(),
             vec![],
-            MockStatusListService::default(),
+            mock_status_list_service(),
         )
     }
 
@@ -1547,7 +1548,7 @@ mod tests {
             setup_hsm().await,
             wrapping_key_identifier.to_string(),
             vec![ca.to_trust_anchor().to_owned()],
-            MockStatusListService::default(),
+            mock_status_list_service(),
         )
     }
 
@@ -2057,7 +2058,7 @@ mod tests {
         wallet_user_repo
             .expect_find_wallet_user_ids_by_recovery_code()
             .times(2)
-            .returning(|_, _| Ok(vec![]));
+            .returning(|_, _| Ok(vec![Uuid::new_v4()]));
         wallet_user_repo
             .expect_revoke_wallet_users()
             .times(2)
@@ -2066,13 +2067,15 @@ mod tests {
                 Ok(vec![])
             });
 
+        let mut user_state = user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await;
+        user_state
+            .status_list_service
+            .expect_revoke_attestation_batches()
+            .times(2)
+            .returning(|_| Ok(()));
+
         let err = instruction
-            .handle(
-                &wallet_user,
-                &Generators,
-                &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
-                &mock::RECOVERY_CODE_CONFIG,
-            )
+            .handle(&wallet_user, &Generators, &user_state, &mock::RECOVERY_CODE_CONFIG)
             .await
             .expect_err("PIN recovery should have failed");
 

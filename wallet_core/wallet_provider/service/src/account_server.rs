@@ -1685,6 +1685,7 @@ pub mod mock {
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::sd_jwt::UnverifiedSdJwt;
     use token_status_list::status_list_service::mock::MockStatusListService;
+    use token_status_list::status_list_service::mock::generate_status_claims;
     use utils::vec_nonempty;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
@@ -1726,6 +1727,17 @@ pub mod mock {
         async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error> {
             Ok(self.clone())
         }
+    }
+
+    pub fn mock_status_list_service() -> MockStatusListService {
+        let mut status_list_service = MockStatusListService::new();
+        status_list_service
+            .expect_obtain_status_claims()
+            .returning(|_, _, copies| {
+                let uri = "https://example.com/wua".parse().unwrap();
+                Ok(generate_status_claims(&uri, copies))
+            });
+        status_list_service
     }
 
     pub fn setup_account_server(
@@ -2036,6 +2048,7 @@ mod tests {
     use super::mock::MockHardwareKey;
     use super::mock::MockUserState;
     use super::mock::RECOVERY_CODE_CONFIG;
+    use super::mock::mock_status_list_service;
     use super::mock::recovery_code_sd_jwt;
     use super::mock_play_integrity::MockPlayIntegrityClient;
 
@@ -2256,7 +2269,7 @@ mod tests {
             hsm,
             wrapping_key_identifier,
             vec![],
-            MockStatusListService::default(),
+            mock_status_list_service(),
         );
 
         (setup, account_server, hw_privkey, cert, revocation_code, user_state)
@@ -3583,7 +3596,7 @@ mod tests {
             wua_validity: Days::new(1),
             wrapping_key_identifier: user_state.wrapping_key_identifier,
             pid_issuer_trust_anchors: user_state.pid_issuer_trust_anchors,
-            status_list_service: MockStatusListService::default(),
+            status_list_service: user_state.status_list_service,
         };
 
         account_server

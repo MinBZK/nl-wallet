@@ -13,7 +13,7 @@ doctest = false
 [features]
 axum = ["axum/json", "utoipa/uuid", "uuid/serde"]
 verification = ["dep:http", "dep:reqwest", "dep:rustls-pki-types"]
-mock = ["dep:dashmap", "dep:http_utils", "dep:mockall"]
+mock = ["dep:mockall"]
 
 [dependencies]
 base64.workspace = true
@@ -37,14 +37,11 @@ jwt.path = "../jwt"
 utils.path = "../utils"
 
 axum = { workspace = true, optional = true }
-dashmap = { workspace = true, optional = true }
 http = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }
 utoipa = { workspace = true, optional = true }
-
-http_utils = { path = "../http_utils", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
@@ -56,5 +53,4 @@ rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
 crypto = { path = "../crypto", features = ["generate", "mock"] }
-http_utils.path = "../http_utils"
 utils = { path = "../utils", features = ["mock_time"] }
