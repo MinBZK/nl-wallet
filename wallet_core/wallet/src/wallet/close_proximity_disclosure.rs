@@ -174,6 +174,9 @@ where
         &mut self,
         session: CloseProximityDisclosureSession,
     ) -> Result<(), DisclosureError> {
+        // First abort the listener, s.t. no more events are passed along
+        session.listener.abort();
+
         CPC::stop_ble_server().await?;
 
         let state = session.session_state.lock().to_owned();
@@ -190,8 +193,6 @@ where
             )
             .await?;
         }
-
-        session.listener.abort();
 
         Ok(())
     }
