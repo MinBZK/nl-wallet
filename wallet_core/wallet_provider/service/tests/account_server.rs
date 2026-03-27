@@ -25,7 +25,7 @@ use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_account::signed::ChallengeResponse;
 use wallet_provider_domain::EpochGenerator;
-use wallet_provider_domain::generator::mock::MockGenerators;
+use wallet_provider_domain::generator::Generators;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::TimeoutPinPolicy;
 use wallet_provider_domain::model::wallet_user::WalletId;
@@ -266,7 +266,7 @@ async fn test_wua_status() {
                     certificate.clone(),
                 )
                 .await,
-            &EpochGenerator,
+            &Generators,
             &user_state,
         )
         .await
@@ -292,7 +292,7 @@ async fn test_wua_status() {
         .handle_instruction(
             instruction,
             &certificate_signing_key,
-            &MockGenerators,
+            &Generators,
             &TimeoutPinPolicy,
             &user_state,
         )
@@ -312,7 +312,7 @@ async fn test_wua_status() {
     tx.commit().await.unwrap();
 
     // assert that one WUA has been stored in the database, linked to this wallet
-    assert!(wua_ids.len() == 1);
+    assert_eq!(wua_ids.len(), 1);
 
     assert!(matches!(
         result
