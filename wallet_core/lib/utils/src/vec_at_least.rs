@@ -63,12 +63,12 @@ macro_rules! vec_nonempty {
     // Version without type parameter (relies on type inference)
     // .unwrap() requires `Debug` to be implemented for `T`, so `.unwrap_or_else` is used
     ($($x:expr),+ $(,)?) => (
-        $crate::vec_at_least::VecNonEmpty::try_from(vec![$($x),+]).unwrap_or_else(|_| panic!())
+        $crate::vec_at_least::VecNonEmpty::try_from(vec![$($x),+]).unwrap_or_else(|_| panic!("vec_nonempty! called with empty list"))
     );
 
     // Version with length parameter
     ($x:expr; $l:expr) => (
-        $crate::vec_at_least::VecNonEmpty::try_from(vec![$x; $l]).unwrap_or_else(|_| panic!())
+        $crate::vec_at_least::VecNonEmpty::try_from(vec![$x; $l]).unwrap_or_else(|_| panic!("vec_nonempty! called with empty list"))
     );
 }
 

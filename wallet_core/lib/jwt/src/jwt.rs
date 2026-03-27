@@ -461,7 +461,7 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
         // Actually create the JWTs by combining their header, payload and received signature.
         let jwts = headers_and_payloads
             .into_iter()
-            .zip(signatures)
+            .zip_eq(signatures)
             .map(|(header_and_payload, signatures)| {
                 // Again, make sure we received the correct number of signatures.
                 let signature = signatures.into_iter().exactly_one().map_err(|error| {
