@@ -205,6 +205,7 @@ mod tests {
     use mockall::predicate::always;
     use mockall::predicate::eq;
     use parking_lot::Mutex;
+    use serial_test::serial;
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::disclosure_type::DisclosureType;
@@ -227,6 +228,7 @@ mod tests {
     use super::CloseProximityDisclosureUpdate;
 
     #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
     async fn test_wallet_start_close_proximity_disclosure() {
         let context = MockCloseProximityDisclosureClient::start_qr_handover_context();
         context.expect().once().returning(|| {
@@ -251,6 +253,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
     async fn test_wallet_close_proximity_disclosure_callback_updates() {
         let context = MockCloseProximityDisclosureClient::start_qr_handover_context();
         context.expect().once().returning(|| {
@@ -293,6 +296,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
     async fn test_terminate_close_proximity_disclosure_session_advertising() {
         let context = MockCloseProximityDisclosureClient::stop_ble_server_context();
         context.expect().once().returning(|| Ok(()));
@@ -315,9 +319,9 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
     async fn test_terminate_close_proximity_disclosure_session_session_established() {
         let context = MockCloseProximityDisclosureClient::stop_ble_server_context();
-        // These expectations are global, therefore no specific number of calls is specified
         context.expect().once().returning(|| Ok(()));
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -341,6 +345,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
     async fn test_terminate_close_proximity_disclosure_session_disclosure_proposed() {
         let context = MockCloseProximityDisclosureClient::stop_ble_server_context();
         context.expect().once().returning(|| Ok(()));
