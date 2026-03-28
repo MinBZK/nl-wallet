@@ -17,7 +17,7 @@ required-features = ["db_test"]
 
 [features]
 # Include and run integration tests that depend on an external PostgreSQL database
-db_test = ["dep:db_test", "openid4vc/test", "tokio/macros", "tokio/rt-multi-thread"]
+db_test = ["dep:db_test", "openid4vc/test", "tokio/macros", "tokio/rt-multi-thread", "utils/mock_time"]
 
 [dependencies]
 chrono.workspace = true

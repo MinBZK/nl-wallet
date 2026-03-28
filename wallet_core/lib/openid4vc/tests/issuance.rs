@@ -165,7 +165,7 @@ where
         }),
         attr_service,
         sessions,
-        MemoryNonceStore::default(),
+        MemoryNonceStore::new(),
         Arc::new(status_list_service),
     );
 

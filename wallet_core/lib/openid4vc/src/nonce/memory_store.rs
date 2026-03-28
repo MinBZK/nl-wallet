@@ -4,7 +4,11 @@ use std::sync::Mutex;
 use chrono::DateTime;
 use chrono::Utc;
 
-use super::store::NoncePresence;
+use utils::generator::Generator;
+use utils::generator::TimeGenerator;
+
+use super::C_NONCE_VALIDITY;
+use super::store::NonceStatus;
 use super::store::NonceStore;
 use super::store::NonceStoreError;
 
@@ -14,38 +18,68 @@ pub enum NonceStoreResult {
     DuplicateEntry,
 }
 
-#[derive(Debug, Default)]
-pub struct MemoryNonceStore(Mutex<HashMap<String, DateTime<Utc>>>);
+#[derive(Debug)]
+pub struct MemoryNonceStore<T = TimeGenerator> {
+    nonces: Mutex<HashMap<String, DateTime<Utc>>>,
+    time_generator: T,
+}
 
 impl MemoryNonceStore {
-    pub fn store(&self, nonce: String) -> NonceStoreResult {
-        let Self(nonces) = self;
+    pub fn new() -> Self {
+        Self {
+            nonces: Mutex::new(HashMap::new()),
+            time_generator: TimeGenerator,
+        }
+    }
+}
 
-        let mut nonces = nonces.lock().expect("there should be no panic while the lock is held");
+impl Default for MemoryNonceStore {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> MemoryNonceStore<T>
+where
+    T: Generator<DateTime<Utc>>,
+{
+    fn now(&self) -> DateTime<Utc> {
+        self.time_generator.generate()
+    }
+
+    pub fn store(&self, nonce: String) -> NonceStoreResult {
+        let mut nonces = self
+            .nonces
+            .lock()
+            .expect("there should be no panic while the lock is held");
 
         if nonces.contains_key(&nonce) {
             return NonceStoreResult::DuplicateEntry;
         }
 
-        nonces.insert(nonce, Utc::now());
+        nonces.insert(nonce, self.now());
 
         NonceStoreResult::Stored
     }
 
-    pub fn remove(&self, nonce: &str) -> NoncePresence {
-        let Self(nonces) = self;
+    pub fn remove(&self, nonce: &str) -> NonceStatus {
+        let mut nonces = self
+            .nonces
+            .lock()
+            .expect("there should be no panic while the lock is held");
 
-        let mut nonces = nonces.lock().expect("there should be no panic while the lock is held");
-
-        if nonces.remove(nonce).is_some() {
-            NoncePresence::Present
-        } else {
-            NoncePresence::Absent
+        match nonces.remove(nonce) {
+            None => NonceStatus::Absent,
+            Some(created_date_time) if created_date_time + C_NONCE_VALIDITY <= self.now() => NonceStatus::Expired,
+            Some(_) => NonceStatus::Valid,
         }
     }
 }
 
-impl NonceStore for MemoryNonceStore {
+impl<T> NonceStore for MemoryNonceStore<T>
+where
+    T: Generator<DateTime<Utc>> + Send + Sync,
+{
     type Error = std::convert::Infallible;
 
     async fn store_nonce(&self, nonce: String) -> Result<(), NonceStoreError<Self::Error>> {
@@ -55,7 +89,7 @@ impl NonceStore for MemoryNonceStore {
         }
     }
 
-    async fn check_nonce_presence_and_then_remove(&self, nonce: &str) -> Result<NoncePresence, Self::Error> {
+    async fn check_nonce_status_and_then_remove(&self, nonce: &str) -> Result<NonceStatus, Self::Error> {
         let presence = self.remove(nonce);
 
         Ok(presence)
@@ -64,13 +98,28 @@ impl NonceStore for MemoryNonceStore {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+    use std::sync::Arc;
+    use std::sync::Mutex;
+
+    use chrono::DateTime;
     use futures::FutureExt;
+
+    use utils::generator::mock::MockTimeGenerator;
 
     use super::super::store::test::test_nonce_store;
     use super::MemoryNonceStore;
 
     #[test]
     fn test_memory_nonce_store() {
-        test_nonce_store(MemoryNonceStore::default()).now_or_never().unwrap()
+        let time_generator = MockTimeGenerator::new(DateTime::from_timestamp_secs(1_000_000_000).unwrap());
+        let mock_time = Arc::clone(&time_generator.time);
+
+        let store = MemoryNonceStore {
+            nonces: Mutex::new(HashMap::new()),
+            time_generator,
+        };
+
+        test_nonce_store(store, mock_time).now_or_never().unwrap()
     }
 }
