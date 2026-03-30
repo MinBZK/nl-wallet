@@ -784,7 +784,15 @@ impl HandleInstruction for DiscloseRecoveryCode {
 
         // Verify the wallet user recovery code against the stored recovery code
         // if any or insert if no recovery code is set.
-        check_recovery_code(wallet_user, &recovery_code, user_state, generators, Some(&tx)).await?;
+        match wallet_user.recovery_code.as_ref() {
+            None => {
+                user_state
+                    .repositories
+                    .store_recovery_code(&tx, &wallet_user.wallet_id, recovery_code.clone())
+                    .await?;
+            }
+            Some(_) => check_recovery_code(wallet_user, &recovery_code, user_state, generators).await?,
+        }
 
         // Verify that the recovery code is not denied, if it is, immediately revoke the wallet
         if user_state
@@ -875,7 +883,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
 
         // The PID that was just received has to belong to the same person as the wallet,
         // which is the case only if they have the same recovery code.
-        check_recovery_code(wallet_user, &recovery_code, user_state, generators, None).await?;
+        check_recovery_code(wallet_user, &recovery_code, user_state, generators).await?;
 
         let tx = user_state.repositories.begin_transaction().await?;
 
@@ -1302,38 +1310,25 @@ async fn check_recovery_code<T, R, F, H>(
     disclosed: &RecoveryCode,
     user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
     generators: &impl Generator<DateTime<Utc>>,
-    insert_tx: Option<&T>,
 ) -> Result<(), InstructionError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
-    let Some(stored) = wallet_user.recovery_code.as_ref() else {
-        return match insert_tx {
-            Some(tx) => {
-                user_state
-                    .repositories
-                    .store_recovery_code(tx, &wallet_user.wallet_id, disclosed.clone())
-                    .await?;
-                Ok(())
-            }
-            // If no `insert_tx` is given, it means there should be a recovery code available
-            None => Err(InstructionError::InvalidRecoveryCode),
-        };
-    };
-
-    if disclosed == stored {
-        return Ok(());
+    match wallet_user.recovery_code.as_ref() {
+        None => Err(InstructionError::InvalidRecoveryCode),
+        Some(stored) if stored == disclosed => Ok(()),
+        Some(stored) => {
+            // This will be replaced by a call to the security system
+            warn!("CRITICAL SECURITY: Incorrect disclosure of recovery code: stored: {stored}, disclosed: {disclosed}");
+            let _ =
+                future::try_join_all([disclosed, stored].map(|recovery_code| {
+                    system_revoke_wallets_by_recovery_code(recovery_code, user_state, generators)
+                }))
+                .await?;
+            Err(InstructionError::InvalidRecoveryCode)
+        }
     }
-
-    // This will be replaced by a call to the security system
-    warn!("CRITICAL SECURITY: Incorrect disclosure of recovery code: stored: {stored}, disclosed: {disclosed}");
-    let _ = future::try_join_all(
-        [disclosed, stored]
-            .map(|recovery_code| system_revoke_wallets_by_recovery_code(recovery_code, user_state, generators)),
-    )
-    .await?;
-    Err(InstructionError::InvalidRecoveryCode)
 }
 
 async fn check_transfer_instruction_prerequisites<T, R>(
