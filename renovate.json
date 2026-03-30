@@ -17,12 +17,18 @@
   ],
   "packageRules": [
     {
-      "description": "Disable all updates",
+      "description": "1. Disable all standard updates",
       "matchPackagePatterns": ["*"],
       "enabled": false
     },
     {
-      "description": "Keep Renovate's own image digest up to date",
+      "description": "2. Enable fixes for ANY vulnerable package (Direct or Transitive)",
+      "matchPackagePatterns": ["*"],
+      "matchIsVulnerable": true,
+      "enabled": true
+    },
+    {
+      "description": "3. Keep Renovate image up to date",
       "matchPackageNames": ["renovate/renovate"],
       "matchUpdateTypes": ["digest"],
       "enabled": true
