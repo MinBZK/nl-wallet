@@ -979,7 +979,7 @@ mod tests {
 
         let unregistered_attributes = HashMap::from([(
             PID_ATTESTATION_TYPE.to_string(),
-            HashSet::from([vec![ClaimPath::SelectByKey("bsn".to_string())].try_into().unwrap()]),
+            HashSet::from([vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())]]),
         )]);
         assert_matches!(*error, VpSessionError::Verifier(VpVerifierError::RequestedAttributesValidation(
             ValidationError::UnregisteredAttributes(unregistered)

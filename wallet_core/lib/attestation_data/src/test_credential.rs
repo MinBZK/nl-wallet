@@ -188,13 +188,9 @@ impl Add for TestCredentials {
     type Output = TestCredentials;
 
     fn add(self, rhs: Self) -> Self::Output {
-        let Self(credentials) = self;
-        let mut credentials = credentials.into_inner();
-        let Self(rhs_credentials) = rhs;
-
-        credentials.extend(rhs_credentials.into_inner());
-
-        Self::new(credentials.try_into().unwrap())
+        let mut credentials = self.0;
+        credentials.extend(rhs.0.into_inner());
+        Self::new(credentials)
     }
 }
 

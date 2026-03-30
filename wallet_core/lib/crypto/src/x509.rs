@@ -44,7 +44,6 @@ use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
 use http_utils::urls::HttpsUriError;
 use utils::generator::Generator;
-use utils::vec_at_least::VecAtLeastNError;
 use utils::vec_at_least::VecNonEmpty;
 
 /// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
@@ -170,8 +169,8 @@ pub enum CertificateError {
     PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("missing SAN extension")]
     MissingSan,
-    #[error("missing SAN DNS name or URI, found: {0:?}")]
-    MissingSanDnsNameOrUri(#[from] VecAtLeastNError),
+    #[error("missing SAN DNS name or URI")]
+    MissingSanDnsNameOrUri,
     #[error("SAN DNS name is not a URI: {0}")]
     SanDnsNameOrUriIsNotAnHttpsUri(HttpsUriError),
     #[error("could not serialize to DER: {0}")]
@@ -345,7 +344,8 @@ impl BorrowingCertificate {
         let san_https_uris = san_dns_name_or_uri
             .map(|san| san.parse().map_err(CertificateError::SanDnsNameOrUriIsNotAnHttpsUri))
             .collect::<Result<Vec<_>, _>>()?
-            .try_into()?;
+            .try_into()
+            .map_err(|_| CertificateError::MissingSanDnsNameOrUri)?;
 
         Ok(san_https_uris)
     }

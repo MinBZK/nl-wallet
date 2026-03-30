@@ -617,7 +617,7 @@ pub fn pid_issuer_settings(db_url: Url) -> (PidIssuerSettings, VecNonEmpty<Issua
     settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.issuer_settings.server_settings.wallet_server.port = 0;
 
-    (settings, vec![mock_issuable_document_pid()].try_into().unwrap())
+    (settings, vec_nonempty![mock_issuable_document_pid()])
 }
 
 pub fn issuance_server_settings(

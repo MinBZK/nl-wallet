@@ -8,6 +8,7 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 
 use crate::device_retrieval::DeviceRequest;
 use crate::device_retrieval::DocRequest;
@@ -66,9 +67,7 @@ impl From<ItemsRequest> for Vec<VecNonEmpty<ClaimPath>> {
 
                 itertools::repeat_n(name_space, attribute_count).zip(attributes).map(
                     |(name_space, (attribute, _intent_to_retain))| {
-                        vec![ClaimPath::SelectByKey(name_space), ClaimPath::SelectByKey(attribute)]
-                            .try_into()
-                            .unwrap()
+                        vec_nonempty![ClaimPath::SelectByKey(name_space), ClaimPath::SelectByKey(attribute)]
                     },
                 )
             })

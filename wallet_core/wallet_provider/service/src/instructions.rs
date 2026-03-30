@@ -27,6 +27,9 @@ use jwt::wua::WuaDisclosure;
 use token_status_list::status_list_service::StatusListService;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::errors::AccountRevokedData;
@@ -404,7 +407,7 @@ pub(super) async fn perform_issuance_with_wua<T, R, H>(
     instruction: PerformIssuance,
     wallet_user: &WalletUser,
     user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
-) -> Result<(PerformIssuanceWithWuaResult, Vec<WrappedKey>, WrappedKey), InstructionError>
+) -> Result<(PerformIssuanceWithWuaResult, VecNonEmpty<WrappedKey>, WrappedKey), InstructionError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
@@ -431,7 +434,7 @@ pub async fn perform_issuance<T, R, H>(
     (
         PerformIssuanceResult,
         Option<WuaDisclosure>,
-        Vec<WrappedKey>,
+        VecNonEmpty<WrappedKey>,
         Option<WrappedKey>,
     ),
     InstructionError,
@@ -441,22 +444,17 @@ where
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
 {
-    let (key_ids, wrapped_keys): (Vec<_>, Vec<_>) = user_state
+    let (key_ids, wrapped_keys): (VecNonEmpty<_>, VecNonEmpty<_>) = user_state
         .wallet_user_hsm
         .generate_wrapped_keys(&user_state.wrapping_key_identifier, instruction.key_count)
         .await?
-        .into_inner()
-        .into_iter()
-        .multiunzip();
+        .into_nonempty_iter()
+        .unzip();
 
-    // Instantiate some VecNonEmpty's that we need below. Safe because generate_wrapped_keys() returns VecNonEmpty.
-    let key_ids: VecNonEmpty<_> = key_ids.try_into().unwrap();
     let attestation_keys = wrapped_keys
-        .iter()
+        .nonempty_iter()
         .map(|wrapped_key| attestation_key(wrapped_key, user_state))
-        .collect_vec()
-        .try_into()
-        .unwrap();
+        .collect();
 
     // The JWT claims to be signed in the PoPs and the PoA.
     let claims = JwtPopClaims::new(instruction.nonce, NL_WALLET_CLIENT_ID.to_string(), instruction.aud);
@@ -472,15 +470,14 @@ where
     let poa = if key_count_including_wua > 1 {
         let wua_attestation_key = wua_key.as_ref().map(|key| attestation_key(key, user_state));
         Some(
-            // Unwrap is safe because we're operating on the output of `generate_wrapped_keys()`
-            // which returns `VecNonEmpty`
             Poa::new(
                 attestation_keys
                     .iter()
                     .chain(wua_attestation_key.as_ref())
                     .collect_vec()
                     .try_into()
-                    .unwrap(),
+                    // Safe because we check the `key_count` above
+                    .unwrap_or_else(|_| unreachable!()),
                 claims,
             )
             .await?,
@@ -643,7 +640,7 @@ impl HandleInstruction for PerformIssuance {
     {
         let (issuance_result, _, wrapped_keys, _) = perform_issuance(self, None, user_state).await?;
 
-        let db_keys = create_issuance_keys(wrapped_keys, None, false, generators);
+        let db_keys = create_issuance_keys(wrapped_keys.into_inner(), None, false, generators);
 
         let tx = user_state.repositories.begin_transaction().await?;
         persist_keys(&tx, wallet_user, user_state, db_keys, generators).await?;
@@ -672,7 +669,7 @@ impl HandleInstruction for PerformIssuanceWithWua {
         let (issuance_with_wua_result, wrapped_keys, wua_key_and_id) =
             perform_issuance_with_wua(self.issuance_instruction, wallet_user, user_state).await?;
 
-        let db_keys = create_issuance_keys(wrapped_keys, Some(wua_key_and_id), true, generators);
+        let db_keys = create_issuance_keys(wrapped_keys.into_inner(), Some(wua_key_and_id), true, generators);
 
         let tx = user_state.repositories.begin_transaction().await?;
         // Delete all blocked keys for any previous PID renewal or PIN recovery
@@ -736,15 +733,14 @@ impl HandleInstruction for Sign {
 
         // A PoA should be generated only if the unique keys, i.e. the keys referenced in the instruction
         // after deduplication, count two or more.
-        if found_keys.len() < 2 {
-            Ok(SignResult { signatures, poa: None })
-        } else {
+        if let Result::<VecAtLeastTwoUnique<_>, _>::Ok(found_keys) = found_keys.values().collect_vec().try_into() {
             // We have to feed a Vec of references to `Poa::new()`, so we need to iterate twice to construct that.
             let keys = found_keys
-                .values()
+                .into_inner()
+                .iter()
                 .map(|wrapped_key| attestation_key(wrapped_key, user_state))
                 .collect_vec();
-            let keys = keys.iter().collect_vec().try_into().unwrap(); // We know there are at least two keys
+            let keys = keys.iter().collect_vec().try_into().unwrap_or_else(|_| unreachable!()); // We know there are at least two keys
             let claims = JwtPopClaims::new(self.poa_nonce, NL_WALLET_CLIENT_ID.to_string(), self.poa_aud);
             let poa = Poa::new(keys, claims).await?;
 
@@ -752,6 +748,8 @@ impl HandleInstruction for Sign {
                 signatures,
                 poa: Some(poa),
             })
+        } else {
+            Ok(SignResult { signatures, poa: None })
         }
     }
 }

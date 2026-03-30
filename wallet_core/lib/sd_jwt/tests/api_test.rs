@@ -117,7 +117,7 @@ async fn concealing_property_of_concealable_value_works() {
             ]
             .try_into()
             .unwrap(),
-            vec![ClaimPath::SelectByKey(String::from("parent"))].try_into().unwrap(),
+            vec_nonempty![ClaimPath::SelectByKey(String::from("parent"))],
         ],
         holder_signing_key.verifying_key(),
     )
@@ -222,7 +222,7 @@ async fn sd_jwt_sd_hash() {
             ]
             .try_into()
             .unwrap(),
-            vec![ClaimPath::SelectByKey(String::from("parent"))].try_into().unwrap(),
+            vec_nonempty![ClaimPath::SelectByKey(String::from("parent"))],
         ],
         holder_signing_key.verifying_key(),
     )
@@ -298,7 +298,7 @@ async fn test_presentation() {
 
     // issuer signs SD-JWT
     let signed_sd_jwt = SdJwtBuilder::new(claims)
-        .make_concealable(vec![ClaimPath::SelectByKey(String::from("email"))].try_into().unwrap())
+        .make_concealable(vec_nonempty![ClaimPath::SelectByKey(String::from("email"))])
         .unwrap()
         .make_concealable(
             vec![ClaimPath::SelectByKey(String::from("phone_number"))]
@@ -347,7 +347,7 @@ async fn test_presentation() {
     // The holder can withhold from a verifier any concealable claim by calling `conceal`.
     let signed_presentation = verified_sd_jwt
         .into_presentation_builder()
-        .disclose(&vec![ClaimPath::SelectByKey(String::from("email"))].try_into().unwrap())
+        .disclose(&vec_nonempty![ClaimPath::SelectByKey(String::from("email"))])
         .unwrap()
         .disclose(
             &vec![
