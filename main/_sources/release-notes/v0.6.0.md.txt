@@ -8,3 +8,4 @@
   renewal when the newly disclosed recovery code does not match with stored
   recovery code. This is suspicious because it is already checked by the NL
   Wallet app as well.
+- When a card is deleted, the wallet now stores this in its history.
