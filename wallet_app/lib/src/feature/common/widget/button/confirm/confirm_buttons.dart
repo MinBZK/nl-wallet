@@ -5,15 +5,14 @@ import '../../../../../util/extension/build_context_extension.dart';
 import 'horizontal_confirm_buttons.dart';
 import 'vertical_confirm_buttons.dart';
 
-const _kPadding = EdgeInsets.symmetric(horizontal: 16, vertical: 24);
-const _kLandscapePadding = EdgeInsets.symmetric(horizontal: 16, vertical: 12);
-
 /// Widget that renders two buttons either side by side, or stacked vertically,
 /// depending on the content and the available screen size. Usually used on the
 /// bottom of the screen.
 /// NOTE: This widget assumes it takes up the full width of the screen, so it should
 /// not be wrapped in any padding/margin providing widget.
 class ConfirmButtons extends StatelessWidget {
+  static const contentPadding = EdgeInsets.symmetric(horizontal: 16, vertical: 24);
+  static const contentLandscapePadding = EdgeInsets.symmetric(horizontal: 16, vertical: 12);
   static const kButtonSpacing = 12.0;
 
   final FitsWidthWidget primaryButton;
@@ -64,7 +63,7 @@ class ConfirmButtons extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: context.isLandscape ? _kLandscapePadding : _kPadding,
+        padding: context.isLandscape ? contentLandscapePadding : contentPadding,
         child: buttons,
       ),
     );
@@ -76,7 +75,7 @@ class ConfirmButtons extends StatelessWidget {
   /// Note that this assumes the [ConfirmButtons] widget takes up the full width of the screen
   double _calculateAvailableWidth(BuildContext context) {
     final double screenWidth = context.mediaQuery.size.width.roundToDouble();
-    final padding = context.isLandscape ? _kLandscapePadding : _kPadding;
+    final padding = context.isLandscape ? contentLandscapePadding : contentPadding;
     final double singleButtonWidth = (screenWidth - padding.horizontal - kButtonSpacing) / 2;
     return singleButtonWidth;
   }

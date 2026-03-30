@@ -1,46 +1,55 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
-import '../../../theme/wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../../util/extension/string_extension.dart';
-import '../widget/button/primary_button.dart';
-import '../widget/button/tertiary_button.dart';
+import '../widget/button/confirm/confirm_buttons.dart';
 import '../widget/paragraphed_list.dart';
 import '../widget/text/title_text.dart';
 import '../widget/wallet_scrollbar.dart';
 
+/// A terminal page layout that displays a title, description, an illustration,
+/// and action buttons at the bottom.
+///
+/// This layout is typically used for success, error, or informational screens that
+/// mark the end of a flow. Also see [TerminalScreen.show()] to use this as a route.
 class TerminalPage extends StatelessWidget {
+  /// The title displayed at the top of the page.
   final String title;
-  final String? description;
-  final String primaryButtonCta;
-  final Widget? primaryButtonIcon;
-  final VoidCallback onPrimaryPressed;
-  final String? secondaryButtonCta;
-  final VoidCallback? onSecondaryButtonPressed;
-  final Widget? secondaryButtonIcon;
-  final Widget? illustration;
-  final bool flipButtonOrder;
 
-  bool get hasSecondaryButton => secondaryButtonCta != null;
+  /// An optional description text.
+  ///
+  /// If provided, the text will be split into paragraphs and displayed
+  /// below the title using [ParagraphedList].
+  final String? description;
+
+  /// The primary action button.
+  ///
+  /// Usually a [PrimaryButton].
+  final FitsWidthWidget? primaryButton;
+
+  /// The secondary action button.
+  ///
+  /// Usually a [TertiaryButton].
+  final FitsWidthWidget? secondaryButton;
+
+  /// Whether buttons should be laid out vertically when both are present.
+  ///
+  /// This is ignored when the app is in landscape mode.
+  final bool preferVerticalButtonLayout;
+
+  /// An optional illustration widget.
+  ///
+  /// Usually a [PageIllustration].
+  final Widget? illustration;
 
   const TerminalPage({
     required this.title,
     this.description,
-    required this.primaryButtonCta,
-    required this.onPrimaryPressed,
-    this.primaryButtonIcon = const Icon(Icons.arrow_forward_outlined),
-    this.secondaryButtonIcon = const Icon(Icons.arrow_forward_outlined),
-    this.secondaryButtonCta,
-    this.onSecondaryButtonPressed,
+    this.primaryButton,
+    this.secondaryButton,
     this.illustration,
-    this.flipButtonOrder = false,
+    this.preferVerticalButtonLayout = true,
     super.key,
-  }) : assert(
-         !flipButtonOrder || secondaryButtonCta != null,
-         'buttons are only flippable when secondary button is available',
-       );
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -89,63 +98,46 @@ class TerminalPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
-        illustration ?? _buildIllustrationPlaceHolder(context),
-        const SizedBox(height: 24),
+        ?illustration,
+        SizedBox(height: illustration == null ? 0 : 24),
       ],
-    );
-  }
-
-  Widget _buildIllustrationPlaceHolder(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 200,
-      decoration: BoxDecoration(
-        color: context.colorScheme.primaryContainer,
-        borderRadius: WalletTheme.kBorderRadius12,
-      ),
-      margin: const EdgeInsets.all(16),
     );
   }
 
   Widget _buildBottomSection(BuildContext context) {
-    List<Widget> buttons = [
-      _buildPrimaryButton(context),
-      SizedBox(height: hasSecondaryButton ? 16 : 0),
-      if (hasSecondaryButton) _buildSecondaryButton(context),
-    ];
-    if (flipButtonOrder) buttons = buttons.reversed.toList();
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Divider(),
-        const SizedBox(height: 24),
-        ...buttons,
-        SizedBox(height: max(24, context.mediaQuery.viewPadding.bottom)),
-      ],
-    );
-  }
+    late Widget content;
+    if (primaryButton != null && secondaryButton != null) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Divider(),
+          ConfirmButtons(
+            primaryButton: primaryButton!,
+            secondaryButton: secondaryButton!,
+            forceVertical: preferVerticalButtonLayout && !context.isLandscape,
+          ),
+        ],
+      );
+    } else if (primaryButton != null) {
+      content = primaryButton!;
+    } else if (secondaryButton != null) {
+      content = secondaryButton!;
+    } else {
+      return const SizedBox.shrink(); // Hide section
+    }
 
-  Widget _buildPrimaryButton(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: PrimaryButton(
-        key: const Key('primaryButtonCta'),
-        onPressed: onPrimaryPressed,
-        text: Text.rich(primaryButtonCta.toTextSpan(context)),
-        icon: primaryButtonIcon,
-      ),
-    );
-  }
-
-  Widget _buildSecondaryButton(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      width: double.infinity,
-      child: TertiaryButton(
-        key: const Key('secondaryButtonCta'),
-        onPressed: onSecondaryButtonPressed,
-        icon: secondaryButtonIcon,
-        text: Text.rich(secondaryButtonCta!.toTextSpan(context)),
+    final contentPadding = context.isLandscape ? ConfirmButtons.contentLandscapePadding : ConfirmButtons.contentPadding;
+    return SafeArea(
+      top: false,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Divider(),
+          Padding(
+            padding: contentPadding,
+            child: content,
+          ),
+        ],
       ),
     );
   }

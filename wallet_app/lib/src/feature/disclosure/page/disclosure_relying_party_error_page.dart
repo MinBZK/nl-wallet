@@ -6,6 +6,8 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/page/terminal_page.dart';
 import '../../common/sheet/error_details_sheet.dart';
+import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/page_illustration.dart';
 
 class DisclosureRelyingPartyErrorPage extends StatelessWidget {
@@ -29,12 +31,22 @@ class DisclosureRelyingPartyErrorPage extends StatelessWidget {
       illustration: const PageIllustration(asset: WalletAssets.svg_error_general),
       title: context.l10n.disclosureRelyingPartyErrorTitle,
       description: description,
-      primaryButtonCta: context.l10n.disclosureRelyingPartyErrorCloseCta,
-      onPrimaryPressed: onClosePressed,
-      secondaryButtonCta: context.l10n.generalShowDetailsCta,
-      secondaryButtonIcon: const Icon(Icons.info_outline_rounded),
-      onSecondaryButtonPressed: () => ErrorDetailsSheet.show(context, error: !kReleaseMode ? error : null),
-      flipButtonOrder: true,
+      // Because flipButtonOrder was true: primary ⇄ secondary.
+      primaryButton: TertiaryButton(
+        text: Text(context.l10n.generalShowDetailsCta),
+        icon: const Icon(Icons.info_outline_rounded),
+        onPressed: () => ErrorDetailsSheet.show(
+          context,
+          error: !kReleaseMode ? error : null,
+        ),
+        key: const Key('secondaryButtonCta'),
+      ),
+      secondaryButton: PrimaryButton(
+        text: Text(context.l10n.disclosureRelyingPartyErrorCloseCta),
+        icon: const Icon(Icons.arrow_forward_outlined),
+        onPressed: onClosePressed,
+        key: const Key('primaryButtonCta'),
+      ),
     );
   }
 }
