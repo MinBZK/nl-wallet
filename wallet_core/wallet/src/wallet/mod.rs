@@ -134,16 +134,7 @@ enum Session<CID: IssuanceDiscovery, DCS> {
     },
     Issuance(WalletIssuanceSession<<CID::Issuer as CredentialIssuer>::Session>),
     Disclosure(WalletDisclosureSession<DCS>),
-    CloseProximityDisclosure(
-        #[cfg_attr(
-            not(test),
-            expect(
-                unused,
-                reason = "will be used when continue_close_proximity_disclosure is implemented"
-            )
-        )]
-        CloseProximityDisclosureSession,
-    ),
+    CloseProximityDisclosure(CloseProximityDisclosureSession),
     PinRecovery {
         pid_config: PidAttributesConfiguration,
         session: PinRecoverySession<CID>,

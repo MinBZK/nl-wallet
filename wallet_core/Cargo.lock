@@ -117,7 +117,7 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 
 [[package]]
 name = "android_attest"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "assert_matches",
  "bitflags 2.10.0",
@@ -259,7 +259,7 @@ checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
 
 [[package]]
 name = "apple_app_attest"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "assert_matches",
  "chrono",
@@ -602,7 +602,7 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
 name = "attestation_data"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "assert_matches",
  "attestation_types",
@@ -642,7 +642,7 @@ dependencies = [
 
 [[package]]
 name = "attestation_types"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "itertools 0.14.0",
  "serde",
@@ -654,7 +654,7 @@ dependencies = [
 
 [[package]]
 name = "audit_log"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "assert_matches",
  "audit_log_macros",
@@ -676,7 +676,7 @@ dependencies = [
 
 [[package]]
 name = "audit_log_macros"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "audit_log",
  "itertools 0.14.0",
@@ -690,7 +690,7 @@ dependencies = [
 
 [[package]]
 name = "audit_log_migrations"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
@@ -1581,7 +1581,7 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 
 [[package]]
 name = "crypto"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -1916,7 +1916,7 @@ checksum = "be1e0bca6c3637f992fc1cc7cbc52a78c1ef6db076dbf1059c4323d6a2048376"
 
 [[package]]
 name = "db_test"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "async-dropper",
  "async-trait",
@@ -1939,7 +1939,7 @@ dependencies = [
 
 [[package]]
 name = "dcql"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "attestation_types",
  "derive_more",
@@ -1997,7 +1997,7 @@ dependencies = [
 
 [[package]]
 name = "demo_index"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "anyhow",
  "askama",
@@ -2020,7 +2020,7 @@ dependencies = [
 
 [[package]]
 name = "demo_issuer"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "anyhow",
  "askama",
@@ -2051,7 +2051,7 @@ dependencies = [
 
 [[package]]
 name = "demo_relying_party"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "anyhow",
  "askama",
@@ -2088,7 +2088,7 @@ dependencies = [
 
 [[package]]
 name = "demo_utils"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "anyhow",
  "attestation_data",
@@ -2414,7 +2414,7 @@ dependencies = [
 
 [[package]]
 name = "entity"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "attestation_data",
  "chrono",
@@ -2456,7 +2456,7 @@ dependencies = [
 
 [[package]]
 name = "error_category"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "error_category_derive",
  "rstest",
@@ -2468,7 +2468,7 @@ dependencies = [
 
 [[package]]
 name = "error_category_derive"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "error_category",
  "proc-macro2",
@@ -2658,7 +2658,7 @@ dependencies = [
 
 [[package]]
 name = "flutter_api"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "android_logger 0.14.1",
  "anyhow",
@@ -2685,7 +2685,7 @@ dependencies = [
 
 [[package]]
 name = "flutter_api_macros"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "quote",
  "syn 2.0.111",
@@ -2940,7 +2940,7 @@ dependencies = [
 
 [[package]]
 name = "gba_hc_converter"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -3275,7 +3275,7 @@ dependencies = [
 
 [[package]]
 name = "health_checkers"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "async-trait",
  "db_test",
@@ -3360,7 +3360,7 @@ dependencies = [
 
 [[package]]
 name = "hsm"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "async-dropper",
  "async-trait",
@@ -3496,7 +3496,7 @@ dependencies = [
 
 [[package]]
 name = "http_utils"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "async-trait",
  "axum",
@@ -3892,7 +3892,7 @@ checksum = "a6cb138bb79a146c1bd460005623e142ef0181e3d0219cb493e02f7d08a35695"
 
 [[package]]
 name = "issuance_server"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3932,7 +3932,7 @@ dependencies = [
 
 [[package]]
 name = "issuance_server_migrations"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "issuer_common_migrations",
  "sea-orm-migration",
@@ -3941,7 +3941,7 @@ dependencies = [
 
 [[package]]
 name = "issuer_common"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "assert_matches",
  "attestation_data",
@@ -3971,7 +3971,7 @@ dependencies = [
 
 [[package]]
 name = "issuer_common_migrations"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
@@ -4123,7 +4123,7 @@ dependencies = [
 
 [[package]]
 name = "jwe"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "assert_matches",
  "derive_more",
@@ -4160,7 +4160,7 @@ dependencies = [
 
 [[package]]
 name = "jwt"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "assert_matches",
  "attestation_types",
@@ -4423,7 +4423,7 @@ dependencies = [
 
 [[package]]
 name = "mdoc"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "assert_matches",
  "attestation_types",
@@ -4467,7 +4467,7 @@ dependencies = [
 
 [[package]]
 name = "measure"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "metrics",
  "proc-macro2",
@@ -5034,7 +5034,7 @@ checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 
 [[package]]
 name = "openid4vc"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "assert_matches",
  "async-trait",
@@ -5097,7 +5097,7 @@ dependencies = [
 
 [[package]]
 name = "openid4vc_server"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "attestation_data",
  "axum",
@@ -5542,7 +5542,7 @@ dependencies = [
 
 [[package]]
 name = "pid_issuer"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -5584,7 +5584,7 @@ dependencies = [
 
 [[package]]
 name = "pid_issuer_migrations"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "issuer_common_migrations",
  "sea-orm-migration",
@@ -5658,7 +5658,7 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
 name = "platform_support"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "aes-gcm",
  "android_attest",
@@ -5675,6 +5675,7 @@ dependencies = [
  "futures",
  "jni",
  "log",
+ "mockall",
  "p256",
  "parking_lot",
  "rand_core 0.6.4",
@@ -6198,7 +6199,7 @@ dependencies = [
 
 [[package]]
 name = "readable_identifier"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "assert_matches",
  "derive_more",
@@ -6355,7 +6356,7 @@ dependencies = [
 
 [[package]]
 name = "revocation_portal"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "anyhow",
  "askama",
@@ -6803,7 +6804,7 @@ dependencies = [
 
 [[package]]
 name = "sd_jwt"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "assert_matches",
  "attestation_types",
@@ -6838,7 +6839,7 @@ dependencies = [
 
 [[package]]
 name = "sd_jwt_vc_metadata"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "assert_matches",
  "attestation_types",
@@ -7452,7 +7453,7 @@ dependencies = [
 
 [[package]]
 name = "server_utils"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "anyhow",
  "attestation_data",
@@ -7488,7 +7489,7 @@ dependencies = [
 
 [[package]]
 name = "server_utils_migrations"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "sea-orm-migration",
 ]
@@ -7915,7 +7916,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "static_server"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "axum",
  "axum-server",
@@ -7936,7 +7937,7 @@ dependencies = [
 
 [[package]]
 name = "status_lists"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -7978,7 +7979,7 @@ dependencies = [
 
 [[package]]
 name = "status_lists_migrations"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "sea-orm-migration",
 ]
@@ -8249,7 +8250,7 @@ dependencies = [
 
 [[package]]
 name = "tests_integration"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "android_attest",
  "apple_app_attest",
@@ -8472,7 +8473,7 @@ dependencies = [
 
 [[package]]
 name = "token_status_list"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "assert_matches",
  "attestation_types",
@@ -9122,7 +9123,7 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
 name = "update_policy_model"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "indexmap 2.12.1",
  "rstest",
@@ -9136,7 +9137,7 @@ dependencies = [
 
 [[package]]
 name = "update_policy_server"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "anyhow",
  "axum",
@@ -9227,7 +9228,7 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "utils"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "built",
  "chrono",
@@ -9343,7 +9344,7 @@ checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "verification_server"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -9388,7 +9389,7 @@ dependencies = [
 
 [[package]]
 name = "verification_server_migrations"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "sea-orm-migration",
  "server_utils_migrations",
@@ -9434,7 +9435,7 @@ dependencies = [
 
 [[package]]
 name = "wallet"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "aes-gcm",
  "apple_app_attest",
@@ -9507,7 +9508,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_account"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "android_attest",
  "apple_app_attest",
@@ -9540,7 +9541,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_ca"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -9563,7 +9564,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_configuration"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "attestation_data",
  "attestation_types",
@@ -9585,7 +9586,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_migrations"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "async-trait",
  "entity",
@@ -9595,7 +9596,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "android_attest",
  "apple_app_attest",
@@ -9651,7 +9652,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_domain"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "android_attest",
  "apple_app_attest",
@@ -9678,7 +9679,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_migrations"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
@@ -9688,7 +9689,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_persistence"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "android_attest",
  "apple_app_attest",
@@ -9724,7 +9725,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_service"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "android_attest",
  "anyhow",
@@ -9940,7 +9941,7 @@ dependencies = [
 
 [[package]]
 name = "web_utils"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "accept-language",
  "anyhow",
@@ -10535,7 +10536,7 @@ checksum = "9edde0db4769d2dc68579893f2306b26c6ecfbe0ef499b013d731b7b9247e0b9"
 
 [[package]]
 name = "wscd"
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 dependencies = [
  "assert_matches",
  "attestation_types",

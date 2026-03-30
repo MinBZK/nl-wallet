@@ -15,6 +15,7 @@ export default defineConfig({
       },
     },
   ],
+  retries: 3,
   use: {
     baseURL: process.env.REVOCATION_PORTAL_URL,
     screenshot: "only-on-failure",

@@ -22,6 +22,9 @@ use jwt::SignedJwt;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaClaims;
 use jwt::wua::WuaDisclosure;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::Poa;
 use crate::wscd::IssuanceResult;
@@ -138,18 +141,20 @@ impl IssuanceWscd for MockRemoteWscd {
         let claims = JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud);
 
         let mut keys = self.disclosure.signing_keys.lock();
-        let attestation_keys = (0..count.get())
+        let attestation_keys: VecNonEmpty<_> = (0..count.get())
             .map(|_| {
                 let key = SigningKey::random(&mut OsRng);
                 let identifier = verifying_key_sha256(key.verifying_key());
                 keys.insert(identifier.clone(), key.clone());
                 MockRemoteEcdsaKey::new(identifier, key)
             })
-            .collect_vec();
+            .collect_vec()
+            .try_into()
+            .unwrap(); // `count` is non-zero, so the unwrap is safe.
         drop(keys);
 
         let pops = attestation_keys
-            .iter()
+            .nonempty_iter()
             .map(|attestation_key| {
                 SignedJwt::sign_with_jwk(&claims, attestation_key)
                     .now_or_never()
@@ -157,9 +162,7 @@ impl IssuanceWscd for MockRemoteWscd {
                     .unwrap()
                     .into()
             })
-            .collect_vec()
-            .try_into()
-            .unwrap();
+            .collect();
 
         let wua_and_key = include_wua.then(|| {
             let wua_key = SigningKey::random(&mut OsRng);
@@ -205,11 +208,9 @@ impl IssuanceWscd for MockRemoteWscd {
 
         Ok(IssuanceResult {
             key_identifiers: attestation_keys
-                .into_iter()
+                .into_nonempty_iter()
                 .map(|key| key.identifier)
-                .collect_vec()
-                .try_into()
-                .unwrap(),
+                .collect(),
             pops,
             wua: wua_and_key.map(|(wua, _)| wua),
             poa,

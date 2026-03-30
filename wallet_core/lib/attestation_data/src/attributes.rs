@@ -1032,30 +1032,29 @@ pub mod test {
 
     #[rstest]
     #[case(
-        vec![ClaimPath::SelectByKey("house".to_string()), ClaimPath::SelectByKey("number".to_string())],
+        vec_nonempty![ClaimPath::SelectByKey("house".to_string()), ClaimPath::SelectByKey("number".to_string())],
         Ok(Some(&AttributeValue::Integer(1))))
     ]
     #[case(
-        vec![ClaimPath::SelectByKey("house".to_string()), ClaimPath::SelectByKey("foobar".to_string())],
+        vec_nonempty![ClaimPath::SelectByKey("house".to_string()), ClaimPath::SelectByKey("foobar".to_string())],
         Ok(None))
     ]
     #[case(
-        vec![ClaimPath::SelectByKey("foobar".to_string())],
+        vec_nonempty![ClaimPath::SelectByKey("foobar".to_string())],
         Ok(None))
     ]
     #[case(
-        vec![ClaimPath::SelectByKey("city".to_string()), ClaimPath::SelectByKey("number".to_string())],
+        vec_nonempty![ClaimPath::SelectByKey("city".to_string()), ClaimPath::SelectByKey("number".to_string())],
         Ok(None))
     ]
-    #[case(vec![ClaimPath::SelectByKey("house".to_string())], Ok(None))]
-    #[case(vec![ClaimPath::SelectByIndex(1)], Err(AttributesHandlingError::InvalidClaimPath))]
-    #[case(vec![ClaimPath::SelectAll], Err(AttributesHandlingError::InvalidClaimPath))]
+    #[case(vec_nonempty![ClaimPath::SelectByKey("house".to_string())], Ok(None))]
+    #[case(vec_nonempty![ClaimPath::SelectByIndex(1)], Err(AttributesHandlingError::InvalidClaimPath))]
+    #[case(vec_nonempty![ClaimPath::SelectAll], Err(AttributesHandlingError::InvalidClaimPath))]
     fn test_attributes_get_and_has_claim_paths(
-        #[case] claim_paths: Vec<ClaimPath>,
+        #[case] claim_paths: VecNonEmpty<ClaimPath>,
         #[case] expected: Result<Option<&AttributeValue>, AttributesHandlingError>,
     ) {
         let attributes = setup_issuable_attributes();
-        let claim_paths = claim_paths.try_into().unwrap();
 
         assert_eq!(attributes.get(&claim_paths), expected);
 
@@ -1256,30 +1255,15 @@ pub mod test {
         assert_eq!(
             example_attributes().flattened(),
             IndexMap::from([
+                (vec_nonempty!["name"], &AttributeValue::Text("Wallet".to_string())),
                 (
-                    VecNonEmpty::try_from(vec!["name"]).unwrap(),
-                    &AttributeValue::Text("Wallet".to_string())
-                ),
-                (
-                    VecNonEmpty::try_from(vec!["address", "street"]).unwrap(),
+                    vec_nonempty!["address", "street"],
                     &AttributeValue::Text("Gracht".to_string())
                 ),
-                (
-                    VecNonEmpty::try_from(vec!["address", "number"]).unwrap(),
-                    &AttributeValue::Integer(123)
-                ),
-                (
-                    VecNonEmpty::try_from(vec!["country", "iso"]).unwrap(),
-                    &AttributeValue::Text("NL".to_string())
-                ),
-                (
-                    VecNonEmpty::try_from(vec!["country", "area_code"]).unwrap(),
-                    &AttributeValue::Integer(31)
-                ),
-                (
-                    VecNonEmpty::try_from(vec!["adult"]).unwrap(),
-                    &AttributeValue::Bool(true)
-                ),
+                (vec_nonempty!["address", "number"], &AttributeValue::Integer(123)),
+                (vec_nonempty!["country", "iso"], &AttributeValue::Text("NL".to_string())),
+                (vec_nonempty!["country", "area_code"], &AttributeValue::Integer(31)),
+                (vec_nonempty!["adult"], &AttributeValue::Bool(true)),
             ]),
         );
     }

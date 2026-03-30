@@ -20,6 +20,7 @@ use platform_support::attested_key::hardware::AttestedKeyError;
 use platform_support::attested_key::hardware::HardwareAttestedKeyError;
 use update_policy_model::update_policy::VersionState;
 use utils::vec_at_least::VecAtLeastNError;
+use utils::vec_at_least::VecAtLeastNErrorKind;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountRevokedData;
 use wallet_account::messages::registration::Registration;
@@ -65,7 +66,7 @@ pub enum WalletRegistrationError {
     Attestation(#[source] Box<dyn Error + Send + Sync>),
     #[error("certificate chain for Android key attestation has too few entries: {0}")]
     #[category(critical)]
-    AndroidCertificateChain(#[source] VecAtLeastNError),
+    AndroidCertificateChain(#[source] VecAtLeastNErrorKind),
     #[category(pd)]
     #[error("could not get attested public key: {0}")]
     AttestedPublicKey(#[source] Box<dyn Error + Send + Sync>),
@@ -259,9 +260,9 @@ where
                 app_attestation_token,
             } => ChallengeResponse::<Registration>::new_google(
                 &key,
-                certificate_chain
-                    .try_into()
-                    .map_err(WalletRegistrationError::AndroidCertificateChain)?,
+                certificate_chain.try_into().map_err(|e: VecAtLeastNError<_>| {
+                    WalletRegistrationError::AndroidCertificateChain(e.into_kind())
+                })?,
                 app_attestation_token,
                 &pin_key,
                 challenge,

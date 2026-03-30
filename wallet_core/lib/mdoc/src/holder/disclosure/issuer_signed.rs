@@ -148,6 +148,7 @@ mod tests {
 
     use attestation_types::claim_path::ClaimPath;
     use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_nonempty;
 
     use crate::IssuerNameSpaces;
     use crate::examples::Example;
@@ -222,8 +223,8 @@ mod tests {
         ].into_iter().collect()),
     )]
     #[case(
-        vec![vec![ClaimPath::SelectAll].try_into().unwrap()],
-        Some(HashSet::from([vec![ClaimPath::SelectAll].try_into().unwrap()]))
+        vec![vec_nonempty![ClaimPath::SelectAll]],
+        Some(HashSet::from([vec_nonempty![ClaimPath::SelectAll]]))
     )]
     fn test_issuer_signed_matches_requested_attributes(
         #[case] claim_paths: Vec<VecNonEmpty<ClaimPath>>,

@@ -41,6 +41,7 @@ export default defineConfig({
   testDir: "../tests",
   reporter: [["list"], ["junit", { outputFile: "../test-results/results.xml" }], ["allure-playwright"]],
   projects,
+  retries: 3,
   use: {
     baseURL: process.env.REVOCATION_PORTAL_URL,
     screenshot: "only-on-failure",

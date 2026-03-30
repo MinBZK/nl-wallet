@@ -4,6 +4,7 @@ import '../../../domain/model/card/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/page/terminal_page.dart';
+import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/page_illustration.dart';
 
 class IssuanceSuccessPage extends StatelessWidget {
@@ -21,10 +22,13 @@ class IssuanceSuccessPage extends StatelessWidget {
     return TerminalPage(
       title: context.l10n.issuanceSuccessPageTitle(cards.length),
       description: context.l10n.issuanceSuccessPageCardsAddedSubtitle(cards.length),
-      primaryButtonCta: context.l10n.issuanceSuccessPageCloseCta,
-      primaryButtonIcon: const Icon(Icons.arrow_forward_outlined),
-      onPrimaryPressed: onClose,
       illustration: const PageIllustration(asset: WalletAssets.svg_phone),
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.issuanceSuccessPageCloseCta),
+        icon: const Icon(Icons.arrow_forward_outlined),
+        onPressed: onClose,
+        key: const Key('primaryButtonCta'),
+      ),
     );
   }
 }

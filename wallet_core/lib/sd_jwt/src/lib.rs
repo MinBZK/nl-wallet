@@ -113,7 +113,7 @@
 //!
 //! // 2) Issuer marks fields as concealable and signs with issuer key.
 //! let signed = SdJwtBuilder::new(claims)
-//!     .make_concealable(VecNonEmpty::try_from(vec![ClaimPath::SelectByKey("name".into())])?)?
+//!     .make_concealable(vec_nonempty![ClaimPath::SelectByKey("name".into())])?
 //!     // optionally add decoys with `add_decoys`
 //!     .finish(&issuer_keypair)
 //!     .await

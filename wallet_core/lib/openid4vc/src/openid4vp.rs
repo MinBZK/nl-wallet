@@ -432,8 +432,7 @@ impl VpAuthorizationRequest {
 
     /// Validate that an Authorization Request satisfies the following:
     /// - the request contents are compliant with the OpenID4VP specification.
-    /// - the `client_id` uses the `x509_san_dns` scheme and equals one of the DNS SAN names in the X.509
-    ///   certificate.
+    /// - the `client_id` uses the `x509_san_dns` scheme and equals one of the DNS SAN names in the X.509 certificate.
     ///
     /// This method consumes `self` and turns it into an [`NormalizedVpAuthorizationRequest`], which
     /// contains only the fields we need and use.
@@ -551,7 +550,8 @@ impl NormalizedVpAuthorizationRequest {
                 // HAIP requires verifiers to list both A128GCM and A256GCM in
                 // `encrypted_response_enc_values_supported`:
                 // https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5
-                // The JWE enc (encryption algorithm) header parameter (see Section 4.1.2 of [RFC7516]) values A128GCM and A256GCM (as defined in Section 5.3 of [RFC7518]) MUST be supported by Verifiers.
+                // The JWE enc (encryption algorithm) header parameter (see Section 4.1.2 of [RFC7516]) values A128GCM
+                // and A256GCM (as defined in Section 5.3 of [RFC7518]) MUST be supported by Verifiers.
                 encrypted_response_enc_values_supported: Some(vec_nonempty![
                     EncryptionAlgorithm::A128Gcm.into(),
                     EncryptionAlgorithm::A256Gcm.into(),
@@ -2783,7 +2783,8 @@ mod tests {
 
     #[test]
     fn test_authorization_request_object_as_reference() {
-        let query = "client_id=test_client&request_uri=https%3A%2F%2Fclient.example.org%2Frequest%2Fvapof4ql2i7m41m68uep&request_uri_method=post";
+        let query = "client_id=test_client&request_uri=https%3A%2F%2Fclient.example.org%2Frequest%\
+                     2Fvapof4ql2i7m41m68uep&request_uri_method=post";
         let result = serde_urlencoded::from_str::<VpRequestUri>(query).unwrap();
 
         assert_matches!(

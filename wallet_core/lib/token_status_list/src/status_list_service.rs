@@ -7,7 +7,7 @@ use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
 
 #[trait_variant::make(Send)]
-pub trait StatusListServices {
+pub trait StatusListServices: StatusListRevocationService {
     type Error: std::error::Error + Send + Sync + 'static;
 
     async fn obtain_status_claims(
@@ -20,7 +20,7 @@ pub trait StatusListServices {
 }
 
 #[trait_variant::make(Send)]
-pub trait StatusListService {
+pub trait StatusListService: StatusListRevocationService {
     type Error: std::error::Error + Send + Sync + 'static;
 
     async fn obtain_status_claims(
@@ -193,6 +193,27 @@ pub mod mock {
                 .try_into()
                 .unwrap();
             Ok(claims)
+        }
+    }
+
+    impl StatusListRevocationService for MockStatusListService {
+        async fn republish_all(&self, _force: bool) -> Result<(), RevocationError> {
+            Ok(())
+        }
+
+        async fn revoke_attestation_batches(&self, _batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
+            Ok(())
+        }
+
+        async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError> {
+            Ok(BatchIsRevoked {
+                batch_id,
+                is_revoked: false,
+            })
+        }
+
+        async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError> {
+            Ok(vec![])
         }
     }
 }

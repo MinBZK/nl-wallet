@@ -840,12 +840,10 @@ mod test {
     fn mdoc_claims_query() -> ClaimsQuery {
         ClaimsQuery {
             id: None,
-            path: vec![
+            path: vec_nonempty![
                 ClaimPath::SelectByKey("ns".to_string()),
                 ClaimPath::SelectByKey("attr".to_string()),
-            ]
-            .try_into()
-            .unwrap(),
+            ],
             values: vec![],
             intent_to_retain: Some(true),
         }

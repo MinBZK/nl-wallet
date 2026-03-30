@@ -14,9 +14,6 @@ doctest = false
 name = "encrypt_decrypt"
 path = "tests/encrypt_decrypt.rs"
 
-[features]
-vendored_openssl = ["josekit/vendored"]
-
 [dependencies]
 derive_more = { workspace = true, features = ["as_ref", "constructor", "debug", "display", "from", "from_str", "into"] }
 p256 = { workspace = true, features = ["pem"] }

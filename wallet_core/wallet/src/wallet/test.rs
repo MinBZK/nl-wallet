@@ -50,7 +50,7 @@ use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
 use platform_support::attested_key::mock::MockGoogleAttestedKey;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
-use platform_support::close_proximity_disclosure::mock::MockCloseProximityDisclosureClient;
+use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
@@ -63,6 +63,7 @@ use token_status_list::verification::client::mock::MockStatusListClient;
 use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use wallet_account::RevocationCode;
 use wallet_account::messages::instructions::InstructionResultClaims;
 use wallet_account::messages::registration::WalletCertificate;
@@ -616,7 +617,7 @@ pub fn mock_issuance_session(
 
     client.expect_accept().return_once(move || {
         Ok(vec![CredentialWithMetadata::new(
-            IssuedCredentialCopies::new_or_panic(VecNonEmpty::try_from(vec![credential]).unwrap()),
+            IssuedCredentialCopies::new_or_panic(vec_nonempty![credential]),
             attestation_type,
             exp,
             nbf,

@@ -71,6 +71,8 @@ run-automation-tests-publish-results:
     - { job: run-automation-menu-and-settings-tests }
     - { job: run-automation-open-app-tests }
     - { job: run-automation-security-tests }
+    - { job: run-automation-notifications-tests }
+    - { job: run-automation-revocation-tests }
   script:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e.zip uiautomation/build/test-results/test/*.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/e2e.zip uiautomation/build/allure-results/*

@@ -16,6 +16,7 @@ use ssri::Algorithm;
 use ssri::Integrity;
 use ssri::IntegrityChecker;
 
+use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -169,6 +170,9 @@ impl TypeMetadataDocuments {
             });
         }
 
+        // Convert the collected indices into a `VecNonEmpty` (safe because `documents` is non-empty).
+        let metadata_chain_indices: VecNonEmpty<_> = metadata_chain_indices.try_into().unwrap();
+
         // Be extra strict by checking that the set of `vct`s that have not been processed is now 0, as they should have
         // all been consumed by walking the chain.
         if !index_by_vct.is_empty() {
@@ -185,25 +189,20 @@ impl TypeMetadataDocuments {
 
         // Collect an owned `Vec` of the metadata documents by consuming the indices, which are all guaranteed to exist.
         let metadata_chain = metadata_chain_indices
-            .iter()
+            .nonempty_iter()
             .map(|index| metadata_by_index.remove(index).unwrap())
-            .collect_vec()
-            // Converting to a `VecNonEmpty` cannot fail, as the input is also `VecNonEmpty`.
-            .try_into()
-            .unwrap();
+            .collect();
 
         // Normalize the chain of type metadata by combining the individual entries into
         // one type and move the documents to a `SortedTypeMetadataDocuments` type.
         let normalized = NormalizedTypeMetadata::try_from_sorted_metadata(SortedTypeMetadata(metadata_chain))?;
 
         let sorted_documents = documents
-            .into_iter()
+            .into_nonempty_iter()
             .zip(metadata_chain_indices)
             .sorted_by_key(|(_, index)| *index)
             .map(|(json, _)| json)
-            .collect_vec()
-            .try_into()
-            .unwrap();
+            .collect();
         let sorted = SortedTypeMetadataDocuments(sorted_documents);
 
         Ok((normalized, sorted))
@@ -410,6 +409,7 @@ mod test {
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use utils::vec_at_least::NonEmptyIterator;
+    use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
     use crate::VerifiedTypeMetadataDocuments;
@@ -429,8 +429,8 @@ mod test {
     use super::TypeMetadataDocuments;
 
     impl SortedTypeMetadata {
-        pub fn new_mock(chain: Vec<TypeMetadata>) -> Self {
-            Self(chain.try_into().unwrap())
+        pub fn new_mock(chain: VecNonEmpty<TypeMetadata>) -> Self {
+            Self(chain)
         }
 
         pub fn example_with_extensions() -> Self {
@@ -570,11 +570,8 @@ mod test {
 
     #[test]
     fn test_type_metadata_documents_error_excess_documents() {
-        let (_, documents) = TypeMetadataDocuments::example_with_extensions();
-        let TypeMetadataDocuments(documents_vec) = documents;
-        let mut json_documents = documents_vec.into_inner();
-        json_documents.push(PID_METADATA_BYTES.to_vec());
-        let documents = TypeMetadataDocuments::new(json_documents.try_into().unwrap());
+        let (_, mut documents) = TypeMetadataDocuments::example_with_extensions();
+        documents.0.push(PID_METADATA_BYTES.to_vec());
 
         let error = documents
             .into_normalized(VCT_EXAMPLE_CREDENTIAL_V3)

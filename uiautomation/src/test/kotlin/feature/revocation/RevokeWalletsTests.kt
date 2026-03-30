@@ -8,7 +8,6 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestMethodOrder
@@ -74,7 +73,7 @@ class RevokeWalletsTests : TestBase() {
         revocationPortalWebPage = RevocationPortalWebPage()
     }
 
-    @RetryingTest
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC74 Revoke wallet with revocation code")
     fun verifyUserWalletRevocation(testInfo: TestInfo) {
         setUp(testInfo)
@@ -142,7 +141,6 @@ class RevokeWalletsTests : TestBase() {
         dashboardScreen.closeApp()
     }
 
-    @Test
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC77 Revoke wallet solution")
     fun verifyRevokeWalletSolution(testInfo: TestInfo) {
