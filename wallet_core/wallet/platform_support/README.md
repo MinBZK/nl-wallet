@@ -129,18 +129,18 @@ Note that the attested key integration tests for iOS can only be run on a real d
 
 ## Close proximity disclosure
 
-The close proximity handover starts a BLE peripheral server on the phone and returns a QR code containing the device engagement. The host-side Mac helper then acts as the reader: it scans for the advertised service UUID, connects, writes `0x01` to the state characteristic to start the handover, and, for the `SessionEstablished` tests, derives the first reader message from the QR code and writes it to the client-to-server characteristic.
+The close proximity handover starts a BLE peripheral server on the phone and returns a QR code containing the device engagement. The host-side Mac helper then acts as the reader: it scans for the advertised service UUID, connects, writes `0x01` to the state characteristic to start the handover, derives the first reader message from the QR code, and can validate the encrypted `DeviceResponse` in the full-flow test.
 
 The basic manual helper is:
 
 ```bash
-swift scripts/close_proximity_disclosure_mac_reader.swift
+swift scripts/close_proximity/disclosure_mac_reader.swift
 ```
 
 To exercise the `SessionEstablished` path manually, use the QR code logged by the test:
 
 ```bash
-swift scripts/close_proximity_disclosure_mac_reader.swift --qr-code "<logged-qr-code>"
+swift scripts/close_proximity/disclosure_mac_reader.swift --qr-code "<logged-qr-code>"
 ```
 
 There are also host-side wrapper scripts that watch for the QR marker and launch the Mac helper automatically.
@@ -148,19 +148,19 @@ There are also host-side wrapper scripts that watch for the QR marker and launch
 For iOS, run from the repository root:
 
 ```bash
-scripts/run_close_proximity_disclosure_ios_test.py -- \
+scripts/close_proximity/run_disclosure_ios_test.py -- \
   xcodebuild test \
     -project wallet_core/wallet/platform_support/ios/PlatformSupport.xcodeproj \
     -scheme PlatformSupport \
-    -only-testing:'Integration Tests/CloseProximityDisclosureTests/testStartQrHandoverEmitsSessionEstablishedWhenMacReaderSendsDeviceRequest'
+    -only-testing:'Integration Tests/CloseProximityDisclosureTests/testCloseProximityDisclosureFullFlowWithMacReader'
 ```
 
 For Android, run from the repository root:
 
 ```bash
-scripts/run_close_proximity_disclosure_android_test.py -- \
+scripts/close_proximity/run_disclosure_android_test.py -- \
   ./gradlew connectedDebugAndroidTest \
-  -Pandroid.testInstrumentationRunnerArguments.class=nl.rijksoverheid.edi.wallet.platform_support.close_proximity_disclosure.CloseProximityDisclosureBridgeInstrumentedTest#test_start_qr_handover_emits_session_established_when_mac_reader_sends_device_request
+  -Pandroid.testInstrumentationRunnerArguments.class=nl.rijksoverheid.edi.wallet.platform_support.close_proximity_disclosure.CloseProximityDisclosureBridgeInstrumentedTest#test_close_proximity_disclosure_full_flow_with_mac_reader
 ```
 
 Before running these tests:

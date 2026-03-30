@@ -31,6 +31,9 @@
 		D46B26262F5EE0B60065FF12 /* CloseProximityDisclosure.swift in Sources */ = {isa = PBXBuildFile; fileRef = D46B26222F5EE0B60065FF12 /* CloseProximityDisclosure.swift */; };
 		D46B26272F5EE0B60065FF12 /* CloseProximityDisclosureError+From.swift in Sources */ = {isa = PBXBuildFile; fileRef = D46B26232F5EE0B60065FF12 /* CloseProximityDisclosureError+From.swift */; };
 		D46B262B2F5EE0C70065FF12 /* CloseProximityDisclosureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D46B26292F5EE0C70065FF12 /* CloseProximityDisclosureTests.swift */; };
+		D4F100012F8A000100000001 /* CloseProximityDisclosure+Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F100012F8A000100000002 /* CloseProximityDisclosure+Bridge.swift */; };
+		D4F100012F8A000100000003 /* CloseProximityDisclosure+Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F100012F8A000100000004 /* CloseProximityDisclosure+Session.swift */; };
+		D4F100012F8A000100000005 /* CloseProximityDisclosure+Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F100012F8A000100000006 /* CloseProximityDisclosure+Types.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -115,6 +118,9 @@
 		D46B26232F5EE0B60065FF12 /* CloseProximityDisclosureError+From.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CloseProximityDisclosureError+From.swift"; sourceTree = "<group>"; };
 		D46B26282F5EE0C70065FF12 /* close_proximity_disclosure_integration_tests.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = close_proximity_disclosure_integration_tests.h; sourceTree = "<group>"; };
 		D46B26292F5EE0C70065FF12 /* CloseProximityDisclosureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloseProximityDisclosureTests.swift; sourceTree = "<group>"; };
+		D4F100012F8A000100000002 /* CloseProximityDisclosure+Bridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CloseProximityDisclosure+Bridge.swift"; sourceTree = "<group>"; };
+		D4F100012F8A000100000004 /* CloseProximityDisclosure+Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CloseProximityDisclosure+Session.swift"; sourceTree = "<group>"; };
+		D4F100012F8A000100000006 /* CloseProximityDisclosure+Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CloseProximityDisclosure+Types.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -322,6 +328,9 @@
 		D46B26242F5EE0B60065FF12 /* Bridge */ = {
 			isa = PBXGroup;
 			children = (
+				D4F100012F8A000100000002 /* CloseProximityDisclosure+Bridge.swift */,
+				D4F100012F8A000100000004 /* CloseProximityDisclosure+Session.swift */,
+				D4F100012F8A000100000006 /* CloseProximityDisclosure+Types.swift */,
 				D46B26222F5EE0B60065FF12 /* CloseProximityDisclosure.swift */,
 				D46B26232F5EE0B60065FF12 /* CloseProximityDisclosureError+From.swift */,
 			);
@@ -521,6 +530,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				61775ACC29D5C12A00582FAE /* platform_support.udl in Sources */,
+				D4F100012F8A000100000001 /* CloseProximityDisclosure+Bridge.swift in Sources */,
+				D4F100012F8A000100000003 /* CloseProximityDisclosure+Session.swift in Sources */,
+				D4F100012F8A000100000005 /* CloseProximityDisclosure+Types.swift in Sources */,
 				D46B26262F5EE0B60065FF12 /* CloseProximityDisclosure.swift in Sources */,
 				D46B26272F5EE0B60065FF12 /* CloseProximityDisclosureError+From.swift in Sources */,
 				6150E5F129A8B7E60036E736 /* SigningKey.swift in Sources */,
