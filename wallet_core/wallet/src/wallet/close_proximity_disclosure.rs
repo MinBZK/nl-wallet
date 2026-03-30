@@ -2,6 +2,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
+use chrono::Utc;
 use derive_more::IsVariant;
 use nutype::nutype;
 use parking_lot::Mutex;
@@ -11,7 +12,11 @@ use tracing::error;
 use tracing::info;
 use url::Url;
 
+use attestation_data::disclosure_type::DisclosureType;
+use crypto::x509::BorrowingCertificate;
+use entity::disclosure_event::EventStatus;
 use mdoc::DeviceRequest;
+use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::oidc::OidcClient;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -58,15 +63,12 @@ enum CloseProximityDisclosureSessionState {
     DisclosureProposed {
         session_transcript: Vec<u8>,
         device_request: DeviceRequest,
+        reader_certificate: Box<BorrowingCertificate>,
         attestations: WalletDisclosureAttestations,
     },
 }
 
 #[derive(Debug)]
-#[expect(
-    unused,
-    reason = "will be used when continue_close_proximity_disclosure is implemented"
-)]
 pub struct CloseProximityDisclosureSession {
     listener: JoinHandle<()>,
     session_state: Arc<Mutex<CloseProximityDisclosureSessionState>>,
@@ -167,21 +169,74 @@ where
     pub fn continue_close_proximity_disclosure(&mut self) -> Result<DisclosureProposalPresentation, DisclosureError> {
         unimplemented!()
     }
+
+    pub async fn terminate_close_proximity_disclosure_session(
+        &mut self,
+        session: CloseProximityDisclosureSession,
+    ) -> Result<(), DisclosureError> {
+        // First abort the listener, s.t. no more events are passed along
+        session.listener.abort();
+
+        CPC::stop_ble_server().await?;
+
+        let state = session.session_state.lock().to_owned();
+        // Only store the event if the session is past SessionEstablished state (i.e. DisclosureProposed or later)
+        if let CloseProximityDisclosureSessionState::DisclosureProposed { reader_certificate, .. } = state {
+            self.store_disclosure_event(
+                Utc::now(),
+                // TODO (PVW-5078): Store credential requests in disclosure event.
+                None,
+                *reader_certificate,
+                DisclosureType::Regular,
+                EventStatus::Cancelled,
+                DataDisclosed::NotDisclosed,
+            )
+            .await?;
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use assert_matches::assert_matches;
+    use mockall::predicate::always;
+    use mockall::predicate::eq;
+    use parking_lot::Mutex;
+    use serial_test::serial;
+
+    use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::disclosure_type::DisclosureType;
+    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+    use crypto::server_keys::generate::Ca;
+    use entity::disclosure_event::EventStatus;
+    use mdoc::DeviceRequest;
+    use platform_support::close_proximity_disclosure::CloseProximityDisclosureChannel;
+    use platform_support::close_proximity_disclosure::CloseProximityDisclosureChannelImpl;
+    use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
+    use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
 
     use crate::wallet::Session;
     use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureSession;
+    use crate::wallet::disclosure::WalletDisclosureAttestations;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
 
+    use super::CloseProximityDisclosureSessionState;
     use super::CloseProximityDisclosureUpdate;
 
     #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
     async fn test_wallet_start_close_proximity_disclosure() {
+        let context = MockCloseProximityDisclosureClient::start_qr_handover_context();
+        context.expect().once().returning(|| {
+            let (_channel, receiver) = CloseProximityDisclosureChannelImpl::new();
+            Ok(("some_qr_code".to_owned(), receiver))
+        });
+
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let qr = wallet
@@ -199,7 +254,23 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
     async fn test_wallet_close_proximity_disclosure_callback_updates() {
+        let context = MockCloseProximityDisclosureClient::start_qr_handover_context();
+        context.expect().once().returning(|| {
+            let (channel, receiver) = CloseProximityDisclosureChannelImpl::new();
+            tokio::spawn(async move {
+                let _ = channel
+                    .send_update(PlatformUpdate::SessionEstablished {
+                        session_transcript: vec![0x01, 0x02, 0x03],
+                        device_request: vec![0x04, 0x05, 0x06],
+                    })
+                    .await;
+            });
+
+            Ok(("some_qr_code".to_owned(), receiver))
+        });
+
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<CloseProximityDisclosureUpdate>();
@@ -212,12 +283,6 @@ mod tests {
             .expect("starting proximity disclosure should succeed");
 
         // Matching the mock close proximity disclosure updates.
-        let update = rx.recv().await.expect("should receive Connecting update");
-        assert_matches!(update, CloseProximityDisclosureUpdate::Connecting);
-
-        let update = rx.recv().await.expect("should receive Connected update");
-        assert_matches!(update, CloseProximityDisclosureUpdate::Connected);
-
         let update = rx.recv().await.expect("should receive DeviceRequestReceived update");
         assert_matches!(update, CloseProximityDisclosureUpdate::DeviceRequestReceived);
 
@@ -229,8 +294,96 @@ mod tests {
             }
         });
         assert!(data.is_some());
+    }
 
-        let update = rx.recv().await.expect("should receive Disconnected update");
-        assert_matches!(update, CloseProximityDisclosureUpdate::Disconnected);
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_terminate_close_proximity_disclosure_session_advertising() {
+        let context = MockCloseProximityDisclosureClient::stop_ble_server_context();
+        context.expect().once().returning(|| Ok(()));
+
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // When the session is still in the Advertising state (i.e. no reader has connected yet),
+        // no disclosure event should be stored.
+        wallet.mut_storage().expect_log_disclosure_event().never();
+
+        let session = CloseProximityDisclosureSession {
+            listener: tokio::spawn(async {}),
+            session_state: Arc::new(Mutex::new(CloseProximityDisclosureSessionState::Advertising)),
+        };
+
+        wallet
+            .terminate_close_proximity_disclosure_session(session)
+            .await
+            .expect("terminating close proximity disclosure session should succeed");
+    }
+
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_terminate_close_proximity_disclosure_session_session_established() {
+        let context = MockCloseProximityDisclosureClient::stop_ble_server_context();
+        context.expect().once().returning(|| Ok(()));
+
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // When the session is in the SessionEstablished state (a reader connected but disclosure
+        // was not yet proposed), no disclosure event should be stored.
+        wallet.mut_storage().expect_log_disclosure_event().never();
+
+        let session = CloseProximityDisclosureSession {
+            listener: tokio::spawn(async {}),
+            session_state: Arc::new(Mutex::new(CloseProximityDisclosureSessionState::SessionEstablished {
+                session_transcript: vec![0x01, 0x02, 0x03],
+                device_request: vec![0x04, 0x05, 0x06],
+            })),
+        };
+
+        wallet
+            .terminate_close_proximity_disclosure_session(session)
+            .await
+            .expect("terminating close proximity disclosure session should succeed");
+    }
+
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_terminate_close_proximity_disclosure_session_disclosure_proposed() {
+        let context = MockCloseProximityDisclosureClient::stop_ble_server_context();
+        context.expect().once().returning(|| Ok(()));
+
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        let ca = Ca::generate_reader_mock_ca().unwrap();
+        let key_pair = generate_reader_mock_with_registration(&ca, ReaderRegistration::new_mock()).unwrap();
+        let reader_certificate = key_pair.certificate().clone();
+
+        // When the session is in the DisclosureProposed state (the reader sent a device request),
+        // a Cancelled event should be stored with the reader certificate and no disclosed data.
+        wallet
+            .mut_storage()
+            .expect_log_disclosure_event()
+            .with(
+                always(),
+                eq(vec![]),
+                eq(reader_certificate.clone()),
+                eq(EventStatus::Cancelled),
+                eq(DisclosureType::Regular),
+            )
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let session = CloseProximityDisclosureSession {
+            listener: tokio::spawn(async {}),
+            session_state: Arc::new(Mutex::new(CloseProximityDisclosureSessionState::DisclosureProposed {
+                session_transcript: vec![0x01, 0x02, 0x03],
+                device_request: DeviceRequest::default(),
+                reader_certificate: Box::new(reader_certificate),
+                attestations: WalletDisclosureAttestations::Missing,
+            })),
+        };
+
+        wallet
+            .terminate_close_proximity_disclosure_session(session)
+            .await
+            .expect("terminating close proximity disclosure session should succeed");
     }
 }

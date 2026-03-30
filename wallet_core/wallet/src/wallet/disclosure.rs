@@ -8,6 +8,7 @@ use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Either;
 use itertools::Itertools;
+use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
 use tracing::error;
 use tracing::info;
 use tracing::instrument;
@@ -668,7 +669,10 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn cancel_disclosure(&mut self) -> Result<Option<Url>, DisclosureError> {
+    pub async fn cancel_disclosure(&mut self) -> Result<Option<Url>, DisclosureError>
+    where
+        CPC: CloseProximityDisclosureClient,
+    {
         info!("Cancelling disclosure");
 
         info!("Checking if blocked");
@@ -687,15 +691,18 @@ where
         }
 
         info!("Checking if a disclosure session is present");
-        if !matches!(self.session, Some(Session::Disclosure(..))) {
-            return Err(DisclosureError::SessionState);
+
+        match self.session.take() {
+            Some(Session::Disclosure(session)) => self.terminate_disclosure_session(session).await,
+            Some(Session::CloseProximityDisclosure(session)) => {
+                self.terminate_close_proximity_disclosure_session(session).await?;
+                Ok(None)
+            }
+            other => {
+                self.session = other;
+                Err(DisclosureError::SessionState)
+            }
         }
-
-        let Session::Disclosure(session) = self.session.take().unwrap() else {
-            panic!()
-        };
-
-        self.terminate_disclosure_session(session).await
     }
 
     #[instrument(skip_all)]

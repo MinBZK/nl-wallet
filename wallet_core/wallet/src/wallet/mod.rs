@@ -133,16 +133,7 @@ enum Session<OC: OidcClient, IS, DCS> {
     },
     Issuance(WalletIssuanceSession<IS>),
     Disclosure(WalletDisclosureSession<DCS>),
-    CloseProximityDisclosure(
-        #[cfg_attr(
-            not(test),
-            expect(
-                unused,
-                reason = "will be used when continue_close_proximity_disclosure is implemented"
-            )
-        )]
-        CloseProximityDisclosureSession,
-    ),
+    CloseProximityDisclosure(CloseProximityDisclosureSession),
     PinRecovery {
         pid_config: PidAttributesConfiguration,
         session: PinRecoverySession<OC, IS>,

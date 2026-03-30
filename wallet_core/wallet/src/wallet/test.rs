@@ -47,7 +47,7 @@ use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
 use platform_support::attested_key::mock::MockGoogleAttestedKey;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
-use platform_support::close_proximity_disclosure::mock::MockCloseProximityDisclosureClient;
+use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
