@@ -402,10 +402,9 @@ impl DisclosureProposalPresentation {
                     .map(|candidate| candidate.into_presentation())
                     .collect::<VecNonEmpty<_>>();
 
-                if presentations.len() == NonZeroUsize::MIN {
-                    DisclosureAttestationOptions::Single(Box::new(presentations.into_first()))
-                } else {
-                    DisclosureAttestationOptions::Multiple(presentations.into_inner().try_into().unwrap())
+                match presentations.len() {
+                    NonZeroUsize::MIN => DisclosureAttestationOptions::Single(Box::new(presentations.into_first())),
+                    _ => DisclosureAttestationOptions::Multiple(presentations.into_inner().try_into().unwrap()),
                 }
             })
             .collect();
