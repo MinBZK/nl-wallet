@@ -2042,7 +2042,7 @@ mod tests {
         };
 
         let denied_recovery_codes: Arc<Mutex<HashSet<RecoveryCode>>> = Arc::default();
-        let called_denied_recovery_codes = denied_recovery_codes.clone();
+        let called_denied_recovery_codes = Arc::clone(&denied_recovery_codes);
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
             .expect_begin_transaction()
