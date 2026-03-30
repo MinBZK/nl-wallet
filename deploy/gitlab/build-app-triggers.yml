@@ -12,6 +12,8 @@ build-mock-trigger:
       artifacts: false
     - job: test-rust-doctest
       artifacts: false
+    - job: test-android
+      artifacts: false
     - job: test-rust-compilation-android
       artifacts: false
     - job: test-ios
@@ -37,6 +39,8 @@ build-demo-trigger:
     - job: test-rust
       artifacts: false
     - job: test-rust-doctest
+      artifacts: false
+    - job: test-android
       artifacts: false
     - job: test-rust-compilation-android
       artifacts: false
