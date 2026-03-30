@@ -241,7 +241,7 @@ where
         let session_transcript = SessionTranscript::try_from_bytes(&session_transcript)
             .map_err(CloseProximityDisclosureError::InvalidCbor)?;
 
-        let verifier_certificate = Self::verify_device_request(
+        let verifier_certificate = verify_device_request(
             &device_request,
             &session_transcript,
             &TimeGenerator,
@@ -316,56 +316,6 @@ where
         }))
     }
 
-    /// Verify device request and reader authentication.
-    /// Note that since each DocRequest carries its own reader authentication, the spec allows the DocRequests to be
-    /// signed by distinct readers. For now, this function requires all of the DocRequests to be signed by the same
-    /// reader.
-    pub fn verify_device_request(
-        device_request: &DeviceRequest,
-        session_transcript: &SessionTranscript,
-        time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor],
-    ) -> Result<VerifierCertificate, CloseProximityDisclosureError> {
-        // A device request without any attributes is useless, so return an error.
-        if !device_request.has_attributes() {
-            return Err(CloseProximityDisclosureError::NoAttributesRequested);
-        }
-
-        // Verify all `DocRequest` entries and make sure the resulting certificates are all exactly equal.
-        let certificate = device_request
-            .doc_requests
-            .iter()
-            .try_fold(None, {
-                |result_cert, doc_request| -> Result<_, _> {
-                    // `DocRequest::verify()` will return `None` if `reader_auth` is absent
-                    let doc_request_cert = doc_request
-                        .verify(session_transcript, time, trust_anchors)?
-                        .ok_or(CloseProximityDisclosureError::MissingReaderAuth)?;
-
-                    // If there is a certificate from a previous iteration, compare our certificate to that.
-                    if let Some(result_cert) = result_cert
-                        && doc_request_cert != result_cert
-                    {
-                        return Err(CloseProximityDisclosureError::InconsistentReaderAuths);
-                    }
-
-                    Ok(doc_request_cert.into())
-                }
-            })?
-            .unwrap(); // the try_fold either returns an error or return Some(certificate)
-
-        // Extract `ReaderRegistration` from the certificate.
-        let verifier_certificate = VerifierCertificate::try_new(certificate)?
-            .ok_or(CloseProximityDisclosureError::MissingReaderRegistration)?;
-
-        // Verify that the requested attributes are included in the reader authentication.
-        verifier_certificate
-            .registration()
-            .verify_requested_attributes(device_request.items_requests())?;
-
-        Ok(verifier_certificate)
-    }
-
     pub async fn terminate_close_proximity_disclosure_session(
         &mut self,
         session: CloseProximityDisclosureSession,
@@ -394,6 +344,56 @@ where
     }
 }
 
+/// Verify device request and reader authentication.
+/// Note that since each DocRequest carries its own reader authentication, the spec allows the DocRequests to be
+/// signed by distinct readers. For now, this function requires all of the DocRequests to be signed by the same
+/// reader.
+pub fn verify_device_request(
+    device_request: &DeviceRequest,
+    session_transcript: &SessionTranscript,
+    time: &impl Generator<DateTime<Utc>>,
+    trust_anchors: &[TrustAnchor],
+) -> Result<VerifierCertificate, CloseProximityDisclosureError> {
+    // A device request without any attributes is useless, so return an error.
+    if !device_request.has_attributes() {
+        return Err(CloseProximityDisclosureError::NoAttributesRequested);
+    }
+
+    // Verify all `DocRequest` entries and make sure the resulting certificates are all exactly equal.
+    let certificate = device_request
+        .doc_requests
+        .iter()
+        .try_fold(None, {
+            |result_cert, doc_request| -> Result<_, _> {
+                // `DocRequest::verify()` will return `None` if `reader_auth` is absent
+                let doc_request_cert = doc_request
+                    .verify(session_transcript, time, trust_anchors)?
+                    .ok_or(CloseProximityDisclosureError::MissingReaderAuth)?;
+
+                // If there is a certificate from a previous iteration, compare our certificate to that.
+                if let Some(result_cert) = result_cert
+                    && doc_request_cert != result_cert
+                {
+                    return Err(CloseProximityDisclosureError::InconsistentReaderAuths);
+                }
+
+                Ok(doc_request_cert.into())
+            }
+        })?
+        .unwrap(); // the try_fold either returns an error or return Some(certificate)
+
+    // Extract `ReaderRegistration` from the certificate.
+    let verifier_certificate =
+        VerifierCertificate::try_new(certificate)?.ok_or(CloseProximityDisclosureError::MissingReaderRegistration)?;
+
+    // Verify that the requested attributes are included in the reader authentication.
+    verifier_certificate
+        .registration()
+        .verify_requested_attributes(device_request.items_requests())?;
+
+    Ok(verifier_certificate)
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -401,11 +401,15 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
+    use futures::future::join_all;
     use indexmap::IndexMap;
     use itertools::Itertools;
     use mockall::predicate::always;
     use mockall::predicate::eq;
+    use p256::ecdsa::SigningKey;
     use parking_lot::Mutex;
+    use rand_core::OsRng;
+    use rustls_pki_types::TrustAnchor;
     use serial_test::serial;
 
     use attestation_data::attributes::Attribute;
@@ -416,11 +420,13 @@ mod tests {
     use attestation_data::verifier_certificate::VerifierCertificate;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_FAMILY_NAME;
     use attestation_types::pid_constants::PID_GIVEN_NAME;
     use crypto::WithVerifyingKey;
     use crypto::server_keys::generate::Ca;
     use dcql::CredentialFormat;
     use entity::disclosure_event::EventStatus;
+    use mdoc::DeviceEngagement;
     use mdoc::DeviceRequest;
     use mdoc::Handover;
     use mdoc::ItemsRequest;
@@ -442,7 +448,6 @@ mod tests {
     use crate::DisclosureAttestationOptions;
     use crate::DisclosureProposalPresentation;
     use crate::wallet::Session;
-    use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureSession;
     use crate::wallet::disclosure::WalletDisclosureAttestations;
     use crate::wallet::test::READER_CA;
     use crate::wallet::test::TestWalletMockStorage;
@@ -450,8 +455,22 @@ mod tests {
     use crate::wallet::test::example_pid_stored_attestation_copy;
     use crate::wallet::test::example_stored_attestation_copy;
 
+    use super::CloseProximityDisclosureError;
+    use super::CloseProximityDisclosureSession;
     use super::CloseProximityDisclosureSessionState;
     use super::CloseProximityDisclosureUpdate;
+    use super::verify_device_request;
+
+    fn pid_given_name_items_request() -> ItemsRequest {
+        ItemsRequest {
+            doc_type: PID_ATTESTATION_TYPE.to_owned(),
+            name_spaces: IndexMap::from_iter(vec![(
+                PID_ATTESTATION_TYPE.to_owned(),
+                IndexMap::from_iter(vec![(PID_GIVEN_NAME.to_owned(), true)]),
+            )]),
+            request_info: None,
+        }
+    }
 
     #[tokio::test]
     #[serial(MockCloseProximityDisclosureClient)]
@@ -653,14 +672,7 @@ mod tests {
         // Populate a registered wallet with an example PID.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let items_request = ItemsRequest {
-            doc_type: PID_ATTESTATION_TYPE.to_owned(),
-            name_spaces: IndexMap::from_iter(vec![(
-                PID_ATTESTATION_TYPE.to_owned(),
-                IndexMap::from_iter(vec![(PID_GIVEN_NAME.to_owned(), true)]),
-            )]),
-            request_info: None,
-        };
+        let items_request = pid_given_name_items_request();
 
         let verifier_certificate = setup_close_proximity_disclosure_session(&mut wallet, items_request).await;
 
@@ -734,5 +746,175 @@ mod tests {
             proposal.attestation_options.first(),
             DisclosureAttestationOptions::Multiple(options) if options.len().get() == 3
         ));
+    }
+
+    fn qr_session_transcript(device_engagement: Option<DeviceEngagement>) -> SessionTranscript {
+        let ephemeral_key_pair = SigningKey::random(&mut OsRng);
+        let cose_key: CoseKey = ephemeral_key_pair.verifying_key().try_into().unwrap();
+        SessionTranscript::new_qr(cose_key, device_engagement)
+    }
+
+    async fn setup_device_request<'a>(
+        items_requests: Vec<ItemsRequest>,
+        device_engagement: Option<DeviceEngagement>,
+    ) -> (DeviceRequest, SessionTranscript, Vec<TrustAnchor<'a>>) {
+        let mut reader_registration = ReaderRegistration::new_mock();
+        items_requests.clone().into_iter().for_each(|items_request| {
+            let (doc_type, claims) = items_request.into_doctype_and_claims();
+            reader_registration
+                .authorized_attributes
+                .insert(doc_type, claims.collect_vec());
+        });
+
+        let session_transcript = qr_session_transcript(device_engagement);
+
+        let key_pair = generate_reader_mock_with_registration(&READER_CA, reader_registration).unwrap();
+        let doc_requests = join_all(
+            items_requests
+                .into_iter()
+                .map(async |items_request| create_doc_request(items_request, &session_transcript, &key_pair).await),
+        )
+        .await
+        .try_into()
+        .unwrap();
+
+        let device_request = DeviceRequest::from_doc_requests(doc_requests);
+        let trust_anchors = vec![READER_CA.to_trust_anchor().to_owned()];
+
+        (device_request, session_transcript, trust_anchors)
+    }
+
+    #[tokio::test]
+    async fn test_verify_device_request_success() {
+        let items_request = pid_given_name_items_request();
+
+        let (device_request, session_transcript, trust_anchors) = setup_device_request(vec![items_request], None).await;
+
+        let result = verify_device_request(
+            &device_request,
+            &session_transcript,
+            &MockTimeGenerator::default(),
+            &trust_anchors,
+        );
+
+        assert!(result.is_ok());
+    }
+
+    fn empty_items_request() -> ItemsRequest {
+        ItemsRequest {
+            doc_type: PID_ATTESTATION_TYPE.to_owned(),
+            name_spaces: IndexMap::new(),
+            request_info: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_verify_device_request_no_attributes() {
+        let (device_request, session_transcript, trust_anchors) =
+            setup_device_request(vec![empty_items_request()], None).await;
+
+        let result = verify_device_request(
+            &device_request,
+            &session_transcript,
+            &MockTimeGenerator::default(),
+            &trust_anchors,
+        );
+
+        assert_matches!(result, Err(CloseProximityDisclosureError::NoAttributesRequested));
+    }
+
+    #[tokio::test]
+    async fn test_verify_device_request_missing_reader_auth() {
+        let items_request = pid_given_name_items_request();
+
+        let (mut device_request, session_transcript, trust_anchors) =
+            setup_device_request(vec![items_request], None).await;
+
+        device_request
+            .doc_requests
+            .iter_mut()
+            .for_each(|doc_request| doc_request.reader_auth = None);
+
+        let result = verify_device_request(
+            &device_request,
+            &session_transcript,
+            &MockTimeGenerator::default(),
+            &trust_anchors,
+        );
+
+        assert_matches!(result, Err(CloseProximityDisclosureError::MissingReaderAuth));
+    }
+
+    #[tokio::test]
+    async fn test_verify_device_request_inconsistent_reader_auths() {
+        let items_request1 = pid_given_name_items_request();
+        let items_request2 = ItemsRequest {
+            doc_type: PID_ATTESTATION_TYPE.to_owned(),
+            name_spaces: IndexMap::from_iter(vec![(
+                PID_ATTESTATION_TYPE.to_owned(),
+                IndexMap::from_iter(vec![(PID_FAMILY_NAME.to_owned(), true)]),
+            )]),
+            request_info: None,
+        };
+
+        let mut reader_registration = ReaderRegistration::new_mock();
+        [items_request1.clone(), items_request2.clone()]
+            .into_iter()
+            .for_each(|items_request| {
+                let (doc_type, claims) = items_request.into_doctype_and_claims();
+                reader_registration
+                    .authorized_attributes
+                    .insert(doc_type, claims.collect_vec());
+            });
+
+        // Create two different key pairs from the same CA, so that the resulting certificates differ.
+        let key_pair1 = generate_reader_mock_with_registration(&READER_CA, reader_registration.clone()).unwrap();
+        let key_pair2 = generate_reader_mock_with_registration(&READER_CA, reader_registration).unwrap();
+
+        let session_transcript = qr_session_transcript(None);
+
+        let doc_request1 = create_doc_request(items_request1, &session_transcript, &key_pair1).await;
+        let doc_request2 = create_doc_request(items_request2, &session_transcript, &key_pair2).await;
+
+        let device_request = DeviceRequest::from_doc_requests(vec_nonempty![doc_request1, doc_request2]);
+        let trust_anchors = [READER_CA.to_trust_anchor()];
+
+        let result = verify_device_request(
+            &device_request,
+            &session_transcript,
+            &MockTimeGenerator::default(),
+            &trust_anchors,
+        );
+
+        assert_matches!(result, Err(CloseProximityDisclosureError::InconsistentReaderAuths));
+    }
+
+    #[tokio::test]
+    async fn test_verify_device_request_unregistered_attributes() {
+        let items_request = pid_given_name_items_request();
+
+        let reader_registration = ReaderRegistration::new_mock();
+        // do not add any authorized attributes to the registration
+
+        let key_pair = generate_reader_mock_with_registration(&READER_CA, reader_registration).unwrap();
+        let cose_key: CoseKey = (&key_pair.verifying_key().await.unwrap()).try_into().unwrap();
+        let session_transcript = SessionTranscript::new_qr(cose_key, None);
+
+        let doc_requests = create_doc_request(items_request, &session_transcript, &key_pair).await;
+
+        let device_request = DeviceRequest::from_doc_requests(vec_nonempty![doc_requests]);
+        let trust_anchors = vec![READER_CA.to_trust_anchor().to_owned()];
+
+        let result = verify_device_request(
+            &device_request,
+            &session_transcript,
+            &MockTimeGenerator::default(),
+            &trust_anchors,
+        );
+
+        assert_matches!(
+            result,
+            Err(CloseProximityDisclosureError::RequestedUnregisteredAttributes(_))
+        );
     }
 }
