@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import json
 import os
 import pathlib
 import re
@@ -13,12 +14,12 @@ from typing import Optional
 
 
 # Example usage from the nl_wallet root:
-# scripts/run_close_proximity_disclosure_android_test.py -- ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=nl.rijksoverheid.edi.wallet.platform_support.close_proximity_disclosure.CloseProximityDisclosureBridgeInstrumentedTest#test_start_qr_handover_emits_session_established_when_mac_reader_sends_device_request
+# scripts/close_proximity/run_disclosure_android_test.py -- ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=nl.rijksoverheid.edi.wallet.platform_support.close_proximity_disclosure.CloseProximityDisclosureBridgeInstrumentedTest#test_close_proximity_disclosure_full_flow_with_mac_reader
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Run an Android close-proximity test command, watch adb logcat for the "
-            "SessionEstablished QR marker, and launch the host Mac BLE helper automatically. "
+            "close-proximity host-helper marker, and launch the host Mac BLE helper automatically. "
             "If --serial is omitted, the script auto-selects the single connected Android device."
         )
     )
@@ -30,12 +31,12 @@ def parse_args() -> argparse.Namespace:
         "--helper-timeout",
         type=int,
         default=120,
-        help="Timeout passed to close_proximity_disclosure_mac_reader.swift. Default: 120",
+        help="Timeout passed to disclosure_mac_reader.swift. Default: 120",
     )
     parser.add_argument(
         "--qr-marker",
-        default="CLOSE_PROXIMITY_SESSION_ESTABLISHED_QR=",
-        help="Machine-readable QR prefix emitted by the test. Default: CLOSE_PROXIMITY_SESSION_ESTABLISHED_QR=",
+        default="CLOSE_PROXIMITY_MAC_READER=",
+        help="Machine-readable host-helper prefix emitted by the test. Default: CLOSE_PROXIMITY_MAC_READER=",
     )
     parser.add_argument(
         "--logcat-tag",
@@ -69,7 +70,7 @@ class Runner:
     ) -> None:
         self.repo_root = repo_root
         self.serial = serial
-        self.qr_pattern = re.compile(re.escape(qr_marker) + r"(\S+)")
+        self.qr_pattern = re.compile(re.escape(qr_marker) + r"(\{[^\r\n]+\})")
         self.helper_timeout = helper_timeout
         self.logcat_tag = logcat_tag
         self.test_process: Optional[subprocess.Popen[str]] = None
@@ -77,7 +78,7 @@ class Runner:
         self.helper_process: Optional[subprocess.Popen[bytes]] = None
         self.helper_exit_code = 0
         self.logcat_exit_code = 0
-        self.seen_qrs: set[str] = set()
+        self.seen_payloads: set[str] = set()
         self._stopping = False
         self._lock = threading.Lock()
 
@@ -191,23 +192,37 @@ class Runner:
         if not match:
             return
 
-        qr_code = match.group(1)
+        payload_text = match.group(1)
         with self._lock:
-            if qr_code in self.seen_qrs:
+            if payload_text in self.seen_payloads:
                 return
 
             if self.helper_process and self.helper_process.poll() is None:
                 return
 
-            self.seen_qrs.add(qr_code)
+            try:
+                payload = json.loads(payload_text)
+            except json.JSONDecodeError:
+                return
+
+            qr_code = payload.get("qr")
+            if not isinstance(qr_code, str) or not qr_code:
+                return
+
+            self.seen_payloads.add(payload_text)
             helper_command = [
                 "swift",
-                "scripts/close_proximity_disclosure_mac_reader.swift",
+                "scripts/close_proximity/disclosure_mac_reader.swift",
                 "--timeout",
                 str(self.helper_timeout),
                 "--qr-code",
                 qr_code,
             ]
+            expected_device_response_hex = payload.get("expected_device_response_hex")
+            if isinstance(expected_device_response_hex, str) and expected_device_response_hex:
+                helper_command.extend(
+                    ["--expect-device-response-hex", expected_device_response_hex]
+                )
             command_string = " ".join(shlex.quote(part) for part in helper_command)
             print(
                 f"\n[auto-close-proximity] Launching helper: {command_string}\n",
@@ -432,7 +447,7 @@ class Runner:
 
 def main() -> int:
     args = parse_args()
-    repo_root = pathlib.Path(__file__).resolve().parent.parent
+    repo_root = pathlib.Path(__file__).resolve().parent.parent.parent
     runner = Runner(
         repo_root=repo_root,
         serial=args.serial,

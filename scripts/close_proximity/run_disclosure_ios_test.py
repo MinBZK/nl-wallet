@@ -12,12 +12,12 @@ import sys
 from typing import Optional
 
 
-# Example usage from nl_wallet root:
-# scripts/run_close_proximity_disclosure_ios_test.py -- xcodebuild tes -project wallet_core/wallet/platform_support/ios/PlatformSupport.xcodeproj -scheme PlatformSupport -only-testing:'Integration Tests/CloseProximityDisclosureTests/testStartQrHandoverEmitsSessionEstablishedWhenMacReaderSendsDeviceRequest'
+# Example usage from the nl_wallet root:
+# scripts/close_proximity/run_disclosure_ios_test.py -- xcodebuild test -project wallet_core/wallet/platform_support/ios/PlatformSupport.xcodeproj -scheme PlatformSupport -only-testing:'Integration Tests/CloseProximityDisclosureTests/testCloseProximityDisclosureFullFlowWithMacReader'
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Run an iOS close-proximity test command, watch for the SessionEstablished QR marker "
+            "Run an iOS close-proximity test command, watch for the close-proximity host-helper marker "
             "in the output, and launch the host Mac BLE helper automatically. If the command is "
             "xcodebuild and no -destination is provided, the script auto-selects the single "
             "connected physical iOS device."
@@ -27,12 +27,12 @@ def parse_args() -> argparse.Namespace:
         "--helper-timeout",
         type=int,
         default=120,
-        help="Timeout passed to close_proximity_disclosure_mac_reader.swift. Default: 120",
+        help="Timeout passed to disclosure_mac_reader.swift. Default: 120",
     )
     parser.add_argument(
         "--qr-marker",
-        default="CLOSE_PROXIMITY_SESSION_ESTABLISHED_QR=",
-        help="Machine-readable QR prefix emitted by the test. Default: CLOSE_PROXIMITY_SESSION_ESTABLISHED_QR=",
+        default="CLOSE_PROXIMITY_MAC_READER=",
+        help="Machine-readable host-helper prefix emitted by the test. Default: CLOSE_PROXIMITY_MAC_READER=",
     )
     parser.add_argument(
         "command",
@@ -55,12 +55,12 @@ class Runner:
         self, repo_root: pathlib.Path, qr_marker: str, helper_timeout: int
     ) -> None:
         self.repo_root = repo_root
-        self.qr_pattern = re.compile(re.escape(qr_marker) + r"(\S+)")
+        self.qr_pattern = re.compile(re.escape(qr_marker) + r"(\{[^\r\n]+\})")
         self.helper_timeout = helper_timeout
         self.test_process: Optional[subprocess.Popen[bytes]] = None
         self.helper_process: Optional[subprocess.Popen[bytes]] = None
         self.helper_exit_code = 0
-        self.seen_qrs: set[str] = set()
+        self.seen_payloads: set[str] = set()
         self._stopping = False
 
     def run(self, command: list[str]) -> int:
@@ -117,22 +117,39 @@ class Runner:
         if not match:
             return
 
-        qr_code = match.group(1)
-        if qr_code in self.seen_qrs:
+        payload_text = match.group(1)
+        if payload_text in self.seen_payloads:
             return
 
         if self.helper_process and self.helper_process.poll() is None:
             return
 
-        self.seen_qrs.add(qr_code)
+        try:
+            payload = json.loads(payload_text)
+        except json.JSONDecodeError:
+            return
+
+        qr_code = payload.get("qr")
+        if not isinstance(qr_code, str) or not qr_code:
+            return
+
+        self.seen_payloads.add(payload_text)
         helper_command = [
             "swift",
-            "scripts/close_proximity_disclosure_mac_reader.swift",
+            "scripts/close_proximity/disclosure_mac_reader.swift",
             "--timeout",
             str(self.helper_timeout),
             "--qr-code",
             qr_code,
         ]
+        expected_device_response_hex = payload.get("expected_device_response_hex")
+        if (
+            isinstance(expected_device_response_hex, str)
+            and expected_device_response_hex
+        ):
+            helper_command.extend(
+                ["--expect-device-response-hex", expected_device_response_hex]
+            )
         command_string = " ".join(shlex.quote(part) for part in helper_command)
         print(
             f"\n[auto-close-proximity] Launching helper: {command_string}\n",
@@ -291,7 +308,7 @@ class Runner:
 
 def main() -> int:
     args = parse_args()
-    repo_root = pathlib.Path(__file__).resolve().parent.parent
+    repo_root = pathlib.Path(__file__).resolve().parent.parent.parent
     runner = Runner(
         repo_root=repo_root,
         qr_marker=args.qr_marker,
