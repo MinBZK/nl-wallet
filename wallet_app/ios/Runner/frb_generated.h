@@ -390,9 +390,16 @@ typedef struct wire_cst_WalletEvent_Issuance {
   bool renewed;
 } wire_cst_WalletEvent_Issuance;
 
+typedef struct wire_cst_WalletEvent_Deletion {
+  struct wire_cst_list_prim_u_8_strict *id;
+  struct wire_cst_list_prim_u_8_strict *date_time;
+  struct wire_cst_attestation_presentation *attestation;
+} wire_cst_WalletEvent_Deletion;
+
 typedef union WalletEventKind {
   struct wire_cst_WalletEvent_Disclosure Disclosure;
   struct wire_cst_WalletEvent_Issuance Issuance;
+  struct wire_cst_WalletEvent_Deletion Deletion;
 } WalletEventKind;
 
 typedef struct wire_cst_wallet_event {

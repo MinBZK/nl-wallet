@@ -2838,6 +2838,17 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
                     renewed: var_renewed,
                 };
             }
+            2 => {
+                let mut var_id = <String>::sse_decode(deserializer);
+                let mut var_dateTime = <String>::sse_decode(deserializer);
+                let mut var_attestation =
+                    <crate::models::attestation::AttestationPresentation>::sse_decode(deserializer);
+                return crate::models::wallet_event::WalletEvent::Deletion {
+                    id: var_id,
+                    date_time: var_dateTime,
+                    attestation: var_attestation,
+                };
+            }
             _ => {
                 unimplemented!("");
             }
@@ -3813,6 +3824,17 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent 
                 date_time.into_into_dart().into_dart(),
                 attestation.into_into_dart().into_dart(),
                 renewed.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
+            crate::models::wallet_event::WalletEvent::Deletion {
+                id,
+                date_time,
+                attestation,
+            } => [
+                2.into_dart(),
+                id.into_into_dart().into_dart(),
+                date_time.into_into_dart().into_dart(),
+                attestation.into_into_dart().into_dart(),
             ]
             .into_dart(),
             _ => {
@@ -4991,6 +5013,16 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
                 <crate::models::attestation::AttestationPresentation>::sse_encode(attestation, serializer);
                 <bool>::sse_encode(renewed, serializer);
             }
+            crate::models::wallet_event::WalletEvent::Deletion {
+                id,
+                date_time,
+                attestation,
+            } => {
+                <i32>::sse_encode(2, serializer);
+                <String>::sse_encode(id, serializer);
+                <String>::sse_encode(date_time, serializer);
+                <crate::models::attestation::AttestationPresentation>::sse_encode(attestation, serializer);
+            }
             _ => {
                 unimplemented!("");
             }
@@ -5946,6 +5978,14 @@ mod io {
                         date_time: ans.date_time.cst_decode(),
                         attestation: ans.attestation.cst_decode(),
                         renewed: ans.renewed.cst_decode(),
+                    }
+                }
+                2 => {
+                    let ans = unsafe { self.kind.Deletion };
+                    crate::models::wallet_event::WalletEvent::Deletion {
+                        id: ans.id.cst_decode(),
+                        date_time: ans.date_time.cst_decode(),
+                        attestation: ans.attestation.cst_decode(),
                     }
                 }
                 _ => unreachable!(),
@@ -7685,6 +7725,7 @@ mod io {
     pub union WalletEventKind {
         Disclosure: wire_cst_WalletEvent_Disclosure,
         Issuance: wire_cst_WalletEvent_Issuance,
+        Deletion: wire_cst_WalletEvent_Deletion,
         nil__: (),
     }
     #[repr(C)]
@@ -7706,6 +7747,13 @@ mod io {
         date_time: *mut wire_cst_list_prim_u_8_strict,
         attestation: *mut wire_cst_attestation_presentation,
         renewed: bool,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_WalletEvent_Deletion {
+        id: *mut wire_cst_list_prim_u_8_strict,
+        date_time: *mut wire_cst_list_prim_u_8_strict,
+        attestation: *mut wire_cst_attestation_presentation,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

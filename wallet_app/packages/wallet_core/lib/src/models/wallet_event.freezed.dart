@@ -87,12 +87,13 @@ extension WalletEventPatterns on WalletEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( WalletEvent_Disclosure value)?  disclosure,TResult Function( WalletEvent_Issuance value)?  issuance,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( WalletEvent_Disclosure value)?  disclosure,TResult Function( WalletEvent_Issuance value)?  issuance,TResult Function( WalletEvent_Deletion value)?  deletion,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case WalletEvent_Disclosure() when disclosure != null:
 return disclosure(_that);case WalletEvent_Issuance() when issuance != null:
-return issuance(_that);case _:
+return issuance(_that);case WalletEvent_Deletion() when deletion != null:
+return deletion(_that);case _:
   return orElse();
 
 }
@@ -110,12 +111,13 @@ return issuance(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( WalletEvent_Disclosure value)  disclosure,required TResult Function( WalletEvent_Issuance value)  issuance,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( WalletEvent_Disclosure value)  disclosure,required TResult Function( WalletEvent_Issuance value)  issuance,required TResult Function( WalletEvent_Deletion value)  deletion,}){
 final _that = this;
 switch (_that) {
 case WalletEvent_Disclosure():
 return disclosure(_that);case WalletEvent_Issuance():
-return issuance(_that);}
+return issuance(_that);case WalletEvent_Deletion():
+return deletion(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -129,12 +131,13 @@ return issuance(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( WalletEvent_Disclosure value)?  disclosure,TResult? Function( WalletEvent_Issuance value)?  issuance,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( WalletEvent_Disclosure value)?  disclosure,TResult? Function( WalletEvent_Issuance value)?  issuance,TResult? Function( WalletEvent_Deletion value)?  deletion,}){
 final _that = this;
 switch (_that) {
 case WalletEvent_Disclosure() when disclosure != null:
 return disclosure(_that);case WalletEvent_Issuance() when issuance != null:
-return issuance(_that);case _:
+return issuance(_that);case WalletEvent_Deletion() when deletion != null:
+return deletion(_that);case _:
   return null;
 
 }
@@ -151,11 +154,12 @@ return issuance(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String dateTime,  Organization relyingParty,  List<LocalizedString> purpose,  List<AttestationPresentation>? sharedAttestations,  RequestPolicy requestPolicy,  DisclosureStatus status,  DisclosureType typ)?  disclosure,TResult Function( String id,  String dateTime,  AttestationPresentation attestation,  bool renewed)?  issuance,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String dateTime,  Organization relyingParty,  List<LocalizedString> purpose,  List<AttestationPresentation>? sharedAttestations,  RequestPolicy requestPolicy,  DisclosureStatus status,  DisclosureType typ)?  disclosure,TResult Function( String id,  String dateTime,  AttestationPresentation attestation,  bool renewed)?  issuance,TResult Function( String id,  String dateTime,  AttestationPresentation attestation)?  deletion,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case WalletEvent_Disclosure() when disclosure != null:
 return disclosure(_that.id,_that.dateTime,_that.relyingParty,_that.purpose,_that.sharedAttestations,_that.requestPolicy,_that.status,_that.typ);case WalletEvent_Issuance() when issuance != null:
-return issuance(_that.id,_that.dateTime,_that.attestation,_that.renewed);case _:
+return issuance(_that.id,_that.dateTime,_that.attestation,_that.renewed);case WalletEvent_Deletion() when deletion != null:
+return deletion(_that.id,_that.dateTime,_that.attestation);case _:
   return orElse();
 
 }
@@ -173,11 +177,12 @@ return issuance(_that.id,_that.dateTime,_that.attestation,_that.renewed);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String dateTime,  Organization relyingParty,  List<LocalizedString> purpose,  List<AttestationPresentation>? sharedAttestations,  RequestPolicy requestPolicy,  DisclosureStatus status,  DisclosureType typ)  disclosure,required TResult Function( String id,  String dateTime,  AttestationPresentation attestation,  bool renewed)  issuance,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String dateTime,  Organization relyingParty,  List<LocalizedString> purpose,  List<AttestationPresentation>? sharedAttestations,  RequestPolicy requestPolicy,  DisclosureStatus status,  DisclosureType typ)  disclosure,required TResult Function( String id,  String dateTime,  AttestationPresentation attestation,  bool renewed)  issuance,required TResult Function( String id,  String dateTime,  AttestationPresentation attestation)  deletion,}) {final _that = this;
 switch (_that) {
 case WalletEvent_Disclosure():
 return disclosure(_that.id,_that.dateTime,_that.relyingParty,_that.purpose,_that.sharedAttestations,_that.requestPolicy,_that.status,_that.typ);case WalletEvent_Issuance():
-return issuance(_that.id,_that.dateTime,_that.attestation,_that.renewed);}
+return issuance(_that.id,_that.dateTime,_that.attestation,_that.renewed);case WalletEvent_Deletion():
+return deletion(_that.id,_that.dateTime,_that.attestation);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -191,11 +196,12 @@ return issuance(_that.id,_that.dateTime,_that.attestation,_that.renewed);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String dateTime,  Organization relyingParty,  List<LocalizedString> purpose,  List<AttestationPresentation>? sharedAttestations,  RequestPolicy requestPolicy,  DisclosureStatus status,  DisclosureType typ)?  disclosure,TResult? Function( String id,  String dateTime,  AttestationPresentation attestation,  bool renewed)?  issuance,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String dateTime,  Organization relyingParty,  List<LocalizedString> purpose,  List<AttestationPresentation>? sharedAttestations,  RequestPolicy requestPolicy,  DisclosureStatus status,  DisclosureType typ)?  disclosure,TResult? Function( String id,  String dateTime,  AttestationPresentation attestation,  bool renewed)?  issuance,TResult? Function( String id,  String dateTime,  AttestationPresentation attestation)?  deletion,}) {final _that = this;
 switch (_that) {
 case WalletEvent_Disclosure() when disclosure != null:
 return disclosure(_that.id,_that.dateTime,_that.relyingParty,_that.purpose,_that.sharedAttestations,_that.requestPolicy,_that.status,_that.typ);case WalletEvent_Issuance() when issuance != null:
-return issuance(_that.id,_that.dateTime,_that.attestation,_that.renewed);case _:
+return issuance(_that.id,_that.dateTime,_that.attestation,_that.renewed);case WalletEvent_Deletion() when deletion != null:
+return deletion(_that.id,_that.dateTime,_that.attestation);case _:
   return null;
 
 }
@@ -363,6 +369,76 @@ as String,dateTime: null == dateTime ? _self.dateTime : dateTime // ignore: cast
 as String,attestation: null == attestation ? _self.attestation : attestation // ignore: cast_nullable_to_non_nullable
 as AttestationPresentation,renewed: null == renewed ? _self.renewed : renewed // ignore: cast_nullable_to_non_nullable
 as bool,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class WalletEvent_Deletion extends WalletEvent {
+  const WalletEvent_Deletion({required this.id, required this.dateTime, required this.attestation}): super._();
+  
+
+@override final  String id;
+@override final  String dateTime;
+ final  AttestationPresentation attestation;
+
+/// Create a copy of WalletEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$WalletEvent_DeletionCopyWith<WalletEvent_Deletion> get copyWith => _$WalletEvent_DeletionCopyWithImpl<WalletEvent_Deletion>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WalletEvent_Deletion&&(identical(other.id, id) || other.id == id)&&(identical(other.dateTime, dateTime) || other.dateTime == dateTime)&&(identical(other.attestation, attestation) || other.attestation == attestation));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,id,dateTime,attestation);
+
+@override
+String toString() {
+  return 'WalletEvent.deletion(id: $id, dateTime: $dateTime, attestation: $attestation)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $WalletEvent_DeletionCopyWith<$Res> implements $WalletEventCopyWith<$Res> {
+  factory $WalletEvent_DeletionCopyWith(WalletEvent_Deletion value, $Res Function(WalletEvent_Deletion) _then) = _$WalletEvent_DeletionCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String dateTime, AttestationPresentation attestation
+});
+
+
+
+
+}
+/// @nodoc
+class _$WalletEvent_DeletionCopyWithImpl<$Res>
+    implements $WalletEvent_DeletionCopyWith<$Res> {
+  _$WalletEvent_DeletionCopyWithImpl(this._self, this._then);
+
+  final WalletEvent_Deletion _self;
+  final $Res Function(WalletEvent_Deletion) _then;
+
+/// Create a copy of WalletEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? dateTime = null,Object? attestation = null,}) {
+  return _then(WalletEvent_Deletion(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,dateTime: null == dateTime ? _self.dateTime : dateTime // ignore: cast_nullable_to_non_nullable
+as String,attestation: null == attestation ? _self.attestation : attestation // ignore: cast_nullable_to_non_nullable
+as AttestationPresentation,
   ));
 }
 

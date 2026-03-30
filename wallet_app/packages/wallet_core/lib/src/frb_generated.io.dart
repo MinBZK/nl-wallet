@@ -1587,6 +1587,16 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.Issuance.renewed = pre_renewed;
       return;
     }
+    if (apiObj is WalletEvent_Deletion) {
+      var pre_id = cst_encode_String(apiObj.id);
+      var pre_date_time = cst_encode_String(apiObj.dateTime);
+      var pre_attestation = cst_encode_box_autoadd_attestation_presentation(apiObj.attestation);
+      wireObj.tag = 2;
+      wireObj.kind.Deletion.id = pre_id;
+      wireObj.kind.Deletion.date_time = pre_date_time;
+      wireObj.kind.Deletion.attestation = pre_attestation;
+      return;
+    }
   }
 
   @protected
@@ -4035,10 +4045,20 @@ final class wire_cst_WalletEvent_Issuance extends ffi.Struct {
   external bool renewed;
 }
 
+final class wire_cst_WalletEvent_Deletion extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> date_time;
+
+  external ffi.Pointer<wire_cst_attestation_presentation> attestation;
+}
+
 final class WalletEventKind extends ffi.Union {
   external wire_cst_WalletEvent_Disclosure Disclosure;
 
   external wire_cst_WalletEvent_Issuance Issuance;
+
+  external wire_cst_WalletEvent_Deletion Deletion;
 }
 
 final class wire_cst_wallet_event extends ffi.Struct {
