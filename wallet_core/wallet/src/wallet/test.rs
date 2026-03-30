@@ -417,24 +417,7 @@ where
     }
 
     pub async fn new_registered_and_unlocked(vendor: WalletDeviceVendor) -> Self {
-        let config_server_config = default_config_server_config();
-        let config_repository = UpdatingConfigurationRepository::new(
-            LocalConfigurationRepository::new(create_wallet_configuration()),
-            config_server_config,
-        )
-        .await;
-
-        let mut wallet = Wallet::new(
-            S::init().await,
-            generate_key_holder(vendor),
-            WalletRepositories {
-                config_repository,
-                update_policy_repository: MockUpdatePolicyRepository::default(),
-            },
-            MockCredentialIssuerDiscovery::new(),
-            WalletClients::default(),
-            RegistrationStatus::Unregistered,
-        );
+        let mut wallet = Self::new_unregistered(vendor).await;
 
         // Generate registration data.
         let (registration_data, attested_key) = wallet.registration_data();
