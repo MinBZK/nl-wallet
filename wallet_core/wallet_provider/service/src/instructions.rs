@@ -24,6 +24,7 @@ use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
+use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
@@ -60,6 +61,7 @@ use wallet_account::messages::instructions::SignResult;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
+use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
@@ -76,6 +78,7 @@ use crate::account_server::InstructionValidationError;
 use crate::account_server::RecoveryCodeConfig;
 use crate::account_server::UserState;
 use crate::flags::WalletFlags;
+use crate::revocation::system_revoke_wallets_by_recovery_code;
 use crate::wallet_certificate::PinKeyChecks;
 use crate::wua_issuer::WuaIssuer;
 
@@ -606,9 +609,9 @@ where
     Ok(pops)
 }
 
-fn attestation_key<'a, T, R, H, S>(
+fn attestation_key<'a, T, R, H>(
     wrapped_key: &'a WrappedKey,
-    user_state: &'a UserState<R, impl WalletFlags, H, impl WuaIssuer, S>,
+    user_state: &'a UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
 ) -> HsmCredentialSigningKey<'a, H>
 where
     T: Committable,
@@ -779,8 +782,8 @@ impl HandleInstruction for DiscloseRecoveryCode {
 
         let tx = user_state.repositories.begin_transaction().await?;
 
-        // Verify the recovery code against the stored recovery code if any
-        // Check here as well to prevent failure for retried wallet request
+        // Verify the wallet user recovery code against the stored recovery code
+        // if any or insert if no recovery code is set.
         match wallet_user.recovery_code.as_ref() {
             None => {
                 user_state
@@ -788,9 +791,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
                     .store_recovery_code(&tx, &wallet_user.wallet_id, recovery_code.clone())
                     .await?;
             }
-            // This is a retried request
-            Some(stored) if &recovery_code == stored => {}
-            _ => return Err(InstructionError::InvalidRecoveryCode),
+            Some(_) => check_recovery_code(wallet_user, &recovery_code, user_state, generators).await?,
         }
 
         // Verify that the recovery code is not denied, if it is, immediately revoke the wallet
@@ -858,7 +859,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
     async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
-        _generators: &G,
+        generators: &G,
         user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
         recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
@@ -882,9 +883,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
 
         // The PID that was just received has to belong to the same person as the wallet,
         // which is the case only if they have the same recovery code.
-        if wallet_user.recovery_code != Some(recovery_code) {
-            return Err(InstructionError::InvalidRecoveryCode);
-        }
+        check_recovery_code(wallet_user, &recovery_code, user_state, generators).await?;
 
         let tx = user_state.repositories.begin_transaction().await?;
 
@@ -1306,6 +1305,32 @@ impl HandleInstruction for DeleteKeys {
     }
 }
 
+async fn check_recovery_code<T, R, F, H>(
+    wallet_user: &WalletUser,
+    disclosed: &RecoveryCode,
+    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
+    generators: &impl Generator<DateTime<Utc>>,
+) -> Result<(), InstructionError>
+where
+    T: Committable,
+    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+{
+    match wallet_user.recovery_code.as_ref() {
+        None => Err(InstructionError::InvalidRecoveryCode),
+        Some(stored) if stored == disclosed => Ok(()),
+        Some(stored) => {
+            // This will be replaced by a call to the security system
+            warn!("CRITICAL SECURITY: Incorrect disclosure of recovery code: stored: {stored}, disclosed: {disclosed}");
+            let _ =
+                future::try_join_all([disclosed, stored].map(|recovery_code| {
+                    system_revoke_wallets_by_recovery_code(recovery_code, user_state, generators)
+                }))
+                .await?;
+            Err(InstructionError::InvalidRecoveryCode)
+        }
+    }
+}
+
 async fn check_transfer_instruction_prerequisites<T, R>(
     tx: &T,
     repositories: &R,
@@ -1420,6 +1445,7 @@ fn is_poa_message(message: &[u8]) -> bool {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::collections::HashSet;
     use std::num::NonZeroUsize;
     use std::sync::Arc;
     use std::sync::Mutex;
@@ -1477,6 +1503,7 @@ mod tests {
     use wallet_account::messages::transfer::TransferSessionState;
     use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::wallet_user;
+    use wallet_provider_domain::model::wallet_user::RecoveryCode;
     use wallet_provider_domain::model::wallet_user::RevocationRegistration;
     use wallet_provider_domain::model::wallet_user::TransferSession;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
@@ -2014,7 +2041,32 @@ mod tests {
             recovery_code_disclosure,
         };
 
-        let wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        let denied_recovery_codes: Arc<Mutex<HashSet<RecoveryCode>>> = Arc::default();
+        let called_denied_recovery_codes = Arc::clone(&denied_recovery_codes);
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .times(2)
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_deny_recovery_code()
+            .times(2)
+            .returning(move |_, recovery_code| {
+                called_denied_recovery_codes.lock().unwrap().insert(recovery_code);
+                Ok(())
+            });
+        wallet_user_repo
+            .expect_find_wallet_user_ids_by_recovery_code()
+            .times(2)
+            .returning(|_, _| Ok(vec![]));
+        wallet_user_repo
+            .expect_revoke_wallet_users()
+            .times(2)
+            .returning(|_, _, reason, _| {
+                assert_eq!(reason, RevocationReason::AdminRequest);
+                Ok(vec![])
+            });
+
         let err = instruction
             .handle(
                 &wallet_user,
@@ -2026,6 +2078,18 @@ mod tests {
             .expect_err("PIN recovery should have failed");
 
         assert_matches!(err, InstructionError::InvalidRecoveryCode);
+
+        // Both recovery codes should be denied
+        assert_eq!(
+            *denied_recovery_codes.lock().unwrap(),
+            [
+                "cff292503cba8c4fbf2e5820dcdc468ae00f40c87b1af35513375800128fc00d"
+                    .to_owned()
+                    .into(),
+                "wrong_recovery_code".to_owned().into(),
+            ]
+            .into(),
+        );
     }
 
     #[tokio::test]
