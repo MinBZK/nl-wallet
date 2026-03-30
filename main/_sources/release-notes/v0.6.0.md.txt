@@ -1,1 +1,10 @@
 # v0.6.0 (dev)
+
+## Upgrading
+
+## New features
+
+- The Wallet Provider will now block recovery codes during PIN recovery or PID
+  renewal when the newly disclosed recovery code does not match with stored
+  recovery code. This is suspicious because it is already checked by the NL
+  Wallet app as well.
