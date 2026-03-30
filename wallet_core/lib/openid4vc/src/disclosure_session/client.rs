@@ -16,6 +16,7 @@ use crate::errors::AuthorizationErrorCode;
 use crate::errors::AuthorizationErrorResponse;
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
+use crate::openid4vp::AuthRequestValidationError;
 use crate::openid4vp::MsoMdocAlgValues;
 use crate::openid4vp::SdJwtAlgValues;
 use crate::openid4vp::VpAuthorizationRequest;
@@ -32,7 +33,6 @@ use super::error::VpSessionError;
 use super::error::VpVerifierError;
 use super::message_client::HttpVpMessageClient;
 use super::message_client::VpMessageClient;
-use super::message_client::VpMessageClientError;
 use super::session::VpDisclosureSession;
 use super::uri_source::DisclosureUriSource;
 
@@ -50,39 +50,44 @@ impl VpDisclosureClient<HttpVpMessageClient> {
 }
 
 impl<H> VpDisclosureClient<H> {
-    /// Report an error back to the RP. Note: this function only reports errors that are the RP's fault.
+    /// Report an error back to the RP.
     async fn report_error_back(&self, url: BaseUrl, state: Option<String>, error: VpVerifierError) -> VpVerifierError
     where
         H: VpMessageClient,
     {
-        match error {
-            VpVerifierError::Request(VpMessageClientError::Json(_))
+        let error_code = match &error {
+            VpVerifierError::VpFormatsNotSupported(_) => VpAuthorizationErrorCode::VpFormatsNotSupported,
+            VpVerifierError::AuthRequestValidation(AuthRequestValidationError::UnsupportedFieldValue {
+                field: "response_type",
+                ..
+            }) => VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::UnsupportedResponseType),
+            VpVerifierError::Request(_)
             | VpVerifierError::AuthRequestValidation(_)
             | VpVerifierError::IncorrectClientId { .. }
             | VpVerifierError::RpCertificate(_)
             | VpVerifierError::NoReaderCertificate
-            | VpVerifierError::RequestedAttributesValidation(_) => {
-                let error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest);
-
-                let error_response = AuthorizationErrorResponse {
-                    error_response: ErrorResponse {
-                        error: error_code,
-                        error_description: Some(error.to_string()),
-                        error_uri: None,
-                    },
-                    state,
-                };
-
-                // If sending the error results in an error, log it but do nothing else.
-                let _ = self
-                    .client
-                    .send_error(url, error_response)
-                    .await
-                    .inspect_err(|err| warn!("failed to send error to verifier: {err}"));
+            | VpVerifierError::RequestedAttributesValidation(_)
+            | VpVerifierError::MissingSessionType
+            | VpVerifierError::MalformedSessionType(_) => {
+                VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest)
             }
-            // don't report other errors
-            _ => {}
         };
+
+        let error_response = AuthorizationErrorResponse {
+            error_response: ErrorResponse {
+                error: error_code,
+                error_description: Some(error.to_string()),
+                error_uri: None,
+            },
+            state,
+        };
+
+        // If sending the error results in an error, log it but do nothing else.
+        let _ = self
+            .client
+            .send_error(url, error_response)
+            .await
+            .inspect_err(|err| warn!("failed to send error to verifier: {err}"));
 
         error
     }
@@ -305,11 +310,11 @@ mod tests {
     use super::super::DisclosureClient;
     use super::super::DisclosureSession;
     use super::super::DisclosureUriSource;
-    use super::super::client::VpMessageClientError;
     use super::super::error::UnsupportedRequestUriVariant;
     use super::super::error::VpClientError;
     use super::super::error::VpSessionError;
     use super::super::error::VpVerifierError;
+    use super::super::message_client::VpMessageClientError;
     use super::super::message_client::mock::MockErrorFactoryVpMessageClient;
     use super::super::message_client::mock::MockVerifierSession;
     use super::super::message_client::mock::MockVerifierVpMessageClient;
@@ -1082,9 +1087,13 @@ mod tests {
         );
 
         let wallet_messages = verifier_session.wallet_messages.lock();
-
-        // This error is not reported back to the verifier
-        assert_eq!(wallet_messages.len(), 1);
-        assert_matches!(wallet_messages.first().unwrap(), WalletMessage::Request(_));
+        assert_eq!(wallet_messages.len(), 2);
+        assert_matches!(&wallet_messages[0], WalletMessage::Request(_));
+        // This error should be reported back to the verifier with vp_formats_not_supported.
+        let expected_error_code = VpAuthorizationErrorCode::VpFormatsNotSupported;
+        assert_matches!(
+            &wallet_messages[1],
+            WalletMessage::Error(response) if response.error() == &expected_error_code
+        );
     }
 }
