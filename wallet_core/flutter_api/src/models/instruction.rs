@@ -1,6 +1,7 @@
 use wallet::IssuanceResult;
 use wallet::RevocationCode;
 use wallet::errors::ChangePinError;
+use wallet::errors::DeleteAttestationError;
 use wallet::errors::DisclosureBasedIssuanceError;
 use wallet::errors::DisclosureError;
 use wallet::errors::InstructionError;
@@ -101,6 +102,31 @@ impl TryFrom<Result<IssuanceResult, IssuanceError>> for WalletInstructionResult 
             Err(IssuanceError::Instruction(instruction_error)) => Ok(WalletInstructionResult::InstructionError {
                 error: instruction_error.try_into().map_err(IssuanceError::Instruction)?,
             }),
+            Err(error) => Err(error),
+        }
+    }
+}
+
+/// This conversion distinguishes between 3 distinct cases:
+///
+/// 1. In case of a successful result, [`WalletInstructionResult::Ok`] will be returned.
+/// 2. In case of an expected and/or specific error case a different variant of [`WalletInstructionResult`] by mapping
+///    the nested [`InstructionError`].
+/// 3. In any other cases, this is an unexpected and/or generic error and the [`DeleteAttestationError`] will be
+///    returned unchanged.
+impl TryFrom<Result<(), DeleteAttestationError>> for WalletInstructionResult {
+    type Error = DeleteAttestationError;
+
+    fn try_from(value: Result<(), DeleteAttestationError>) -> Result<Self, Self::Error> {
+        match value {
+            Ok(_) => Ok(WalletInstructionResult::Ok),
+            Err(DeleteAttestationError::Instruction(instruction_error)) => {
+                Ok(WalletInstructionResult::InstructionError {
+                    error: instruction_error
+                        .try_into()
+                        .map_err(DeleteAttestationError::Instruction)?,
+                })
+            }
             Err(error) => Err(error),
         }
     }
