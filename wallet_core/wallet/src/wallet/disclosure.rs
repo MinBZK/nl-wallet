@@ -2998,7 +2998,11 @@ mod tests {
             .return_once(move |_, _, _| Ok(attestations));
 
         // The wallet will not check in the database if data was shared with the RP before.
-        wallet.mut_storage().expect_did_share_data_with_relying_party().never();
+        wallet
+            .mut_storage()
+            .expect_did_share_data_with_relying_party()
+            .times(1)
+            .returning(|_| Ok(false));
 
         // Starting disclosure should not cause attestation copy usage counts to be incremented.
         wallet
