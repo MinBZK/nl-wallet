@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use chrono::Utc;
 use itertools::Itertools;
 use tracing::info;
 use tracing::instrument;
@@ -159,7 +160,11 @@ where
         .await?;
 
         info!("Deleting attestation from local storage");
-        self.storage.write().await.delete_attestation(attestation_id).await?;
+        self.storage
+            .write()
+            .await
+            .delete_attestation(Utc::now(), attestation_id)
+            .await?;
 
         self.emit_attestations().await?;
         self.emit_recent_history().await?;
@@ -173,6 +178,7 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
+    use mockall::predicate::always;
     use mockall::predicate::eq;
     use uuid::Uuid;
 
@@ -185,6 +191,7 @@ mod tests {
     use crate::storage::InstructionData;
     use crate::storage::StorageError;
     use crate::wallet::test::setup_mock_attestations_callback;
+    use crate::wallet::test::setup_mock_recent_history_callback;
 
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
@@ -237,8 +244,8 @@ mod tests {
         wallet
             .mut_storage()
             .expect_delete_attestation()
-            .with(eq(attestation_id))
-            .return_once(move |_| delete_result);
+            .with(always(), eq(attestation_id))
+            .return_once(move |_, _| delete_result);
     }
 
     #[tokio::test]
@@ -340,6 +347,47 @@ mod tests {
         let attestations = attestations.lock();
         assert_eq!(attestations.len(), 1);
         assert!(attestations[0].is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_delete_attestation_success_emits_history() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Called once by setup_mock_attestations_callback() and once by wallet.delete_attestation().
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations()
+            .times(2)
+            .returning(|| Ok(vec![]));
+
+        // Called once by setup_mock_recent_history_callback() and once by wallet.delete_attestation().
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .times(2)
+            .returning(|| Ok(vec![]));
+
+        setup_mock_attestations_callback(&mut wallet)
+            .await
+            .expect("setting attestations callback should succeed");
+
+        let history = setup_mock_recent_history_callback(&mut wallet)
+            .await
+            .expect("setting recent history callback should succeed");
+
+        // The initial history emission from registration has occurred.
+        assert_eq!(history.lock().len(), 1);
+
+        let attestation_id = Uuid::new_v4();
+        setup_delete_attestation_mocks(&mut wallet, attestation_id, Ok(()));
+
+        wallet
+            .delete_attestation(PIN.to_string(), attestation_id.to_string())
+            .await
+            .expect("delete_attestation should succeed");
+
+        // Another history emission due to the deletion has occurred.
+        assert_eq!(history.lock().len(), 2);
     }
 
     #[tokio::test]

@@ -122,6 +122,18 @@ impl MigrationTrait for Migration {
                     )
                     .to_owned(),
             )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(DeletionEvent::Table)
+                    .if_not_exists()
+                    .col(ColumnDef::new(DeletionEvent::Id).uuid().not_null().primary_key())
+                    .col(ColumnDef::new(DeletionEvent::Timestamp).timestamp().not_null())
+                    .col(ColumnDef::new(DeletionEvent::AttestationPresentation).json().not_null())
+                    .to_owned(),
+            )
             .await
     }
 
@@ -136,6 +148,10 @@ impl MigrationTrait for Migration {
 
         manager
             .drop_table(Table::drop().table(DisclosureEvent::Table).to_owned())
+            .await?;
+
+        manager
+            .drop_table(Table::drop().table(DeletionEvent::Table).to_owned())
             .await?;
 
         manager
@@ -177,5 +193,13 @@ enum DisclosureEventAttestation {
     Id,
     DisclosureEventId,
     AttestationId,
+    AttestationPresentation,
+}
+
+#[derive(DeriveIden)]
+enum DeletionEvent {
+    Table,
+    Id,
+    Timestamp,
     AttestationPresentation,
 }

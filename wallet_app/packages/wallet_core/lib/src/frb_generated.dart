@@ -148,7 +148,7 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<String> crateApiFullCreatePinRecoveryRedirectUri();
 
-  Future<void> crateApiFullDeleteAttestation({required String pin, required String attestationId});
+  Future<WalletInstructionResult> crateApiFullDeleteAttestation({required String pin, required String attestationId});
 
   Future<List<WalletEvent>> crateApiFullGetHistory();
 
@@ -856,7 +856,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Future<void> crateApiFullDeleteAttestation({required String pin, required String attestationId}) {
+  Future<WalletInstructionResult> crateApiFullDeleteAttestation({required String pin, required String attestationId}) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -865,7 +865,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           return wire.wire__crate__api__full__delete_attestation(port_, arg0, arg1);
         },
         codec: DcoCodec(
-          decodeSuccessData: dco_decode_unit,
+          decodeSuccessData: dco_decode_wallet_instruction_result,
           decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullDeleteAttestationConstMeta,
@@ -2675,6 +2675,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           attestation: dco_decode_box_autoadd_attestation_presentation(raw[3]),
           renewed: dco_decode_bool(raw[4]),
         );
+      case 2:
+        return WalletEvent_Deletion(
+          id: dco_decode_String(raw[1]),
+          dateTime: dco_decode_String(raw[2]),
+          attestation: dco_decode_box_autoadd_attestation_presentation(raw[3]),
+        );
       default:
         throw Exception("unreachable");
     }
@@ -3789,6 +3795,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           attestation: var_attestation,
           renewed: var_renewed,
         );
+      case 2:
+        var var_id = sse_decode_String(deserializer);
+        var var_dateTime = sse_decode_String(deserializer);
+        var var_attestation = sse_decode_box_autoadd_attestation_presentation(deserializer);
+        return WalletEvent_Deletion(id: var_id, dateTime: var_dateTime, attestation: var_attestation);
       default:
         throw UnimplementedError('');
     }
@@ -4959,6 +4970,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_String(dateTime, serializer);
         sse_encode_box_autoadd_attestation_presentation(attestation, serializer);
         sse_encode_bool(renewed, serializer);
+      case WalletEvent_Deletion(id: final id, dateTime: final dateTime, attestation: final attestation):
+        sse_encode_i_32(2, serializer);
+        sse_encode_String(id, serializer);
+        sse_encode_String(dateTime, serializer);
+        sse_encode_box_autoadd_attestation_presentation(attestation, serializer);
     }
   }
 

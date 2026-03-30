@@ -166,7 +166,7 @@ Future<String> getRegistrationRevocationCode() => WalletCore.instance.api.crateA
 Future<RevocationCodeResult> getRevocationCode({required String pin}) =>
     WalletCore.instance.api.crateApiFullGetRevocationCode(pin: pin);
 
-Future<void> deleteAttestation({required String pin, required String attestationId}) =>
+Future<WalletInstructionResult> deleteAttestation({required String pin, required String attestationId}) =>
     WalletCore.instance.api.crateApiFullDeleteAttestation(pin: pin, attestationId: attestationId);
 
 Future<void> resetWallet() => WalletCore.instance.api.crateApiFullResetWallet();

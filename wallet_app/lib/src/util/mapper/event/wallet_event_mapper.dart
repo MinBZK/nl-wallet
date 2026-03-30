@@ -42,6 +42,7 @@ class WalletEventMapper extends Mapper<core.WalletEvent, WalletEvent> {
         // TODO(Daan): Implement issuanceEventType mapping once Core logic is implemented in [PVW-4566];
         eventType: !input.renewed ? IssuanceEventType.cardIssued : IssuanceEventType.cardRenewed,
       ),
+      WalletEvent_Deletion() => throw UnimplementedError('WalletEvent_Deletion is not yet mapped'), // PVW-5722
     };
   }
 

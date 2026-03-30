@@ -8117,7 +8117,7 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
           as _i10.Future<String>);
 
   @override
-  _i10.Future<void> crateApiFullDeleteAttestation({
+  _i10.Future<_i26.WalletInstructionResult> crateApiFullDeleteAttestation({
     required String? pin,
     required String? attestationId,
   }) =>
@@ -8126,10 +8126,26 @@ class MockWalletCoreApi extends _i1.Mock implements _i26.WalletCoreApi {
               #pin: pin,
               #attestationId: attestationId,
             }),
-            returnValue: _i10.Future<void>.value(),
-            returnValueForMissingStub: _i10.Future<void>.value(),
+            returnValue: _i10.Future<_i26.WalletInstructionResult>.value(
+              _i14.dummyValue<_i26.WalletInstructionResult>(
+                this,
+                Invocation.method(#crateApiFullDeleteAttestation, [], {
+                  #pin: pin,
+                  #attestationId: attestationId,
+                }),
+              ),
+            ),
+            returnValueForMissingStub: _i10.Future<_i26.WalletInstructionResult>.value(
+              _i14.dummyValue<_i26.WalletInstructionResult>(
+                this,
+                Invocation.method(#crateApiFullDeleteAttestation, [], {
+                  #pin: pin,
+                  #attestationId: attestationId,
+                }),
+              ),
+            ),
           )
-          as _i10.Future<void>);
+          as _i10.Future<_i26.WalletInstructionResult>);
 
   @override
   _i10.Future<List<_i26.WalletEvent>> crateApiFullGetHistory() =>
