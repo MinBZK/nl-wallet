@@ -26,6 +26,8 @@ import '../../common/page/terminal_page.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/widget/button/icon/back_icon_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
+import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
 import '../../common/widget/loading_indicator.dart';
 import '../../common/widget/page_illustration.dart';
@@ -263,8 +265,11 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
       illustration: const PageIllustration(asset: WalletAssets.svg_error_general),
       title: context.l10n.walletPersonalizeScreenErrorTitle,
       description: context.l10n.walletPersonalizeScreenErrorDescription,
-      primaryButtonCta: context.l10n.walletPersonalizeScreenErrorRetryCta,
-      onPrimaryPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.walletPersonalizeScreenErrorRetryCta),
+        onPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
+        key: const Key('primaryButtonCta'),
+      ),
     );
   }
 
@@ -273,12 +278,18 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
       title: context.l10n.walletPersonalizeDigidCancelledPageTitle,
       illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
       description: context.l10n.walletPersonalizeDigidCancelledPageDescription,
-      onPrimaryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
-      primaryButtonCta: context.l10n.walletPersonalizeDigidErrorPageLoginWithDigidCta,
-      primaryButtonIcon: const SvgOrImage(asset: WalletAssets.logo_digid),
-      onSecondaryButtonPressed: _launchDigidWebsite,
-      secondaryButtonCta: context.l10n.walletPersonalizeDigidErrorPageDigidWebsiteCta,
-      secondaryButtonIcon: const Icon(Icons.arrow_outward_rounded),
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.walletPersonalizeDigidErrorPageLoginWithDigidCta),
+        icon: const SvgOrImage(asset: WalletAssets.logo_digid),
+        onPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
+        key: const Key('primaryButtonCta'),
+      ),
+      secondaryButton: TertiaryButton(
+        text: Text(context.l10n.walletPersonalizeDigidErrorPageDigidWebsiteCta),
+        icon: const Icon(Icons.arrow_outward_rounded),
+        onPressed: _launchDigidWebsite,
+        key: const Key('secondaryButtonCta'),
+      ),
     );
   }
 
@@ -287,12 +298,18 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
       title: context.l10n.walletPersonalizeDigidErrorPageTitle,
       illustration: const PageIllustration(asset: WalletAssets.svg_error_general),
       description: context.l10n.walletPersonalizeDigidErrorPageDescription,
-      onPrimaryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
-      primaryButtonCta: context.l10n.walletPersonalizeDigidErrorPageLoginWithDigidCta,
-      primaryButtonIcon: const SvgOrImage(asset: WalletAssets.logo_digid),
-      onSecondaryButtonPressed: _launchDigidWebsite,
-      secondaryButtonCta: context.l10n.walletPersonalizeDigidErrorPageDigidWebsiteCta,
-      secondaryButtonIcon: const Icon(Icons.arrow_outward_rounded),
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.walletPersonalizeDigidErrorPageLoginWithDigidCta),
+        icon: const SvgOrImage(asset: WalletAssets.logo_digid),
+        onPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
+        key: const Key('primaryButtonCta'),
+      ),
+      secondaryButton: TertiaryButton(
+        text: Text(context.l10n.walletPersonalizeDigidErrorPageDigidWebsiteCta),
+        icon: const Icon(Icons.arrow_outward_rounded),
+        onPressed: _launchDigidWebsite,
+        key: const Key('secondaryButtonCta'),
+      ),
     );
   }
 

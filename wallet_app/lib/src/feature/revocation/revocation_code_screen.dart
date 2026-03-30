@@ -7,6 +7,7 @@ import '../../util/extension/build_context_extension.dart';
 import '../../util/helper/onboarding_helper.dart';
 import '../common/page/terminal_page.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
+import '../common/widget/button/primary_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/text/body_text.dart';
 import '../common/widget/text/title_text.dart';
@@ -80,8 +81,11 @@ class RevocationCodeScreen extends StatelessWidget {
           ],
         ),
       ),
-      primaryButtonCta: context.l10n.revocationCodeScreenContinueCta,
-      onPrimaryPressed: () => context.read<RevocationCodeBloc>().add(const RevocationCodeContinuePressed()),
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.revocationCodeScreenContinueCta),
+        onPressed: () => context.read<RevocationCodeBloc>().add(const RevocationCodeContinuePressed()),
+        key: const Key('primaryButtonCta'),
+      ),
     );
   }
 }

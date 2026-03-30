@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/page/terminal_page.dart';
+import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/page_illustration.dart';
 
 class IssuanceGenericErrorPage extends StatelessWidget {
@@ -19,8 +20,11 @@ class IssuanceGenericErrorPage extends StatelessWidget {
       illustration: const PageIllustration(asset: WalletAssets.svg_error_general),
       title: context.l10n.issuanceGenericErrorPageTitle,
       description: context.l10n.issuanceGenericErrorPageDescription,
-      primaryButtonCta: context.l10n.issuanceGenericErrorPageCloseCta,
-      onPrimaryPressed: onClosePressed,
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.issuanceGenericErrorPageCloseCta),
+        onPressed: onClosePressed,
+        key: const Key('primaryButtonCta'),
+      ),
     );
   }
 }

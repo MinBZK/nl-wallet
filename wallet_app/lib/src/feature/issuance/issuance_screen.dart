@@ -24,6 +24,7 @@ import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
+import '../common/widget/button/primary_button.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
@@ -294,11 +295,16 @@ class IssuanceScreen extends StatelessWidget {
   Widget _buildNoCardsReceived(BuildContext context, IssuanceNoCardsRetrieved state) {
     return TerminalPage(
       title: context.l10n.issuanceNoCardsPageTitle,
-      description: context.l10n.issuanceNoCardsPageDescription(state.organization.displayName.l10nValue(context)),
-      primaryButtonCta: context.l10n.generalClose,
-      onPrimaryPressed: () => _stopIssuance(context),
-      primaryButtonIcon: const Icon(Icons.close),
+      description: context.l10n.issuanceNoCardsPageDescription(
+        state.organization.displayName.l10nValue(context),
+      ),
       illustration: const PageIllustration(asset: WalletAssets.svg_no_cards),
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.generalClose),
+        icon: const Icon(Icons.close),
+        onPressed: () => _stopIssuance(context),
+        key: const Key('primaryButtonCta'),
+      ),
     );
   }
 

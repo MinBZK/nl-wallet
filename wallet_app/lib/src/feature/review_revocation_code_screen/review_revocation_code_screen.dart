@@ -9,6 +9,8 @@ import '../common/page/terminal_page.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
+import '../common/widget/button/primary_button.dart';
+import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
 import '../common/widget/pin_header.dart';
@@ -64,12 +66,18 @@ class ReviewRevocationCodeScreen extends StatelessWidget {
       title: context.l10n.reviewRevocationCodeScreenTitle,
       description: context.l10n.reviewRevocationCodeScreenDescription,
       illustration: const PageIllustration(asset: WalletAssets.svg_security_code),
-      primaryButtonCta: context.l10n.reviewRevocationCodeScreenViewCta,
-      onPrimaryPressed: () => context.read<ReviewRevocationCodeBloc>().add(const ReviewRevocationCodeRequested()),
-      primaryButtonIcon: const Icon(Icons.arrow_forward_outlined),
-      secondaryButtonCta: context.l10n.generalBottomBackCta,
-      secondaryButtonIcon: const Icon(Icons.arrow_back_outlined),
-      onSecondaryButtonPressed: () => Navigator.pop(context),
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.reviewRevocationCodeScreenViewCta),
+        icon: const Icon(Icons.arrow_forward_outlined),
+        onPressed: () => context.read<ReviewRevocationCodeBloc>().add(const ReviewRevocationCodeRequested()),
+        key: const Key('primaryButtonCta'),
+      ),
+      secondaryButton: TertiaryButton(
+        text: Text(context.l10n.generalBottomBackCta),
+        icon: const Icon(Icons.arrow_back_outlined),
+        onPressed: () => Navigator.pop(context),
+        key: const Key('secondaryButtonCta'),
+      ),
     );
   }
 
@@ -100,9 +108,12 @@ class ReviewRevocationCodeScreen extends StatelessWidget {
           ],
         ),
       ),
-      primaryButtonCta: context.l10n.reviewRevocationCodeScreenSuccessCta,
-      onPrimaryPressed: () => context.read<ReviewRevocationCodeBloc>().add(const ReviewRevocationCodeRestartFlow()),
-      primaryButtonIcon: const Icon(Icons.check_outlined),
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.reviewRevocationCodeScreenSuccessCta),
+        icon: const Icon(Icons.check_outlined),
+        onPressed: () => context.read<ReviewRevocationCodeBloc>().add(const ReviewRevocationCodeRestartFlow()),
+        key: const Key('primaryButtonCta'),
+      ),
     );
   }
 

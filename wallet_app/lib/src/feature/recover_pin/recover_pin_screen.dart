@@ -10,6 +10,7 @@ import '../../data/service/navigation_service.dart';
 import '../../domain/model/bloc/error_state.dart';
 import '../../domain/model/navigation/navigation_request.dart';
 import '../../domain/model/result/application_error.dart';
+import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/list_extension.dart';
@@ -26,6 +27,8 @@ import '../common/page/terminal_page.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
+import '../common/widget/button/primary_button.dart';
+import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
@@ -200,13 +203,19 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
             page = TerminalPage(
               title: pageTitle,
               description: c.l10n.recoverPinIntroPageDescription,
-              primaryButtonCta: c.l10n.recoverPinIntroPageOpenDigidCta,
-              primaryButtonIcon: const SvgOrImage(asset: WalletAssets.logo_digid),
               illustration: const PageIllustration(asset: WalletAssets.svg_digid),
-              onPrimaryPressed: () => c.bloc.add(const RecoverPinLoginWithDigidClicked()),
-              onSecondaryButtonPressed: _launchDigidWebsite,
-              secondaryButtonCta: c.l10n.recoverPinOpenDigidWebsiteCta,
-              secondaryButtonIcon: const Icon(Icons.north_east_outlined),
+              primaryButton: PrimaryButton(
+                text: Text(c.l10n.recoverPinIntroPageOpenDigidCta),
+                icon: const SvgOrImage(asset: WalletAssets.logo_digid),
+                onPressed: () => c.bloc.add(const RecoverPinLoginWithDigidClicked()),
+                key: const Key('primaryButtonCta'),
+              ),
+              secondaryButton: TertiaryButton(
+                text: Text(c.l10n.recoverPinOpenDigidWebsiteCta),
+                icon: const Icon(Icons.north_east_outlined),
+                onPressed: _launchDigidWebsite,
+                key: const Key('secondaryButtonCta'),
+              ),
             );
           case RecoverPinLoadingDigidUrl():
             page = GenericLoadingPage(
@@ -233,22 +242,35 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
             page = TerminalPage(
               title: pageTitle,
               description: c.l10n.recoverPinDigidMismatchPageDescription,
-              illustration: const PageIllustration(asset: WalletAssets.svg_error_general),
-              primaryButtonCta: c.l10n.recoverPinDigidMismatchPageRetryCta,
-              onPrimaryPressed: () => c.bloc.add(const RecoverPinRetryPressed()),
-              primaryButtonIcon: const SvgOrImage(asset: WalletAssets.logo_digid),
-              secondaryButtonCta: c.l10n.recoverPinOpenDigidWebsiteCta,
-              onSecondaryButtonPressed: _launchDigidWebsite,
-              secondaryButtonIcon: const Icon(Icons.north_east_outlined),
+              illustration: const PageIllustration(
+                asset: WalletAssets.svg_error_general,
+              ),
+              primaryButton: PrimaryButton(
+                text: Text(c.l10n.recoverPinDigidMismatchPageRetryCta),
+                icon: const SvgOrImage(asset: WalletAssets.logo_digid),
+                onPressed: () => c.bloc.add(const RecoverPinRetryPressed()),
+                key: const Key('primaryButtonCta'),
+              ),
+              secondaryButton: TertiaryButton(
+                text: Text(c.l10n.recoverPinOpenDigidWebsiteCta),
+                icon: const Icon(Icons.north_east_outlined),
+                onPressed: _launchDigidWebsite,
+                key: const Key('secondaryButtonCta'),
+              ),
             );
           case RecoverPinStopped():
             page = TerminalPage(
               title: pageTitle,
               description: c.l10n.recoverPinStoppedPageDescription,
-              primaryButtonCta: c.l10n.generalClose,
-              illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
-              onPrimaryPressed: () => Navigator.of(context).resetToDashboard(),
-              primaryButtonIcon: const Icon(Icons.close_outlined),
+              illustration: const PageIllustration(
+                asset: WalletAssets.svg_stopped,
+              ),
+              primaryButton: PrimaryButton(
+                text: Text(c.l10n.generalClose),
+                icon: const Icon(Icons.close_outlined),
+                onPressed: () => Navigator.of(context).resetToDashboard(),
+                key: const Key('primaryButtonCta'),
+              ),
             );
           case RecoverPinChooseNewPin():
             page = PinSetupPage(
@@ -278,16 +300,22 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
             page = TerminalPage(
               title: pageTitle,
               description: c.l10n.recoverPinSuccessPageDescription,
-              illustration: const PageIllustration(asset: WalletAssets.svg_pin_set),
-              primaryButtonCta: c.l10n.recoverPinSuccessPageToOverviewCta,
-              onPrimaryPressed: () => Navigator.of(c).resetToDashboard(),
-              // Re-introduce secondary button in PVW-5058 (also see PVW-5141)
-              /* secondaryButtonCta: c.l10n.recoverPinSuccessPageToHistoryCta,
-              onSecondaryButtonPressed: () {
-                Navigator.of(c)
+              illustration: const PageIllustration(
+                asset: WalletAssets.svg_pin_set,
+              ),
+              primaryButton: PrimaryButton(
+                text: Text(c.l10n.recoverPinSuccessPageToOverviewCta),
+                onPressed: () => Navigator.of(c).resetToDashboard(),
+                key: const Key('primaryButtonCta'),
+              ),
+              secondaryButton: TertiaryButton(
+                text: Text(c.l10n.recoverPinSuccessPageToHistoryCta),
+                icon: const Icon(Icons.north_east_outlined),
+                onPressed: () => Navigator.of(c)
                   ..resetToDashboard()
-                  ..pushNamed(WalletRoutes.walletHistoryRoute);
-              }, */
+                  ..pushNamed(WalletRoutes.walletHistoryRoute),
+                key: const Key('secondaryButtonCta'),
+              ).takeIf((_) => false), // Reintroduce with PVW-5058 (also see PVW-5141)
             );
           case RecoverPinSelectPinFailed():
             page = const CenteredLoadingIndicator();
@@ -297,25 +325,37 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
             page = TerminalPage(
               title: pageTitle,
               description: c.l10n.recoverPinFailurePageDescription,
-              primaryButtonCta: c.l10n.recoverPinFailurePageRetryCta,
               illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
-              onPrimaryPressed: () => c.bloc.add(const RecoverPinLoginWithDigidClicked()),
-              primaryButtonIcon: const SvgOrImage(asset: WalletAssets.logo_digid),
-              secondaryButtonIcon: const Icon(Icons.north_east_outlined),
-              secondaryButtonCta: c.l10n.recoverPinOpenDigidWebsiteCta,
-              onSecondaryButtonPressed: _launchDigidWebsite,
+              primaryButton: PrimaryButton(
+                text: Text(c.l10n.recoverPinFailurePageRetryCta),
+                icon: const SvgOrImage(asset: WalletAssets.logo_digid),
+                onPressed: () => c.bloc.add(const RecoverPinLoginWithDigidClicked()),
+                key: const Key('primaryButtonCta'),
+              ),
+              secondaryButton: TertiaryButton(
+                text: Text(c.l10n.recoverPinOpenDigidWebsiteCta),
+                icon: const Icon(Icons.north_east_outlined),
+                onPressed: _launchDigidWebsite,
+                key: const Key('secondaryButtonCta'),
+              ),
             );
           case RecoverPinDigidLoginCancelled():
             page = TerminalPage(
               title: pageTitle,
               description: c.l10n.recoverPinLoginCancelledPageDescription,
-              primaryButtonCta: c.l10n.recoverPinLoginCancelledPageRetryCta,
               illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
-              onPrimaryPressed: () => c.bloc.add(const RecoverPinLoginWithDigidClicked()),
-              primaryButtonIcon: const SvgOrImage(asset: WalletAssets.logo_digid),
-              secondaryButtonIcon: const Icon(Icons.north_east_outlined),
-              secondaryButtonCta: c.l10n.recoverPinOpenDigidWebsiteCta,
-              onSecondaryButtonPressed: _launchDigidWebsite,
+              primaryButton: PrimaryButton(
+                text: Text(c.l10n.recoverPinLoginCancelledPageRetryCta),
+                icon: const SvgOrImage(asset: WalletAssets.logo_digid),
+                onPressed: () => c.bloc.add(const RecoverPinLoginWithDigidClicked()),
+                key: const Key('primaryButtonCta'),
+              ),
+              secondaryButton: TertiaryButton(
+                text: Text(c.l10n.recoverPinOpenDigidWebsiteCta),
+                icon: const Icon(Icons.north_east_outlined),
+                onPressed: _launchDigidWebsite,
+                key: const Key('secondaryButtonCta'),
+              ),
             );
           case RecoverPinNetworkError():
             page = state.hasInternet

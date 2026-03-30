@@ -15,6 +15,8 @@ import '../common/sheet/error_details_sheet.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
+import '../common/widget/button/primary_button.dart';
+import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
 import '../common/widget/text/body_text.dart';
@@ -54,13 +56,19 @@ class WalletTransferTargetScreen extends StatelessWidget {
               WalletTransferIntroduction() => TerminalPage(
                 title: context.l10n.walletTransferTargetScreenIntroductionTitle,
                 description: context.l10n.walletTransferTargetScreenIntroductionDescription,
-                primaryButtonCta: context.l10n.walletTransferTargetScreenIntroductionOptInCta,
-                primaryButtonIcon: const Icon(Icons.arrow_forward_outlined),
                 illustration: const PageIllustration(asset: WalletAssets.svg_move_source_confirm),
-                onPrimaryPressed: () => context.bloc.add(const WalletTransferOptInEvent()),
-                secondaryButtonCta: context.l10n.walletTransferTargetScreenIntroductionOptOutCta,
-                secondaryButtonIcon: const Icon(Icons.arrow_forward_outlined),
-                onSecondaryButtonPressed: () => _onSkipPressed(context),
+                primaryButton: PrimaryButton(
+                  text: Text(context.l10n.walletTransferTargetScreenIntroductionOptInCta),
+                  icon: const Icon(Icons.arrow_forward_outlined),
+                  onPressed: () => context.bloc.add(const WalletTransferOptInEvent()),
+                  key: const Key('primaryButtonCta'),
+                ),
+                secondaryButton: TertiaryButton(
+                  text: Text(context.l10n.walletTransferTargetScreenIntroductionOptOutCta),
+                  icon: const Icon(Icons.arrow_forward_outlined),
+                  onPressed: () => _onSkipPressed(context),
+                  key: const Key('secondaryButtonCta'),
+                ),
               ),
               WalletTransferLoadingQrData() => GenericLoadingPage(
                 title: context.l10n.walletTransferLoadingQrTitle,
@@ -80,17 +88,23 @@ class WalletTransferTargetScreen extends StatelessWidget {
               WalletTransferSuccess() => TerminalPage(
                 title: context.l10n.walletTransferTargetScreenSuccessTitle,
                 description: context.l10n.walletTransferTargetScreenSuccessDescription,
-                primaryButtonCta: context.l10n.walletTransferTargetScreenSuccessCta,
                 illustration: const PageIllustration(asset: WalletAssets.svg_move_destination_success),
-                onPrimaryPressed: () => DashboardScreen.show(context),
+                primaryButton: PrimaryButton(
+                  text: Text(context.l10n.walletTransferTargetScreenSuccessCta),
+                  onPressed: () => DashboardScreen.show(context),
+                  key: const Key('primaryButtonCta'),
+                ),
               ),
               WalletTransferStopped() => TerminalPage(
                 title: context.l10n.walletTransferScreenStoppedTitle,
                 description: context.l10n.walletTransferTargetScreenStoppedDescription,
-                onPrimaryPressed: restart,
-                primaryButtonCta: context.l10n.generalClose,
-                primaryButtonIcon: const Icon(Icons.close_outlined),
                 illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
+                primaryButton: PrimaryButton(
+                  text: Text(context.l10n.generalClose),
+                  icon: const Icon(Icons.close_outlined),
+                  onPressed: restart,
+                  key: const Key('primaryButtonCta'),
+                ),
               ),
               WalletTransferGenericError() => ErrorPage.generic(
                 context,
@@ -110,13 +124,19 @@ class WalletTransferTargetScreen extends StatelessWidget {
                 title: context.l10n.walletTransferScreenFailedTitle,
                 description: context.l10n.walletTransferScreenFailedDescription,
                 illustration: const PageIllustration(asset: WalletAssets.svg_error_general),
-                flipButtonOrder: true,
-                primaryButtonCta: context.l10n.generalRetry,
-                primaryButtonIcon: const Icon(Icons.refresh_outlined),
-                onPrimaryPressed: restart,
-                secondaryButtonCta: context.l10n.generalShowDetailsCta,
-                secondaryButtonIcon: const Icon(Icons.info_outline_rounded),
-                onSecondaryButtonPressed: () => ErrorDetailsSheet.show(context, error: state.error),
+                // Because flipButtonOrder was true: primary ⇄ secondary.
+                primaryButton: TertiaryButton(
+                  text: Text(context.l10n.generalShowDetailsCta),
+                  icon: const Icon(Icons.info_outline_rounded),
+                  onPressed: () => ErrorDetailsSheet.show(context, error: state.error),
+                  key: const Key('secondaryButtonCta'),
+                ),
+                secondaryButton: PrimaryButton(
+                  text: Text(context.l10n.generalRetry),
+                  icon: const Icon(Icons.refresh_outlined),
+                  onPressed: restart,
+                  key: const Key('primaryButtonCta'),
+                ),
               ),
             };
             return FakePagingAnimatedSwitcher(
