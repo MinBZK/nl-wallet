@@ -1,5 +1,6 @@
 use chrono::DateTime;
 use chrono::Utc;
+use uuid::Uuid;
 
 pub trait Generator<T> {
     fn generate(&self) -> T;
@@ -11,6 +12,21 @@ pub struct TimeGenerator;
 impl Generator<DateTime<Utc>> for TimeGenerator {
     fn generate(&self) -> DateTime<Utc> {
         Utc::now()
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct UuidV4AndTimeGenerator;
+
+impl Generator<DateTime<Utc>> for UuidV4AndTimeGenerator {
+    fn generate(&self) -> DateTime<Utc> {
+        Utc::now()
+    }
+}
+
+impl Generator<Uuid> for UuidV4AndTimeGenerator {
+    fn generate(&self) -> Uuid {
+        Uuid::new_v4()
     }
 }
 

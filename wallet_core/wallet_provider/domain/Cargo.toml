@@ -27,7 +27,7 @@ serde_with.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 trait-variant.workspace = true
-uuid = { workspace = true, features = ["v4"] }
+uuid = { workspace = true }
 
 hmac = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
@@ -36,6 +36,5 @@ utoipa = { workspace = true, optional = true }
 android_attest.path = "../../lib/android_attest"
 apple_app_attest.path = "../../lib/apple_app_attest"
 crypto.path = "../../lib/crypto"
-utils.path = "../../lib/utils"
 hsm.path = "../../lib/hsm"
 wallet_account.path = "../wallet_account"

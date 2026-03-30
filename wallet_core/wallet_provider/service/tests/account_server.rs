@@ -17,6 +17,7 @@ use hsm::service::HsmError;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
 use status_lists::config::StatusListConfig;
 use status_lists::postgres::PostgresStatusListService;
+use utils::generator::UuidV4AndTimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::PerformIssuance;
@@ -25,7 +26,6 @@ use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_account::signed::ChallengeResponse;
-use wallet_provider_domain::generator::Generators;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::TimeoutPinPolicy;
 use wallet_provider_domain::model::wallet_user::WalletId;
@@ -266,7 +266,7 @@ async fn test_wua_status() {
                     certificate.clone(),
                 )
                 .await,
-            &Generators,
+            &UuidV4AndTimeGenerator,
             &user_state,
         )
         .await
@@ -292,7 +292,7 @@ async fn test_wua_status() {
         .handle_instruction(
             instruction,
             &certificate_signing_key,
-            &Generators,
+            &UuidV4AndTimeGenerator,
             &TimeoutPinPolicy,
             &user_state,
         )

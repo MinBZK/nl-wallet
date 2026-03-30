@@ -1984,7 +1984,7 @@ mod tests {
     use platform_support::attested_key::mock::MockAppleAttestedKey;
     use sd_jwt::sd_jwt::VerifiedSdJwt;
     use token_status_list::status_list_service::mock::MockStatusListService;
-    use utils::generator::Generator;
+    use utils::generator::UuidV4AndTimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wallet_account::RevocationCode;
@@ -2005,7 +2005,6 @@ mod tests {
     use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::ChallengeResponse;
-    use wallet_provider_domain::generator::Generators;
     use wallet_provider_domain::model::FailingPinPolicy;
     use wallet_provider_domain::model::QueryResult;
     use wallet_provider_domain::model::TimeoutPinPolicy;
@@ -2335,7 +2334,7 @@ mod tests {
                     .sign_instruction(CheckPin, challenge.clone(), 43, pin_privkey, wallet_certificate.clone())
                     .await,
                 instruction_result_signing_key,
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &FailingPinPolicy,
                 user_state,
             )
@@ -2361,7 +2360,7 @@ mod tests {
                     .sign_instruction(CheckPin, challenge, 44, pin_privkey, wallet_certificate.clone())
                     .await,
                 instruction_result_signing_key,
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 user_state,
             )
@@ -2422,7 +2421,7 @@ mod tests {
                     )
                     .await,
                 (instruction_result_signing_key, &wallet_certificate_setup.signing_key),
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 user_state,
             )
@@ -3128,7 +3127,7 @@ mod tests {
                     )
                     .await,
                 &instruction_result_signing_key,
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 &user_state,
             )
@@ -3153,7 +3152,7 @@ mod tests {
                     )
                     .await,
                 &instruction_result_signing_key,
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 &user_state,
             )
@@ -3176,7 +3175,7 @@ mod tests {
                     .sign_instruction(ChangePinCommit {}, challenge, 46, &new_pin_privkey, new_cert.clone())
                     .await,
                 &instruction_result_signing_key,
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 &user_state,
             )
@@ -3234,7 +3233,7 @@ mod tests {
                     )
                     .await,
                 (&instruction_result_signing_key, &setup.signing_key),
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 &user_state,
             )
@@ -3287,7 +3286,7 @@ mod tests {
                     )
                     .await,
                 &instruction_result_signing_key,
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 &user_state,
             )
@@ -3311,7 +3310,7 @@ mod tests {
                     )
                     .await,
                 &instruction_result_signing_key,
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 &user_state,
             )
@@ -3335,7 +3334,7 @@ mod tests {
                     )
                     .await,
                 &instruction_result_signing_key,
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 &user_state,
             )
@@ -3357,7 +3356,7 @@ mod tests {
                     .sign_instruction(CheckPin, challenge, 48, &setup.pin_privkey, new_cert)
                     .await,
                 &instruction_result_signing_key,
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &FailingPinPolicy,
                 &user_state,
             )
@@ -3460,7 +3459,7 @@ mod tests {
             .handle_start_pin_recovery_instruction(
                 instruction,
                 (&instruction_result_signing_key, &setup.signing_key),
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &user_state,
             )
             .await
@@ -3598,7 +3597,7 @@ mod tests {
             .handle_start_pin_recovery_instruction(
                 instruction,
                 (&instruction_result_signing_key, &setup.signing_key),
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &user_state,
             )
             .await
@@ -3646,7 +3645,7 @@ mod tests {
             .handle_instruction(
                 instruction,
                 &instruction_result_signing_key,
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 &user_state,
             )
@@ -3789,7 +3788,7 @@ mod tests {
                     .sign_instruction(CheckPin, challenge, 13, &setup.pin_privkey, wallet_cert)
                     .await,
                 &setup.signing_key,
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &FailingPinPolicy,
                 &user_state,
             )
@@ -3813,7 +3812,7 @@ mod tests {
                     .sign_hw_signed_instruction(instruction, challenge, 13, wallet_cert)
                     .await,
                 &setup.signing_key,
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &user_state,
             )
             .await
@@ -3843,7 +3842,7 @@ mod tests {
                     .sign_instruction(instruction, challenge, 13, &setup.pin_privkey, wallet_cert)
                     .await,
                 (&setup.signing_key, &new_pin_privkey),
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &FailingPinPolicy,
                 &user_state,
             )
@@ -3864,7 +3863,7 @@ mod tests {
                     .sign_instruction(ChangePinRollback {}, challenge, 13, &setup.pin_privkey, wallet_cert)
                     .await,
                 &setup.signing_key,
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &FailingPinPolicy,
                 &user_state,
             )
@@ -3900,7 +3899,7 @@ mod tests {
                     .sign_instruction(instruction, challenge, 13, &setup.pin_privkey, wallet_cert)
                     .await,
                 (&setup.signing_key, &new_pin_privkey),
-                &Generators,
+                &UuidV4AndTimeGenerator,
                 &user_state,
             )
             .await

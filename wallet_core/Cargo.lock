@@ -9240,6 +9240,7 @@ dependencies = [
  "serde_with",
  "thiserror 2.0.17",
  "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -9667,7 +9668,6 @@ dependencies = [
  "strum 0.28.0",
  "thiserror 2.0.17",
  "trait-variant",
- "utils",
  "utoipa",
  "uuid",
  "wallet_account",
