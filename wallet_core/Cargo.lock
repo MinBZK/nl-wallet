@@ -9713,7 +9713,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "utils",
  "uuid",
  "wallet_account",
  "wallet_provider_domain",

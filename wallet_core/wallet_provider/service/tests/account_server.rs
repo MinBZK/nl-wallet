@@ -17,6 +17,7 @@ use hsm::service::HsmError;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
 use status_lists::config::StatusListConfig;
 use status_lists::postgres::PostgresStatusListService;
+use utils::generator::mock::MockTimeGenerator;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWua;
@@ -24,7 +25,6 @@ use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_account::signed::ChallengeResponse;
-use wallet_provider_domain::EpochGenerator;
 use wallet_provider_domain::generator::Generators;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::TimeoutPinPolicy;
@@ -211,7 +211,7 @@ async fn test_instruction_challenge(
             hw_privkey
                 .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 1, certificate.clone())
                 .await,
-            &EpochGenerator,
+            &MockTimeGenerator::epoch(),
             &user_state,
         )
         .await
@@ -224,7 +224,7 @@ async fn test_instruction_challenge(
             hw_privkey
                 .sign_instruction_challenge::<CheckPin>(cert_data.wallet_id.clone().into(), 2, certificate)
                 .await,
-            &EpochGenerator,
+            &MockTimeGenerator::epoch(),
             &user_state,
         )
         .await

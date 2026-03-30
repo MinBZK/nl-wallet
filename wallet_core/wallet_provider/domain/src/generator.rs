@@ -16,18 +16,3 @@ impl Generator<DateTime<Utc>> for Generators {
         Utc::now()
     }
 }
-
-#[cfg(feature = "mock")]
-pub mod mock {
-    use chrono::offset::TimeZone;
-
-    use super::*;
-
-    pub struct EpochGenerator;
-
-    impl Generator<DateTime<Utc>> for EpochGenerator {
-        fn generate(&self) -> DateTime<Utc> {
-            Utc.timestamp_nanos(0)
-        }
-    }
-}

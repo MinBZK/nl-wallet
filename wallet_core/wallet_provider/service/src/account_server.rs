@@ -2005,7 +2005,6 @@ mod tests {
     use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::ChallengeResponse;
-    use wallet_provider_domain::EpochGenerator;
     use wallet_provider_domain::generator::Generators;
     use wallet_provider_domain::model::FailingPinPolicy;
     use wallet_provider_domain::model::QueryResult;
@@ -2299,7 +2298,7 @@ mod tests {
             .await;
 
         account_server
-            .instruction_challenge(instruction_challenge, &EpochGenerator, user_state)
+            .instruction_challenge(instruction_challenge, &MockTimeGenerator::epoch(), user_state)
             .await
     }
 
@@ -2660,7 +2659,7 @@ mod tests {
             .await;
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .instruction_challenge(challenge_request, &MockTimeGenerator::epoch(), &user_state)
             .await
             .unwrap();
 
@@ -2683,7 +2682,7 @@ mod tests {
                     &instruction,
                     &user,
                     user.encrypted_pin_pubkey.clone(),
-                    &EpochGenerator,
+                    &MockTimeGenerator::epoch(),
                     &user_state.wallet_user_hsm,
                 )
                 .await
@@ -2715,7 +2714,7 @@ mod tests {
             .await;
 
         let err = account_server
-            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .instruction_challenge(challenge_request, &MockTimeGenerator::epoch(), &user_state)
             .await
             .unwrap_err();
 
@@ -2745,7 +2744,7 @@ mod tests {
             .await;
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .instruction_challenge(challenge_request, &MockTimeGenerator::epoch(), &user_state)
             .await
             .unwrap();
 
@@ -2768,7 +2767,7 @@ mod tests {
                     &instruction,
                     &user,
                     user.encrypted_pin_pubkey.clone(),
-                    &EpochGenerator,
+                    &MockTimeGenerator::epoch(),
                     &user_state.wallet_user_hsm,
                 )
                 .await
@@ -2797,12 +2796,8 @@ mod tests {
         }
     }
 
-    struct ExpiredAtEpochGeneretor;
-
-    impl Generator<DateTime<Utc>> for ExpiredAtEpochGeneretor {
-        fn generate(&self) -> DateTime<Utc> {
-            Utc.timestamp_nanos(-1)
-        }
+    fn expired_at_epoch_timestamp() -> DateTime<Utc> {
+        Utc.timestamp_nanos(-1)
     }
 
     #[tokio::test]
@@ -2822,7 +2817,7 @@ mod tests {
             .await;
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .instruction_challenge(challenge_request, &MockTimeGenerator::epoch(), &user_state)
             .await
             .unwrap();
 
@@ -2836,7 +2831,7 @@ mod tests {
         if let QueryResult::Found(mut user) = wallet_user {
             user.instruction_challenge = Some(InstructionChallenge {
                 bytes: challenge.clone(),
-                expiration_date_time: ExpiredAtEpochGeneretor.generate(),
+                expiration_date_time: expired_at_epoch_timestamp(),
             });
 
             let instruction = hw_privkey
@@ -2847,7 +2842,7 @@ mod tests {
                     &instruction,
                     &user,
                     user.encrypted_pin_pubkey.clone(),
-                    &EpochGenerator,
+                    &MockTimeGenerator::epoch(),
                     &user_state.wallet_user_hsm,
                 )
                 .await
@@ -2876,7 +2871,7 @@ mod tests {
             .await;
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .instruction_challenge(challenge_request, &MockTimeGenerator::epoch(), &user_state)
             .await
             .unwrap();
 
@@ -2897,7 +2892,7 @@ mod tests {
             .await;
 
         let _ = account_server
-            .verify_hw_signed_instruction(&instruction, &user, &EpochGenerator)
+            .verify_hw_signed_instruction(&instruction, &user, &MockTimeGenerator::epoch())
             .expect("instruction should be valid");
     }
 
@@ -2918,7 +2913,7 @@ mod tests {
             .await;
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .instruction_challenge(challenge_request, &MockTimeGenerator::epoch(), &user_state)
             .await
             .unwrap();
 
@@ -2939,7 +2934,7 @@ mod tests {
             .await;
 
         let error = account_server
-            .verify_hw_signed_instruction(&instruction, &user, &EpochGenerator)
+            .verify_hw_signed_instruction(&instruction, &user, &MockTimeGenerator::epoch())
             .expect_err("instruction should not be valid");
 
         match attestation_type {
@@ -2979,7 +2974,7 @@ mod tests {
             .await;
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .instruction_challenge(challenge_request, &MockTimeGenerator::epoch(), &user_state)
             .await
             .unwrap();
 
@@ -2996,7 +2991,7 @@ mod tests {
 
         user.instruction_challenge = Some(InstructionChallenge {
             bytes: challenge.clone(),
-            expiration_date_time: ExpiredAtEpochGeneretor.generate(),
+            expiration_date_time: expired_at_epoch_timestamp(),
         });
 
         let instruction = hw_privkey
@@ -3012,7 +3007,7 @@ mod tests {
             .await;
 
         let error = account_server
-            .verify_hw_signed_instruction(&instruction, &user, &EpochGenerator)
+            .verify_hw_signed_instruction(&instruction, &user, &MockTimeGenerator::epoch())
             .expect_err("instruction should not be valid");
 
         assert_matches!(error, InstructionValidationError::ChallengeTimeout);

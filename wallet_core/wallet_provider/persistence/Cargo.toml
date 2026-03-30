@@ -95,7 +95,6 @@ apple_app_attest.path = "../../lib/apple_app_attest"
 crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
 measure.path = "../../lib/measure"
-utils.path = "../../lib/utils"
 wallet_account.path = "../wallet_account"
 wallet_provider_domain.path = "../domain"
 
