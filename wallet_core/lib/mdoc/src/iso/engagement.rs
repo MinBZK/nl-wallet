@@ -77,7 +77,7 @@ impl<'a> DeviceAuthenticationKeyed<'a> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionTranscriptKeyed {
     pub device_engagement_bytes: Option<DeviceEngagementBytes>,
-    pub e_reader_key_bytes: Option<EDeviceKeyBytes>,
+    pub e_reader_key_bytes: Option<EReaderKeyBytes>,
     pub handover: Handover,
 }
 
@@ -205,6 +205,7 @@ pub enum CipherSuiteIdentifier {
 }
 
 pub type EDeviceKeyBytes = TaggedBytes<CoseKey>;
+pub type EReaderKeyBytes = TaggedBytes<CoseKey>;
 
 #[cfg(any(test, feature = "mock"))]
 mod test {

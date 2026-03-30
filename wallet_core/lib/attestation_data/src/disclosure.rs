@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use indexmap::IndexMap;
-use mdoc::ItemsRequest;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -16,6 +15,7 @@ use dcql::unique_id_vec::MayHaveUniqueId;
 use http_utils::urls::HttpsUri;
 use mdoc::DataElementIdentifier;
 use mdoc::DataElementValue;
+use mdoc::ItemsRequest;
 use mdoc::NameSpace;
 use mdoc::holder::disclosure::claim_path_to_mdoc_path;
 use mdoc::verifier::DisclosedDocument;

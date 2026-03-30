@@ -6,13 +6,13 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
-use utils::vec_at_least::NonEmptyIterator;
 use x509_parser::der_parser::Oid;
 use x509_parser::der_parser::asn1_rs::oid;
 
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificateExtension;
 use error_category::ErrorCategory;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::auth::LocalizedStrings;

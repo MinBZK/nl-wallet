@@ -5,7 +5,6 @@ use std::num::NonZeroUsize;
 use std::sync::Arc;
 
 use chrono::Utc;
-use crypto::x509::BorrowingCertificate;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
@@ -17,13 +16,12 @@ use tracing::info;
 use tracing::instrument;
 use url::Url;
 
-pub use openid4vc::disclosure_session::DisclosureUriSource;
-
 use attestation_data::auth::Organization;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::AttestationRequest;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
+use crypto::x509::BorrowingCertificate;
 use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequest;
@@ -38,6 +36,7 @@ use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosableAttestations;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
+pub use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::disclosure_session::VpVerifierError;
@@ -1029,8 +1028,6 @@ mod tests {
     use std::sync::atomic::Ordering;
 
     use assert_matches::assert_matches;
-    use dcql::normalized::MdocAttributeRequest;
-    use dcql::normalized::SdJwtAttributeRequest;
     use indexmap::IndexMap;
     use itertools::Itertools;
     use mockall::predicate::always;
@@ -1041,8 +1038,6 @@ mod tests {
     use rstest::rstest;
     use serde::de::Error;
     use url::Url;
-    use utils::vec_at_least::VecNonEmpty;
-    use utils::vec_nonempty;
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
@@ -1061,8 +1056,10 @@ mod tests {
     use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
     use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
     use dcql::CredentialFormat;
+    use dcql::normalized::MdocAttributeRequest;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
+    use dcql::normalized::SdJwtAttributeRequest;
     use entity::disclosure_event::EventStatus;
     use http_utils::urls;
     use http_utils::urls::BaseUrl;
@@ -1090,6 +1087,8 @@ mod tests {
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use update_policy_model::update_policy::VersionState;
     use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_nonempty;
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
     use wallet_configuration::wallet_config::PidAttributePaths;
