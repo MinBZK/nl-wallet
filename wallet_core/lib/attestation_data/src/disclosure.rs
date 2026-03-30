@@ -231,8 +231,6 @@ impl DisclosedCredential for DisclosedAttestation {
 
 pub trait AttestationRequest {
     fn format(&self) -> CredentialFormat;
-
-    // TODO check if we could take self by value and remove the implemetation for &T
     fn credential_types(&self) -> impl NonEmptyIterator<Item = String>;
     fn claim_paths(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>>;
 }
