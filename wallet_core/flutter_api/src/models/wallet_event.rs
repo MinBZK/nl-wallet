@@ -28,6 +28,7 @@ pub enum WalletEvent {
     },
     Deletion {
         id: String,
+        // ISO8601
         date_time: String,
         attestation: AttestationPresentation,
     },
