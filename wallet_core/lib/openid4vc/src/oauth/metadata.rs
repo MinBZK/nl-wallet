@@ -10,12 +10,8 @@ use url::Url;
 use http_utils::reqwest::HttpJsonClient;
 
 use crate::issuer_identifier::IssuerIdentifier;
-use crate::well_known;
 use crate::well_known::WellKnownMetadata;
-use crate::well_known::WellKnownPath;
 
-use super::Discover;
-use super::HttpDiscover;
 use super::OAuthError;
 
 /// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414),
@@ -163,14 +159,6 @@ impl AuthorizationServerMetadata {
 impl WellKnownMetadata for AuthorizationServerMetadata {
     fn issuer_identifier(&self) -> &IssuerIdentifier {
         &self.issuer
-    }
-}
-
-impl Discover<AuthorizationServerMetadata, OAuthError> for HttpDiscover {
-    async fn discover(&self, identifier: &IssuerIdentifier) -> Result<AuthorizationServerMetadata, OAuthError> {
-        well_known::fetch_well_known(self.as_ref(), identifier, WellKnownPath::OpenidConfiguration)
-            .await
-            .map_err(Into::into)
     }
 }
 

@@ -30,12 +30,7 @@ use crate::issuer_identifier::IssuerUrl;
 use crate::jose::JwsAlgorithm;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
-use crate::oauth::Discover;
-use crate::oauth::HttpDiscover;
-use crate::well_known;
-use crate::well_known::WellKnownError;
 use crate::well_known::WellKnownMetadata;
-use crate::well_known::WellKnownPath;
 
 /// Credential issuer metadata, as per
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4>.
@@ -137,12 +132,6 @@ impl IssuerMetadata {
         self.batch_credential_issuance
             .map(|batch_issuance| batch_issuance.batch_size.into())
             .unwrap_or(NonZeroU64::MIN)
-    }
-}
-
-impl Discover<IssuerMetadata, WellKnownError> for HttpDiscover {
-    async fn discover(&self, identifier: &IssuerIdentifier) -> Result<IssuerMetadata, WellKnownError> {
-        well_known::fetch_well_known(self.as_ref(), identifier, WellKnownPath::CredentialIssuer).await
     }
 }
 
