@@ -15,5 +15,5 @@ sudo -E -H -u wallet -- sh -c 'cd $HOME && cargo install cargo-cyclonedx --locke
 gem install cyclonedx-cocoapods -v 2.0.1
 
 # Node
-npm install --location=global @cyclonedx/cdxgen@v11.1.2 @cyclonedx/cyclonedx-npm@v3.0.0
+npm install --ignore-scripts --location=global @cyclonedx/cdxgen@v11.1.2 @cyclonedx/cyclonedx-npm@v3.0.0
 rm -rf ~/.npm /tmp/node-compile-cache
