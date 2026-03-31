@@ -16,5 +16,10 @@ class QrPresentStopRequested extends QrPresentEvent {
 }
 
 class QrPresentEventReceived extends QrPresentEvent {
-  const QrPresentEventReceived();
+  final BleConnectionEvent event;
+
+  const QrPresentEventReceived(this.event);
+
+  @override
+  List<Object?> get props => [...super.props, event];
 }

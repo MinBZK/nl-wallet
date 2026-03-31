@@ -27,6 +27,7 @@ import '../feature/dashboard/argument/dashboard_screen_argument.dart';
 import '../feature/dashboard/bloc/dashboard_bloc.dart';
 import '../feature/dashboard/dashboard_screen.dart';
 import '../feature/demo/demo_screen.dart';
+import '../feature/disclosure/argument/disclosure_screen_argument.dart';
 import '../feature/disclosure/bloc/disclosure_bloc.dart';
 import '../feature/disclosure/disclosure_screen.dart';
 import '../feature/forgot_pin/forgot_pin_screen.dart';
@@ -333,17 +334,21 @@ WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
   final args = DisclosureScreen.getArgument(settings);
   return (context) {
     return BlocProvider<DisclosureBloc>(
-      create: (BuildContext context) =>
-          DisclosureBloc(
-            context.read(),
-            context.read(),
-            context.read(),
-          )..add(
-            DisclosureSessionStarted(
-              args.uri,
-              isQrCode: args.isQrCode,
-            ),
-          ),
+      create: (BuildContext context) {
+        final bloc = DisclosureBloc(
+          context.read(),
+          context.read(),
+          context.read(),
+          context.read(),
+        );
+        switch (args.type) {
+          case RemoteDisclosure(:final uri, :final isQrCode):
+            bloc.add(DisclosureSessionStarted(uri, isQrCode: isQrCode));
+          case CloseProximityDisclosure():
+            bloc.add(const DisclosureCloseProximitySessionStarted());
+        }
+        return bloc;
+      },
       child: const DisclosureScreen(),
     );
   };
@@ -660,7 +665,11 @@ WidgetBuilder _createAppBlockedScreenBuilder(RouteSettings settings) {
 WidgetBuilder _createQrPresentScreenBuilder(RouteSettings settings) {
   return (context) {
     return BlocProvider<QrPresentBloc>(
-      create: (BuildContext context) => QrPresentBloc(context.read())..add(const QrPresentStartRequested()),
+      create: (BuildContext context) => QrPresentBloc(
+        context.read(),
+        context.read(),
+        context.read(),
+      )..add(const QrPresentStartRequested()),
       child: const QrPresentScreen(),
     );
   };

@@ -24,7 +24,7 @@ void main() {
       final result = await uriRepository.processUri(Uri.parse(testUri));
       expect(
         result,
-        NavigationRequest.disclosure(argument: const DisclosureScreenArgument(uri: testUri, isQrCode: false)),
+        NavigationRequest.disclosure(argument: const DisclosureScreenArgument(type: .remote(testUri, isQrCode: false))),
       );
     });
 

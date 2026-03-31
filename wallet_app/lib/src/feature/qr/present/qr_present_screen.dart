@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../domain/model/result/application_error.dart';
+import '../../../navigation/wallet_routes.dart';
 import '../../../theme/light_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
@@ -16,6 +17,7 @@ import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/utility/scroll_offset_provider.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import '../../common/widget/wallet_scrollbar.dart';
+import '../../disclosure/argument/disclosure_screen_argument.dart';
 import '../../error/error_button_builder.dart';
 import '../../error/error_page.dart';
 import 'bloc/qr_present_bloc.dart';
@@ -44,8 +46,23 @@ class QrPresentScreen extends StatelessWidget {
           automaticallyImplyLeading: false,
           leading: _leadingButton(state),
         ),
-        body: content,
+        body: BlocListener<QrPresentBloc, QrPresentState>(
+          listener: (context, state) {
+            final navigateToDisclosure = (state as QrPresentConnected).deviceRequestReceived;
+            if (navigateToDisclosure) _navigateToDisclosure(context);
+          },
+          listenWhen: (prev, current) => current is QrPresentConnected,
+          child: content,
+        ),
       ),
+    );
+  }
+
+  void _navigateToDisclosure(BuildContext context) {
+    Navigator.pushNamed(
+      context,
+      WalletRoutes.disclosureRoute,
+      arguments: const DisclosureScreenArgument(type: .closeProximity()),
     );
   }
 

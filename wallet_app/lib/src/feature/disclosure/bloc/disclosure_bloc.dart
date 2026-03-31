@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
+import '../../../domain/model/close_proximity/ble_connection_event.dart';
 import '../../../domain/model/disclosure/disclose_card_request.dart';
 import '../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../domain/model/event/wallet_event.dart';
@@ -14,6 +15,7 @@ import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/result/application_error.dart';
+import '../../../domain/usecase/close_proximity/observe_close_proximity_connection_usecase.dart';
 import '../../../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../../../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import '../../../domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
@@ -22,17 +24,24 @@ import '../../../util/extension/list_extension.dart';
 import '../../report_issue/reporting_option.dart';
 
 part 'disclosure_event.dart';
+
 part 'disclosure_state.dart';
 
 class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   /// Use case responsible for initiating a disclosure session.
   final StartDisclosureUseCase _startDisclosureUseCase;
 
+  /// Use case responsible for observing the close proximity connection events.
+  final ObserveCloseProximityConnectionUseCase _observeCloseProximityConnectionUseCase;
+
   /// Use case responsible for canceling an ongoing disclosure session.
   final CancelDisclosureUseCase _cancelDisclosureUseCase;
 
   /// Use case to retrieve the most recent wallet event after disclosure completion.
   final GetMostRecentWalletEventUseCase _getMostRecentWalletEventUseCase;
+
+  /// Subscription to proximity events (e.g., BLE connection updates) during a close proximity disclosure.
+  StreamSubscription<BleConnectionEvent>? _closeProximityEventSubscription;
 
   /// Stores the result of a successful [StartDisclosureUseCase] invocation.
   /// Used to track session state and relay data between bloc methods.
@@ -72,8 +81,10 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     this._startDisclosureUseCase,
     this._cancelDisclosureUseCase,
     this._getMostRecentWalletEventUseCase,
+    this._observeCloseProximityConnectionUseCase,
   ) : super(const DisclosureInitial()) {
     on<DisclosureSessionStarted>(_onSessionStarted);
+    on<DisclosureCloseProximitySessionStarted>(_onCloseProximitySessionStarted);
     on<DisclosureStopRequested>(_onStopRequested);
     on<DisclosureCancelRequested>(_onCancelRequested);
     on<DisclosureBackPressed>(_onBackPressed);
@@ -119,6 +130,21 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
         }
       },
     );
+  }
+
+  Future<void> _onCloseProximitySessionStarted(
+    DisclosureCloseProximitySessionStarted event,
+    Emitter<DisclosureState> emit,
+  ) async {
+    await _closeProximityEventSubscription?.cancel();
+    _closeProximityEventSubscription = _observeCloseProximityConnectionUseCase.invoke().listen(
+      (event) => Fimber.d('CloseProximity event: $event'),
+    );
+
+    emit(DisclosureLoadInProgress(state.stepperProgress));
+    await Future.delayed(const Duration(seconds: 2));
+    await _cancelDisclosureUseCase.invoke();
+    emit(const DisclosureGenericError(error: GenericError('Not yet implemented', sourceError: '')));
   }
 
   void _handleReadyToDisclose(
@@ -361,6 +387,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   @override
   Future<void> close() async {
+    await _closeProximityEventSubscription?.cancel();
     _startDisclosureResult = null;
     _cardRequestsSelectionCache = null;
     // Note: We explicitly do not cancel the session here. This fixes PVW-5430

@@ -1,6 +1,6 @@
 import '../../model/result/result.dart';
 import '../wallet_usecase.dart';
 
-abstract class StartQrEngagementUseCase extends WalletUseCase {
+abstract class StartCloseProximityDisclosureUseCase extends WalletUseCase {
   Future<Result<String>> invoke();
 }
