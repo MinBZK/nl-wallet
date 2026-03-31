@@ -9,7 +9,6 @@ use tokio::sync::RwLock;
 use url::Url;
 
 use flutter_api_macros::flutter_api_error;
-pub use wallet::CloseProximityDisclosureUpdate;
 use wallet::DisclosureUriSource;
 use wallet::PidIssuancePurpose;
 use wallet::UnlockMethod;
@@ -22,6 +21,7 @@ use crate::logging::init_logging;
 use crate::models::attestation::AttestationPresentation;
 use crate::models::config::FlutterConfiguration;
 use crate::models::disclosure::AcceptDisclosureResult;
+use crate::models::disclosure::CloseProximityDisclosureFlutterUpdate;
 use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::DisclosureBasedIssuanceResult;
 use crate::models::instruction::PidIssuanceResult;
@@ -386,10 +386,12 @@ pub async fn start_disclosure(uri: String, is_qr_code: bool) -> anyhow::Result<S
 
 #[flutter_api_error]
 pub async fn start_close_proximity_disclosure(
-    callback: impl Fn(CloseProximityDisclosureUpdate) -> DartFnFuture<()> + Send + Sync + 'static,
+    callback: impl Fn(CloseProximityDisclosureFlutterUpdate) -> DartFnFuture<()> + Send + Sync + 'static,
 ) -> anyhow::Result<String> {
     let mut wallet = wallet().write().await;
-    let result = wallet.start_close_proximity_disclosure(Box::new(callback)).await?;
+    let result = wallet
+        .start_close_proximity_disclosure(Box::new(move |update| callback(update.into())))
+        .await?;
 
     Ok(result.into())
 }

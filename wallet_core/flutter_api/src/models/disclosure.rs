@@ -2,6 +2,7 @@ use itertools::Itertools;
 use url::Url;
 
 use wallet::AttributesNotAvailable;
+use wallet::CloseProximityDisclosureUpdate;
 use wallet::DisclosureAttestationOptions;
 use wallet::DisclosureProposalPresentation;
 use wallet::attestation_data::ReaderRegistration;
@@ -46,6 +47,24 @@ pub enum DisclosureType {
 pub enum DisclosureSessionType {
     SameDevice,
     CrossDevice,
+}
+
+pub enum CloseProximityDisclosureFlutterUpdate {
+    Connecting,
+    Connected,
+    DeviceRequestReceived,
+    Disconnected,
+}
+
+impl From<CloseProximityDisclosureUpdate> for CloseProximityDisclosureFlutterUpdate {
+    fn from(source: CloseProximityDisclosureUpdate) -> Self {
+        match source {
+            CloseProximityDisclosureUpdate::Connecting => Self::Connecting,
+            CloseProximityDisclosureUpdate::Connected => Self::Connected,
+            CloseProximityDisclosureUpdate::DeviceRequestReceived => Self::DeviceRequestReceived,
+            CloseProximityDisclosureUpdate::Disconnected => Self::Disconnected,
+        }
+    }
 }
 
 impl From<SessionType> for DisclosureSessionType {

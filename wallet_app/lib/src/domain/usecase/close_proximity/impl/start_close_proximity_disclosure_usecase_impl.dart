@@ -1,17 +1,17 @@
 import '../../../../data/repository/close_proximity/close_proximity_repository.dart';
 import '../../../model/result/result.dart';
-import '../start_qr_engagement_usecase.dart';
+import '../start_close_proximity_disclosure_usecase.dart';
 
-class StartQrEngagementUseCaseImpl extends StartQrEngagementUseCase {
+class StartCloseProximityDisclosureUseCaseImpl extends StartCloseProximityDisclosureUseCase {
   final CloseProximityRepository _closeProximityRepository;
 
-  StartQrEngagementUseCaseImpl(this._closeProximityRepository);
+  StartCloseProximityDisclosureUseCaseImpl(this._closeProximityRepository);
 
   @override
   Future<Result<String>> invoke() async {
     return tryCatch(
       _closeProximityRepository.startCloseProximityDisclosure,
-      'failed to start ble server',
+      'failed to start close proximity disclosure',
     );
   }
 }

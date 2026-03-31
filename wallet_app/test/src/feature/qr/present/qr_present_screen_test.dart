@@ -63,7 +63,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const QrPresentScreen().withState<QrPresentBloc, QrPresentState>(
           MockQrPresentBloc(),
-          const QrPresentConnected(),
+          const QrPresentConnected(deviceRequestReceived: false),
         ),
       );
       await screenMatchesGolden('qr_present_connected.light');

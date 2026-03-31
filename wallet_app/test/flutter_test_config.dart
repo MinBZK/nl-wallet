@@ -7,6 +7,7 @@ import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card/status/card_status.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
+import 'package:wallet/src/domain/model/close_proximity/ble_connection_event.dart';
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
@@ -215,6 +216,7 @@ void _setupMockitoDummies() {
   );
   provideDummy<NotificationType>(.cardExpired(card: WalletMockData.card));
   provideDummy<core.NotificationType>(const core.NotificationType.cardExpired(card: CoreMockData.attestation));
+  provideDummy<BleConnectionEvent>(const BleConnecting());
 }
 
 /// Overrides the default [LocalFileComparator] with our [GoldenDiffComparator] that has

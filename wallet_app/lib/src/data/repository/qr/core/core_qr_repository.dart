@@ -56,7 +56,9 @@ class CoreQrRepository implements QrRepository {
       case IdentifyUriResult.PinRecovery:
         return NavigationRequest.pinRecovery(rawValue);
       case IdentifyUriResult.Disclosure:
-        return NavigationRequest.disclosure(argument: DisclosureScreenArgument(uri: rawValue, isQrCode: true));
+        return NavigationRequest.disclosure(
+          argument: DisclosureScreenArgument(type: .remote(rawValue, isQrCode: true)),
+        );
       case IdentifyUriResult.DisclosureBasedIssuance:
         return NavigationRequest.issuance(argument: IssuanceScreenArgument(uri: rawValue, isQrCode: true));
       case IdentifyUriResult.Transfer:
