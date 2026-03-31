@@ -18,12 +18,15 @@ use serde_with::skip_serializing_none;
 
 use crypto::utils::sha256;
 use http_utils::urls::BaseUrl;
+use mdoc_derive::CborIndexedFields;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::errors::Result;
 use crate::iso::disclosure::*;
 use crate::utils::cose::CoseKey;
 use crate::utils::serialization;
 use crate::utils::serialization::CborError;
+use crate::utils::serialization::CborIndexedFields;
 use crate::utils::serialization::CborIntMap;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::DeviceAuthenticationString;
@@ -177,10 +180,14 @@ pub type DeviceEngagement = CborIntMap<Engagement>;
 pub type ReaderEngagement = CborIntMap<Engagement>;
 
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, CborIndexedFields)]
 pub struct Engagement {
+    /// 0: tstr, ; Version
     pub version: EngagementVersion,
-    pub security: Option<Security>,
+    /// 1: Security,
+    pub security: Security,
+    /// ? 2: DeviceRetrievalMethods, ; Is absent if NFC is used for device engagement
+    pub device_retrieval_methods: Option<VecNonEmpty<DeviceRetrievalMethod>>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -196,6 +203,49 @@ pub type Security = CborSeq<SecurityKeyed>;
 pub struct SecurityKeyed {
     pub cipher_suite_identifier: CipherSuiteIdentifier,
     pub e_device_key_bytes: EDeviceKeyBytes,
+}
+
+pub type DeviceRetrievalMethod = CborSeq<DeviceRetrievalMethodKeyed>;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeviceRetrievalMethodKeyed {
+    pub r#type: u64,
+    pub version: u64,
+    pub retrieval_options: RetrievalOptions,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum RetrievalOptions {
+    Wifi(CborIntMap<WifiOptions>),
+    Ble(CborIntMap<BleOptions>),
+    Nfc(CborIntMap<NfcOptions>),
+    Any,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, CborIndexedFields)]
+pub struct WifiOptions {
+    pub pass_phrase: Option<String>,
+    pub operating_class: Option<u64>,
+    pub channel_number: Option<u64>,
+    pub supported_bands: Option<ByteBuf>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, CborIndexedFields)]
+pub struct BleOptions {
+    pub peripheral_server_mode: bool,
+    pub central_client_mode: bool,
+    #[cbor_index = 10]
+    pub peripheral_server_uuid: Option<ByteBuf>,
+    pub central_client_uuid: Option<ByteBuf>,
+    #[cbor_index = 20]
+    pub peripheral_server_address: Option<ByteBuf>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, CborIndexedFields)]
+pub struct NfcOptions {
+    pub command_max_len: u64,
+    pub response_max_len: u64,
 }
 
 #[derive(Debug, Clone, Copy, Serialize_repr, Deserialize_repr)]
@@ -247,20 +297,10 @@ mod tests {
     #[test]
     fn test_deserialize_session_transcript() {
         let example_session_transcript = hex::decode(
-            "d81859024183d8185858a20063312e30018201d818584ba4010220012158205a88
-            d182bce5f42efa59943f33359d2e8a968ff289d93e5fa444b624343167fe225820b16e8cf858ddc7690407ba61d
-            4c338237a8cfcf3de6aa672fc60a557aa32fc67d818584ba40102200121582060e3392385041f51403051f2415
-            531cb56dd3f999c71687013aac6768bc8187e225820e58deb8fdbe907f7dd5368245551a34796f7d2215c440c3
-            39bb0f7b67beccdfa8258c391020f487315d10209616301013001046d646f631a200c016170706c69636174696
-            f6e2f766e642e626c7565746f6f74682e6c652e6f6f6230081b28128b37282801021c015c1e580469736f2e6f7
-            2673a31383031333a646576696365656e676167656d656e746d646f63a20063312e30018201d818584ba401022
-            0012158205a88d182bce5f42efa59943f33359d2e8a968ff289d93e5fa444b624343167fe225820b16e8cf858dd
-            c7690407ba61d4c338237a8cfcf3de6aa672fc60a557aa32fc6758cd9102254872159102026372010211020461
-            6301013000110206616301036e6663005102046163010157001a201e016170706c69636174696f6e2f766e642e
-            626c7565746f6f74682e6c652e6f6f6230081b28078080bf2801021c021107c832fff6d26fa0beb34dfcd555d48
-            23a1c11010369736f2e6f72673a31383031333a6e66636e6663015a172b016170706c69636174696f6e2f766e6
-            42e7766612e6e616e57030101032302001324fec9a70b97ac9684a4e326176ef5b981c5e8533e5f00298cfccbc
-            35e700a6b020414",
+            "83d8185874a30063312e30018201d818584ba401022001215820423222782a6b167018f903e1972ec8f42f8e2810efe33f2568cb3e\
+             935ed4eec02258202fdeabd892c74ed215ea9d9fbd294a2e8de53d05b2154b4e6d9484ae6a2b7f7a0281830201a300f501f40a5088\
+             686e34eba74f3dacdaeadfff9b2cb2d818584ba40102200121582060e3392385041f51403051f2415531cb56dd3f999c71687013aa\
+             c6768bc8187e225820e58deb8fdbe907f7dd5368245551a34796f7d2215c440c339bb0f7b67beccdfaf6",
         )
         .unwrap();
         let session_transcript = SessionTranscript::try_from_bytes(&example_session_transcript).unwrap();

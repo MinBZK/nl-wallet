@@ -40,6 +40,7 @@ pub const EXAMPLE_ATTRIBUTES: [&str; 6] = [
 /// Some of the certificates in the ISO examples are valid from Oct 1, 2020 to Oct 1, 2021.
 /// This generator returns a time in that window.
 pub struct IsoCertTimeGenerator;
+
 impl Generator<DateTime<Utc>> for IsoCertTimeGenerator {
     fn generate(&self) -> DateTime<Utc> {
         Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()
