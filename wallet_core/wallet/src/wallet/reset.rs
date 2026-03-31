@@ -139,6 +139,7 @@ mod tests {
     use assert_matches::assert_matches;
 
     use openid4vc::mock::MockIssuanceSession;
+    use utils::vec_nonempty;
 
     use crate::PidIssuancePurpose;
     use crate::attestation::AttestationPresentation;
@@ -202,7 +203,7 @@ mod tests {
         let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
             Some(PidIssuancePurpose::Enrollment),
-            vec![AttestationPresentation::new_mock()].try_into().unwrap(),
+            vec_nonempty![AttestationPresentation::new_mock()],
             MockIssuanceSession::default(),
         )));
 

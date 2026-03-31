@@ -1,4 +1,3 @@
-use josekit::jwk::Jwk;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -6,6 +5,8 @@ use serde_with::DisplayFromStr;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
+use jwe::decryption::JweSecretKey;
+use jwe::encryption::JwePublicKey;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::AccountRevokedData;
 use wallet_account::messages::registration::WalletCertificate;
@@ -74,9 +75,10 @@ pub struct TransferData {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all_fields = "snake_case")]
 pub enum TransferKeyData {
-    Source { public_key: Jwk },
-    Destination { private_key: Jwk },
+    Source { public_key: JwePublicKey },
+    Destination { secret_key: JweSecretKey },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

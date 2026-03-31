@@ -13,11 +13,6 @@ use chrono::Utc;
 use derive_more::AsRef;
 use derive_more::Constructor;
 use derive_more::Debug;
-use derive_more::From;
-use josekit::JoseError;
-use josekit::jwk::Jwk;
-use josekit::jwk::alg::ec::EcCurve;
-use josekit::jwk::alg::ec::EcKeyPair;
 use ring::hmac;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
@@ -44,6 +39,8 @@ use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::urls::BaseUrl;
+use jwe::algorithm::EcdhAlgorithm;
+use jwe::decryption::JweSecretKey;
 use jwt::SignedJwt;
 use jwt::error::JwtError;
 use jwt::headers::HeaderWithX5c;
@@ -53,7 +50,7 @@ use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::AuthorizationErrorCode;
-use crate::ErrorResponse;
+use crate::AuthorizationErrorResponse;
 use crate::PostAuthResponseErrorCode;
 use crate::VpAuthorizationErrorCode;
 use crate::openid4vp::AuthResponseError;
@@ -139,8 +136,6 @@ pub enum GetAuthRequestError {
     InvalidEphemeralId(Vec<u8>),
     #[error("the ephemeral ID {} has expired", hex::encode(.0))]
     ExpiredEphemeralId(Vec<u8>),
-    #[error("error creating ephemeral encryption keypair: {0}")]
-    EncryptionKey(#[from] JoseError),
     #[error("error signing Authorization Request JWE: {0}")]
     Jwt(#[from] JwtError),
     #[error("presence or absence of return url template does not match configuration for the required use case")]
@@ -181,7 +176,7 @@ pub enum UseCaseCertificateError {
 
 #[derive(thiserror::Error, Debug)]
 #[error("user aborted with error: {0:?}")]
-pub struct UserError(Box<ErrorResponse<VpAuthorizationErrorCode>>);
+pub struct UserError(Box<AuthorizationErrorResponse<VpAuthorizationErrorCode>>);
 
 #[derive(thiserror::Error, Debug)]
 pub struct WithRedirectUri<T: Error> {
@@ -231,7 +226,7 @@ pub struct Created {
 pub struct WaitingForResponse {
     auth_request: NormalizedVpAuthorizationRequest,
     usecase_id: String,
-    encryption_key: EncryptionPrivateKey,
+    encryption_secret_key: JweSecretKey,
     redirect_uri: Option<RedirectUri>,
     accept_undetermined_revocation_status: bool,
 }
@@ -270,40 +265,18 @@ pub struct RedirectUri {
     share_on_error: bool,
 }
 
-/// Wrapper for [`EcKeyPair`] that can be serialized.
-#[derive(Debug, Clone, AsRef, From)]
-struct EncryptionPrivateKey(EcKeyPair);
-
-// Ordinarily we might use DER encoding here instead of PEM, but `EcKeyPair::to_der_private_key()` does not encode
-// to PKCS8 which is expected by `EcKeyPair::from_der()`. A workaround would be to explicitly pass the EC curve
-// (P256 currently in our case) as a parameter to `EcKeyPair::from_der()`, but that would hinder a potential future
-// implementation of other curves or signature schemes. So we use the JWK functions instead, which don't have
-// this issue.
-impl Serialize for EncryptionPrivateKey {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        self.as_ref().to_jwk_private_key().serialize(serializer)
-    }
-}
-impl<'de> Deserialize<'de> for EncryptionPrivateKey {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Ok(EncryptionPrivateKey::from(
-            EcKeyPair::from_jwk(&Jwk::deserialize(deserializer)?).map_err(serde::de::Error::custom)?,
-        ))
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct VpToken {
     pub response: String,
 }
 
 /// Sent by the wallet to the `response_uri`: either an Authorization Response JWE or an error, which either indicates
 /// that they refuse disclosure, or is an actual error that the wallet encountered during the session.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum WalletAuthResponse {
     Response(VpToken),
-    Error(ErrorResponse<VpAuthorizationErrorCode>),
+    Error(AuthorizationErrorResponse<VpAuthorizationErrorCode>),
 }
 
 /// Disclosure session states for use as `T` in `Session<T>`.
@@ -1292,11 +1265,11 @@ impl Session<Created> {
             .process_get_request_inner(&self.state.token, response_uri, session_type, wallet_nonce, use_cases)
             .await
         {
-            Ok((jws, auth_request, redirect_uri, enc_keypair)) => {
+            Ok((jws, auth_request, redirect_uri, encryption_secret_key)) => {
                 let next = WaitingForResponse {
                     auth_request,
                     redirect_uri,
-                    encryption_key: EncryptionPrivateKey::from(enc_keypair),
+                    encryption_secret_key,
                     usecase_id: self.state.data.usecase_id.clone(),
                     accept_undetermined_revocation_status: self.state().accept_undetermined_revocation_status,
                 };
@@ -1329,7 +1302,7 @@ impl Session<Created> {
             SignedJwt<VpAuthorizationRequest, HeaderWithX5c>,
             NormalizedVpAuthorizationRequest,
             Option<RedirectUri>,
-            EcKeyPair,
+            JweSecretKey,
         ),
         WithRedirectUri<GetAuthRequestError>,
     >
@@ -1357,16 +1330,17 @@ impl Session<Created> {
 
         // Construct the Authorization Request.
         let nonce = random_string(32);
-        let encryption_keypair =
-            EcKeyPair::generate(EcCurve::P256).map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
-        let mut encryption_pubkey = encryption_keypair.to_jwk_public_key();
-        encryption_pubkey.set_algorithm("ECDH-ES");
-        encryption_pubkey.set_key_id(random_string(32));
+
+        // Use the session token as the `kid` value of the JWK. HAIP mandates `ECDH-ES` as JWE algorithm.
+        // See: https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5-2.5
+        let encryption_secret_key = JweSecretKey::new_random(Some(session_token.clone().into()), EcdhAlgorithm::EcdhEs);
+        let encryption_public_key = encryption_secret_key.to_jwe_public_key();
+
         let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
             self.state.data.credential_requests.clone(),
             self.state.data.client_id.clone(),
             nonce.clone(),
-            encryption_pubkey.try_into().unwrap(), // safe because we just constructed this key
+            encryption_public_key,
             response_uri,
             wallet_nonce,
         );
@@ -1376,7 +1350,7 @@ impl Session<Created> {
             .await
             .map_err(|err| error_with_redirect_uri(&redirect_uri, err))?;
 
-        Ok((jws, auth_request, redirect_uri, encryption_keypair))
+        Ok((jws, auth_request, redirect_uri, encryption_secret_key))
     }
 
     fn redirect_uri_and_nonce(
@@ -1458,7 +1432,7 @@ impl Session<WaitingForResponse> {
             WalletAuthResponse::Error(err) => {
                 // Check if the error code indicates that the user refused to disclose.
                 let user_refused = matches!(
-                    err.error,
+                    err.error(),
                     VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied)
                 );
 
@@ -1483,7 +1457,7 @@ impl Session<WaitingForResponse> {
         // We can't use ? here, because of the return type of this method and because the error branches consume self.
         let disclosed = match VpAuthorizationResponse::decrypt_and_verify(
             &jwe,
-            self.state().encryption_key.as_ref(),
+            &self.state().encryption_secret_key,
             &self.state().auth_request,
             accepted_wallet_client_ids,
             time,
@@ -1613,19 +1587,20 @@ mod tests {
     use utils::generator::TimeGenerator;
     use utils::vec_nonempty;
 
+    use crate::ErrorResponse;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionStore;
     use crate::server_state::SessionToken;
 
     use super::AuthorizationErrorCode;
+    use super::AuthorizationErrorResponse;
     use super::ClientId;
     use super::DisclosedAttributesError;
     use super::DisclosureData;
     use super::Done;
     use super::EPHEMERAL_ID_VALIDITY_SECONDS;
     use super::EphemeralIdParameters;
-    use super::ErrorResponse;
     use super::GetAuthRequestError;
     use super::HashMap;
     use super::NewSessionError;
@@ -1659,6 +1634,19 @@ mod tests {
         RpInitiatedUseCases<SigningKey, MemorySessionStore<DisclosureData>>,
         StatusListClientStub<SigningKey>,
     >;
+
+    impl From<VpAuthorizationErrorCode> for AuthorizationErrorResponse<VpAuthorizationErrorCode> {
+        fn from(error: VpAuthorizationErrorCode) -> Self {
+            Self {
+                error_response: ErrorResponse {
+                    error,
+                    error_description: None,
+                    error_uri: None,
+                },
+                state: None,
+            }
+        }
+    }
 
     fn create_verifier() -> TestVerifier {
         // Initialize server state
@@ -1816,11 +1804,9 @@ mod tests {
             .unwrap();
 
         // We have no mdoc in this test to actually disclose, so we let the wallet terminate the session
-        let end_session_message = WalletAuthResponse::Error(ErrorResponse {
-            error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
-            error_description: None,
-            error_uri: None,
-        });
+        let end_session_message = WalletAuthResponse::Error(
+            VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied).into(),
+        );
         let ended_session_response = verifier
             .process_authorization_response(&session_token, end_session_message, &TimeGenerator)
             .await
@@ -2169,5 +2155,34 @@ mod tests {
         let response: WalletAuthResponse = serde_urlencoded::from_str("response=jwe").unwrap();
 
         assert_matches!(response, WalletAuthResponse::Response(VpToken { response }) if response == "jwe");
+    }
+
+    #[test]
+    fn test_wallet_auth_response_error_serializes_without_state_parameter() {
+        let body = serde_urlencoded::to_string(WalletAuthResponse::Error(
+            VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied).into(),
+        ))
+        .unwrap();
+
+        assert_eq!(body, "error=access_denied");
+    }
+
+    #[test]
+    fn test_wallet_auth_response_error_serializes_and_deserializes_state_parameter() {
+        let expected = WalletAuthResponse::Error(AuthorizationErrorResponse {
+            error_response: ErrorResponse {
+                error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
+                error_description: None,
+                error_uri: None,
+            },
+            state: Some("authorization_state".to_string()),
+        });
+
+        let body = serde_urlencoded::to_string(&expected).unwrap();
+
+        assert_eq!(body, "error=access_denied&state=authorization_state");
+
+        let response: WalletAuthResponse = serde_urlencoded::from_str(&body).unwrap();
+        assert_eq!(response, expected);
     }
 }

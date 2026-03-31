@@ -15,6 +15,8 @@ import '../common/sheet/error_details_sheet.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
+import '../common/widget/button/primary_button.dart';
+import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
 import '../common/widget/text/title_text.dart';
@@ -72,12 +74,18 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
               WalletTransferIntroduction() => TerminalPage(
                 title: context.l10n.walletTransferSourceScreenIntroductionTitle,
                 description: context.l10n.walletTransferSourceScreenIntroductionDescription,
-                primaryButtonCta: context.l10n.walletTransferSourceScreenIntroductionCta,
                 illustration: const PageIllustration(asset: WalletAssets.svg_move_source_confirm),
-                onPrimaryPressed: () => context.bloc.add(const WalletTransferAgreeEvent()),
-                secondaryButtonCta: context.l10n.generalStop,
-                secondaryButtonIcon: const Icon(Icons.block_flipped),
-                onSecondaryButtonPressed: () => _showStopSheet(context),
+                primaryButton: PrimaryButton(
+                  text: Text(context.l10n.walletTransferSourceScreenIntroductionCta),
+                  onPressed: () => context.bloc.add(const WalletTransferAgreeEvent()),
+                  key: const Key('primaryButtonCta'),
+                ),
+                secondaryButton: TertiaryButton(
+                  text: Text(context.l10n.generalStop),
+                  icon: const Icon(Icons.block_flipped),
+                  onPressed: () => _showStopSheet(context),
+                  key: const Key('secondaryButtonCta'),
+                ),
               ),
               WalletTransferConfirmPin() => WalletTransferSourceConfirmPinPage(
                 onPinConfirmed: (_) => context.bloc.add(const WalletTransferPinConfirmedEvent()),
@@ -118,13 +126,19 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
                 title: context.l10n.walletTransferScreenFailedTitle,
                 description: context.l10n.walletTransferScreenFailedDescription,
                 illustration: const PageIllustration(asset: WalletAssets.svg_error_general),
-                flipButtonOrder: true,
-                primaryButtonCta: context.l10n.generalClose,
-                primaryButtonIcon: const Icon(Icons.close),
-                onPrimaryPressed: () => _closeTransferScreen(context),
-                secondaryButtonCta: context.l10n.generalShowDetailsCta,
-                secondaryButtonIcon: const Icon(Icons.info_outline_rounded),
-                onSecondaryButtonPressed: () => ErrorDetailsSheet.show(context, error: state.error),
+                // Because flipButtonOrder was true: primary ⇄ secondary.
+                primaryButton: TertiaryButton(
+                  text: Text(context.l10n.generalShowDetailsCta),
+                  icon: const Icon(Icons.info_outline_rounded),
+                  onPressed: () => ErrorDetailsSheet.show(context, error: state.error),
+                  key: const Key('secondaryButtonCta'),
+                ),
+                secondaryButton: PrimaryButton(
+                  text: Text(context.l10n.generalClose),
+                  icon: const Icon(Icons.close),
+                  onPressed: () => _closeTransferScreen(context),
+                  key: const Key('primaryButtonCta'),
+                ),
               ),
             };
             return FakePagingAnimatedSwitcher(
@@ -150,22 +164,32 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
         return TerminalPage(
           title: context.l10n.walletTransferScreenStoppedTitle,
           description: context.l10n.walletTransferSourceScreenStoppedDescription,
-          onPrimaryPressed: () => _closeTransferScreen(context),
-          primaryButtonCta: context.l10n.generalClose,
-          primaryButtonIcon: const Icon(Icons.close_outlined),
           illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
+          primaryButton: PrimaryButton(
+            text: Text(context.l10n.generalClose),
+            icon: const Icon(Icons.close_outlined),
+            onPressed: () => _closeTransferScreen(context),
+            key: const Key('primaryButtonCta'),
+          ),
         );
+
       case WalletStopRequestReason.pinRecovery:
         return TerminalPage(
           title: context.l10n.walletTransferScreenStoppedTitle,
           description: context.l10n.walletTransferSourceScreenStoppedForgotPinVariantDescription,
-          onSecondaryButtonPressed: () => _closeTransferScreen(context),
-          secondaryButtonCta: context.l10n.generalClose,
-          secondaryButtonIcon: const Icon(Icons.close_outlined),
           illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
-          primaryButtonCta: context.l10n.walletTransferSourceScreenStoppedForgotPinCta,
-          primaryButtonIcon: const Icon(Icons.arrow_forward),
-          onPrimaryPressed: () => ForgotPinScreen.show(context),
+          primaryButton: PrimaryButton(
+            text: Text(context.l10n.walletTransferSourceScreenStoppedForgotPinCta),
+            icon: const Icon(Icons.arrow_forward),
+            onPressed: () => ForgotPinScreen.show(context),
+            key: const Key('primaryButtonCta'),
+          ),
+          secondaryButton: TertiaryButton(
+            text: Text(context.l10n.generalClose),
+            icon: const Icon(Icons.close_outlined),
+            onPressed: () => _closeTransferScreen(context),
+            key: const Key('secondaryButtonCta'),
+          ),
         );
     }
   }

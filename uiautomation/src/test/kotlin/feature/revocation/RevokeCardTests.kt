@@ -18,14 +18,13 @@ import screen.dashboard.DashboardScreen
 import screen.error.AttributesMissingErrorScreen
 import screen.issuance.CardIssuanceScreen
 import screen.issuance.DisclosureIssuanceScreen
-import screen.issuance.PersonalizeInformScreen
 import screen.menu.MenuScreen
 import screen.security.PinScreen
 import screen.web.demo.DemoIndexWebPage
 import screen.web.demo.issuer.IssuerWebPage
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
-@DisplayName("Show revocations")
+@DisplayName("Card revocations")
 class RevokeCardTests : TestBase() {
 
     private lateinit var indexWebPage: DemoIndexWebPage
@@ -35,7 +34,6 @@ class RevokeCardTests : TestBase() {
     private lateinit var pinScreen: PinScreen
     private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
     private lateinit var dashboardScreen: DashboardScreen
-    private lateinit var personalizeInformScreen: PersonalizeInformScreen
     private lateinit var attributesMissingErrorScreen: AttributesMissingErrorScreen
     private lateinit var revocationHelper: RevocationHelper
     private lateinit var tasData: TasDataHelper
@@ -52,20 +50,18 @@ class RevokeCardTests : TestBase() {
         disclosureForIssuanceScreen = DisclosureIssuanceScreen()
         cardIssuanceScreen = CardIssuanceScreen()
         dashboardScreen = DashboardScreen()
-        personalizeInformScreen = PersonalizeInformScreen()
         attributesMissingErrorScreen = AttributesMissingErrorScreen()
         revocationHelper = RevocationHelper()
         cardDetailScreen = CardDetailScreen()
         cardDataScreen = CardDataScreen()
         tasData = TasDataHelper()
-
-        OnboardingNavigator().toScreen(OnboardingNavigatorScreen.Dashboard)
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC67 LTC71 Revoke PID card")
     fun verifyPidRevocation(testInfo: TestInfo) {
         setUp(testInfo)
+        OnboardingNavigator().toScreen(OnboardingNavigatorScreen.Dashboard)
         dashboardScreen.closeApp()
         revocationHelper.revokeAllNonRevokedPids()
         dashboardScreen.openApp()
@@ -98,6 +94,7 @@ class RevokeCardTests : TestBase() {
     @DisplayName("LTC68 Revoke EEA Card")
     fun verifyEeaCardRevocation(testInfo: TestInfo) {
         setUp(testInfo)
+        OnboardingNavigator().toScreen(OnboardingNavigatorScreen.Dashboard)
         dashboardScreen.clickMenuButton()
         MenuScreen().clickBrowserTestButton()
         indexWebPage.switchToWebViewContext()

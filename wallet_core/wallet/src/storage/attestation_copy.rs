@@ -370,6 +370,7 @@ mod tests {
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_nonempty;
 
     use crate::config::test::test_wallet_config;
 
@@ -437,7 +438,7 @@ mod tests {
             validity_window: ValidityWindow::new_valid_mock(),
         };
 
-        let bsn_path = vec![ClaimPath::SelectByKey(PID_BSN.to_string())].try_into().unwrap();
+        let bsn_path = vec_nonempty![ClaimPath::SelectByKey(PID_BSN.to_string())];
 
         (copy, bsn_path)
     }
@@ -463,7 +464,7 @@ mod tests {
             assert!(attestation_copy.matches_requested_attributes([&bsn_path]));
 
             // The attestation should not contain some incorrect path.
-            let missing_path = vec![ClaimPath::SelectByKey("missing".to_string())].try_into().unwrap();
+            let missing_path = vec_nonempty![ClaimPath::SelectByKey("missing".to_string())];
             assert!(!attestation_copy.matches_requested_attributes([&missing_path]));
 
             // The converted `AttestationPresentation` contains multiple attributes.

@@ -572,6 +572,7 @@ mod example_constructors {
 
     use attestation_types::claim_path::ClaimPath;
     use crypto::utils::random_string;
+    use utils::vec_nonempty;
 
     use crate::examples::CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES;
     use crate::examples::EXAMPLE_METADATA_BYTES;
@@ -638,7 +639,7 @@ mod example_constructors {
                 claims: names
                     .iter()
                     .map(|(name, _, _)| ClaimMetadata {
-                        path: vec![ClaimPath::SelectByKey(String::from(*name))].try_into().unwrap(),
+                        path: vec_nonempty![ClaimPath::SelectByKey(String::from(*name))],
                         display: vec![ClaimDisplayMetadata {
                             lang: String::from("en"),
                             label: name.to_uppercase(),
@@ -741,7 +742,7 @@ mod test {
     use serde_json::json;
 
     use attestation_types::claim_path::ClaimPath;
-    use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_nonempty;
 
     use crate::examples::EXAMPLE_METADATA_BYTES;
     use crate::examples::test::EXAMPLE_V2_METADATA_BYTES;
@@ -1141,7 +1142,7 @@ mod test {
             .detect_duplicate_languages()
             .expect_err("duplicate claim display metadata languages should result in an error");
 
-        let expected_path = VecNonEmpty::try_from(vec![ClaimPath::SelectByKey("address.street".to_string())]).unwrap();
+        let expected_path = vec_nonempty![ClaimPath::SelectByKey("address.street".to_string())];
         assert_matches!(
             error,
             TypeMetadataError::DuplicateClaimDisplayLanguages(path, duplicates)

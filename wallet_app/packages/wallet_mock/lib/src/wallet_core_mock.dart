@@ -48,7 +48,7 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<String> crateApiFullStartCloseProximityDisclosure() async {
+  Future<StartDisclosureResult> crateApiFullContinueCloseProximityDisclosure() async {
     throw UnimplementedError();
   }
 
@@ -386,5 +386,18 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
+  Future<WalletInstructionResult> crateApiFullDeleteAttestation({
+    required String pin,
+    required String attestationId,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<void> crateApiFullPerformBackgroundSync() => Future.delayed(const Duration(seconds: 2));
+
+  @override
+  Future<String> crateApiFullStartCloseProximityDisclosure({
+    required FutureOr<dynamic> Function(CloseProximityDisclosureFlutterUpdate) callback,
+  }) async => 'mdoc:example.org';
 }

@@ -28,11 +28,26 @@ use crate::verifier::WithRedirectUri;
 
 /// Describes an error that occurred when processing an HTTP endpoint from the OAuth/OpenID protocol family.
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ErrorResponse<T> {
     pub error: T,
     pub error_description: Option<String>,
     pub error_uri: Option<Url>,
+}
+
+/// Wrapper of [`ErrorResponse`] that adds the optional `state` parameter used by authorization error responses.
+#[skip_serializing_none]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AuthorizationErrorResponse<T> {
+    #[serde(flatten)]
+    pub error_response: ErrorResponse<T>,
+    pub state: Option<String>,
+}
+
+impl<T> AuthorizationErrorResponse<T> {
+    pub fn error(&self) -> &T {
+        &self.error_response.error
+    }
 }
 
 /// Wrapper of [`ErrorResponse`] that has an optional redirect URI
@@ -46,7 +61,7 @@ pub struct DisclosureErrorResponse<T> {
 }
 
 impl<T> DisclosureErrorResponse<T> {
-    pub fn response_error(&self) -> &T {
+    pub fn error(&self) -> &T {
         &self.error_response.error
     }
 }
@@ -280,8 +295,7 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
                     GetRequestErrorCode::CancelledSession
                 }
                 GetAuthRequestError::Session(SessionError::UnknownSession(_)) => GetRequestErrorCode::UnknownSession,
-                GetAuthRequestError::EncryptionKey(_)
-                | GetAuthRequestError::Jwt(_)
+                GetAuthRequestError::Jwt(_)
                 | GetAuthRequestError::ReturnUrlConfigurationMismatch
                 | GetAuthRequestError::UnknownUseCase(_)
                 | GetAuthRequestError::Session(SessionError::SessionStore(_)) => GetRequestErrorCode::ServerError,

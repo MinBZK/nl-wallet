@@ -1,6 +1,6 @@
 {
   "name": "nl-wallet-web",
-  "version": "0.5.0-dev",
+  "version": "0.6.0-dev",
   "type": "module",
   "files": [
     "dist"
@@ -42,7 +42,7 @@
     "globals": "^15.0.0",
     "happy-dom": "^20.0.2",
     "jest-canvas-mock": "^2.5.2",
-    "npm-run-all2": "^6.1.2",
+    "npm-run-all2": "^8.0.4",
     "postcss": "^8.4.38",
     "prettier": "^3.2.5",
     "typescript": "~5.7.0",
@@ -60,10 +60,6 @@
     "@lavamoat/preinstall-always-fail": "^2.1.1"
   },
   "overrides": {
-    "editorconfig": {
-      "minimatch": "^9.0.7",
-      "brace-expansion": "2.0.2"
-    },
     "@microsoft/api-extractor": {
       "minimatch": "^10.2.3"
     }

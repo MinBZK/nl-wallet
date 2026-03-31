@@ -39,4 +39,9 @@ sealed class WalletEvent with _$WalletEvent {
     required AttestationPresentation attestation,
     required bool renewed,
   }) = WalletEvent_Issuance;
+  const factory WalletEvent.deletion({
+    required String id,
+    required String dateTime,
+    required AttestationPresentation attestation,
+  }) = WalletEvent_Deletion;
 }

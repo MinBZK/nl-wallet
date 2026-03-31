@@ -4,8 +4,10 @@ env:
   - name: "Default Context"
     urls:
     - "${WALLET_PROVIDER_URL}"
+    - "${INTERNAL_WALLET_PROVIDER_URL}"
     includePaths:
     - "${WALLET_PROVIDER_URL}.*"
+    - "${INTERNAL_WALLET_PROVIDER_URL}.*"
     excludePaths: []
     authentication:
       parameters: {}
@@ -25,7 +27,7 @@ env:
   vars: {}
 jobs:
 - alertFilters:
-# False positive analysis in pwv-3375 showed that this is not a vulnerability
+# False positive analysis in PVW-3375 showed that this is not a vulnerability
     - ruleId: "40025"
       ruleName: "Proxy Disclosure (40025)"
       context: ""
@@ -38,32 +40,44 @@ jobs:
       attackRegex: false
       evidence: ""
       evidenceRegex: false
-      methods: [ ]
+      methods: []
+# False positive analysis in PVW-5754 showed that this is not a vulnerability
+    - ruleId: "10205"
+      ruleName: "HTTPS Security Configuration Issues (10205)"
+      context: ""
+      newRisk: "False Positive"
+      parameter: ""
+      parameterRegex: false
+      url: ""
+      urlRegex: false
+      attack: ""
+      attackRegex: false
+      evidence: ""
+      evidenceRegex: false
+      methods: []
   parameters:
     deleteGlobalAlerts: false
   name: "alertFilter"
   type: "alertFilter"
 - parameters:
+    maxAlertsPerRule: 0
+    scanOnlyInScope: true
+    maxBodySizeInBytesToScan: 0
+    enableTags: false
+    disableAllRules: false
+  rules: []
+  name: "passiveScan-config"
+  type: "passiveScan-config"
+- parameters:
     type: "url"
     fileName: "WALLET_PROVIDER_urls.txt"
   name: "import"
   type: "import"
-- parameters:
-    context: "Default Context"
-    user: ""
-    policy: ""
-    maxRuleDurationInMins: 0
-    maxScanDurationInMins: 0
-    addQueryParam: true
-    delayInMs: 0
-    handleAntiCSRFTokens: true
-    injectPluginIdInHeader: true
-    scanHeadersAllRequests: true
-    threadPerHost: 24
-    maxAlertsPerRule: 0
+- parameters: {}
+  name: "passiveScan-wait"
+  type: "passiveScan-wait"
+- parameters: {}
   policyDefinition:
-    defaultStrength: "medium"
-    defaultThreshold: "medium"
     rules: []
   name: "activeScan"
   type: "activeScan"

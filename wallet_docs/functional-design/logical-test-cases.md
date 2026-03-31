@@ -6,6 +6,8 @@ This page describes the logical test cases (LTCs) that are used to verify the co
 Test are written in Gherkin syntax with a Given When Then structure. Each LTC is implemented with at least one manual
 or automated tests.
 
+---
+
 ### LTC1
 
 #### PID issuance
@@ -81,9 +83,9 @@ or automated tests.
 
 ---
 
-<!-- Manual  -->
-
 ### LTC7
+
+% manual
 
 #### Cross-device generic issuance
 
@@ -204,9 +206,9 @@ from an issuer<br>
 
 ---
 
-<!-- Manual  -->
-
 ### LTC16
+
+% manual
 
 #### Cross-device share data
 
@@ -246,9 +248,9 @@ from an issuer<br>
 
 ---
 
-<!-- Manual  -->
-
 ### LTC19
+
+% manual
 
 #### Cross-device login
 
@@ -478,9 +480,9 @@ obtain card)<br>
 
 ---
 
-<!-- Manual  -->
-
 ### LTC38
+
+% manual
 
 #### Unlock app with biometric
 
@@ -492,9 +494,9 @@ obtain card)<br>
 
 ---
 
-<!-- Manual  -->
-
 ### LTC39
+
+% manual
 
 #### Unlock app with invalid biometric
 
@@ -659,9 +661,9 @@ instructs user to choose a new PIN<br>
 
 ---
 
-<!-- Manual  -->
-
 ### LTC52
+
+% manual
 
 #### Setup PIN fails device does not pass app and key attestation
 
@@ -727,9 +729,9 @@ instructs user to choose a new PIN<br>
 
 ---
 
-<!-- Manual  -->
-
 ### LTC58
+
+% manual
 
 #### Skip setting up biometrics
 
@@ -740,9 +742,9 @@ instructs user to choose a new PIN<br>
 
 ---
 
-<!-- Manual  -->
-
 ### LTC59
+
+% manual
 
 #### Device does not support biometrics
 
@@ -752,9 +754,9 @@ instructs user to choose a new PIN<br>
 
 ---
 
-<!-- Manual  -->
-
 ### LTC60
+
+% manual
 
 #### Disable biometrics
 
@@ -765,9 +767,9 @@ instructs user to choose a new PIN<br>
 
 ---
 
-<!-- Manual  -->
-
 ### LTC61
+
+% manual
 
 #### Setup biometrics in settings
 
@@ -782,9 +784,9 @@ instructs user to choose a new PIN<br>
 
 ---
 
-<!-- Manual  -->
-
 ### LTC62
+
+% manual
 
 #### Transfer wallet
 
@@ -798,9 +800,9 @@ instructs user to choose a new PIN<br>
 
 ---
 
-<!-- Manual  -->
-
 ### LTC63
+
+% manual
 
 #### Stop transfer flow on source device
 
@@ -812,9 +814,9 @@ instructs user to choose a new PIN<br>
 
 ---
 
-<!-- Manual  -->
-
 ### LTC64
+
+% manual
 
 #### Stop transfer flow on destination device
 
@@ -936,3 +938,46 @@ Cases:
 **When** user selects 'View your deletion code' from the settings menu<br>
 **And** use confirms with PIN to view the revocation code<br>
 **Then** system displays the revocation code<br>
+
+---
+
+### LTC74
+
+#### Revoke wallet with revocation code
+
+**Given** user visits the revocation portal<br>
+**When** user submits the revocation code<br>
+**And** user opens the app<br>
+**Then** a wallet is deleted message is displayed<br>
+
+---
+
+### LTC75
+
+#### Revoke wallet by wallet id
+
+**When** wallet is revoked by wallet id<br>
+**And** user opens the app<br>
+**Then** a your wallet is blocked message is displayed<br>
+
+---
+
+### LTC76
+
+#### Revoke wallet by recovery id
+
+**Given** user visits the revocation portal<br>
+**When** user submits the revocation code<br>
+**And** user opens the app<br>
+**Then** a you have been blocked message is displayed<br>
+
+---
+
+### LTC77
+
+#### Revoke wallet solution
+
+**Given** user visits the revocation portal<br>
+**When** user submits the revocation code<br>
+**And** user opens the app<br>
+**Then** a wallet solution is revoked message is displayed<br>

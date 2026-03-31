@@ -29,6 +29,10 @@ import '../domain/usecase/card/impl/observe_wallet_cards_usecase_impl.dart';
 import '../domain/usecase/card/observe_wallet_card_detail_usecase.dart';
 import '../domain/usecase/card/observe_wallet_card_usecase.dart';
 import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
+import '../domain/usecase/close_proximity/impl/observe_close_proximity_usecase_impl.dart';
+import '../domain/usecase/close_proximity/impl/start_close_proximity_disclosure_usecase_impl.dart';
+import '../domain/usecase/close_proximity/observe_close_proximity_connection_usecase.dart';
+import '../domain/usecase/close_proximity/start_close_proximity_disclosure_usecase.dart';
 import '../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../domain/usecase/disclosure/impl/cancel_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/impl/start_disclosure_usecase_impl.dart';
@@ -431,6 +435,12 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<GetRevocationCodeUseCase>(
           create: (context) => GetRevocationCodeUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<StartCloseProximityDisclosureUseCase>(
+          create: (context) => StartCloseProximityDisclosureUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<ObserveCloseProximityConnectionUseCase>(
+          create: (context) => ObserveCloseProximityConnectionUseCaseImpl(context.read()),
         ),
       ],
       child: child,

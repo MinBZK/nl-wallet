@@ -130,7 +130,18 @@ pub async fn revoke_wallets_by_recovery_code<T, R, F, H>(
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-    H: Hsm<Error = HsmError>,
+{
+    system_revoke_wallets_by_recovery_code(recovery_code, user_state, time).await
+}
+
+pub async fn system_revoke_wallets_by_recovery_code<T, R, F, H>(
+    recovery_code: &RecoveryCode,
+    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
+    time: &impl Generator<DateTime<Utc>>,
+) -> Result<usize, RevocationError>
+where
+    T: Committable,
+    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
     let revocation_reason = RevocationReason::AdminRequest;
     let revocation_date_time = time.generate();

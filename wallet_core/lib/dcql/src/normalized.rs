@@ -5,6 +5,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use error_category::ErrorCategory;
+use utils::vec_at_least::Iter;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -28,6 +29,12 @@ impl AsRef<[NormalizedCredentialRequest]> for NormalizedCredentialRequests {
         let Self(unique_vec) = self;
 
         unique_vec.as_ref()
+    }
+}
+
+impl NormalizedCredentialRequests {
+    pub fn nonempty_iter<'a>(&'a self) -> Iter<'a, NormalizedCredentialRequest> {
+        self.0.nonempty_iter()
     }
 }
 
@@ -833,12 +840,10 @@ mod test {
     fn mdoc_claims_query() -> ClaimsQuery {
         ClaimsQuery {
             id: None,
-            path: vec![
+            path: vec_nonempty![
                 ClaimPath::SelectByKey("ns".to_string()),
                 ClaimPath::SelectByKey("attr".to_string()),
-            ]
-            .try_into()
-            .unwrap(),
+            ],
             values: vec![],
             intent_to_retain: Some(true),
         }

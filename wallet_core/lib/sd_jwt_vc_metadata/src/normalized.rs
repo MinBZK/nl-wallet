@@ -351,6 +351,8 @@ where
 
 #[cfg(any(test, feature = "example_constructors"))]
 mod example_constructors {
+    use utils::vec_nonempty;
+
     use crate::VerifiedTypeMetadataDocuments;
     use crate::metadata::SchemaOption;
     use crate::metadata::UncheckedTypeMetadata;
@@ -365,10 +367,10 @@ mod example_constructors {
             };
 
             Self {
-                vcts: vec![metadata.vct].try_into().unwrap(),
+                vcts: vec_nonempty![metadata.vct],
                 display: metadata.display.try_into().unwrap(),
                 claims: metadata.claims,
-                schemas: vec![schema].try_into().unwrap(),
+                schemas: vec_nonempty![schema],
             }
         }
 
@@ -547,7 +549,7 @@ mod tests {
 
     fn claim_with_sd(sd: ClaimSelectiveDisclosureMetadata) -> ClaimMetadata {
         ClaimMetadata {
-            path: vec![ClaimPath::SelectByKey("path".to_string())].try_into().unwrap(),
+            path: vec_nonempty![ClaimPath::SelectByKey("path".to_string())],
             display: vec![],
             sd,
             svg_id: None,
@@ -605,7 +607,7 @@ mod tests {
         )
         .expect_err("extending claims should not succeed");
 
-        let expected_path = VecNonEmpty::try_from(vec![ClaimPath::SelectByKey("path".to_string())]).unwrap();
+        let expected_path = vec_nonempty![ClaimPath::SelectByKey("path".to_string())];
         assert_matches!(
             error,
             NormalizedTypeMetadataError::InconsistentSelectiveDisclosure(vct, path)
@@ -615,7 +617,7 @@ mod tests {
 
     fn claim_with_single_key_path(path: String) -> ClaimMetadata {
         ClaimMetadata {
-            path: vec![ClaimPath::SelectByKey(path)].try_into().unwrap(),
+            path: vec_nonempty![ClaimPath::SelectByKey(path)],
             display: vec![],
             sd: ClaimSelectiveDisclosureMetadata::default(),
             svg_id: None,
@@ -639,8 +641,8 @@ mod tests {
         .expect_err("extending claims should not succeed");
 
         let expected_paths = vec![
-            VecNonEmpty::try_from(vec![ClaimPath::SelectByKey("path1".to_string())]).unwrap(),
-            VecNonEmpty::try_from(vec![ClaimPath::SelectByKey("path3".to_string())]).unwrap(),
+            vec_nonempty![ClaimPath::SelectByKey("path1".to_string())],
+            vec_nonempty![ClaimPath::SelectByKey("path3".to_string())],
         ];
         assert_matches!(
             error,
@@ -670,11 +672,11 @@ mod tests {
     }
 
     fn normalized_type_metadata_error_from_unchecked_chain(
-        chain: Vec<UncheckedTypeMetadata>,
+        chain: VecNonEmpty<UncheckedTypeMetadata>,
     ) -> NormalizedTypeMetadataError {
         let chain = SortedTypeMetadata::new_mock(
             chain
-                .into_iter()
+                .into_nonempty_iter()
                 .map(|metadata| TypeMetadata::try_new(metadata).unwrap())
                 .collect(),
         );
@@ -690,7 +692,7 @@ mod tests {
             ..create_basic_unchecked_metadata()
         };
 
-        let error = normalized_type_metadata_error_from_unchecked_chain(vec![metadata]);
+        let error = normalized_type_metadata_error_from_unchecked_chain(vec_nonempty![metadata]);
 
         assert_matches!(error, NormalizedTypeMetadataError::NoDisplayMetadata);
     }
@@ -699,7 +701,7 @@ mod tests {
     fn test_normalized_type_metadata_error_no_claim_display_metadata() {
         let metadata = UncheckedTypeMetadata {
             claims: vec![ClaimMetadata {
-                path: vec![ClaimPath::SelectByKey("path".to_string())].try_into().unwrap(),
+                path: vec_nonempty![ClaimPath::SelectByKey("path".to_string())],
                 display: vec![],
                 sd: ClaimSelectiveDisclosureMetadata::Allowed,
                 svg_id: None,
@@ -707,9 +709,9 @@ mod tests {
             ..create_basic_unchecked_metadata()
         };
 
-        let error = normalized_type_metadata_error_from_unchecked_chain(vec![metadata]);
+        let error = normalized_type_metadata_error_from_unchecked_chain(vec_nonempty![metadata]);
 
-        let expected_path = VecNonEmpty::try_from(vec![ClaimPath::SelectByKey("path".to_string())]).unwrap();
+        let expected_path = vec_nonempty![ClaimPath::SelectByKey("path".to_string())];
         assert_matches!(error, NormalizedTypeMetadataError::NoClaimDisplayMetadata(path) if path == expected_path);
     }
 
@@ -732,7 +734,7 @@ mod tests {
             ..create_basic_unchecked_metadata()
         };
 
-        let error = normalized_type_metadata_error_from_unchecked_chain(vec![metadata3, metadata2, metadata1]);
+        let error = normalized_type_metadata_error_from_unchecked_chain(vec_nonempty![metadata3, metadata2, metadata1]);
 
         assert_matches!(error, NormalizedTypeMetadataError::NoEmbeddedSchema(vct) if vct == "metadata_2");
     }
@@ -742,7 +744,7 @@ mod tests {
         // Create a metadata chain where the extension overwrites the `svg_id`,
         // but does not update the summary template accordingly.
         let claim = ClaimMetadata {
-            path: vec![ClaimPath::SelectByKey("path".to_string())].try_into().unwrap(),
+            path: vec_nonempty![ClaimPath::SelectByKey("path".to_string())],
             display: vec![ClaimDisplayMetadata {
                 lang: "en".to_string(),
                 label: "claim".to_string(),
@@ -776,7 +778,7 @@ mod tests {
             ..create_basic_unchecked_metadata()
         };
 
-        let error = normalized_type_metadata_error_from_unchecked_chain(vec![metadata2, metadata1]);
+        let error = normalized_type_metadata_error_from_unchecked_chain(vec_nonempty![metadata2, metadata1]);
 
         assert_matches!(error, NormalizedTypeMetadataError::MissingSvgIds(svg_ids) if svg_ids == vec!["identifier"]);
     }

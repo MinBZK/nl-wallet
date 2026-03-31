@@ -126,6 +126,7 @@ use crate::instructions::perform_issuance_with_wua;
 use crate::keys::InstructionResultSigningKey;
 use crate::keys::WalletCertificateSigningKey;
 use crate::pin_policy::PinRecoveryPinPolicy;
+use crate::revocation::RevocationError;
 use crate::wallet_certificate::new_wallet_certificate;
 use crate::wallet_certificate::parse_and_verify_wallet_cert_using_hw_pubkey;
 use crate::wallet_certificate::verify_wallet_certificate;
@@ -312,6 +313,9 @@ pub enum InstructionError {
 
     #[error("wallet solution revoked")]
     WalletSolutionRevoked,
+
+    #[error("system revocation error: {0}")]
+    SystemRevocationError(#[from] RevocationError),
 }
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
@@ -915,18 +919,17 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         Ok(challenge.bytes)
     }
 
-    pub async fn handle_instruction<T, R, F, I, IR, G, H>(
+    pub async fn handle_instruction<T, R, I, IR, G, H>(
         &self,
         instruction: Instruction<I>,
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
     ) -> Result<InstructionResult<IR>, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        F: WalletFlags,
         I: HandleInstruction<Result = IR>
             + InstructionAndResult
             + ValidateInstruction
@@ -958,17 +961,16 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .await
     }
 
-    pub async fn handle_hw_signed_instruction<T, R, F, I, IR, G, H>(
+    pub async fn handle_hw_signed_instruction<T, R, I, IR, G, H>(
         &self,
         instruction: HwSignedInstruction<I>,
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
-        user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
     ) -> Result<InstructionResult<IR>, InstructionError>
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        F: WalletFlags,
         I: HandleInstruction<Result = IR> + InstructionAndResult + ValidateInstruction + Serialize + DeserializeOwned,
         IR: Serialize + DeserializeOwned,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
@@ -1690,6 +1692,7 @@ pub mod mock {
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::sd_jwt::UnverifiedSdJwt;
     use token_status_list::status_list_service::mock::MockStatusListService;
+    use token_status_list::status_list_service::mock::generate_status_claims;
     use utils::vec_nonempty;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
@@ -1731,6 +1734,17 @@ pub mod mock {
         async fn get_crl(&self) -> Result<RevocationStatusList, android_crl::Error> {
             Ok(self.clone())
         }
+    }
+
+    pub fn mock_status_list_service() -> MockStatusListService {
+        let mut status_list_service = MockStatusListService::new();
+        status_list_service
+            .expect_obtain_status_claims()
+            .returning(|_, _, copies| {
+                let uri = "https://example.com/wua".parse().unwrap();
+                Ok(generate_status_claims(&uri, copies))
+            });
+        status_list_service
     }
 
     pub fn setup_account_server(
@@ -1977,7 +1991,7 @@ mod tests {
     use platform_support::attested_key::mock::MockAppleAttestedKey;
     use sd_jwt::sd_jwt::VerifiedSdJwt;
     use token_status_list::status_list_service::mock::MockStatusListService;
-    use utils::generator::Generator;
+    use utils::generator::UuidV4AndTimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wallet_account::RevocationCode;
@@ -1998,8 +2012,6 @@ mod tests {
     use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::ChallengeResponse;
-    use wallet_provider_domain::EpochGenerator;
-    use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::FailingPinPolicy;
     use wallet_provider_domain::model::QueryResult;
     use wallet_provider_domain::model::TimeoutPinPolicy;
@@ -2041,6 +2053,7 @@ mod tests {
     use super::mock::MockHardwareKey;
     use super::mock::MockUserState;
     use super::mock::RECOVERY_CODE_CONFIG;
+    use super::mock::mock_status_list_service;
     use super::mock::recovery_code_sd_jwt;
     use super::mock_play_integrity::MockPlayIntegrityClient;
 
@@ -2261,7 +2274,7 @@ mod tests {
             hsm,
             wrapping_key_identifier,
             vec![],
-            MockStatusListService::default(),
+            mock_status_list_service(),
         );
 
         (setup, account_server, hw_privkey, cert, revocation_code, user_state)
@@ -2291,7 +2304,7 @@ mod tests {
             .await;
 
         account_server
-            .instruction_challenge(instruction_challenge, &EpochGenerator, user_state)
+            .instruction_challenge(instruction_challenge, &MockTimeGenerator::epoch(), user_state)
             .await
     }
 
@@ -2328,7 +2341,7 @@ mod tests {
                     .sign_instruction(CheckPin, challenge.clone(), 43, pin_privkey, wallet_certificate.clone())
                     .await,
                 instruction_result_signing_key,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &FailingPinPolicy,
                 user_state,
             )
@@ -2354,7 +2367,7 @@ mod tests {
                     .sign_instruction(CheckPin, challenge, 44, pin_privkey, wallet_certificate.clone())
                     .await,
                 instruction_result_signing_key,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 user_state,
             )
@@ -2415,7 +2428,7 @@ mod tests {
                     )
                     .await,
                 (instruction_result_signing_key, &wallet_certificate_setup.signing_key),
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 user_state,
             )
@@ -2652,7 +2665,7 @@ mod tests {
             .await;
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .instruction_challenge(challenge_request, &MockTimeGenerator::epoch(), &user_state)
             .await
             .unwrap();
 
@@ -2675,7 +2688,7 @@ mod tests {
                     &instruction,
                     &user,
                     user.encrypted_pin_pubkey.clone(),
-                    &EpochGenerator,
+                    &MockTimeGenerator::epoch(),
                     &user_state.wallet_user_hsm,
                 )
                 .await
@@ -2707,7 +2720,7 @@ mod tests {
             .await;
 
         let err = account_server
-            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .instruction_challenge(challenge_request, &MockTimeGenerator::epoch(), &user_state)
             .await
             .unwrap_err();
 
@@ -2737,7 +2750,7 @@ mod tests {
             .await;
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .instruction_challenge(challenge_request, &MockTimeGenerator::epoch(), &user_state)
             .await
             .unwrap();
 
@@ -2760,7 +2773,7 @@ mod tests {
                     &instruction,
                     &user,
                     user.encrypted_pin_pubkey.clone(),
-                    &EpochGenerator,
+                    &MockTimeGenerator::epoch(),
                     &user_state.wallet_user_hsm,
                 )
                 .await
@@ -2789,12 +2802,8 @@ mod tests {
         }
     }
 
-    struct ExpiredAtEpochGeneretor;
-
-    impl Generator<DateTime<Utc>> for ExpiredAtEpochGeneretor {
-        fn generate(&self) -> DateTime<Utc> {
-            Utc.timestamp_nanos(-1)
-        }
+    fn expired_at_epoch_timestamp() -> DateTime<Utc> {
+        Utc.timestamp_nanos(-1)
     }
 
     #[tokio::test]
@@ -2814,7 +2823,7 @@ mod tests {
             .await;
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .instruction_challenge(challenge_request, &MockTimeGenerator::epoch(), &user_state)
             .await
             .unwrap();
 
@@ -2828,7 +2837,7 @@ mod tests {
         if let QueryResult::Found(mut user) = wallet_user {
             user.instruction_challenge = Some(InstructionChallenge {
                 bytes: challenge.clone(),
-                expiration_date_time: ExpiredAtEpochGeneretor.generate(),
+                expiration_date_time: expired_at_epoch_timestamp(),
             });
 
             let instruction = hw_privkey
@@ -2839,7 +2848,7 @@ mod tests {
                     &instruction,
                     &user,
                     user.encrypted_pin_pubkey.clone(),
-                    &EpochGenerator,
+                    &MockTimeGenerator::epoch(),
                     &user_state.wallet_user_hsm,
                 )
                 .await
@@ -2868,7 +2877,7 @@ mod tests {
             .await;
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .instruction_challenge(challenge_request, &MockTimeGenerator::epoch(), &user_state)
             .await
             .unwrap();
 
@@ -2889,7 +2898,7 @@ mod tests {
             .await;
 
         let _ = account_server
-            .verify_hw_signed_instruction(&instruction, &user, &EpochGenerator)
+            .verify_hw_signed_instruction(&instruction, &user, &MockTimeGenerator::epoch())
             .expect("instruction should be valid");
     }
 
@@ -2910,7 +2919,7 @@ mod tests {
             .await;
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .instruction_challenge(challenge_request, &MockTimeGenerator::epoch(), &user_state)
             .await
             .unwrap();
 
@@ -2931,7 +2940,7 @@ mod tests {
             .await;
 
         let error = account_server
-            .verify_hw_signed_instruction(&instruction, &user, &EpochGenerator)
+            .verify_hw_signed_instruction(&instruction, &user, &MockTimeGenerator::epoch())
             .expect_err("instruction should not be valid");
 
         match attestation_type {
@@ -2971,7 +2980,7 @@ mod tests {
             .await;
 
         let challenge = account_server
-            .instruction_challenge(challenge_request, &EpochGenerator, &user_state)
+            .instruction_challenge(challenge_request, &MockTimeGenerator::epoch(), &user_state)
             .await
             .unwrap();
 
@@ -2988,7 +2997,7 @@ mod tests {
 
         user.instruction_challenge = Some(InstructionChallenge {
             bytes: challenge.clone(),
-            expiration_date_time: ExpiredAtEpochGeneretor.generate(),
+            expiration_date_time: expired_at_epoch_timestamp(),
         });
 
         let instruction = hw_privkey
@@ -3004,7 +3013,7 @@ mod tests {
             .await;
 
         let error = account_server
-            .verify_hw_signed_instruction(&instruction, &user, &EpochGenerator)
+            .verify_hw_signed_instruction(&instruction, &user, &MockTimeGenerator::epoch())
             .expect_err("instruction should not be valid");
 
         assert_matches!(error, InstructionValidationError::ChallengeTimeout);
@@ -3125,7 +3134,7 @@ mod tests {
                     )
                     .await,
                 &instruction_result_signing_key,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 &user_state,
             )
@@ -3150,7 +3159,7 @@ mod tests {
                     )
                     .await,
                 &instruction_result_signing_key,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 &user_state,
             )
@@ -3173,7 +3182,7 @@ mod tests {
                     .sign_instruction(ChangePinCommit {}, challenge, 46, &new_pin_privkey, new_cert.clone())
                     .await,
                 &instruction_result_signing_key,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 &user_state,
             )
@@ -3231,7 +3240,7 @@ mod tests {
                     )
                     .await,
                 (&instruction_result_signing_key, &setup.signing_key),
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 &user_state,
             )
@@ -3284,7 +3293,7 @@ mod tests {
                     )
                     .await,
                 &instruction_result_signing_key,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 &user_state,
             )
@@ -3308,7 +3317,7 @@ mod tests {
                     )
                     .await,
                 &instruction_result_signing_key,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 &user_state,
             )
@@ -3332,7 +3341,7 @@ mod tests {
                     )
                     .await,
                 &instruction_result_signing_key,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 &user_state,
             )
@@ -3354,7 +3363,7 @@ mod tests {
                     .sign_instruction(CheckPin, challenge, 48, &setup.pin_privkey, new_cert)
                     .await,
                 &instruction_result_signing_key,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &FailingPinPolicy,
                 &user_state,
             )
@@ -3457,7 +3466,7 @@ mod tests {
             .handle_start_pin_recovery_instruction(
                 instruction,
                 (&instruction_result_signing_key, &setup.signing_key),
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state,
             )
             .await
@@ -3588,14 +3597,14 @@ mod tests {
             wua_validity: Days::new(1),
             wrapping_key_identifier: user_state.wrapping_key_identifier,
             pid_issuer_trust_anchors: user_state.pid_issuer_trust_anchors,
-            status_list_service: MockStatusListService::default(),
+            status_list_service: user_state.status_list_service,
         };
 
         account_server
             .handle_start_pin_recovery_instruction(
                 instruction,
                 (&instruction_result_signing_key, &setup.signing_key),
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state,
             )
             .await
@@ -3643,7 +3652,7 @@ mod tests {
             .handle_instruction(
                 instruction,
                 &instruction_result_signing_key,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &TimeoutPinPolicy,
                 &user_state,
             )
@@ -3786,7 +3795,7 @@ mod tests {
                     .sign_instruction(CheckPin, challenge, 13, &setup.pin_privkey, wallet_cert)
                     .await,
                 &setup.signing_key,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &FailingPinPolicy,
                 &user_state,
             )
@@ -3810,7 +3819,7 @@ mod tests {
                     .sign_hw_signed_instruction(instruction, challenge, 13, wallet_cert)
                     .await,
                 &setup.signing_key,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state,
             )
             .await
@@ -3840,7 +3849,7 @@ mod tests {
                     .sign_instruction(instruction, challenge, 13, &setup.pin_privkey, wallet_cert)
                     .await,
                 (&setup.signing_key, &new_pin_privkey),
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &FailingPinPolicy,
                 &user_state,
             )
@@ -3861,7 +3870,7 @@ mod tests {
                     .sign_instruction(ChangePinRollback {}, challenge, 13, &setup.pin_privkey, wallet_cert)
                     .await,
                 &setup.signing_key,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &FailingPinPolicy,
                 &user_state,
             )
@@ -3897,7 +3906,7 @@ mod tests {
                     .sign_instruction(instruction, challenge, 13, &setup.pin_privkey, wallet_cert)
                     .await,
                 (&setup.signing_key, &new_pin_privkey),
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state,
             )
             .await

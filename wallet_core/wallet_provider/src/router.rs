@@ -33,6 +33,7 @@ use health_checkers::hsm::HsmChecker;
 use health_checkers::postgres::DatabaseChecker;
 use hsm::service::Pkcs11Hsm;
 use http_utils::health::create_health_router;
+use utils::generator::UuidV4AndTimeGenerator;
 use wallet_account::messages::instructions::CancelTransfer;
 use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
@@ -40,6 +41,7 @@ use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::CompleteTransfer;
 use wallet_account::messages::instructions::ConfirmTransfer;
+use wallet_account::messages::instructions::DeleteKeys;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
 use wallet_account::messages::instructions::GetTransferStatus;
@@ -180,6 +182,10 @@ where
                     &format!("/instructions/{}", ConfirmTransfer::NAME),
                     post(handle_instruction::<ConfirmTransfer, _, _, _>),
                 )
+                .route(
+                    &format!("/instructions/{}", DeleteKeys::NAME),
+                    post(handle_instruction::<DeleteKeys, _, _, _>),
+                )
                 .layer(RequestDecompressionLayer::new().zstd(true))
                 .layer(TraceLayer::new_for_http())
                 .layer(middleware::from_fn(log_headers))
@@ -291,7 +297,7 @@ async fn instruction_challenge<GRC, PIC>(
 
     let challenge = state
         .account_server
-        .instruction_challenge(payload, state.as_ref(), &state.user_state)
+        .instruction_challenge(payload, &UuidV4AndTimeGenerator, &state.user_state)
         .await
         .inspect_err(|error| warn!("generating instruction challenge failed: {}", error))?;
 
@@ -347,7 +353,7 @@ async fn change_pin_start<GRC, PIC>(
         .handle_change_pin_start_instruction(
             payload,
             (&state.instruction_result_signing_key, &state.certificate_signing_key),
-            state.as_ref(),
+            &UuidV4AndTimeGenerator,
             &state.pin_policy,
             &state.user_state,
         )
@@ -370,7 +376,7 @@ async fn change_pin_rollback<GRC, PIC>(
         .handle_change_pin_rollback_instruction(
             payload,
             &state.instruction_result_signing_key,
-            state.as_ref(),
+            &UuidV4AndTimeGenerator,
             &state.pin_policy,
             &state.user_state,
         )
@@ -395,7 +401,7 @@ async fn start_pin_recovery<GRC, PIC>(
         .handle_start_pin_recovery_instruction(
             payload,
             (&state.instruction_result_signing_key, &state.certificate_signing_key),
-            state.as_ref(),
+            &UuidV4AndTimeGenerator,
             &state.user_state,
         )
         .await

@@ -27,6 +27,7 @@ import '../feature/dashboard/argument/dashboard_screen_argument.dart';
 import '../feature/dashboard/bloc/dashboard_bloc.dart';
 import '../feature/dashboard/dashboard_screen.dart';
 import '../feature/demo/demo_screen.dart';
+import '../feature/disclosure/argument/disclosure_screen_argument.dart';
 import '../feature/disclosure/bloc/disclosure_bloc.dart';
 import '../feature/disclosure/disclosure_screen.dart';
 import '../feature/forgot_pin/forgot_pin_screen.dart';
@@ -58,6 +59,8 @@ import '../feature/pin_timeout/pin_timeout_screen.dart';
 import '../feature/policy/policy_screen.dart';
 import '../feature/policy/policy_screen_arguments.dart';
 import '../feature/privacy_policy/privacy_policy_screen.dart';
+import '../feature/qr/present/bloc/qr_present_bloc.dart';
+import '../feature/qr/present/qr_present_screen.dart';
 import '../feature/qr/scan/bloc/qr_scan_bloc.dart';
 import '../feature/qr/scan/qr_scan_screen.dart';
 import '../feature/recover_pin/bloc/recover_pin_bloc.dart';
@@ -141,6 +144,7 @@ class WalletRoutes {
   static const pinTimeoutRoute = '/pin/timeout';
   static const policyRoute = '/policy';
   static const privacyPolicyRoute = '/privacy_policy';
+  static const qrPresentRoute = '/qr/present';
   static const qrScanRoute = '/qr/scan';
   static const renewPidRoute = '/pid/renew';
   static const revocationCodeRoute = '/revocation_code';
@@ -206,6 +210,7 @@ class WalletRoutes {
     WalletRoutes.walletTransferFaqRoute: (_) => _createWalletTransferFaqScreenBuilder,
     WalletRoutes.manageNotificationsRoute: (_) => _createManageNotificationsScreenBuilder,
     WalletRoutes.appBlockedRoute: _createAppBlockedScreenBuilder,
+    WalletRoutes.qrPresentRoute: _createQrPresentScreenBuilder,
   };
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
@@ -329,17 +334,21 @@ WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
   final args = DisclosureScreen.getArgument(settings);
   return (context) {
     return BlocProvider<DisclosureBloc>(
-      create: (BuildContext context) =>
-          DisclosureBloc(
-            context.read(),
-            context.read(),
-            context.read(),
-          )..add(
-            DisclosureSessionStarted(
-              args.uri,
-              isQrCode: args.isQrCode,
-            ),
-          ),
+      create: (BuildContext context) {
+        final bloc = DisclosureBloc(
+          context.read(),
+          context.read(),
+          context.read(),
+          context.read(),
+        );
+        switch (args.type) {
+          case RemoteDisclosure(:final uri, :final isQrCode):
+            bloc.add(DisclosureSessionStarted(uri, isQrCode: isQrCode));
+          case CloseProximityDisclosure():
+            bloc.add(const DisclosureCloseProximitySessionStarted());
+        }
+        return bloc;
+      },
       child: const DisclosureScreen(),
     );
   };
@@ -649,6 +658,19 @@ WidgetBuilder _createAppBlockedScreenBuilder(RouteSettings settings) {
     return BlocProvider<AppBlockedBloc>(
       create: (BuildContext context) => AppBlockedBloc(context.read())..add(AppBlockedLoadTriggered(reason: reason)),
       child: const AppBlockedScreen(),
+    );
+  };
+}
+
+WidgetBuilder _createQrPresentScreenBuilder(RouteSettings settings) {
+  return (context) {
+    return BlocProvider<QrPresentBloc>(
+      create: (BuildContext context) => QrPresentBloc(
+        context.read(),
+        context.read(),
+        context.read(),
+      )..add(const QrPresentStartRequested()),
+      child: const QrPresentScreen(),
     );
   };
 }

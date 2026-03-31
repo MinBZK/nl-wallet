@@ -19,6 +19,7 @@ use pid_issuer::pid::constants::PID_RESIDENT_COUNTRY;
 use pid_issuer::pid::constants::PID_RESIDENT_HOUSE_NUMBER;
 use pid_issuer::pid::constants::PID_RESIDENT_POSTAL_CODE;
 use pid_issuer::pid::constants::PID_RESIDENT_STREET;
+use utils::vec_nonempty;
 use wallet::AttestationAttributeValue;
 use wallet::PidIssuancePurpose;
 use wallet::attestation_data::AttributeValue;
@@ -164,7 +165,7 @@ async fn ltc1_test_pid_optional_attributes() {
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
         (
             pid_issuer_settings(db_setup.pid_issuer_url()).0,
-            vec![pid_without_optionals_with_address()].try_into().unwrap(),
+            vec_nonempty![pid_without_optionals_with_address()],
         ),
         issuance_server_settings(db_setup.issuance_server_url()),
     )
@@ -209,7 +210,7 @@ async fn ltc2_test_pid_missing_required_attributes() {
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
         (
             pid_issuer_settings(db_setup.pid_issuer_url()).0,
-            vec![pid_missing_required_with_address()].try_into().unwrap(),
+            vec_nonempty![pid_missing_required_with_address()],
         ),
         issuance_server_settings(db_setup.issuance_server_url()),
     )

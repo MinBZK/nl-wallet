@@ -378,6 +378,20 @@ impl InstructionAndResult for CompleteTransfer {
     type Result = ();
 }
 
+// DeleteKeys instruction.
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeleteKeys {
+    pub identifiers: VecNonEmpty<String>,
+}
+
+impl InstructionAndResult for DeleteKeys {
+    const NAME: &'static str = "delete_keys";
+
+    type Result = ();
+}
+
 #[cfg(feature = "client")]
 mod client {
     use serde::Serialize;

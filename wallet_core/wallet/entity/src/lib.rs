@@ -1,6 +1,7 @@
 pub mod attestation;
 pub mod attestation_copy;
 pub mod compressed_blob;
+pub mod deletion_event;
 pub mod disclosure_event;
 pub mod disclosure_event_attestation;
 pub mod issuance_event;

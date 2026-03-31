@@ -17,20 +17,20 @@
     "@allurereport/plugin-api": "^3.1.0",
     "@allurereport/reader": "^3.1.0",
     "@allurereport/reader-api": "^3.1.0",
+    "@lavamoat/preinstall-always-fail": "^2.1.1",
     "@types/yauzl": "^2.10.3",
     "yauzl": "^3.2.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.21.0",
+    "@eslint/js": "^9.28.0",
     "@tsconfig/node24": "^24.0.0",
     "@types/node": "^24.0.0",
-    "eslint": "^9.21.0",
+    "eslint": "^10.1.0",
     "prettier": "^3.5.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.25.0"
   },
   "overrides": {
-    "underscore": "^1.12.1",
-    "fast-xml-parser": "^5.3.4"
+    "underscore": "^1.12.1"
   }
 }

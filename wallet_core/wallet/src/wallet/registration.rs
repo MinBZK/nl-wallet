@@ -19,12 +19,16 @@ use platform_support::attested_key::hardware::AttestedKeyError;
 use platform_support::attested_key::hardware::HardwareAttestedKeyError;
 use update_policy_model::update_policy::VersionState;
 use utils::vec_at_least::VecAtLeastNError;
+use utils::vec_at_least::VecAtLeastNErrorKind;
+use wallet_account::messages::errors::AccountError;
+use wallet_account::messages::errors::AccountRevokedData;
 use wallet_account::messages::registration::Registration;
 use wallet_account::signed::ChallengeResponse;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
 use crate::account_provider::AccountProviderError;
+use crate::errors::AccountProviderResponseError;
 use crate::errors::UpdatePolicyError;
 use crate::pin::key::PinKey;
 use crate::pin::key::{self as pin_key};
@@ -61,7 +65,7 @@ pub enum WalletRegistrationError {
     Attestation(#[source] Box<dyn Error + Send + Sync>),
     #[error("certificate chain for Android key attestation has too few entries: {0}")]
     #[category(critical)]
-    AndroidCertificateChain(#[source] VecAtLeastNError),
+    AndroidCertificateChain(#[source] VecAtLeastNErrorKind),
     #[category(pd)]
     #[error("could not get attested public key: {0}")]
     AttestedPublicKey(#[source] Box<dyn Error + Send + Sync>),
@@ -78,6 +82,9 @@ pub enum WalletRegistrationError {
     StoreRegistrationState(#[source] StorageError),
     #[error("error fetching update policy: {0}")]
     UpdatePolicy(#[from] UpdatePolicyError),
+    #[error("account is revoked with data: {0:?}")]
+    #[category(expected)]
+    AccountRevoked(AccountRevokedData),
 }
 
 impl WalletRegistrationError {
@@ -163,7 +170,13 @@ where
             .account_provider_client
             .registration_challenge(&config.account_server.http_config)
             .await
-            .map_err(WalletRegistrationError::ChallengeRequest)?;
+            .map_err(|error| match error {
+                AccountProviderError::Response(AccountProviderResponseError::Account(
+                    AccountError::AccountRevoked(data),
+                    _,
+                )) => WalletRegistrationError::AccountRevoked(data),
+                _ => WalletRegistrationError::ChallengeRequest(error),
+            })?;
 
         info!("Challenge received from account server, generating attested key");
 
@@ -246,9 +259,9 @@ where
                 app_attestation_token,
             } => ChallengeResponse::<Registration>::new_google(
                 &key,
-                certificate_chain
-                    .try_into()
-                    .map_err(WalletRegistrationError::AndroidCertificateChain)?,
+                certificate_chain.try_into().map_err(|e: VecAtLeastNError<_>| {
+                    WalletRegistrationError::AndroidCertificateChain(e.into_kind())
+                })?,
                 app_attestation_token,
                 &pin_key,
                 challenge,

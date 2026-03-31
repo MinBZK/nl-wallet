@@ -1,0 +1,37 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"]
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["deploy/gitlab/renovate\\.yml"],
+      "matchStrings": ["docker-hub-proxy/renovate/renovate:(?<currentValue>[^@]+)@(?<currentDigest>sha256:[a-f0-9]+)"],
+      "datasourceTemplate": "docker",
+      "depNameTemplate": "renovate/renovate",
+      "registryUrlTemplate": "https://index.docker.io"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "1. Disable all standard updates",
+      "matchPackagePatterns": ["*"],
+      "enabled": false
+    },
+    {
+      "description": "2. Enable fixes for ANY vulnerable package (Direct or Transitive)",
+      "matchPackagePatterns": ["*"],
+      "matchIsVulnerable": true,
+      "enabled": true
+    },
+    {
+      "description": "3. Keep Renovate image up to date",
+      "matchPackageNames": ["renovate/renovate"],
+      "matchUpdateTypes": ["digest"],
+      "enabled": true
+    }
+  ]
+}

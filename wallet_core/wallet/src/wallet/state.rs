@@ -52,6 +52,7 @@ pub enum WalletState {
 pub enum BlockedReason {
     RequiresAppUpdate,
     BlockedByWalletProvider,
+    WalletSolutionRevoked,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -82,8 +83,13 @@ where
         }
 
         if let Some(revocation_data) = self.storage.read().await.fetch_data::<AccountRevokedData>().await? {
+            let reason = match revocation_data.revocation_reason {
+                RevocationReason::AdminRequest => BlockedReason::BlockedByWalletProvider,
+                RevocationReason::WalletSolutionCompromised => BlockedReason::WalletSolutionRevoked,
+                RevocationReason::UserRequest => unreachable!(), // in this case the wallet would have wiped itself
+            };
             return Ok(WalletState::Blocked {
-                reason: BlockedReason::BlockedByWalletProvider,
+                reason,
                 // In case of `AdminRequest`, the `can_register_new_account` flag whether or not the user
                 // can register a new account. For the other two variants of `RevocationReason`,
                 // reregistering would not make sense so we return false in those cases.
@@ -122,7 +128,7 @@ where
         if let Some(session) = &self.session {
             return match session {
                 Session::Digid { .. } | Session::Issuance(_) => Ok(WalletState::InIssuanceFlow),
-                Session::Disclosure(_) | Session::CloseProximityDisclosure => Ok(WalletState::InDisclosureFlow),
+                Session::Disclosure(_) | Session::CloseProximityDisclosure(_) => Ok(WalletState::InDisclosureFlow),
                 Session::PinRecovery { .. } => Ok(WalletState::InPinRecoveryFlow),
             };
         }
@@ -147,14 +153,13 @@ where
 #[expect(clippy::too_many_arguments)] // Doesn't work at `fn` level in combination with `rstest`
 mod tests {
     use futures::FutureExt;
-    use josekit::jwk::Jwk;
-    use josekit::jwk::alg::ec::EcCurve;
-    use josekit::jwk::alg::ec::EcKeyPair;
     use rstest::rstest;
     use uuid::Uuid;
 
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use jwe::algorithm::EcdhAlgorithm;
+    use jwe::decryption::JweSecretKey;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
@@ -479,8 +484,6 @@ mod tests {
     #[rstest]
     #[case(RevocationReason::AdminRequest, true, true)]
     #[case(RevocationReason::AdminRequest, false, false)]
-    #[case(RevocationReason::UserRequest, true, false)]
-    #[case(RevocationReason::UserRequest, false, false)]
     #[case(RevocationReason::WalletSolutionCompromised, true, false)]
     #[case(RevocationReason::WalletSolutionCompromised, false, false)]
     #[tokio::test]
@@ -506,21 +509,22 @@ mod tests {
         assert_eq!(
             wallet.get_state().await.unwrap(),
             WalletState::Blocked {
-                reason: BlockedReason::BlockedByWalletProvider,
+                reason: match revocation_reason {
+                    RevocationReason::UserRequest => panic!(),
+                    RevocationReason::AdminRequest => BlockedReason::BlockedByWalletProvider,
+                    RevocationReason::WalletSolutionCompromised => BlockedReason::WalletSolutionRevoked,
+                },
                 can_register_new_account
             }
         );
     }
 
-    fn some_jwk() -> Jwk {
-        let key_pair = EcKeyPair::generate(EcCurve::P256).unwrap();
-        key_pair.to_jwk_public_key()
-    }
-
     fn source_transfer_data() -> TransferData {
         TransferData {
             transfer_session_id: Uuid::new_v4().into(),
-            key_data: Some(TransferKeyData::Source { public_key: some_jwk() }),
+            key_data: Some(TransferKeyData::Source {
+                public_key: JweSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw).to_jwe_public_key(),
+            }),
         }
     }
 
@@ -528,7 +532,7 @@ mod tests {
         TransferData {
             transfer_session_id: Uuid::new_v4().into(),
             key_data: Some(TransferKeyData::Destination {
-                private_key: some_jwk(),
+                secret_key: JweSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw),
             }),
         }
     }

@@ -1,6 +1,6 @@
 build-mock-trigger:
   rules:
-    - !reference [.default-branch, rules]
+    - !reference [.default-branch-manual, rules]
   needs:
     - job: test-flutter
       artifacts: false
@@ -11,6 +11,8 @@ build-mock-trigger:
     - job: test-rust
       artifacts: false
     - job: test-rust-doctest
+      artifacts: false
+    - job: test-android
       artifacts: false
     - job: test-rust-compilation-android
       artifacts: false
@@ -23,12 +25,10 @@ build-mock-trigger:
       - local: .gitlab-ci.yml
   variables:
     BUILD: 'mock'
-  when: manual
-  allow_failure: true
 
 build-demo-trigger:
   rules:
-    - !reference [.default-branch, rules]
+    - !reference [.default-branch-manual, rules]
   needs:
     - job: test-flutter
       artifacts: false
@@ -39,6 +39,8 @@ build-demo-trigger:
     - job: test-rust
       artifacts: false
     - job: test-rust-doctest
+      artifacts: false
+    - job: test-android
       artifacts: false
     - job: test-rust-compilation-android
       artifacts: false
@@ -51,5 +53,3 @@ build-demo-trigger:
       - local: .gitlab-ci.yml
   variables:
     BUILD: 'demo'
-  when: manual
-  allow_failure: true

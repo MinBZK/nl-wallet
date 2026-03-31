@@ -15,7 +15,7 @@ doctest = false
 # Implement the mock hardware key types
 mock_hw_keystore = ["dep:aes-gcm", "dep:rand_core"]
 # Include the MockCloseProximityDisclosureClient
-mock_close_proximity_disclosure = ["tokio/time"]
+mock_close_proximity_disclosure = ["dep:mockall", "tokio/time"]
 # Include the MockHardwareAttestedKeyHolder type for use in Apple tests
 mock_attested_key_apple = [
     "apple_app_attest/mock",
@@ -95,6 +95,7 @@ cfg-if = { workspace = true, optional = true }
 cfg_eval = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
+mockall = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 serde_with = { workspace = true, optional = true }

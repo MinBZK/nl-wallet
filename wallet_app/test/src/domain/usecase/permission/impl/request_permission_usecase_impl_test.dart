@@ -27,7 +27,7 @@ void main() {
         return null;
       });
 
-      final result = await requestPermissionUseCase.invoke(Permission.camera);
+      final result = await requestPermissionUseCase.invoke([Permission.camera]);
 
       expect(result, const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
     });
@@ -47,7 +47,7 @@ void main() {
         return null;
       });
 
-      final result = await requestPermissionUseCase.invoke(Permission.camera);
+      final result = await requestPermissionUseCase.invoke([Permission.camera]);
 
       expect(result, const PermissionCheckResult(isGranted: false, isPermanentlyDenied: true));
     });
@@ -67,7 +67,7 @@ void main() {
         return null;
       });
 
-      final result = await requestPermissionUseCase.invoke(Permission.camera);
+      final result = await requestPermissionUseCase.invoke([Permission.camera]);
 
       expect(result, const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
     });
@@ -79,7 +79,7 @@ void main() {
         throw Exception('Test error');
       });
 
-      final result = await requestPermissionUseCase.invoke(Permission.camera);
+      final result = await requestPermissionUseCase.invoke([Permission.camera]);
 
       expect(result, const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
     });

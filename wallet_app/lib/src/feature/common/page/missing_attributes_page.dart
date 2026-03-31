@@ -5,6 +5,8 @@ import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../sheet/missing_attributes_sheet.dart';
+import '../widget/button/primary_button.dart';
+import '../widget/button/tertiary_button.dart';
 import '../widget/page_illustration.dart';
 import 'terminal_page.dart';
 
@@ -30,15 +32,26 @@ class MissingAttributesPage extends StatelessWidget {
     final closeIcon = hasReturnUrl ? Icons.north_east_outlined : Icons.close;
     return TerminalPage(
       title: context.l10n.missingAttributesPageTitle,
-      description: context.l10n.missingAttributesPageDescription(organization.displayName.l10nValue(context)),
-      primaryButtonCta: closeCta,
-      onPrimaryPressed: onClosePressed,
-      primaryButtonIcon: Icon(closeIcon),
-      secondaryButtonCta: context.l10n.missingAttributesPageShowDetailsCta,
-      onSecondaryButtonPressed: () => MissingAttributesSheet.show(context, missingAttributes),
-      secondaryButtonIcon: const Icon(Icons.info_outline_rounded),
-      flipButtonOrder: true,
+      description: context.l10n.missingAttributesPageDescription(
+        organization.displayName.l10nValue(context),
+      ),
       illustration: const PageIllustration(asset: WalletAssets.svg_error_card_blocked),
+      // Because flipButtonOrder was true: primary ⇄ secondary.
+      primaryButton: TertiaryButton(
+        text: Text(context.l10n.missingAttributesPageShowDetailsCta),
+        icon: const Icon(Icons.info_outline_rounded),
+        onPressed: () => MissingAttributesSheet.show(
+          context,
+          missingAttributes,
+        ),
+        key: const Key('secondaryButtonCta'),
+      ),
+      secondaryButton: PrimaryButton(
+        text: Text(closeCta),
+        icon: Icon(closeIcon),
+        onPressed: onClosePressed,
+        key: const Key('primaryButtonCta'),
+      ),
     );
   }
 }

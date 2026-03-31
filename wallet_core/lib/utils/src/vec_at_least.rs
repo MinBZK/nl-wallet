@@ -20,7 +20,26 @@ pub use nonempty_collections::IntoNonEmptyIterator;
 pub use nonempty_collections::iter::NonEmptyIterator;
 
 #[derive(Debug, thiserror::Error)]
-pub enum VecAtLeastNError {
+#[error("{kind}")]
+pub struct VecAtLeastNError<T> {
+    inner: Vec<T>,
+
+    #[source]
+    kind: VecAtLeastNErrorKind,
+}
+
+impl<T> VecAtLeastNError<T> {
+    pub fn into_kind(self) -> VecAtLeastNErrorKind {
+        self.kind
+    }
+
+    pub fn into_inner(self) -> Vec<T> {
+        self.inner
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum VecAtLeastNErrorKind {
     #[error(
         "vector does not contain least {expected} {noun}, received {received}",
         noun=if *expected == 1 { "item" } else { "items" }
@@ -36,21 +55,21 @@ pub enum VecAtLeastNError {
 /// ```
 /// use utils::vec_nonempty;
 ///
-/// let vec1 = vec_nonempty![1, 2, 3]; // Creates a VecNonEmpty<i32>
-/// let vec2 = vec_nonempty![u8; 1, 2, 3]; // Creates a VecNonEmpty<u8> by explicitly stating the type
+/// let vec1 = vec_nonempty![1, 2, 3]; // Creates a `VecNonEmpty<i32>`
+/// let vec2 = vec_nonempty![1; 3]; // Creates a `VecNonEmpty<i32>` with 3 times the element 1, similar to `vec![1; 3]`
 /// ```
 #[macro_export]
 macro_rules! vec_nonempty {
     // Version without type parameter (relies on type inference)
+    // .unwrap() requires `Debug` to be implemented for `T`, so `.unwrap_or_else` is used
     ($($x:expr),+ $(,)?) => (
-        $crate::vec_at_least::VecNonEmpty::try_from(vec![$($x),+]).unwrap()
+        $crate::vec_at_least::VecNonEmpty::try_from(vec![$($x),+]).unwrap_or_else(|_| panic!("vec_nonempty! called with empty list"))
     );
 
-    // Version with explicit type parameter
-    ($t:ty; $($x:expr),+ $(,)?) => {{
-        let vec: Vec<$t> = vec![$($x),+];
-        <Vec<$t> as TryInto<$crate::vec_at_least::VecNonEmpty<$t>>>::try_into(vec).unwrap()
-    }};
+    // Version with length parameter
+    ($x:expr; $l:expr) => (
+        $crate::vec_at_least::VecNonEmpty::try_from(vec![$x; $l]).unwrap_or_else(|_| panic!("vec_nonempty! called with empty list"))
+    );
 }
 
 // These should cover the most common use cases of `VecAtLeastN`.
@@ -66,7 +85,7 @@ pub type VecAtLeastTwoUnique<T> = VecAtLeastN<T, 2, true>;
 pub struct VecAtLeastN<T, const N: usize, const UNIQUE: bool>(Vec<T>);
 
 impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
-    fn new(inner: Vec<T>) -> Result<Self, VecAtLeastNError> {
+    fn new(inner: Vec<T>) -> Result<Self, VecAtLeastNError<T>> {
         // Unfortunately this cannot be a compile time check on N, so
         // it is checked at runtime in the type's only constructor.
         assert!(N > 0, "minimum length N must be a positive integer");
@@ -77,9 +96,12 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
         if length >= N {
             Ok(Self(inner))
         } else {
-            Err(VecAtLeastNError::TooFewItems {
-                received: length,
-                expected: N,
+            Err(VecAtLeastNError {
+                inner,
+                kind: VecAtLeastNErrorKind::TooFewItems {
+                    received: length,
+                    expected: N,
+                },
             })
         }
     }
@@ -160,7 +182,7 @@ impl<A, const N: usize> Extend<A> for VecAtLeastN<A, N, false> {
 
 /// Should be used as the constructor for types where the uniqueness constraint is set.
 impl<T, const N: usize> TryFrom<Vec<T>> for VecAtLeastN<T, N, false> {
-    type Error = VecAtLeastNError;
+    type Error = VecAtLeastNError<T>;
 
     fn try_from(value: Vec<T>) -> Result<Self, Self::Error> {
         Self::new(value)
@@ -173,7 +195,7 @@ impl<T, const N: usize> TryFrom<Vec<T>> for VecAtLeastN<T, N, true>
 where
     T: Eq + Hash,
 {
-    type Error = VecAtLeastNError;
+    type Error = VecAtLeastNError<T>;
 
     fn try_from(value: Vec<T>) -> Result<Self, Self::Error> {
         // Perform the check on the number of items in the internal constructor.
@@ -181,7 +203,10 @@ where
 
         // Additionally check for uniqueness.
         if !vec_at_least.0.iter().all_unique() {
-            return Err(VecAtLeastNError::DuplicateItems);
+            return Err(VecAtLeastNError {
+                inner: vec_at_least.0,
+                kind: VecAtLeastNErrorKind::DuplicateItems,
+            });
         }
 
         Ok(vec_at_least)
@@ -332,7 +357,8 @@ impl<T> FromNonEmptyIterator<T> for VecNonEmpty<T> {
     where
         I: IntoNonEmptyIterator<Item = T>,
     {
-        VecNonEmpty::new(iter.into_iter().collect::<Vec<_>>()).unwrap()
+        // .unwrap() requires `Debug` to be implemented for `T`, so `.unwrap_or_else` is used
+        VecNonEmpty::new(iter.into_iter().collect::<Vec<_>>()).unwrap_or_else(|_| unreachable!())
     }
 }
 
@@ -342,7 +368,7 @@ impl<T> Singleton for VecNonEmpty<T> {
     type Item = T;
 
     fn singleton(item: Self::Item) -> Self {
-        VecNonEmpty::try_from(vec![item]).unwrap()
+        vec_nonempty![item]
     }
 }
 
@@ -442,8 +468,9 @@ mod tests {
 
     #[test]
     fn test_vec_nonempty_macro() {
-        let uints = vec_nonempty![u32; 1, 2, 3];
-        assert_eq!(1, *uints.first());
+        let uints = vec_nonempty![1; 3];
+        assert_eq!(3, uints.len().get());
+        assert_eq!(vec![1, 1, 1], uints.0);
 
         let str_slices = vec_nonempty!["a", "b"];
         assert_eq!("a", *str_slices.first());
@@ -484,7 +511,7 @@ mod tests {
 
     #[test]
     fn test_vec_nonempty_index() {
-        let vec = VecNonEmpty::try_from(vec![1, 2, 3]).unwrap();
+        let vec = vec_nonempty![1, 2, 3];
         assert_eq!(vec[0], 1);
         assert_eq!(vec[1], 2);
         assert_eq!(vec[2], 3);

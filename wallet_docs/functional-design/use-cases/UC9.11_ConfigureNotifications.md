@@ -11,7 +11,7 @@
 | **Triggered by**             | <ul><li>User selects 'Notifications' in [UC9.1 Show app menu](UC9.1_ShowAppMenu.md).</li></ul>              |
 | **Additional Documentation** | *None*                                                                                                      |
 | **Possible errors**          | *None*                                                                                                      |
-| **Logical test cases**       | <ul><li>[LTC72 Configure notifications](../logical-test-cases.md#ltc72)</li></ul>                           |
+| **Logical test cases**       | <ul><li>[LTC71 Card status update notifications](../logical-test-cases.md#ltc71)</li><li>[LTC72 Configure notifications](../logical-test-cases.md#ltc72)</li></ul>                           |
 
 ---
 

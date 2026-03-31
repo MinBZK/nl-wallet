@@ -6,25 +6,18 @@
 //
 
 import Foundation
+@preconcurrency import Multipaz
 
-final class CloseProximityDisclosure {}
+final class CloseProximityDisclosure: @unchecked Sendable {
+    let activeSessionLock = NSLock()
+    let lifecycleLock = CloseProximityDisclosureLifecycleLock()
+    let testingPeripheralServerModeUuid: Multipaz.UUID?
+    // Background tasks only act on the session they were created for. Identity checks against the
+    // current activeSession prevent stale work from a replaced session from emitting updates after
+    // a newer handover has already started.
+    var activeSession: CloseProximityDisclosureActiveSession?
 
-extension CloseProximityDisclosure: CloseProximityDisclosureBridge {
-    func startQrHandover(channel: CloseProximityDisclosureChannel) async throws -> String {
-        try await channel.sendUpdate(update: CloseProximityDisclosureUpdate.connecting)
-
-        try await channel.sendUpdate(update: CloseProximityDisclosureUpdate.connected)
-
-        try await channel.sendUpdate(
-            update: CloseProximityDisclosureUpdate.sessionEstablished(
-                sessionTranscript: [0x01, 0x02, 0x03], deviceRequest: [0x04, 0x05, 0x06]))
-
-        try await channel.sendUpdate(update: CloseProximityDisclosureUpdate.closed)
-
-        return "some_qr_code"
+    init(testingPeripheralServerModeUuid: Multipaz.UUID? = nil) {
+        self.testingPeripheralServerModeUuid = testingPeripheralServerModeUuid
     }
-
-    func sendDeviceResponse(deviceResponse: [UInt8]) async throws {}
-
-    func stopBleServer() async throws {}
 }

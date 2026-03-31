@@ -16,16 +16,18 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
   final GetWalletStateUseCase _getWalletStateUseCase;
   final GetRevocationCodeSavedUseCase _getRevocationCodeSavedUsecase;
 
+  /// Delay before fetching the WalletState and triggering navigation
+  Duration get initDelay {
+    final skipDelay = Environment.isTest || !Environment.mockRepositories;
+    return skipDelay ? Duration.zero : kDefaultMockDelay;
+  }
+
   SplashBloc(this._getWalletStateUseCase, this._getRevocationCodeSavedUsecase) : super(SplashInitial()) {
     on<InitSplashEvent>(_initApp);
   }
 
-  Future<void> _initApp(
-    InitSplashEvent event,
-    Emitter<SplashState> emit,
-  ) async {
-    final skipDelay = Environment.isTest || !Environment.mockRepositories;
-    await Future.delayed(skipDelay ? Duration.zero : kDefaultMockDelay);
+  Future<void> _initApp(InitSplashEvent event, Emitter<SplashState> emit) async {
+    await Future.delayed(initDelay);
 
     final state = await _getWalletStateUseCase.invoke();
     final unlockedState = state.unlockedState;
@@ -35,28 +37,13 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
       case WalletStateUnregistered():
         emit(const SplashLoaded(.onboarding));
       case WalletStateEmpty():
-        final revocationCodeSaved = await _getRevocationCodeSavedUsecase.invoke();
-        if (revocationCodeSaved.value ?? false) {
-          emit(const SplashLoaded(.pidRetrieval));
-        } else {
-          emit(const SplashLoaded(.revocationCode));
-        }
+        await _handleEmptyState(emit);
       case WalletStateTransferPossible():
         emit(const SplashLoaded(.transfer));
-      case WalletStateTransferring():
-        if (unlockedState.role == .destination) {
-          emit(const SplashLoaded(.transfer));
-        } else {
-          /// Transfer will be cancelled by [WalletTransferEventListener]
-          emit(const SplashLoaded(.dashboard));
-        }
+      case WalletStateTransferring(:final role):
+        _handleTransferringState(emit, role);
       case WalletStateBlocked(:final reason):
-        switch (reason) {
-          case BlockedReason.requiresAppUpdate:
-            emit(const SplashLoaded(.none));
-          case BlockedReason.blockedByWalletProvider:
-            emit(const SplashLoaded(.blocked));
-        }
+        _handleBlockedState(reason, emit);
       case WalletStateInPinRecoveryFlow():
         emit(const SplashLoaded(.pinRecovery));
       case WalletStateReady():
@@ -64,6 +51,34 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
       case WalletStateInIssuanceFlow():
       case WalletStateInPinChangeFlow():
         emit(const SplashLoaded(.dashboard));
+    }
+  }
+
+  Future<void> _handleEmptyState(Emitter<SplashState> emit) async {
+    final revocationCodeSaved = await _getRevocationCodeSavedUsecase.invoke();
+    if (revocationCodeSaved.value ?? false) {
+      emit(const SplashLoaded(.pidRetrieval));
+    } else {
+      emit(const SplashLoaded(.revocationCode));
+    }
+  }
+
+  void _handleTransferringState(Emitter<SplashState> emit, TransferRole role) {
+    if (role == .destination) {
+      emit(const SplashLoaded(.transfer));
+    } else {
+      /// Transfer will be cancelled by [WalletTransferEventListener]
+      emit(const SplashLoaded(.dashboard));
+    }
+  }
+
+  void _handleBlockedState(BlockedReason reason, Emitter<SplashState> emit) {
+    switch (reason) {
+      case BlockedReason.requiresAppUpdate:
+        emit(const SplashLoaded(.none));
+      case BlockedReason.solutionRevoked:
+      case BlockedReason.blockedByWalletProvider:
+        emit(const SplashLoaded(.blocked));
     }
   }
 }

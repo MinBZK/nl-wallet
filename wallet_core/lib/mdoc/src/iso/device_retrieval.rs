@@ -14,10 +14,12 @@ use url::Url;
 use crate::iso::engagement::*;
 use crate::iso::mdocs::*;
 use crate::utils::cose::MdocCose;
+use crate::utils::serialization::CborError;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::ReaderAuthenticationString;
 use crate::utils::serialization::RequiredValue;
 use crate::utils::serialization::TaggedBytes;
+use crate::utils::serialization::cbor_deserialize;
 
 /// Sent by the RP to the holder to request the disclosure of attributes out of one or more mdocs.
 /// For each mdoc out of which attributes are requested, a [`DocRequest`] is included.
@@ -87,6 +89,10 @@ pub struct ItemsRequest {
 }
 
 impl DeviceRequest {
+    pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, CborError> {
+        cbor_deserialize(bytes)
+    }
+
     pub fn from_doc_requests(doc_requests: Vec<DocRequest>) -> Self {
         DeviceRequest {
             doc_requests,

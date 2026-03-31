@@ -15,6 +15,8 @@ import '../common/page/generic_loading_page.dart';
 import '../common/page/terminal_page.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/button/icon/info_icon_button.dart';
+import '../common/widget/button/primary_button.dart';
+import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
 import '../common/widget/text/title_text.dart';
@@ -192,12 +194,18 @@ class SetupSecurityScreen extends StatelessWidget {
     return TerminalPage(
       title: title,
       description: context.l10n.setupBiometricsPageDescription,
-      primaryButtonCta: context.l10n.setupBiometricsPageEnableCta,
       illustration: PageIllustration(asset: illustration),
-      onPrimaryPressed: () => context.bloc.add(EnableBiometricsPressed()),
-      secondaryButtonCta: context.l10n.setupBiometricsPageSkipCta,
-      primaryButtonIcon: Icon(state.biometrics.icon),
-      onSecondaryButtonPressed: () => context.bloc.add(SkipBiometricsPressed()),
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.setupBiometricsPageEnableCta),
+        icon: Icon(state.biometrics.icon),
+        onPressed: () => context.bloc.add(EnableBiometricsPressed()),
+        key: const Key('primaryButtonCta'),
+      ),
+      secondaryButton: TertiaryButton(
+        text: Text(context.l10n.setupBiometricsPageSkipCta),
+        onPressed: () => context.bloc.add(SkipBiometricsPressed()),
+        key: const Key('secondaryButtonCta'),
+      ),
     );
   }
 

@@ -4,8 +4,6 @@ use chrono::Utc;
 use derive_more::Constructor;
 use derive_more::Debug;
 use futures::FutureExt;
-use josekit::jwk::alg::ec::EcCurve;
-use josekit::jwk::alg::ec::EcKeyPair;
 use parking_lot::Mutex;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
@@ -14,17 +12,26 @@ use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
-use crypto::utils as crypto_utils;
+use crypto::utils::random_string;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
+use jwe::algorithm::EcdhAlgorithm;
+use jwe::decryption::JweSecretKey;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
+use utils::vec_nonempty;
 
-use crate::errors::ErrorResponse;
+use crate::cose::KnownCoseAlgorithmIdentifier;
+use crate::errors::AuthorizationErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
+use crate::jose::JwsAlgorithm;
+use crate::openid4vp::MsoMdocAlgValues;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
+use crate::openid4vp::SdJwtAlgValues;
 use crate::openid4vp::VpAuthorizationRequest;
+use crate::openid4vp::VpClientMetadata;
+use crate::openid4vp::VpFormatsSupported;
 use crate::openid4vp::VpRequestUri;
 use crate::openid4vp::VpRequestUriMethod;
 use crate::openid4vp::VpRequestUriObject;
@@ -41,7 +48,7 @@ use super::VpMessageClientError;
 pub enum WalletMessage {
     Request(WalletRequest),
     Disclosure(String),
-    Error(ErrorResponse<VpAuthorizationErrorCode>),
+    Error(AuthorizationErrorResponse<VpAuthorizationErrorCode>),
 }
 
 /// An implementation of [`VpMessageClient`] that sends an error made by the response factory,
@@ -95,7 +102,7 @@ where
     async fn send_error(
         &self,
         _url: BaseUrl,
-        error: ErrorResponse<VpAuthorizationErrorCode>,
+        error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.wallet_messages.lock().push(WalletMessage::Error(error));
 
@@ -148,13 +155,15 @@ pub struct MockVerifierSession {
     pub trust_anchors: Vec<TrustAnchor<'static>>,
     pub credential_requests: NormalizedCredentialRequests,
     pub nonce: String,
-    pub encryption_keypair: EcKeyPair,
+    pub state: Option<String>,
+    pub encryption_secret_key: JweSecretKey,
     pub client_id: String,
     pub request_uri: BaseUrl,
     pub request_uri_method: Option<VpRequestUriMethod>,
     pub response_uri: BaseUrl,
     pub wallet_messages: Mutex<Vec<WalletMessage>>,
     pub key_pair: KeyPair,
+    pub vp_formats_supported: VpFormatsSupported,
 }
 
 impl MockVerifierSession {
@@ -177,8 +186,8 @@ impl MockVerifierSession {
         };
 
         // Generate some OpenID4VP specific session material.
-        let nonce = crypto_utils::random_string(32);
-        let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
+        let nonce = random_string(32);
+        let encryption_secret_key = JweSecretKey::new_random(Some(random_string(32)), EcdhAlgorithm::EcdhEs);
         let response_uri = verifier_url.join_base_url("response_uri");
         let client_id = format!(
             "x509_san_dns:{}",
@@ -194,12 +203,23 @@ impl MockVerifierSession {
             key_pair,
             credential_requests,
             nonce,
-            encryption_keypair,
+            state: None,
+            encryption_secret_key,
             client_id,
             request_uri,
             request_uri_method: Some(request_uri_method),
             response_uri,
             wallet_messages: Mutex::new(Vec::new()),
+            vp_formats_supported: VpFormatsSupported {
+                mso_mdoc: Some(MsoMdocAlgValues {
+                    issuerauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                    deviceauth_alg_values: vec_nonempty![KnownCoseAlgorithmIdentifier::Esp256.into()].into(),
+                }),
+                sd_jwt: Some(SdJwtAlgValues {
+                    sd_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
+                    kb_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
+                }),
+            },
         }
     }
 
@@ -215,18 +235,21 @@ impl MockVerifierSession {
     }
 
     pub fn normalized_auth_request(&self, wallet_nonce: Option<String>) -> NormalizedVpAuthorizationRequest {
-        let mut encryption_jwk = self.encryption_keypair.to_jwk_public_key();
-        encryption_jwk.set_algorithm("ECDH-ES");
-        encryption_jwk.set_key_id(crypto_utils::random_string(32));
-
-        NormalizedVpAuthorizationRequest::new_from_certificate(
+        let mut auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
             self.credential_requests.clone(),
             self.key_pair.certificate(),
             self.nonce.clone(),
-            encryption_jwk.try_into().unwrap(),
+            self.encryption_secret_key.to_jwe_public_key(),
             self.response_uri.clone(),
             wallet_nonce,
-        )
+        );
+        auth_request.client_metadata = VpClientMetadata {
+            vp_formats_supported: self.vp_formats_supported.clone(),
+            ..auth_request.client_metadata
+        };
+        auth_request.state = self.state.clone();
+
+        auth_request
     }
 
     /// Generate the first protocol message of the verifier.
@@ -279,7 +302,7 @@ impl VpMessageClient for MockVerifierVpMessageClient {
     async fn send_error(
         &self,
         _url: BaseUrl,
-        error: ErrorResponse<VpAuthorizationErrorCode>,
+        error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.session.wallet_messages.lock().push(WalletMessage::Error(error));
         let redirect_uri = self.session.redirect_uri.clone();

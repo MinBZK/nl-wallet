@@ -36,6 +36,10 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   AnyhowException dco_decode_AnyhowException(dynamic raw);
 
   @protected
+  FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate)
+  dco_decode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(dynamic raw);
+
+  @protected
   FutureOr<void> Function(List<(int, NotificationType)>)
   dco_decode_DartFn_Inputs_list_record_i_32_notification_type_Output_unit_AnyhowException(dynamic raw);
 
@@ -122,6 +126,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   ClaimDisplayMetadata dco_decode_claim_display_metadata(dynamic raw);
+
+  @protected
+  CloseProximityDisclosureFlutterUpdate dco_decode_close_proximity_disclosure_flutter_update(dynamic raw);
 
   @protected
   DisclosureBasedIssuanceResult dco_decode_disclosure_based_issuance_result(dynamic raw);
@@ -406,6 +413,11 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   ClaimDisplayMetadata sse_decode_claim_display_metadata(SseDeserializer deserializer);
+
+  @protected
+  CloseProximityDisclosureFlutterUpdate sse_decode_close_proximity_disclosure_flutter_update(
+    SseDeserializer deserializer,
+  );
 
   @protected
   DisclosureBasedIssuanceResult sse_decode_disclosure_based_issuance_result(SseDeserializer deserializer);
@@ -1556,6 +1568,16 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.Issuance.renewed = pre_renewed;
       return;
     }
+    if (apiObj is WalletEvent_Deletion) {
+      var pre_id = cst_encode_String(apiObj.id);
+      var pre_date_time = cst_encode_String(apiObj.dateTime);
+      var pre_attestation = cst_encode_box_autoadd_attestation_presentation(apiObj.attestation);
+      wireObj.tag = 2;
+      wireObj.kind.Deletion.id = pre_id;
+      wireObj.kind.Deletion.date_time = pre_date_time;
+      wireObj.kind.Deletion.attestation = pre_attestation;
+      return;
+    }
   }
 
   @protected
@@ -1657,6 +1679,11 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  PlatformPointer cst_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
+    FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) raw,
+  );
+
+  @protected
   PlatformPointer cst_encode_DartFn_Inputs_list_record_i_32_notification_type_Output_unit_AnyhowException(
     FutureOr<void> Function(List<(int, NotificationType)>) raw,
   );
@@ -1669,6 +1696,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   bool cst_encode_bool(bool raw);
+
+  @protected
+  int cst_encode_close_proximity_disclosure_flutter_update(CloseProximityDisclosureFlutterUpdate raw);
 
   @protected
   int cst_encode_disclosure_session_type(DisclosureSessionType raw);
@@ -1708,6 +1738,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
+    FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_DartFn_Inputs_list_record_i_32_notification_type_Output_unit_AnyhowException(
@@ -1810,6 +1846,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_claim_display_metadata(ClaimDisplayMetadata self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_close_proximity_disclosure_flutter_update(
+    CloseProximityDisclosureFlutterUpdate self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_disclosure_based_issuance_result(DisclosureBasedIssuanceResult self, SseSerializer serializer);
@@ -2360,6 +2402,21 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__continue_change_pin = _wire__crate__api__full__continue_change_pinPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
+  void wire__crate__api__full__continue_close_proximity_disclosure(
+    int port_,
+  ) {
+    return _wire__crate__api__full__continue_close_proximity_disclosure(
+      port_,
+    );
+  }
+
+  late final _wire__crate__api__full__continue_close_proximity_disclosurePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_wallet_core_wire__crate__api__full__continue_close_proximity_disclosure',
+      );
+  late final _wire__crate__api__full__continue_close_proximity_disclosure =
+      _wire__crate__api__full__continue_close_proximity_disclosurePtr.asFunction<void Function(int)>();
+
   void wire__crate__api__full__continue_disclosure_based_issuance(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_16_loose> selected_indices,
@@ -2466,6 +2523,33 @@ class WalletCoreWire implements BaseWire {
       );
   late final _wire__crate__api__full__create_pin_recovery_redirect_uri =
       _wire__crate__api__full__create_pin_recovery_redirect_uriPtr.asFunction<void Function(int)>();
+
+  void wire__crate__api__full__delete_attestation(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> attestation_id,
+  ) {
+    return _wire__crate__api__full__delete_attestation(
+      port_,
+      pin,
+      attestation_id,
+    );
+  }
+
+  late final _wire__crate__api__full__delete_attestationPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_wallet_core_wire__crate__api__full__delete_attestation');
+  late final _wire__crate__api__full__delete_attestation = _wire__crate__api__full__delete_attestationPtr
+      .asFunction<
+        void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>, ffi.Pointer<wire_cst_list_prim_u_8_strict>)
+      >();
 
   void wire__crate__api__full__get_history(
     int port_,
@@ -2925,18 +3009,21 @@ class WalletCoreWire implements BaseWire {
 
   void wire__crate__api__full__start_close_proximity_disclosure(
     int port_,
+    ffi.Pointer<ffi.Void> callback,
   ) {
     return _wire__crate__api__full__start_close_proximity_disclosure(
       port_,
+      callback,
     );
   }
 
   late final _wire__crate__api__full__start_close_proximity_disclosurePtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<ffi.Void>)>>(
         'frbgen_wallet_core_wire__crate__api__full__start_close_proximity_disclosure',
       );
   late final _wire__crate__api__full__start_close_proximity_disclosure =
-      _wire__crate__api__full__start_close_proximity_disclosurePtr.asFunction<void Function(int)>();
+      _wire__crate__api__full__start_close_proximity_disclosurePtr
+          .asFunction<void Function(int, ffi.Pointer<ffi.Void>)>();
 
   void wire__crate__api__full__start_disclosure(
     int port_,
@@ -3888,10 +3975,20 @@ final class wire_cst_WalletEvent_Issuance extends ffi.Struct {
   external bool renewed;
 }
 
+final class wire_cst_WalletEvent_Deletion extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> date_time;
+
+  external ffi.Pointer<wire_cst_attestation_presentation> attestation;
+}
+
 final class WalletEventKind extends ffi.Union {
   external wire_cst_WalletEvent_Disclosure Disclosure;
 
   external wire_cst_WalletEvent_Issuance Issuance;
+
+  external wire_cst_WalletEvent_Deletion Deletion;
 }
 
 final class wire_cst_wallet_event extends ffi.Struct {

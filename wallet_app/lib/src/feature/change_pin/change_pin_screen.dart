@@ -13,6 +13,8 @@ import '../../wallet_constants.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/page/terminal_page.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
+import '../common/widget/button/primary_button.dart';
+import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/page_illustration.dart';
 import '../common/widget/text/title_text.dart';
@@ -185,15 +187,21 @@ class ChangePinScreen extends StatelessWidget {
     return TerminalPage(
       title: context.l10n.changePinScreenSuccessTitle,
       description: context.l10n.changePinScreenSuccessDescription,
-      primaryButtonCta: context.l10n.changePinScreenToOverviewCta,
-      secondaryButtonCta: context.l10n.changePinScreenToSettingsCta,
       illustration: const PageIllustration(asset: WalletAssets.svg_pin_set),
-      onPrimaryPressed: () => Navigator.pushNamedAndRemoveUntil(
-        context,
-        WalletRoutes.dashboardRoute,
-        ModalRoute.withName(WalletRoutes.splashRoute),
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.changePinScreenToOverviewCta),
+        onPressed: () => Navigator.pushNamedAndRemoveUntil(
+          context,
+          WalletRoutes.dashboardRoute,
+          ModalRoute.withName(WalletRoutes.splashRoute),
+        ),
+        key: const Key('primaryButtonCta'),
       ),
-      onSecondaryButtonPressed: () => Navigator.pop(context),
+      secondaryButton: TertiaryButton(
+        text: Text(context.l10n.changePinScreenToSettingsCta),
+        onPressed: () => Navigator.pop(context),
+        key: const Key('secondaryButtonCta'),
+      ),
     );
   }
 

@@ -1,0 +1,11 @@
+${ISSUANCE_SERVER_URL}.well-known/openid-credential-issuer
+${ISSUANCE_SERVER_URL}.well-known/oauth-authorization-server
+${ISSUANCE_SERVER_URL}issuance/token
+${ISSUANCE_SERVER_URL}issuance/credential_preview
+${ISSUANCE_SERVER_URL}issuance/nonce
+${ISSUANCE_SERVER_URL}issuance/credential
+${ISSUANCE_SERVER_URL}issuance/batch_credential
+${ISSUANCE_SERVER_URL}disclosure/${session_token}
+${ISSUANCE_SERVER_URL}disclosure/${session_token}/request_uri
+${ISSUANCE_SERVER_URL}disclosure/${session_token}/response_uri
+${INTERNAL_ISSUANCE_SERVER_URL}revoke/

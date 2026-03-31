@@ -23,3 +23,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "platform_support"
+
+include(":test-app")

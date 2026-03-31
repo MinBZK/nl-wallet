@@ -89,6 +89,7 @@ mod tests {
     use crate::examples::Example;
     use crate::examples::IsoCertTimeGenerator;
     use crate::holder::Mdoc;
+    use crate::verifier::SupportedAlgorithms;
 
     #[tokio::test]
     async fn test_mac_device_signed() {
@@ -127,6 +128,7 @@ mod tests {
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
                 ))),
+                &SupportedAlgorithms::default(),
             )
             .await
             .unwrap();

@@ -113,6 +113,13 @@ pub trait WalletUserRepository {
 
     async fn delete_all_blocked_keys(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid) -> Result<()>;
 
+    async fn delete_keys(
+        &self,
+        transaction: &Self::TransactionType,
+        wallet_user_id: Uuid,
+        key_identifiers: &[String],
+    ) -> Result<()>;
+
     async fn unblock_blocked_keys_in_batch(
         &self,
         transaction: &Self::TransactionType,
@@ -405,6 +412,15 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _wallet_user_id: Uuid,
+        ) -> Result<()> {
+            Ok(())
+        }
+
+        async fn delete_keys(
+            &self,
+            _transaction: &Self::TransactionType,
+            _wallet_user_id: Uuid,
+            _key_identifiers: &[String],
         ) -> Result<()> {
             Ok(())
         }

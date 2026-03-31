@@ -112,7 +112,12 @@ Future<PidIssuanceResult> acceptPidIssuance({required String pin}) =>
 Future<StartDisclosureResult> startDisclosure({required String uri, required bool isQrCode}) =>
     WalletCore.instance.api.crateApiFullStartDisclosure(uri: uri, isQrCode: isQrCode);
 
-Future<String> startCloseProximityDisclosure() => WalletCore.instance.api.crateApiFullStartCloseProximityDisclosure();
+Future<String> startCloseProximityDisclosure({
+  required FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) callback,
+}) => WalletCore.instance.api.crateApiFullStartCloseProximityDisclosure(callback: callback);
+
+Future<StartDisclosureResult> continueCloseProximityDisclosure() =>
+    WalletCore.instance.api.crateApiFullContinueCloseProximityDisclosure();
 
 Future<String?> cancelDisclosure() => WalletCore.instance.api.crateApiFullCancelDisclosure();
 
@@ -160,6 +165,9 @@ Future<String> getRegistrationRevocationCode() => WalletCore.instance.api.crateA
 
 Future<RevocationCodeResult> getRevocationCode({required String pin}) =>
     WalletCore.instance.api.crateApiFullGetRevocationCode(pin: pin);
+
+Future<WalletInstructionResult> deleteAttestation({required String pin, required String attestationId}) =>
+    WalletCore.instance.api.crateApiFullDeleteAttestation(pin: pin, attestationId: attestationId);
 
 Future<void> resetWallet() => WalletCore.instance.api.crateApiFullResetWallet();
 

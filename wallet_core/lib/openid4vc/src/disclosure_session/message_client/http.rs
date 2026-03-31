@@ -10,8 +10,8 @@ use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 
+use crate::errors::AuthorizationErrorResponse;
 use crate::errors::DisclosureErrorResponse;
-use crate::errors::ErrorResponse;
 use crate::errors::GetRequestErrorCode;
 use crate::errors::PostAuthResponseErrorCode;
 use crate::errors::VpAuthorizationErrorCode;
@@ -123,7 +123,7 @@ impl VpMessageClient for HttpVpMessageClient {
     async fn send_error(
         &self,
         url: BaseUrl,
-        error: ErrorResponse<VpAuthorizationErrorCode>,
+        error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.http_client
             .post(url.into_inner())

@@ -12,6 +12,7 @@ use crypto::utils::random_string;
 use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
+use jwe::algorithm::EncryptionAlgorithm;
 use mdoc::iso::disclosure::DeviceResponse;
 use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
@@ -19,7 +20,6 @@ use utils::generator::Generator;
 use wscd::Poa;
 use wscd::wscd::JwtPoaInput;
 
-use crate::jwe::JweEncryptionAlgorithm;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::VerifiablePresentation;
 use crate::openid4vp::VpAuthorizationResponse;
@@ -40,7 +40,7 @@ pub struct VpDisclosureSession<H> {
     session_type: SessionType,
     verifier_certificate: VerifierCertificate,
     auth_request: NormalizedVpAuthorizationRequest,
-    selected_encryption_algorithm: JweEncryptionAlgorithm,
+    selected_encryption_algorithm: EncryptionAlgorithm,
 }
 
 impl<H> VpDisclosureSession<H> {
@@ -49,7 +49,7 @@ impl<H> VpDisclosureSession<H> {
         session_type: SessionType,
         verifier_certificate: VerifierCertificate,
         auth_request: NormalizedVpAuthorizationRequest,
-        selected_encryption_algorithm: JweEncryptionAlgorithm,
+        selected_encryption_algorithm: EncryptionAlgorithm,
     ) -> Self {
         Self {
             client,
@@ -78,7 +78,10 @@ where
     }
 
     async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError> {
-        let return_url = self.client.terminate(self.auth_request.response_uri).await?;
+        let return_url = self
+            .client
+            .terminate(self.auth_request.response_uri.clone(), self.auth_request.state.clone())
+            .await?;
 
         Ok(return_url)
     }
@@ -238,7 +241,7 @@ where
         let result = VpAuthorizationResponse::new_encrypted(
             vp_token,
             &self.auth_request,
-            &self.selected_encryption_algorithm,
+            self.selected_encryption_algorithm,
             &encryption_nonce,
             poa,
         );
@@ -293,6 +296,7 @@ mod tests {
     use crypto::x509::CertificateUsage;
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
+    use jwe::algorithm::EncryptionAlgorithm;
     use mdoc::holder::disclosure::PartialMdoc;
     use sd_jwt::builder::SignedSdJwt;
     use utils::generator::mock::MockTimeGenerator;
@@ -302,7 +306,6 @@ mod tests {
     use crate::disclosure_session::error::DataDisclosed;
     use crate::errors::AuthorizationErrorCode;
     use crate::errors::VpAuthorizationErrorCode;
-    use crate::jwe::JweEncryptionAlgorithm;
     use crate::openid4vp::VpRequestUriMethod;
     use crate::verifier::SessionType;
 
@@ -346,7 +349,7 @@ mod tests {
 
         let mock_client = MockVerifierVpMessageClient::new(Arc::clone(&verifier_session));
         let auth_request = verifier_session.normalized_auth_request(None);
-        let selected_encryption_algorithm = JweEncryptionAlgorithm::default();
+        let selected_encryption_algorithm = EncryptionAlgorithm::A256Gcm;
         let disclosure_session = VpDisclosureSession {
             client: mock_client,
             session_type,
@@ -571,10 +574,11 @@ mod tests {
     fn test_disclosure_session_terminate(
         #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<BaseUrl>,
     ) {
-        let (disclosure_session, verifier_session) = setup_disclosure_session(
+        let (mut disclosure_session, verifier_session) = setup_disclosure_session(
             redirect_uri.clone(),
             NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
         );
+        disclosure_session.auth_request.state = Some("authorization_state".to_string());
 
         let terminate_redirect_uri = disclosure_session
             .terminate()
@@ -591,7 +595,9 @@ mod tests {
         let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied);
         assert_matches!(
             wallet_messages.last().unwrap(),
-            WalletMessage::Error(response) if response.error == expected_error_code
+            WalletMessage::Error(response)
+                if response.error() == &expected_error_code
+                    && response.state.as_deref() == Some("authorization_state")
         );
     }
 
@@ -600,10 +606,11 @@ mod tests {
     where
         F: Fn() -> VpMessageClientError,
     {
-        let disclosure_session = setup_disclosure_session_http_error(
+        let mut disclosure_session = setup_disclosure_session_http_error(
             NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
             response_factory,
         );
+        disclosure_session.auth_request.state = Some("authorization_state".to_string());
         let wallet_messages = Arc::clone(&disclosure_session.client.wallet_messages);
 
         // Terminate the session, which should result in the verified receiving an access denied error.
@@ -619,7 +626,9 @@ mod tests {
         let expected_error_code = VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied);
         assert_matches!(
             wallet_messages.last().unwrap(),
-            WalletMessage::Error(response) if response.error == expected_error_code
+            WalletMessage::Error(response)
+                if response.error() == &expected_error_code
+                    && response.state.as_deref() == Some("authorization_state")
         );
 
         error

@@ -2,16 +2,15 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import 'package:wallet/src/feature/wallet_transfer_target/bloc/wallet_transfer_target_bloc.dart';
 import 'package:wallet/src/feature/wallet_transfer_target/wallet_transfer_target_screen.dart';
-import 'package:wallet/src/wallet_assets.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mocks.dart';
 import '../../test_util/golden_utils.dart';
+import '../../test_util/test_utils.dart';
 
 class MockWalletTransferTargetBloc extends MockBloc<WalletTransferTargetEvent, WalletTransferTargetState>
     implements WalletTransferTargetBloc {}
@@ -94,7 +93,7 @@ void main() {
         ),
         providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
-      await _preCacheWalletLogo(tester);
+      await TestUtils.preCacheWalletLogoForQrImageView(tester);
       await screenMatchesGolden('wallet_transfer_awaiting_qr_scan.light');
     });
 
@@ -108,7 +107,7 @@ void main() {
         surfaceSize: iphoneXSizeLandscape,
         providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
-      await _preCacheWalletLogo(tester);
+      await TestUtils.preCacheWalletLogoForQrImageView(tester);
       await screenMatchesGolden('wallet_transfer_awaiting_qr_scan.dark.landscape');
     });
 
@@ -120,7 +119,7 @@ void main() {
         ),
         providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
-      await _preCacheWalletLogo(tester);
+      await TestUtils.preCacheWalletLogoForQrImageView(tester);
 
       // Tap the show dialog button
       await tester.tap(find.textContaining('Center QR'));
@@ -139,7 +138,7 @@ void main() {
         surfaceSize: const Size(834, 1194),
         providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
-      await _preCacheWalletLogo(tester);
+      await TestUtils.preCacheWalletLogoForQrImageView(tester);
 
       // Tap the show dialog button
       await tester.tap(find.textContaining('Center QR'));
@@ -158,7 +157,7 @@ void main() {
         surfaceSize: iphoneXSizeLandscape,
         providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
-      await _preCacheWalletLogo(tester);
+      await TestUtils.preCacheWalletLogoForQrImageView(tester);
 
       // Tap the show dialog button
       await tester.tap(find.textContaining('Center QR'));
@@ -365,14 +364,4 @@ void main() {
       await screenMatchesGolden('wallet_transfer_session_expired.dark.landscape');
     });
   });
-}
-
-/// Helper method to pre-cache the wallet logo asset. Needed to make sure the QrCode
-/// is able to render the embedded wallet logo in golden tests.
-Future<void> _preCacheWalletLogo(WidgetTester tester) async {
-  final context = tester.element(find.byType(QrImageView));
-  await tester.runAsync(() async {
-    await precacheImage(const AssetImage(WalletAssets.logo_wallet), context);
-  });
-  await tester.pumpAndSettle();
 }

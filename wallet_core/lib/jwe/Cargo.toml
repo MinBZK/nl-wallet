@@ -1,0 +1,31 @@
+[package]
+name = "jwe"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[[test]]
+name = "encrypt_decrypt"
+path = "tests/encrypt_decrypt.rs"
+
+[dependencies]
+derive_more = { workspace = true, features = ["as_ref", "constructor", "debug", "display", "from", "from_str", "into"] }
+p256 = { workspace = true, features = ["pem"] }
+rand_core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_with.workspace = true
+strum = { workspace = true, features = ["derive"] }
+thiserror.workspace = true
+josekit.workspace = true
+jwk-simple.workspace = true
+
+[dev-dependencies]
+assert_matches.workspace = true
+rstest.workspace = true

@@ -19,6 +19,7 @@ members = [
     "lib/health_checkers",
     "lib/hsm",
     "lib/http_utils",
+    "lib/jwe",
     "lib/jwt",
     "lib/mdoc",
     "lib/measure",
@@ -65,10 +66,10 @@ members = [
     "wallet_server/verification_server/migrations",
 ]
 exclude = ["uniffi-bindgen"]
-resolver = "2"
+resolver = "3"
 
 [workspace.package]
-version = "0.5.0-dev"
+version = "0.6.0-dev"
 edition = "2024"
 rust-version = "1.94"
 
@@ -114,7 +115,7 @@ backtrace = "0.3.76"
 base64 = "0.22.1"
 bitflags = "2.10.0"
 # bollard version is same as testcontainers
-bollard = "0.19.4"
+bollard = "0.20.0"
 built = "0.8.0"
 bytes = "1.11.0"
 cfg-if = "1.0.4"
@@ -154,6 +155,7 @@ jni = "0.21.1"
 josekit = "0.10.3"
 jsonschema = { version = "0.37.4", default-features = false }
 jsonwebtoken = { version = "10.2.0", default-features = false, features = ["rust_crypto"] }
+jwk-simple = "0.2.0"
 libc = "0.2.178"
 # held back by sea-orm / sqlx
 libsqlite3-sys = { version = "0.30.1", default-features = false }
@@ -172,6 +174,7 @@ nonempty-collections = "1.2.1"
 num-bigint = "0.4.6"
 num-traits = "0.2.19"
 nutype = "0.6.2"
+openssl-sys = "0.9.111"
 oslog = { version = "0.2.0", default-features = false }
 p256 = { version = "0.13.2", default-features = false, features = ["ecdsa", "std"] }
 p384 = { version = "0.13.1", default-features = false, features = ["ecdsa", "std"] }
@@ -227,8 +230,8 @@ strfmt = "0.2.5"
 strum = "0.28.0"
 syn = "2.0.111"
 tempfile = "3.23.0"
-testcontainers = "0.26.3"
-testcontainers-modules = "0.14.0"
+testcontainers = "0.27.2"
+testcontainers-modules = "0.15.0"
 thiserror = "2.0.17"
 time = "0.3.44"
 tokio = { version = "1.48.0", default-features = false, features = ["parking_lot"] }

@@ -80,7 +80,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -2011647244;
+  int get rustContentHash => -282629852;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -131,6 +131,8 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<WalletInstructionResult> crateApiFullContinueChangePin({required String pin});
 
+  Future<StartDisclosureResult> crateApiFullContinueCloseProximityDisclosure();
+
   Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({
     required List<int> selectedIndices,
     required String pin,
@@ -145,6 +147,8 @@ abstract class WalletCoreApi extends BaseApi {
   Future<String> crateApiFullCreatePidRenewalRedirectUri();
 
   Future<String> crateApiFullCreatePinRecoveryRedirectUri();
+
+  Future<WalletInstructionResult> crateApiFullDeleteAttestation({required String pin, required String attestationId});
 
   Future<List<WalletEvent>> crateApiFullGetHistory();
 
@@ -206,7 +210,9 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<void> crateApiFullSkipWalletTransfer();
 
-  Future<String> crateApiFullStartCloseProximityDisclosure();
+  Future<String> crateApiFullStartCloseProximityDisclosure({
+    required FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) callback,
+  });
 
   Future<StartDisclosureResult> crateApiFullStartDisclosure({required String uri, required bool isQrCode});
 
@@ -676,6 +682,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
+  Future<StartDisclosureResult> crateApiFullContinueCloseProximityDisclosure() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__full__continue_close_proximity_disclosure(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_start_disclosure_result,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullContinueCloseProximityDisclosureConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullContinueCloseProximityDisclosureConstMeta => const TaskConstMeta(
+    debugName: "continue_close_proximity_disclosure",
+    argNames: [],
+  );
+
+  @override
   Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({
     required List<int> selectedIndices,
     required String pin,
@@ -818,6 +847,31 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   TaskConstMeta get kCrateApiFullCreatePinRecoveryRedirectUriConstMeta => const TaskConstMeta(
     debugName: "create_pin_recovery_redirect_uri",
     argNames: [],
+  );
+
+  @override
+  Future<WalletInstructionResult> crateApiFullDeleteAttestation({required String pin, required String attestationId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          var arg0 = cst_encode_String(pin);
+          var arg1 = cst_encode_String(attestationId);
+          return wire.wire__crate__api__full__delete_attestation(port_, arg0, arg1);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_wallet_instruction_result,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullDeleteAttestationConstMeta,
+        argValues: [pin, attestationId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullDeleteAttestationConstMeta => const TaskConstMeta(
+    debugName: "delete_attestation",
+    argNames: ["pin", "attestationId"],
   );
 
   @override
@@ -1528,18 +1582,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   @override
-  Future<String> crateApiFullStartCloseProximityDisclosure() {
+  Future<String> crateApiFullStartCloseProximityDisclosure({
+    required FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) callback,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
-          return wire.wire__crate__api__full__start_close_proximity_disclosure(port_);
+          var arg0 = cst_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
+            callback,
+          );
+          return wire.wire__crate__api__full__start_close_proximity_disclosure(port_, arg0);
         },
         codec: DcoCodec(
           decodeSuccessData: dco_decode_String,
           decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullStartCloseProximityDisclosureConstMeta,
-        argValues: [],
+        argValues: [callback],
         apiImpl: this,
       ),
     );
@@ -1547,7 +1606,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullStartCloseProximityDisclosureConstMeta => const TaskConstMeta(
     debugName: "start_close_proximity_disclosure",
-    argNames: [],
+    argNames: ["callback"],
   );
 
   @override
@@ -1646,6 +1705,41 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   );
 
   Future<void> Function(int, dynamic)
+  encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
+    FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) raw,
+  ) {
+    return (callId, rawArg0) async {
+      final arg0 = dco_decode_close_proximity_disclosure_flutter_update(rawArg0);
+
+      Box<void>? rawOutput;
+      Box<AnyhowException>? rawError;
+      try {
+        rawOutput = Box(await raw(arg0));
+      } catch (e, s) {
+        rawError = Box(AnyhowException("$e\n\n$s"));
+      }
+
+      final serializer = SseSerializer(generalizedFrbRustBinding);
+      assert((rawOutput != null) ^ (rawError != null));
+      if (rawOutput != null) {
+        serializer.buffer.putUint8(0);
+        sse_encode_unit(rawOutput.value, serializer);
+      } else {
+        serializer.buffer.putUint8(1);
+        sse_encode_AnyhowException(rawError!.value, serializer);
+      }
+      final output = serializer.intoRaw();
+
+      generalizedFrbRustBinding.dartFnDeliverOutput(
+        callId: callId,
+        ptr: output.ptr,
+        rustVecLen: output.rustVecLen,
+        dataLen: output.dataLen,
+      );
+    };
+  }
+
+  Future<void> Function(int, dynamic)
   encode_DartFn_Inputs_list_record_i_32_notification_type_Output_unit_AnyhowException(
     FutureOr<void> Function(List<(int, NotificationType)>) raw,
   ) {
@@ -1684,6 +1778,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   AnyhowException dco_decode_AnyhowException(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return AnyhowException(raw as String);
+  }
+
+  @protected
+  FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate)
+  dco_decode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError('');
   }
 
   @protected
@@ -1933,6 +2034,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       label: dco_decode_String(arr[1]),
       description: dco_decode_opt_String(arr[2]),
     );
+  }
+
+  @protected
+  CloseProximityDisclosureFlutterUpdate dco_decode_close_proximity_disclosure_flutter_update(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return CloseProximityDisclosureFlutterUpdate.values[raw as int];
   }
 
   @protected
@@ -2540,6 +2647,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           attestation: dco_decode_box_autoadd_attestation_presentation(raw[3]),
           renewed: dco_decode_bool(raw[4]),
         );
+      case 2:
+        return WalletEvent_Deletion(
+          id: dco_decode_String(raw[1]),
+          dateTime: dco_decode_String(raw[2]),
+          attestation: dco_decode_box_autoadd_attestation_presentation(raw[3]),
+        );
       default:
         throw Exception("unreachable");
     }
@@ -2864,6 +2977,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var var_label = sse_decode_String(deserializer);
     var var_description = sse_decode_opt_String(deserializer);
     return ClaimDisplayMetadata(lang: var_lang, label: var_label, description: var_description);
+  }
+
+  @protected
+  CloseProximityDisclosureFlutterUpdate sse_decode_close_proximity_disclosure_flutter_update(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return CloseProximityDisclosureFlutterUpdate.values[inner];
   }
 
   @protected
@@ -3630,6 +3752,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           attestation: var_attestation,
           renewed: var_renewed,
         );
+      case 2:
+        var var_id = sse_decode_String(deserializer);
+        var var_dateTime = sse_decode_String(deserializer);
+        var var_attestation = sse_decode_box_autoadd_attestation_presentation(deserializer);
+        return WalletEvent_Deletion(id: var_id, dateTime: var_dateTime, attestation: var_attestation);
       default:
         throw UnimplementedError('');
     }
@@ -3712,6 +3839,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  PlatformPointer cst_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
+    FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_DartOpaque(
+      encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(raw),
+    );
+  }
+
+  @protected
   PlatformPointer cst_encode_DartFn_Inputs_list_record_i_32_notification_type_Output_unit_AnyhowException(
     FutureOr<void> Function(List<(int, NotificationType)>) raw,
   ) {
@@ -3737,6 +3874,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   bool cst_encode_bool(bool raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw;
+  }
+
+  @protected
+  int cst_encode_close_proximity_disclosure_flutter_update(CloseProximityDisclosureFlutterUpdate raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
   }
 
   @protected
@@ -3815,6 +3958,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.message, serializer);
+  }
+
+  @protected
+  void sse_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
+    FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_DartOpaque(
+      encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(self),
+      serializer,
+    );
   }
 
   @protected
@@ -4104,6 +4259,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_String(self.lang, serializer);
     sse_encode_String(self.label, serializer);
     sse_encode_opt_String(self.description, serializer);
+  }
+
+  @protected
+  void sse_encode_close_proximity_disclosure_flutter_update(
+    CloseProximityDisclosureFlutterUpdate self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected
@@ -4734,6 +4898,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_String(dateTime, serializer);
         sse_encode_box_autoadd_attestation_presentation(attestation, serializer);
         sse_encode_bool(renewed, serializer);
+      case WalletEvent_Deletion(id: final id, dateTime: final dateTime, attestation: final attestation):
+        sse_encode_i_32(2, serializer);
+        sse_encode_String(id, serializer);
+        sse_encode_String(dateTime, serializer);
+        sse_encode_box_autoadd_attestation_presentation(attestation, serializer);
     }
   }
 

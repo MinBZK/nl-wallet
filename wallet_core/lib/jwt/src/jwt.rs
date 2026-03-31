@@ -461,7 +461,7 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
         // Actually create the JWTs by combining their header, payload and received signature.
         let jwts = headers_and_payloads
             .into_iter()
-            .zip(signatures)
+            .zip_eq(signatures)
             .map(|(header_and_payload, signatures)| {
                 // Again, make sure we received the correct number of signatures.
                 let signature = signatures.into_iter().exactly_one().map_err(|error| {
@@ -479,9 +479,9 @@ impl<T: Serialize + JwtTyp> SignedJwt<T> {
             })
             .collect::<Result<Vec<_>, JwtError>>()?
             .try_into()
-            // We can unwrap to `VecNonEmpty` safely here, as the source iterator for `headers_and_payloads`
-            // is non-empty and we check the count of the returned signatures.
-            .unwrap();
+            // this is unreachable as the source iterator for `headers_and_payloads` is non-empty and we check the count
+            // of the returned signatures.
+            .unwrap_or_else(|_| unreachable!());
 
         Ok((jwts, poa))
     }
@@ -838,7 +838,7 @@ impl From<VecNonEmpty<JsonJwtSignature>> for JsonJwtSignatures {
     fn from(signatures: VecNonEmpty<JsonJwtSignature>) -> Self {
         match signatures.len().get() {
             1 => Self::Flattened {
-                signature: signatures.into_inner().pop().unwrap(),
+                signature: signatures.into_first(),
             },
             _ => Self::General { signatures },
         }
@@ -1207,17 +1207,14 @@ mod tests {
             .unwrap()
             .into_unverified();
 
-        let json_jwt_one: JsonJwt<_> = VecNonEmpty::try_from(vec![jwt.clone()]).unwrap().try_into().unwrap();
+        let json_jwt_one: JsonJwt<_> = vec_nonempty![jwt.clone()].try_into().unwrap();
         assert_matches!(json_jwt_one.signatures, JsonJwtSignatures::Flattened { .. });
         let serialized = serde_json::to_string(&json_jwt_one).unwrap();
 
         let deserialized: JsonJwt<ToyMessage> = serde_json::from_str(&serialized).unwrap();
         assert_matches!(deserialized.signatures, JsonJwtSignatures::Flattened { .. });
 
-        let json_jwt_two: JsonJwt<_> = VecNonEmpty::try_from(vec![jwt.clone(), jwt.clone()])
-            .unwrap()
-            .try_into()
-            .unwrap();
+        let json_jwt_two: JsonJwt<_> = vec_nonempty![jwt.clone(), jwt.clone()].try_into().unwrap();
         assert_matches!(json_jwt_two.signatures, JsonJwtSignatures::General { .. });
         let serialized = serde_json::to_string(&json_jwt_two).unwrap();
         let deserialized: JsonJwt<ToyMessage> = serde_json::from_str(&serialized).unwrap();

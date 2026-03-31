@@ -198,6 +198,7 @@ class BiometricSettingScreen extends StatelessWidget {
                 );
               },
             ),
+            preferVerticalButtonLayout: false,
           ),
         );
       },

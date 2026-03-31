@@ -4,6 +4,7 @@ mock-oidc = { max-threads = 1 }
 mock-issuance-session = { max-threads = 1 }
 mock-pkce = { max-threads = 1 }
 metrics-recorder = { max-threads = 1 }
+# Not needed for `MockCloseProximityDisclosureClient`
 
 [[profile.default.overrides]]
 # Include all tests_integration because not all of the tests can run independently inbetween binaries
