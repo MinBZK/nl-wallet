@@ -39,3 +39,47 @@ div[role="contentinfo"] {
 }
 
 img[alt=c4_legend] { width: 45%; text-align: right; border: 1px gray solid; margin-left: auto; display: block; }
+
+.ltc-implementations,
+.ltc-covers {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.ltc-implementations { border-left: 3px solid #4a90d9; }
+.ltc-covers          { border-left: 3px solid #4ab04a; }
+
+.ltc-implementations summary,
+.ltc-covers summary {
+    cursor: pointer;
+}
+
+.ltc-implementations ul,
+.ltc-covers ul {
+    margin-top: 0.4rem;
+}
+
+.rst-content .ltc-implementations code,
+.rst-content .ltc-covers code,
+.ltc-implementations code,
+.ltc-covers code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 0.95em;
+    color: #2c6fbb;
+    white-space: normal;
+}
+
+.ltc-implementations a,
+.ltc-covers a {
+    text-decoration: none;
+}
+
+.ltc-implementations a:hover,
+.ltc-covers a:hover {
+    text-decoration: underline;
+}
