@@ -477,3 +477,14 @@ extract-manual-test-set:
     when: always
     paths:
       - manual-test-set.md
+
+test-android-platform-support-browserstack:
+  extends: [.upload-browserstack-base]
+  rules:
+    - !reference [.on-schedule-automation, rules]
+    - !reference [.merge-request-manual, rules]
+  needs:
+    - job: build-android-platform-support-browserstack
+      artifacts: true
+  script:
+    - bundle exec fastlane android ci_test_platform_support_browserstack
