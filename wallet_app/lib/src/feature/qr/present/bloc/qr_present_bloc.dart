@@ -74,7 +74,7 @@ class QrPresentBloc extends Bloc<QrPresentEvent, QrPresentState> {
 
   @override
   Future<dynamic> close() async {
-    await _connectionSubscription?.cancel();
+    unawaited(_connectionSubscription?.cancel());
     final requestReceived = tryCast<QrPresentConnected>(state)?.deviceRequestReceived ?? false;
     if (!requestReceived) {
       // Stop BLE server in case we are not connected and about to move to the disclosure screen
