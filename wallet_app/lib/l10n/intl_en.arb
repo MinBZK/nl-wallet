@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-03-20T12:26:52+01:00",
+    "@@last_modified": "2026-03-30T16:48:15+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -121,6 +121,8 @@
     "cardDataScreenTitle": "Data from {title}",
     "cardDetailScreenCardDataCta": "Details in this card",
     "cardDetailScreenCardDataPrivacyWarning": "Keep your details private",
+    "cardDetailScreenCardDeleteCta": "Card delete",
+    "cardDetailScreenCardDeleteWarning": "This card will be permanently deleted",
     "cardDetailScreenCardHistoryCta": "Card activities",
     "cardDetailScreenCardValidUntil": "Valid until {dateTime}",
     "@cardDetailScreenCardValidUntil": {
@@ -356,6 +358,10 @@
     "dataIncorrectScreenDeclineTitle": "Decline card",
     "dataIncorrectScreenHeaderDescription": "Contact the providing organization to request a data update. You have two options now:",
     "dataIncorrectScreenHeaderTitle": "Are your details incorrect?",
+    "deleteCardDialogBody": "The card will be permanently deleted from your wallet.\n\nYou can still view the previous activities of this card in your wallet.",
+    "deleteCardDialogCancelCta": "Cancel",
+    "deleteCardDialogConfirmCta": "Yes, delete",
+    "deleteCardDialogTitle": "Do you want to delete {cardTitle} card?",
     "demoScreenContentBullets": "The Ministry of the Interior (MinBZK) is still developing the app.\nWe expect the app to be available in 2027.\nThe app uses only test data, not real data.\nDuring testing we will track how you use the app, to make it better.\nThe app can update anytime, older versions may not work.\nThe app may sometimes be unstable.",
     "demoScreenContentFooter": "If something goes wrong, reinstall the app.",
     "demoScreenContentHeader": "You are now using a demo version of the app.",
@@ -1258,6 +1264,7 @@
     "qrPresentScreenConnectingTitle": "Please wait. Connecting to the organisation.",
     "qrPresentScreenConnectionFailedPageDescription": "Keep the devices close together. Check your Bluetooth connection. Then try again.",
     "qrPresentScreenConnectionFailedPageTitle": "Sorry, connection failed",
+    "qrPresentScreenDialogTitle": "Show your QR code below",
     "qrPresentScreenReportIssueCta": "Would you like to report a problem?",
     "qrPresentScreenTitle": "Show your QR code",
     "qrScanTabContinueCta": "Scan another QR code",
@@ -1511,7 +1518,7 @@
     "stopDigidLoginDialogTitle": "Stop DigiD login?",
     "stopToResetPinDialogCancelCta": "No",
     "stopToResetPinDialogConfirmCta": "Yes, Stop",
-    "stopToResetPinDialogDescriptionDisclosureVariant": "If you stop, no data will be shared with {organisation}\n\nYou can then create a new PIN",
+    "stopToResetPinDialogDescriptionDisclosureVariant": "If you stop, no data will be shared with {organisation}\n\nYou can then create a new PIN.",
     "@stopToResetPinDialogDescriptionDisclosureVariant": {
         "placeholders": {
             "organisation": {
@@ -1520,8 +1527,8 @@
             }
         }
     },
-    "stopToResetPinDialogDescriptionIssuanceVariant": "If you stop, no card(s) will be added to your NL Wallet.\n\nYou can then create a new PIN",
-    "stopToResetPinDialogDescriptionLoginVariant": "If you stop, you will not log in to {organisation}.\n\nYou can then create a new PIN",
+    "stopToResetPinDialogDescriptionIssuanceVariant": "If you stop, no card(s) will be added to your NL Wallet.\n\nYou can then create a new PIN.",
+    "stopToResetPinDialogDescriptionLoginVariant": "If you stop, you will not log in to {organisation}.\n\nYou can then create a new PIN.",
     "@stopToResetPinDialogDescriptionLoginVariant": {
         "placeholders": {
             "organisation": {
@@ -1530,9 +1537,9 @@
             }
         }
     },
-    "stopToResetPinDialogDescriptionTransferVariant": "If you stop, your NL Wallet will not be moved to your other device.\n\nYou can then create a new PIN",
+    "stopToResetPinDialogDescriptionTransferVariant": "If you stop, your NL Wallet will not be moved to your other device.\n\nYou can then create a new PIN.",
     "stopToResetPinDialogTitleDisclosureVariant": "Stop sharing details to create a new PIN",
-    "stopToResetPinDialogTitleIssuanceVariant": "Stop adding card to create a new PIN",
+    "stopToResetPinDialogTitleIssuanceVariant": "Stop adding card(s) to create a new PIN",
     "stopToResetPinDialogTitleLoginVariant": "Stop logging in to create a new PIN",
     "stopToResetPinDialogTitleTransferVariant": "Stop moving NL Wallet to create a new PIN",
     "tourBannerTitle": "Discover everything in short videos",

@@ -7,9 +7,9 @@ import '../../../theme/light_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
-import '../../common/widget/button/button_content.dart';
-import '../../common/widget/button/list_button.dart';
-import '../../common/widget/text/title_text.dart';
+import '../widget/button/button_content.dart';
+import '../widget/button/list_button.dart';
+import '../widget/text/title_text.dart';
 
 const _kDialogRadius = Radius.circular(8);
 const _kDialogBorderRadius = BorderRadius.only(
@@ -20,9 +20,10 @@ const _kDialogBorderRadius = BorderRadius.only(
 );
 
 class QrCodeDialog extends StatelessWidget {
+  final String title;
   final String data;
 
-  const QrCodeDialog({required this.data, super.key});
+  const QrCodeDialog({required this.title, required this.data, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +39,7 @@ class QrCodeDialog extends StatelessWidget {
           child: Column(
             children: [
               TitleText(
-                context.l10n.qrCodeCodeDialogTitle,
+                title,
                 textAlign: TextAlign.center,
                 style: context.textTheme.headlineSmall,
               ),
@@ -78,10 +79,10 @@ class QrCodeDialog extends StatelessWidget {
     );
   }
 
-  static Future<void> show(BuildContext context, {required String data}) {
+  static Future<void> show(BuildContext context, {required String title, required String data}) {
     return showDialog<void>(
       context: context,
-      builder: (BuildContext context) => QrCodeDialog(data: data),
+      builder: (BuildContext context) => QrCodeDialog(title: title, data: data),
     );
   }
 }
