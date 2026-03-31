@@ -192,13 +192,13 @@ void main() {
           checkPermissionUseCase.invoke(Permission.notification),
         ).thenAnswer((_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
         when(
-          requestPermissionUseCase.invoke(Permission.notification),
+          requestPermissionUseCase.invoke([Permission.notification]),
         ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
       },
       act: (bloc) => bloc.add(const ManageNotificationsPushNotificationsToggled()),
       expect: () => [const ManageNotificationsLoaded(pushEnabled: true)],
       verify: (_) {
-        verify(requestPermissionUseCase.invoke(Permission.notification));
+        verify(requestPermissionUseCase.invoke([Permission.notification]));
         verify(setPushNotificationsSettingUseCase.invoke(enabled: true));
       },
     );
@@ -218,13 +218,13 @@ void main() {
           checkPermissionUseCase.invoke(Permission.notification),
         ).thenAnswer((_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
         when(
-          requestPermissionUseCase.invoke(Permission.notification),
+          requestPermissionUseCase.invoke([Permission.notification]),
         ).thenAnswer((_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
       },
       act: (bloc) => bloc.add(const ManageNotificationsPushNotificationsToggled()),
       expect: () => [/* no state changer */],
       verify: (_) {
-        verify(requestPermissionUseCase.invoke(Permission.notification));
+        verify(requestPermissionUseCase.invoke([Permission.notification]));
         verify(setPushNotificationsSettingUseCase.invoke(enabled: false));
       },
     );
@@ -245,7 +245,7 @@ void main() {
           checkPermissionUseCase.invoke(Permission.notification),
         ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
         when(
-          requestPermissionUseCase.invoke(Permission.notification),
+          requestPermissionUseCase.invoke([Permission.notification]),
         ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
       },
       act: (bloc) => lifecycleService.notifyStateChanged(.resumed),

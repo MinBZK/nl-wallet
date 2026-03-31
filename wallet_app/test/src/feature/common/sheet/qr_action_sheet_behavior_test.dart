@@ -45,7 +45,7 @@ void main() {
 
   group('show QR permission flow', () {
     testWidgets('tapping show QR requests bluetooth permission', (tester) async {
-      when(requestPermissionUseCase.invoke(Permission.bluetooth)).thenAnswer(
+      when(requestPermissionUseCase.invoke([Permission.bluetooth])).thenAnswer(
         (_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false),
       );
 
@@ -55,11 +55,11 @@ void main() {
       await tester.tap(find.text(l10n.qrActionSheetShowQrTitle));
       await tester.pumpAndSettle();
 
-      verify(requestPermissionUseCase.invoke(Permission.bluetooth)).called(1);
+      verify(requestPermissionUseCase.invoke([Permission.bluetooth])).called(1);
     });
 
     testWidgets('shows BlePermissionDialog when permission is permanently denied', (tester) async {
-      when(requestPermissionUseCase.invoke(Permission.bluetooth)).thenAnswer(
+      when(requestPermissionUseCase.invoke([Permission.bluetooth])).thenAnswer(
         (_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: true),
       );
 
@@ -75,7 +75,7 @@ void main() {
     });
 
     testWidgets('does not show dialog when permission is denied but not permanently', (tester) async {
-      when(requestPermissionUseCase.invoke(Permission.bluetooth)).thenAnswer(
+      when(requestPermissionUseCase.invoke([Permission.bluetooth])).thenAnswer(
         (_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false),
       );
 

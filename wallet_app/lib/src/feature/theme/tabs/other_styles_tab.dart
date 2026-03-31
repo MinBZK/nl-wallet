@@ -211,7 +211,7 @@ class OtherStylesTab extends StatelessWidget {
         const SizedBox(height: 12),
         const ThemeSectionSubHeader(title: 'Request permission'),
         TextButton(
-          onPressed: () => context.read<RequestPermissionUseCase>().invoke(.notification),
+          onPressed: () => context.read<RequestPermissionUseCase>().invoke([.notification]),
           child: const Text('Request'),
         ),
         const ThemeSectionSubHeader(title: 'Show sample notification'),

@@ -8,17 +8,17 @@ class RequestPermissionUseCaseImpl extends RequestPermissionUseCase {
   RequestPermissionUseCaseImpl();
 
   @override
-  Future<PermissionCheckResult> invoke(Permission permission) async {
+  Future<PermissionCheckResult> invoke(List<Permission> permissions) async {
     try {
-      // Request the permission and check the status.
-      final PermissionStatus status = await permission.request();
-      final isGranted = status.isGranted;
-      if (isGranted) return PermissionCheckResult(isGranted: isGranted, isPermanentlyDenied: false);
-      final isPermanentlyDenied = await permission.isPermanentlyDenied;
-      return PermissionCheckResult(isGranted: isGranted, isPermanentlyDenied: isPermanentlyDenied);
+      final Map<Permission, PermissionStatus> statuses = await permissions.request();
+      final allGranted = statuses.values.every((status) => status.isGranted);
+      if (allGranted) return const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false);
+
+      // Check if any denied permission is permanently denied.
+      final isPermanentlyDenied = statuses.values.any((value) => value.isPermanentlyDenied);
+      return PermissionCheckResult(isGranted: false, isPermanentlyDenied: isPermanentlyDenied);
     } catch (ex) {
-      Fimber.e('Could not check permission for: $permission', ex: ex);
-      // Return a sane default that would cause us to try again.
+      Fimber.e('Could not check permissions for: $permissions', ex: ex);
       return const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false);
     }
   }
