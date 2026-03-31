@@ -6,7 +6,9 @@ import '../../../domain/model/result/application_error.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../theme/light_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/helper/dialog_helper.dart';
 import '../../../wallet_assets.dart';
+import '../../common/dialog/qr_code_dialog.dart';
 import '../../common/page/generic_loading_page.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/button/bottom_back_button.dart';
@@ -48,6 +50,7 @@ class QrPresentScreen extends StatelessWidget {
         ),
         body: BlocListener<QrPresentBloc, QrPresentState>(
           listener: (context, state) {
+            DialogHelper.dismissOpenDialogs(context);
             final navigateToDisclosure = (state as QrPresentConnected).deviceRequestReceived;
             if (navigateToDisclosure) _navigateToDisclosure(context);
           },
@@ -121,7 +124,11 @@ class QrPresentScreen extends StatelessWidget {
                       const SizedBox(height: 12),
                       ListButton(
                         text: Text(context.l10n.qrPresentScreenCenterQrCodeCta),
-                        onPressed: () => PlaceholderScreen.showGeneric(context),
+                        onPressed: () => QrCodeDialog.show(
+                          context,
+                          title: context.l10n.qrPresentScreenDialogTitle,
+                          data: qrContents,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Padding(

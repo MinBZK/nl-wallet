@@ -88,5 +88,22 @@ void main() {
       );
       await screenMatchesGolden('qr_present_error.light');
     });
+
+    group('QrPresentScreen - Centered QR Dialog', () {
+      testWidgets('Center qr button shows qr dialog', (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          const QrPresentScreen().withState<QrPresentBloc, QrPresentState>(
+            MockQrPresentBloc(),
+            const QrPresentServerStarted('https://example.org/qr'),
+          ),
+        );
+        await TestUtils.preCacheWalletLogoForQrImageView(tester);
+        final l10n = await TestUtils.englishLocalizations;
+        await tester.tap(find.text(l10n.qrPresentScreenCenterQrCodeCta));
+        await tester.pumpAndSettle();
+
+        expect(find.text(l10n.qrPresentScreenDialogTitle), findsOneWidget);
+      });
+    });
   });
 }
