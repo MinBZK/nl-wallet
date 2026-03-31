@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -47,20 +49,23 @@ class QrActionSheet extends StatelessWidget {
   }
 
   Future<void> _onShowQrPressed(BuildContext context) async {
-    final result = await context.read<RequestPermissionUseCase>().invoke(Permission.bluetooth);
+    // On Android, request the granular BLE permissions introduced in API 31.
+    // permission_handler falls back to the legacy BLUETOOTH check on API ≤ 30.
+    // On iOS, Permission.bluetooth maps to CoreBluetooth.
+    final permissions = Platform.isAndroid
+        ? [Permission.bluetoothConnect, Permission.bluetoothAdvertise]
+        : [Permission.bluetooth];
+
+    final requestResult = await context.read<RequestPermissionUseCase>().invoke(permissions);
     if (!context.mounted) return;
 
-    // Dismiss the sheet
     Navigator.pop(context);
 
-    if (result.isGranted) {
+    if (requestResult.isGranted) {
       await Navigator.pushNamed(context, WalletRoutes.qrPresentRoute);
-    } else if (result.isPermanentlyDenied) {
-      // Permission permanently denied — show rationale dialog.
+    } else if (requestResult.isPermanentlyDenied) {
       await BlePermissionDialog.show(context);
     }
-
-    // If denied but not permanently, user saw the OS dialog and denied — do nothing (already on dashboard).
   }
 
   static Future<void> show(BuildContext context) {

@@ -5868,20 +5868,20 @@ class MockDecodeQrUseCase extends _i1.Mock implements _i119.DecodeQrUseCase {
 class MockRequestPermissionUseCase extends _i1.Mock implements _i121.RequestPermissionUseCase {
   @override
   _i10.Future<_i12.PermissionCheckResult> invoke(
-    _i122.Permission? permission,
+    List<_i122.Permission>? permissions,
   ) =>
       (super.noSuchMethod(
-            Invocation.method(#invoke, [permission]),
+            Invocation.method(#invoke, [permissions]),
             returnValue: _i10.Future<_i12.PermissionCheckResult>.value(
               _FakePermissionCheckResult_14(
                 this,
-                Invocation.method(#invoke, [permission]),
+                Invocation.method(#invoke, [permissions]),
               ),
             ),
             returnValueForMissingStub: _i10.Future<_i12.PermissionCheckResult>.value(
               _FakePermissionCheckResult_14(
                 this,
-                Invocation.method(#invoke, [permission]),
+                Invocation.method(#invoke, [permissions]),
               ),
             ),
           )

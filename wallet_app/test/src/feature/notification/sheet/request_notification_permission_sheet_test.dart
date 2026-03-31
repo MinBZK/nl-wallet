@@ -61,7 +61,7 @@ void main() {
         tester,
       ) async {
         when(
-          requestPermissionUseCase.invoke(.notification),
+          requestPermissionUseCase.invoke([.notification]),
         ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
 
         await tester.pumpWidgetWithAppWrapper(
@@ -79,7 +79,7 @@ void main() {
         await tester.pump();
 
         // Verify that permission is requested
-        verify(requestPermissionUseCase.invoke(.notification)).called(1);
+        verify(requestPermissionUseCase.invoke([.notification])).called(1);
         // Verify the user setting is set when permission is granted
         verify(setPushNotificationsSettingUseCase.invoke(enabled: true)).called(1);
       },
@@ -91,7 +91,7 @@ void main() {
         tester,
       ) async {
         when(
-          requestPermissionUseCase.invoke(.notification),
+          requestPermissionUseCase.invoke([.notification]),
         ).thenAnswer((_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
 
         await tester.pumpWidgetWithAppWrapper(
@@ -109,7 +109,7 @@ void main() {
         await tester.pump();
 
         // Verify that permission is requested
-        verify(requestPermissionUseCase.invoke(.notification)).called(1);
+        verify(requestPermissionUseCase.invoke([.notification])).called(1);
         // Verify the user setting is set when permission is granted
         verify(setPushNotificationsSettingUseCase.invoke(enabled: false)).called(1);
       },
@@ -119,7 +119,7 @@ void main() {
       tester,
     ) async {
       when(
-        requestPermissionUseCase.invoke(.notification),
+        requestPermissionUseCase.invoke([.notification]),
       ).thenAnswer((_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
 
       await tester.pumpWidgetWithAppWrapper(
@@ -137,7 +137,7 @@ void main() {
       await tester.pump();
 
       // Verify that permission is NOT requested
-      verifyNever(requestPermissionUseCase.invoke(.notification));
+      verifyNever(requestPermissionUseCase.invoke([.notification]));
       // Verify the user setting is NOT set when permission is granted
       verifyNever(setPushNotificationsSettingUseCase.invoke(enabled: anyNamed('enabled')));
     });

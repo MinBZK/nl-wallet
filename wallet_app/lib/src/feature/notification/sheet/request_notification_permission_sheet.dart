@@ -24,7 +24,7 @@ class RequestNotificationPermissionSheet extends StatelessWidget {
       ),
       onConfirmPressed: () {
         final setPushNotificationsSettingUseCase = context.read<SetPushNotificationsSettingUseCase>();
-        context.read<RequestPermissionUseCase>().invoke(.notification).then((result) {
+        context.read<RequestPermissionUseCase>().invoke([.notification]).then((result) {
           setPushNotificationsSettingUseCase.invoke(enabled: result.isGranted);
         });
         Navigator.pop(context);

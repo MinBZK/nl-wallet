@@ -85,7 +85,7 @@ class ManageNotificationsBloc extends Bloc<ManageNotificationsEvent, ManageNotif
     }
 
     // Request in-app permission and handle the result
-    final requestResult = await _requestPermissionUseCase.invoke(.notification);
+    final requestResult = await _requestPermissionUseCase.invoke([.notification]);
     await _setShowNotificationsSettingUsecase.invoke(enabled: requestResult.isGranted);
     emit(ManageNotificationsLoaded(pushEnabled: requestResult.isGranted));
   }
