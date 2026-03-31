@@ -1,4 +1,6 @@
 use assert_matches::assert_matches;
+use chrono::SubsecRound;
+use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
 use uuid::Uuid;
@@ -9,8 +11,6 @@ use apple_app_attest::AssertionCounter;
 use crypto::utils::random_string;
 use db_test::DbSetup;
 use hsm::model::encrypted::Encrypted;
-use utils::generator::Generator;
-use wallet_provider_domain::EpochGenerator;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
@@ -214,14 +214,15 @@ async fn test_register_unsuccessful_pin_entry() {
     let (db, wallet_user_id, wallet_id, before) = common::create_test_user(&db_setup, WalletDeviceVendor::Apple).await;
     assert!(before.last_unsuccessful_pin.is_none());
 
-    register_unsuccessful_pin_entry(&db, &wallet_id, false, EpochGenerator.generate())
+    let timestamp = Utc::now();
+    register_unsuccessful_pin_entry(&db, &wallet_id, false, timestamp)
         .await
         .expect("Could register unsuccessful pin entry");
 
     let after = common::find_wallet_user(&db, wallet_user_id).await.unwrap();
 
     assert_eq!(before.pin_entries + 1, after.pin_entries);
-    assert_eq!(EpochGenerator.generate(), after.last_unsuccessful_pin.unwrap());
+    assert_eq!(timestamp.trunc_subsecs(6), after.last_unsuccessful_pin.unwrap());
 }
 
 async fn do_change_pin(

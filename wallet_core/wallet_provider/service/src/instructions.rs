@@ -27,7 +27,6 @@ use jwt::wua::WuaDisclosure;
 use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use utils::generator::Generator;
-use utils::generator::TimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecAtLeastTwoUnique;
@@ -775,7 +774,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
     {
         let verified_sd_jwt = self
             .recovery_code_disclosure
-            .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, &TimeGenerator)?;
+            .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, generators)?;
 
         let key = verified_sd_jwt.holder_pubkey().unwrap(); // The above verification can't have succeeded if this fails
         let recovery_code = recovery_code_config.extract_from_sd_jwt(&verified_sd_jwt)?;
@@ -871,7 +870,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
     {
         let verified_sd_jwt = self
             .recovery_code_disclosure
-            .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, &TimeGenerator)?;
+            .into_verified_against_trust_anchors(&user_state.pid_issuer_trust_anchors, generators)?;
 
         let key = verified_sd_jwt.holder_pubkey().unwrap(); // The above verification can't have succeeded if this fails
         let recovery_code = recovery_code_config.extract_from_sd_jwt(&verified_sd_jwt)?;
@@ -1478,6 +1477,7 @@ mod tests {
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
     use token_status_list::status_list_service::mock::MockStatusListService;
+    use utils::generator::UuidV4AndTimeGenerator;
     use utils::vec_nonempty;
     use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_account::messages::errors::RevocationReason;
@@ -1501,7 +1501,6 @@ mod tests {
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::StartPinRecovery;
     use wallet_account::messages::transfer::TransferSessionState;
-    use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::wallet_user;
     use wallet_provider_domain::model::wallet_user::RecoveryCode;
     use wallet_provider_domain::model::wallet_user::RevocationRegistration;
@@ -1514,6 +1513,7 @@ mod tests {
     use crate::account_server::InstructionValidationError;
     use crate::account_server::UserState;
     use crate::account_server::mock;
+    use crate::account_server::mock::mock_status_list_service;
     use crate::account_server::mock::user_state as mock_user_state;
     use crate::flags::mock::StubWalletFlags;
     use crate::instructions::HandleInstruction;
@@ -1533,7 +1533,7 @@ mod tests {
             setup_hsm().await,
             wrapping_key_identifier.to_string(),
             vec![],
-            MockStatusListService::default(),
+            mock_status_list_service(),
         )
     }
 
@@ -1548,7 +1548,7 @@ mod tests {
             setup_hsm().await,
             wrapping_key_identifier.to_string(),
             vec![ca.to_trust_anchor().to_owned()],
-            MockStatusListService::default(),
+            mock_status_list_service(),
         )
     }
 
@@ -1562,7 +1562,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1593,7 +1593,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1650,7 +1650,7 @@ mod tests {
         let result = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1719,7 +1719,7 @@ mod tests {
         let result = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1766,7 +1766,7 @@ mod tests {
         let result = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1822,7 +1822,7 @@ mod tests {
         let result = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1881,7 +1881,7 @@ mod tests {
         let result = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1926,7 +1926,7 @@ mod tests {
         let result = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -1985,7 +1985,7 @@ mod tests {
         let result = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2017,7 +2017,7 @@ mod tests {
         let result = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2058,7 +2058,7 @@ mod tests {
         wallet_user_repo
             .expect_find_wallet_user_ids_by_recovery_code()
             .times(2)
-            .returning(|_, _| Ok(vec![]));
+            .returning(|_, _| Ok(vec![Uuid::new_v4()]));
         wallet_user_repo
             .expect_revoke_wallet_users()
             .times(2)
@@ -2067,11 +2067,18 @@ mod tests {
                 Ok(vec![])
             });
 
+        let mut user_state = user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await;
+        user_state
+            .status_list_service
+            .expect_revoke_attestation_batches()
+            .times(2)
+            .returning(|_| Ok(()));
+
         let err = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
-                &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
+                &UuidV4AndTimeGenerator,
+                &user_state,
                 &mock::RECOVERY_CODE_CONFIG,
             )
             .await
@@ -2124,7 +2131,7 @@ mod tests {
         let err = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2206,7 +2213,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2516,7 +2523,7 @@ mod tests {
         let result = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state_with_ca(wallet_user_repo, wrapping_key_identifier, &issuer_ca).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2563,7 +2570,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2601,7 +2608,7 @@ mod tests {
         let err = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2654,7 +2661,7 @@ mod tests {
         let err = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2690,7 +2697,7 @@ mod tests {
         let err = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2757,7 +2764,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2794,7 +2801,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2832,7 +2839,7 @@ mod tests {
         let err = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2870,7 +2877,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2895,7 +2902,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2929,7 +2936,7 @@ mod tests {
         let err = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -2963,7 +2970,7 @@ mod tests {
         let state = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3000,7 +3007,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3032,7 +3039,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3076,7 +3083,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3114,7 +3121,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3151,7 +3158,7 @@ mod tests {
         let err = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3187,7 +3194,7 @@ mod tests {
         let result = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3223,7 +3230,7 @@ mod tests {
         let err = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3256,7 +3263,7 @@ mod tests {
         let err = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3295,7 +3302,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3332,7 +3339,7 @@ mod tests {
         let err = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3369,7 +3376,7 @@ mod tests {
         let err = instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )
@@ -3406,7 +3413,7 @@ mod tests {
         instruction
             .handle(
                 &wallet_user,
-                &MockGenerators,
+                &UuidV4AndTimeGenerator,
                 &user_state(wallet_user_repo, wrapping_key_identifier).await,
                 &mock::RECOVERY_CODE_CONFIG,
             )

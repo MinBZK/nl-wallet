@@ -26,7 +26,7 @@ axum = ["axum/json"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["http_utils/allow_insecure_url"]
 # Include mock implementations for testing
-mock = ["crypto/generate", "dep:mockall", "wscd/mock"]
+mock = ["crypto/generate", "dep:mockall", "token_status_list/mock", "wscd/mock"]
 # Include miscellaneous test utilities
 test = ["dep:assert_matches", "dep:parking_lot", "jwt/test", "tokio/test-util", "utils/mock_time", "wscd/mock"]
 # All features needed to run the integration test

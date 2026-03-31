@@ -1,9 +1,7 @@
 use std::error::Error;
 
-use chrono::DateTime;
 use chrono::Days;
 use chrono::Duration;
-use chrono::Utc;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use status_lists::postgres::PostgresStatusListService;
@@ -17,6 +15,7 @@ use hsm::keys::HsmEcdsaKey;
 use hsm::service::Pkcs11Hsm;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
+use utils::generator::UuidV4AndTimeGenerator;
 use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
@@ -205,7 +204,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             .handle_instruction(
                 instruction,
                 &self.instruction_result_signing_key,
-                self,
+                &UuidV4AndTimeGenerator,
                 &self.pin_policy,
                 &self.user_state,
             )
@@ -229,7 +228,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             .handle_hw_signed_instruction(
                 instruction,
                 &self.instruction_result_signing_key,
-                self,
+                &UuidV4AndTimeGenerator,
                 &self.user_state,
             )
             .await?;
@@ -237,18 +236,6 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         info!("Replying with the instruction result");
 
         Ok(InstructionResultMessage { result })
-    }
-}
-
-impl<GRC, PIC> Generator<uuid::Uuid> for RouterState<GRC, PIC> {
-    fn generate(&self) -> Uuid {
-        Uuid::new_v4()
-    }
-}
-
-impl<GRC, PIC> Generator<DateTime<Utc>> for RouterState<GRC, PIC> {
-    fn generate(&self) -> DateTime<Utc> {
-        Utc::now()
     }
 }
 
