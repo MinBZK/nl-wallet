@@ -6,6 +6,11 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent / '_ext'))
+
 author = 'NL Wallet'
 project = author
 copyright = f"2025, {author}"
@@ -20,6 +25,7 @@ extensions = [
     'sphinx_multiversion',
     'sphinx.builders.linkcheck',
     'sphinxcontrib.mermaid',
+    'ltc_linker',
 ]
 
 source_suffix = {
@@ -82,3 +88,34 @@ linkcheck_ignore = [
 ]
 
 nitpicky = True
+
+# LTC linker config
+
+ltc_test_dirs = [
+    'wallet_app/test',
+    'wallet_core/tests_integration',
+    'uiautomation',
+    'browsertests',
+]
+
+ltc_file_patterns = [
+    '**/*.kt',
+    '**/*.dart',
+    '**/*.rs',
+    '**/*.js',
+    '**/*.ts',
+]
+
+#    Base URL for source links (without the git ref — that is resolved at build time)
+ltc_repo_url = 'https://github.com/MinBZK/nl-wallet/blob'
+
+ltc_project_root = Path(__file__).parent.parent
+
+ltc_source_page = 'functional-design/logical-test-cases'
+
+ltc_pattern = r'LTC(?P<id>\d+)'
+
+ltc_covers_dirs = [
+    'functional-design/use-cases',
+    'functional-design/partial-flows',
+]

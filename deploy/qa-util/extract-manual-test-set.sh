@@ -19,21 +19,30 @@ BEGIN {
   print "# Manual Logical Test Cases\n"
 }
 
-/<!--[[:space:]]*Manual[[:space:]]*-->/ {
-  pending = 1
+/^###[[:space:]]+LTC[0-9]+/ {
+  buffer = $0 "\n"
+  is_manual = 0
+  in_section = 1
   next
 }
 
-pending && /^###[[:space:]]+LTC[0-9]+/ {
-  capture = 1
-  pending = 0
+in_section && /^%[[:space:]]*manual[[:space:]]*$/ {
+  is_manual = 1
+  next
 }
 
-capture {
-  print
-  if (/^---[[:space:]]*$/) {
-    print ""
-    capture = 0
+in_section && /^---[[:space:]]*$/ {
+  if (is_manual) {
+    printf "%s", buffer
+    print "---\n"
   }
+  buffer = ""
+  is_manual = 0
+  in_section = 0
+  next
+}
+
+in_section {
+  buffer = buffer $0 "\n"
 }
 ' "$in" > "$out"
