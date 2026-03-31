@@ -109,6 +109,7 @@ where
         .revoke_wallet_users(&tx, vec![wallet_user.id], revocation_reason, revocation_date_time)
         .await?;
 
+    // Commit transaction before updating status list
     tx.commit().await?;
 
     user_state
@@ -152,6 +153,7 @@ where
         .revoke_wallet_users(&tx, wallet_user_ids, revocation_reason, revocation_date_time)
         .await?;
 
+    // Commit transaction before updating status list
     tx.commit().await?;
 
     user_state
@@ -202,6 +204,7 @@ where
         )
         .await?;
 
+    // Commit transaction before updating status list
     tx.commit().await?;
 
     // Revoke WUA attestations of all successfully revoked wallets
