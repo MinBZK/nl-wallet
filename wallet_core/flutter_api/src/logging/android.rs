@@ -13,7 +13,7 @@ use tracing_subscriber::fmt::MakeWriter;
 const TAG: &CStr = cstr!("core");
 const DEFAULT_LEVEL: &tracing::Level = &tracing::Level::INFO;
 
-/// We need something that implements the [`WriterMaker`] trait in order to have different
+/// We need something that implements the [`MakeWriter`] trait in order to have different
 /// [`LogWriter`] instances per debug level.
 #[derive(Default)]
 pub struct WriterMaker();
@@ -37,7 +37,7 @@ impl<'a> MakeWriter<'a> for WriterMaker {
 
     fn make_writer(&'a self) -> Self::Writer {
         // This method may never get called (as there should normally be metadata present),
-        // but if it does, we should just pick a debug level ourselves.
+        // but if it is, we should just pick a debug level ourselves.
         self.writer(DEFAULT_LEVEL)
     }
 
@@ -65,7 +65,7 @@ impl io::Write for LogWriter<'_> {
             // Convert any resulting error to io::Error.
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
-        // Event though we implement flush() below, this does not seem to get called!
+        // Even though we implement flush() below, this does not seem to get called!
         // For that reason we just flush after every write, so the tracing statements
         // actually show up in the Android logs.
         self.0.flush();
