@@ -2,7 +2,7 @@ use tracing::instrument;
 
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::errors::AccountRevokedData;
@@ -127,7 +127,7 @@ where
 
         if let Some(session) = &self.session {
             return match session {
-                Session::OAuth { .. } | Session::Issuance(_) => Ok(WalletState::InIssuanceFlow),
+                Session::Issuance(_) => Ok(WalletState::InIssuanceFlow),
                 Session::Disclosure(_) | Session::CloseProximityDisclosure(_) => Ok(WalletState::InDisclosureFlow),
                 Session::PinRecovery { .. } => Ok(WalletState::InPinRecoveryFlow),
             };
@@ -152,9 +152,7 @@ where
 #[cfg(test)]
 #[expect(clippy::too_many_arguments)] // Doesn't work at `fn` level in combination with `rstest`
 mod tests {
-    use futures::FutureExt;
     use rstest::rstest;
-    use url::Url;
     use uuid::Uuid;
 
     use attestation_data::disclosure_type::DisclosureType;
@@ -162,32 +160,28 @@ mod tests {
     use jwe::algorithm::EcdhAlgorithm;
     use jwe::decryption::JweSecretKey;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
-    use openid4vc::issuance_session::IssuanceAuthFlow;
-    use openid4vc::issuance_session::IssuedCredential;
-    use openid4vc::mock::MockCredentialIssuer;
-    use openid4vc::mock::MockCredentialIssuerDiscovery;
-    use openid4vc::oauth::AuthorizationServerMetadata;
-    use openid4vc::oauth::HttpAuthorizationServer;
+    use openid4vc::wallet_issuance::credential::IssuedCredential;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
+    use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
+    use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
     use crate::BlockedReason;
     use crate::PidIssuancePurpose;
     use crate::TransferRole;
     use crate::WalletState;
     use crate::pin::change::State;
-    use crate::repository::Repository;
     use crate::storage::ChangePinData;
     use crate::storage::PinRecoveryData;
     use crate::storage::TransferData;
     use crate::storage::TransferKeyData;
-    use crate::wallet::PinRecoverySession;
     use crate::wallet::Session;
     use crate::wallet::WalletDisclosureSession;
     use crate::wallet::disclosure::RedirectUriPurpose;
     use crate::wallet::issuance::WalletIssuanceSession;
-    use crate::wallet::test::AUTH_URL;
+    use crate::wallet::pin_recovery::PinRecoverySession;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::create_example_pid_sd_jwt;
@@ -337,15 +331,15 @@ mod tests {
     }
 
     #[rstest]
-    #[case::digid(false, digid_session(), WalletState::InIssuanceFlow)]
+    #[case::digid(false, auth_session(), WalletState::InIssuanceFlow)]
     #[case::issuance(false, issuance_session(), WalletState::InIssuanceFlow)]
     #[case::disclosure(false, disclosure_session(), WalletState::InDisclosureFlow)]
     #[case::pin_recovery(false, pin_recovery_session(), WalletState::InPinRecoveryFlow)]
-    #[case::locked_digid(true, digid_session(), WalletState::InIssuanceFlow.lock())]
+    #[case::locked_digid(true, auth_session(), WalletState::InIssuanceFlow.lock())]
     #[tokio::test]
     async fn test_wallet_session(
         #[case] is_locked: bool,
-        #[case] session: Session<MockCredentialIssuerDiscovery, MockDisclosureSession>,
+        #[case] session: Session<MockIssuanceDiscovery, MockDisclosureSession>,
         #[case] expected_state: WalletState,
     ) {
         // Prepare a registered and unlocked wallet.
@@ -377,7 +371,7 @@ mod tests {
         Some(State::Begin),
         Some(empty_transfer_data()),
         Some(PinRecoveryData),
-        Some(digid_session()),
+        Some(auth_session()),
         WalletState::TransferPossible.lock(),
     )]
     #[case::check_transfer_first(
@@ -386,7 +380,7 @@ mod tests {
         Some(State::Begin),
         Some(empty_transfer_data()),
         Some(PinRecoveryData),
-        Some(digid_session()),
+        Some(auth_session()),
         WalletState::TransferPossible
     )]
     #[case::check_transfer_first_empty(
@@ -395,7 +389,7 @@ mod tests {
         Some(State::Begin),
         Some(empty_transfer_data()),
         Some(PinRecoveryData),
-        Some(digid_session()),
+        Some(auth_session()),
         WalletState::TransferPossible
     )]
     #[case::check_session_second(
@@ -404,7 +398,7 @@ mod tests {
         Some(State::Begin),
         None,
         Some(PinRecoveryData),
-        Some(digid_session()),
+        Some(auth_session()),
         WalletState::InIssuanceFlow
     )]
     #[case::check_session_second_empty(
@@ -413,7 +407,7 @@ mod tests {
         Some(State::Begin),
         None,
         Some(PinRecoveryData),
-        Some(digid_session()),
+        Some(auth_session()),
         WalletState::InIssuanceFlow
     )]
     #[case::check_pin_recovery_third(
@@ -453,7 +447,7 @@ mod tests {
         #[case] change_pin_data: Option<impl Into<ChangePinData>>,
         #[case] transfer_data: Option<TransferData>,
         #[case] pin_recovery_data: Option<PinRecoveryData>,
-        #[case] session: Option<Session<MockCredentialIssuerDiscovery, MockDisclosureSession>>,
+        #[case] session: Option<Session<MockIssuanceDiscovery, MockDisclosureSession>>,
         #[case] expected_state: WalletState,
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -548,26 +542,14 @@ mod tests {
         }
     }
 
-    fn create_stub_authorization_server() -> HttpAuthorizationServer {
-        HttpAuthorizationServer::try_new(
-            AuthorizationServerMetadata::new_with_auth_url(AUTH_URL),
-            "client_id".to_string(),
-            Url::parse(AUTH_URL).unwrap(),
-        )
-        .unwrap()
-    }
-
-    fn digid_session() -> Session<MockCredentialIssuerDiscovery, MockDisclosureSession> {
-        Session::OAuth {
+    fn auth_session() -> Session<MockIssuanceDiscovery, MockDisclosureSession> {
+        Session::Issuance(WalletIssuanceSession::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
-            auth_flow: Box::new(IssuanceAuthFlow::from_parts(
-                create_stub_authorization_server(),
-                MockCredentialIssuer::new(),
-            )),
-        }
+            authorization_session: Box::new(MockAuthorizationSession::new()),
+        })
     }
 
-    fn issuance_session() -> Session<MockCredentialIssuerDiscovery, MockDisclosureSession> {
+    fn issuance_session() -> Session<MockIssuanceDiscovery, MockDisclosureSession> {
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
@@ -579,14 +561,14 @@ mod tests {
             String::from(PID_ATTESTATION_TYPE),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
-        Session::Issuance(WalletIssuanceSession::new(
-            Some(PidIssuancePurpose::Enrollment),
-            attestations,
-            pid_issuer,
-        ))
+        Session::Issuance(WalletIssuanceSession::Issuance {
+            pid_purpose: Some(PidIssuancePurpose::Enrollment),
+            preview_attestations: attestations,
+            protocol_state: Box::new(pid_issuer),
+        })
     }
 
-    fn disclosure_session() -> Session<MockCredentialIssuerDiscovery, MockDisclosureSession> {
+    fn disclosure_session() -> Session<MockIssuanceDiscovery, MockDisclosureSession> {
         Session::Disclosure(WalletDisclosureSession::new_missing_attributes(
             RedirectUriPurpose::Browser,
             DisclosureType::Regular,
@@ -594,18 +576,14 @@ mod tests {
         ))
     }
 
-    fn pin_recovery_session() -> Session<MockCredentialIssuerDiscovery, MockDisclosureSession> {
-        let wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple)
-            .now_or_never()
-            .unwrap();
-
+    fn pin_recovery_session() -> Session<MockIssuanceDiscovery, MockDisclosureSession> {
         Session::PinRecovery {
-            pid_config: wallet.config_repository.get().pid_attributes.clone(),
+            pid_config: PidAttributesConfiguration {
+                mso_mdoc: Default::default(),
+                sd_jwt: Default::default(),
+            },
             session: PinRecoverySession::OAuth {
-                auth_flow: Box::new(IssuanceAuthFlow::from_parts(
-                    create_stub_authorization_server(),
-                    MockCredentialIssuer::new(),
-                )),
+                authorization_session: Box::new(MockAuthorizationSession::new()),
             },
         }
     }

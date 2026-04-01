@@ -1,0 +1,108 @@
+use attestation_data::auth::Organization;
+use http_utils::reqwest::HttpJsonClient;
+use rustls_pki_types::TrustAnchor;
+use url::Url;
+
+use crate::credential::CredentialOffer;
+use crate::issuer_identifier::IssuerIdentifier;
+use crate::metadata::issuer_metadata::IssuerMetadata;
+use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
+use crate::metadata::well_known;
+use crate::metadata::well_known::WellKnownPath;
+use crate::pkce::S256PkcePair;
+use crate::token::TokenRequest;
+use crate::token::TokenRequestGrantType;
+use crate::wallet_issuance::IssuanceDiscovery;
+use crate::wallet_issuance::WalletIssuanceError;
+use crate::wallet_issuance::authorization::HttpAuthorizationSession;
+use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
+use crate::wallet_issuance::issuance_session::HttpVcMessageClient;
+
+pub struct HttpIssuanceDiscovery {
+    http_client: HttpJsonClient,
+}
+
+impl HttpIssuanceDiscovery {
+    pub fn new(http_client: HttpJsonClient) -> Self {
+        Self { http_client }
+    }
+}
+
+impl IssuanceDiscovery for HttpIssuanceDiscovery {
+    type Authorization = HttpAuthorizationSession<S256PkcePair>;
+    type Issuance = HttpIssuanceSession;
+
+    async fn start_authorization_code_flow(
+        &self,
+        credential_issuer: &IssuerIdentifier,
+        client_id: String,
+        redirect_uri: Url,
+    ) -> Result<Self::Authorization, WalletIssuanceError> {
+        let (issuer_metadata, oauth_metadata) = self.fetch_metadata(credential_issuer).await?;
+
+        let session = HttpAuthorizationSession::try_new(
+            self.http_client.clone(),
+            issuer_metadata,
+            oauth_metadata,
+            client_id,
+            redirect_uri,
+        )?;
+        Ok(session)
+    }
+
+    async fn start_pre_authorized_code_flow(
+        &self,
+        credential_offer: CredentialOffer,
+        client_id: String,
+        trust_anchors: &[TrustAnchor<'_>],
+        organization: Box<Organization>,
+    ) -> Result<Self::Issuance, WalletIssuanceError> {
+        let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer.credential_issuer).await?;
+
+        let pre_authorized_code = credential_offer
+            .grants
+            .ok_or(WalletIssuanceError::MissingGrants(organization.clone()))?
+            .authorization_code()
+            .ok_or(WalletIssuanceError::MissingPreAuthorizedCodeGrant(organization.clone()))?;
+
+        let token_request = TokenRequest {
+            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+            code_verifier: None,
+            client_id: Some(client_id),
+            redirect_uri: None,
+        };
+
+        let message_client = HttpVcMessageClient::new(self.http_client.clone());
+
+        HttpIssuanceSession::start_issuance_inner(
+            message_client,
+            issuer_metadata,
+            oauth_metadata.token_endpoint,
+            token_request,
+            trust_anchors,
+        )
+        .await
+    }
+}
+
+impl HttpIssuanceDiscovery {
+    async fn fetch_metadata(
+        &self,
+        credential_issuer: &IssuerIdentifier,
+    ) -> Result<(IssuerMetadata, AuthorizationServerMetadata), WalletIssuanceError> {
+        let issuer_metadata: IssuerMetadata =
+            well_known::fetch_well_known(&self.http_client, credential_issuer, WellKnownPath::CredentialIssuer)
+                .await
+                .map_err(WalletIssuanceError::CredentialIssuerDiscovery)?;
+
+        // Note: the spec allows multiple authorization servers, but we currently only support one.
+        let auth_server = issuer_metadata.authorization_servers().into_first();
+
+        let oauth_metadata: AuthorizationServerMetadata =
+            well_known::fetch_well_known(&self.http_client, auth_server, WellKnownPath::OauthAuthorizationServer)
+                .await
+                .map_err(WalletIssuanceError::OauthDiscovery)?;
+
+        Ok((issuer_metadata, oauth_metadata))
+    }
+}

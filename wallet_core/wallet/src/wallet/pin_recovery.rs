@@ -11,12 +11,12 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::urls;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::CredentialIssuer;
-use openid4vc::issuance_session::IssuanceAuthFlow;
-use openid4vc::issuance_session::IssuanceDiscovery;
-use openid4vc::issuance_session::IssuanceSession;
-use openid4vc::issuance_session::IssuedCredential;
-use openid4vc::oauth::OAuthError;
+use openid4vc::wallet_issuance::AuthorizationSession;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceSession;
+use openid4vc::wallet_issuance::WalletIssuanceError;
+use openid4vc::wallet_issuance::authorization::OAuthError;
+use openid4vc::wallet_issuance::credential::IssuedCredential;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
@@ -111,13 +111,13 @@ impl From<OAuthError> for PinRecoveryError {
 }
 
 #[derive(Debug)]
-pub(super) enum PinRecoverySession<CID: IssuanceDiscovery> {
+pub enum PinRecoverySession<CID: IssuanceDiscovery> {
     OAuth {
-        auth_flow: Box<IssuanceAuthFlow<CID::Issuer>>,
+        authorization_session: Box<CID::Authorization>,
     },
     Issuance {
         pid_attestation_type: String,
-        issuance_session: Box<<CID::Issuer as CredentialIssuer>::Session>,
+        issuance_session: Box<CID::Issuance>,
     },
 }
 
@@ -167,25 +167,22 @@ where
         // No need to check if a `PinRecoveryData` is already stored: we can always start PIN recovery again.
 
         info!("Fetching issuer metadata to discover authorization server");
-        let discovered = self
-            .credential_issuer_discovery
-            .discover(&config.pid_issuance.url)
+        let authorization_session = self
+            .issuance_discovery
+            .start_authorization_code_flow(
+                &config.pid_issuance.url,
+                config.pid_issuance.client_id.clone(),
+                urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
+            )
             .await
             .map_err(IssuanceError::IssuanceSession)?;
 
-        let auth_flow = IssuanceAuthFlow::try_new(
-            discovered,
-            config.pid_issuance.client_id.clone(),
-            urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
-        )
-        .map_err(IssuanceError::AuthSessionStart)?;
-
         info!("PIN recovery DigiD auth URL generated");
-        let auth_url = auth_flow.auth_url().clone();
+        let auth_url = authorization_session.auth_url().clone();
         self.session.replace(Session::PinRecovery {
             pid_config: config.pid_attributes.clone(),
             session: PinRecoverySession::OAuth {
-                auth_flow: Box::new(auth_flow),
+                authorization_session: Box::new(authorization_session),
             },
         });
 
@@ -209,7 +206,7 @@ where
 
         // Don't check if wallet is locked since PIN recovery is allowed in that case
 
-        info!("Checking if there is an active DigiD issuance session");
+        info!("Checking if there is an active PIN recovery session");
         if !matches!(
             self.session,
             Some(Session::PinRecovery {
@@ -221,31 +218,35 @@ where
         }
 
         let Some(Session::PinRecovery {
-            session: PinRecoverySession::OAuth { auth_flow },
-            pid_config,
+            session: PinRecoverySession::OAuth { authorization_session },
+            ..
         }) = self.session.take()
         else {
-            unreachable!("session contained no PinRecoveryDigid"); // we just checked this above
+            unreachable!("session contained no PinRecovery OAuth session"); // we just checked this above
         };
 
         // Fetch issuance previews
         let config = self.config_repository.get();
-        let (token_request, issuer) = auth_flow.into_token_request(&redirect_uri)?;
-        let issuance_session = issuer
-            .start_issuance(token_request, &config.issuer_trust_anchors())
+        let issuance_session = authorization_session
+            .start_issuance(&redirect_uri, &config.issuer_trust_anchors())
             .await
-            .map_err(IssuanceError::from)?;
+            .map_err(|e| match e {
+                WalletIssuanceError::OAuth(OAuthError::Denied) => PinRecoveryError::DeniedDigiD,
+                WalletIssuanceError::OAuth(e) => PinRecoveryError::Issuance(IssuanceError::AuthSessionFinish(e)),
+                e => PinRecoveryError::Issuance(IssuanceError::IssuanceSession(e)),
+            })?;
 
         info!("successfully received token and previews from issuer");
 
         // Check the recovery code in the received PID against the one in the stored PID, as otherwise
         // the WP will reject our PIN recovery instructions.
-        let pid_preview = Self::pid_preview(issuance_session.normalized_credential_preview(), &pid_config)?;
-        self.compare_recovery_code_against_stored(pid_preview, &pid_config)
+        let pid_config = &config.pid_attributes;
+        let pid_preview = Self::pid_preview(issuance_session.normalized_credential_preview(), pid_config)?;
+        self.compare_recovery_code_against_stored(pid_preview, pid_config)
             .await?;
 
         self.session.replace(Session::PinRecovery {
-            pid_config,
+            pid_config: pid_config.clone(),
             session: PinRecoverySession::Issuance {
                 pid_attestation_type: pid_preview.content.credential_payload.attestation_type.clone(),
                 issuance_session: Box::new(issuance_session),
@@ -489,11 +490,11 @@ mod tests {
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use jwt::UnverifiedJwt;
     use openid4vc::Format;
-    use openid4vc::issuance_session::IssuanceAuthFlow;
-    use openid4vc::issuance_session::IssuedCredential;
-    use openid4vc::mock::MockCredentialIssuer;
-    use openid4vc::mock::MockIssuanceSession;
-    use openid4vc::oauth::AuthorizationServerMetadata;
+    use openid4vc::wallet_issuance::WalletIssuanceError;
+    use openid4vc::wallet_issuance::authorization::OAuthError;
+    use openid4vc::wallet_issuance::credential::IssuedCredential;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
+    use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
@@ -501,6 +502,7 @@ mod tests {
     use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::registration::WalletCertificateClaims;
+    use wallet_configuration::wallet_config::PidAttributesConfiguration;
     use wscd::Poa;
     use wscd::wscd::IssuanceWscd;
 
@@ -513,42 +515,30 @@ mod tests {
     use crate::storage::RegistrationData;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
-    use crate::wallet::PinRecoverySession;
     use crate::wallet::Session;
     use crate::wallet::recovery_code::RecoveryCodeError;
     use crate::wallet::test::AUTH_URL;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
-    use crate::wallet::test::create_authorization_server;
+    use crate::wallet::test::create_authorization_sesession;
     use crate::wallet::test::create_example_pid_preview_data;
     use crate::wallet::test::create_example_pid_sd_jwt;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::mock_issuance_session;
 
     use super::PinRecoveryError;
+    use super::PinRecoverySession;
 
     fn setup_issuer_metadata_mock(wallet: &mut TestWalletMockStorage) {
-        let config = wallet.config_repository.get();
-        let issuer_identifier = config.pid_issuance.url.clone();
-        let issuer_metadata = openid4vc::issuer_metadata::IssuerMetadata::new_mock(issuer_identifier.clone(), "pid");
-
         wallet
-            .credential_issuer_discovery
-            .expect_discover_sync()
-            .return_once(move |_| {
-                let mut issuer = MockCredentialIssuer::new();
-                issuer.expect_get_metadata().return_const(issuer_metadata.clone());
-                issuer
-                    .expect_get_oauth_metadata()
-                    .return_const(AuthorizationServerMetadata {
-                        authorization_endpoint: Some(Url::parse(AUTH_URL).unwrap()),
-                        jwks_uri: Some(Url::parse(AUTH_URL).unwrap()),
-                        ..AuthorizationServerMetadata::new(
-                            "http://example.com".parse().unwrap(),
-                            Url::parse(AUTH_URL).unwrap(),
-                        )
-                    });
-                Ok(issuer)
+            .issuance_discovery
+            .expect_start_authorization_code_flow_sync()
+            .return_once(|| {
+                let mut session = MockAuthorizationSession::new();
+                session
+                    .expect_get_auth_url()
+                    .return_const(Url::parse(AUTH_URL).unwrap());
+                Ok(session)
             });
     }
 
@@ -582,10 +572,10 @@ mod tests {
     pub async fn continue_pin_recovery() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let (authorization_server, redirect_uri) = create_authorization_server(AUTH_URL);
+        let (_, redirect_uri) = create_authorization_sesession(AUTH_URL);
 
-        let mut discovered = MockCredentialIssuer::new();
-        discovered.expect_start().return_once(|_| {
+        let mut authorization_session = MockAuthorizationSession::new();
+        authorization_session.expect_start_issuance_sync().return_once(|| {
             let mut client = MockIssuanceSession::new();
 
             client
@@ -602,9 +592,12 @@ mod tests {
         });
 
         wallet.session = Some(Session::PinRecovery {
-            pid_config: wallet.config_repository.get().pid_attributes.clone(),
+            pid_config: PidAttributesConfiguration {
+                mso_mdoc: Default::default(),
+                sd_jwt: Default::default(),
+            },
             session: PinRecoverySession::OAuth {
-                auth_flow: Box::new(IssuanceAuthFlow::from_parts(authorization_server, discovered)),
+                authorization_session: Box::new(authorization_session),
             },
         });
 
@@ -784,15 +777,18 @@ mod tests {
     async fn continue_pid_recovery_user_refused() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let (authorization_server, _) = create_authorization_server(AUTH_URL);
+        let mut authorization_session = MockAuthorizationSession::new();
+        authorization_session
+            .expect_start_issuance_sync()
+            .return_once(|| Err(WalletIssuanceError::OAuth(OAuthError::Denied)));
 
         wallet.session = Some(Session::PinRecovery {
-            pid_config: wallet.config_repository.get().pid_attributes.clone(),
+            pid_config: PidAttributesConfiguration {
+                mso_mdoc: Default::default(),
+                sd_jwt: Default::default(),
+            },
             session: PinRecoverySession::OAuth {
-                auth_flow: Box::new(IssuanceAuthFlow::from_parts(
-                    authorization_server,
-                    MockCredentialIssuer::new(),
-                )),
+                authorization_session: Box::new(authorization_session),
             },
         });
 
@@ -807,10 +803,10 @@ mod tests {
     pub async fn continue_pin_recovery_received_no_recovery_code() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let (authorization_server, redirect_uri) = create_authorization_server(AUTH_URL);
+        let (_, redirect_uri) = create_authorization_sesession(AUTH_URL);
 
-        let mut discovered = MockCredentialIssuer::new();
-        discovered.expect_start().return_once(|_| {
+        let mut authorization_session = MockAuthorizationSession::new();
+        authorization_session.expect_start_issuance_sync().return_once(|| {
             let mut client = MockIssuanceSession::new();
 
             // Remove the recovery code attribute from the preview
@@ -832,9 +828,12 @@ mod tests {
         });
 
         wallet.session = Some(Session::PinRecovery {
-            pid_config: wallet.config_repository.get().pid_attributes.clone(),
+            pid_config: PidAttributesConfiguration {
+                mso_mdoc: Default::default(),
+                sd_jwt: Default::default(),
+            },
             session: PinRecoverySession::OAuth {
-                auth_flow: Box::new(IssuanceAuthFlow::from_parts(authorization_server, discovered)),
+                authorization_session: Box::new(authorization_session),
             },
         });
 
@@ -850,36 +849,42 @@ mod tests {
     pub async fn continue_pin_recovery_received_wrong_recovery_code() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let (authorization_server, redirect_uri) = create_authorization_server(AUTH_URL);
+        let (_, redirect_uri) = create_authorization_sesession(AUTH_URL);
 
-        let mut discovered = MockCredentialIssuer::new();
-        discovered.expect_start().once().return_once(move |_| {
-            let mut client = MockIssuanceSession::new();
+        let mut authorization_session = MockAuthorizationSession::new();
+        authorization_session
+            .expect_start_issuance_sync()
+            .once()
+            .return_once(|| {
+                let mut client = MockIssuanceSession::new();
 
-            // Change the recovery code attribute from the preview
-            let mut preview = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
+                // Change the recovery code attribute from the preview
+                let mut preview = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
 
-            let attributes = &mut preview.content.credential_payload.attributes;
-            attributes.prune(&[vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]]);
-            attributes
-                .insert(
-                    &vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
-                    Attribute::Single(AttributeValue::Text("wrong recovery code".to_string())),
-                )
-                .unwrap();
+                let attributes = &mut preview.content.credential_payload.attributes;
+                attributes.prune(&[vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]]);
+                attributes
+                    .insert(
+                        &vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
+                        Attribute::Single(AttributeValue::Text("wrong recovery code".to_string())),
+                    )
+                    .unwrap();
 
-            client
-                .expect_normalized_credential_previews()
-                .once()
-                .return_const(vec![preview]);
+                client
+                    .expect_normalized_credential_previews()
+                    .once()
+                    .return_const(vec![preview]);
 
-            Ok(client)
-        });
+                Ok(client)
+            });
 
         wallet.session = Some(Session::PinRecovery {
-            pid_config: wallet.config_repository.get().pid_attributes.clone(),
+            pid_config: PidAttributesConfiguration {
+                mso_mdoc: Default::default(),
+                sd_jwt: Default::default(),
+            },
             session: PinRecoverySession::OAuth {
-                auth_flow: Box::new(IssuanceAuthFlow::from_parts(authorization_server, discovered)),
+                authorization_session: Box::new(authorization_session),
             },
         });
 

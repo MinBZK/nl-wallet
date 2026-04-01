@@ -8,7 +8,7 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::urls;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
 
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -16,8 +16,9 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::PidIssuancePurpose;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::repository::Repository;
-use crate::wallet::PinRecoverySession;
 use crate::wallet::Session;
+use crate::wallet::issuance::WalletIssuanceSession;
+use crate::wallet::pin_recovery::PinRecoverySession;
 
 use super::Wallet;
 
@@ -84,10 +85,10 @@ where
             Some(UriType::PidIssuance)
                 if matches!(
                     self.session,
-                    Some(Session::OAuth {
+                    Some(Session::Issuance(WalletIssuanceSession::OAuth {
                         purpose: PidIssuancePurpose::Enrollment,
                         ..
-                    }),
+                    })),
                 ) =>
             {
                 UriType::PidIssuance
@@ -95,10 +96,10 @@ where
             Some(UriType::PidIssuance)
                 if matches!(
                     self.session,
-                    Some(Session::OAuth {
+                    Some(Session::Issuance(WalletIssuanceSession::OAuth {
                         purpose: PidIssuancePurpose::Renewal,
                         ..
-                    }),
+                    })),
                 ) =>
             {
                 UriType::PidRenewal
@@ -130,14 +131,11 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use url::Url;
 
-    use openid4vc::issuance_session::IssuanceAuthFlow;
-    use openid4vc::oauth::AuthorizationServerMetadata;
-    use openid4vc::oauth::HttpAuthorizationServer;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
 
     use crate::config::UNIVERSAL_LINK_BASE_URL;
-    use crate::wallet::test::AUTH_URL;
+    use crate::wallet::issuance::WalletIssuanceSession;
 
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
@@ -174,42 +172,20 @@ mod tests {
             UriIdentificationError::Unknown(uri) if uri.as_str() == digid_uri
         );
 
-        let make_stub_authorization_server = || -> HttpAuthorizationServer {
-            HttpAuthorizationServer::try_new(
-                AuthorizationServerMetadata {
-                    authorization_endpoint: Some(Url::parse(AUTH_URL).unwrap()),
-                    jwks_uri: Some(Url::parse(AUTH_URL).unwrap()),
-                    ..AuthorizationServerMetadata::new(
-                        "http://example.com".parse().unwrap(),
-                        Url::parse(AUTH_URL).unwrap(),
-                    )
-                },
-                "client_id".to_string(),
-                Url::parse(AUTH_URL).unwrap(),
-            )
-            .unwrap()
-        };
-
         // Set up an enrollment `DigidSession` that will match the URI.
-        wallet.session = Some(Session::OAuth {
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
-            auth_flow: Box::new(IssuanceAuthFlow::from_parts(
-                make_stub_authorization_server(),
-                openid4vc::mock::MockCredentialIssuer::new(),
-            )),
-        });
+            authorization_session: Box::new(MockAuthorizationSession::new()),
+        }));
 
         // The wallet should now recognise the DigiD URI.
         assert_matches!(wallet.identify_uri(digid_uri).unwrap(), UriType::PidIssuance);
 
         // Set up a PID renewal `DigidSession` that will match the URI.
-        wallet.session = Some(Session::OAuth {
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
             purpose: PidIssuancePurpose::Renewal,
-            auth_flow: Box::new(IssuanceAuthFlow::from_parts(
-                make_stub_authorization_server(),
-                openid4vc::mock::MockCredentialIssuer::new(),
-            )),
-        });
+            authorization_session: Box::new(MockAuthorizationSession::new()),
+        }));
 
         // The wallet should now recognise the DigiD URI.
         assert_matches!(wallet.identify_uri(digid_uri).unwrap(), UriType::PidRenewal);

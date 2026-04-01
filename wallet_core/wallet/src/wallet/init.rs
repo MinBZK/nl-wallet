@@ -15,8 +15,8 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
-use openid4vc::issuance_session::HttpIssuanceDiscovery;
-use openid4vc::issuance_session::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use platform_support::utils::PlatformUtilities;
@@ -234,7 +234,7 @@ where
             key_holder,
             registration,
             account_provider_client: Arc::new(wallet_clients.account_provider_client),
-            credential_issuer_discovery,
+            issuance_discovery: credential_issuer_discovery,
             disclosure_client: wallet_clients.disclosure_client,
             close_proximity_disclosure: PhantomData,
             status_list_client: Arc::new(wallet_clients.status_list_client),

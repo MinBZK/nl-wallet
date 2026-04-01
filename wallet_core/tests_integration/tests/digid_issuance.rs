@@ -9,12 +9,10 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-use openid4vc::issuance_session::CredentialIssuer;
-use openid4vc::issuance_session::HttpIssuanceDiscovery;
-use openid4vc::issuance_session::IssuanceDiscovery;
-use openid4vc::issuance_session::IssuanceSession;
-use openid4vc::oauth::AuthorizationServer;
-use openid4vc::oauth::HttpAuthorizationServer;
+use openid4vc::wallet_issuance::AuthorizationSession;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceSession;
+use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
 use server_utils::keys::SecretKeyVariant;
@@ -81,34 +79,33 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
 
     let wallet_config = default_wallet_config();
 
-    // Discover the credential issuer and authorization server URL from issuer metadata
+    // Discover the credential issuer and start authorization code flow
     let http_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
     let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_client);
-    let credential_issuer = credential_issuer_discovery.discover(&issuer_url.public).await.unwrap();
-    // Prepare DigiD flow
     let redirect_uri = urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap())
         .as_ref()
         .clone();
 
-    let authorization_server: HttpAuthorizationServer = HttpAuthorizationServer::try_new(
-        credential_issuer.oauth_metadata().clone(),
-        wallet_config.pid_issuance.client_id.clone(),
-        redirect_uri,
-    )
-    .unwrap();
+    let authorization_session = credential_issuer_discovery
+        .start_authorization_code_flow(
+            &issuer_url.public,
+            wallet_config.pid_issuance.client_id.clone(),
+            redirect_uri,
+        )
+        .await
+        .unwrap();
 
     // Do fake DigiD authentication and parse the access token out of the redirect URL
     let redirect_url = fake_digid_auth(
-        authorization_server.auth_url.clone(),
+        authorization_session.auth_url().clone(),
         settings.digid.http_config.base_url().clone(),
         "999991772",
     )
     .await;
-    let token_request = authorization_server.into_token_request(&redirect_url).unwrap();
 
     // Start issuance by exchanging the authorization code for the attestation previews
-    let issuance_session = credential_issuer
-        .start_issuance(token_request, &wallet_config.issuer_trust_anchors())
+    let issuance_session = authorization_session
+        .start_issuance(&redirect_url, &wallet_config.issuer_trust_anchors())
         .await
         .unwrap();
 

@@ -7,7 +7,7 @@ use tracing::warn;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
 
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -139,7 +139,7 @@ where
 mod tests {
     use assert_matches::assert_matches;
 
-    use openid4vc::mock::MockIssuanceSession;
+    use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use utils::vec_nonempty;
 
     use crate::PidIssuancePurpose;
@@ -202,11 +202,11 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_reset_full() {
         let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
-            Some(PidIssuancePurpose::Enrollment),
-            vec_nonempty![AttestationPresentation::new_mock()],
-            MockIssuanceSession::default(),
-        )));
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
+            pid_purpose: Some(PidIssuancePurpose::Enrollment),
+            preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
+            protocol_state: Box::new(MockIssuanceSession::default()),
+        }));
 
         wallet
             .reset()

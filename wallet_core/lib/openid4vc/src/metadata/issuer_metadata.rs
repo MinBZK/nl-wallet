@@ -30,7 +30,7 @@ use crate::issuer_identifier::IssuerUrl;
 use crate::jose::JwsAlgorithm;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
-use crate::well_known::WellKnownMetadata;
+use crate::metadata::well_known::WellKnownMetadata;
 
 /// Credential issuer metadata, as per
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4>.

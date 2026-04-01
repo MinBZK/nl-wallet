@@ -5,7 +5,7 @@ use attestation_data::attributes::Attributes;
 use attestation_data::issuable_document::IssuableDocument;
 use db_test::DbSetup;
 use openid4vc::ErrorResponse;
-use openid4vc::issuance_session::IssuanceSessionError;
+use openid4vc::wallet_issuance::WalletIssuanceError;
 use pid_issuer::pid::constants::PID_ADDRESS_GROUP;
 use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
 use pid_issuer::pid::constants::PID_BIRTH_DATE;
@@ -234,7 +234,7 @@ async fn ltc2_test_pid_missing_required_attributes() {
     assert_matches!(
         &error,
         IssuanceError::IssuerServer {
-            error: IssuanceSessionError::CredentialRequest(response),
+            error: WalletIssuanceError::CredentialRequest(response),
             ..
         } if matches!(
             response.as_ref(),

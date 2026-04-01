@@ -34,10 +34,8 @@ use tokio::task::JoinHandle;
 
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
-use openid4vc::issuance_session::CredentialIssuer;
-use openid4vc::issuance_session::HttpIssuanceDiscovery;
-use openid4vc::issuance_session::IssuanceAuthFlow;
-use openid4vc::issuance_session::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::hardware::HardwareCloseProximityDisclosureClient;
@@ -128,11 +126,7 @@ impl<A, G> WalletRegistration<A, G> {
 
 #[derive(Debug)]
 enum Session<CID: IssuanceDiscovery, DCS> {
-    OAuth {
-        purpose: PidIssuancePurpose,
-        auth_flow: Box<IssuanceAuthFlow<CID::Issuer>>,
-    },
-    Issuance(WalletIssuanceSession<<CID::Issuer as CredentialIssuer>::Session>),
+    Issuance(WalletIssuanceSession<CID>),
     Disclosure(WalletDisclosureSession<DCS>),
     CloseProximityDisclosure(CloseProximityDisclosureSession),
     PinRecovery {
@@ -147,7 +141,7 @@ pub struct Wallet<
     S = DatabaseStorage<HardwareEncryptionKey>,   // Storage
     AKH = KeyHolderType,                          // AttestedKeyHolder
     APC = HttpAccountProviderClient,              // AccountProviderClient
-    CID = HttpIssuanceDiscovery,                  // CredentialIssuerDiscovery
+    CID = HttpIssuanceDiscovery,                  // IssuanceDiscovery
     DCC = VpDisclosureClient,                     // DisclosureClient
     CPC = HardwareCloseProximityDisclosureClient, // CloseProximityDisclosureClient
     SLC = HttpStatusListClient,                   // StatusListClient,
@@ -162,7 +156,7 @@ pub struct Wallet<
     key_holder: AKH,
     registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,
     account_provider_client: Arc<APC>,
-    credential_issuer_discovery: CID,
+    issuance_discovery: CID,
     disclosure_client: DCC,
     close_proximity_disclosure: PhantomData<CPC>,
     status_list_client: Arc<SLC>,

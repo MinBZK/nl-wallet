@@ -13,7 +13,7 @@ use jwe::decryption::JweDecrypterError;
 use jwe::decryption::JweSecretKey;
 use jwe::encryption::JweEncrypterError;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
 
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
@@ -470,13 +470,10 @@ mod tests {
     use assert_matches::assert_matches;
     use parking_lot::Mutex;
     use url::Host;
-    use url::Url;
     use uuid::Uuid;
 
     use crypto::utils::random_bytes;
-    use openid4vc::issuance_session::IssuanceAuthFlow;
-    use openid4vc::oauth::AuthorizationServerMetadata;
-    use openid4vc::oauth::HttpAuthorizationServer;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use wallet_account::messages::errors::AccountError;
     use wallet_account::messages::instructions::HwSignedInstruction;
     use wallet_account::messages::instructions::Instruction;
@@ -490,7 +487,7 @@ mod tests {
     use crate::storage::InstructionData;
     use crate::storage::test::SqlCipherKey;
     use crate::wallet::Session;
-    use crate::wallet::test::AUTH_URL;
+    use crate::wallet::issuance::WalletIssuanceSession;
     use crate::wallet::test::create_wp_result;
 
     use super::super::test::TestWalletInMemoryStorage;
@@ -539,19 +536,10 @@ mod tests {
     #[tokio::test]
     async fn test_transfer_error_issuance_session_active() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let stub_authorization_server = HttpAuthorizationServer::try_new(
-            AuthorizationServerMetadata::new_with_auth_url(AUTH_URL),
-            "client_id".to_string(),
-            Url::parse(AUTH_URL).unwrap(),
-        )
-        .unwrap();
-        wallet.session = Some(Session::OAuth {
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
-            auth_flow: Box::new(IssuanceAuthFlow::from_parts(
-                stub_authorization_server,
-                openid4vc::mock::MockCredentialIssuer::new(),
-            )),
-        });
+            authorization_session: Box::new(MockAuthorizationSession::new()),
+        }));
 
         let error = wallet
             .validate_transfer_allowed()

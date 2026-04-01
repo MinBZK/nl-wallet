@@ -33,20 +33,15 @@ use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
 use openid4vc::credential::CredentialResponses;
 use openid4vc::dpop::Dpop;
-use openid4vc::issuance_session::HttpIssuanceSession;
-use openid4vc::issuance_session::IssuanceSession;
-use openid4vc::issuance_session::IssuanceSessionError;
-use openid4vc::issuance_session::IssuedCredential;
-use openid4vc::issuance_session::VcMessageClient;
 use openid4vc::issuer::AttestationTypeConfig;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WuaConfig;
 use openid4vc::issuer_identifier::IssuerIdentifier;
+use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::nonce::memory_store::MemoryNonceStore;
-use openid4vc::oauth::AuthorizationServerMetadata;
 use openid4vc::preview::CredentialPreviewRequest;
 use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::MemorySessionStore;
@@ -55,6 +50,11 @@ use openid4vc::server_state::test::test_memory_store_with_cleanup_task;
 use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponse;
+use openid4vc::wallet_issuance::IssuanceSession;
+use openid4vc::wallet_issuance::WalletIssuanceError;
+use openid4vc::wallet_issuance::credential::IssuedCredential;
+use openid4vc::wallet_issuance::issuance_session::HttpIssuanceSession;
+use openid4vc::wallet_issuance::issuance_session::VcMessageClient;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
@@ -228,7 +228,7 @@ async fn start_and_accept_err(
     issuer_identifier: IssuerIdentifier,
     trust_anchor: TrustAnchor<'static>,
     wua_issuer_privkey: SigningKey,
-) -> IssuanceSessionError {
+) -> WalletIssuanceError {
     let trust_anchors = &[trust_anchor];
     let issuer_metadata = message_client.issuer.metadata().clone();
     let token_endpoint = AuthorizationServerMetadata::new_mock(issuer_identifier).token_endpoint;
@@ -258,7 +258,7 @@ async fn wrong_access_token() {
     let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
     assert_matches!(
         result,
-        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidToken)
+        WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidToken)
     );
 }
 
@@ -273,7 +273,7 @@ async fn invalid_dpop() {
     let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
     assert_matches!(
         result,
-        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
+        WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
     );
 }
 
@@ -288,7 +288,7 @@ async fn invalid_pop() {
     let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
     assert!(matches!(
         result,
-        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
+        WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
     ));
 }
 
@@ -303,7 +303,7 @@ async fn invalid_poa() {
     let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
     assert_matches!(
         result,
-        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
+        WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
     );
 }
 
@@ -318,7 +318,7 @@ async fn no_poa() {
     let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
     assert_matches!(
         result,
-        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
+        WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
     );
 }
 
@@ -333,7 +333,7 @@ async fn no_wua() {
     let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
     assert_matches!(
         result,
-        IssuanceSessionError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
+        WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
     );
 }
 
@@ -485,12 +485,12 @@ impl VcMessageClient for MockOpenidMessageClient {
         _url: &Url,
         token_request: &TokenRequest,
         dpop_header: &Dpop,
-    ) -> Result<(TokenResponse, Option<String>), IssuanceSessionError> {
+    ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError> {
         let (token_response, dpop_nonce) = self
             .issuer
             .process_token_request(token_request.clone(), dpop_header.clone())
             .await
-            .map_err(|err| IssuanceSessionError::TokenRequest(Box::new(err.into())))?;
+            .map_err(|err| WalletIssuanceError::TokenRequest(Box::new(err.into())))?;
         Ok((token_response, Some(dpop_nonce)))
     }
 
@@ -499,11 +499,11 @@ impl VcMessageClient for MockOpenidMessageClient {
         _url: &Url,
         preview_request: &CredentialPreviewRequest,
         access_token: &AccessToken,
-    ) -> Result<CredentialPreviewResponse, IssuanceSessionError> {
+    ) -> Result<CredentialPreviewResponse, WalletIssuanceError> {
         self.issuer
             .process_credential_preview(access_token.clone(), preview_request.clone())
             .await
-            .map_err(|err| IssuanceSessionError::CredentialPreviewRequest(Box::new(err.into())))
+            .map_err(|err| WalletIssuanceError::CredentialPreviewRequest(Box::new(err.into())))
     }
 
     async fn request_credential(
@@ -512,7 +512,7 @@ impl VcMessageClient for MockOpenidMessageClient {
         credential_request: &CredentialRequest,
         dpop_header: &str,
         access_token_header: &str,
-    ) -> Result<CredentialResponse, IssuanceSessionError> {
+    ) -> Result<CredentialResponse, WalletIssuanceError> {
         self.issuer
             .process_credential(
                 self.access_token(access_token_header),
@@ -520,7 +520,7 @@ impl VcMessageClient for MockOpenidMessageClient {
                 self.credential_request(credential_request.clone()),
             )
             .await
-            .map_err(|err| IssuanceSessionError::CredentialRequest(Box::new(err.into())))
+            .map_err(|err| WalletIssuanceError::CredentialRequest(Box::new(err.into())))
     }
 
     async fn request_credentials(
@@ -529,7 +529,7 @@ impl VcMessageClient for MockOpenidMessageClient {
         credential_requests: &CredentialRequests,
         dpop_header: &str,
         access_token_header: &str,
-    ) -> Result<CredentialResponses, IssuanceSessionError> {
+    ) -> Result<CredentialResponses, WalletIssuanceError> {
         self.issuer
             .process_batch_credential(
                 self.access_token(access_token_header),
@@ -537,7 +537,7 @@ impl VcMessageClient for MockOpenidMessageClient {
                 self.credential_requests(credential_requests.clone()),
             )
             .await
-            .map_err(|err| IssuanceSessionError::CredentialRequest(Box::new(err.into())))
+            .map_err(|err| WalletIssuanceError::CredentialRequest(Box::new(err.into())))
     }
 
     async fn reject(
@@ -545,7 +545,7 @@ impl VcMessageClient for MockOpenidMessageClient {
         _url: &Url,
         dpop_header: &str,
         access_token_header: &str,
-    ) -> Result<(), IssuanceSessionError> {
+    ) -> Result<(), WalletIssuanceError> {
         self.issuer
             .process_reject_issuance(
                 self.access_token(access_token_header),
@@ -553,7 +553,7 @@ impl VcMessageClient for MockOpenidMessageClient {
                 "batch_credential",
             )
             .await
-            .map_err(|err| IssuanceSessionError::CredentialRequest(Box::new(err.into())))
+            .map_err(|err| WalletIssuanceError::CredentialRequest(Box::new(err.into())))
     }
 }
 

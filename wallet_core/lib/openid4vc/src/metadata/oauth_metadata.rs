@@ -1,18 +1,13 @@
 //! OAuth 2.0 Authorization Server Metadata, loosely based on https://crates.io/crates/openid.
 
 use indexmap::IndexSet;
-use jsonwebtoken::jwk::JwkSet;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use http_utils::reqwest::HttpJsonClient;
-
 use crate::issuer_identifier::IssuerIdentifier;
-use crate::well_known::WellKnownMetadata;
-
-use super::OAuthError;
+use crate::metadata::well_known::WellKnownMetadata;
 
 /// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414),
 /// to be published at `.well-known/oauth-authorization-server`, and a superset of the OpenID Connect
@@ -145,15 +140,6 @@ impl AuthorizationServerMetadata {
             code_challenge_methods_supported: None,
         }
     }
-
-    /// Get the JWK set from the given Url. Errors are either a reqwest error or an Insecure error if
-    /// the url isn't https.
-    pub async fn jwks(&self, http_client: &HttpJsonClient) -> Result<JwkSet, OAuthError> {
-        let jwks_uri = self.jwks_uri.clone().ok_or(OAuthError::NoJwksUri)?;
-        let jwks = http_client.get(jwks_uri).await?;
-
-        Ok(jwks)
-    }
 }
 
 impl WellKnownMetadata for AuthorizationServerMetadata {
@@ -170,7 +156,7 @@ const fn bool_value<const B: bool>() -> bool {
 pub mod mock {
     use url::Url;
 
-    use crate::oauth::AuthorizationServerMetadata;
+    use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 
     impl AuthorizationServerMetadata {
         pub fn new_with_auth_url(auth_url: &str) -> Self {
@@ -216,16 +202,6 @@ pub mod tests {
             .mount(&server)
             .await;
 
-        // Mock JWKS endpoint
-        Mock::given(method("GET"))
-            .and(path("/.well-known/jwks.json"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "keys": []
-            })))
-            .expect(1)
-            .mount(&server)
-            .await;
-
         (server, server_url)
     }
 
@@ -238,8 +214,5 @@ pub mod tests {
         let discovered: AuthorizationServerMetadata = client.get(discovery_url).await.unwrap();
 
         assert_eq!(discovered.issuer.as_ref(), "https://example.com/");
-
-        let jwks = discovered.jwks(&client).await.unwrap();
-        assert!(jwks.keys.is_empty());
     }
 }

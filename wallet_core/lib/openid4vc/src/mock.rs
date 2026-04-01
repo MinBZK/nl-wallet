@@ -2,112 +2,22 @@ use std::collections::HashMap;
 use std::iter;
 
 use indexmap::IndexSet;
-use rustls_pki_types::TrustAnchor;
-use url::Url;
 
-use attestation_data::auth::issuer_auth::IssuerRegistration;
 use dcql::disclosure::ExtendingVctRetriever;
 
-use crate::issuance_session::CredentialIssuer;
-use crate::issuance_session::CredentialWithMetadata;
-use crate::issuance_session::IssuanceDiscovery;
-use crate::issuance_session::IssuanceSession;
-use crate::issuance_session::IssuanceSessionError;
-use crate::issuance_session::NormalizedCredentialPreview;
 use crate::issuer_identifier::IssuerIdentifier;
-use crate::issuer_metadata::BatchCredentialIssuance;
-use crate::issuer_metadata::CredentialConfiguration;
-use crate::issuer_metadata::IssuerMetadata;
-use crate::issuer_metadata::NonZeroOrOneU64;
-use crate::issuer_metadata::ProofType;
-use crate::oauth::AuthorizationServerMetadata;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 
 // Re-exported for convenience
+use crate::metadata::issuer_metadata::BatchCredentialIssuance;
+use crate::metadata::issuer_metadata::CredentialConfiguration;
+use crate::metadata::issuer_metadata::IssuerMetadata;
+use crate::metadata::issuer_metadata::NonZeroOrOneU64;
+use crate::metadata::issuer_metadata::ProofType;
+use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
+
 pub use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
-
-// We can't use `mockall::automock!` on the `IssuerClient` trait directly since `automock` doesn't accept
-// traits using generic methods, and "impl trait" arguments, so we use `mockall::mock!` to make an indirection.
-
-mockall::mock! {
-    #[derive(Debug)]
-    pub IssuanceSession {
-        pub fn accept(
-            &self,
-        ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>;
-
-        pub fn reject(self) -> Result<(), IssuanceSessionError>;
-
-        pub fn normalized_credential_previews(&self) -> &[NormalizedCredentialPreview];
-
-        pub fn issuer(&self) -> &IssuerRegistration;
-    }
-}
-
-impl IssuanceSession for MockIssuanceSession {
-    async fn accept_issuance<W>(
-        &self,
-        _: &[TrustAnchor<'_>],
-        _: &W,
-        _: bool,
-    ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError> {
-        self.accept()
-    }
-
-    async fn reject_issuance(self) -> Result<(), IssuanceSessionError> {
-        self.reject()
-    }
-
-    fn normalized_credential_preview(&self) -> &[NormalizedCredentialPreview] {
-        self.normalized_credential_previews()
-    }
-
-    fn issuer_registration(&self) -> &IssuerRegistration {
-        self.issuer()
-    }
-}
-
-mockall::mock! {
-    #[derive(Debug)]
-    pub CredentialIssuer {
-        pub fn get_metadata(&self) -> &IssuerMetadata;
-        pub fn get_authorization_endpoint_url(&self) -> Option<Url>;
-        pub fn get_oauth_metadata(&self) -> &AuthorizationServerMetadata;
-        pub fn start(&mut self, token_request: TokenRequest) -> Result<MockIssuanceSession, IssuanceSessionError>;
-    }
-}
-
-impl CredentialIssuer for MockCredentialIssuer {
-    type Session = MockIssuanceSession;
-
-    fn oauth_metadata(&self) -> &AuthorizationServerMetadata {
-        self.get_oauth_metadata()
-    }
-
-    async fn start_issuance(
-        mut self,
-        token_request: TokenRequest,
-        _: &[TrustAnchor<'_>],
-    ) -> Result<MockIssuanceSession, IssuanceSessionError> {
-        self.start(token_request)
-    }
-}
-
-mockall::mock! {
-    #[derive(Debug)]
-    pub CredentialIssuerDiscovery {
-        pub fn discover_sync(&self, identifier: &IssuerIdentifier) -> Result<MockCredentialIssuer, IssuanceSessionError>;
-    }
-}
-
-impl IssuanceDiscovery for MockCredentialIssuerDiscovery {
-    type Issuer = MockCredentialIssuer;
-
-    async fn discover(&self, identifier: &IssuerIdentifier) -> Result<MockCredentialIssuer, IssuanceSessionError> {
-        self.discover_sync(identifier)
-    }
-}
 
 pub struct ExtendingVctRetrieverStub;
 impl ExtendingVctRetriever for ExtendingVctRetrieverStub {

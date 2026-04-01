@@ -5,10 +5,8 @@ use serde_with::SerializeDisplay;
 pub mod authorization;
 pub mod credential;
 pub mod issuer_identifier;
-pub mod issuer_metadata;
+pub mod metadata;
 pub mod token;
-
-pub mod preview;
 
 // Cryptographic tools.
 pub mod dpop;
@@ -16,8 +14,9 @@ pub mod jwe;
 pub mod pkce;
 
 // Issuance code for the server and client.
-pub mod issuance_session;
 pub mod issuer;
+pub mod preview;
+pub mod wallet_issuance;
 
 // Verification code for the server and client.
 pub mod disclosure_session;
@@ -32,9 +31,7 @@ pub use errors::*;
 pub mod cose;
 pub mod jose;
 pub mod nonce;
-pub mod oauth;
 pub mod server_state;
-pub mod well_known;
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;

@@ -14,10 +14,7 @@ use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClientError;
-use openid4vc::issuance_session::CredentialIssuer;
-use openid4vc::issuance_session::IssuanceDiscovery;
-use openid4vc::token::TokenRequest;
-use openid4vc::token::TokenRequestGrantType;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::NL_WALLET_CLIENT_ID;
@@ -41,23 +38,22 @@ use super::disclosure::RedirectUriPurpose;
 pub enum DisclosureBasedIssuanceError {
     #[error("disclosure failed: {0}")]
     Disclosure(#[from] DisclosureError),
+
     #[error("retrieving attribute previews failed: {0}")]
     Issuance(#[from] IssuanceError),
+
     #[error("missing redirect URI from verifier response")]
     #[category(critical)]
     MissingRedirectUri(Box<Organization>),
+
     #[error("missing query in redirect URI")]
     #[category(critical)]
     MissingRedirectUriQuery(Box<Organization>),
+
     #[error("failed to deserialize Credential Offer: {0}")]
     #[category(pd)]
     UrlDecoding(#[source] serde_urlencoded::de::Error, Box<Organization>),
-    #[error("no grants found in Credential Offer")]
-    #[category(critical)]
-    MissingGrants(Box<Organization>),
-    #[error("no Authorization Code found in Credential Offer")]
-    #[category(critical)]
-    MissingAuthorizationCode(Box<Organization>),
+
     #[error("unexpected scheme: expected '{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}', found '{0}'")]
     #[category(critical)]
     UnexpectedScheme(String, Box<Organization>),
@@ -134,29 +130,16 @@ where
         let CredentialOfferContainer { credential_offer } = serde_urlencoded::from_str(query)
             .map_err(|e| DisclosureBasedIssuanceError::UrlDecoding(e, organization.clone()))?;
 
-        let token_request = TokenRequest {
-            grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                pre_authorized_code: credential_offer
-                    .grants
-                    .ok_or(DisclosureBasedIssuanceError::MissingGrants(organization.clone()))?
-                    .authorization_code()
-                    .ok_or(DisclosureBasedIssuanceError::MissingAuthorizationCode(organization))?,
-            },
-            code_verifier: None,
-            client_id: Some(NL_WALLET_CLIENT_ID.to_string()),
-            redirect_uri: None,
-        };
-
-        let discovered = self
-            .credential_issuer_discovery
-            .discover(&credential_offer.credential_issuer)
+        let issuance_session = self
+            .issuance_discovery
+            .start_pre_authorized_code_flow(
+                credential_offer,
+                NL_WALLET_CLIENT_ID.to_string(),
+                &config.issuer_trust_anchors(),
+                organization,
+            )
             .await
             .map_err(IssuanceError::IssuanceSession)?;
-
-        let issuance_session = discovered
-            .start_issuance(token_request, &config.issuer_trust_anchors())
-            .await
-            .map_err(IssuanceError::from)?;
 
         let previews = self
             .issuance_fetch_previews(
@@ -202,11 +185,10 @@ mod tests {
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpSessionError;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
-    use openid4vc::mock::MockCredentialIssuer;
-    use openid4vc::mock::MockIssuanceSession;
     use openid4vc::verifier::DisclosureResultHandlerError;
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::verifier::ToPostAuthResponseErrorCode;
+    use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use utils::generator::mock::MockTimeGenerator;
 
     use crate::attestation::AttestationPresentation;
@@ -310,22 +292,18 @@ mod tests {
         // Setup wallet issuance state
         let credential_preview = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::MsoMdoc);
         wallet
-            .credential_issuer_discovery
-            .expect_discover_sync()
-            .return_once(move |_| {
-                let mut issuer = MockCredentialIssuer::new();
-                issuer.expect_start().return_once(move |_| {
-                    let mut client = MockIssuanceSession::new();
+            .issuance_discovery
+            .expect_start_pre_authorized_code_flow_sync()
+            .return_once(move || {
+                let mut client = MockIssuanceSession::new();
 
-                    client
-                        .expect_normalized_credential_previews()
-                        .return_const(vec![credential_preview]);
+                client
+                    .expect_normalized_credential_previews()
+                    .return_const(vec![credential_preview]);
 
-                    client.expect_issuer().return_const(IssuerRegistration::new_mock());
+                client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
-                    Ok(client)
-                });
-                Ok(issuer)
+                Ok(client)
             });
 
         wallet

@@ -28,12 +28,12 @@ use wallet::errors::WalletInitError;
 use wallet::errors::WalletRegistrationError;
 use wallet::errors::WalletUnlockError;
 use wallet::errors::openid4vc::AuthorizationErrorCode;
-use wallet::errors::openid4vc::IssuanceSessionError;
 use wallet::errors::openid4vc::OAuthError;
 use wallet::errors::openid4vc::VpClientError;
 use wallet::errors::openid4vc::VpMessageClientError;
 use wallet::errors::openid4vc::VpMessageClientErrorType;
 use wallet::errors::openid4vc::VpVerifierError;
+use wallet::errors::openid4vc::WalletIssuanceError;
 use wallet::errors::reqwest;
 use wallet::openid4vc::SessionType;
 
@@ -267,12 +267,12 @@ impl FlutterApiErrorFields for IssuanceError {
                 FlutterApiErrorType::WalletState
             }
             IssuanceError::AuthSessionFinish(OAuthError::RedirectUriError(_)) => FlutterApiErrorType::RedirectUri,
-            IssuanceError::IssuanceSession(IssuanceSessionError::TokenRequest(_))
-            | IssuanceError::IssuanceSession(IssuanceSessionError::CredentialRequest(_))
-            | IssuanceError::AuthSessionStart(OAuthError::RedirectUriError(_))
-            | IssuanceError::AuthSessionStart(OAuthError::RequestingAccessToken(_))
-            | IssuanceError::AuthSessionFinish(OAuthError::RequestingAccessToken(_)) => FlutterApiErrorType::Server,
+            IssuanceError::IssuanceSession(WalletIssuanceError::TokenRequest(_))
+            | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(_))
+            | IssuanceError::AuthSessionStart(OAuthError::RedirectUriError(_)) => FlutterApiErrorType::Server,
             IssuanceError::AttestationPreview(_)
+            | IssuanceError::IssuanceSession(WalletIssuanceError::MissingGrants(_))
+            | IssuanceError::IssuanceSession(WalletIssuanceError::MissingPreAuthorizedCodeGrant(_))
             | IssuanceError::Attestation { .. }
             | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
             IssuanceError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
@@ -293,7 +293,10 @@ impl FlutterApiErrorFields for IssuanceError {
         };
 
         let organization_name = match self {
-            IssuanceError::Attestation { organization, .. } | IssuanceError::IssuerServer { organization, .. } => {
+            IssuanceError::Attestation { organization, .. }
+            | IssuanceError::IssuerServer { organization, .. }
+            | IssuanceError::IssuanceSession(WalletIssuanceError::MissingGrants(organization))
+            | IssuanceError::IssuanceSession(WalletIssuanceError::MissingPreAuthorizedCodeGrant(organization)) => {
                 Some(organization.display_name.clone())
             }
             _ => None,
@@ -430,8 +433,6 @@ impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
             Self::MissingRedirectUri(_)
             | Self::MissingRedirectUriQuery(_)
             | Self::UrlDecoding(_, _)
-            | Self::MissingGrants(_)
-            | Self::MissingAuthorizationCode(_)
             | Self::UnexpectedScheme(_, _) => FlutterApiErrorType::Issuer,
         }
     }
@@ -443,8 +444,6 @@ impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
             Self::MissingRedirectUri(organization)
             | Self::MissingRedirectUriQuery(organization)
             | Self::UrlDecoding(_, organization)
-            | Self::MissingGrants(organization)
-            | Self::MissingAuthorizationCode(organization)
             | Self::UnexpectedScheme(_, organization) => serde_json::to_value(DisclosureBasedIssuanceErrorData {
                 organization_name: organization.display_name.clone(),
             })

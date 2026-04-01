@@ -17,10 +17,11 @@ use openid4vc::AuthBearerErrorCode;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
 use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::oauth::AuthorizationServerMetadata;
-use openid4vc::oauth::OAuthError;
-use openid4vc::well_known;
-use openid4vc::well_known::WellKnownError;
+use openid4vc::metadata::jwks::HttpJwksClient;
+use openid4vc::metadata::jwks::JwksError;
+use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
+use openid4vc::metadata::well_known;
+use openid4vc::metadata::well_known::WellKnownError;
 
 const APPLICATION_JWT: &str = "application/jwt";
 
@@ -145,12 +146,13 @@ where
     )
     .await?;
 
+    let jwks_client = HttpJwksClient::new(http_client.clone());
+    let jwks_uri = config.jwks_uri.clone().ok_or(UserInfoError::NoJwksUri)?;
+
     let (jwt, jwks) = try_join!(
         request_userinfo_jwt(http_client, &config, token_request),
-        config.jwks(http_client).map_err(|e| match e {
-            OAuthError::Http(e) => UserInfoError::Http(e),
-            OAuthError::NoJwksUri => UserInfoError::NoJwksUri,
-            _ => unreachable!("jwks() only returns Http or NoJwksUri"),
+        jwks_client.jwks(jwks_uri).map_err(|e| match e {
+            JwksError::Http(e) => UserInfoError::Http(e),
         })
     )?;
 

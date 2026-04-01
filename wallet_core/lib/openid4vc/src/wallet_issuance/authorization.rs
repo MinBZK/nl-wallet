@@ -1,33 +1,32 @@
-pub use jsonwebtoken::jwk::JwkSet;
-
-use base64::prelude::*;
+use base64::Engine;
+use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+use rustls_pki_types::TrustAnchor;
 use url::Url;
 
 use error_category::ErrorCategory;
+use http_utils::reqwest::HttpJsonClient;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
-use crate::TokenErrorCode;
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::AuthorizationResponse;
 use crate::authorization::PkceCodeChallenge;
 use crate::authorization::ResponseType;
+use crate::metadata::issuer_metadata::IssuerMetadata;
+use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::pkce::PkcePair;
 use crate::pkce::S256PkcePair;
 use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
-use crate::well_known::WellKnownError;
-
-use super::AuthorizationServerMetadata;
+use crate::wallet_issuance::AuthorizationSession;
+use crate::wallet_issuance::WalletIssuanceError;
+use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
+use crate::wallet_issuance::issuance_session::HttpVcMessageClient;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
 pub enum OAuthError {
-    #[error("transport error: {0}")]
-    #[category(expected)]
-    Http(#[from] reqwest::Error),
-
     #[error("URL encoding error: {0}")]
     UrlEncoding(#[from] serde_urlencoded::ser::Error),
 
@@ -36,9 +35,6 @@ pub enum OAuthError {
 
     #[error("error requesting authorization code: {0:?}")]
     RedirectUriError(Box<ErrorResponse<AuthorizationErrorCode>>),
-
-    #[error("error requesting access token: {0:?}")]
-    RequestingAccessToken(Box<ErrorResponse<TokenErrorCode>>),
 
     #[error("invalid state token received in redirect URI")]
     #[category(critical)]
@@ -56,34 +52,18 @@ pub enum OAuthError {
     #[category(critical)]
     NoAuthorizationEndpoint,
 
-    #[error("config has no JWKS URI")]
-    #[category(critical)]
-    NoJwksUri,
-
     #[error("user denied authentication")]
     #[category(expected)]
     Denied,
-
-    #[error("error fetching well-known metadata: {0}")]
-    #[category(critical)]
-    WellKnown(#[from] WellKnownError),
-}
-
-/// Holds the state of an in-progress OAuth authorization code flow
-/// and is consumed by [`into_token_request`] once the user redirects back.
-///
-/// [`into_token_request`]: AuthorizationServer::into_token_request
-#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
-pub trait AuthorizationServer {
-    /// Create an OAuth Token Request based on the contents of the redirect URI received.
-    ///
-    /// Note that this consumes the [`AuthorizationServer`], either on success or failure.
-    fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, OAuthError>;
 }
 
 /// The state of an in-progress OAuth authorization code flow.
 #[derive(Debug)]
-pub struct HttpAuthorizationServer<P = S256PkcePair> {
+pub struct HttpAuthorizationSession<P = S256PkcePair> {
+    issuer_metadata: IssuerMetadata,
+    oauth_metadata: AuthorizationServerMetadata,
+    http_client: HttpJsonClient,
+
     pub auth_url: Url,
     client_id: String,
     redirect_uri: Url,
@@ -91,11 +71,13 @@ pub struct HttpAuthorizationServer<P = S256PkcePair> {
     state: String,
 }
 
-impl<P: PkcePair> HttpAuthorizationServer<P> {
+impl<P: PkcePair> HttpAuthorizationSession<P> {
     /// Create a new authorization server session and compute the authorization URL.
     /// Returns an error if the provider has no authorization endpoint or the URL cannot be encoded.
     pub fn try_new(
-        provider: AuthorizationServerMetadata,
+        http_client: HttpJsonClient,
+        issuer_metadata: IssuerMetadata,
+        oauth_metadata: AuthorizationServerMetadata,
         client_id: String,
         redirect_uri: Url,
     ) -> Result<Self, OAuthError> {
@@ -113,17 +95,22 @@ impl<P: PkcePair> HttpAuthorizationServer<P> {
             code_challenge: Some(PkceCodeChallenge::S256 {
                 code_challenge: pkce_pair.code_challenge().to_string(),
             }),
-            scope: provider.scopes_supported,
+            scope: oauth_metadata.scopes_supported.clone(),
             nonce: Some(nonce),
             response_mode: None,
         };
 
-        let mut auth_url = provider
+        let mut auth_url = oauth_metadata
             .authorization_endpoint
+            .clone()
             .ok_or(OAuthError::NoAuthorizationEndpoint)?;
+
         auth_url.set_query(Some(&serde_urlencoded::to_string(params)?));
 
         Ok(Self {
+            issuer_metadata,
+            oauth_metadata,
+            http_client,
             auth_url,
             client_id,
             redirect_uri,
@@ -163,9 +150,21 @@ impl<P: PkcePair> HttpAuthorizationServer<P> {
     }
 }
 
-impl<P: PkcePair> AuthorizationServer for HttpAuthorizationServer<P> {
-    fn into_token_request(self, received_redirect_uri: &Url) -> Result<TokenRequest, OAuthError> {
+impl AuthorizationSession for HttpAuthorizationSession {
+    type Issuance = HttpIssuanceSession;
+
+    fn auth_url(&self) -> &Url {
+        &self.auth_url
+    }
+
+    async fn start_issuance(
+        self,
+        received_redirect_uri: &Url,
+        trust_anchors: &[TrustAnchor<'_>],
+    ) -> Result<Self::Issuance, WalletIssuanceError> {
         let pre_authorized_code = self.authorization_code(received_redirect_uri)?;
+        let message_client = HttpVcMessageClient::new(self.http_client);
+        let token_endpoint = self.oauth_metadata.token_endpoint;
 
         let token_request = TokenRequest {
             grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
@@ -174,14 +173,13 @@ impl<P: PkcePair> AuthorizationServer for HttpAuthorizationServer<P> {
             redirect_uri: Some(self.redirect_uri),
         };
 
-        Ok(token_request)
-    }
-}
-
-#[cfg(any(test, feature = "mock"))]
-impl<P: PkcePair> HttpAuthorizationServer<P> {
-    /// Returns the CSRF state token. Available in test/mock builds to allow constructing valid redirect URIs.
-    pub fn csrf_state(&self) -> &str {
-        &self.state
+        HttpIssuanceSession::start_issuance_inner(
+            message_client,
+            self.issuer_metadata,
+            token_endpoint,
+            token_request,
+            trust_anchors,
+        )
+        .await
     }
 }

@@ -11,7 +11,7 @@ use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
 use jwt::error::JwtError;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
 
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;

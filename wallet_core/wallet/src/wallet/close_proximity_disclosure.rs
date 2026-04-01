@@ -18,7 +18,7 @@ use entity::disclosure_event::EventStatus;
 use mdoc::DeviceRequest;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;

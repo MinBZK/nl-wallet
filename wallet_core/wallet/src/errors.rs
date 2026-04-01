@@ -10,8 +10,8 @@ pub mod openid4vc {
     pub use openid4vc::disclosure_session::VpVerifierError;
     pub use openid4vc::errors::AuthorizationErrorCode;
     pub use openid4vc::errors::ErrorResponse;
-    pub use openid4vc::issuance_session::IssuanceSessionError;
-    pub use openid4vc::oauth::OAuthError;
+    pub use openid4vc::wallet_issuance::WalletIssuanceError;
+    pub use openid4vc::wallet_issuance::authorization::OAuthError;
 }
 
 pub use crate::account_provider::AccountProviderError;

@@ -7,11 +7,9 @@ use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use openid4vc::disclosure_session::VpDisclosureClient;
-use openid4vc::issuance_session::CredentialIssuer;
-use openid4vc::issuance_session::HttpIssuanceDiscovery;
-use openid4vc::issuance_session::IssuanceDiscovery;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
+use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
@@ -28,7 +26,6 @@ use wallet::WalletRepositories;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
 use wallet::test::MockHardwareDatabaseStorage;
-use wallet::test::Repository;
 use wallet::test::UpdatePolicyRepository;
 use wallet::test::UpdateableRepository;
 use wallet::test::default_config_server_config;
@@ -75,10 +72,8 @@ async fn main() {
         .fetch(&config_server_config.http_config)
         .await
         .unwrap();
-    let config = config_repository.get();
 
     let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
-    let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_json_client.clone());
 
     let update_policy_repository = UpdatePolicyRepository::init();
     let wallet_clients = WalletClients::new().unwrap();
@@ -107,26 +102,14 @@ async fn main() {
         .await
         .expect("Could not create pid issuance auth url");
 
-    let discovered = credential_issuer_discovery
-        .discover(&config.pid_issuance.url)
-        .await
+    let digid_base_url = authorization_url
+        .origin()
+        .unicode_serialization()
+        .as_str()
+        .parse()
         .unwrap();
 
-    let redirect_url = fake_digid_auth(
-        authorization_url,
-        discovered
-            .oauth_metadata()
-            .authorization_endpoint
-            .clone()
-            .expect("DigiD metadata must have an authorization endpoint")
-            .origin()
-            .unicode_serialization()
-            .as_str()
-            .parse()
-            .unwrap(),
-        "999991772",
-    )
-    .await;
+    let redirect_url = fake_digid_auth(authorization_url, digid_base_url, "999991772").await;
 
     let _attestations = wallet
         .continue_pid_issuance(redirect_url)

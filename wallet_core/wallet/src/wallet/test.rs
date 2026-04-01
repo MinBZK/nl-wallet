@@ -37,15 +37,14 @@ use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
 use openid4vc::Format;
 use openid4vc::disclosure_session::mock::MockDisclosureClient;
-use openid4vc::issuance_session::CredentialWithMetadata;
-use openid4vc::issuance_session::IssuedCredential;
-use openid4vc::issuance_session::IssuedCredentialCopies;
-use openid4vc::issuance_session::NormalizedCredentialPreview;
-use openid4vc::mock::MockCredentialIssuerDiscovery;
-use openid4vc::mock::MockIssuanceSession;
-use openid4vc::oauth::AuthorizationServerMetadata;
-use openid4vc::oauth::HttpAuthorizationServer;
 use openid4vc::token::CredentialPreviewContent;
+use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
+use openid4vc::wallet_issuance::credential::IssuedCredential;
+use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
+use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
+use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
+use openid4vc::wallet_issuance::mock::MockIssuanceSession;
+use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
 use platform_support::attested_key::mock::MockGoogleAttestedKey;
@@ -132,7 +131,7 @@ pub type TestWallet<S, CR = UpdatingConfigurationRepository<LocalConfigurationRe
     S,
     MockHardwareAttestedKeyHolder,
     MockAccountProviderClient,
-    MockCredentialIssuerDiscovery,
+    MockIssuanceDiscovery,
     MockDisclosureClient,
     MockCloseProximityDisclosureClient,
     MockStatusListClient,
@@ -393,7 +392,7 @@ where
                 config_repository,
                 update_policy_repository: MockUpdatePolicyRepository::default(),
             },
-            MockCredentialIssuerDiscovery::new(),
+            MockIssuanceDiscovery::new(),
             WalletClients::default(),
             RegistrationStatus::Unregistered,
         )
@@ -411,7 +410,7 @@ where
                 config_repository,
                 update_policy_repository: MockUpdatePolicyRepository::default(),
             },
-            MockCredentialIssuerDiscovery::new(),
+            MockIssuanceDiscovery::new(),
             WalletClients::default(),
         )
         .await
@@ -475,7 +474,7 @@ impl TestWalletMockStorage {
                 config_repository,
                 update_policy_repository: MockUpdatePolicyRepository::default(),
             },
-            MockCredentialIssuerDiscovery::new(),
+            MockIssuanceDiscovery::new(),
             WalletClients::default(),
         )
         .await
@@ -629,25 +628,9 @@ pub fn mock_issuance_session(
     (client, attestations)
 }
 
-/// Creates a real [`HttpAuthorizationServer`] and a redirect URI with the correct state
-/// that will successfully yield a token request when `into_token_request` is called.
-pub fn create_authorization_server(redirect_uri: &str) -> (HttpAuthorizationServer, Url) {
+/// Creates a stub [`MockAuthorizationSession`] and a redirect URI for use in tests.
+/// Callers that need `start_issuance` to succeed must set up `expect_start_issuance_sync` themselves.
+pub fn create_authorization_sesession(redirect_uri: &str) -> (MockAuthorizationSession, Url) {
     let redirect_uri = Url::parse(redirect_uri).unwrap();
-    let authorization_server = HttpAuthorizationServer::try_new(
-        AuthorizationServerMetadata {
-            authorization_endpoint: Some(Url::parse(AUTH_URL).unwrap()),
-            jwks_uri: Some(Url::parse(AUTH_URL).unwrap()),
-            ..AuthorizationServerMetadata::new("http://example.com".parse().unwrap(), Url::parse(AUTH_URL).unwrap())
-        },
-        "client_id".to_string(),
-        redirect_uri.clone(),
-    )
-    .unwrap();
-
-    // Build a redirect URI with the right CSRF state and a dummy code
-    let state = authorization_server.csrf_state().to_string();
-    let mut redirect = redirect_uri.clone();
-    redirect.set_query(Some(&format!("code=test_code&state={state}")));
-
-    (authorization_server, redirect)
+    (MockAuthorizationSession::new(), redirect_uri)
 }

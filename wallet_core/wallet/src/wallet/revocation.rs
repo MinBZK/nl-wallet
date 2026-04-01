@@ -21,7 +21,7 @@ use uuid::Uuid;
 
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
 
 use platform_support::attested_key::AttestedKeyHolder;
 use token_status_list::verification::client::StatusListClient;
