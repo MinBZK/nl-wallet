@@ -5,6 +5,7 @@ use std::collections::VecDeque;
 use derive_more::AsRef;
 use derive_more::Debug;
 use futures::TryFutureExt;
+use futures::future::OptionFuture;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use p256::ecdsa::SigningKey;
@@ -69,6 +70,7 @@ use crate::dpop::DpopError;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::issuer_metadata::IssuerMetadataDiscoveryError;
+use crate::nonce::response::NonceResponse;
 use crate::oidc;
 use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
@@ -98,10 +100,6 @@ pub enum IssuanceSessionError {
     #[error("http request failed: {0}")]
     #[category(expected)]
     Network(#[from] reqwest::Error),
-
-    #[error("missing c_nonce")]
-    #[category(critical)]
-    MissingNonce,
 
     #[error("mismatch between issued and previewed credential, issued: {actual:?} , previewed: {expected:?}")]
     #[category(pd)]
@@ -375,6 +373,8 @@ pub trait VcMessageClient {
         access_token: &AccessToken,
     ) -> Result<CredentialPreviewResponse, IssuanceSessionError>;
 
+    async fn request_nonce(&self, url: Url) -> Result<String, IssuanceSessionError>;
+
     async fn request_credential(
         &self,
         url: &Url,
@@ -511,6 +511,19 @@ impl VcMessageClient for HttpVcMessageClient {
             .await
     }
 
+    async fn request_nonce(&self, url: Url) -> Result<String, IssuanceSessionError> {
+        let NonceResponse { c_nonce } = self
+            .http_client
+            .post(url)
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+
+        Ok(c_nonce)
+    }
+
     async fn request_credential(
         &self,
         url: &Url,
@@ -622,7 +635,6 @@ impl NormalizedCredentialPreview {
 #[derive(Debug)]
 struct IssuanceState {
     access_token: AccessToken,
-    c_nonce: String,
     normalized_credential_previews: VecNonEmpty<NormalizedCredentialPreview>,
     credential_request_types: VecNonEmpty<CredentialRequestType>,
     issuer_registration: IssuerRegistration,
@@ -689,37 +701,6 @@ fn credential_request_types_from_preview(
         .unwrap(); // we're iterating over a VecNonEmpty
 
     Ok(credential_request_types)
-}
-
-impl<H: VcMessageClient> HttpIssuanceSession<H> {
-    /// Discover the credential endpoint from the Credential Issuer metadata.
-    async fn discover_credential_endpoint(
-        message_client: &H,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<Url, IssuanceSessionError> {
-        let url = message_client
-            .discover_metadata(issuer_identifier)
-            .await?
-            .credential_endpoint
-            .into_url();
-
-        Ok(url)
-    }
-
-    /// Discover the batch credential endpoint from the Credential Issuer metadata.
-    /// This function returns an `Option` because the batch credential is optional.
-    async fn discover_batch_credential_endpoint(
-        message_client: &H,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<Option<Url>, IssuanceSessionError> {
-        let url = message_client
-            .discover_metadata(issuer_identifier)
-            .await?
-            .batch_credential_endpoint
-            .map(|url| url.into_url());
-
-        Ok(url)
-    }
 }
 
 impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
@@ -798,7 +779,6 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
         let session_state = IssuanceState {
             access_token: token_response.access_token,
-            c_nonce: token_response.c_nonce.ok_or(IssuanceSessionError::MissingNonce)?,
             normalized_credential_previews,
             credential_request_types,
             issuer_registration,
@@ -824,13 +804,37 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     where
         W: IssuanceWscd<Poa = Poa>,
     {
+        let issuer_metadata = self
+            .message_client
+            .discover_metadata(&self.session_state.issuer_identifier)
+            .await?;
+
         let key_count = self.session_state.credential_request_types.len();
+
+        // Determine the correct credential endpoint URL, to be used below.
+        let credential_url = if key_count.get() == 1 {
+            issuer_metadata.credential_endpoint
+        } else {
+            issuer_metadata
+                .batch_credential_endpoint
+                .ok_or(IssuanceSessionError::NoBatchCredentialEndpoint)?
+        }
+        .into_url();
+
+        // Fetch one nonce from the nonce endpoint, if defined in the issuer metadata.
+        let c_nonce = OptionFuture::from(
+            issuer_metadata
+                .nonce_endpoint
+                .map(|issuer_url| self.message_client.request_nonce(issuer_url.into_url())),
+        )
+        .await
+        .transpose()?;
 
         let mut issuance_data = wscd
             .perform_issuance(
                 key_count,
                 self.session_state.issuer_identifier.as_ref().to_string(),
-                Some(self.session_state.c_nonce.clone()),
+                c_nonce,
                 include_wua,
             )
             .await
@@ -877,12 +881,17 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                 let mut credential_request = credential_requests.pop().unwrap();
                 credential_request.attestations = issuance_data.wua.take();
                 credential_request.poa = issuance_data.poa.take();
-                vec![self.request_credential(&credential_request).await?]
+                vec![self.request_credential(&credential_url, &credential_request).await?]
             }
             _ => {
                 let credential_requests = VecNonEmpty::try_from(credential_requests).unwrap();
-                self.request_batch_credentials(credential_requests, issuance_data.wua.take(), issuance_data.poa.take())
-                    .await?
+                self.request_batch_credentials(
+                    &credential_url,
+                    credential_requests,
+                    issuance_data.wua.take(),
+                    issuance_data.poa.take(),
+                )
+                .await?
             }
         };
         let mut responses_and_pubkeys: VecDeque<_> = responses.into_iter().zip(pubkeys).collect();
@@ -968,9 +977,14 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     }
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError> {
-        let url = Self::discover_batch_credential_endpoint(&self.message_client, &self.session_state.issuer_identifier)
+        let url = self
+            .message_client
+            .discover_metadata(&self.session_state.issuer_identifier)
             .await?
-            .ok_or(IssuanceSessionError::NoBatchCredentialEndpoint)?;
+            .batch_credential_endpoint
+            .ok_or(IssuanceSessionError::NoBatchCredentialEndpoint)?
+            .into_url();
+
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::DELETE).await?;
 
         self.message_client
@@ -992,15 +1006,14 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 impl<H: VcMessageClient> HttpIssuanceSession<H> {
     async fn request_credential(
         &self,
+        url: &Url,
         credential_request: &CredentialRequest,
     ) -> Result<CredentialResponse, IssuanceSessionError> {
-        let url =
-            Self::discover_credential_endpoint(&self.message_client, &self.session_state.issuer_identifier).await?;
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::POST).await?;
 
         let response = self
             .message_client
-            .request_credential(&url, credential_request, &dpop_header, &access_token_header)
+            .request_credential(url, credential_request, &dpop_header, &access_token_header)
             .await?;
 
         Ok(response)
@@ -1008,20 +1021,18 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
     async fn request_batch_credentials(
         &self,
+        url: &Url,
         credential_requests: VecNonEmpty<CredentialRequest>,
         wua_disclosure: Option<WuaDisclosure>,
         poa: Option<Poa>,
     ) -> Result<Vec<CredentialResponse>, IssuanceSessionError> {
-        let url = Self::discover_batch_credential_endpoint(&self.message_client, &self.session_state.issuer_identifier)
-            .await?
-            .ok_or(IssuanceSessionError::NoBatchCredentialEndpoint)?;
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::POST).await?;
 
         let expected_response_count = credential_requests.len().get();
         let responses = self
             .message_client
             .request_credentials(
-                &url,
+                url,
                 &CredentialRequests {
                     credential_requests,
                     attestations: wua_disclosure,
@@ -1218,6 +1229,7 @@ mod tests {
     use chrono::Utc;
     use futures::FutureExt;
     use indexmap::IndexMap;
+    use mockall::predicate::eq;
     use rstest::rstest;
     use serde_bytes::ByteBuf;
     use serde_json::json;
@@ -1289,7 +1301,7 @@ mod tests {
         mock_msg_client
             .expect_request_token()
             .return_once(move |_url, _token_request, _dpop_header| {
-                let token_response = TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string());
+                let token_response = TokenResponse::new("access_token".to_string().into());
                 Ok((token_response, None))
             });
         mock_msg_client
@@ -1445,7 +1457,7 @@ mod tests {
         mock_msg_client
             .expect_request_token()
             .return_once(move |_url, _token_request, _dpop_header| {
-                let token_response = TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string());
+                let token_response = TokenResponse::new("access_token".to_string().into());
                 Ok((token_response, None))
             });
         mock_msg_client
@@ -1496,7 +1508,6 @@ mod tests {
 
         IssuanceState {
             access_token: "access_token".to_string().into(),
-            c_nonce: "c_nonce".to_string(),
             normalized_credential_previews,
             credential_request_types,
             issuer_registration: IssuerRegistration::new_mock(),
@@ -1638,6 +1649,12 @@ mod tests {
 
         let mut mock_msg_client = mock_openid_message_client();
 
+        mock_msg_client
+            .expect_request_nonce()
+            .times(1)
+            .with(eq(Url::parse("https://issuer.example.com/issuance/nonce").unwrap()))
+            .return_once(|_| Ok("c_nonce".to_string()));
+
         // The client must use `request_credentials()` (which uses `/batch_credentials`) iff more than one credential
         // is being issued, and `request_credential()` instead (which uses `/credential`).
         if multiple_creds {
@@ -1706,6 +1723,11 @@ mod tests {
 
         let mut mock_msg_client = mock_openid_message_client();
 
+        mock_msg_client
+            .expect_request_nonce()
+            .times(1)
+            .return_once(|_| Ok("c_nonce".to_string()));
+
         mock_msg_client.expect_request_credentials().return_once(
             |_url, credential_requests, _dpop_header, _access_token_header| {
                 let response = signer.into_response_from_request(credential_requests.credential_requests.first());
@@ -1754,6 +1776,11 @@ mod tests {
 
         let mut mock_msg_client = mock_openid_message_client();
 
+        mock_msg_client
+            .expect_request_nonce()
+            .times(1)
+            .return_once(|_| Ok("c_nonce".to_string()));
+
         mock_msg_client.expect_request_credential().times(1).return_once({
             move |_url, credential_request, _dpop_header, _access_token_header| {
                 let response = signer.into_response_from_request(credential_request);
@@ -1784,6 +1811,11 @@ mod tests {
 
         let mut mock_msg_client = mock_openid_message_client();
 
+        mock_msg_client
+            .expect_request_nonce()
+            .times(1)
+            .return_once(|_| Ok("c_nonce".to_string()));
+
         mock_msg_client.expect_request_credential().return_once(
             |_url, credential_request, _dpop_header, _access_token_header| {
                 let response = signer.into_response_from_request(credential_request);
@@ -1813,6 +1845,11 @@ mod tests {
         let trust_anchor = signer.trust_anchor.clone();
 
         let mut mock_msg_client = mock_openid_message_client();
+
+        mock_msg_client
+            .expect_request_nonce()
+            .times(1)
+            .return_once(|_| Ok("c_nonce".to_string()));
 
         let response = CredentialResponse::Deferred {
             transaction_id: "12345".to_string(),

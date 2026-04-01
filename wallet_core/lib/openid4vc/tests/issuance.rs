@@ -533,6 +533,12 @@ impl VcMessageClient for MockOpenidMessageClient {
             .map_err(|err| IssuanceSessionError::CredentialPreviewRequest(Box::new(err.into())))
     }
 
+    async fn request_nonce(&self, _url: Url) -> Result<String, IssuanceSessionError> {
+        let c_nonce = self.issuer.generate_proof_nonce().await.unwrap();
+
+        Ok(c_nonce)
+    }
+
     async fn request_credential(
         &self,
         _url: &Url,

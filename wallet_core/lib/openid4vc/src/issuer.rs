@@ -69,7 +69,6 @@ use crate::issuer_metadata::CredentialConfiguration;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::issuer_metadata::ProofType;
 use crate::nonce::generate_nonce;
-use crate::nonce::memory_store::MemoryNonceStore;
 use crate::nonce::store::NonceStatus;
 use crate::nonce::store::NonceStore;
 use crate::nonce::store::NonceStoreError;
@@ -92,7 +91,6 @@ use crate::token::CredentialPreviewContent;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
-use crate::token::TokenType;
 
 // Errors are structured as follows in this module: the handler for a token request on the one hand, and the handlers
 // for the other endpoints on the other hand, have specific error types. (There is also a general error type included
@@ -242,7 +240,6 @@ pub struct Created {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WaitingForResponse {
     pub access_token: AccessToken,
-    pub c_nonce: String,
     pub accepted_wallet_client_ids: Vec<String>,
     pub credential_previews: Vec<CredentialPreviewState>,
     pub dpop_public_key: VerifyingKey,
@@ -608,6 +605,7 @@ where
     K: EcdsaKeySend,
     A: AttributeService,
     S: SessionStore<IssuanceData>,
+    N: NonceStore,
     L: StatusListServices,
 {
     pub async fn process_credential_preview(
@@ -775,6 +773,7 @@ where
                 access_token,
                 dpop,
                 &self.issuer_data,
+                &self.nonce_store,
                 &*self.status_list_services,
             )
             .await;
@@ -802,6 +801,7 @@ where
                 access_token,
                 dpop,
                 &self.issuer_data,
+                &self.nonce_store,
                 &*self.status_list_services,
             )
             .await;
@@ -899,7 +899,6 @@ impl Session<Created> {
             Ok((token_response, previews, ids, dpop_pubkey, dpop_nonce)) => {
                 let next = self.transition(WaitingForResponse {
                     access_token: token_response.access_token.clone(),
-                    c_nonce: token_response.c_nonce.as_ref().unwrap().clone(), // field is always set below
                     accepted_wallet_client_ids: accepted_wallet_client_ids.to_vec(),
                     credential_previews: previews
                         .into_iter()
@@ -1003,27 +1002,11 @@ impl Session<Created> {
             .into_nonempty_iter()
             .unzip();
 
-        let c_nonce = random_string(32);
         let dpop_nonce = random_string(32);
 
-        let token_response = TokenResponse::new(AccessToken::new(&code), c_nonce);
+        let token_response = TokenResponse::new(AccessToken::new(&code));
 
         Ok((token_response, previews, ids, dpop_public_key, dpop_nonce))
-    }
-}
-
-impl TokenResponse {
-    pub(crate) fn new(access_token: AccessToken, c_nonce: String) -> Self {
-        Self {
-            access_token,
-            c_nonce: Some(c_nonce),
-            token_type: TokenType::DPoP,
-            expires_in: None,
-            refresh_token: None,
-            scope: None,
-            c_nonce_expires_in: None,
-            authorization_details: None,
-        }
     }
 }
 
@@ -1055,12 +1038,14 @@ impl TryFrom<SessionState<IssuanceData>> for Session<WaitingForResponse> {
 }
 
 impl Session<WaitingForResponse> {
+    #[expect(clippy::too_many_arguments)]
     pub async fn process_credential(
         self,
         credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<impl EcdsaKeySend>,
+        nonce_store: &impl NonceStore,
         status_list_services: &impl StatusListServices,
     ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>) {
         let result = self
@@ -1069,6 +1054,7 @@ impl Session<WaitingForResponse> {
                 access_token,
                 dpop,
                 issuer_data,
+                nonce_store,
                 status_list_services,
             )
             .await;
@@ -1156,12 +1142,14 @@ impl Session<WaitingForResponse> {
         Ok((wua_nonce, poa_nonce))
     }
 
+    #[expect(clippy::too_many_arguments)]
     pub async fn process_credential_inner(
         &self,
         credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<impl EcdsaKeySend>,
+        nonce_store: &impl NonceStore,
         status_list_services: &impl StatusListServices,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let session_data = self.session_data();
@@ -1199,11 +1187,6 @@ impl Session<WaitingForResponse> {
             [holder_pubkey].into_iter(),
             issuer_data,
         )?;
-
-        // TODO: Consult the database nonce store instead of this fake nonce, which
-        //       is populated with the one `c_nonce` contained in session state.
-        let nonce_store = MemoryNonceStore::new();
-        nonce_store.store(session_data.c_nonce.clone());
 
         // Check the validity of all of the nonces used, which may be equal to each other.
         let nonce_status = nonce_store
@@ -1251,12 +1234,14 @@ impl Session<WaitingForResponse> {
         Ok(credential_response)
     }
 
+    #[expect(clippy::too_many_arguments)]
     pub async fn process_batch_credential(
         self,
         credential_requests: CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<impl EcdsaKeySend>,
+        nonce_store: &impl NonceStore,
         status_list_services: &impl StatusListServices,
     ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>) {
         let result = self
@@ -1265,6 +1250,7 @@ impl Session<WaitingForResponse> {
                 access_token,
                 dpop,
                 issuer_data,
+                nonce_store,
                 status_list_services,
             )
             .await;
@@ -1282,12 +1268,14 @@ impl Session<WaitingForResponse> {
         (result, next)
     }
 
+    #[expect(clippy::too_many_arguments)]
     async fn process_batch_credential_inner(
         &self,
         credential_requests: CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
         issuer_data: &IssuerData<impl EcdsaKeySend>,
+        nonce_store: &impl NonceStore,
         status_list_services: &impl StatusListServices,
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let session_data = self.session_data();
@@ -1359,11 +1347,6 @@ impl Session<WaitingForResponse> {
                 .flat_map(|(_, _, format_pubkeys)| format_pubkeys.iter().map(|(_, key)| *key)),
             issuer_data,
         )?;
-
-        // TODO: Consult the database nonce store instead of this fake nonce, which
-        //       is populated with the one `c_nonce` contained in session state.
-        let nonce_store = MemoryNonceStore::new();
-        nonce_store.store(session_data.c_nonce.clone());
 
         // Check the validity of all of the nonces used, which may be equal to each other.
         let nonce_status = nonce_store

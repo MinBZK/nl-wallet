@@ -1273,7 +1273,7 @@ mod tests {
         let start_context = MockIssuanceSession::start_context();
         start_context
             .expect()
-            .return_once(|| Err(IssuanceSessionError::MissingNonce));
+            .return_once(|| Err(IssuanceSessionError::IssuerMismatch));
 
         // Continuing PID issuance on a wallet should forward this error.
         let error = wallet
@@ -1402,7 +1402,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
             client
                 .expect_reject()
-                .return_once(|| Err(IssuanceSessionError::MissingNonce));
+                .return_once(|| Err(IssuanceSessionError::IssuerMismatch));
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
@@ -1760,7 +1760,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
             client
                 .expect_accept()
-                .return_once(|| Err(IssuanceSessionError::MissingNonce));
+                .return_once(|| Err(IssuanceSessionError::IssuerMismatch));
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
