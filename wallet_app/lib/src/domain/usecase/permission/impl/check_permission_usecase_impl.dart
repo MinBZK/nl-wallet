@@ -8,15 +8,19 @@ class CheckPermissionUseCaseImpl extends CheckPermissionUseCase {
   CheckPermissionUseCaseImpl();
 
   @override
-  Future<PermissionCheckResult> invoke(Permission permission) async {
+  Future<PermissionCheckResult> invoke(List<Permission> permissions) async {
     try {
-      final isGranted = await permission.isGranted;
-      if (isGranted) return PermissionCheckResult(isGranted: isGranted, isPermanentlyDenied: false);
-      final isPermanentlyDenied = await permission.isPermanentlyDenied;
-      return PermissionCheckResult(isGranted: isGranted, isPermanentlyDenied: isPermanentlyDenied);
+      // Check permissions sequentially; no batch API available for permission checks.
+      for (final permission in permissions) {
+        final isGranted = await permission.isGranted;
+        if (!isGranted) {
+          final isPermanentlyDenied = await permission.isPermanentlyDenied;
+          return PermissionCheckResult(isGranted: false, isPermanentlyDenied: isPermanentlyDenied);
+        }
+      }
+      return const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false);
     } catch (ex) {
-      Fimber.e('Could not check permission for: $permission', ex: ex);
-      // Return a sane default that would cause us to try again.
+      Fimber.e('Could not check permissions for: $permissions', ex: ex);
       return const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false);
     }
   }

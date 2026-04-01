@@ -25,7 +25,7 @@ class NotificationAppEventListener extends AppEventListener {
 
   Future<void> _checkAndSetRequestNotificationPermission() async {
     if (await _notificationRepository.getShowNotificationRequestFlag() ?? false) {
-      final permission = await _checkPermissionUseCase.invoke(.notification);
+      final permission = await _checkPermissionUseCase.invoke([.notification]);
       _requestNotificationPermission = !permission.isGranted && !permission.isPermanentlyDenied;
     }
   }
