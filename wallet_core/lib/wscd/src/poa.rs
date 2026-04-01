@@ -104,6 +104,28 @@ impl Poa {
         accepted_issuers: &[String],
         expected_nonce: &str,
     ) -> Result<(), PoaVerificationError> {
+        let nonce = self.verify_returning_nonce(expected_keys, expected_aud, accepted_issuers)?;
+
+        if nonce != expected_nonce {
+            return Err(PoaVerificationError::IncorrectNonce);
+        }
+
+        Ok(())
+    }
+
+    /// Verify the PoA and return the nonce used, checking that:
+    ///
+    /// - all `expected_keys` are in the PoA (and no other keys). The keys may be passed in any order.
+    /// - all signatures are valid against all keys in the PoA, and the order of the JWKs in the payload corresponds to
+    ///   the order of the signatures.
+    /// - the `aud` and `iss` fields in the payload have the expected values.
+    /// - a nonce is present in the payload
+    pub fn verify_returning_nonce(
+        self,
+        expected_keys: &[VerifyingKey],
+        expected_aud: &str,
+        accepted_issuers: &[String],
+    ) -> Result<String, PoaVerificationError> {
         let jwts: Vec<UnverifiedJwt<_, _>> = self.into();
 
         if jwts.len() != expected_keys.len() {
@@ -124,9 +146,8 @@ impl Poa {
                 found: payload.jwks.as_slice().len(),
             });
         }
-        if payload.payload.nonce.as_deref() != Some(expected_nonce) {
-            return Err(PoaVerificationError::IncorrectNonce);
-        }
+
+        let nonce = payload.payload.nonce.ok_or(PoaVerificationError::MissingNonce)?;
 
         // Validate all the JWTs, against the keys in the payload of the JWTs.
         let mut validations = DEFAULT_VALIDATIONS.to_owned();
@@ -151,7 +172,7 @@ impl Poa {
             }
         }
 
-        Ok(())
+        Ok(nonce)
     }
 
     #[cfg(feature = "mock")]

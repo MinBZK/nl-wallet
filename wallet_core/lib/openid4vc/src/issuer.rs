@@ -69,6 +69,8 @@ use crate::issuer_metadata::CredentialConfiguration;
 use crate::issuer_metadata::IssuerMetadata;
 use crate::issuer_metadata::ProofType;
 use crate::nonce::generate_nonce;
+use crate::nonce::memory_store::MemoryNonceStore;
+use crate::nonce::store::NonceStatus;
 use crate::nonce::store::NonceStore;
 use crate::nonce::store::NonceStoreError;
 use crate::oidc;
@@ -152,14 +154,20 @@ pub enum CredentialRequestError {
     #[error("credential request ambiguous, use /batch_credential instead")]
     UseBatchIssuance,
 
-    #[error("incorrect nonce")]
-    IncorrectNonce,
+    #[error("invalid proof JWT: {0}")]
+    InvalidProofJwk(#[source] JwtError),
 
-    #[error("unsupported JWT: {0}")]
-    UnsupportedJwt(#[source] JwtError),
+    #[error("could not extract holder public key from proof JWT: {0}")]
+    InvalidProofPublicKey(#[source] JwkConversionError),
 
-    #[error("JWK conversion error: {0}")]
-    JwkConversion(#[from] JwkConversionError),
+    #[error("nonce is not provided in credential request proof")]
+    MissingProofNonce,
+
+    #[error("could not check proof nonce against nonce storage: {0}")]
+    ProofNonceStore(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
+    #[error("invalid nonce used in credential request proof, WUA or PoA")]
+    InvalidNonce,
 
     #[error("JWT error: {0}")]
     Jwt(#[from] JwtError),
@@ -1110,17 +1118,16 @@ impl Session<WaitingForResponse> {
         wua_config: &WuaConfig,
         attestations: Option<&WuaDisclosure>,
         issuer_identifier: &str,
-    ) -> Result<VerifyingKey, CredentialRequestError> {
+    ) -> Result<(VerifyingKey, String), CredentialRequestError> {
         let wua_disclosure = attestations.ok_or(CredentialRequestError::MissingWua)?;
 
-        let wua_pubkey = wua_disclosure.verify(
+        let (wua_pubkey, wua_nonce) = wua_disclosure.verify(
             &wua_config.wua_issuer_pubkey,
             issuer_identifier,
             &self.state.data.accepted_wallet_client_ids,
-            &self.state.data.c_nonce,
         )?;
 
-        Ok(wua_pubkey)
+        Ok((wua_pubkey, wua_nonce))
     }
 
     pub fn verify_wua_and_poa<K>(
@@ -1129,25 +1136,24 @@ impl Session<WaitingForResponse> {
         poa: Option<Poa>,
         attestation_keys: impl Iterator<Item = VerifyingKey>,
         issuer_data: &IssuerData<K>,
-    ) -> Result<(), CredentialRequestError> {
+    ) -> Result<(Option<String>, String), CredentialRequestError> {
         let issuer_identifier = issuer_data.metadata.credential_issuer.as_ref();
 
-        let attestation_keys = match &issuer_data.wua_config {
-            None => attestation_keys.collect_vec(),
+        let (attestation_keys, wua_nonce) = match &issuer_data.wua_config {
+            None => (attestation_keys.collect_vec(), None),
             Some(wua) => {
-                let wua_pubkey = self.verify_wua(wua, attestations, issuer_identifier)?;
-                attestation_keys.chain([wua_pubkey]).collect_vec()
+                let (wua_pubkey, wua_nonce) = self.verify_wua(wua, attestations, issuer_identifier)?;
+                (attestation_keys.chain([wua_pubkey]).collect_vec(), Some(wua_nonce))
             }
         };
 
-        poa.ok_or(CredentialRequestError::MissingPoa)?.verify(
+        let poa_nonce = poa.ok_or(CredentialRequestError::MissingPoa)?.verify_returning_nonce(
             &attestation_keys,
             issuer_identifier,
             &issuer_data.accepted_wallet_client_ids,
-            &self.state.data.c_nonce,
         )?;
 
-        Ok(())
+        Ok((wua_nonce, poa_nonce))
     }
 
     pub async fn process_credential_inner(
@@ -1182,15 +1188,37 @@ impl Session<WaitingForResponse> {
             _ => Err(CredentialRequestError::UseBatchIssuance),
         }?;
 
-        // TODO (PVW-5676): Consult the nonce store instead of using the `c_nonce` contained in the session state.
-        let holder_pubkey = credential_request.verify(&session_data.c_nonce, issuer_data)?;
+        let (holder_pubkey, request_nonce) = credential_request.verify(
+            &issuer_data.accepted_wallet_client_ids,
+            &issuer_data.metadata.credential_issuer,
+        )?;
 
-        self.verify_wua_and_poa(
+        let (wua_nonce, poa_nonce) = self.verify_wua_and_poa(
             credential_request.attestations.as_ref(),
             credential_request.poa,
             [holder_pubkey].into_iter(),
             issuer_data,
         )?;
+
+        // TODO: Consult the database nonce store instead of this fake nonce, which
+        //       is populated with the one `c_nonce` contained in session state.
+        let nonce_store = MemoryNonceStore::new();
+        nonce_store.store(session_data.c_nonce.clone());
+
+        // Check the validity of all of the nonces used, which may be equal to each other.
+        let nonce_status = nonce_store
+            .check_nonce_status_and_remove(
+                [request_nonce.as_str(), poa_nonce.as_str()]
+                    .iter()
+                    .copied()
+                    .chain(wua_nonce.as_deref()),
+            )
+            .await
+            .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
+
+        if !matches!(nonce_status, NonceStatus::AllValid) {
+            return Err(CredentialRequestError::InvalidNonce);
+        }
 
         let attestation_type = &preview.credential_payload.attestation_type;
         let config = issuer_data
@@ -1266,7 +1294,7 @@ impl Session<WaitingForResponse> {
 
         self.check_credential_endpoint_access(&access_token, dpop, &issuer_data.server_url, "batch_credential")?;
 
-        let mut cred_req_index = 0;
+        let mut request_nonces = Vec::with_capacity(credential_requests.credential_requests.as_ref().len());
         let previews_and_holder_pubkeys = session_data
             .credential_previews
             .iter()
@@ -1280,9 +1308,8 @@ impl Session<WaitingForResponse> {
                         let cred_req = credential_requests
                             .credential_requests
                             .as_ref()
-                            .get(cred_req_index)
+                            .get(request_nonces.len())
                             .ok_or(CredentialRequestError::WrongNumberOfCredentialRequests)?;
-                        cred_req_index += 1;
 
                         // Verify the assumption that the order of the incoming requests matches exactly
                         // that of the flattened copies_per_format by matching the requested format.
@@ -1292,9 +1319,14 @@ impl Session<WaitingForResponse> {
                                 requested: cred_req.credential_type.as_ref().format(),
                             });
                         }
-                        // TODO (PVW-5676): Consult the nonce store instead of using
-                        //                  the `c_nonce` contained in the session state.
-                        let key = cred_req.verify(&session_data.c_nonce, issuer_data)?;
+
+                        let (key, nonce) = cred_req.verify(
+                            &issuer_data.accepted_wallet_client_ids,
+                            &issuer_data.metadata.credential_issuer,
+                        )?;
+
+                        request_nonces.push(nonce);
+
                         Ok((format, key))
                     })
                     .collect::<Result<Vec<_>, _>>()?
@@ -1315,11 +1347,11 @@ impl Session<WaitingForResponse> {
             .collect::<Result<Vec<_>, CredentialRequestError>>()?;
 
         // Verify that we have consumed all credential requests
-        if cred_req_index != credential_requests.credential_requests.as_ref().len() {
+        if request_nonces.len() != credential_requests.credential_requests.as_ref().len() {
             return Err(CredentialRequestError::WrongNumberOfCredentialRequests);
         }
 
-        self.verify_wua_and_poa(
+        let (wua_nonce, poa_nonce) = self.verify_wua_and_poa(
             credential_requests.attestations.as_ref(),
             credential_requests.poa,
             previews_and_holder_pubkeys
@@ -1327,6 +1359,27 @@ impl Session<WaitingForResponse> {
                 .flat_map(|(_, _, format_pubkeys)| format_pubkeys.iter().map(|(_, key)| *key)),
             issuer_data,
         )?;
+
+        // TODO: Consult the database nonce store instead of this fake nonce, which
+        //       is populated with the one `c_nonce` contained in session state.
+        let nonce_store = MemoryNonceStore::new();
+        nonce_store.store(session_data.c_nonce.clone());
+
+        // Check the validity of all of the nonces used, which may be equal to each other.
+        let nonce_status = nonce_store
+            .check_nonce_status_and_remove(
+                request_nonces
+                    .iter()
+                    .map(String::as_str)
+                    .chain(wua_nonce.as_deref())
+                    .chain(std::iter::once(poa_nonce.as_str())),
+            )
+            .await
+            .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
+
+        if !matches!(nonce_status, NonceStatus::AllValid) {
+            return Err(CredentialRequestError::InvalidNonce);
+        }
 
         // Obtain a status claim for every attestation copy, linked to a single batch id per preview
         let status_claims = try_join_all(previews_and_holder_pubkeys.iter().map(
@@ -1412,18 +1465,18 @@ impl<T: IssuanceState> Session<T> {
 }
 
 impl CredentialRequest {
-    fn verify<K>(&self, c_nonce: &str, issuer_data: &IssuerData<K>) -> Result<VerifyingKey, CredentialRequestError> {
-        let holder_pubkey = self
+    fn verify(
+        &self,
+        accepted_wallet_client_ids: &[impl ToString],
+        credential_issuer_identifier: &IssuerIdentifier,
+    ) -> Result<(VerifyingKey, String), CredentialRequestError> {
+        let (holder_pubkey, nonce) = self
             .proof
             .as_ref()
             .ok_or(CredentialRequestError::MissingCredentialRequestPoP)?
-            .verify(
-                c_nonce,
-                &issuer_data.accepted_wallet_client_ids,
-                &issuer_data.metadata.credential_issuer,
-            )?;
+            .verify(accepted_wallet_client_ids, credential_issuer_identifier)?;
 
-        Ok(holder_pubkey)
+        Ok((holder_pubkey, nonce))
     }
 }
 
@@ -1482,10 +1535,9 @@ impl CredentialResponse {
 impl CredentialRequestProof {
     pub fn verify(
         &self,
-        nonce: &str,
         accepted_wallet_client_ids: &[impl ToString],
         credential_issuer_identifier: &IssuerIdentifier,
-    ) -> Result<VerifyingKey, CredentialRequestError> {
+    ) -> Result<(VerifyingKey, String), CredentialRequestError> {
         let CredentialRequestProof::Jwt { jwt } = self;
 
         let mut validation_options = Validation::new(Algorithm::ES256);
@@ -1495,13 +1547,15 @@ impl CredentialRequestProof {
 
         let (header, payload) = jwt
             .parse_and_verify_with_jwk(&validation_options)
-            .map_err(CredentialRequestError::UnsupportedJwt)?;
+            .map_err(CredentialRequestError::InvalidProofJwk)?;
 
-        if payload.nonce.as_deref() != Some(nonce) {
-            return Err(CredentialRequestError::IncorrectNonce);
-        }
+        let public_key = header
+            .verifying_key()
+            .map_err(CredentialRequestError::InvalidProofPublicKey)?;
 
-        Ok(header.verifying_key()?)
+        let nonce = payload.nonce.ok_or(CredentialRequestError::MissingProofNonce)?;
+
+        Ok((public_key, nonce))
     }
 }
 
