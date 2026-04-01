@@ -32,6 +32,7 @@ use openid4vc::oidc::OidcClient;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
+use platform_support::close_proximity_disclosure::CloseProximityDisclosureError as PlatformError;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
 use rustls_pki_types::TrustAnchor;
 use update_policy_model::update_policy::VersionState;
@@ -84,6 +85,10 @@ enum CloseProximityDisclosureSessionState {
         reader_certificate: Box<BorrowingCertificate>,
         attestations: WalletDisclosureAttestations<usize>,
     },
+    Errored {
+        error: PlatformError,
+        reader_certificate: Option<Box<BorrowingCertificate>>,
+    },
 }
 
 #[derive(Debug)]
@@ -121,7 +126,22 @@ fn spawn_listener(
                 }
                 PlatformUpdate::Closed => CloseProximityDisclosureUpdate::Disconnected,
                 // TODO process error (PVW-5710)
-                PlatformUpdate::Error { .. } => CloseProximityDisclosureUpdate::Disconnected,
+                PlatformUpdate::Error { error } => {
+                    error!("Received PlatformUpdate::Error: {error:?}");
+                    let mut current_state = session_state.lock();
+                    let reader_certificate = match &*current_state {
+                        CloseProximityDisclosureSessionState::DisclosureProposed { reader_certificate, .. } => {
+                            Some(reader_certificate.to_owned())
+                        }
+                        _ => None,
+                    };
+
+                    *current_state = CloseProximityDisclosureSessionState::Errored {
+                        error,
+                        reader_certificate,
+                    };
+                    CloseProximityDisclosureUpdate::Disconnected
+                }
             };
 
             info!("Close proximity disclosure update: {wallet_update:?}");
@@ -327,17 +347,24 @@ where
 
         let state = session.session_state.lock().to_owned();
         // Only store the event if the session is past SessionEstablished state (i.e. DisclosureProposed or later)
-        if let CloseProximityDisclosureSessionState::DisclosureProposed { reader_certificate, .. } = state {
-            self.store_disclosure_event(
-                Utc::now(),
-                // TODO (PVW-5078): Store credential requests in disclosure event.
-                None,
-                *reader_certificate,
-                DisclosureType::Regular,
-                EventStatus::Cancelled,
-                DataDisclosed::NotDisclosed,
-            )
-            .await?;
+        match state {
+            CloseProximityDisclosureSessionState::DisclosureProposed { reader_certificate, .. }
+            | CloseProximityDisclosureSessionState::Errored {
+                reader_certificate: Some(reader_certificate),
+                ..
+            } => {
+                self.store_disclosure_event(
+                    Utc::now(),
+                    // TODO (PVW-5078): Store credential requests in disclosure event.
+                    None,
+                    *reader_certificate,
+                    DisclosureType::Regular,
+                    EventStatus::Cancelled,
+                    DataDisclosed::NotDisclosed,
+                )
+                .await?;
+            }
+            _ => {}
         }
 
         Ok(())
