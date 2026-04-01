@@ -19,7 +19,6 @@ allow_insecure_url = ["wallet/allow_insecure_url"]
 anyhow.workspace = true
 backtrace.workspace = true
 chrono.workspace = true
-flutter_rust_bridge = "=2.11.1"
 itertools.workspace = true
 parking_lot.workspace = true
 sentry = { workspace = true, features = ["backtrace", "contexts", "panic", "debug-images", "reqwest", "rustls"] }
@@ -34,6 +33,12 @@ url.workspace = true
 error_category.path = "../lib/error_category"
 flutter_api_macros.path = "flutter_api_macros"
 wallet.path = "../wallet"
+
+[dependencies.flutter_rust_bridge]
+version = "=2.11.1"
+default-features = false
+# default - log - wasm-start
+features = ["anyhow", "dart-opaque", "portable-atomic", "rust-async", "thread-pool", "user-utils"]
 
 [dev-dependencies]
 rstest.workspace = true
