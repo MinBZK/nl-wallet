@@ -3,6 +3,7 @@ use std::sync::Mutex;
 
 use chrono::DateTime;
 use chrono::Utc;
+use itertools::Itertools;
 
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
@@ -62,16 +63,25 @@ where
         NonceStoreResult::Stored
     }
 
-    pub fn remove(&self, nonce: &str) -> NonceStatus {
-        let mut nonces = self
+    pub fn remove_and_check<'a>(&self, nonces: impl IntoIterator<Item = &'a str>) -> NonceStatus {
+        let mut stored_nonces = self
             .nonces
             .lock()
             .expect("there should be no panic while the lock is held");
 
-        match nonces.remove(nonce) {
-            None => NonceStatus::Absent,
-            Some(created_date_time) if created_date_time + C_NONCE_VALIDITY <= self.now() => NonceStatus::Expired,
-            Some(_) => NonceStatus::Valid,
+        // Make sure all requested nonces are removed before checking their dates by collecting into a `Vec`.
+        let removed_nonce_datetimes = nonces
+            .into_iter()
+            .unique()
+            .map(|nonce| stored_nonces.remove(nonce))
+            .collect_vec();
+
+        if removed_nonce_datetimes.into_iter().all(|date_time| {
+            date_time.is_some_and(|created_date_time| created_date_time + C_NONCE_VALIDITY >= self.now())
+        }) {
+            NonceStatus::AllValid
+        } else {
+            NonceStatus::AtLeastOneAbsentOrExpired
         }
     }
 }
@@ -89,8 +99,11 @@ where
         }
     }
 
-    async fn check_nonce_status_and_then_remove(&self, nonce: &str) -> Result<NonceStatus, Self::Error> {
-        let presence = self.remove(nonce);
+    async fn check_nonce_status_and_remove<'a>(
+        &self,
+        nonces: impl IntoIterator<Item = &'a str> + Send,
+    ) -> Result<NonceStatus, Self::Error> {
+        let presence = self.remove_and_check(nonces);
 
         Ok(presence)
     }

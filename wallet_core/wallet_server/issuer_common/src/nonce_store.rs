@@ -117,29 +117,34 @@ where
         }
     }
 
-    async fn check_nonce_status_and_then_remove(&self, nonce: &str) -> Result<NonceStatus, Self::Error> {
-        let presence = match &self.backend {
+    async fn check_nonce_status_and_remove<'a>(
+        &self,
+        nonces: impl IntoIterator<Item = &'a str> + Send,
+    ) -> Result<NonceStatus, Self::Error> {
+        let status = match &self.backend {
             NonceStoreBackend::Postgres(connection) => {
+                let nonces = nonces.into_iter().unique().collect_vec();
+                let nonce_count = nonces.len();
+
                 let deleted_nonces = ProofNonce::delete_many()
-                    .filter(proof_nonce::Column::Nonce.eq(nonce))
+                    .filter(proof_nonce::Column::Nonce.is_in(nonces))
                     .exec_with_returning(connection)
                     .await
                     .map_err(ProofNonceStoreError::DbDeleteNonce)?;
 
-                let nonce = deleted_nonces
-                    .into_iter()
-                    .at_most_one()
-                    .expect("deleted multiple nonces, this should not happen as the nonce column is unique");
-
-                match nonce {
-                    None => NonceStatus::Absent,
-                    Some(nonce) if nonce.created_date_time + C_NONCE_VALIDITY <= self.now() => NonceStatus::Expired,
-                    Some(_) => NonceStatus::Valid,
+                if deleted_nonces.len() >= nonce_count
+                    && deleted_nonces
+                        .into_iter()
+                        .all(|nonce| nonce.created_date_time + C_NONCE_VALIDITY >= self.now())
+                {
+                    NonceStatus::AllValid
+                } else {
+                    NonceStatus::AtLeastOneAbsentOrExpired
                 }
             }
-            NonceStoreBackend::Memory(memory_store) => memory_store.remove(nonce),
+            NonceStoreBackend::Memory(memory_store) => memory_store.remove_and_check(nonces),
         };
 
-        Ok(presence)
+        Ok(status)
     }
 }
