@@ -92,7 +92,10 @@ void main() {
         (const core.CloseProximityDisclosureFlutterUpdate.connected(), const BleConnected()),
         (const core.CloseProximityDisclosureFlutterUpdate.deviceRequestReceived(), const BleDeviceRequestReceived()),
         (const core.CloseProximityDisclosureFlutterUpdate.disconnected(), const BleDisconnected()),
-        (const core.CloseProximityDisclosureFlutterUpdate.errored(error: genericJsonError), const BleError(genericError)),
+        (
+          const core.CloseProximityDisclosureFlutterUpdate.errored(error: genericJsonError),
+          const BleError(genericError),
+        ),
       ];
 
       // Publish all updates into the captured callback

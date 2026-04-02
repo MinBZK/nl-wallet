@@ -428,18 +428,7 @@ impl FlutterApiErrorFields for DisclosureError {
 
 impl FlutterApiErrorFields for CloseProximityDisclosureError {
     fn typ(&self) -> FlutterApiErrorType {
-        match self {
-            CloseProximityDisclosureError::EmptyRequest
-            | CloseProximityDisclosureError::NoAttributesRequested
-            | CloseProximityDisclosureError::MissingReaderAuth
-            | CloseProximityDisclosureError::InconsistentReaderAuths
-            | CloseProximityDisclosureError::InvalidDocRequest(_)
-            | CloseProximityDisclosureError::MissingReaderRegistration
-            | CloseProximityDisclosureError::InvalidCertificateType(_)
-            | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_)
-            | CloseProximityDisclosureError::InvalidCbor(_) => FlutterApiErrorType::Verifier,
-            CloseProximityDisclosureError::PlatformError(_) => FlutterApiErrorType::Generic,
-        }
+        self.into()
     }
 
     fn data(&self) -> serde_json::Value {
