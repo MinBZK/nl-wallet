@@ -585,6 +585,19 @@ where
 
         Ok(token)
     }
+
+    async fn get_session(
+        &self,
+        code: AuthorizationCode,
+    ) -> Result<Session<WaitingForResponse>, CredentialRequestError> {
+        self.sessions
+            .get(&code.clone().into())
+            .await
+            .map_err(IssuanceError::SessionStore)?
+            .ok_or(IssuanceError::UnknownSession(code))?
+            .try_into()
+            .map_err(CredentialRequestError::IssuanceError)
+    }
 }
 
 impl<K, A, S, N, L> Issuer<K, A, S, N, L>
@@ -602,11 +615,7 @@ where
 
 impl<K, A, S, N, L> Issuer<K, A, S, N, L>
 where
-    K: EcdsaKeySend,
-    A: AttributeService,
     S: SessionStore<IssuanceData>,
-    N: NonceStore,
-    L: StatusListServices,
 {
     pub async fn process_credential_preview(
         &self,
@@ -690,7 +699,14 @@ where
             type_metadata: config.metadata_documents.clone(),
         })
     }
+}
 
+impl<K, A, S, N, L> Issuer<K, A, S, N, L>
+where
+    K: EcdsaKeySend,
+    A: AttributeService,
+    S: SessionStore<IssuanceData>,
+{
     pub async fn process_token_request(
         &self,
         token_request: TokenRequest,
@@ -744,20 +760,16 @@ where
 
         response
     }
+}
 
-    async fn get_session(
-        &self,
-        code: AuthorizationCode,
-    ) -> Result<Session<WaitingForResponse>, CredentialRequestError> {
-        self.sessions
-            .get(&code.clone().into())
-            .await
-            .map_err(IssuanceError::SessionStore)?
-            .ok_or(IssuanceError::UnknownSession(code))?
-            .try_into()
-            .map_err(CredentialRequestError::IssuanceError)
-    }
-
+impl<K, A, S, N, L> Issuer<K, A, S, N, L>
+where
+    K: EcdsaKeySend,
+    A: AttributeService,
+    N: NonceStore,
+    S: SessionStore<IssuanceData>,
+    L: StatusListServices,
+{
     pub async fn process_credential(
         &self,
         access_token: AccessToken,
@@ -817,7 +829,12 @@ where
 
         logged_issuance_result(response)
     }
+}
 
+impl<K, A, S, N, L> Issuer<K, A, S, N, L>
+where
+    S: SessionStore<IssuanceData>,
+{
     pub async fn process_reject_issuance(
         &self,
         access_token: AccessToken,
@@ -853,7 +870,12 @@ where
 
         Ok(())
     }
+}
 
+impl<K, A, S, N, L> Issuer<K, A, S, N, L>
+where
+    A: AttributeService,
+{
     pub async fn oauth_metadata(&self) -> Result<oidc::Config, A::Error> {
         self.attr_service
             .oauth_metadata(&self.issuer_data.metadata.credential_issuer)
