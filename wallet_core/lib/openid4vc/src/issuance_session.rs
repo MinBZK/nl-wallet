@@ -640,7 +640,7 @@ struct IssuanceState {
     issuer_registration: IssuerRegistration,
     issuer_metadata: IssuerMetadata,
     #[debug(skip)]
-    dpop_private_key: SigningKey,
+    dpop_signing_key: SigningKey,
     dpop_nonce: Option<String>,
 }
 
@@ -733,7 +733,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let token_endpoint = oauth_metadata.token_endpoint.clone();
 
         let dpop_private_key = SigningKey::random(&mut OsRng);
-        let dpop_header = Dpop::new(&dpop_private_key, token_endpoint.clone(), Method::POST, None, None).await?;
+        let dpop_header = Dpop::new(&dpop_private_key, token_endpoint.clone(), &Method::POST, None, None)?;
 
         let (token_response, dpop_nonce) = message_client
             .request_token(&token_endpoint, &token_request, &dpop_header)
@@ -783,7 +783,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             credential_request_types,
             issuer_registration,
             issuer_metadata,
-            dpop_private_key,
+            dpop_signing_key: dpop_private_key,
             dpop_nonce,
         };
 
@@ -983,7 +983,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .ok_or(IssuanceSessionError::NoBatchCredentialEndpoint)?
             .as_url();
 
-        let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::DELETE).await?;
+        let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), &Method::DELETE)?;
 
         self.message_client
             .reject(url, &dpop_header, &access_token_header)
@@ -1007,7 +1007,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         url: &Url,
         credential_request: &CredentialRequest,
     ) -> Result<CredentialResponse, IssuanceSessionError> {
-        let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::POST).await?;
+        let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), &Method::POST)?;
 
         let response = self
             .message_client
@@ -1024,7 +1024,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         wua_disclosure: Option<WuaDisclosure>,
         poa: Option<Poa>,
     ) -> Result<Vec<CredentialResponse>, IssuanceSessionError> {
-        let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), Method::POST).await?;
+        let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), &Method::POST)?;
 
         let expected_response_count = credential_requests.len().get();
         let responses = self
@@ -1200,15 +1200,14 @@ impl Credential {
 }
 
 impl IssuanceState {
-    async fn auth_headers(&self, url: Url, method: Method) -> Result<(String, String), IssuanceSessionError> {
+    fn auth_headers(&self, url: Url, method: &Method) -> Result<(String, String), IssuanceSessionError> {
         let dpop_header = Dpop::new(
-            &self.dpop_private_key,
+            &self.dpop_signing_key,
             url,
             method,
             Some(&self.access_token),
             self.dpop_nonce.clone(),
-        )
-        .await?;
+        )?;
 
         let access_token_header = "DPoP ".to_string() + self.access_token.as_ref();
 
@@ -1517,7 +1516,7 @@ mod tests {
             credential_request_types,
             issuer_registration: IssuerRegistration::new_mock(),
             issuer_metadata,
-            dpop_private_key: SigningKey::random(&mut OsRng),
+            dpop_signing_key: SigningKey::random(&mut OsRng),
             dpop_nonce: Some("dpop_nonce".to_string()),
         }
     }
@@ -1627,7 +1626,7 @@ mod tests {
             .parse::<Dpop>()
             .unwrap()
             .verify_expecting_key(
-                session_state.dpop_private_key.verifying_key(),
+                session_state.dpop_signing_key.verifying_key(),
                 url,
                 &Method::POST,
                 Some(&session_state.access_token),

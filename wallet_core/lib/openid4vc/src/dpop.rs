@@ -46,6 +46,8 @@ use chrono::serde::ts_seconds;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::FromStr;
+use futures::FutureExt;
+use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::Deserialize;
@@ -57,7 +59,6 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use crypto::keys::EcdsaKey;
 use crypto::utils::random_string;
 use error_category::ErrorCategory;
 use jwt::Algorithm;
@@ -139,10 +140,10 @@ static DPOP_VALIDATION_OPTIONS: LazyLock<Validation> = LazyLock::new(|| {
 });
 
 impl Dpop {
-    pub async fn new(
-        private_key: &impl EcdsaKey,
+    pub fn new(
+        signing_key: &SigningKey,
         url: Url,
-        method: Method,
+        method: &Method,
         access_token: Option<&AccessToken>,
         nonce: Option<String>,
     ) -> Result<Self> {
@@ -154,7 +155,10 @@ impl Dpop {
             nonce,
             access_token_hash: access_token.map(AccessToken::sha256),
         };
-        let jwt = SignedJwt::sign_with_jwk(&payload, private_key).await?;
+        let jwt = SignedJwt::sign_with_jwk(&payload, signing_key)
+            .now_or_never()
+            .unwrap()?;
+
         Ok(Self(jwt.into()))
     }
 
@@ -237,13 +241,11 @@ mod tests {
     #[case(Some("123".to_string().into()), Some("456".to_string().into()))]
     #[tokio::test]
     async fn dpop(#[case] access_token: Option<AccessToken>, #[case] wrong_access_token: Option<AccessToken>) {
-        let private_key = SigningKey::random(&mut OsRng);
+        let signing_key = SigningKey::random(&mut OsRng);
         let url: Url = "https://example.com/path".parse().unwrap();
         let method = Method::POST;
 
-        let dpop = Dpop::new(&private_key, url.clone(), method.clone(), access_token.as_ref(), None)
-            .await
-            .unwrap();
+        let dpop = Dpop::new(&signing_key, url.clone(), &method, access_token.as_ref(), None).unwrap();
 
         // Check the `typ` of the Header
         let header: Header = part(0, dpop.0.serialization());
@@ -272,7 +274,7 @@ mod tests {
 
         // We can verify the DPoP
         let pubkey = dpop.clone().verify(&url, &method, access_token.as_ref()).unwrap();
-        assert_eq!(pubkey, *private_key.verifying_key());
+        assert_eq!(pubkey, *signing_key.verifying_key());
         dpop.verify_expecting_key(&pubkey, &url, &method, access_token.as_ref(), None)
             .unwrap();
     }
