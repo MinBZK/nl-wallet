@@ -773,8 +773,10 @@ where
                 access_token,
                 dpop,
                 &self.issuer_data,
-                &self.nonce_store,
-                &*self.status_list_services,
+                IssuerServices {
+                    nonce_store: &self.nonce_store,
+                    status_list_services: self.status_list_services.as_ref(),
+                },
             )
             .await;
 
@@ -801,8 +803,10 @@ where
                 access_token,
                 dpop,
                 &self.issuer_data,
-                &self.nonce_store,
-                &*self.status_list_services,
+                IssuerServices {
+                    nonce_store: &self.nonce_store,
+                    status_list_services: self.status_list_services.as_ref(),
+                },
             )
             .await;
 
@@ -1037,26 +1041,27 @@ impl TryFrom<SessionState<IssuanceData>> for Session<WaitingForResponse> {
     }
 }
 
+struct IssuerServices<'a, N, S> {
+    nonce_store: &'a N,
+    status_list_services: &'a S,
+}
+
 impl Session<WaitingForResponse> {
-    #[expect(clippy::too_many_arguments)]
-    pub async fn process_credential(
+    async fn process_credential<'a, K, N, S>(
         self,
         credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl EcdsaKeySend>,
-        nonce_store: &impl NonceStore,
-        status_list_services: &impl StatusListServices,
-    ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>) {
+        issuer_data: &IssuerData<K>,
+        services: IssuerServices<'a, N, S>,
+    ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>)
+    where
+        K: EcdsaKeySend,
+        N: NonceStore,
+        S: StatusListServices,
+    {
         let result = self
-            .process_credential_inner(
-                credential_request,
-                access_token,
-                dpop,
-                issuer_data,
-                nonce_store,
-                status_list_services,
-            )
+            .process_credential_inner(credential_request, access_token, dpop, issuer_data, services)
             .await;
 
         // In case of success, transition the session to done. This means the client won't be able to reuse its access
@@ -1142,16 +1147,19 @@ impl Session<WaitingForResponse> {
         Ok((wua_nonce, poa_nonce))
     }
 
-    #[expect(clippy::too_many_arguments)]
-    pub async fn process_credential_inner(
+    async fn process_credential_inner<'a, K, N, S>(
         &self,
         credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl EcdsaKeySend>,
-        nonce_store: &impl NonceStore,
-        status_list_services: &impl StatusListServices,
-    ) -> Result<CredentialResponse, CredentialRequestError> {
+        issuer_data: &IssuerData<K>,
+        services: IssuerServices<'a, N, S>,
+    ) -> Result<CredentialResponse, CredentialRequestError>
+    where
+        K: EcdsaKeySend,
+        N: NonceStore,
+        S: StatusListServices,
+    {
         let session_data = self.session_data();
 
         self.check_credential_endpoint_access(&access_token, dpop, &issuer_data.server_url, "credential")?;
@@ -1189,7 +1197,8 @@ impl Session<WaitingForResponse> {
         )?;
 
         // Check the validity of all of the nonces used, which may be equal to each other.
-        let nonce_status = nonce_store
+        let nonce_status = services
+            .nonce_store
             .check_nonce_status_and_remove(
                 [request_nonce.as_str(), poa_nonce.as_str()]
                     .iter()
@@ -1210,7 +1219,8 @@ impl Session<WaitingForResponse> {
             .get(attestation_type)
             .ok_or_else(|| CredentialRequestError::MissingAttestationTypeConfiguration(attestation_type.to_owned()))?;
 
-        let status_claim = status_list_services
+        let status_claim = services
+            .status_list_services
             .obtain_status_claims(
                 &preview.credential_payload.attestation_type,
                 preview.batch_id,
@@ -1234,25 +1244,21 @@ impl Session<WaitingForResponse> {
         Ok(credential_response)
     }
 
-    #[expect(clippy::too_many_arguments)]
-    pub async fn process_batch_credential(
+    async fn process_batch_credential<'a, K, N, S>(
         self,
         credential_requests: CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl EcdsaKeySend>,
-        nonce_store: &impl NonceStore,
-        status_list_services: &impl StatusListServices,
-    ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>) {
+        issuer_data: &IssuerData<K>,
+        services: IssuerServices<'a, N, S>,
+    ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>)
+    where
+        K: EcdsaKeySend,
+        N: NonceStore,
+        S: StatusListServices,
+    {
         let result = self
-            .process_batch_credential_inner(
-                credential_requests,
-                access_token,
-                dpop,
-                issuer_data,
-                nonce_store,
-                status_list_services,
-            )
+            .process_batch_credential_inner(credential_requests, access_token, dpop, issuer_data, services)
             .await;
 
         // In case of success, transition the session to done. This means the client won't be able to reuse its access
@@ -1268,16 +1274,19 @@ impl Session<WaitingForResponse> {
         (result, next)
     }
 
-    #[expect(clippy::too_many_arguments)]
-    async fn process_batch_credential_inner(
+    async fn process_batch_credential_inner<'a, K, N, S>(
         &self,
         credential_requests: CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl EcdsaKeySend>,
-        nonce_store: &impl NonceStore,
-        status_list_services: &impl StatusListServices,
-    ) -> Result<CredentialResponses, CredentialRequestError> {
+        issuer_data: &IssuerData<K>,
+        services: IssuerServices<'a, N, S>,
+    ) -> Result<CredentialResponses, CredentialRequestError>
+    where
+        K: EcdsaKeySend,
+        N: NonceStore,
+        S: StatusListServices,
+    {
         let session_data = self.session_data();
 
         self.check_credential_endpoint_access(&access_token, dpop, &issuer_data.server_url, "batch_credential")?;
@@ -1349,7 +1358,8 @@ impl Session<WaitingForResponse> {
         )?;
 
         // Check the validity of all of the nonces used, which may be equal to each other.
-        let nonce_status = nonce_store
+        let nonce_status = services
+            .nonce_store
             .check_nonce_status_and_remove(
                 request_nonces
                     .iter()
@@ -1367,7 +1377,8 @@ impl Session<WaitingForResponse> {
         // Obtain a status claim for every attestation copy, linked to a single batch id per preview
         let status_claims = try_join_all(previews_and_holder_pubkeys.iter().map(
             |(preview, _, format_pubkeys)| async move {
-                let claims = status_list_services
+                let claims = services
+                    .status_list_services
                     .obtain_status_claims(
                         &preview.credential_payload.attestation_type,
                         preview.batch_id,
