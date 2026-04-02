@@ -5,13 +5,13 @@ use std::collections::VecDeque;
 use derive_more::AsRef;
 use derive_more::Debug;
 use futures::TryFutureExt;
-use futures::future::OptionFuture;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
 use reqwest::Method;
+use reqwest::Response;
 use reqwest::header::AUTHORIZATION;
 use reqwest::header::ToStrError;
 use rustls_pki_types::TrustAnchor;
@@ -325,7 +325,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         Self: Sized;
 
     async fn accept_issuance<W>(
-        &self,
+        &mut self,
         trust_anchors: &[TrustAnchor<'_>],
         wscd: &W,
         include_wua: bool,
@@ -373,7 +373,7 @@ pub trait VcMessageClient {
         access_token: &AccessToken,
     ) -> Result<CredentialPreviewResponse, IssuanceSessionError>;
 
-    async fn request_nonce(&self, url: Url) -> Result<String, IssuanceSessionError>;
+    async fn request_nonce(&self, url: Url) -> Result<(NonceResponse, Option<String>), IssuanceSessionError>;
 
     async fn request_credential(
         &self,
@@ -403,6 +403,17 @@ pub struct HttpVcMessageClient {
 impl HttpVcMessageClient {
     pub fn new(client_id: String, http_client: reqwest::Client) -> Self {
         Self { client_id, http_client }
+    }
+
+    fn dpop_nonce(response: &Response) -> Result<Option<String>, ToStrError> {
+        let dpop_nonce = response
+            .headers()
+            .get(DPOP_NONCE_HEADER_NAME)
+            .map(|val| val.to_str())
+            .transpose()?
+            .map(str::to_string);
+
+        Ok(dpop_nonce)
     }
 }
 
@@ -472,12 +483,7 @@ impl VcMessageClient for HttpVcMessageClient {
                     let error = response.json::<ErrorResponse<TokenErrorCode>>().await?;
                     Err(IssuanceSessionError::TokenRequest(Box::new(error)))
                 } else {
-                    let dpop_nonce = response
-                        .headers()
-                        .get(DPOP_NONCE_HEADER_NAME)
-                        .map(|val| val.to_str())
-                        .transpose()?
-                        .map(str::to_string);
+                    let dpop_nonce = Self::dpop_nonce(&response)?;
                     let deserialized = response.json::<TokenResponse>().await?;
                     Ok((deserialized, dpop_nonce))
                 }
@@ -511,17 +517,13 @@ impl VcMessageClient for HttpVcMessageClient {
             .await
     }
 
-    async fn request_nonce(&self, url: Url) -> Result<String, IssuanceSessionError> {
-        let NonceResponse { c_nonce } = self
-            .http_client
-            .post(url)
-            .send()
-            .await?
-            .error_for_status()?
-            .json()
-            .await?;
+    async fn request_nonce(&self, url: Url) -> Result<(NonceResponse, Option<String>), IssuanceSessionError> {
+        let response = self.http_client.post(url).send().await?.error_for_status()?;
 
-        Ok(c_nonce)
+        let dpop_nonce = Self::dpop_nonce(&response)?;
+        let nonce_response = response.json().await?;
+
+        Ok((nonce_response, dpop_nonce))
     }
 
     async fn request_credential(
@@ -796,7 +798,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     }
 
     async fn accept_issuance<W>(
-        &self,
+        &mut self,
         trust_anchors: &[TrustAnchor<'_>],
         wscd: &W,
         include_wua: bool,
@@ -819,14 +821,22 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         .as_url();
 
         // Fetch one nonce from the nonce endpoint, if defined in the issuer metadata.
-        let c_nonce = OptionFuture::from(
-            issuer_metadata
-                .nonce_endpoint
-                .as_ref()
-                .map(|issuer_url| self.message_client.request_nonce(issuer_url.clone().into_url())),
-        )
-        .await
-        .transpose()?;
+        let c_nonce = match issuer_metadata.nonce_endpoint.as_ref() {
+            None => None,
+            Some(nonce_endpoint) => {
+                let (NonceResponse { c_nonce }, dpop_nonce) = self
+                    .message_client
+                    .request_nonce(nonce_endpoint.clone().into_url())
+                    .await?;
+
+                // If the nonce endpoint response included a DPoP-Nonce header, update the value in the state.
+                if let Some(dpop_nonce) = dpop_nonce {
+                    self.session_state.dpop_nonce = Some(dpop_nonce);
+                }
+
+                Some(c_nonce)
+            }
+        };
 
         let mut issuance_data = wscd
             .perform_issuance(
@@ -1264,8 +1274,9 @@ mod tests {
 
     use super::*;
 
-    fn mock_openid_message_client() -> MockVcMessageClient {
+    fn mock_openid_message_client_metadata() -> MockVcMessageClient {
         let mut mock_msg_client = MockVcMessageClient::new();
+
         mock_msg_client
             .expect_discover_metadata()
             .times(1)
@@ -1292,7 +1303,7 @@ mod tests {
     ) -> Result<HttpIssuanceSession<MockVcMessageClient>, IssuanceSessionError> {
         let issuance_key = generate_pid_issuer_mock_with_registration(ca, IssuerRegistration::new_mock()).unwrap();
 
-        let mut mock_msg_client = mock_openid_message_client();
+        let mut mock_msg_client = mock_openid_message_client_metadata();
         mock_msg_client
             .expect_request_token()
             .return_once(move |_url, _token_request, _dpop_header| {
@@ -1448,7 +1459,7 @@ mod tests {
         let copies_per_format: IndexMap<Format, NonZeroU8> =
             IndexMap::from_iter([(Format::MsoMdoc, NonZeroU8::MIN), (Format::SdJwt, NonZeroU8::MIN)]);
 
-        let mut mock_msg_client = mock_openid_message_client();
+        let mut mock_msg_client = mock_openid_message_client_metadata();
         mock_msg_client
             .expect_request_token()
             .return_once(move |_url, _token_request, _dpop_header| {
@@ -1519,6 +1530,25 @@ mod tests {
             dpop_signing_key: SigningKey::random(&mut OsRng),
             dpop_nonce: Some("dpop_nonce".to_string()),
         }
+    }
+
+    fn mock_openid_message_client_nonce(has_dpop_nonce: bool) -> MockVcMessageClient {
+        let mut mock_msg_client = MockVcMessageClient::new();
+
+        mock_msg_client
+            .expect_request_nonce()
+            .times(1)
+            .with(eq(Url::parse("https://issuer.example.com/issuance/nonce").unwrap()))
+            .return_once(move |_| {
+                Ok((
+                    NonceResponse {
+                        c_nonce: "c_nonce".to_string(),
+                    },
+                    has_dpop_nonce.then(|| "new_dpop_nonce".to_string()),
+                ))
+            });
+
+        mock_msg_client
     }
 
     #[derive(super::Debug, Clone)]
@@ -1609,28 +1639,27 @@ mod tests {
     }
 
     /// Check consistency and validity of the input of the /(batch_)credential endpoints.
+    #[expect(clippy::too_many_arguments)]
     fn check_credential_endpoint_input(
         url: &Url,
-        session_state: &IssuanceState,
+        dpop_signing_key: &SigningKey,
+        dpop_nonce: &str,
         dpop_header: &str,
         access_token_header: &str,
         attestations: &Option<WuaDisclosure>,
         use_wua: bool,
     ) {
-        assert_eq!(
-            access_token_header,
-            "DPoP ".to_string() + session_state.access_token.as_ref()
-        );
+        assert_eq!(access_token_header, "DPoP access_token".to_string());
 
         dpop_header
             .parse::<Dpop>()
             .unwrap()
             .verify_expecting_key(
-                session_state.dpop_signing_key.verifying_key(),
+                dpop_signing_key.verifying_key(),
                 url,
                 &Method::POST,
-                Some(&session_state.access_token),
-                session_state.dpop_nonce.as_deref(),
+                Some(&"access_token".to_string().into()),
+                Some(dpop_nonce),
             )
             .unwrap();
 
@@ -1639,15 +1668,32 @@ mod tests {
         }
     }
 
+    enum TestNonceEndpoint {
+        Absent,
+        Present,
+        PresentWithDpopNonce,
+    }
+
     #[rstest]
     fn test_accept_issuance(
         #[values(true, false)] use_wua: bool,
         #[values(true, false)] multiple_creds: bool,
-        #[values(true, false)] has_nonce_endpoint: bool,
+        #[values(
+            TestNonceEndpoint::Absent,
+            TestNonceEndpoint::Present,
+            TestNonceEndpoint::PresentWithDpopNonce
+        )]
+        nonce_endpoint: TestNonceEndpoint,
     ) {
         let (signer, preview_data) = MockCredentialSigner::new_with_preview_state();
         let trust_anchor = signer.trust_anchor.clone();
         let wscd = MockRemoteWscd::default();
+
+        let (mut mock_msg_client, has_nonce_endpoint, expected_dpop_nonce) = match nonce_endpoint {
+            TestNonceEndpoint::Absent => (MockVcMessageClient::new(), false, "dpop_nonce"),
+            TestNonceEndpoint::Present => (mock_openid_message_client_nonce(false), true, "dpop_nonce"),
+            TestNonceEndpoint::PresentWithDpopNonce => (mock_openid_message_client_nonce(true), true, "new_dpop_nonce"),
+        };
 
         let session_state = new_session_state(
             if multiple_creds {
@@ -1658,16 +1704,6 @@ mod tests {
             has_nonce_endpoint,
         );
 
-        let mut mock_msg_client = MockVcMessageClient::new();
-
-        if has_nonce_endpoint {
-            mock_msg_client
-                .expect_request_nonce()
-                .times(1)
-                .with(eq(Url::parse("https://issuer.example.com/issuance/nonce").unwrap()))
-                .return_once(|_| Ok("c_nonce".to_string()));
-        }
-
         // The client must use `request_credentials()` (which uses `/batch_credentials`) iff more than one credential
         // is being issued, and `request_credential()` instead (which uses `/credential`).
         if multiple_creds {
@@ -1676,7 +1712,8 @@ mod tests {
                 move |url, credential_requests, dpop_header, access_token_header| {
                     check_credential_endpoint_input(
                         url,
-                        &session_state,
+                        &session_state.dpop_signing_key,
+                        expected_dpop_nonce,
                         dpop_header,
                         access_token_header,
                         &credential_requests.attestations,
@@ -1702,7 +1739,8 @@ mod tests {
                 move |url, credential_request, dpop_header, access_token_header| {
                     check_credential_endpoint_input(
                         url,
-                        &session_state,
+                        &session_state.dpop_signing_key,
+                        expected_dpop_nonce,
                         dpop_header,
                         access_token_header,
                         &credential_request.attestations,
@@ -1734,12 +1772,7 @@ mod tests {
         let (signer, preview_data) = MockCredentialSigner::new_with_preview_state();
         let trust_anchor = signer.trust_anchor.clone();
 
-        let mut mock_msg_client = MockVcMessageClient::new();
-
-        mock_msg_client
-            .expect_request_nonce()
-            .times(1)
-            .return_once(|_| Ok("c_nonce".to_string()));
+        let mut mock_msg_client = mock_openid_message_client_nonce(false);
 
         mock_msg_client.expect_request_credentials().return_once(
             |_url, credential_requests, _dpop_header, _access_token_header| {
@@ -1787,12 +1820,7 @@ mod tests {
 
         let session_state = new_session_state(vec_nonempty![preview_data], true);
 
-        let mut mock_msg_client = MockVcMessageClient::new();
-
-        mock_msg_client
-            .expect_request_nonce()
-            .times(1)
-            .return_once(|_| Ok("c_nonce".to_string()));
+        let mut mock_msg_client = mock_openid_message_client_nonce(false);
 
         mock_msg_client.expect_request_credential().times(1).return_once({
             move |_url, credential_request, _dpop_header, _access_token_header| {
@@ -1822,12 +1850,7 @@ mod tests {
         // Include a random resource integrity in the MSO of the returned mdoc.
         signer.metadata_integrity = Integrity::from(crypto::utils::random_bytes(32));
 
-        let mut mock_msg_client = MockVcMessageClient::new();
-
-        mock_msg_client
-            .expect_request_nonce()
-            .times(1)
-            .return_once(|_| Ok("c_nonce".to_string()));
+        let mut mock_msg_client = mock_openid_message_client_nonce(false);
 
         mock_msg_client.expect_request_credential().return_once(
             |_url, credential_request, _dpop_header, _access_token_header| {
@@ -1857,12 +1880,7 @@ mod tests {
         let (signer, preview_data) = MockCredentialSigner::new_with_preview_state();
         let trust_anchor = signer.trust_anchor.clone();
 
-        let mut mock_msg_client = MockVcMessageClient::new();
-
-        mock_msg_client
-            .expect_request_nonce()
-            .times(1)
-            .return_once(|_| Ok("c_nonce".to_string()));
+        let mut mock_msg_client = mock_openid_message_client_nonce(false);
 
         let response = CredentialResponse::Deferred {
             transaction_id: "12345".to_string(),

@@ -561,7 +561,7 @@ where
         let remote_wscd = RemoteEcdsaWscd::new(remote_instruction.clone());
 
         info!("Checking if there is an active issuance session");
-        let Some(Session::Issuance(issuance_session)) = &self.session else {
+        let Some(Session::Issuance(issuance_session)) = &mut self.session else {
             return Err(IssuanceError::SessionState);
         };
 

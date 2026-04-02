@@ -321,7 +321,7 @@ where
                     pid_attestation_type: offered_pid,
                     issuance_session,
                 },
-        }) = &self.session.take()
+        }) = &mut self.session.take()
         else {
             unreachable!("session contained no PIN recovery issuance session"); // we just checked this above
         };

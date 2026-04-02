@@ -47,6 +47,7 @@ use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::issuer_metadata::IssuerMetadata;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::nonce::memory_store::MemoryNonceStore;
+use openid4vc::nonce::response::NonceResponse;
 use openid4vc::oidc;
 use openid4vc::preview::CredentialPreviewRequest;
 use openid4vc::preview::CredentialPreviewResponse;
@@ -181,7 +182,7 @@ async fn accept_issuance(#[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap
     let message_client = MockOpenidMessageClient::new(issuer);
     let copy_count = 4;
 
-    let session = HttpIssuanceSession::start_issuance(
+    let mut session = HttpIssuanceSession::start_issuance(
         message_client,
         issuer_identifier,
         TokenRequest::new_mock(),
@@ -241,7 +242,7 @@ async fn start_and_accept_err(
     wua_issuer_privkey: SigningKey,
 ) -> IssuanceSessionError {
     let trust_anchors = &[trust_anchor];
-    let session = HttpIssuanceSession::start_issuance(
+    let mut session = HttpIssuanceSession::start_issuance(
         message_client,
         issuer_identifier,
         TokenRequest::new_mock(),
@@ -533,10 +534,11 @@ impl VcMessageClient for MockOpenidMessageClient {
             .map_err(|err| IssuanceSessionError::CredentialPreviewRequest(Box::new(err.into())))
     }
 
-    async fn request_nonce(&self, _url: Url) -> Result<String, IssuanceSessionError> {
+    async fn request_nonce(&self, _url: Url) -> Result<(NonceResponse, Option<String>), IssuanceSessionError> {
         let c_nonce = self.issuer.generate_proof_nonce().await.unwrap();
+        let nonce_response = NonceResponse { c_nonce };
 
-        Ok(c_nonce)
+        Ok((nonce_response, None))
     }
 
     async fn request_credential(
