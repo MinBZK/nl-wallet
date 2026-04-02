@@ -108,7 +108,6 @@ logging = ["dep:tracing", "tracing-subscriber/ansi", "tracing-subscriber/env-fil
 
 # Include the common submodule, which includes code all integration tests use.
 test_common = [
-    "fake_digid",
     "apple_app_attest/mock",
     "attestation_data/example_credential_payloads",
     "attestation_data/mock",
