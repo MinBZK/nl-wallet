@@ -139,7 +139,7 @@ void main() {
       skip: 6,
       expect: () => [
         isA<PinValidateNetworkError>().having(
-          (error) => error.hasInternet,
+          (state) => state.error.hasInternet,
           'hasInternet should be true',
           isTrue,
         ),
@@ -156,7 +156,7 @@ void main() {
       skip: 6,
       expect: () => [
         isA<PinValidateNetworkError>().having(
-          (error) => error.hasInternet,
+          (state) => state.error.hasInternet,
           'hasInternet should be false',
           isFalse,
         ),

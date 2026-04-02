@@ -129,25 +129,15 @@ class DisclosureSessionCancelled extends DisclosureState implements ErrorState {
 
 class DisclosureNetworkError extends DisclosureState implements NetworkErrorState {
   @override
+  final NetworkError error;
+
+  @override
   bool get showStopConfirmation => false;
 
-  @override
-  final bool hasInternet;
+  const DisclosureNetworkError({required this.error});
 
   @override
-  final ApplicationError error;
-
-  @override
-  final int? statusCode;
-
-  const DisclosureNetworkError({
-    this.statusCode,
-    required this.error,
-    this.hasInternet = true,
-  });
-
-  @override
-  List<Object?> get props => [hasInternet, statusCode, error, ...super.props];
+  List<Object?> get props => [error, ...super.props];
 }
 
 class DisclosureCheckUrl extends DisclosureState {

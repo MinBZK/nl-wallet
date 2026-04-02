@@ -148,7 +148,7 @@ void main() {
     skip: 12 /* skip setting up new pin and confirming pin */,
     expect: () => [
       ChangePinUpdating(),
-      const ChangePinNetworkError(error: NetworkError(hasInternet: true, sourceError: 'test'), hasInternet: true),
+      const ChangePinNetworkError(error: NetworkError(hasInternet: true, sourceError: 'test')),
       const ChangePinInitial(didGoBack: true),
     ],
   );

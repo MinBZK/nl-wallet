@@ -105,9 +105,9 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
                 onPrimaryActionPressed: () => _closeTransferScreen(context),
                 style: ErrorCtaStyle.close,
               ),
-              WalletTransferNetworkError() =>
-                state.hasInternet
-                    ? ErrorPage.network(
+              WalletTransferNetworkError(:final error) =>
+                error.hasInternet
+                    ? ErrorPage.server(
                         context,
                         onPrimaryActionPressed: () => _closeTransferScreen(context),
                         style: ErrorCtaStyle.close,
@@ -300,8 +300,8 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
       WalletTransferSuccess() => TitleText(context.l10n.walletTransferSourceScreenSuccessTitle),
       WalletTransferStopped() => TitleText(context.l10n.walletTransferScreenStoppedTitle),
       WalletTransferGenericError() => TitleText(context.l10n.errorScreenGenericHeadline),
-      WalletTransferNetworkError() =>
-        state.hasInternet
+      WalletTransferNetworkError(:final error) =>
+        error.hasInternet
             ? TitleText(context.l10n.errorScreenServerHeadline)
             : TitleText(context.l10n.errorScreenNoInternetHeadline),
       WalletTransferSessionExpired() => TitleText(context.l10n.errorScreenSessionExpiredHeadline),

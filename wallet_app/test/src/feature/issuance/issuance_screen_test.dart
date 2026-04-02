@@ -451,7 +451,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceNetworkError(error: GenericError('test', sourceError: 'test'), hasInternet: false),
+          const IssuanceNetworkError(error: NetworkError(hasInternet: false, sourceError: 'test')),
         ),
       );
       await screenMatchesGolden('network_error.light');
@@ -461,7 +461,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceNetworkError(error: GenericError('test', sourceError: 'test'), hasInternet: true),
+          const IssuanceNetworkError(error: NetworkError(hasInternet: true, sourceError: 'test')),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,

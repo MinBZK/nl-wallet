@@ -238,7 +238,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
-          const RecoverPinNetworkError(error: mockNetworkErrorNoInternet, hasInternet: false),
+          const RecoverPinNetworkError(error: mockNetworkErrorNoInternet),
         ),
         providers: [RepositoryProvider<ObserveWalletLockedUseCase>.value(value: MockObserveWalletLockedUseCase())],
       );
@@ -249,7 +249,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const RecoverPinScreen().withState<RecoverPinBloc, RecoverPinState>(
           MockRecoverPinBloc(),
-          const RecoverPinNetworkError(error: mockNetworkErrorWithInternet, hasInternet: true),
+          const RecoverPinNetworkError(error: mockNetworkErrorWithInternet),
         ),
         providers: [RepositoryProvider<ObserveWalletLockedUseCase>.value(value: MockObserveWalletLockedUseCase())],
       );

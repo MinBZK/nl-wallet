@@ -66,7 +66,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       onError: (error) {
         switch (error) {
           case NetworkError():
-            emit(WalletPersonalizeNetworkError(error: error, hasInternet: error.hasInternet));
+            emit(WalletPersonalizeNetworkError(error: error));
           case DeniedDigidError():
             add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: true, error: error));
           case RedirectUriError():
@@ -96,7 +96,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       onError: (error) {
         switch (error) {
           case NetworkError():
-            emit(WalletPersonalizeNetworkError(error: error, hasInternet: error.hasInternet));
+            emit(WalletPersonalizeNetworkError(error: error));
           case RelyingPartyError():
             emit(WalletPersonalizeRelyingPartyError(error: error, organizationName: error.organizationName));
           default:
@@ -134,7 +134,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     final appError = event.error;
     switch (appError) {
       case NetworkError():
-        emit(WalletPersonalizeNetworkError(error: appError, hasInternet: appError.hasInternet));
+        emit(WalletPersonalizeNetworkError(error: appError));
       case SessionError():
         emit(WalletPersonalizeSessionExpired(error: appError));
       default:

@@ -345,7 +345,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
         emit(DisclosureGenericError(error: error, returnUrl: error.redirectUrl));
       case NetworkError():
         await _cancelDisclosureUseCase.invoke(); // Attempt to cancel the session, but propagate original error
-        emit(DisclosureNetworkError(hasInternet: error.hasInternet, error: error));
+        emit(DisclosureNetworkError(error: error));
       case SessionError():
         _handleSessionError(emit, error);
       case RelyingPartyError():
