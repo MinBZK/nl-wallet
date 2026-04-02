@@ -1499,16 +1499,24 @@ mod tests {
     }
 
     /// Return a new session ready for `accept_issuance()`.
-    fn new_session_state(normalized_credential_previews: VecNonEmpty<NormalizedCredentialPreview>) -> IssuanceState {
+    fn new_session_state(
+        normalized_credential_previews: VecNonEmpty<NormalizedCredentialPreview>,
+        has_nonce_endpoint: bool,
+    ) -> IssuanceState {
         let credential_request_types = credential_request_types_from_preview(&normalized_credential_previews).unwrap();
         let issuer_identifier = "https://issuer.example.com".parse().unwrap();
+
+        let mut issuer_metadata = IssuerMetadata::new_mock(issuer_identifier, PID_ATTESTATION_TYPE);
+        if !has_nonce_endpoint {
+            issuer_metadata.nonce_endpoint = None;
+        }
 
         IssuanceState {
             access_token: "access_token".to_string().into(),
             normalized_credential_previews,
             credential_request_types,
             issuer_registration: IssuerRegistration::new_mock(),
-            issuer_metadata: IssuerMetadata::new_mock(issuer_identifier, PID_ATTESTATION_TYPE),
+            issuer_metadata,
             dpop_private_key: SigningKey::random(&mut OsRng),
             dpop_nonce: Some("dpop_nonce".to_string()),
         }
@@ -1633,24 +1641,33 @@ mod tests {
     }
 
     #[rstest]
-    fn test_accept_issuance(#[values(true, false)] use_wua: bool, #[values(true, false)] multiple_creds: bool) {
+    fn test_accept_issuance(
+        #[values(true, false)] use_wua: bool,
+        #[values(true, false)] multiple_creds: bool,
+        #[values(true, false)] has_nonce_endpoint: bool,
+    ) {
         let (signer, preview_data) = MockCredentialSigner::new_with_preview_state();
         let trust_anchor = signer.trust_anchor.clone();
         let wscd = MockRemoteWscd::default();
 
-        let session_state = new_session_state(if multiple_creds {
-            vec_nonempty![preview_data.clone(), preview_data]
-        } else {
-            vec_nonempty![preview_data]
-        });
+        let session_state = new_session_state(
+            if multiple_creds {
+                vec_nonempty![preview_data.clone(), preview_data]
+            } else {
+                vec_nonempty![preview_data]
+            },
+            has_nonce_endpoint,
+        );
 
         let mut mock_msg_client = MockVcMessageClient::new();
 
-        mock_msg_client
-            .expect_request_nonce()
-            .times(1)
-            .with(eq(Url::parse("https://issuer.example.com/issuance/nonce").unwrap()))
-            .return_once(|_| Ok("c_nonce".to_string()));
+        if has_nonce_endpoint {
+            mock_msg_client
+                .expect_request_nonce()
+                .times(1)
+                .with(eq(Url::parse("https://issuer.example.com/issuance/nonce").unwrap()))
+                .return_once(|_| Ok("c_nonce".to_string()));
+        }
 
         // The client must use `request_credentials()` (which uses `/batch_credentials`) iff more than one credential
         // is being issued, and `request_credential()` instead (which uses `/credential`).
@@ -1739,7 +1756,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(vec_nonempty![preview_data.clone(), preview_data]),
+            session_state: new_session_state(vec_nonempty![preview_data.clone(), preview_data], true),
         }
         .accept_issuance(&[trust_anchor], &MockRemoteWscd::default(), false)
         .now_or_never()
@@ -1769,7 +1786,7 @@ mod tests {
         );
         let trust_anchor = signer.trust_anchor.clone();
 
-        let session_state = new_session_state(vec_nonempty![preview_data]);
+        let session_state = new_session_state(vec_nonempty![preview_data], true);
 
         let mut mock_msg_client = MockVcMessageClient::new();
 
@@ -1823,7 +1840,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(vec_nonempty![preview_data]),
+            session_state: new_session_state(vec_nonempty![preview_data], true),
         }
         .accept_issuance(&[trust_anchor], &MockRemoteWscd::default(), false)
         .now_or_never()
@@ -1875,7 +1892,7 @@ mod tests {
 
         let error = HttpIssuanceSession {
             message_client: mock_msg_client,
-            session_state: new_session_state(previews),
+            session_state: new_session_state(previews, true),
         }
         .accept_issuance(&[trust_anchor], &MockRemoteWscd::default(), false)
         .now_or_never()
