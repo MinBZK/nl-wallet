@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/close_proximity/impl/close_proximity_repository_impl.dart';
 import 'package:wallet/src/domain/model/close_proximity/ble_connection_event.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 import 'package:wallet_core/core.dart' as core;
 
 import '../../../../mocks/wallet_mocks.dart';
@@ -47,7 +48,7 @@ void main() {
       expect(observedEvents, contains(const BleAdvertising(engagement)));
 
       // Simulate core update
-      const update = core.CloseProximityDisclosureFlutterUpdate.Connecting;
+      const update = core.CloseProximityDisclosureFlutterUpdate.connecting();
       const mappedEvent = BleConnecting();
       when(mockMapper.map(update)).thenReturn(mappedEvent);
 
@@ -84,11 +85,14 @@ void main() {
       await repository.startCloseProximityDisclosure();
 
       // Define updates and their expected mappings
+      const genericError = CoreGenericError('test');
+      const genericJsonError = '{"type":"Generic", "description":"test"}';
       final updates = [
-        (core.CloseProximityDisclosureFlutterUpdate.Connecting, const BleConnecting()),
-        (core.CloseProximityDisclosureFlutterUpdate.Connected, const BleConnected()),
-        (core.CloseProximityDisclosureFlutterUpdate.DeviceRequestReceived, const BleDeviceRequestReceived()),
-        (core.CloseProximityDisclosureFlutterUpdate.Disconnected, const BleDisconnected()),
+        (const core.CloseProximityDisclosureFlutterUpdate.connecting(), const BleConnecting()),
+        (const core.CloseProximityDisclosureFlutterUpdate.connected(), const BleConnected()),
+        (const core.CloseProximityDisclosureFlutterUpdate.deviceRequestReceived(), const BleDeviceRequestReceived()),
+        (const core.CloseProximityDisclosureFlutterUpdate.disconnected(), const BleDisconnected()),
+        (const core.CloseProximityDisclosureFlutterUpdate.errored(error: genericJsonError), const BleError(genericError)),
       ];
 
       // Publish all updates into the captured callback
@@ -105,6 +109,7 @@ void main() {
         const BleConnected(),
         const BleDeviceRequestReceived(),
         const BleDisconnected(),
+        const BleError(genericError),
       ]);
 
       await subscription.cancel();

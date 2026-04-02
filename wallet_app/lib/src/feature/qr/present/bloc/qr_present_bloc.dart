@@ -10,6 +10,7 @@ import '../../../../domain/model/result/application_error.dart';
 import '../../../../domain/usecase/close_proximity/observe_close_proximity_connection_usecase.dart';
 import '../../../../domain/usecase/close_proximity/start_close_proximity_disclosure_usecase.dart';
 import '../../../../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
+import '../../../../util/extension/core_error_extension.dart';
 
 part 'qr_present_event.dart';
 
@@ -62,7 +63,7 @@ class QrPresentBloc extends Bloc<QrPresentEvent, QrPresentState> {
     );
   }
 
-  FutureOr<void> _onConnectionEvent(QrPresentEventReceived event, Emitter<QrPresentState> emit) {
+  FutureOr<void> _onConnectionEvent(QrPresentEventReceived event, Emitter<QrPresentState> emit) async {
     switch (event.event) {
       case BleAdvertising():
         Fimber.i('Ble server started');
@@ -75,7 +76,7 @@ class QrPresentBloc extends Bloc<QrPresentEvent, QrPresentState> {
       case BleDisconnected():
         emit(const QrPresentConnectionFailed());
       case BleError(:final error):
-        emit(QrPresentError(error));
+        emit(QrPresentError(await error.asApplicationError()));
     }
   }
 

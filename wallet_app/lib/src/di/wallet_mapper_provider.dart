@@ -173,7 +173,7 @@ class WalletMapperProvider extends StatelessWidget {
           create: (context) => AppNotificationMapper(context.read(), context.read()),
         ),
         RepositoryProvider<Mapper<core.CloseProximityDisclosureFlutterUpdate, BleConnectionEvent>>(
-          create: (context) => CloseProximityDisclosureUpdateMapper(),
+          create: (context) => CloseProximityDisclosureUpdateMapper(context.read()),
         ),
       ],
       child: child,
