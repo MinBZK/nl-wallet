@@ -65,11 +65,6 @@ impl io::Write for LogWriter<'_> {
             // Convert any resulting error to io::Error.
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
-        // Even though we implement flush() below, this does not seem to get called!
-        // For that reason we just flush after every write, so the tracing statements
-        // actually show up in the Android logs.
-        self.0.flush();
-
         Ok(buf.len())
     }
 
@@ -77,5 +72,11 @@ impl io::Write for LogWriter<'_> {
         self.0.flush();
 
         Ok(())
+    }
+}
+
+impl Drop for LogWriter<'_> {
+    fn drop(&mut self) {
+        self.0.flush();
     }
 }
