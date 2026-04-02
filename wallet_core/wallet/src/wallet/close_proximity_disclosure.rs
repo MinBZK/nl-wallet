@@ -186,7 +186,7 @@ pub enum CloseProximityDisclosureError {
 
     #[error("Received invalid CBOR from reader: {0}")]
     #[category(critical)]
-    InvalidCbor(#[from] CborError),
+    MalformedDeviceRequest(#[from] CborError),
 
     #[error("Received error from native close proximity bridge: {0}")]
     #[category(critical)]
@@ -261,10 +261,10 @@ where
         let wallet_config = &self.config_repository.get();
 
         // TODO send error to reader (PVW-5710)
-        let device_request =
-            DeviceRequest::try_from_bytes(&device_request).map_err(CloseProximityDisclosureError::InvalidCbor)?;
-        let session_transcript = SessionTranscript::try_from_bytes(&session_transcript)
-            .map_err(CloseProximityDisclosureError::InvalidCbor)?;
+        let device_request = DeviceRequest::try_from_bytes(&device_request)
+            .map_err(CloseProximityDisclosureError::MalformedDeviceRequest)?;
+        // the session transcript is made by our own native code, so deserialization errors are programmer errors
+        let session_transcript = SessionTranscript::try_from_bytes(&session_transcript).unwrap();
 
         let verifier_certificate = verify_device_request(
             &device_request,

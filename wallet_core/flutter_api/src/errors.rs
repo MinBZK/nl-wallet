@@ -542,7 +542,7 @@ impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
             | CloseProximityDisclosureError::MissingReaderRegistration
             | CloseProximityDisclosureError::InvalidCertificateType(_)
             | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_)
-            | CloseProximityDisclosureError::InvalidCbor(_) => FlutterApiErrorType::Verifier,
+            | CloseProximityDisclosureError::MalformedDeviceRequest(_) => FlutterApiErrorType::Verifier,
             CloseProximityDisclosureError::PlatformError(_) => FlutterApiErrorType::Generic,
         }
     }
