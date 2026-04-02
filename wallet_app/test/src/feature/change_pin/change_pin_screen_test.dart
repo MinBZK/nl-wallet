@@ -184,7 +184,6 @@ void main() {
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
               MockChangePinBloc(),
               const ChangePinNetworkError(
-                hasInternet: true,
                 error: NetworkError(hasInternet: true, sourceError: 'test'),
               ),
             ),

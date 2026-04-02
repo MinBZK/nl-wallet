@@ -95,7 +95,6 @@ void main() {
           MockPinBloc(),
           const PinValidateNetworkError(
             error: NetworkError(hasInternet: true, sourceError: 'test'),
-            hasInternet: true,
           ),
         ),
       );

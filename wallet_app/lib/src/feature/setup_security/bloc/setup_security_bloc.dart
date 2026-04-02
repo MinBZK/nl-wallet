@@ -120,7 +120,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
       onError: (error) async {
         switch (error) {
           case NetworkError():
-            emit(SetupSecurityNetworkError(error: error, hasInternet: error.hasInternet));
+            emit(SetupSecurityNetworkError(error: error));
           case HardwareUnsupportedError():
             emit(SetupSecurityDeviceIncompatibleError(error: error));
           default:

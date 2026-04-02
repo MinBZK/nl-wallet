@@ -179,18 +179,12 @@ class RecoverPinDigidLoginCancelled extends RecoverPinState {
 
 class RecoverPinNetworkError extends RecoverPinState implements NetworkErrorState {
   @override
-  final ApplicationError error;
+  final NetworkError error;
+
+  const RecoverPinNetworkError({required this.error});
 
   @override
-  final bool hasInternet;
-
-  @override
-  final int? statusCode;
-
-  const RecoverPinNetworkError({required this.error, required this.hasInternet, this.statusCode});
-
-  @override
-  List<Object?> get props => [error, hasInternet, statusCode, ...super.props];
+  List<Object?> get props => [error, ...super.props];
 }
 
 class RecoverPinGenericError extends RecoverPinState implements ErrorState {

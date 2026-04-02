@@ -221,7 +221,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
         emit(IssuanceGenericError(error: error, returnUrl: error.redirectUrl));
       case NetworkError():
         await _cancelIssuanceUseCase.invoke(); // Attempt to cancel the session, but propagate original error
-        emit(IssuanceNetworkError(hasInternet: error.hasInternet, error: error));
+        emit(IssuanceNetworkError(error: error));
       case SessionError():
         _handleSessionError(emit, error);
       case RelyingPartyError():

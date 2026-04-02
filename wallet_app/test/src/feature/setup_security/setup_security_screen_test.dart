@@ -218,7 +218,6 @@ void main() {
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
           const SetupSecurityNetworkError(
-            hasInternet: true,
             error: NetworkError(hasInternet: true, sourceError: 'test'),
           ),
         ),

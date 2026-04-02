@@ -105,7 +105,7 @@ class QrPresentScreen extends StatelessWidget {
       QrPresentConnecting() => '',
       QrPresentConnected() => '',
       QrPresentConnectionFailed() => context.l10n.qrPresentScreenConnectionFailedPageTitle,
-      QrPresentError(:final error) => _buildError(context, error).headline,
+      QrPresentError(:final error) => _buildError(context, error).title,
     };
   }
 
@@ -193,7 +193,7 @@ class QrPresentScreen extends StatelessWidget {
 
   Widget _buildConnectionFailed(BuildContext context) {
     return ErrorPage(
-      headline: context.l10n.qrPresentScreenConnectionFailedPageTitle,
+      title: context.l10n.qrPresentScreenConnectionFailedPageTitle,
       description: context.l10n.qrPresentScreenConnectionFailedPageDescription,
       illustration: WalletAssets.svg_error_bluetooth,
       primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(

@@ -111,9 +111,9 @@ class WalletTransferTargetScreen extends StatelessWidget {
                 onPrimaryActionPressed: restart,
                 style: ErrorCtaStyle.retry,
               ),
-              WalletTransferNetworkError() =>
-                state.hasInternet
-                    ? ErrorPage.network(context, onPrimaryActionPressed: restart, style: ErrorCtaStyle.retry)
+              WalletTransferNetworkError(:final error) =>
+                error.hasInternet
+                    ? ErrorPage.server(context, onPrimaryActionPressed: restart, style: ErrorCtaStyle.retry)
                     : ErrorPage.noInternet(context, onPrimaryActionPressed: restart, style: ErrorCtaStyle.retry),
               WalletTransferSessionExpired() => ErrorPage.sessionExpired(
                 context,
@@ -212,8 +212,8 @@ class WalletTransferTargetScreen extends StatelessWidget {
       WalletTransferSuccess() => TitleText(context.l10n.walletTransferTargetScreenSuccessTitle),
       WalletTransferStopped() => TitleText(context.l10n.walletTransferScreenStoppedTitle),
       WalletTransferGenericError() => TitleText(context.l10n.errorScreenGenericHeadline),
-      WalletTransferNetworkError() =>
-        state.hasInternet
+      WalletTransferNetworkError(:final error) =>
+        error.hasInternet
             ? TitleText(context.l10n.errorScreenServerHeadline)
             : TitleText(context.l10n.errorScreenNoInternetHeadline),
       WalletTransferSessionExpired() => TitleText(context.l10n.errorScreenSessionExpiredHeadline),

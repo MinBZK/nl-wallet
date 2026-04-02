@@ -8,7 +8,6 @@ import '../../../environment.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../data/service/announcement_service.dart';
 import '../../domain/model/bloc/error_state.dart';
-import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../wallet_constants.dart';
@@ -115,8 +114,8 @@ class PinPage extends StatelessWidget {
         PinTimeoutScreen.show(context, state.expiryTime);
       case PinValidateBlocked():
         PinBlockedScreen.show(context);
-      case PinValidateNetworkError():
-        ErrorScreen.showNetwork(context, secured: false, networkError: tryCast(state));
+      case PinValidateNetworkError(:final error):
+        ErrorScreen.showNetwork(context, secured: false, error: error);
       case PinValidateGenericError():
         ErrorScreen.showGeneric(context, secured: false);
       case PinValidateFailure():

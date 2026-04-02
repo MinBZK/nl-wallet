@@ -117,18 +117,12 @@ class WalletPersonalizeAddingCards extends WalletPersonalizeState {
 
 class WalletPersonalizeNetworkError extends WalletPersonalizeState implements NetworkErrorState {
   @override
-  final ApplicationError error;
+  final NetworkError error;
+
+  const WalletPersonalizeNetworkError({required this.error});
 
   @override
-  final bool hasInternet;
-
-  @override
-  final int? statusCode;
-
-  const WalletPersonalizeNetworkError({required this.error, required this.hasInternet, this.statusCode});
-
-  @override
-  List<Object?> get props => [error, hasInternet, statusCode, ...super.props];
+  List<Object?> get props => [error, ...super.props];
 }
 
 class WalletPersonalizeGenericError extends WalletPersonalizeState implements ErrorState {

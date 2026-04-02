@@ -357,9 +357,9 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
                 key: const Key('secondaryButtonCta'),
               ),
             );
-          case RecoverPinNetworkError():
-            page = state.hasInternet
-                ? ErrorPage.network(
+          case RecoverPinNetworkError(:final error):
+            page = error.hasInternet
+                ? ErrorPage.server(
                     c,
                     onPrimaryActionPressed: () => c.bloc.add(const RecoverPinRetryPressed()),
                     style: ErrorCtaStyle.retry,

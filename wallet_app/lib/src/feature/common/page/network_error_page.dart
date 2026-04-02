@@ -15,7 +15,7 @@ class NetworkErrorPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (hasInternet) {
-      return ErrorPage.network(
+      return ErrorPage.server(
         context,
         style: ErrorCtaStyle.close,
         onPrimaryActionPressed: onStopPressed,

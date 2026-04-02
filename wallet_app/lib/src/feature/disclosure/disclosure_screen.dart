@@ -290,7 +290,7 @@ class DisclosureScreen extends StatelessWidget {
 
   Widget _buildNetworkErrorPage(BuildContext context, DisclosureNetworkError state) {
     return NetworkErrorPage(
-      hasInternet: state.hasInternet,
+      hasInternet: state.error.hasInternet,
       onStopPressed: () {
         context.bloc.add(const DisclosureCancelRequested());
         Navigator.pop(context);
@@ -375,8 +375,8 @@ class DisclosureScreen extends StatelessWidget {
       DisclosureRelyingPartyError() => context.l10n.disclosureRelyingPartyErrorTitle,
       DisclosureSessionExpired() => context.l10n.errorScreenSessionExpiredHeadline,
       DisclosureSessionCancelled() => context.l10n.errorScreenCancelledSessionHeadline,
-      DisclosureNetworkError() =>
-        state.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline,
+      DisclosureNetworkError(:final error) =>
+        error.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline,
       DisclosureCheckUrl() => context.l10n.fraudCheckPageTitle(state.originUrl),
       DisclosureCheckOrganizationForLogin() => OrganizationApprovePage.resolveTitle(
         context,

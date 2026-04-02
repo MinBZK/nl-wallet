@@ -6,7 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/service/announcement_service.dart';
 import '../../domain/model/flow_progress.dart';
 import '../../navigation/wallet_routes.dart';
-import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
@@ -61,8 +60,8 @@ class ChangePinScreen extends StatelessWidget {
     switch (state) {
       case ChangePinGenericError():
         ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
-      case ChangePinNetworkError():
-        ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
+      case ChangePinNetworkError(:final error):
+        ErrorScreen.showNetwork(context, error: error, secured: false);
       case ChangePinSelectNewPinFailed():
         await PinValidationErrorDialog.show(
           context,

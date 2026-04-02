@@ -244,26 +244,16 @@ class IssuanceNoCardsRetrieved extends IssuanceState {
 }
 
 class IssuanceNetworkError extends IssuanceState implements NetworkErrorState {
-  const IssuanceNetworkError({
-    required this.error,
-    required this.hasInternet,
-    this.statusCode,
-  });
+  @override
+  final NetworkError error;
 
   @override
   bool get showStopConfirmation => false;
 
-  @override
-  final ApplicationError error;
+  const IssuanceNetworkError({required this.error});
 
   @override
-  final bool hasInternet;
-
-  @override
-  final int? statusCode;
-
-  @override
-  List<Object?> get props => [...super.props, error, hasInternet, statusCode];
+  List<Object?> get props => [...super.props, error];
 }
 
 class IssuanceSessionExpired extends IssuanceState implements ErrorState {

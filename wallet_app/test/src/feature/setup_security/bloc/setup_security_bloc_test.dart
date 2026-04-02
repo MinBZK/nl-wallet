@@ -134,7 +134,7 @@ void main() {
     skip: 11 /* skip pin setup */,
     expect: () => [
       SetupSecurityCreatingWallet(),
-      isA<SetupSecurityNetworkError>().having((e) => e.hasInternet, 'hasInternet', true),
+      isA<SetupSecurityNetworkError>().having((e) => e.error.hasInternet, 'hasInternet', true),
       isA<SetupSecuritySelectPinInProgress>(),
     ],
   );

@@ -208,7 +208,7 @@ class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
       case DeniedDigidError():
         emit(const RecoverPinDigidLoginCancelled());
       case NetworkError():
-        emit(RecoverPinNetworkError(hasInternet: error.hasInternet, error: error));
+        emit(RecoverPinNetworkError(error: error));
       case RedirectUriError():
         if ([RedirectError.accessDenied, RedirectError.loginRequired].contains(error.redirectError)) {
           emit(const RecoverPinDigidLoginCancelled());
