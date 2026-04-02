@@ -10,6 +10,7 @@ use wallet::AccountRevokedData;
 use wallet::attestation_data::LocalizedStrings;
 use wallet::errors::AccountProviderError;
 use wallet::errors::ChangePinError;
+use wallet::errors::CloseProximityDisclosureError;
 use wallet::errors::DeleteAttestationError;
 use wallet::errors::DigidError;
 use wallet::errors::DisclosureBasedIssuanceError;
@@ -425,6 +426,28 @@ impl FlutterApiErrorFields for DisclosureError {
     }
 }
 
+impl FlutterApiErrorFields for CloseProximityDisclosureError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            CloseProximityDisclosureError::EmptyRequest
+            | CloseProximityDisclosureError::NoAttributesRequested
+            | CloseProximityDisclosureError::MissingReaderAuth
+            | CloseProximityDisclosureError::InconsistentReaderAuths
+            | CloseProximityDisclosureError::InvalidDocRequest(_)
+            | CloseProximityDisclosureError::MissingReaderRegistration
+            | CloseProximityDisclosureError::InvalidCertificateType(_)
+            | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_)
+            | CloseProximityDisclosureError::InvalidCbor(_) => FlutterApiErrorType::Verifier,
+            CloseProximityDisclosureError::PlatformError(_) => FlutterApiErrorType::Generic,
+        }
+    }
+
+    fn data(&self) -> serde_json::Value {
+        // TODO add organisation (PVW-5710)
+        serde_json::Value::Null
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 struct DisclosureBasedIssuanceErrorData {
     organization_name: LocalizedStrings,
@@ -515,6 +538,23 @@ impl From<&HttpClientError> for FlutterApiErrorType {
             }
             HttpClientError::Networking(_) => FlutterApiErrorType::Networking,
             _ => FlutterApiErrorType::Generic,
+        }
+    }
+}
+
+impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
+    fn from(value: &CloseProximityDisclosureError) -> Self {
+        match value {
+            CloseProximityDisclosureError::EmptyRequest
+            | CloseProximityDisclosureError::NoAttributesRequested
+            | CloseProximityDisclosureError::MissingReaderAuth
+            | CloseProximityDisclosureError::InconsistentReaderAuths
+            | CloseProximityDisclosureError::InvalidDocRequest(_)
+            | CloseProximityDisclosureError::MissingReaderRegistration
+            | CloseProximityDisclosureError::InvalidCertificateType(_)
+            | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_)
+            | CloseProximityDisclosureError::InvalidCbor(_) => FlutterApiErrorType::Verifier,
+            CloseProximityDisclosureError::PlatformError(_) => FlutterApiErrorType::Generic,
         }
     }
 }

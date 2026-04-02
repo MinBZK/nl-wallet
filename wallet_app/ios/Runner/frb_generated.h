@@ -430,6 +430,19 @@ typedef struct wire_cst_accept_disclosure_result {
   union AcceptDisclosureResultKind kind;
 } wire_cst_accept_disclosure_result;
 
+typedef struct wire_cst_CloseProximityDisclosureFlutterUpdate_Errored {
+  struct wire_cst_list_prim_u_8_strict *error;
+} wire_cst_CloseProximityDisclosureFlutterUpdate_Errored;
+
+typedef union CloseProximityDisclosureFlutterUpdateKind {
+  struct wire_cst_CloseProximityDisclosureFlutterUpdate_Errored Errored;
+} CloseProximityDisclosureFlutterUpdateKind;
+
+typedef struct wire_cst_close_proximity_disclosure_flutter_update {
+  int32_t tag;
+  union CloseProximityDisclosureFlutterUpdateKind kind;
+} wire_cst_close_proximity_disclosure_flutter_update;
+
 typedef struct wire_cst_DisclosureBasedIssuanceResult_Ok {
   struct wire_cst_list_attestation_presentation *field0;
 } wire_cst_DisclosureBasedIssuanceResult_Ok;

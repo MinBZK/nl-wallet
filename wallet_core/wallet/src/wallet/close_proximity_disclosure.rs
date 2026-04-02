@@ -52,12 +52,13 @@ use crate::wallet::disclosure::RedirectUriPurpose;
 use crate::wallet::disclosure::WalletDisclosureAttestations;
 use crate::wallet::disclosure::requested_attribute_paths;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 pub enum CloseProximityDisclosureUpdate {
     Connecting,
     Connected,
     DeviceRequestReceived,
     Disconnected,
+    Errored(CloseProximityDisclosureError),
 }
 
 type CloseProximityDisclosureCallbackFuture = Pin<Box<dyn Future<Output = ()> + Send + 'static>>;
@@ -137,10 +138,10 @@ fn spawn_listener(
                     };
 
                     *current_state = CloseProximityDisclosureSessionState::Errored {
-                        error,
+                        error: error.clone(),
                         reader_certificate,
                     };
-                    CloseProximityDisclosureUpdate::Disconnected
+                    CloseProximityDisclosureUpdate::Errored(error.into())
                 }
             };
 
@@ -186,6 +187,10 @@ pub enum CloseProximityDisclosureError {
     #[error("Received invalid CBOR from reader: {0}")]
     #[category(critical)]
     InvalidCbor(#[from] CborError),
+
+    #[error("Received error from native close proximity bridge: {0}")]
+    #[category(critical)]
+    PlatformError(#[from] PlatformError),
 }
 
 impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
