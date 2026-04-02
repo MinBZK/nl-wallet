@@ -1,6 +1,7 @@
 // Animation
 import 'package:flutter/painting.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 const kDefaultAnimationDuration = Duration(milliseconds: 300);
 
@@ -38,3 +39,7 @@ const kDarwinInitSettings = DarwinInitializationSettings(
   requestProvisionalPermission: false,
   requestProvidesAppNotificationSettings: false,
 );
+
+// Permissions
+const kAndroidBlePermissions = [Permission.bluetoothConnect, Permission.bluetoothAdvertise];
+const kIosBlePermissions = [Permission.bluetooth];
