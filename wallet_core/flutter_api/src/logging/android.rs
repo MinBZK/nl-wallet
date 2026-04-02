@@ -59,11 +59,17 @@ pub struct LogWriter<'a>(PlatformLogWriter<'a>);
 
 impl io::Write for LogWriter<'_> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.0
-            .write_str(&String::from_utf8_lossy(buf))
-            .map(|_| buf.len())
-            // Convert any resulting error to io::Error.
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        for chunk in buf.utf8_chunks() {
+            self.0
+                .write_str(chunk.valid())
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+
+            if !chunk.invalid().is_empty() {
+                self.0
+                    .write_str("\u{FFDD}")
+                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            }
+        }
 
         Ok(buf.len())
     }
