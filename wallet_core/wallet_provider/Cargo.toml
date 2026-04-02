@@ -100,4 +100,3 @@ token_status_list = { path = "../lib/token_status_list", optional = true }
 [dev-dependencies]
 rstest.workspace = true
 tempfile.workspace = true
-tracing-test.workspace = true
