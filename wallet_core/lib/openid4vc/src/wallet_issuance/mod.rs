@@ -16,7 +16,6 @@ use rustls_pki_types::TrustAnchor;
 use url::Url;
 
 use attestation_data::attributes::AttributesError;
-use attestation_data::auth::Organization;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::MdocCredentialPayloadError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
@@ -37,7 +36,6 @@ use crate::ErrorResponse;
 use crate::Format;
 use crate::TokenErrorCode;
 use crate::credential::Credential;
-use crate::credential::CredentialOffer;
 use crate::dpop::DpopError;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::well_known::WellKnownError;
@@ -193,11 +191,19 @@ pub enum WalletIssuanceError {
 
     #[error("no Authorization Code found in Credential Offer")]
     #[category(critical)]
-    MissingPreAuthorizedCodeGrant(Box<Organization>),
+    MissingPreAuthorizedCodeGrant,
 
     #[error("no grants found in Credential Offer")]
     #[category(critical)]
-    MissingGrants(Box<Organization>),
+    MissingGrants,
+
+    #[error("missing query in credential offer URI")]
+    #[category(critical)]
+    MissingCredentialOfferQuery,
+
+    #[error("failed to deserialize credential offer: {0}")]
+    #[category(pd)]
+    CredentialOfferDeserialization(#[source] serde_urlencoded::de::Error),
 }
 
 /// Discovers credential issuer and OAuth authorization server metadata, then starts an issuance flow.
@@ -215,15 +221,14 @@ pub trait IssuanceDiscovery {
         redirect_uri: Url,
     ) -> Result<Self::Authorization, WalletIssuanceError>;
 
-    /// Fetches issuer and OAuth metadata, exchanges the pre-authorized code from the
-    /// [`CredentialOffer`] for an access token, and returns an [`IssuanceSession`] ready to
-    /// request credentials.
+    /// Parses the credential offer from the redirect URI, fetches issuer and OAuth metadata,
+    /// exchanges the pre-authorized code for an access token, and returns an [`IssuanceSession`]
+    /// ready to request credentials.
     async fn start_pre_authorized_code_flow(
         &self,
-        credential_offer: CredentialOffer,
+        redirect_uri: &Url,
         client_id: String,
         trust_anchors: &[TrustAnchor<'_>],
-        organization: Box<Organization>,
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 }
 

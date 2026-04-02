@@ -271,8 +271,6 @@ impl FlutterApiErrorFields for IssuanceError {
             | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(_))
             | IssuanceError::AuthSessionStart(OAuthError::RedirectUriError(_)) => FlutterApiErrorType::Server,
             IssuanceError::AttestationPreview(_)
-            | IssuanceError::IssuanceSession(WalletIssuanceError::MissingGrants(_))
-            | IssuanceError::IssuanceSession(WalletIssuanceError::MissingPreAuthorizedCodeGrant(_))
             | IssuanceError::Attestation { .. }
             | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
             IssuanceError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
@@ -293,10 +291,7 @@ impl FlutterApiErrorFields for IssuanceError {
         };
 
         let organization_name = match self {
-            IssuanceError::Attestation { organization, .. }
-            | IssuanceError::IssuerServer { organization, .. }
-            | IssuanceError::IssuanceSession(WalletIssuanceError::MissingGrants(organization))
-            | IssuanceError::IssuanceSession(WalletIssuanceError::MissingPreAuthorizedCodeGrant(organization)) => {
+            IssuanceError::Attestation { organization, .. } | IssuanceError::IssuerServer { organization, .. } => {
                 Some(organization.display_name.clone())
             }
             _ => None,

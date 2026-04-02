@@ -1,9 +1,8 @@
-use attestation_data::auth::Organization;
 use http_utils::reqwest::HttpJsonClient;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
-use crate::credential::CredentialOffer;
+use crate::credential::CredentialOfferContainer;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
@@ -52,18 +51,24 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
 
     async fn start_pre_authorized_code_flow(
         &self,
-        credential_offer: CredentialOffer,
+        redirect_uri: &Url,
         client_id: String,
         trust_anchors: &[TrustAnchor<'_>],
-        organization: Box<Organization>,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
+        let query = redirect_uri
+            .query()
+            .ok_or(WalletIssuanceError::MissingCredentialOfferQuery)?;
+
+        let CredentialOfferContainer { credential_offer } =
+            serde_urlencoded::from_str(query).map_err(WalletIssuanceError::CredentialOfferDeserialization)?;
+
         let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer.credential_issuer).await?;
 
         let pre_authorized_code = credential_offer
             .grants
-            .ok_or(WalletIssuanceError::MissingGrants(organization.clone()))?
+            .ok_or(WalletIssuanceError::MissingGrants)?
             .authorization_code()
-            .ok_or(WalletIssuanceError::MissingPreAuthorizedCodeGrant(organization.clone()))?;
+            .ok_or(WalletIssuanceError::MissingPreAuthorizedCodeGrant)?;
 
         let token_request = TokenRequest {
             grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },

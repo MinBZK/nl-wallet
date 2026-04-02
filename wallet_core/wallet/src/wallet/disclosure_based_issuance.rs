@@ -8,13 +8,13 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
 use openid4vc::PostAuthResponseErrorCode;
-use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::WalletIssuanceError;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::NL_WALLET_CLIENT_ID;
@@ -121,25 +121,29 @@ where
             Err(err) => Err(err)?,
         };
 
-        let query = redirect_uri
-            .query()
-            .ok_or(DisclosureBasedIssuanceError::MissingRedirectUriQuery(
-                organization.clone(),
-            ))?;
-
-        let CredentialOfferContainer { credential_offer } = serde_urlencoded::from_str(query)
-            .map_err(|e| DisclosureBasedIssuanceError::UrlDecoding(e, organization.clone()))?;
-
         let issuance_session = self
             .issuance_discovery
             .start_pre_authorized_code_flow(
-                credential_offer,
+                &redirect_uri,
                 NL_WALLET_CLIENT_ID.to_string(),
                 &config.issuer_trust_anchors(),
-                organization,
             )
             .await
-            .map_err(IssuanceError::IssuanceSession)?;
+            .map_err(|e| match e {
+                WalletIssuanceError::MissingCredentialOfferQuery => {
+                    DisclosureBasedIssuanceError::MissingRedirectUriQuery(organization.clone())
+                }
+                WalletIssuanceError::CredentialOfferDeserialization(e) => {
+                    DisclosureBasedIssuanceError::UrlDecoding(e, organization.clone())
+                }
+                WalletIssuanceError::MissingGrants | WalletIssuanceError::MissingPreAuthorizedCodeGrant => {
+                    DisclosureBasedIssuanceError::Issuance(IssuanceError::IssuerServer {
+                        error: e,
+                        organization: organization.clone(),
+                    })
+                }
+                other => DisclosureBasedIssuanceError::Issuance(IssuanceError::IssuanceSession(other)),
+            })?;
 
         let previews = self
             .issuance_fetch_previews(

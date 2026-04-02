@@ -1,10 +1,8 @@
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
-use attestation_data::auth::Organization;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 
-use crate::credential::CredentialOffer;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::wallet_issuance::AuthorizationSession;
 use crate::wallet_issuance::IssuanceDiscovery;
@@ -36,10 +34,9 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
 
     async fn start_pre_authorized_code_flow(
         &self,
-        _credential_offer: CredentialOffer,
+        _redirect_uri: &Url,
         _client_id: String,
         _trust_anchors: &[TrustAnchor<'_>],
-        _organization: Box<Organization>,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         self.start_pre_authorized_code_flow_sync()
     }
