@@ -9,6 +9,7 @@ pub fn init_tracing_subscriber() {
     let builder = builder.with_max_level(Level::WARN).without_time();
 
     // For debug builds, set the log level to DEBUG.
+    // Timestamps are convenient when running with `flutter run`
     #[cfg(debug_assertions)]
     let builder = builder.with_max_level(Level::DEBUG);
 
