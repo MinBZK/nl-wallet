@@ -37,8 +37,8 @@ wallet.path = "../wallet"
 [dependencies.flutter_rust_bridge]
 version = "=2.11.1"
 default-features = false
-# default - log - wasm-start
-features = ["anyhow", "dart-opaque", "portable-atomic", "rust-async", "thread-pool", "user-utils"]
+# default - log - user-utils - wasm-start
+features = ["anyhow", "dart-opaque", "portable-atomic", "rust-async", "thread-pool"]
 
 [dev-dependencies]
 rstest.workspace = true

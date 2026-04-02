@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use flutter_rust_bridge::DartFnFuture;
 use flutter_rust_bridge::frb;
-use flutter_rust_bridge::setup_default_user_utils;
 use itertools::Itertools;
 use tokio::sync::OnceCell;
 use tokio::sync::RwLock;
@@ -55,13 +54,12 @@ pub async fn init() -> anyhow::Result<()> {
         init_logging();
 
         // Setup logging to console and enable RUST_BACKTRACE to be caught on panics (but not errors) for Sentry.
-        setup_default_user_utils();
         unsafe {
+            std::env::set_var("RUST_BACKTRACE", "1");
             std::env::set_var("RUST_LIB_BACKTRACE", "0");
         }
 
         // Initialize Sentry for Rust panics.
-        // This MUST be called before initializing the async runtime.
         init_sentry();
 
         create_wallet().await?;
