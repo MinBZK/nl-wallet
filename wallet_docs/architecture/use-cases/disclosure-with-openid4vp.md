@@ -64,7 +64,7 @@ sequenceDiagram
 15. The Verifier's website or app requests session results from the OV using `session_token`.
 16. The OV returns session results with the verified attributes.
 
-#### Key usage during dicslosure
+#### Key usage during disclosure
 
 During disclosure, the Wallet will interact with the Wallet Backend to sign the Proofs of Possessions (PoPs) that will be sent to the Verifier (Step 7 in the previous diagram). The sequence diagram below describes this process in detail. 
 
