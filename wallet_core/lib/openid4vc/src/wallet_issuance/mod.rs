@@ -193,10 +193,6 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     MissingPreAuthorizedCodeGrant,
 
-    #[error("no grants found in Credential Offer")]
-    #[category(critical)]
-    MissingGrants,
-
     #[error("missing query in credential offer URI")]
     #[category(critical)]
     MissingCredentialOfferQuery,

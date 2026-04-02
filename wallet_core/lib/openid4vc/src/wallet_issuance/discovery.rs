@@ -65,8 +65,6 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer.credential_issuer).await?;
 
         let pre_authorized_code = credential_offer
-            .grants
-            .ok_or(WalletIssuanceError::MissingGrants)?
             .authorization_code()
             .ok_or(WalletIssuanceError::MissingPreAuthorizedCodeGrant)?;
 

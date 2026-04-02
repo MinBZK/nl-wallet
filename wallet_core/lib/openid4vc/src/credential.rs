@@ -220,6 +220,12 @@ pub struct CredentialOffer {
     pub grants: Option<Grants>,
 }
 
+impl CredentialOffer {
+    pub fn authorization_code(&self) -> Option<AuthorizationCode> {
+        self.grants.as_ref()?.authorization_code()
+    }
+}
+
 /// OpenID4VCI protocol message containing the credential offer.
 /// The Credential Offer is passed as a single URI-encoded parameter containing a JSON-encoded value.
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-offer>
