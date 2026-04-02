@@ -44,6 +44,17 @@ fn wallet() -> &'static RwLock<Wallet> {
         .expect("Wallet must be initialized. Please execute `init()` first.")
 }
 
+fn set_env_if_unset(name: &str, value: &str) {
+    match std::env::var(name) {
+        Err(std::env::VarError::NotPresent) => unsafe { std::env::set_var(name, value) },
+        Ok(value) => tracing::info!("Skip setting env var `{name}` because it is already set to: {value}"),
+        Err(std::env::VarError::NotUnicode(value)) => tracing::info!(
+            "Skip setting env var `{name}` because it is already set to: {}",
+            value.to_string_lossy()
+        ),
+    }
+}
+
 #[frb(init)]
 #[flutter_api_error]
 pub async fn init() -> anyhow::Result<()> {
@@ -54,10 +65,8 @@ pub async fn init() -> anyhow::Result<()> {
         init_logging();
 
         // Setup logging to console and enable RUST_BACKTRACE to be caught on panics (but not errors) for Sentry.
-        unsafe {
-            std::env::set_var("RUST_BACKTRACE", "1");
-            std::env::set_var("RUST_LIB_BACKTRACE", "0");
-        }
+        set_env_if_unset("RUST_BACKTRACE", "1");
+        set_env_if_unset("RUST_LIB_BACKTRACE", "0");
 
         // Initialize Sentry for Rust panics.
         init_sentry();
