@@ -6,13 +6,13 @@ import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
 import '../../../common/widget/button/button_content.dart';
 import '../../../common/widget/button/tertiary_button.dart';
-import '../../../common/widget/utility/check_permission_on_resume.dart';
+import '../../../common/widget/utility/check_permissions_on_resume.dart';
 import '../bloc/qr_scan_bloc.dart';
 
-class QrNoPermission extends StatelessWidget {
+class QrScannerNoPermission extends StatelessWidget {
   final bool isPermanentlyDenied;
 
-  const QrNoPermission({required this.isPermanentlyDenied, super.key});
+  const QrScannerNoPermission({required this.isPermanentlyDenied, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -36,8 +36,8 @@ class QrNoPermission extends StatelessWidget {
             color: context.colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 8),
-          CheckPermissionOnResume(
-            permission: Permission.camera,
+          CheckPermissionsOnResume(
+            permissions: [Permission.camera],
             onPermissionGranted: () => context.read<QrScanBloc>().add(const QrScanCheckPermission()),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
