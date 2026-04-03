@@ -76,7 +76,7 @@ function have() {
                 missing+=($(map_installable "$executable"))
             fi
         else
-            which "$executable" &>/dev/null || missing+=($(map_installable "$executable"))
+            command -v "$executable" &>/dev/null || missing+=($(map_installable "$executable"))
         fi
     done
     if [ ${#missing[@]} -eq 0 ]; then
