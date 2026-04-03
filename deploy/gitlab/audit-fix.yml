@@ -1,0 +1,6 @@
+npm-audit-fix:
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
+  rules:
+    - !reference [.on-schedule-scan, rules]
+  script:
+    - scripts/npm-audit-fix.sh
