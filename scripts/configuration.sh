@@ -60,7 +60,7 @@ export GBA_HC_CONV_PORT=3014
 # isolated network namespace and cannot reach services on the real host. Use the host's actual
 # IP instead, derived from the kernel's preferred source address for outbound traffic.
 # We skip this when `ip` is unavailable (e.g. CI) or when Docker is not running in rootless mode.
-if command -v ip > /dev/null && docker info 2>/dev/null | grep -q 'rootless'; then
+if command -v docker > /dev/null && command -v ip > /dev/null && docker info 2>/dev/null | grep -q 'rootless'; then
     DOCKER_HOST_GATEWAY=$(ip -j -4 route get 1.1.1.1 | jq -r '.[0].prefsrc')
     export DOCKER_HOST_GATEWAY
 fi
