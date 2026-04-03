@@ -9634,7 +9634,6 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
- "tracing-test",
  "url",
  "utils",
  "utoipa",
