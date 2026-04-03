@@ -18,6 +18,7 @@ examples = [
     "dep:rand_core",
     "attestation_types/mock",
     "attestation_types/test_pid_constants",
+    "jwt/test",
     "token_status_list/mock",
     "utils/mock_time",
 ]
@@ -65,5 +66,6 @@ tokio = { workspace = true, features = ["rt-multi-thread", "fs", "macros"] }
 tokio-test.workspace = true
 
 crypto = { path = "../crypto", features = ["generate", "mock"] }
+jwt = { path = "../jwt", features = ["test"] }
 token_status_list = { path = "../token_status_list", features = ["mock"] }
 utils = { path = "../utils", features = ["mock_time"] }

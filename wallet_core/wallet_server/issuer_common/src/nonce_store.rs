@@ -10,6 +10,7 @@ use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use sea_orm::SqlErr;
 
+use jwt::nonce::Nonce;
 use openid4vc::nonce::C_NONCE_VALIDITY;
 use openid4vc::nonce::memory_store::MemoryNonceStore;
 use openid4vc::nonce::memory_store::NonceStoreResult;
@@ -87,12 +88,12 @@ where
 {
     type Error = ProofNonceStoreError;
 
-    async fn store_nonce(&self, nonce: String) -> Result<(), NonceStoreError<Self::Error>> {
+    async fn store_nonce(&self, nonce: Nonce) -> Result<(), NonceStoreError<Self::Error>> {
         match &self.backend {
             NonceStoreBackend::Postgres(connection) => {
                 proof_nonce::ActiveModel {
                     id: ActiveValue::NotSet,
-                    nonce: ActiveValue::Set(nonce.clone()),
+                    nonce: ActiveValue::Set(String::from(nonce.clone())),
                     created_date_time: ActiveValue::Set(self.now().into()),
                 }
                 .insert(connection)
@@ -119,11 +120,11 @@ where
 
     async fn check_nonce_status_and_remove<'a>(
         &self,
-        nonces: impl IntoIterator<Item = &'a str> + Send,
+        nonces: impl IntoIterator<Item = &'a Nonce> + Send,
     ) -> Result<NonceStatus, Self::Error> {
         let status = match &self.backend {
             NonceStoreBackend::Postgres(connection) => {
-                let nonces = nonces.into_iter().unique().collect_vec();
+                let nonces = nonces.into_iter().map(Nonce::as_ref).unique().collect_vec();
                 let nonce_count = nonces.len();
 
                 let deleted_nonces = ProofNonce::delete_many()

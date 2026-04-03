@@ -44,3 +44,4 @@ tokio = { workspace = true, features = ["macros"] }
 
 attestation_types = { path = "../attestation_types", features = ["mock"] }
 crypto = { path = "../crypto", features = ["mock"] }
+jwt = { path = "../jwt", features = ["test"] }

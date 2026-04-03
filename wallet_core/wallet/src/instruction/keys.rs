@@ -15,6 +15,7 @@ use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use jwt::UnverifiedJwt;
+use jwt::nonce::Nonce;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use wallet_account::messages::instructions::PerformIssuance;
@@ -131,7 +132,7 @@ where
         &self,
         key_count: NonZeroUsize,
         aud: String,
-        nonce: Option<String>,
+        nonce: Option<Nonce>,
         include_wua: bool,
     ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
         let issuance_instruction = PerformIssuance { key_count, aud, nonce };
@@ -214,7 +215,7 @@ where
         &self,
         key_count: std::num::NonZeroUsize,
         aud: String,
-        nonce: Option<String>,
+        nonce: Option<Nonce>,
         include_wua: bool,
     ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
         if !include_wua {

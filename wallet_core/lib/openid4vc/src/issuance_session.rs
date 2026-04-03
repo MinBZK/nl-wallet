@@ -1279,6 +1279,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateError;
     use jwt::jwk::jwk_to_p256;
+    use jwt::nonce::Nonce;
     use mdoc::utils::serialization::TaggedBytes;
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::claims::ClaimName;
@@ -1610,7 +1611,7 @@ mod tests {
             .return_once(move |_| {
                 Ok((
                     NonceResponse {
-                        c_nonce: "c_nonce".to_string(),
+                        c_nonce: Nonce::from("c_nonce".to_string()),
                     },
                     has_dpop_nonce.then(|| "new_dpop_nonce".to_string()),
                 ))

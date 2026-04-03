@@ -18,6 +18,7 @@ use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::x509::CertificateUsage;
 use jwt::jwk::jwk_from_p256;
+use jwt::nonce::Nonce;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::builder::SignedSdJwt;
 use sd_jwt::disclosure::DisclosureContent;
@@ -129,7 +130,10 @@ async fn concealing_property_of_concealable_value_works() {
         .into_presentation_builder()
         .finish()
         .sign(
-            KeyBindingJwtBuilder::new(String::from("https://example.com"), String::from("abcdefghi")),
+            KeyBindingJwtBuilder::new(
+                String::from("https://example.com"),
+                Nonce::from("abcdefghi".to_string()),
+            ),
             &holder_key,
             &MockTimeGenerator::default(),
         )
@@ -167,7 +171,10 @@ async fn sd_jwt_without_disclosures_works() {
         .into_presentation_builder()
         .finish()
         .sign(
-            KeyBindingJwtBuilder::new(String::from("https://example.com"), String::from("abcdefghi")),
+            KeyBindingJwtBuilder::new(
+                String::from("https://example.com"),
+                Nonce::from("abcdefghi".to_string()),
+            ),
             &holder_signing_key,
             &MockTimeGenerator::default(),
         )
@@ -176,7 +183,7 @@ async fn sd_jwt_without_disclosures_works() {
 
     let kb_verification_options = KbVerificationOptions {
         expected_aud: "https://example.com",
-        expected_nonce: "abcdefghi",
+        expected_nonce: &Nonce::from("abcdefghi".to_string()),
         iat_leeway: Duration::ZERO,
         iat_acceptance_window: Duration::from_secs(60),
     };
@@ -235,7 +242,10 @@ async fn sd_jwt_sd_hash() {
         .into_presentation_builder()
         .finish()
         .sign(
-            KeyBindingJwtBuilder::new(String::from("https://example.com"), String::from("abcdefghi")),
+            KeyBindingJwtBuilder::new(
+                String::from("https://example.com"),
+                Nonce::from("abcdefghi".to_string()),
+            ),
             &signing_key,
             &MockTimeGenerator::default(),
         )
@@ -360,7 +370,10 @@ async fn test_presentation() {
         .unwrap()
         .finish()
         .sign(
-            KeyBindingJwtBuilder::new(String::from("https://example.com"), String::from("abcdefghi")),
+            KeyBindingJwtBuilder::new(
+                String::from("https://example.com"),
+                Nonce::from("abcdefghi".to_string()),
+            ),
             &holder_key,
             &MockTimeGenerator::default(),
         )
@@ -369,7 +382,7 @@ async fn test_presentation() {
 
     let kb_verification_options = KbVerificationOptions {
         expected_aud: "https://example.com",
-        expected_nonce: "abcdefghi",
+        expected_nonce: &Nonce::from("abcdefghi".to_string()),
         iat_leeway: Duration::ZERO,
         iat_acceptance_window: Duration::from_secs(60),
     };
@@ -441,7 +454,10 @@ fn test_wscd_presentation() {
 
     let (sd_jwt_presentations, poa) = UnsignedSdJwtPresentation::sign_multiple(
         vec_nonempty![(unsigned_presentation, "holder_key")],
-        KeyBindingJwtBuilder::new(String::from("https://example.com"), String::from("abcdefghi")),
+        KeyBindingJwtBuilder::new(
+            String::from("https://example.com"),
+            Nonce::from("abcdefghi".to_string()),
+        ),
         &wscd,
         (),
         &time,
@@ -457,7 +473,7 @@ fn test_wscd_presentation() {
 
     let kb_verification_options = KbVerificationOptions {
         expected_aud: "https://example.com",
-        expected_nonce: "abcdefghi",
+        expected_nonce: &Nonce::from("abcdefghi".to_string()),
         iat_leeway: Duration::ZERO,
         iat_acceptance_window: Duration::from_secs(10 * 60),
     };

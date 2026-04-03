@@ -18,6 +18,7 @@ use crate::UnverifiedJwt;
 use crate::confirmation::ConfirmationClaim;
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
+use crate::nonce::Nonce;
 use crate::pop::JwtPopClaims;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -84,7 +85,7 @@ impl WuaDisclosure {
         issuer_public_key: &EcdsaDecodingKey,
         expected_aud: &str,
         accepted_wallet_client_ids: &[String],
-    ) -> Result<(VerifyingKey, String), WuaError> {
+    ) -> Result<(VerifyingKey, Nonce), WuaError> {
         let (_, verified_wua_claims) = self.0.parse_and_verify(issuer_public_key, &WUA_JWT_VALIDATIONS)?;
         let wua_pubkey = verified_wua_claims.cnf.verifying_key()?;
         tracing::debug!("WUA status claim: {:?}", verified_wua_claims.status);

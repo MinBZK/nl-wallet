@@ -712,6 +712,7 @@ mod test {
     use futures::FutureExt;
     use indexmap::IndexMap;
     use itertools::Itertools;
+    use jwt::nonce::Nonce;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use serde_json::json;
@@ -1122,7 +1123,10 @@ mod test {
                 sd_jwt.into_verified().into_presentation_builder().finish(),
                 "holder_key"
             )],
-            KeyBindingJwtBuilder::new(String::from("https://aud.example.com"), String::from("nonce123")),
+            KeyBindingJwtBuilder::new(
+                String::from("https://aud.example.com"),
+                Nonce::from(String::from("nonce123")),
+            ),
             &wscd,
             (),
             &MockTimeGenerator::default(),
@@ -1133,7 +1137,7 @@ mod test {
 
         let kb_verification_options = KbVerificationOptions {
             expected_aud: "https://aud.example.com",
-            expected_nonce: "nonce123",
+            expected_nonce: &Nonce::from(String::from("nonce123")),
             iat_leeway: Duration::from_secs(5),
             iat_acceptance_window: Duration::from_secs(60),
         };

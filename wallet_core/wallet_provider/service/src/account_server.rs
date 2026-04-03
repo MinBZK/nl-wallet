@@ -1981,6 +1981,7 @@ mod tests {
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
     use jwt::EcdsaDecodingKey;
+    use jwt::nonce::Nonce;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
     use sd_jwt::sd_jwt::VerifiedSdJwt;
     use token_status_list::status_list_service::mock::MockStatusListService;
@@ -3444,7 +3445,7 @@ mod tests {
                 issuance_instruction: PerformIssuance {
                     key_count: NonZeroUsize::MIN,
                     aud: "aud".to_string(),
-                    nonce: Some("nonce".to_string()),
+                    nonce: Some(Nonce::from("nonce".to_string())),
                 },
             },
             pin_pubkey: new_pin_pubkey.into(),
@@ -3533,7 +3534,7 @@ mod tests {
                 issuance_instruction: PerformIssuance {
                     key_count: NonZeroUsize::MIN,
                     aud: "aud".to_string(),
-                    nonce: Some("nonce".to_string()),
+                    nonce: Some(Nonce::from("nonce".to_string())),
                 },
             },
             pin_pubkey: new_pin_pubkey.into(),
@@ -3627,7 +3628,7 @@ mod tests {
             .sign_instruction(
                 Sign {
                     messages_with_identifiers: vec![(random_bytes(32), vec!["key2".to_string()])],
-                    poa_nonce: Some("nonce".to_string()),
+                    poa_nonce: Some(Nonce::from("nonce".to_string())),
                     poa_aud: "aud".to_string(),
                 },
                 challenge,
@@ -3886,7 +3887,7 @@ mod tests {
                 issuance_instruction: PerformIssuance {
                     key_count: NonZeroUsize::MIN,
                     aud: "aud".to_string(),
-                    nonce: Some("nonce".to_string()),
+                    nonce: Some(Nonce::from("nonce".to_string())),
                 },
             },
             pin_pubkey: new_pin_pubkey.into(),

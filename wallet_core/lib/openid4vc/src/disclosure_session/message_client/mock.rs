@@ -20,6 +20,7 @@ use jwe::decryption::JweSecretKey;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
+use jwt::nonce::Nonce;
 use utils::vec_nonempty;
 
 use crate::cose::KnownCoseAlgorithmIdentifier;
@@ -154,7 +155,7 @@ pub struct MockVerifierSession {
     pub reader_registration: Option<ReaderRegistration>,
     pub trust_anchors: Vec<TrustAnchor<'static>>,
     pub credential_requests: NormalizedCredentialRequests,
-    pub nonce: String,
+    pub nonce: Nonce,
     pub state: Option<String>,
     pub encryption_secret_key: JweSecretKey,
     pub client_id: String,
@@ -186,7 +187,7 @@ impl MockVerifierSession {
         };
 
         // Generate some OpenID4VP specific session material.
-        let nonce = random_string(32);
+        let nonce = Nonce::new();
         let encryption_secret_key = JweSecretKey::new_random(Some(random_string(32)), EcdhAlgorithm::EcdhEs);
         let response_uri = verifier_url.join_base_url("response_uri");
         let client_id = format!(

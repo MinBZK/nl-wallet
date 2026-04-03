@@ -5,6 +5,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use itertools::Itertools;
 
+use jwt::nonce::Nonce;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 
@@ -21,7 +22,7 @@ pub enum NonceStoreResult {
 
 #[derive(Debug)]
 pub struct MemoryNonceStore<T = TimeGenerator> {
-    nonces: Mutex<HashMap<String, DateTime<Utc>>>,
+    nonces: Mutex<HashMap<Nonce, DateTime<Utc>>>,
     time_generator: T,
 }
 
@@ -48,7 +49,7 @@ where
         self.time_generator.generate()
     }
 
-    pub fn store(&self, nonce: String) -> NonceStoreResult {
+    pub fn store(&self, nonce: Nonce) -> NonceStoreResult {
         let mut nonces = self
             .nonces
             .lock()
@@ -63,7 +64,7 @@ where
         NonceStoreResult::Stored
     }
 
-    pub fn remove_and_check<'a>(&self, nonces: impl IntoIterator<Item = &'a str>) -> NonceStatus {
+    pub fn remove_and_check<'a>(&self, nonces: impl IntoIterator<Item = &'a Nonce>) -> NonceStatus {
         let mut stored_nonces = self
             .nonces
             .lock()
@@ -92,7 +93,7 @@ where
 {
     type Error = std::convert::Infallible;
 
-    async fn store_nonce(&self, nonce: String) -> Result<(), NonceStoreError<Self::Error>> {
+    async fn store_nonce(&self, nonce: Nonce) -> Result<(), NonceStoreError<Self::Error>> {
         match self.store(nonce.clone()) {
             NonceStoreResult::Stored => Ok(()),
             NonceStoreResult::DuplicateEntry => Err(NonceStoreError::DuplicateNonce(nonce)),
@@ -101,7 +102,7 @@ where
 
     async fn check_nonce_status_and_remove<'a>(
         &self,
-        nonces: impl IntoIterator<Item = &'a str> + Send,
+        nonces: impl IntoIterator<Item = &'a Nonce> + Send,
     ) -> Result<NonceStatus, Self::Error> {
         let presence = self.remove_and_check(nonces);
 

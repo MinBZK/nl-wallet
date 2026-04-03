@@ -17,6 +17,8 @@ use reqwest::header;
 use serde::de::DeserializeOwned;
 use url::Url;
 
+use jwt::nonce::Nonce;
+
 use crate::AuthBearerErrorCode;
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
@@ -122,7 +124,7 @@ pub struct HttpOidcClient<P = S256PkcePair> {
 
     pkce_pair: P,
     state: String,
-    nonce: String,
+    nonce: Nonce,
 }
 
 impl<P> OidcClient for HttpOidcClient<P>
@@ -165,7 +167,7 @@ where
 impl<P: PkcePair> HttpOidcClient<P> {
     pub fn new(config: Config, jwks: JwkSet, client_id: String, redirect_uri: Url) -> Self {
         let csrf_token = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
-        let nonce = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
+        let nonce = Nonce::new();
         let pkce_pair = P::generate();
 
         HttpOidcClient {
@@ -367,6 +369,7 @@ mod tests {
     use jsonwebtoken::Algorithm;
     use jsonwebtoken::EncodingKey;
     use jsonwebtoken::Header;
+    use jwt::nonce::Nonce;
     use rstest::rstest;
     use serde_json::json;
     use serial_test::serial;
@@ -495,7 +498,7 @@ mod tests {
             redirect_uri: REDIRECT_URI.parse().unwrap(),
             pkce_pair,
             state: PARAM_STATE.to_string(),
-            nonce: PARAM_NONCE.to_string(),
+            nonce: Nonce::from(PARAM_NONCE.to_string()),
         }
     }
 
