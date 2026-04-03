@@ -56,6 +56,13 @@ export VERIFICATION_SERVER_IS_PORT=3012
 export BRP_SERVER_PORT=3013
 export GBA_HC_CONV_PORT=3014
 
+# In rootless Docker on Linux, `host-gateway` resolves to the docker0 bridge IP inside
+# rootlesskit's isolated network namespace and cannot reach services on the real host.
+# Use the host's IP instead.
+if ! is_macos; then
+    export DOCKER_HOST_GATEWAY=$(ip -j -4 route get 1.1.1.1 | jq -r '.[0].prefsrc')
+fi
+
 export REVOCATION_PORTAL_PORT=3020
 
 export RDO_MAX_PORT=8006
