@@ -311,6 +311,22 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_deserialize_device_engagement() {
+        let example_device_engagement = hex::decode(
+            "a30063312e30018201d818584ba4010220012158205a88d182bce5f42efa59943f33359d2e8a968ff289d93e5fa444b624343167fe\
+            225820b16e8cf858ddc7690407ba61d4c338237a8cfcf3de6aa672fc60a557aa32fc670281830201a300f401f50b5045efef742b2c4\
+            837a9a3b0e1d05a6917",
+        )
+        .unwrap();
+        let device_engagement: DeviceEngagement = cbor_deserialize(example_device_engagement.as_slice()).unwrap();
+
+        assert_eq!(
+            serialization::cbor_serialize(&device_engagement).unwrap(),
+            example_device_engagement
+        );
+    }
+
     mod openid4vp {
         use std::sync::LazyLock;
 
