@@ -421,6 +421,7 @@ impl ClonePayload for CoseMac0 {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CoseKey(pub coset::CoseKey);
+
 impl From<coset::CoseKey> for CoseKey {
     fn from(key: coset::CoseKey) -> Self {
         CoseKey(key)
@@ -432,6 +433,7 @@ impl coset::AsCborValue for CoseKey {
         let deserialized = coset::CoseKey::from_cbor_value(value)?.into();
         Ok(deserialized)
     }
+
     fn to_cbor_value(self) -> coset::Result<Value> {
         self.0.to_cbor_value()
     }

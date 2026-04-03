@@ -439,7 +439,7 @@ where
         let previews = issuance_session.normalized_credential_preview();
         let preview_attestation_types = previews
             .iter()
-            .map(|preview| preview.content.credential_payload.attestation_type.as_str())
+            .map(|preview| preview.content.credential_payload.attestation_type.clone())
             .collect();
 
         let config = self.config_repository.get();

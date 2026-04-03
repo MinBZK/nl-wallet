@@ -51,6 +51,7 @@ use entity::attestation::TypeMetadataModel;
 use entity::attestation_copy;
 use entity::attestation_copy::AttestationFormat;
 use entity::compressed_blob::CompressedBlob;
+use entity::deletion_event;
 use entity::disclosure_event;
 use entity::disclosure_event::EventStatus;
 use entity::disclosure_event_attestation;
@@ -282,13 +283,12 @@ impl<K> DatabaseStorage<K> {
 
     async fn query_unique_attestations_with_parameters(
         &self,
-        attestation_types: &HashSet<&str>,
+        attestation_types: &HashSet<String>,
         format: Option<CredentialFormat>,
         condition: Option<Condition>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
         // Collect all conditions for the requested attestation types using OR.
         let attestation_type_condition = Condition::any();
-        let attestation_types_iter = attestation_types.iter().copied();
 
         // If SD-JWT was requested, check if any of the extended attestation types match any of the requested
         // attestation types. Note that this results in the following query:
@@ -304,7 +304,7 @@ impl<K> DatabaseStorage<K> {
                         Func::cust("json_each").arg(attestation::Column::ExtendedTypes.into_expr()),
                         "extended_attestation_type",
                     )
-                    .and_where(Expr::col(("extended_attestation_type", "value")).is_in(attestation_types_iter.clone()))
+                    .and_where(Expr::col(("extended_attestation_type", "value")).is_in(attestation_types))
                     .take(),
             )),
             Some(CredentialFormat::MsoMdoc) | None => attestation_type_condition,
@@ -312,7 +312,7 @@ impl<K> DatabaseStorage<K> {
 
         // The `attestation_type` column should match any of the requested attestation types.
         let attestation_type_condition =
-            attestation_type_condition.add(attestation::Column::AttestationType.is_in(attestation_types_iter));
+            attestation_type_condition.add(attestation::Column::AttestationType.is_in(attestation_types));
 
         // The top-level conditions are joined with AND, starting with the attestation types.
         let condition = condition.unwrap_or(Condition::all()).add(attestation_type_condition);
@@ -331,6 +331,7 @@ impl<K> DatabaseStorage<K> {
     fn combine_events(
         issuance_events: Vec<(issuance_event::Model, issuance_event_attestation::Model)>,
         disclosure_events: Vec<(disclosure_event::Model, Option<disclosure_event_attestation::Model>)>,
+        deletion_events: Vec<deletion_event::Model>,
     ) -> StorageResult<Vec<WalletEvent>> {
         // Collect issuance events into a Vec of WalletEvents
         let mut wallet_events = issuance_events
@@ -385,8 +386,23 @@ impl<K> DatabaseStorage<K> {
             },
         )?;
 
-        // Merge issuance and disclosure events
+        // Collect deletion events
+        let mut deletion_events = deletion_events
+            .into_iter()
+            .map(|event| {
+                let attestation = serde_json::from_value::<AttestationPresentation>(event.attestation_presentation)?;
+
+                Ok(WalletEvent::Deletion {
+                    id: event.id,
+                    timestamp: event.timestamp,
+                    attestation: Box::new(attestation),
+                })
+            })
+            .collect::<Result<Vec<_>, serde_json::Error>>()?;
+
+        // Merge issuance, disclosure and deletion events
         wallet_events.append(&mut disclosure_events.into_values().collect());
+        wallet_events.append(&mut deletion_events);
 
         // Sort by timestamp descending
         wallet_events.sort_by(|a, b| b.timestamp().cmp(a.timestamp()));
@@ -834,17 +850,17 @@ where
         self.query_unique_attestations(None).await
     }
 
-    async fn fetch_unique_attestations_by_types<'a>(
+    async fn fetch_unique_attestations_by_types(
         &self,
-        attestation_types: &HashSet<&'a str>,
+        attestation_types: &HashSet<String>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.query_unique_attestations_with_parameters(attestation_types, None, None)
             .await
     }
 
-    async fn fetch_unique_attestations_by_types_and_format<'a>(
+    async fn fetch_unique_attestations_by_types_and_format(
         &self,
-        attestation_types: &HashSet<&'a str>,
+        attestation_types: &HashSet<String>,
         format: CredentialFormat,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.query_unique_attestations_with_parameters(attestation_types, Some(format), None)
@@ -853,7 +869,7 @@ where
 
     async fn fetch_valid_unique_attestations_by_types_and_format<T>(
         &self,
-        attestation_types: &HashSet<&str>,
+        attestation_types: &HashSet<String>,
         format: CredentialFormat,
         time_generator: T,
     ) -> StorageResult<Vec<StoredAttestationCopy>>
@@ -959,7 +975,12 @@ where
             .order_by_desc(disclosure_event::Column::Timestamp)
             .all(connection);
 
-        let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
+        let fetch_deletion_events = deletion_event::Entity::find()
+            .order_by_desc(deletion_event::Column::Timestamp)
+            .all(connection);
+
+        let (issuance_events, disclosure_events, deletion_events) =
+            try_join!(fetch_issuance_events, fetch_disclosure_events, fetch_deletion_events)?;
 
         let issuance_events = issuance_events
             .into_iter()
@@ -968,7 +989,7 @@ where
                 (event, att.unwrap()))
             .collect_vec();
 
-        Self::combine_events(issuance_events, disclosure_events)
+        Self::combine_events(issuance_events, disclosure_events, deletion_events)
     }
 
     async fn fetch_recent_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
@@ -988,7 +1009,13 @@ where
             .order_by_desc(disclosure_event::Column::Timestamp)
             .all(connection);
 
-        let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
+        let fetch_deletion_events = deletion_event::Entity::find()
+            .order_by_desc(deletion_event::Column::Timestamp)
+            .filter(Self::newer_than_31_days(deletion_event::Column::Timestamp))
+            .all(connection);
+
+        let (issuance_events, disclosure_events, deletion_events) =
+            try_join!(fetch_issuance_events, fetch_disclosure_events, fetch_deletion_events)?;
 
         let issuance_events = issuance_events
             .into_iter()
@@ -997,7 +1024,7 @@ where
                 (event, att.unwrap()))
             .collect_vec();
 
-        Self::combine_events(issuance_events, disclosure_events)
+        Self::combine_events(issuance_events, disclosure_events, deletion_events)
     }
 
     async fn fetch_wallet_events_by_attestation_id(&self, attestation_id: Uuid) -> StorageResult<Vec<WalletEvent>> {
@@ -1026,7 +1053,9 @@ where
                 (event, att.unwrap()))
             .collect_vec();
 
-        Self::combine_events(issuance_events, disclosure_events)
+        // Deletion events are not linked to a specific attestation, as that attestation has been deleted,
+        // so we don't have any of those to pass.
+        Self::combine_events(issuance_events, disclosure_events, vec![])
     }
 
     // TODO (PVW-4135): Fix logic to uniquely identify an RP, since its certificate may change.
@@ -1159,8 +1188,33 @@ where
         Ok(Some((attestation_type, key_identifiers)))
     }
 
-    async fn delete_attestation(&mut self, attestation_id: Uuid) -> StorageResult<()> {
+    async fn delete_attestation(&mut self, timestamp: DateTime<Utc>, attestation_id: Uuid) -> StorageResult<()> {
         let tx = self.database()?.connection().begin().await?;
+
+        let Some(attestation_presentation) = issuance_event_attestation::Entity::find()
+            .select_only()
+            .column(issuance_event_attestation::Column::AttestationPresentation)
+            .filter(issuance_event_attestation::Column::AttestationId.eq(attestation_id))
+            .order_by_desc(issuance_event_attestation::Column::Id)
+            .into_tuple::<serde_json::Value>()
+            .one(&tx)
+            .await?
+        else {
+            // If we get None here, no rows were returned. That means no `issuance_event_attestation` row
+            // for the specified `attestation_id` exists. Since those are always inserted together with the
+            // actual corresponding attestation, that means the attestation itself doesn't exist; we're
+            // attempting to delete an attestation that doesn't exist.
+            // We just return here, to mirror the behaviour of DELETE statements in such cases: do nothing.
+            return Ok(());
+        };
+
+        deletion_event::Entity::insert(deletion_event::ActiveModel {
+            id: Set(Uuid::now_v7()),
+            timestamp: Set(timestamp),
+            attestation_presentation: Set(attestation_presentation),
+        })
+        .exec(&tx)
+        .await?;
 
         attestation_copy::Entity::delete_many()
             .filter(attestation_copy::Column::AttestationId.eq(attestation_id))
@@ -1736,7 +1790,7 @@ pub(crate) mod tests {
 
         // Only one unique `AttestationCopy` should be returned when querying
         // the attestation type, but not when the queried format is SD-JWT.
-        let attestation_types = HashSet::from([mdoc.doc_type()]);
+        let attestation_types = HashSet::from([mdoc.doc_type().to_owned()]);
 
         let fetched_unique_any = storage
             .fetch_unique_attestations_by_types(&attestation_types)
@@ -1763,7 +1817,7 @@ pub(crate) mod tests {
 
         let fetched_unique_other = storage
             .fetch_valid_unique_attestations_by_types_and_format(
-                &HashSet::from(["other"]),
+                &HashSet::from(["other".to_owned()]),
                 CredentialFormat::MsoMdoc,
                 MockTimeGenerator::default(),
             )
@@ -1859,7 +1913,10 @@ pub(crate) mod tests {
         assert_ne!(attestation_copy2.attestation_copy_id, remaning_attestation_copy_id1);
 
         // Test that fetching extended VCTs does not return anything, as this should only work for SD-JWT.
-        let extended_vcts = normalized_metadata.extended_vcts().collect::<HashSet<_>>();
+        let extended_vcts = normalized_metadata
+            .extended_vcts()
+            .map(ToOwned::to_owned)
+            .collect::<HashSet<_>>();
 
         assert!(!extended_vcts.is_empty());
 
@@ -1958,7 +2015,7 @@ pub(crate) mod tests {
 
         // Only one unique `AttestationCopy` should be returned when querying
         // the attestation type, but not when the queried format is mdoc.
-        let attestation_types = HashSet::from([attestation_type.as_str()]);
+        let attestation_types = HashSet::from([attestation_type]);
         let fetched_unique_any = storage
             .fetch_unique_attestations_by_types(&attestation_types)
             .await
@@ -1984,7 +2041,7 @@ pub(crate) mod tests {
 
         let fetched_unique_other = storage
             .fetch_valid_unique_attestations_by_types_and_format(
-                &HashSet::from(["other"]),
+                &HashSet::from(["other".to_owned()]),
                 CredentialFormat::SdJwt,
                 MockTimeGenerator::default(),
             )
@@ -2011,7 +2068,10 @@ pub(crate) mod tests {
         assert!(fetched_unique_other.is_empty());
 
         // Test that fetching extended VCTs also works.
-        let extended_vcts = normalized_metadata.extended_vcts().collect::<HashSet<_>>();
+        let extended_vcts = normalized_metadata
+            .extended_vcts()
+            .map(ToOwned::to_owned)
+            .collect::<HashSet<_>>();
 
         assert!(!extended_vcts.is_empty());
 
@@ -2396,9 +2456,10 @@ pub(crate) mod tests {
     }
 
     pub(crate) async fn test_history_ordering(storage: &mut impl Storage) {
-        let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
-        let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
-        let timestamp_even_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
+        let timestamp1 = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
+        let timestamp2 = Utc.with_ymd_and_hms(2023, 11, 25, 12, 00, 00).unwrap();
+        let timestamp3 = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
+        let timestamp4 = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
 
         let holder_key = SigningKey::random(&mut OsRng);
         let sd_jwt = SignedSdJwt::pid_example(&ISSUER_KEY, holder_key.verifying_key()).into_verified();
@@ -2416,7 +2477,7 @@ pub(crate) mod tests {
 
         storage
             .insert_credentials(
-                timestamp,
+                timestamp1,
                 vec![
                     (
                         CredentialWithMetadata::new(
@@ -2491,12 +2552,15 @@ pub(crate) mod tests {
                 .unwrap()
         );
 
+        let AttestationIdentity::Fixed { id: attestation1_id } = attestations[0].identity else {
+            panic!("expected fixed identity");
+        };
         let attestation1 = attestations[0].clone();
         let attestation2 = attestations[1].clone();
 
         storage
             .log_disclosure_event(
-                timestamp_even_older,
+                timestamp4,
                 vec![attestation1],
                 READER_KEY.certificate().clone(),
                 DisclosureStatus::Success,
@@ -2507,7 +2571,7 @@ pub(crate) mod tests {
 
         storage
             .log_disclosure_event(
-                timestamp_older,
+                timestamp3,
                 vec![attestation2],
                 READER_KEY.certificate().clone(),
                 DisclosureStatus::Success,
@@ -2524,6 +2588,8 @@ pub(crate) mod tests {
                 .unwrap()
         );
 
+        storage.delete_attestation(timestamp2, attestation1_id).await.unwrap();
+
         // Fetch and verify events are sorted descending by timestamp
         assert_eq!(
             storage
@@ -2533,7 +2599,7 @@ pub(crate) mod tests {
                 .iter()
                 .map(|event| event.timestamp())
                 .collect_vec(),
-            vec![&timestamp, &timestamp, &timestamp_older, &timestamp_even_older]
+            vec![&timestamp1, &timestamp1, &timestamp2, &timestamp3, &timestamp4]
         );
     }
 
@@ -2720,19 +2786,11 @@ pub(crate) mod tests {
             .await
             .expect("Could not fetch wallet events");
         assert_eq!(events_before_deletion.len(), 2);
-        assert!(
-            events_before_deletion
-                .iter()
-                .any(|e| matches!(e, WalletEvent::Issuance { .. }))
-        );
-        assert!(
-            events_before_deletion
-                .iter()
-                .any(|e| matches!(e, WalletEvent::Disclosure { .. }))
-        );
+        assert_matches!(events_before_deletion[0], WalletEvent::Disclosure { .. });
+        assert_matches!(events_before_deletion[1], WalletEvent::Issuance { .. });
 
         storage
-            .delete_attestation(attestation_id)
+            .delete_attestation(Utc::now(), attestation_id)
             .await
             .expect("Could not delete attestation");
 
@@ -2753,16 +2811,79 @@ pub(crate) mod tests {
         );
 
         // Both events should still exist but be unlinked from the attestation.
+        // In addition, there will be a deletion event.
         let events_after_deletion = storage
             .fetch_wallet_events()
             .await
             .expect("Could not fetch wallet events");
-        assert_eq!(events_after_deletion.len(), 2);
+        assert_eq!(events_after_deletion.len(), 3);
+        assert_matches!(events_after_deletion[1], WalletEvent::Disclosure { .. });
+        let WalletEvent::Deletion {
+            attestation: deleted, ..
+        } = &events_after_deletion[0]
+        else {
+            panic!("should have been a deletion event");
+        };
+        let WalletEvent::Issuance {
+            attestation: issued, ..
+        } = &events_after_deletion[2]
+        else {
+            panic!("should have been an issuance event");
+        };
+
+        // The issuance and deletion events will contain identical attestation payloads.
+        assert_eq!(*issued, *deleted);
+
+        // No events are linked anymore to the deleted attestation.
         let events_by_attestation = storage
             .fetch_wallet_events_by_attestation_id(attestation_id)
             .await
             .expect("Could not fetch wallet events");
         assert!(events_by_attestation.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_delete_attestation_uses_most_recent_presentation() {
+        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
+
+        let (attestation_id, _) = insert_sd_jwt_credential(&mut storage, "test_key_id", Utc::now(), 1).await;
+
+        // Create a renewed presentation, distinguishable from the original by its attestation_type.
+        let mut renewed_presentation = AttestationPresentation::new_mock();
+        renewed_presentation.identity = AttestationIdentity::Fixed { id: attestation_id };
+        renewed_presentation.attestation_type = "mock_renewed".to_string();
+
+        let credential = IssuedCredential::SdJwt {
+            key_identifier: "renewed_key_id".to_string(),
+            sd_jwt: SignedSdJwt::pid_example(&ISSUER_KEY, SigningKey::random(&mut OsRng).verifying_key())
+                .into_verified(),
+        };
+        let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential].try_into().unwrap());
+
+        storage
+            .update_credentials(Utc::now(), vec![(issued_copies, renewed_presentation.clone())])
+            .await
+            .expect("Could not update credentials");
+
+        storage
+            .delete_attestation(Utc::now(), attestation_id)
+            .await
+            .expect("Could not delete attestation");
+
+        let events = storage
+            .fetch_wallet_events()
+            .await
+            .expect("Could not fetch wallet events");
+
+        let WalletEvent::Deletion {
+            attestation: deleted, ..
+        } = &events[0]
+        else {
+            panic!("Expected deletion event");
+        };
+
+        // The deletion event should reference the renewed presentation, not the original.
+        assert_eq!(**deleted, renewed_presentation);
     }
 
     #[rstest]

@@ -1,4 +1,5 @@
 require 'active_support'
+require 'json'
 require 'active_support/core_ext'
 
 require_relative 'badge'
@@ -92,6 +93,25 @@ private_lane :upload_to_browserstack do |options|
   end
 end
 
+# Uploads a file to a BrowserStack Espresso endpoint and returns the resulting URL.
+# options: user, key, endpoint, file, url_field, label, custom_id (optional)
+private_lane :upload_to_browserstack_espresso do |options|
+  args = [
+    "curl", "-s", "-w", "\n%{http_code}",
+    "-u", "#{options[:user]}:#{options[:key]}",
+    "-X", "POST",
+    options[:endpoint],
+    "-F", "file=@#{options[:file]}",
+  ]
+  args += ["-F", "custom_id=#{options[:custom_id]}"] unless options[:custom_id].blank?
+
+  response = sh(*args, log: false)
+  url = JSON.parse(response.lines[0..-2].join)[options[:url_field]]
+  UI.user_error!("Failed to upload #{options[:label]} to BrowserStack (response: #{response})") if url.blank?
+  UI.message("Uploaded #{options[:label]}: #{url}")
+  url
+end
+
 platform :android do
   desc "Add badge to launcher icons"
   lane :add_badge do |options|
@@ -183,8 +203,8 @@ platform :android do
   desc "Upload Android app to BrowserStack from GitLab CI"
   lane :ci_browserstack do |options|
     browserstack_user = ENV["BROWSERSTACK_USER"]
-    browserstack_key = ENV["BROWSERSTACK_KEY"]
-    commit_sha = ENV["CI_COMMIT_SHA"]
+    browserstack_key  = ENV["BROWSERSTACK_KEY"]
+    commit_sha        = ENV["CI_COMMIT_SHA"]
 
     UI.user_error!("No BROWSERSTACK_USER environment variable set") if browserstack_user.blank?
     UI.user_error!("No BROWSERSTACK_KEY environment variable set") if browserstack_key.blank?
@@ -202,6 +222,97 @@ platform :android do
       application_id: application_id,
       commit_sha: commit_sha,
     )
+  end
+
+  desc "Build Android platform_support test APKs for BrowserStack (stub app + instrumented test APK)"
+  lane :build_platform_support_tests do
+    Dir.chdir("../wallet_core/wallet/platform_support/android") do
+      sh({ "ANDROID_NDK_TARGETS" => "arm64-v8a" },
+         "./gradlew", "--no-daemon",
+         ":test-app:assembleDebug",
+         "assembleDebugAndroidTest"
+      )
+    end
+  end
+
+  desc "Upload platform_support test APKs to BrowserStack and run Espresso tests from GitLab CI"
+  lane :ci_test_platform_support_browserstack do
+    browserstack_user = ENV["BROWSERSTACK_USER"]
+    browserstack_key  = ENV["BROWSERSTACK_KEY"]
+    commit_sha        = ENV["CI_COMMIT_SHA"]
+
+    UI.user_error!("No BROWSERSTACK_USER set") if browserstack_user.blank?
+    UI.user_error!("No BROWSERSTACK_KEY set") if browserstack_key.blank?
+
+    platform_support_dir = "../wallet_core/wallet/platform_support/android"
+    app_apk  = "#{platform_support_dir}/test-app/build/outputs/apk/debug/test-app-debug.apk"
+    test_apk = "#{platform_support_dir}/build/outputs/apk/androidTest/debug/platform_support-debug-androidTest.apk"
+
+    UI.user_error!("App APK not found: #{app_apk}") unless File.exist?(app_apk)
+    UI.user_error!("Test APK not found: #{test_apk}") unless File.exist?(test_apk)
+
+    app_url = upload_to_browserstack_espresso(
+      user: browserstack_user, key: browserstack_key,
+      endpoint:  "https://api-cloud.browserstack.com/app-automate/espresso/v2/app",
+      file:      app_apk,
+      url_field: "app_url",
+      label:     "app APK",
+      custom_id: "PlatformSupportApp_#{commit_sha}",
+    )
+
+    test_url = upload_to_browserstack_espresso(
+      user: browserstack_user, key: browserstack_key,
+      endpoint:  "https://api-cloud.browserstack.com/app-automate/espresso/v2/test-suite",
+      file:      test_apk,
+      url_field: "test_suite_url",
+      label:     "test suite",
+      custom_id: "PlatformSupportTestSuite_#{commit_sha}",
+    )
+
+    real_device_tests = [
+      "nl.rijksoverheid.edi.wallet.platform_support.attested_key.AttestedKeyBridgeInstrumentedTest",
+      "nl.rijksoverheid.edi.wallet.platform_support.keystore.signing.SigningKeyBridgeInstrumentedTest#bridge_test_signature",
+      "nl.rijksoverheid.edi.wallet.platform_support.keystore.encryption.EncryptionKeyBridgeInstrumentedTest#bridge_test_symmetric_encryption",
+    ]
+
+    build_response = sh(
+      "curl", "-s", "-w", "\n%{http_code}",
+      "-u", "#{browserstack_user}:#{browserstack_key}",
+      "-X", "POST",
+      "https://api-cloud.browserstack.com/app-automate/espresso/v2/build",
+      "-H", "Content-Type: application/json",
+      "-d", JSON.generate({
+        "app"       => app_url,
+        "testSuite" => test_url,
+        "devices"   => ["OnePlus 12R-14.0"],
+        "class"     => real_device_tests,
+      }),
+      log: false
+    )
+    build_id = JSON.parse(build_response.lines[0..-2].join)["build_id"]
+    UI.user_error!("Failed to start BrowserStack Espresso build (response: #{build_response})") if build_id.blank?
+    UI.message("BrowserStack Espresso build started: #{build_id}")
+
+    final_status = nil
+    final_build_resp = nil
+    Timeout.timeout(1200) do
+      loop do
+        sleep(30)
+        final_build_resp = JSON.parse(sh(
+          "curl", "-s",
+          "-u", "#{browserstack_user}:#{browserstack_key}",
+          "https://api-cloud.browserstack.com/app-automate/espresso/v2/builds/#{build_id}",
+          log: false
+        ))
+        final_status = final_build_resp["status"]
+        UI.message("Build #{build_id} status: #{final_status}")
+        break if ["passed", "failed", "error", "timeout"].include?(final_status)
+      end
+    end
+
+    UI.message("BrowserStack build result: #{final_status}")
+    UI.message("BrowserStack build URL (credentials in nl-wallet-browserstack secret ): https://app-automate.browserstack.com/dashboard/v2/builds/#{build_id}")
+    UI.user_error!("BrowserStack Espresso tests #{final_status}") if final_status != "passed"
   end
 
   desc "Upload Android app to BrowserStack"

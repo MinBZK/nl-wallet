@@ -31,7 +31,7 @@ void main() {
       expect(result.destination, WalletRoutes.disclosureRoute);
       expect(
         result.argument,
-        const DisclosureScreenArgument(uri: testUri, isQrCode: true),
+        const DisclosureScreenArgument(type: .remote(testUri, isQrCode: true)),
         reason: 'The original uri should be passed to the correct screen as an argument',
       );
     });

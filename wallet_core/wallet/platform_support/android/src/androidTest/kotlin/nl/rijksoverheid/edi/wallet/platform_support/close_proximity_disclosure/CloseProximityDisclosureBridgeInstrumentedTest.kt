@@ -12,7 +12,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.test.runTest
 import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupport
-import org.multipaz.util.UUID
 import org.junit.After
 import org.junit.Assume.assumeTrue
 import org.junit.Assert.assertEquals
@@ -165,63 +164,10 @@ class CloseProximityDisclosureBridgeInstrumentedTest {
     }
 
     @Test
-    fun test_start_qr_handover_emits_connecting_when_mac_reader_connects() = runTest {
+    fun test_close_proximity_disclosure_full_flow_with_mac_reader() = runTest {
         assumeTrue(
-            "Set RUN_MAC_BLE_READER_CONNECTING_TEST = true and run scripts/close_proximity_disclosure_mac_reader.swift on the host Mac to exercise the connecting path",
-            RUN_MAC_BLE_READER_CONNECTING_TEST,
-        )
-
-        val context = InstrumentationRegistry.getInstrumentation().context
-        val bridge = CloseProximityDisclosureBridge(
-            context = context,
-            testingPeripheralServerModeUuid = UUID.fromString(MAC_BLE_READER_TEST_SERVICE_UUID_STRING),
-        )
-        val channel = TestChannel()
-
-        try {
-            bridge.stopBleServer()
-
-            assertFalse(bridge.isBleServerActiveForTesting())
-
-            val qrCode = bridge.startQrHandover(channel)
-
-            Log.i(CLOSE_PROXIMITY_TEST_LOG_TAG, "Close proximity disclosure QR code: $qrCode")
-
-            assertTrue(qrCode.isNotEmpty())
-            assertFalse(qrCode.startsWith("mdoc:"))
-            assertTrue(bridge.isBleServerActiveForTesting())
-
-            assertTrue(
-                "Timed out waiting for the host Mac BLE helper to connect to service UUID $MAC_BLE_READER_TEST_SERVICE_UUID_STRING",
-                channel.awaitConnectingUpdate(),
-            )
-            assertTrue(channel.hasReceivedConnectingUpdate())
-
-            val updatesAfterConnect = channel.receivedUpdates()
-            assertTrue(updatesAfterConnect.any { it == RecordedUpdate.Connecting })
-
-            bridge.stopBleServer()
-
-            assertTrue(channel.awaitClosedUpdate())
-            assertTrue(channel.hasReceivedClosedUpdate())
-
-            val updatesAfterStop = channel.receivedUpdates()
-            val connectingIndex = updatesAfterStop.indexOf(RecordedUpdate.Connecting)
-            val closedIndex = updatesAfterStop.indexOf(RecordedUpdate.Closed)
-            assertTrue(connectingIndex >= 0)
-            assertTrue(closedIndex >= 0)
-            assertTrue(connectingIndex < closedIndex)
-            assertFalse(bridge.isBleServerActiveForTesting())
-        } finally {
-            bridge.stopBleServer()
-        }
-    }
-
-    @Test
-    fun test_start_qr_handover_emits_session_established_when_mac_reader_sends_device_request() = runTest {
-        assumeTrue(
-            "Set RUN_MAC_BLE_READER_SESSION_ESTABLISHED_TEST = true and run scripts/close_proximity_disclosure_mac_reader.swift --qr-code <logged-qr-code> on the host Mac to exercise the SessionEstablished path",
-            RUN_MAC_BLE_READER_SESSION_ESTABLISHED_TEST,
+            "Set RUN_MAC_BLE_READER_FULL_FLOW_TEST = true and run scripts/close_proximity/disclosure_mac_reader.swift --qr-code <logged-qr-code> --expect-device-response-hex $MAC_BLE_READER_EXPECTED_DEVICE_RESPONSE_HEX on the host Mac to exercise the full flow",
+            RUN_MAC_BLE_READER_FULL_FLOW_TEST,
         )
 
         val channel = TestChannel()
@@ -234,7 +180,13 @@ class CloseProximityDisclosureBridgeInstrumentedTest {
             val qrCode = closeProximityDisclosureBridge.startQrHandover(channel)
 
             Log.i(CLOSE_PROXIMITY_TEST_LOG_TAG, "Close proximity disclosure QR code: $qrCode")
-            Log.i(CLOSE_PROXIMITY_TEST_LOG_TAG, "$SESSION_ESTABLISHED_QR_MARKER$qrCode")
+            Log.i(
+                CLOSE_PROXIMITY_TEST_LOG_TAG,
+                macBleReaderMarkerPayload(
+                    qrCode = qrCode,
+                    expectedDeviceResponseHex = MAC_BLE_READER_EXPECTED_DEVICE_RESPONSE_HEX,
+                ),
+            )
 
             assertTrue(qrCode.isNotEmpty())
             assertFalse(qrCode.startsWith("mdoc:"))
@@ -253,17 +205,20 @@ class CloseProximityDisclosureBridgeInstrumentedTest {
                 sessionEstablished?.deviceRequest,
             )
 
-            closeProximityDisclosureBridge.stopBleServer()
+            closeProximityDisclosureBridge.sendDeviceResponse(MAC_BLE_READER_EXPECTED_DEVICE_RESPONSE)
 
-            assertTrue(channel.awaitClosedUpdate())
+            assertTrue(
+                "Timed out waiting for the wallet to close the BLE session after sending the encrypted DeviceResponse. The host Mac BLE helper validates the DeviceResponse out of process and will fail the overall run separately if validation fails.",
+                channel.awaitClosedUpdate(timeoutSeconds = 5),
+            )
             assertTrue(channel.hasReceivedClosedUpdate())
 
-            val updatesAfterStop = channel.receivedUpdates()
-            val connectingIndex = updatesAfterStop.indexOf(RecordedUpdate.Connecting)
-            val sessionEstablishedIndex = updatesAfterStop.indexOfFirst {
+            val updatesAfterClose = channel.receivedUpdates()
+            val connectingIndex = updatesAfterClose.indexOf(RecordedUpdate.Connecting)
+            val sessionEstablishedIndex = updatesAfterClose.indexOfFirst {
                 it is RecordedUpdate.SessionEstablished
             }
-            val closedIndex = updatesAfterStop.indexOf(RecordedUpdate.Closed)
+            val closedIndex = updatesAfterClose.indexOf(RecordedUpdate.Closed)
             assertTrue(connectingIndex >= 0)
             assertTrue(sessionEstablishedIndex >= 0)
             assertTrue(closedIndex >= 0)
@@ -338,12 +293,23 @@ class CloseProximityDisclosureBridgeInstrumentedTest {
 
     companion object {
         private const val CLOSE_PROXIMITY_TEST_LOG_TAG = "CloseProximityTest"
-        private const val RUN_MAC_BLE_READER_CONNECTING_TEST = false
-        private const val RUN_MAC_BLE_READER_SESSION_ESTABLISHED_TEST = false
-        private const val MAC_BLE_READER_TEST_SERVICE_UUID_STRING = "08c5f8e7-3078-4cc3-b6f4-1f861a7f67e9"
-        private const val SESSION_ESTABLISHED_QR_MARKER = "CLOSE_PROXIMITY_SESSION_ESTABLISHED_QR="
+        private const val RUN_MAC_BLE_READER_FULL_FLOW_TEST = true
+        private const val MAC_BLE_READER_MARKER = "CLOSE_PROXIMITY_MAC_READER="
+        private const val MAC_BLE_READER_EXPECTED_DEVICE_RESPONSE_HEX = "040506"
         private val MAC_BLE_READER_EXPECTED_DEVICE_REQUEST =
             listOf(0x01u.toUByte(), 0x02u.toUByte(), 0x03u.toUByte())
+        private val MAC_BLE_READER_EXPECTED_DEVICE_RESPONSE =
+            listOf(0x04u.toUByte(), 0x05u.toUByte(), 0x06u.toUByte())
+
+        private fun macBleReaderMarkerPayload(
+            qrCode: String,
+            expectedDeviceResponseHex: String? = null,
+        ): String =
+            if (expectedDeviceResponseHex != null) {
+                "$MAC_BLE_READER_MARKER{\"qr\":\"$qrCode\",\"expected_device_response_hex\":\"$expectedDeviceResponseHex\"}"
+            } else {
+                "$MAC_BLE_READER_MARKER{\"qr\":\"$qrCode\"}"
+            }
 
         @JvmStatic
         external fun close_proximity_disclosure_test_start_qr_handover()

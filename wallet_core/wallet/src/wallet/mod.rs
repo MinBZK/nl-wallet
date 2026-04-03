@@ -57,6 +57,7 @@ use self::attestations::AttestationsCallback;
 use self::disclosure::WalletDisclosureSession;
 use self::issuance::WalletIssuanceSession;
 
+pub use self::close_proximity_disclosure::CloseProximityDisclosureError;
 pub use self::close_proximity_disclosure::CloseProximityDisclosureUpdate;
 pub use self::delete_attestation::DeleteAttestationError;
 pub use self::disclosure::AttributesNotAvailable;

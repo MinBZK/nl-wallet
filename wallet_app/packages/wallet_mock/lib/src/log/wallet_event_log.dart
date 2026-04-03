@@ -33,6 +33,7 @@ class WalletEventLog {
         (event) => switch (event) {
           WalletEvent_Disclosure() => _eventContainsCardWithAttestationId(event, attestationId),
           WalletEvent_Issuance() => event.attestation.attestationType == attestationId,
+          WalletEvent_Deletion() => false, // PVW-5722
         },
       )
       .toList();
@@ -108,6 +109,7 @@ class WalletEventLog {
       (event) => switch (event) {
         WalletEvent_Disclosure(:final relyingParty) => relyingParty == organization,
         WalletEvent_Issuance(:final attestation) => attestation.issuer == organization,
+        WalletEvent_Deletion() => false, // PVW-5722
       },
     );
   }

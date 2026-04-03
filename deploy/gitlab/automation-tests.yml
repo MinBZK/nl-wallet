@@ -478,12 +478,13 @@ extract-manual-test-set:
     paths:
       - manual-test-set.md
 
-ltc-coverage-check:
+test-android-platform-support-browserstack:
+  extends: [.upload-browserstack-base]
   rules:
     - !reference [.on-schedule-automation, rules]
-  before_script:
-    - python3 -m venv venv
-    - source venv/bin/activate
-    - pip3 install --no-cache-dir --upgrade pip
+    - !reference [.merge-request-manual, rules]
+  needs:
+    - job: build-android-platform-support-browserstack
+      artifacts: true
   script:
-    - python3 deploy/qa-util/traceability-check.py
+    - bundle exec fastlane android ci_test_platform_support_browserstack

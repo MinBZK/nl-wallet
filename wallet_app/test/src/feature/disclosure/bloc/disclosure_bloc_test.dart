@@ -20,15 +20,21 @@ void main() {
   late MockStartDisclosureUseCase startDisclosureUseCase;
   late MockCancelDisclosureUseCase cancelDisclosureUseCase;
   late MockGetMostRecentWalletEventUseCase getMostRecentWalletEventUsecase;
+  late MockObserveCloseProximityConnectionUseCase observeCloseProximityConnectionUseCase;
 
   /// Create a new [DisclosureBloc] configured with the (mocked) usecases
-  DisclosureBloc create() =>
-      DisclosureBloc(startDisclosureUseCase, cancelDisclosureUseCase, getMostRecentWalletEventUsecase);
+  DisclosureBloc create() => DisclosureBloc(
+    startDisclosureUseCase,
+    cancelDisclosureUseCase,
+    getMostRecentWalletEventUsecase,
+    observeCloseProximityConnectionUseCase,
+  );
 
   setUp(() {
     startDisclosureUseCase = MockStartDisclosureUseCase();
     cancelDisclosureUseCase = MockCancelDisclosureUseCase();
     getMostRecentWalletEventUsecase = MockGetMostRecentWalletEventUseCase();
+    observeCloseProximityConnectionUseCase = MockObserveCloseProximityConnectionUseCase();
   });
 
   test('initial state is correct', () {
@@ -57,7 +63,7 @@ void main() {
     act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
     verify: (bloc) {
       expect(bloc.state, isA<DisclosureNetworkError>());
-      expect((bloc.state as DisclosureNetworkError).hasInternet, isTrue);
+      expect((bloc.state as DisclosureNetworkError).error.hasInternet, isTrue);
       expect((bloc.state as DisclosureNetworkError).error, isA<NetworkError>());
     },
   );
@@ -78,7 +84,7 @@ void main() {
     act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
     verify: (bloc) {
       expect(bloc.state, isA<DisclosureNetworkError>());
-      expect((bloc.state as DisclosureNetworkError).hasInternet, isFalse);
+      expect((bloc.state as DisclosureNetworkError).error.hasInternet, isFalse);
       expect((bloc.state as DisclosureNetworkError).error, isA<NetworkError>());
     },
   );

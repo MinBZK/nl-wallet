@@ -29,7 +29,7 @@ class CoreUriRepository implements UriRepository {
       case IdentifyUriResult.PinRecovery:
         return NavigationRequest.pinRecovery(uri);
       case IdentifyUriResult.Disclosure:
-        return NavigationRequest.disclosure(argument: DisclosureScreenArgument(uri: uri, isQrCode: false));
+        return NavigationRequest.disclosure(argument: DisclosureScreenArgument(type: .remote(uri, isQrCode: false)));
       case IdentifyUriResult.DisclosureBasedIssuance:
         return NavigationRequest.issuance(argument: IssuanceScreenArgument(uri: uri, isQrCode: false));
       case IdentifyUriResult.Transfer:

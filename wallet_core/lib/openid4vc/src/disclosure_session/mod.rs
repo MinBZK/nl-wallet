@@ -6,6 +6,7 @@ use chrono::Utc;
 use nutype::nutype;
 use rustls_pki_types::TrustAnchor;
 
+use attestation_data::verifier_certificate::VerifierCertificate;
 use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use dcql::CredentialQueryIdentifier;
@@ -32,14 +33,12 @@ pub use self::message_client::VpMessageClientError;
 pub use self::message_client::VpMessageClientErrorType;
 pub use self::session::VpDisclosureSession;
 pub use self::uri_source::DisclosureUriSource;
-pub use self::verifier_certificate::VerifierCertificate;
 
 mod client;
 mod error;
 mod message_client;
 mod session;
 mod uri_source;
-mod verifier_certificate;
 
 #[cfg(feature = "mock")]
 pub mod mock;

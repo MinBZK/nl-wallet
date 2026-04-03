@@ -515,7 +515,6 @@ void main() {
           MockDisclosureBloc(),
           const DisclosureNetworkError(
             error: NetworkError(hasInternet: false, sourceError: 'no internet'),
-            hasInternet: false,
           ),
         ),
       );
@@ -548,7 +547,6 @@ void main() {
           MockDisclosureBloc(),
           const DisclosureNetworkError(
             error: NetworkError(hasInternet: true, sourceError: 'server'),
-            hasInternet: true,
           ),
         ),
       );

@@ -26,6 +26,12 @@ pub enum WalletEvent {
         attestation: AttestationPresentation,
         renewed: bool,
     },
+    Deletion {
+        id: String,
+        // ISO8601
+        date_time: String,
+        attestation: AttestationPresentation,
+    },
 }
 
 pub enum DisclosureStatus {
@@ -76,6 +82,15 @@ impl From<wallet::WalletEvent> for WalletEvent {
                     typ: r#type.into(),
                 }
             }
+            wallet::WalletEvent::Deletion {
+                id,
+                timestamp,
+                attestation,
+            } => WalletEvent::Deletion {
+                id: id.to_string(),
+                date_time: timestamp.to_rfc3339(),
+                attestation: (*attestation).into(),
+            },
         }
     }
 }

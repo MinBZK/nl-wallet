@@ -390,9 +390,16 @@ typedef struct wire_cst_WalletEvent_Issuance {
   bool renewed;
 } wire_cst_WalletEvent_Issuance;
 
+typedef struct wire_cst_WalletEvent_Deletion {
+  struct wire_cst_list_prim_u_8_strict *id;
+  struct wire_cst_list_prim_u_8_strict *date_time;
+  struct wire_cst_attestation_presentation *attestation;
+} wire_cst_WalletEvent_Deletion;
+
 typedef union WalletEventKind {
   struct wire_cst_WalletEvent_Disclosure Disclosure;
   struct wire_cst_WalletEvent_Issuance Issuance;
+  struct wire_cst_WalletEvent_Deletion Deletion;
 } WalletEventKind;
 
 typedef struct wire_cst_wallet_event {
@@ -422,6 +429,19 @@ typedef struct wire_cst_accept_disclosure_result {
   int32_t tag;
   union AcceptDisclosureResultKind kind;
 } wire_cst_accept_disclosure_result;
+
+typedef struct wire_cst_CloseProximityDisclosureFlutterUpdate_Errored {
+  struct wire_cst_list_prim_u_8_strict *error;
+} wire_cst_CloseProximityDisclosureFlutterUpdate_Errored;
+
+typedef union CloseProximityDisclosureFlutterUpdateKind {
+  struct wire_cst_CloseProximityDisclosureFlutterUpdate_Errored Errored;
+} CloseProximityDisclosureFlutterUpdateKind;
+
+typedef struct wire_cst_close_proximity_disclosure_flutter_update {
+  int32_t tag;
+  union CloseProximityDisclosureFlutterUpdateKind kind;
+} wire_cst_close_proximity_disclosure_flutter_update;
 
 typedef struct wire_cst_DisclosureBasedIssuanceResult_Ok {
   struct wire_cst_list_attestation_presentation *field0;
@@ -699,10 +719,6 @@ void frbgen_wallet_core_wire__crate__api__full__unlock_wallet(int64_t port_,
 
 void frbgen_wallet_core_wire__crate__api__full__unlock_wallet_with_biometrics(int64_t port_);
 
-void frbgen_wallet_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(const void *ptr);
-
-void frbgen_wallet_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(const void *ptr);
-
 struct wire_cst_attestation_presentation *frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation(void);
 
 struct wire_cst_image *frbgen_wallet_core_cst_new_box_autoadd_image(void);
@@ -785,8 +801,6 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_prim_u_8_strict);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_record_i_32_notification_type);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_wallet_event);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_disclosure);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_issuance);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_pid_issuance);

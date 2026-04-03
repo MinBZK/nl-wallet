@@ -431,7 +431,6 @@ void main() {
             MockWalletPersonalizeBloc(),
             const WalletPersonalizeNetworkError(
               error: NetworkError(hasInternet: false, sourceError: 'test'),
-              hasInternet: false,
             ),
           ),
           providers: [
@@ -465,7 +464,6 @@ void main() {
             MockWalletPersonalizeBloc(),
             const WalletPersonalizeNetworkError(
               error: NetworkError(hasInternet: true, sourceError: 'test'),
-              hasInternet: true,
             ),
           ),
           providers: [
@@ -732,7 +730,6 @@ void main() {
           MockWalletPersonalizeBloc(),
           const WalletPersonalizeNetworkError(
             error: NetworkError(hasInternet: true, sourceError: 'test'),
-            hasInternet: true,
           ),
         ),
         providers: [

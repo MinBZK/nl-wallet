@@ -79,7 +79,7 @@ where
             .ok_or(RecoveryCodeError::MissingRecoveryCode)?
             .clone();
 
-        let pid_attestation_types = pid_config.sd_jwt.keys().map(String::as_str).collect();
+        let pid_attestation_types = pid_config.sd_jwt.keys().cloned().collect();
         let Some(stored_recovery_code) = self.stored_recovery_code(&pid_attestation_types, pid_config).await? else {
             return Ok(());
         };
@@ -96,7 +96,7 @@ where
 
     async fn stored_recovery_code(
         &self,
-        pid_attestation_types: &HashSet<&str>,
+        pid_attestation_types: &HashSet<String>,
         pid_config: &PidAttributesConfiguration,
     ) -> Result<Option<AttributeValue>, RecoveryCodeError> {
         self.storage

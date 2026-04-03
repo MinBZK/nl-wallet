@@ -113,7 +113,7 @@ Future<StartDisclosureResult> startDisclosure({required String uri, required boo
     WalletCore.instance.api.crateApiFullStartDisclosure(uri: uri, isQrCode: isQrCode);
 
 Future<String> startCloseProximityDisclosure({
-  required FutureOr<void> Function(CloseProximityDisclosureUpdate) callback,
+  required FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) callback,
 }) => WalletCore.instance.api.crateApiFullStartCloseProximityDisclosure(callback: callback);
 
 Future<StartDisclosureResult> continueCloseProximityDisclosure() =>
@@ -166,12 +166,9 @@ Future<String> getRegistrationRevocationCode() => WalletCore.instance.api.crateA
 Future<RevocationCodeResult> getRevocationCode({required String pin}) =>
     WalletCore.instance.api.crateApiFullGetRevocationCode(pin: pin);
 
-Future<void> deleteAttestation({required String pin, required String attestationId}) =>
+Future<WalletInstructionResult> deleteAttestation({required String pin, required String attestationId}) =>
     WalletCore.instance.api.crateApiFullDeleteAttestation(pin: pin, attestationId: attestationId);
 
 Future<void> resetWallet() => WalletCore.instance.api.crateApiFullResetWallet();
 
 Future<String> getVersionString() => WalletCore.instance.api.crateApiFullGetVersionString();
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>
-abstract class CloseProximityDisclosureUpdate implements RustOpaqueInterface {}

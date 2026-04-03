@@ -6,7 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/service/announcement_service.dart';
 import '../../domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import '../../navigation/wallet_routes.dart';
-import '../../util/cast_util.dart';
 import '../../util/extension/biometrics_extension.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
@@ -119,8 +118,8 @@ class SetupSecurityScreen extends StatelessWidget {
     switch (state) {
       case SetupSecurityGenericError():
         ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
-      case SetupSecurityNetworkError():
-        ErrorScreen.showNetwork(context, networkError: tryCast(state), secured: false);
+      case SetupSecurityNetworkError(:final error):
+        ErrorScreen.showNetwork(context, error: error, secured: false);
       case SetupSecuritySelectPinFailed():
         PinValidationErrorDialog.show(context, state.reason).then((_) => bloc.add(PinBackspacePressed()));
       case SetupSecurityPinConfirmationFailed():

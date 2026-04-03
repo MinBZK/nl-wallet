@@ -52,6 +52,8 @@ url = { workspace = true, features = ["serde"] }
 
 regex = { workspace = true, optional = true }
 
+mdoc_derive.path = "mdoc_derive"
+
 attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
 error_category.path = "../error_category"

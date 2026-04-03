@@ -1,11 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../domain/model/result/application_error.dart';
+import '../../../navigation/wallet_routes.dart';
 import '../../../theme/light_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/helper/dialog_helper.dart';
 import '../../../wallet_assets.dart';
+import '../../../wallet_constants.dart';
+import '../../common/dialog/qr_code_dialog.dart';
 import '../../common/page/generic_loading_page.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/button/bottom_back_button.dart';
@@ -13,9 +19,11 @@ import '../../common/widget/button/icon/back_icon_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
+import '../../common/widget/utility/check_permissions_on_resume.dart';
 import '../../common/widget/utility/scroll_offset_provider.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import '../../common/widget/wallet_scrollbar.dart';
+import '../../disclosure/argument/disclosure_screen_argument.dart';
 import '../../error/error_button_builder.dart';
 import '../../error/error_page.dart';
 import 'bloc/qr_present_bloc.dart';
@@ -44,8 +52,28 @@ class QrPresentScreen extends StatelessWidget {
           automaticallyImplyLeading: false,
           leading: _leadingButton(state),
         ),
-        body: content,
+        body: BlocListener<QrPresentBloc, QrPresentState>(
+          listener: (context, state) {
+            DialogHelper.dismissOpenDialogs(context);
+            final navigateToDisclosure = (state as QrPresentConnected).deviceRequestReceived;
+            if (navigateToDisclosure) _navigateToDisclosure(context);
+          },
+          listenWhen: (prev, current) => current is QrPresentConnected,
+          child: CheckPermissionsOnResume(
+            onPermissionDenied: () => context.read<QrPresentBloc>().add(const QrPresentPermissionDenied()),
+            permissions: Platform.isAndroid ? kAndroidBlePermissions : kIosBlePermissions,
+            child: SafeArea(child: content),
+          ),
+        ),
       ),
+    );
+  }
+
+  void _navigateToDisclosure(BuildContext context) {
+    Navigator.pushReplacementNamed(
+      context,
+      WalletRoutes.disclosureRoute,
+      arguments: const DisclosureScreenArgument(type: .closeProximity()),
     );
   }
 
@@ -85,7 +113,7 @@ class QrPresentScreen extends StatelessWidget {
       QrPresentConnecting() => '',
       QrPresentConnected() => '',
       QrPresentConnectionFailed() => context.l10n.qrPresentScreenConnectionFailedPageTitle,
-      QrPresentError(:final error) => _buildError(context, error).headline,
+      QrPresentError(:final error) => _buildError(context, error).title,
     };
   }
 
@@ -104,7 +132,11 @@ class QrPresentScreen extends StatelessWidget {
                       const SizedBox(height: 12),
                       ListButton(
                         text: Text(context.l10n.qrPresentScreenCenterQrCodeCta),
-                        onPressed: () => PlaceholderScreen.showGeneric(context),
+                        onPressed: () => QrCodeDialog.show(
+                          context,
+                          title: context.l10n.qrPresentScreenDialogTitle,
+                          data: qrContents,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Padding(
@@ -169,7 +201,7 @@ class QrPresentScreen extends StatelessWidget {
 
   Widget _buildConnectionFailed(BuildContext context) {
     return ErrorPage(
-      headline: context.l10n.qrPresentScreenConnectionFailedPageTitle,
+      title: context.l10n.qrPresentScreenConnectionFailedPageTitle,
       description: context.l10n.qrPresentScreenConnectionFailedPageDescription,
       illustration: WalletAssets.svg_error_bluetooth,
       primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(

@@ -176,9 +176,9 @@ class RenewPidScreen extends StatelessWidget {
             );
           case RenewPidStopped():
             result = RenewPidStoppedPage(onPrimaryPressed: () => Navigator.pop(context));
-          case RenewPidNetworkError():
-            result = state.hasInternet
-                ? ErrorPage.network(
+          case RenewPidNetworkError(:final error):
+            result = error.hasInternet
+                ? ErrorPage.server(
                     context,
                     onPrimaryActionPressed: () => context.bloc.add(const RenewPidRetryPressed()),
                     style: ErrorCtaStyle.retry,

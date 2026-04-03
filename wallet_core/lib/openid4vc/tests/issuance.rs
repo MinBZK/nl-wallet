@@ -62,6 +62,7 @@ use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use token_status_list::status_list_service::mock::MockStatusListServices;
+use token_status_list::status_list_service::mock::generate_status_claims;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
@@ -80,6 +81,7 @@ type MockIssuer<G = TimeGenerator> = Issuer<
 
 fn setup_mock_issuer(
     attestation_count: NonZeroUsize,
+    status_claim_issuance_count: usize,
 ) -> (MockIssuer, TrustAnchor<'static>, IssuerIdentifier, SigningKey) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
@@ -91,6 +93,7 @@ fn setup_mock_issuer(
         &ca,
         &issuance_keypair,
         Arc::new(MemorySessionStore::default()),
+        status_claim_issuance_count,
     )
 }
 
@@ -99,6 +102,7 @@ fn setup<G>(
     ca: &Ca,
     issuance_keypair: &KeyPair,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
+    status_claim_issuance_count: usize,
 ) -> (MockIssuer<G>, TrustAnchor<'static>, IssuerIdentifier, SigningKey)
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
@@ -139,6 +143,18 @@ where
         .collect::<HashMap<_, _>>()
         .into();
 
+    let mut status_list_service = MockStatusListServices::default();
+
+    status_list_service
+        .expect_obtain_status_claims()
+        .times(status_claim_issuance_count)
+        .returning(|attestation_type, _, _, copies| {
+            let uri = format!("https://tsl.example.com/{}", attestation_type.replace(':', "-"))
+                .parse()
+                .unwrap();
+            Ok(generate_status_claims(&uri, copies))
+        });
+
     let issuer = MockIssuer::new(
         issuer_identifier.clone(),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
@@ -150,7 +166,7 @@ where
         attr_service,
         sessions,
         MemoryNonceStore::default(),
-        Arc::new(MockStatusListServices::default()),
+        Arc::new(status_list_service),
     );
 
     (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey)
@@ -159,7 +175,8 @@ where
 #[rstest]
 #[tokio::test]
 async fn accept_issuance(#[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize) {
-    let (issuer, trust_anchor, issuer_identifier, wua_signing_key) = setup_mock_issuer(attestation_count);
+    let (issuer, trust_anchor, issuer_identifier, wua_signing_key) =
+        setup_mock_issuer(attestation_count, attestation_count.get());
     let trust_anchors = &[trust_anchor];
     let message_client = MockOpenidMessageClient::new(issuer);
     let copy_count = 4;
@@ -205,7 +222,7 @@ async fn accept_issuance(#[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap
 
 #[tokio::test]
 async fn reject_issuance() {
-    let (issuer, trust_anchor, issuer_identifier, _) = setup_mock_issuer(NonZeroUsize::MIN);
+    let (issuer, trust_anchor, issuer_identifier, _) = setup_mock_issuer(NonZeroUsize::MIN, 0);
     let message_client = MockOpenidMessageClient::new(issuer);
 
     let issuer_metadata = message_client.issuer.metadata().clone();
@@ -249,7 +266,7 @@ async fn start_and_accept_err(
 
 #[tokio::test]
 async fn wrong_access_token() {
-    let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN);
+    let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN, 0);
     let message_client = MockOpenidMessageClient {
         wrong_access_token: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -264,7 +281,7 @@ async fn wrong_access_token() {
 
 #[tokio::test]
 async fn invalid_dpop() {
-    let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN);
+    let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN, 0);
     let message_client = MockOpenidMessageClient {
         invalidate_dpop: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -279,7 +296,7 @@ async fn invalid_dpop() {
 
 #[tokio::test]
 async fn invalid_pop() {
-    let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN);
+    let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN, 0);
     let message_client = MockOpenidMessageClient {
         invalidate_pop: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -294,7 +311,7 @@ async fn invalid_pop() {
 
 #[tokio::test]
 async fn invalid_poa() {
-    let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN);
+    let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN, 0);
     let message_client = MockOpenidMessageClient {
         invalidate_poa: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -309,7 +326,7 @@ async fn invalid_poa() {
 
 #[tokio::test]
 async fn no_poa() {
-    let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN);
+    let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN, 0);
     let message_client = MockOpenidMessageClient {
         strip_poa: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -324,7 +341,7 @@ async fn no_poa() {
 
 #[tokio::test]
 async fn no_wua() {
-    let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN);
+    let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_mock_issuer(NonZeroUsize::MIN, 0);
     let message_client = MockOpenidMessageClient {
         strip_wua: true,
         ..MockOpenidMessageClient::new(issuer)
@@ -354,6 +371,7 @@ async fn cleanup_task() {
         &ca,
         &issuance_keypair,
         sessions.clone(),
+        0,
     );
 
     let token = issuer.new_session(documents).await.unwrap();

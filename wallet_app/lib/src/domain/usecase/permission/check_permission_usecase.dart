@@ -4,8 +4,8 @@ import '../../model/permission/permission_check_result.dart';
 import '../wallet_usecase.dart';
 import 'request_permission_usecase.dart';
 
-/// A use case for checking the state of a [Permission].
-/// Refer to [RequestPermissionUseCase] if you want to request a permission
+/// A use case for checking the state of one or more [Permission]s.
+/// Refer to [RequestPermissionUseCase] if you want to request a permission.
 abstract class CheckPermissionUseCase extends WalletUseCase {
-  Future<PermissionCheckResult> invoke(Permission permission);
+  Future<PermissionCheckResult> invoke(List<Permission> permissions);
 }

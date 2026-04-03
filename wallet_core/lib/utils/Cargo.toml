@@ -23,6 +23,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64", "chrono"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt"] }
+uuid = { workspace = true, features = ["v4"] }
 
 parking_lot = { workspace = true, optional = true }
 

@@ -25,7 +25,6 @@
 
 // Section: imports
 
-use crate::api::full::*;
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
 use flutter_rust_bridge::{Handler, IntoIntoDart};
@@ -1325,11 +1324,28 @@ fn wire__crate__api__full__start_close_proximity_disclosure_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     callback: impl CstDecode<flutter_rust_bridge::DartOpaque>,
 ) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec,_,_,_>(flutter_rust_bridge::for_generated::TaskInfo{ debug_name: "start_close_proximity_disclosure", port: Some(port_), mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal }, move || { let api_callback = decode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate_Output_unit_AnyhowException(callback.cst_decode()); move |context| async move {
-                    transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>((move || async move {
-                         let output_ok = crate::api::full::start_close_proximity_disclosure(api_callback).await?;   Ok(output_ok)
-                    })().await)
-                } })
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "start_close_proximity_disclosure",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let api_callback =
+                decode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
+                    callback.cst_decode(),
+                );
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::start_close_proximity_disclosure(api_callback).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
 }
 fn wire__crate__api__full__start_disclosure_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
@@ -1424,12 +1440,16 @@ fn wire__crate__api__full__unlock_wallet_with_biometrics_impl(port_: flutter_rus
 
 // Section: related_funcs
 
-fn decode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate_Output_unit_AnyhowException(
+fn decode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
     dart_opaque: flutter_rust_bridge::DartOpaque,
-) -> impl Fn(CloseProximityDisclosureUpdate) -> flutter_rust_bridge::DartFnFuture<()> {
+) -> impl Fn(crate::models::disclosure::CloseProximityDisclosureFlutterUpdate) -> flutter_rust_bridge::DartFnFuture<()>
+{
     use flutter_rust_bridge::IntoDart;
 
-    async fn body(dart_opaque: flutter_rust_bridge::DartOpaque, arg0: CloseProximityDisclosureUpdate) -> () {
+    async fn body(
+        dart_opaque: flutter_rust_bridge::DartOpaque,
+        arg0: crate::models::disclosure::CloseProximityDisclosureFlutterUpdate,
+    ) -> () {
         let args = vec![arg0.into_into_dart().into_dart()];
         let message = FLUTTER_RUST_BRIDGE_HANDLER.dart_fn_invoke(dart_opaque, args).await;
 
@@ -1447,7 +1467,7 @@ fn decode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRu
         ans
     }
 
-    move |arg0: CloseProximityDisclosureUpdate| {
+    move |arg0: crate::models::disclosure::CloseProximityDisclosureFlutterUpdate| {
         flutter_rust_bridge::for_generated::convert_into_dart_fn_future(body(dart_opaque.clone(), arg0))
     }
 }
@@ -1645,31 +1665,11 @@ impl SseDecode for flutter_rust_bridge::for_generated::anyhow::Error {
     }
 }
 
-impl SseDecode for CloseProximityDisclosureUpdate {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut inner = <RustOpaqueNom<
-            flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>,
-        >>::sse_decode(deserializer);
-        return flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(inner);
-    }
-}
-
 impl SseDecode for flutter_rust_bridge::DartOpaque {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <usize>::sse_decode(deserializer);
         return unsafe { flutter_rust_bridge::for_generated::sse_decode_dart_opaque(inner) };
-    }
-}
-
-impl SseDecode
-    for RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>
-{
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut inner = <usize>::sse_decode(deserializer);
-        return unsafe { decode_rust_opaque_nom(inner) };
     }
 }
 
@@ -1908,6 +1908,34 @@ impl SseDecode for crate::models::attestation::ClaimDisplayMetadata {
             label: var_label,
             description: var_description,
         };
+    }
+}
+
+impl SseDecode for crate::models::disclosure::CloseProximityDisclosureFlutterUpdate {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                return crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connecting;
+            }
+            1 => {
+                return crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connected;
+            }
+            2 => {
+                return crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::DeviceRequestReceived;
+            }
+            3 => {
+                return crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Disconnected;
+            }
+            4 => {
+                let mut var_error = <String>::sse_decode(deserializer);
+                return crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Errored { error: var_error };
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
     }
 }
 
@@ -2838,6 +2866,17 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
                     renewed: var_renewed,
                 };
             }
+            2 => {
+                let mut var_id = <String>::sse_decode(deserializer);
+                let mut var_dateTime = <String>::sse_decode(deserializer);
+                let mut var_attestation =
+                    <crate::models::attestation::AttestationPresentation>::sse_decode(deserializer);
+                return crate::models::wallet_event::WalletEvent::Deletion {
+                    id: var_id,
+                    date_time: var_dateTime,
+                    attestation: var_attestation,
+                };
+            }
             _ => {
                 unimplemented!("");
             }
@@ -2973,20 +3012,6 @@ fn pde_ffi_dispatcher_sync_impl(
 }
 
 // Section: rust2dart
-
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for FrbWrapper<CloseProximityDisclosureUpdate> {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, StdArc<_>>(self.0).into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<CloseProximityDisclosureUpdate> {}
-
-impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<CloseProximityDisclosureUpdate>> for CloseProximityDisclosureUpdate {
-    fn into_into_dart(self) -> FrbWrapper<CloseProximityDisclosureUpdate> {
-        self.into()
-    }
-}
 
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::disclosure::AcceptDisclosureResult {
@@ -3168,6 +3193,38 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::ClaimDisplayM
     for crate::models::attestation::ClaimDisplayMetadata
 {
     fn into_into_dart(self) -> crate::models::attestation::ClaimDisplayMetadata {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::disclosure::CloseProximityDisclosureFlutterUpdate {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connecting => [0.into_dart()].into_dart(),
+            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connected => [1.into_dart()].into_dart(),
+            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::DeviceRequestReceived => {
+                [2.into_dart()].into_dart()
+            }
+            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Disconnected => {
+                [3.into_dart()].into_dart()
+            }
+            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Errored { error } => {
+                [4.into_dart(), error.into_into_dart().into_dart()].into_dart()
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::models::disclosure::CloseProximityDisclosureFlutterUpdate
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::CloseProximityDisclosureFlutterUpdate>
+    for crate::models::disclosure::CloseProximityDisclosureFlutterUpdate
+{
+    fn into_into_dart(self) -> crate::models::disclosure::CloseProximityDisclosureFlutterUpdate {
         self
     }
 }
@@ -3815,6 +3872,17 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent 
                 renewed.into_into_dart().into_dart(),
             ]
             .into_dart(),
+            crate::models::wallet_event::WalletEvent::Deletion {
+                id,
+                date_time,
+                attestation,
+            } => [
+                2.into_dart(),
+                id.into_into_dart().into_dart(),
+                date_time.into_into_dart().into_dart(),
+                attestation.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
             _ => {
                 unimplemented!("");
             }
@@ -3937,28 +4005,10 @@ impl SseEncode for flutter_rust_bridge::for_generated::anyhow::Error {
     }
 }
 
-impl SseEncode for CloseProximityDisclosureUpdate {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>>::sse_encode(flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, StdArc<_>>(self), serializer);
-    }
-}
-
 impl SseEncode for flutter_rust_bridge::DartOpaque {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <usize>::sse_encode(self.encode(), serializer);
-    }
-}
-
-impl SseEncode
-    for RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>
-{
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        let (ptr, size) = self.sse_encode_raw();
-        <usize>::sse_encode(ptr, serializer);
-        <i32>::sse_encode(size, serializer);
     }
 }
 
@@ -4164,6 +4214,33 @@ impl SseEncode for crate::models::attestation::ClaimDisplayMetadata {
         <String>::sse_encode(self.lang, serializer);
         <String>::sse_encode(self.label, serializer);
         <Option<String>>::sse_encode(self.description, serializer);
+    }
+}
+
+impl SseEncode for crate::models::disclosure::CloseProximityDisclosureFlutterUpdate {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connecting => {
+                <i32>::sse_encode(0, serializer);
+            }
+            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connected => {
+                <i32>::sse_encode(1, serializer);
+            }
+            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::DeviceRequestReceived => {
+                <i32>::sse_encode(2, serializer);
+            }
+            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Disconnected => {
+                <i32>::sse_encode(3, serializer);
+            }
+            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Errored { error } => {
+                <i32>::sse_encode(4, serializer);
+                <String>::sse_encode(error, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
     }
 }
 
@@ -4991,6 +5068,16 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
                 <crate::models::attestation::AttestationPresentation>::sse_encode(attestation, serializer);
                 <bool>::sse_encode(renewed, serializer);
             }
+            crate::models::wallet_event::WalletEvent::Deletion {
+                id,
+                date_time,
+                attestation,
+            } => {
+                <i32>::sse_encode(2, serializer);
+                <String>::sse_encode(id, serializer);
+                <String>::sse_encode(date_time, serializer);
+                <crate::models::attestation::AttestationPresentation>::sse_encode(attestation, serializer);
+            }
             _ => {
                 unimplemented!("");
             }
@@ -5101,7 +5188,6 @@ mod io {
     // Section: imports
 
     use super::*;
-    use crate::api::full::*;
     use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
     use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
@@ -5118,31 +5204,10 @@ mod io {
             unimplemented!()
         }
     }
-    impl CstDecode<CloseProximityDisclosureUpdate> for usize {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> CloseProximityDisclosureUpdate {
-            flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(CstDecode::<
-                RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>,
-            >::cst_decode(self))
-        }
-    }
     impl CstDecode<flutter_rust_bridge::DartOpaque> for *const std::ffi::c_void {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> flutter_rust_bridge::DartOpaque {
             unsafe { flutter_rust_bridge::for_generated::cst_decode_dart_opaque(self as _) }
-        }
-    }
-    impl
-        CstDecode<
-            RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>,
-        > for usize
-    {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(
-            self,
-        ) -> RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>
-        {
-            unsafe { decode_rust_opaque_nom(self as _) }
         }
     }
     impl CstDecode<StreamSink<bool, flutter_rust_bridge::for_generated::DcoCodec>> for *mut wire_cst_list_prim_u_8_strict {
@@ -5425,6 +5490,26 @@ mod io {
                 lang: self.lang.cst_decode(),
                 label: self.label.cst_decode(),
                 description: self.description.cst_decode(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::disclosure::CloseProximityDisclosureFlutterUpdate>
+        for wire_cst_close_proximity_disclosure_flutter_update
+    {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::disclosure::CloseProximityDisclosureFlutterUpdate {
+            match self.tag {
+                0 => crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connecting,
+                1 => crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connected,
+                2 => crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::DeviceRequestReceived,
+                3 => crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Disconnected,
+                4 => {
+                    let ans = unsafe { self.kind.Errored };
+                    crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Errored {
+                        error: ans.error.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
             }
         }
     }
@@ -5948,6 +6033,14 @@ mod io {
                         renewed: ans.renewed.cst_decode(),
                     }
                 }
+                2 => {
+                    let ans = unsafe { self.kind.Deletion };
+                    crate::models::wallet_event::WalletEvent::Deletion {
+                        id: ans.id.cst_decode(),
+                        date_time: ans.date_time.cst_decode(),
+                        attestation: ans.attestation.cst_decode(),
+                    }
+                }
                 _ => unreachable!(),
             }
         }
@@ -6120,6 +6213,19 @@ mod io {
         }
     }
     impl Default for wire_cst_claim_display_metadata {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_close_proximity_disclosure_flutter_update {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: CloseProximityDisclosureFlutterUpdateKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_close_proximity_disclosure_flutter_update {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -6850,24 +6956,6 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
-        ptr: *const std::ffi::c_void,
-    ) {
-        unsafe {
-            StdArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>::increment_strong_count(ptr as _);
-        }
-    }
-
-    #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
-        ptr: *const std::ffi::c_void,
-    ) {
-        unsafe {
-            StdArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>::decrement_strong_count(ptr as _);
-        }
-    }
-
-    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation(
     ) -> *mut wire_cst_attestation_presentation {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_attestation_presentation::new_with_null_ptr())
@@ -7242,6 +7330,23 @@ mod io {
         lang: *mut wire_cst_list_prim_u_8_strict,
         label: *mut wire_cst_list_prim_u_8_strict,
         description: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_close_proximity_disclosure_flutter_update {
+        tag: i32,
+        kind: CloseProximityDisclosureFlutterUpdateKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union CloseProximityDisclosureFlutterUpdateKind {
+        Errored: wire_cst_CloseProximityDisclosureFlutterUpdate_Errored,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_CloseProximityDisclosureFlutterUpdate_Errored {
+        error: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -7685,6 +7790,7 @@ mod io {
     pub union WalletEventKind {
         Disclosure: wire_cst_WalletEvent_Disclosure,
         Issuance: wire_cst_WalletEvent_Issuance,
+        Deletion: wire_cst_WalletEvent_Deletion,
         nil__: (),
     }
     #[repr(C)]
@@ -7706,6 +7812,13 @@ mod io {
         date_time: *mut wire_cst_list_prim_u_8_strict,
         attestation: *mut wire_cst_attestation_presentation,
         renewed: bool,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_WalletEvent_Deletion {
+        id: *mut wire_cst_list_prim_u_8_strict,
+        date_time: *mut wire_cst_list_prim_u_8_strict,
+        attestation: *mut wire_cst_attestation_presentation,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

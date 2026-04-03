@@ -141,13 +141,13 @@ final class CloseProximityDisclosureTests: XCTestCase {
     }
 
     static var platformSupport: PlatformSupport?
-    private static let runMacBleReaderConnectingTest = false
-    private static let runMacBleReaderSessionEstablishedTest = false
-    private static let macBleReaderTestServiceUuidString = "08c5f8e7-3078-4cc3-b6f4-1f861a7f67e9"
-    private static let sessionEstablishedQrMarker = "CLOSE_PROXIMITY_SESSION_ESTABLISHED_QR="
+    private static let runMacBleReaderFullFlowTest = true
+    private static let macBleReaderMarker = "CLOSE_PROXIMITY_MAC_READER="
     private static let macBleReaderDeterministicReaderPrivateKeyHex =
         "de3b4b9e5f72dd9b58406ae3091434da48a6f9fd010d88fcb0958e2cebec947c"
     private static let macBleReaderExpectedDeviceRequest: [UInt8] = [0x01, 0x02, 0x03]
+    private static let macBleReaderExpectedDeviceResponse: [UInt8] = [0x04, 0x05, 0x06]
+    private static let macBleReaderExpectedDeviceResponseHex = "040506"
 
     override class func setUp() {
         self.platformSupport = PlatformSupport.shared
@@ -193,75 +193,21 @@ final class CloseProximityDisclosureTests: XCTestCase {
         XCTAssertFalse(closeProximityDisclosure.isBleServerActiveForTesting())
     }
 
-    func testStartQrHandoverEmitsConnectingWhenMacReaderConnects() async throws {
+    func testCloseProximityDisclosureFullFlowWithMacReader() async throws {
         #if targetEnvironment(simulator)
             throw XCTSkip(
                 "Close proximity disclosure relies on BLE peripheral advertising, which is unavailable on the iOS Simulator"
             )
         #endif
 
-        guard Self.runMacBleReaderConnectingTest else {
+        guard Self.runMacBleReaderFullFlowTest else {
             throw XCTSkip(
-                "Set runMacBleReaderConnectingTest = true and run scripts/close_proximity_disclosure_mac_reader.swift on the host Mac to exercise the connecting path"
-            )
-        }
-
-        let closeProximityDisclosure = CloseProximityDisclosure(
-            testingPeripheralServerModeUuid: Multipaz.UUID.companion.fromString(
-                str: Self.macBleReaderTestServiceUuidString
-            )
-        )
-        let channel = TestChannel()
-
-        XCTAssertFalse(closeProximityDisclosure.isBleServerActiveForTesting())
-
-        let qrCode = try await closeProximityDisclosure.startQrHandover(channel: channel)
-
-        NSLog("Close proximity disclosure QR code: %@", qrCode)
-
-        XCTAssertFalse(qrCode.isEmpty)
-        XCTAssertFalse(qrCode.hasPrefix("mdoc:"))
-        XCTAssertTrue(closeProximityDisclosure.isBleServerActiveForTesting())
-
-        let didConnect = await waitUntil(timeoutNanoseconds: 20_000_000_000) {
-            await channel.hasReceivedConnectingUpdate()
-        }
-        XCTAssertTrue(
-            didConnect,
-            "Timed out waiting for the host Mac BLE helper to connect to service UUID \(Self.macBleReaderTestServiceUuidString)"
-        )
-
-        let updatesAfterConnect = await channel.receivedUpdates()
-        XCTAssertTrue(updatesAfterConnect.contains(.connecting))
-
-        try await closeProximityDisclosure.stopBleServer()
-
-        let hasReceivedClosedUpdate = await channel.hasReceivedClosedUpdate()
-        let updatesAfterStop = await channel.receivedUpdates()
-        XCTAssertTrue(hasReceivedClosedUpdate)
-
-        guard
-            let connectingIndex = updatesAfterStop.firstIndex(of: .connecting),
-            let closedIndex = updatesAfterStop.firstIndex(of: .closed)
-        else {
-            XCTFail("Expected both connecting and closed updates, got \(updatesAfterStop)")
-            return
-        }
-
-        XCTAssertLessThan(connectingIndex, closedIndex)
-        XCTAssertFalse(closeProximityDisclosure.isBleServerActiveForTesting())
-    }
-
-    func testStartQrHandoverEmitsSessionEstablishedWhenMacReaderSendsDeviceRequest() async throws {
-        #if targetEnvironment(simulator)
-            throw XCTSkip(
-                "Close proximity disclosure relies on BLE peripheral advertising, which is unavailable on the iOS Simulator"
-            )
-        #endif
-
-        guard Self.runMacBleReaderSessionEstablishedTest else {
-            throw XCTSkip(
-                "Set runMacBleReaderSessionEstablishedTest = true and run scripts/close_proximity_disclosure_mac_reader.swift --qr-code <logged-qr-code> on the host Mac to exercise the SessionEstablished path"
+                """
+                Set runMacBleReaderFullFlowTest = true and run \
+                scripts/close_proximity/disclosure_mac_reader.swift --qr-code <logged-qr-code> \
+                --expect-device-response-hex \(Self.macBleReaderExpectedDeviceResponseHex) \
+                on the host Mac to exercise the full flow.
+                """
             )
         }
 
@@ -273,7 +219,13 @@ final class CloseProximityDisclosureTests: XCTestCase {
         let qrCode = try await closeProximityDisclosure.startQrHandover(channel: channel)
 
         NSLog("Close proximity disclosure QR code: %@", qrCode)
-        NSLog("%@", "\(Self.sessionEstablishedQrMarker)\(qrCode)")
+        NSLog(
+            "%@",
+            Self.macBleReaderMarkerPayload(
+                qrCode: qrCode,
+                expectedDeviceResponseHex: Self.macBleReaderExpectedDeviceResponseHex
+            )
+        )
 
         XCTAssertFalse(qrCode.isEmpty)
         XCTAssertFalse(qrCode.hasPrefix("mdoc:"))
@@ -286,7 +238,8 @@ final class CloseProximityDisclosureTests: XCTestCase {
             didReceiveSessionEstablished,
             """
             Timed out waiting for the host Mac BLE helper to send SessionEstablished. \
-            Run scripts/close_proximity_disclosure_mac_reader.swift --qr-code <logged-qr-code> \
+            Run scripts/close_proximity/disclosure_mac_reader.swift --qr-code <logged-qr-code> \
+            --expect-device-response-hex \(Self.macBleReaderExpectedDeviceResponseHex) \
             with the QR code logged by this test.
             """
         )
@@ -302,26 +255,38 @@ final class CloseProximityDisclosureTests: XCTestCase {
             try expectedSessionTranscript(forQrCode: qrCode)
         )
 
-        try await closeProximityDisclosure.stopBleServer()
+        try await closeProximityDisclosure.sendDeviceResponse(
+            deviceResponse: Self.macBleReaderExpectedDeviceResponse
+        )
 
-        let hasReceivedClosedUpdate = await waitUntil {
+        let didReceiveClosed = await waitUntil(timeoutNanoseconds: 5_000_000_000) {
             await channel.hasReceivedClosedUpdate()
         }
-        let updatesAfterStop = await channel.receivedUpdates()
-        XCTAssertTrue(hasReceivedClosedUpdate)
+        XCTAssertTrue(
+            didReceiveClosed,
+            """
+            Timed out waiting for the wallet to close the BLE session after sending the encrypted \
+            DeviceResponse. The host Mac BLE helper validates the DeviceResponse out of process and \
+            will fail the overall run separately if validation fails. Run \
+            scripts/close_proximity/disclosure_mac_reader.swift \
+            --qr-code <logged-qr-code> --expect-device-response-hex \(Self.macBleReaderExpectedDeviceResponseHex) \
+            with the QR code logged by this test.
+            """
+        )
 
+        let updatesAfterClose = await channel.receivedUpdates()
         guard
-            let connectingIndex = updatesAfterStop.firstIndex(of: .connecting),
-            let sessionEstablishedIndex = updatesAfterStop.firstIndex(where: { update in
+            let connectingIndex = updatesAfterClose.firstIndex(of: .connecting),
+            let sessionEstablishedIndex = updatesAfterClose.firstIndex(where: { update in
                 if case .sessionEstablished = update {
                     return true
                 }
                 return false
             }),
-            let closedIndex = updatesAfterStop.firstIndex(of: .closed)
+            let closedIndex = updatesAfterClose.firstIndex(of: .closed)
         else {
             XCTFail(
-                "Expected connecting, SessionEstablished, and closed updates, got \(updatesAfterStop)"
+                "Expected connecting, SessionEstablished, and closed updates, got \(updatesAfterClose)"
             )
             return
         }
@@ -416,6 +381,18 @@ final class CloseProximityDisclosureTests: XCTestCase {
     ) async throws -> String {
         await startGate.wait()
         return try await closeProximityDisclosure.startQrHandover(channel: channel)
+    }
+
+    private static func macBleReaderMarkerPayload(
+        qrCode: String,
+        expectedDeviceResponseHex: String? = nil
+    ) -> String {
+        if let expectedDeviceResponseHex {
+            return
+                "\(macBleReaderMarker){\"qr\":\"\(qrCode)\",\"expected_device_response_hex\":\"\(expectedDeviceResponseHex)\"}"
+        }
+
+        return "\(macBleReaderMarker){\"qr\":\"\(qrCode)\"}"
     }
 
     private func expectedSessionTranscript(forQrCode qrCode: String) throws -> [UInt8] {

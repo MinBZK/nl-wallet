@@ -43,7 +43,7 @@ class ManageNotificationsBloc extends Bloc<ManageNotificationsEvent, ManageNotif
   }
 
   Future<void> _onRefresh(ManageNotificationsLoadTriggered event, Emitter<ManageNotificationsState> emit) async {
-    final result = await _checkPermissionUseCase.invoke(.notification);
+    final result = await _checkPermissionUseCase.invoke([.notification]);
 
     /// Check for the case where user was redirected to the settings to grant the permission
     if (event.isRefreshAfterSettingsRedirect && result.isGranted) {
@@ -68,7 +68,7 @@ class ManageNotificationsBloc extends Bloc<ManageNotificationsEvent, ManageNotif
     }
 
     // Check if permission is already granted
-    final result = await _checkPermissionUseCase.invoke(.notification);
+    final result = await _checkPermissionUseCase.invoke([.notification]);
     if (result.isGranted) {
       // Permission already granted, update setting & ui
       await _setShowNotificationsSettingUsecase.invoke(enabled: true);
@@ -85,7 +85,7 @@ class ManageNotificationsBloc extends Bloc<ManageNotificationsEvent, ManageNotif
     }
 
     // Request in-app permission and handle the result
-    final requestResult = await _requestPermissionUseCase.invoke(.notification);
+    final requestResult = await _requestPermissionUseCase.invoke([.notification]);
     await _setShowNotificationsSettingUsecase.invoke(enabled: requestResult.isGranted);
     emit(ManageNotificationsLoaded(pushEnabled: requestResult.isGranted));
   }

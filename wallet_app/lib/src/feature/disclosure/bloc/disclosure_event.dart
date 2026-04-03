@@ -23,6 +23,14 @@ class DisclosureSessionStarted extends DisclosureEvent {
   List<Object?> get props => [uri, isQrCode];
 }
 
+/// Initiates a close proximity disclosure session (e.g., via Bluetooth).
+///
+/// This event is used when the disclosure starts through a BLE/NFC
+/// connection between devices rather than a URI.
+class DisclosureCloseProximitySessionStarted extends DisclosureEvent {
+  const DisclosureCloseProximitySessionStarted();
+}
+
 /// User approves the origin URL in a cross-device flow.
 ///
 /// Transitions to attribute confirmation or missing attributes state.

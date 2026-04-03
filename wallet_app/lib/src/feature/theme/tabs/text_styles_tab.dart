@@ -86,9 +86,10 @@ class TextStylesTab extends StatelessWidget {
           onPressed: () {
             final request = NavigationRequest.disclosure(
               argument: const DisclosureScreenArgument(
-                uri:
-                    'walletdebuginteraction://deeplink#%7B%22id%22%3A%22OPEN_BANK_ACCOUNT%22%2C%22type%22%3A%22verify%22%7D',
-                isQrCode: false,
+                type: .remote(
+                  'walletdebuginteraction://deeplink#%7B%22id%22%3A%22OPEN_BANK_ACCOUNT%22%2C%22type%22%3A%22verify%22%7D',
+                  isQrCode: false,
+                ),
               ),
             );
             context.read<NavigationService>().handleNavigationRequest(request);
@@ -101,9 +102,10 @@ class TextStylesTab extends StatelessWidget {
           onPressed: () {
             final request = NavigationRequest.disclosure(
               argument: const DisclosureScreenArgument(
-                uri:
-                    'walletdebuginteraction://deeplink#%7B%22id%22%3A%22AMSTERDAM_LOGIN%22%2C%22type%22%3A%22verify%22%7D',
-                isQrCode: false,
+                type: .remote(
+                  'walletdebuginteraction://deeplink#%7B%22id%22%3A%22AMSTERDAM_LOGIN%22%2C%22type%22%3A%22verify%22%7D',
+                  isQrCode: false,
+                ),
               ),
             );
             context.read<NavigationService>().handleNavigationRequest(request);
@@ -116,8 +118,10 @@ class TextStylesTab extends StatelessWidget {
           onPressed: () {
             final request = NavigationRequest.disclosure(
               argument: const DisclosureScreenArgument(
-                uri: 'walletdebuginteraction://deeplink#%7B%22id%22%3A%22CAR_RENTAL%22%2C%22type%22%3A%22verify%22%7D',
-                isQrCode: false,
+                type: .remote(
+                  'walletdebuginteraction://deeplink#%7B%22id%22%3A%22CAR_RENTAL%22%2C%22type%22%3A%22verify%22%7D',
+                  isQrCode: false,
+                ),
               ),
             );
             context.read<NavigationService>().handleNavigationRequest(request);
