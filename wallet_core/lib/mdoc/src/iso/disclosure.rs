@@ -11,6 +11,8 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
+use utils::vec_at_least::VecNonEmpty;
+
 use crate::iso::mdocs::*;
 use crate::utils::cose::MdocCose;
 use crate::utils::serialization::NullCborValue;
@@ -23,8 +25,8 @@ use crate::utils::serialization::TaggedBytes;
 #[serde(rename_all = "camelCase")]
 pub struct DeviceResponse {
     pub version: DeviceResponseVersion,
-    pub documents: Option<Vec<Document>>,
-    pub document_errors: Option<Vec<DocumentError>>,
+    pub documents: Option<VecNonEmpty<Document>>,
+    pub document_errors: Option<VecNonEmpty<DocumentError>>,
     pub status: u64,
 }
 

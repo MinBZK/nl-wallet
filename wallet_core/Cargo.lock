@@ -9432,6 +9432,7 @@ dependencies = [
  "entity",
  "error_category",
  "futures",
+ "hex",
  "http",
  "http_utils",
  "indexmap 2.12.1",

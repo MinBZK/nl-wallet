@@ -19,13 +19,16 @@ use attestation_data::auth::reader_auth::ValidationError;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::verifier_certificate::VerifierCertificate;
 use attestation_data::x509::CertificateTypeError;
-use crypto::x509::BorrowingCertificate;
 use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
+use http_utils::client::TlsPinningConfig;
 use mdoc::DeviceRequest;
+use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
+use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborError;
+use mdoc::utils::serialization::cbor_serialize;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::oidc::OidcClient;
@@ -40,14 +43,24 @@ use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
+use wscd::wscd::JwtPoaInput;
 
 use crate::AttributesNotAvailable;
 use crate::DisclosureProposalPresentation;
 use crate::Wallet;
+use crate::account_provider::AccountProviderClient;
+use crate::errors::InstructionError;
+use crate::errors::RemoteEcdsaKeyError;
+use crate::errors::UpdatePolicyError;
+use crate::instruction::InstructionClientParameters;
+use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
+use crate::repository::UpdateableRepository;
+use crate::storage::PartialAttestation;
 use crate::storage::Storage;
 use crate::wallet::DisclosureError;
 use crate::wallet::Session;
+use crate::wallet::disclosure::AttestedKeyAndRegistrationData;
 use crate::wallet::disclosure::RedirectUriPurpose;
 use crate::wallet::disclosure::WalletDisclosureAttestations;
 use crate::wallet::disclosure::requested_attribute_paths;
@@ -83,12 +96,12 @@ enum CloseProximityDisclosureSessionState {
     DisclosureProposed {
         session_transcript: Box<SessionTranscript>,
         device_request: DeviceRequest,
-        reader_certificate: Box<BorrowingCertificate>,
+        verifier_certificate: Box<VerifierCertificate>,
         attestations: WalletDisclosureAttestations<usize>,
     },
     Errored {
         error: PlatformError,
-        reader_certificate: Option<Box<BorrowingCertificate>>,
+        verifier_certificate: Option<Box<VerifierCertificate>>,
     },
 }
 
@@ -130,16 +143,16 @@ fn spawn_listener(
                 PlatformUpdate::Error { error } => {
                     error!("Received PlatformUpdate::Error: {error:?}");
                     let mut current_state = session_state.lock();
-                    let reader_certificate = match &*current_state {
-                        CloseProximityDisclosureSessionState::DisclosureProposed { reader_certificate, .. } => {
-                            Some(reader_certificate.to_owned())
-                        }
+                    let verifier_certificate = match &*current_state {
+                        CloseProximityDisclosureSessionState::DisclosureProposed {
+                            verifier_certificate, ..
+                        } => Some(verifier_certificate.clone()),
                         _ => None,
                     };
 
                     *current_state = CloseProximityDisclosureSessionState::Errored {
                         error: error.clone(),
-                        reader_certificate,
+                        verifier_certificate,
                     };
                     CloseProximityDisclosureUpdate::Errored(error.into())
                 }
@@ -191,6 +204,10 @@ pub enum CloseProximityDisclosureError {
     #[error("Received error from native close proximity bridge: {0}")]
     #[category(critical)]
     PlatformError(#[from] PlatformError),
+
+    #[error("Failed creating device response: {0}")]
+    #[category(pd)]
+    DeviceResponse(#[source] mdoc::Error),
 }
 
 impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
@@ -286,7 +303,7 @@ where
             .flatten() // remove entries for which no suitable candidates were found
             .collect::<Vec<_>>();
 
-        let (reader_certificate, reader_registration) = verifier_certificate.into_certificate_and_registration();
+        let reader_registration = verifier_certificate.registration();
         let session_type = SessionType::CrossDevice; // all close proximity disclosure sessions are cross-device
         let disclosure_type = DisclosureType::Regular; // all close proximity disclosure sessions are regular
         let purpose = RedirectUriPurpose::Browser; // irrelevant for close proximity disclosure sessions
@@ -300,7 +317,7 @@ where
 
             let proposal = DisclosureProposalPresentation::from_candidates(
                 candidate_attestations.clone(),
-                reader_registration,
+                reader_registration.to_owned(),
                 shared_data_with_relying_party_before,
                 session_type,
                 disclosure_type,
@@ -309,7 +326,7 @@ where
 
             *session_state.lock() = CloseProximityDisclosureSessionState::DisclosureProposed {
                 session_transcript: Box::new(session_transcript),
-                reader_certificate: Box::new(reader_certificate),
+                verifier_certificate: Box::new(verifier_certificate),
                 device_request,
                 attestations: WalletDisclosureAttestations::Proposal(
                     candidate_attestations.into_iter().enumerate().collect(),
@@ -323,13 +340,14 @@ where
         info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
 
         let requested_attributes = requested_attribute_paths(device_request.items_requests()).collect();
+        let reader_registration = verifier_certificate.registration().to_owned();
 
         // Store the session so that it will only be terminated on user interaction.
         // This prevents gleaning of missing attributes by a verifier.
         *session_state.lock() = CloseProximityDisclosureSessionState::DisclosureProposed {
             session_transcript: Box::new(session_transcript),
             device_request,
-            reader_certificate: Box::new(reader_certificate),
+            verifier_certificate: Box::new(verifier_certificate),
             attestations: WalletDisclosureAttestations::Missing,
         };
 
@@ -339,6 +357,233 @@ where
             shared_data_with_relying_party_before,
             session_type,
         }))
+    }
+
+    #[instrument(skip_all)]
+    pub(super) async fn perform_close_proximity_disclosure(
+        &mut self,
+        close_proximity_session: CloseProximityDisclosureSession,
+        selected_indices: &[usize],
+        pin: String,
+        (attested_key, registration_data): AttestedKeyAndRegistrationData<AKH>,
+    ) -> Result<(), DisclosureError>
+    where
+        S: Storage,
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+        APC: AccountProviderClient,
+    {
+        // If we do not have a proposal, this method should not have been called, so return an error.
+        let CloseProximityDisclosureSessionState::DisclosureProposed {
+            attestations,
+            verifier_certificate,
+            session_transcript,
+            ..
+        } = close_proximity_session.session_state.lock().to_owned()
+        else {
+            return Err(DisclosureError::SessionState);
+        };
+
+        // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
+        let config = self.config_repository.get();
+        let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
+
+        let remote_instruction = self
+            .new_instruction_client(
+                pin,
+                attested_key,
+                InstructionClientParameters::new(
+                    registration_data.wallet_id,
+                    registration_data.pin_salt,
+                    registration_data.wallet_certificate,
+                    config.account_server.http_config.clone(),
+                    instruction_result_public_key,
+                ),
+            )
+            .await?;
+
+        // Note that this will panic if any of the indices are out of bounds.
+        let attestations = attestations.select_proposal(selected_indices);
+
+        let remote_wscd = RemoteEcdsaWscd::new(remote_instruction);
+
+        // Increment the disclosure counts of the attestation copies referenced in the proposal,
+        // so that for the next disclosure different copies are used.
+
+        // NOTE: If the disclosure fails and is retried, the disclosure count will jump by
+        //       more than 1, since the same copies are shared with the verifier again.
+        //       It is necessary to increment the disclosure count before sending the attestations
+        //       to the verifier, as we do not know if disclosure fails before or after the
+        //       verifier has received the attributes.
+
+        let result = self
+            .storage
+            .write()
+            .await
+            .increment_attestation_copies_usage_count(
+                attestations
+                    .values()
+                    .map(|attestation| attestation.attestation_copy_id())
+                    .unique()
+                    .collect(),
+            )
+            .await;
+
+        // Generate `AttestationPresentation`s of the disclosed attributes, to store in the disclosure event. Note
+        // that there is guaranteed to be at least one attestation because of the logic in `start_disclosure()`.
+        let attestation_presentations = attestations
+            .values()
+            .map(|attestation| attestation.presentation().clone())
+            .collect_vec()
+            .try_into()
+            .unwrap();
+
+        let disclosure_type = DisclosureType::Regular;
+
+        if let Err(error) = result {
+            // If storing the event results in an error, log it but do nothing else.
+            let _ = self
+                .store_disclosure_event(
+                    Utc::now(),
+                    Some(attestation_presentations),
+                    verifier_certificate.certificate().clone(),
+                    disclosure_type,
+                    EventStatus::Error,
+                    DataDisclosed::NotDisclosed,
+                )
+                .await
+                .inspect_err(|e| {
+                    error!("Could not store error in history: {e}");
+                });
+
+            // Put back the session for a later attempt
+            self.session
+                .replace(Session::CloseProximityDisclosure(close_proximity_session));
+            return Err(DisclosureError::IncrementUsageCount(error));
+        }
+
+        // Gather all partial mdocs presentations by cloning the attestations held in the session, as disclosing
+        // attestations needs to be retryable.
+        let partial_mdocs = attestations
+            .values()
+            .map(|attestation| {
+                let PartialAttestation::MsoMdoc { partial_mdoc } = attestation.partial_attestation() else {
+                    panic!("SD-JWT attestations are not supported in close proximity disclosure")
+                };
+
+                *partial_mdoc.clone()
+            })
+            .collect_vec()
+            .try_into()
+            .unwrap();
+
+        // Actually perform disclosure, casting any `InstructionError` that occurs during signing
+        // to `RemoteEcdsaKeyError::Instruction`.
+        let poa_input = JwtPoaInput::new(
+            // if this fails, there's a bug in the code
+            Some(hex::encode(cbor_serialize(&*session_transcript).unwrap())),
+            "aud".to_string(), // TODO what should this be?
+        );
+
+        let result =
+            DeviceResponse::sign_from_partial_mdocs(partial_mdocs, &session_transcript, &remote_wscd, poa_input).await;
+
+        let device_response = match result {
+            Ok(device_response) => device_response,
+            Err(error) => {
+                let disclosure_error = match error {
+                    // Upgrade any signing errors that are caused by an instruction error to
+                    // `DisclosureError::Instruction`.
+                    mdoc::Error::Cose(CoseError::Signing(signing_error))
+                        if matches!(
+                            signing_error.downcast_ref::<RemoteEcdsaKeyError>(),
+                            Some(RemoteEcdsaKeyError::Instruction(_))
+                        ) =>
+                    {
+                        // Note that this statement is safe, as checking is performed within the guard statements above.
+                        if let Ok(RemoteEcdsaKeyError::Instruction(instruction_error)) =
+                            signing_error.downcast::<RemoteEcdsaKeyError>().map(|error| *error)
+                        {
+                            DisclosureError::Instruction(instruction_error)
+                        } else {
+                            unreachable!()
+                        }
+                    }
+                    other => DisclosureError::CloseProximityDisclosureSessionError(
+                        CloseProximityDisclosureError::DeviceResponse(other),
+                    ),
+                };
+
+                // IncorrectPin is a functional error and does not need to be recorded.
+                //
+                // If storing the event results in an error, log it but do nothing else.
+                if !matches!(
+                    disclosure_error,
+                    DisclosureError::Instruction(InstructionError::IncorrectPin { .. })
+                ) && let Err(error) = self
+                    .store_disclosure_event(
+                        Utc::now(),
+                        Some(attestation_presentations),
+                        verifier_certificate.into_certificate(),
+                        disclosure_type,
+                        EventStatus::Error,
+                        DataDisclosed::NotDisclosed,
+                    )
+                    .await
+                {
+                    error!("Could not store error in history: {error}");
+                }
+
+                match disclosure_error {
+                    DisclosureError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked) => {
+                        // On a PIN timeout we should proactively terminate the disclosure session
+                        // and lock the wallet, as the user is probably not the owner of the wallet.
+                        // The UI should catch this specific error and close the disclosure screens.
+                        //
+                        // If terminating the session results in an error, log it but do nothing else.
+                        let _ = self
+                            .terminate_close_proximity_disclosure_session(close_proximity_session)
+                            .await
+                            .inspect_err(|terminate_error| {
+                                error!(
+                                    "Error while terminating disclosure session on PIN timeout: {}",
+                                    terminate_error
+                                );
+                            });
+
+                        self.lock.lock();
+                    }
+                    DisclosureError::Instruction(InstructionError::AccountRevoked(data)) => {
+                        self.handle_wallet_revocation(data).await;
+                    }
+                    _ => {
+                        // If we did not just give away ownership of the disclosure session by terminating it,
+                        // place it back in the wallet state so that the user may retry disclosure.
+                        self.session
+                            .replace(Session::CloseProximityDisclosure(close_proximity_session));
+                    }
+                }
+
+                return Err(disclosure_error);
+            }
+        };
+
+        // if serialization fails, there's a bug in the code
+        CPC::send_device_response(cbor_serialize(&device_response).unwrap()).await?;
+
+        // Disclosure is now successful. Any errors that occur after this point will result in the `Wallet` not having
+        // an active disclosure session anymore.
+        self.store_disclosure_event(
+            Utc::now(),
+            Some(attestation_presentations),
+            verifier_certificate.into_certificate(),
+            disclosure_type,
+            EventStatus::Success,
+            DataDisclosed::Disclosed,
+        )
+        .await
+        .map_err(DisclosureError::EventStorage)?;
+
+        Ok(())
     }
 
     pub async fn terminate_close_proximity_disclosure_session(
@@ -353,16 +598,18 @@ where
         let state = session.session_state.lock().to_owned();
         // Only store the event if the session is past SessionEstablished state (i.e. DisclosureProposed or later)
         match state {
-            CloseProximityDisclosureSessionState::DisclosureProposed { reader_certificate, .. }
+            CloseProximityDisclosureSessionState::DisclosureProposed {
+                verifier_certificate, ..
+            }
             | CloseProximityDisclosureSessionState::Errored {
-                reader_certificate: Some(reader_certificate),
+                verifier_certificate: Some(verifier_certificate),
                 ..
             } => {
                 self.store_disclosure_event(
                     Utc::now(),
                     // TODO (PVW-5078): Store credential requests in disclosure event.
                     None,
-                    *reader_certificate,
+                    (*verifier_certificate).into_certificate(),
                     DisclosureType::Regular,
                     EventStatus::Cancelled,
                     DataDisclosed::NotDisclosed,
@@ -647,6 +894,7 @@ mod tests {
             )
             .returning(|_, _, _, _, _| Ok(()));
 
+        let verifier_certificate = VerifierCertificate::try_new(reader_certificate).unwrap().unwrap();
         let session = CloseProximityDisclosureSession {
             listener: tokio::spawn(async {}),
             session_state: Arc::new(Mutex::new(CloseProximityDisclosureSessionState::DisclosureProposed {
@@ -656,7 +904,7 @@ mod tests {
                     handover: Handover::QrHandover,
                 })),
                 device_request: DeviceRequest::example(),
-                reader_certificate: Box::new(reader_certificate),
+                verifier_certificate: Box::new(verifier_certificate),
                 attestations: WalletDisclosureAttestations::Missing,
             })),
         };

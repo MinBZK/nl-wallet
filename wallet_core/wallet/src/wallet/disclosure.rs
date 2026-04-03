@@ -11,6 +11,7 @@ use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Either;
 use itertools::Itertools;
+use platform_support::attested_key::AttestedKey;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
 use tracing::error;
 use tracing::info;
@@ -72,6 +73,7 @@ use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::DisclosableAttestation;
 use crate::storage::PartialAttestation;
+use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::wallet::HistoryError;
@@ -433,6 +435,10 @@ pub(super) fn requested_attribute_paths<'a, T: AttestationRequest + 'a>(
     })
 }
 
+#[expect(type_alias_bounds, reason = "without this bound it doesn't compile")]
+pub(crate) type AttestedKeyAndRegistrationData<AKH: AttestedKeyHolder> =
+    (Arc<AttestedKey<AKH::AppleKey, AKH::GoogleKey>>, RegistrationData);
+
 impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
@@ -757,31 +763,13 @@ where
     where
         S: Storage,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
-        APC: AccountProviderClient,
-    {
-        self.perform_disclosure(
-            selected_indices,
-            pin,
-            RedirectUriPurpose::Browser,
-            self.config_repository.get().as_ref(),
-        )
-        .await
-    }
-
-    #[instrument(skip_all)]
-    pub(super) async fn perform_disclosure(
-        &mut self,
-        selected_indices: &[usize],
-        pin: String,
-        redirect_uri_purpose: RedirectUriPurpose,
-        config: &WalletConfiguration,
-    ) -> Result<Option<Url>, DisclosureError>
-    where
-        S: Storage,
-        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+        CPC: CloseProximityDisclosureClient,
         APC: AccountProviderClient,
     {
         info!("Accepting disclosure");
+
+        let config = self.config_repository.get();
+
         info!("Fetching update policy");
         self.update_policy_repository
             .fetch(&config.update_policy_server.http_config)
@@ -797,18 +785,55 @@ where
             .registration
             .as_key_and_registration_data()
             .ok_or_else(|| DisclosureError::NotRegistered)?;
-        let attested_key = Arc::clone(attested_key);
+        let attested_key_and_registration_data = (Arc::clone(attested_key), registration_data.to_owned());
 
         info!("Checking if locked");
         if self.lock.is_locked() {
             return Err(DisclosureError::Locked);
         }
 
-        info!("Checking if a disclosure session is present");
-        let Some(Session::Disclosure(session)) = &self.session else {
-            return Err(DisclosureError::SessionState);
-        };
+        // We have to take ownership of the disclosure session here, so that `session`
+        // below doesn't borrow from `, as we also borrow mutably from `self` here.
+        match self.session.take() {
+            Some(Session::Disclosure(session)) => {
+                self.perform_disclosure(
+                    session,
+                    selected_indices,
+                    pin,
+                    RedirectUriPurpose::Browser,
+                    attested_key_and_registration_data,
+                )
+                .await
+            }
+            Some(Session::CloseProximityDisclosure(session)) => {
+                self.perform_close_proximity_disclosure(
+                    session,
+                    selected_indices,
+                    pin,
+                    attested_key_and_registration_data,
+                )
+                .await?;
 
+                Ok(None)
+            }
+            _ => Err(DisclosureError::SessionState),
+        }
+    }
+
+    #[instrument(skip_all)]
+    pub(super) async fn perform_disclosure(
+        &mut self,
+        mut session: WalletDisclosureSession<DCC::Session>,
+        selected_indices: &[usize],
+        pin: String,
+        redirect_uri_purpose: RedirectUriPurpose,
+        (attested_key, registration_data): AttestedKeyAndRegistrationData<AKH>,
+    ) -> Result<Option<Url>, DisclosureError>
+    where
+        S: Storage,
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+        APC: AccountProviderClient,
+    {
         // If we do not have a proposal, this method should not have been called, so return an error.
         if !matches!(session.attestations, WalletDisclosureAttestations::Proposal(_)) {
             return Err(DisclosureError::SessionState);
@@ -822,6 +847,7 @@ where
         }
 
         // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
+        let config = self.config_repository.get();
         let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
 
         let remote_instruction = self
@@ -829,20 +855,14 @@ where
                 pin,
                 attested_key,
                 InstructionClientParameters::new(
-                    registration_data.wallet_id.clone(),
-                    registration_data.pin_salt.clone(),
-                    registration_data.wallet_certificate.clone(),
+                    registration_data.wallet_id,
+                    registration_data.pin_salt,
+                    registration_data.wallet_certificate,
                     config.account_server.http_config.clone(),
                     instruction_result_public_key,
                 ),
             )
             .await?;
-
-        // We have to take ownership of the disclosure session here, so that `attestations`
-        // below doesn't borrow from self, as we also borrow mutably from self above.
-        let Some(Session::Disclosure(mut session)) = self.session.take() else {
-            unreachable!(); // This not possible, as we took a reference to this value before.
-        };
 
         // Note that this will panic if any of the indices are out of bounds.
         let attestations = session.attestations.select_proposal(selected_indices);
@@ -1002,8 +1022,7 @@ where
         };
 
         // Disclosure is now successful. Any errors that occur after this point will result in the `Wallet` not having
-        // an active disclosure session anymore. Note that these unwraps are safe, as session.attestations was checked
-        // to be present above and the source of the iterator is also `VecNonEmpty`.
+        // an active disclosure session anymore.
         self.store_disclosure_event(
             Utc::now(),
             Some(attestation_presentations),

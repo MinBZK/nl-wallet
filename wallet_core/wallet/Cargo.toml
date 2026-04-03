@@ -76,6 +76,7 @@ crypto.path = "../lib/crypto"
 dcql.path = "../lib/dcql"
 entity.path = "entity"
 error_category = { path = "../lib/error_category", features = ["sentry"] }
+hex.workspace = true
 http_utils.path = "../lib/http_utils"
 jwe.path = "../lib/jwe"
 jwt.path = "../lib/jwt"

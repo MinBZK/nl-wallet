@@ -89,10 +89,35 @@ where
         selected_indices: &[usize],
         pin: String,
     ) -> Result<Vec<AttestationPresentation>, DisclosureBasedIssuanceError> {
+        info!("Continuing disclosure based issuance");
+
         let config = self.config_repository.get();
 
+        info!("Fetching update policy");
+        self.update_policy_repository
+            .fetch(&config.update_policy_server.http_config)
+            .await
+            .map_err(DisclosureError::UpdatePolicy)?;
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            Err(DisclosureError::VersionBlocked)?;
+        }
+
+        info!("Checking if registered");
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| DisclosureError::NotRegistered)?;
+        let attested_key_and_registration_data = (Arc::clone(attested_key), registration_data.to_owned());
+
+        info!("Checking if locked");
+        if self.lock.is_locked() {
+            Err(DisclosureError::Locked)?;
+        }
+
         info!("Checking if a disclosure session is present");
-        let Some(Session::Disclosure(session)) = &self.session else {
+        let Some(Session::Disclosure(session)) = self.session.take() else {
             return Err(DisclosureBasedIssuanceError::Disclosure(DisclosureError::SessionState));
         };
 
@@ -104,7 +129,13 @@ where
             .clone();
 
         let redirect_uri = match self
-            .perform_disclosure(selected_indices, pin, RedirectUriPurpose::Issuance, config.as_ref())
+            .perform_disclosure(
+                session,
+                selected_indices,
+                pin,
+                RedirectUriPurpose::Issuance,
+                attested_key_and_registration_data,
+            )
             .await
         {
             Ok(Some(redirect_uri)) if redirect_uri.scheme() == OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME => redirect_uri,
