@@ -2,7 +2,7 @@
 
 ### Prerequisites
 
-- Aaccess to the GitLab instance with rights to create Project Access Tokens
+- Access to the GitLab instance with rights to create Group Access Tokens
 - GPG set up locally
 
 Replace the following placeholder throughout:
@@ -15,10 +15,10 @@ Replace the following placeholder throughout:
 
 ### 1. Create a Project Access Token (`RENOVATE_BOT_TOKEN`)
 
-Go to **Project → Settings → Access Tokens**, create a token named `renovate`
-with **Developer** role and `api` scope. This is the `PROJECT_ACCESS_TOKEN`.
+Go to **Group → Settings → Access Tokens**, create a token named `renovate`
+with **Developer** role and `api` scope. This is the `GROUP_ACCESS_TOKEN`.
 Copy the token value — it is only shown once. Store it as CI/CD variable
-`RENOVATE_BOT_TOKEN` (masked) via **Project → Settings → CI/CD → Variables**.
+`RENOVATE_BOT_TOKEN` (masked) via **Group → Settings → CI/CD → Variables**.
 
 ---
 
@@ -27,7 +27,7 @@ Copy the token value — it is only shown once. Store it as CI/CD variable
 Find the email address of the bot user created by the access token:
 
 ```bash
-curl --silent --header "PRIVATE-TOKEN: <PROJECT_ACCESS_TOKEN>" \
+curl --silent --header "PRIVATE-TOKEN: <GROUP_ACCESS_TOKEN>" \
   "https://<GITLAB_URL>/api/v4/user" | jq '.email'
 ```
 
@@ -48,7 +48,7 @@ Register the public key with the bot user:
 
 ```bash
 curl --silent --request POST \
-  --header "PRIVATE-TOKEN: <PROJECT_ACCESS_TOKEN>" \
+  --header "PRIVATE-TOKEN: <GROUP_ACCESS_TOKEN>" \
   --data-urlencode "key=$(gpg --armor --export <BOT_EMAIL>)" \
   "https://<GITLAB_URL>/api/v4/user/gpg_keys"
 ```
