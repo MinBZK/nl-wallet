@@ -304,7 +304,27 @@ mod tests {
         )
         .unwrap();
         let session_transcript = SessionTranscript::try_from_bytes(&example_session_transcript).unwrap();
+        let keyed = &session_transcript.0;
 
+        assert!(matches!(keyed.handover, Handover::QrHandover));
+
+        let device_engagement = &keyed.device_engagement_bytes.as_ref().unwrap().0;
+        let method = device_engagement.0.device_retrieval_methods.as_ref().unwrap().first();
+
+        assert!(matches!(
+            &method.0,
+            DeviceRetrievalMethodKeyed {
+                r#type: 2,
+                version: 1,
+                retrieval_options: RetrievalOptions::Ble(CborIntMap(BleOptions {
+                    peripheral_server_mode: true,
+                    central_client_mode: false,
+                    peripheral_server_uuid: Some(_),
+                    central_client_uuid: None,
+                    peripheral_server_address: None,
+                })),
+            }
+        ));
         assert_eq!(
             serialization::cbor_serialize(&session_transcript).unwrap(),
             example_session_transcript
