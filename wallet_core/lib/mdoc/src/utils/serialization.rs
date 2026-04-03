@@ -138,11 +138,11 @@ where
 /// Wrapper that serializes a named-field struct to/from a CBOR array (sequence), dropping all
 /// field names from the wire format.
 ///
-/// Normally `serde` serializes struct fields as a map of `{ field_name: value, … }`. `CborSeq`
+/// Normally `serde` serializes struct fields as a map of `{ field_name: value, ... }`. `CborSeq`
 /// instead emits only the values in field declaration order, producing a compact CBOR array as
 /// required by ISO 18013-5 for some of the structs.
 ///
-/// The idiomatic pattern in this codebase is to define a `…Keyed` struct with named fields for
+/// The idiomatic pattern in this codebase is to define a `...Keyed` struct with named fields for
 /// use in Rust code, then expose a type alias wrapping it in `CborSeq` as the canonical
 /// (wire-format) type. This keeps field names available for readability while ensuring the
 /// correct on-wire encoding.
@@ -156,17 +156,17 @@ where
 /// `SessionTranscript` is a type alias for `CborSeq<SessionTranscriptKeyed>`:
 ///
 /// ```ignore
-/// pub struct SessionTranscriptKeyed {       // ← named fields, used in Rust code
+/// pub struct SessionTranscriptKeyed {       // <-- named fields, used in Rust code
 ///     pub device_engagement_bytes: Option<DeviceEngagementBytes>,  // position 0
 ///     pub ereader_key_bytes: Option<ESenderKeyBytes>,              // position 1
 ///     pub handover: Handover,                                      // position 2
 /// }
 ///
-/// pub type SessionTranscript = CborSeq<SessionTranscriptKeyed>;    // ← wire type
+/// pub type SessionTranscript = CborSeq<SessionTranscriptKeyed>;    // <-- wire type
 /// ```
 ///
 /// `SessionTranscript` serializes as a CBOR array `[<device_engagement_bytes>, <ereader_key_bytes>, <handover>]`
-/// rather than a map `{"device_engagement_bytes": …, "ereader_key_bytes": …, "handover": …}`.
+/// rather than a map `{"device_engagement_bytes": ..., "ereader_key_bytes": ..., "handover": ...}`.
 ///
 /// ```ignore
 /// let transcript: SessionTranscript = SessionTranscriptKeyed { .. }.into();
@@ -196,7 +196,7 @@ pub trait CborIndexedFields {
 /// `CborIntMap` replaces those string keys with each field's zero-based positional index,
 /// producing the compact integer-keyed maps required by ISO 18013-5 for some of the structs.
 ///
-/// - **Serialization**: field names are replaced by their declaration-order index (0, 1, 2, …);
+/// - **Serialization**: field names are replaced by their declaration-order index (0, 1, 2, ...);
 ///   fields whose value serializes as CBOR null are omitted.
 /// - **Deserialization**: integer keys are mapped back to field names by position before
 ///   delegating to `T`'s own deserializer.
