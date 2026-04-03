@@ -277,7 +277,7 @@ where
             .prepare_disclosure(
                 &device_request.items_requests().collect_vec(),
                 &wallet_config.pid_attributes,
-                verifier_certificate.certificate(),
+                &verifier_certificate,
             )
             .await?;
 

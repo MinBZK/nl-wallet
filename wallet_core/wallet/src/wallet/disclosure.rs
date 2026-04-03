@@ -4,6 +4,7 @@ use std::hash::Hash;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 
+use attestation_data::verifier_certificate::VerifierCertificate;
 use chrono::Utc;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
@@ -21,7 +22,6 @@ use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::AttestationRequest;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
-use crypto::x509::BorrowingCertificate;
 use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequest;
@@ -156,7 +156,7 @@ pub enum DisclosureError {
 
     #[error("cannot request recovery code")]
     #[category(critical)]
-    RecoveryCodeRequested,
+    RecoveryCodeRequested(Box<Organization>),
 
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[source] InstructionError),
@@ -507,14 +507,16 @@ where
         &self,
         attestation_requests: &[&impl AttestationRequest],
         pid_attributes: &PidAttributesConfiguration,
-        verifier_certificate: &BorrowingCertificate,
+        verifier_certificate: &VerifierCertificate,
     ) -> Result<(Vec<Option<VecNonEmpty<DisclosableAttestation>>>, bool), DisclosureError> {
         // Check for recovery code request
         if attestation_requests
             .iter()
             .any(|request| is_request_for_recovery_code(request, pid_attributes))
         {
-            return Err(DisclosureError::RecoveryCodeRequested);
+            return Err(DisclosureError::RecoveryCodeRequested(
+                verifier_certificate.registration().organization.clone(),
+            ));
         }
 
         // For each disclosure request, fetch the candidates from the database and convert
@@ -529,7 +531,7 @@ where
         .map_err(DisclosureError::AttestationRetrieval)?;
 
         let shared_data_with_relying_party_before = storage
-            .did_share_data_with_relying_party(verifier_certificate)
+            .did_share_data_with_relying_party(verifier_certificate.certificate())
             .await
             .map_err(DisclosureError::HistoryRetrieval)?;
 
@@ -573,7 +575,7 @@ where
             .prepare_disclosure(
                 &session.credential_requests().as_ref().iter().collect_vec(),
                 &wallet_config.pid_attributes,
-                session.verifier_certificate().certificate(),
+                session.verifier_certificate(),
             )
             .await?;
 
@@ -2027,7 +2029,7 @@ mod tests {
             .await
             .expect_err("starting disclosure should not succeed");
 
-        assert_matches!(error, DisclosureError::RecoveryCodeRequested);
+        assert_matches!(error, DisclosureError::RecoveryCodeRequested(_));
         assert!(wallet.session.is_none());
     }
 
@@ -2427,7 +2429,7 @@ mod tests {
             error,
             DisclosureError::UnexpectedRedirectUriPurpose {
                 expected: RedirectUriPurpose::Issuance,
-                found: RedirectUriPurpose::Browser
+                found: RedirectUriPurpose::Browser,
             }
         );
         assert!(error.return_url().is_none());

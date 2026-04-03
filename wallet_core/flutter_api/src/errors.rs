@@ -369,8 +369,19 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::Instruction(error) => FlutterApiErrorType::from(error),
             DisclosureError::UpdatePolicy(error) => FlutterApiErrorType::from(error),
             DisclosureError::NonSelectivelyDisclosableClaim(_, _)
-            | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _) => FlutterApiErrorType::Verifier,
-            _ => FlutterApiErrorType::Generic,
+            | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _)
+            | DisclosureError::DisclosureUriQuery(_)
+            | DisclosureError::RecoveryCodeRequested { .. }
+            | DisclosureError::UnexpectedRedirectUriPurpose { .. } => FlutterApiErrorType::Verifier,
+            DisclosureError::DisclosureUri(_)
+            | DisclosureError::HistoryRetrieval(_)
+            | DisclosureError::AttestationRetrieval(_)
+            | DisclosureError::AttributesNotAvailable(_)
+            | DisclosureError::IncrementUsageCount(_)
+            | DisclosureError::EventStorage(_)
+            | DisclosureError::ChangePin(_)
+            | DisclosureError::PlatformCloseProximityDisclosureSessionError(_) => FlutterApiErrorType::Generic,
+            DisclosureError::CloseProximityDisclosureSessionError(error) => error.into(),
         }
     }
 
@@ -400,9 +411,8 @@ impl FlutterApiErrorFields for DisclosureError {
                 .as_ref()
                 .map(|organization| organization.display_name.clone()),
             DisclosureError::NonSelectivelyDisclosableClaim(organization, _)
-            | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(organization, _, _) => {
-                Some(organization.display_name.clone())
-            }
+            | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(organization, _, _)
+            | DisclosureError::RecoveryCodeRequested(organization) => Some(organization.display_name.clone()),
             _ => None,
         };
         let revocation_data = if let Self::Instruction(InstructionError::AccountRevoked(data)) = self {
