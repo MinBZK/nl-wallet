@@ -1,4 +1,4 @@
-## Renovate CI/CD Variable Setup
+## CI/CD Bot Users Variable Setup
 
 ### Prerequisites
 
@@ -13,12 +13,13 @@ Replace the following placeholder throughout:
 
 ---
 
-### 1. Create a Project Access Token (`RENOVATE_BOT_TOKEN`)
+### 1. Create a Project Access Token
 
-Go to **Group → Settings → Access Tokens**, create a token named `renovate`
-with **Developer** role and `api` scope. This is the `GROUP_ACCESS_TOKEN`.
-Copy the token value — it is only shown once. Store it as CI/CD variable
-`RENOVATE_BOT_TOKEN` (masked) via **Group → Settings → CI/CD → Variables**.
+Go to **Group → Settings → Access Tokens**, create a token named `<PREFIX>`
+with **Developer** role and `api` (eventually `write_repository`) scope.
+This is the `GROUP_ACCESS_TOKEN`. Copy the token value — it is only shown
+once. Store it as CI/CD variable `<PREFIX>_GITLAB_TOKEN` (masked) via
+**Group → Settings → CI/CD → Variables**.
 
 ---
 
@@ -38,7 +39,7 @@ gpg --batch --gen-key <<EOF
 %no-protection
 Key-Type: EdDSA
 Key-Curve: ed25519
-Name-Real: Renovate Bot
+Name-Real: The Real Bot
 Name-Email: <BOT_EMAIL>
 Expire-Date: 0
 EOF
@@ -57,13 +58,24 @@ curl --silent --request POST \
 
 ### 3. Set the remaining CI/CD variables
 
+```bash
+gpg --armor --export-secret-keys <BOT_EMAIL> | base64 -w 0
+```
+
+#### Renovate
+
 Go to **Project → Settings → CI/CD → Variables** and add:
 
 | Key                               | Value                       | Masked |
 | --------------------------------- | --------------------------- | ------ |
 | `RENOVATE_GIT_AUTHOR`             | `Renovate Bot <BOT_EMAIL>`  | No     |
-| `RENOVATE_GPG_PRIVATE_KEY_BASE64` | Output of the command below | Yes    |
+| `RENOVATE_GPG_PRIVATE_KEY_BASE64` | Output of the command above | Yes    |
 
-```bash
-gpg --armor --export-secret-keys <BOT_EMAIL> | base64 -w 0
-```
+#### Audit Fix
+
+Go to **Project → Settings → CI/CD → Variables** and add:
+
+| Key                                | Value                       | Masked |
+| ---------------------------------- | --------------------------- | ------ |
+| `AUDIT_FIX_GIT_EMAIL`              | `<BOT_EMAIL>`.              | No     |
+| `AUDIT_FIX_GPG_PRIVATE_KEY_BASE64` | Output of the command above | Yes    |
