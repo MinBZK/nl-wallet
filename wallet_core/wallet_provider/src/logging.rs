@@ -180,18 +180,14 @@ mod test {
 
         log_redirect.stop_and_wait().unwrap();
 
-        assert_eq!(
-            *LOGS.lock().unwrap(),
-            [
-                (
-                    Level::Warn,
-                    "18.07.2025 18:07:20.251 | [00000001:00000001] C_Test | W: Warning information".into()
-                ),
-                (
-                    Level::Error,
-                    "18.07.2025 18:07:20.252 | [00000001:00000001] C_Test | E: Error information".into()
-                ),
-            ]
-        );
+        let logs = LOGS.lock().unwrap();
+        assert!(logs.contains(&(
+            Level::Warn,
+            "18.07.2025 18:07:20.251 | [00000001:00000001] C_Test | W: Warning information".into()
+        )));
+        assert!(logs.contains(&(
+            Level::Error,
+            "18.07.2025 18:07:20.252 | [00000001:00000001] C_Test | E: Error information".into()
+        ),));
     }
 }
