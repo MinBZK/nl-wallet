@@ -10,6 +10,7 @@ use wallet::AccountRevokedData;
 use wallet::attestation_data::LocalizedStrings;
 use wallet::errors::AccountProviderError;
 use wallet::errors::ChangePinError;
+use wallet::errors::CloseProximityDisclosureError;
 use wallet::errors::DeleteAttestationError;
 use wallet::errors::DigidError;
 use wallet::errors::DisclosureBasedIssuanceError;
@@ -368,8 +369,19 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::Instruction(error) => FlutterApiErrorType::from(error),
             DisclosureError::UpdatePolicy(error) => FlutterApiErrorType::from(error),
             DisclosureError::NonSelectivelyDisclosableClaim(_, _)
-            | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _) => FlutterApiErrorType::Verifier,
-            _ => FlutterApiErrorType::Generic,
+            | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _)
+            | DisclosureError::DisclosureUriQuery(_)
+            | DisclosureError::RecoveryCodeRequested { .. }
+            | DisclosureError::UnexpectedRedirectUriPurpose { .. } => FlutterApiErrorType::Verifier,
+            DisclosureError::DisclosureUri(_)
+            | DisclosureError::HistoryRetrieval(_)
+            | DisclosureError::AttestationRetrieval(_)
+            | DisclosureError::AttributesNotAvailable(_)
+            | DisclosureError::IncrementUsageCount(_)
+            | DisclosureError::EventStorage(_)
+            | DisclosureError::ChangePin(_)
+            | DisclosureError::PlatformCloseProximityDisclosureSessionError(_) => FlutterApiErrorType::Generic,
+            DisclosureError::CloseProximityDisclosureSessionError(error) => error.into(),
         }
     }
 
@@ -399,9 +411,8 @@ impl FlutterApiErrorFields for DisclosureError {
                 .as_ref()
                 .map(|organization| organization.display_name.clone()),
             DisclosureError::NonSelectivelyDisclosableClaim(organization, _)
-            | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(organization, _, _) => {
-                Some(organization.display_name.clone())
-            }
+            | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(organization, _, _)
+            | DisclosureError::RecoveryCodeRequested(organization) => Some(organization.display_name.clone()),
             _ => None,
         };
         let revocation_data = if let Self::Instruction(InstructionError::AccountRevoked(data)) = self {
@@ -422,6 +433,17 @@ impl FlutterApiErrorFields for DisclosureError {
         } else {
             serde_json::Value::Null
         }
+    }
+}
+
+impl FlutterApiErrorFields for CloseProximityDisclosureError {
+    fn typ(&self) -> FlutterApiErrorType {
+        self.into()
+    }
+
+    fn data(&self) -> serde_json::Value {
+        // TODO add organisation (PVW-5710)
+        serde_json::Value::Null
     }
 }
 
@@ -515,6 +537,23 @@ impl From<&HttpClientError> for FlutterApiErrorType {
             }
             HttpClientError::Networking(_) => FlutterApiErrorType::Networking,
             _ => FlutterApiErrorType::Generic,
+        }
+    }
+}
+
+impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
+    fn from(value: &CloseProximityDisclosureError) -> Self {
+        match value {
+            CloseProximityDisclosureError::EmptyRequest
+            | CloseProximityDisclosureError::NoAttributesRequested
+            | CloseProximityDisclosureError::MissingReaderAuth
+            | CloseProximityDisclosureError::InconsistentReaderAuths
+            | CloseProximityDisclosureError::InvalidDocRequest(_)
+            | CloseProximityDisclosureError::MissingReaderRegistration
+            | CloseProximityDisclosureError::InvalidCertificateType(_)
+            | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_)
+            | CloseProximityDisclosureError::MalformedDeviceRequest(_) => FlutterApiErrorType::Verifier,
+            CloseProximityDisclosureError::PlatformError(_) => FlutterApiErrorType::Generic,
         }
     }
 }

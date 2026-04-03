@@ -126,7 +126,7 @@ impl TryFrom<&PublicKey> for Security {
         let cose_key: CoseKey = (&VerifyingKey::from(value)).try_into()?;
         let security = SecurityKeyed {
             cipher_suite_identifier: CipherSuiteIdentifier::P256,
-            e_sender_key_bytes: cose_key.into(),
+            e_device_key_bytes: cose_key.into(),
         }
         .into();
         Ok(security)
@@ -137,7 +137,7 @@ impl TryFrom<&Security> for PublicKey {
     type Error = CryptoError;
 
     fn try_from(value: &Security) -> std::result::Result<Self, Self::Error> {
-        let key: VerifyingKey = (&value.0.e_sender_key_bytes.0).try_into()?;
+        let key: VerifyingKey = (&value.0.e_device_key_bytes.0).try_into()?;
         Ok(key.into())
     }
 }

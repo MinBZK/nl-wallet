@@ -313,6 +313,378 @@ $WalletInstructionErrorCopyWith<$Res> get error {
 }
 
 /// @nodoc
+mixin _$CloseProximityDisclosureFlutterUpdate {
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'CloseProximityDisclosureFlutterUpdate()';
+}
+
+
+}
+
+/// @nodoc
+class $CloseProximityDisclosureFlutterUpdateCopyWith<$Res>  {
+$CloseProximityDisclosureFlutterUpdateCopyWith(CloseProximityDisclosureFlutterUpdate _, $Res Function(CloseProximityDisclosureFlutterUpdate) __);
+}
+
+
+/// Adds pattern-matching-related methods to [CloseProximityDisclosureFlutterUpdate].
+extension CloseProximityDisclosureFlutterUpdatePatterns on CloseProximityDisclosureFlutterUpdate {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( CloseProximityDisclosureFlutterUpdate_Connecting value)?  connecting,TResult Function( CloseProximityDisclosureFlutterUpdate_Connected value)?  connected,TResult Function( CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived value)?  deviceRequestReceived,TResult Function( CloseProximityDisclosureFlutterUpdate_Disconnected value)?  disconnected,TResult Function( CloseProximityDisclosureFlutterUpdate_Errored value)?  errored,required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case CloseProximityDisclosureFlutterUpdate_Connecting() when connecting != null:
+return connecting(_that);case CloseProximityDisclosureFlutterUpdate_Connected() when connected != null:
+return connected(_that);case CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived() when deviceRequestReceived != null:
+return deviceRequestReceived(_that);case CloseProximityDisclosureFlutterUpdate_Disconnected() when disconnected != null:
+return disconnected(_that);case CloseProximityDisclosureFlutterUpdate_Errored() when errored != null:
+return errored(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( CloseProximityDisclosureFlutterUpdate_Connecting value)  connecting,required TResult Function( CloseProximityDisclosureFlutterUpdate_Connected value)  connected,required TResult Function( CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived value)  deviceRequestReceived,required TResult Function( CloseProximityDisclosureFlutterUpdate_Disconnected value)  disconnected,required TResult Function( CloseProximityDisclosureFlutterUpdate_Errored value)  errored,}){
+final _that = this;
+switch (_that) {
+case CloseProximityDisclosureFlutterUpdate_Connecting():
+return connecting(_that);case CloseProximityDisclosureFlutterUpdate_Connected():
+return connected(_that);case CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived():
+return deviceRequestReceived(_that);case CloseProximityDisclosureFlutterUpdate_Disconnected():
+return disconnected(_that);case CloseProximityDisclosureFlutterUpdate_Errored():
+return errored(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( CloseProximityDisclosureFlutterUpdate_Connecting value)?  connecting,TResult? Function( CloseProximityDisclosureFlutterUpdate_Connected value)?  connected,TResult? Function( CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived value)?  deviceRequestReceived,TResult? Function( CloseProximityDisclosureFlutterUpdate_Disconnected value)?  disconnected,TResult? Function( CloseProximityDisclosureFlutterUpdate_Errored value)?  errored,}){
+final _that = this;
+switch (_that) {
+case CloseProximityDisclosureFlutterUpdate_Connecting() when connecting != null:
+return connecting(_that);case CloseProximityDisclosureFlutterUpdate_Connected() when connected != null:
+return connected(_that);case CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived() when deviceRequestReceived != null:
+return deviceRequestReceived(_that);case CloseProximityDisclosureFlutterUpdate_Disconnected() when disconnected != null:
+return disconnected(_that);case CloseProximityDisclosureFlutterUpdate_Errored() when errored != null:
+return errored(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  connecting,TResult Function()?  connected,TResult Function()?  deviceRequestReceived,TResult Function()?  disconnected,TResult Function( String error)?  errored,required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case CloseProximityDisclosureFlutterUpdate_Connecting() when connecting != null:
+return connecting();case CloseProximityDisclosureFlutterUpdate_Connected() when connected != null:
+return connected();case CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived() when deviceRequestReceived != null:
+return deviceRequestReceived();case CloseProximityDisclosureFlutterUpdate_Disconnected() when disconnected != null:
+return disconnected();case CloseProximityDisclosureFlutterUpdate_Errored() when errored != null:
+return errored(_that.error);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  connecting,required TResult Function()  connected,required TResult Function()  deviceRequestReceived,required TResult Function()  disconnected,required TResult Function( String error)  errored,}) {final _that = this;
+switch (_that) {
+case CloseProximityDisclosureFlutterUpdate_Connecting():
+return connecting();case CloseProximityDisclosureFlutterUpdate_Connected():
+return connected();case CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived():
+return deviceRequestReceived();case CloseProximityDisclosureFlutterUpdate_Disconnected():
+return disconnected();case CloseProximityDisclosureFlutterUpdate_Errored():
+return errored(_that.error);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  connecting,TResult? Function()?  connected,TResult? Function()?  deviceRequestReceived,TResult? Function()?  disconnected,TResult? Function( String error)?  errored,}) {final _that = this;
+switch (_that) {
+case CloseProximityDisclosureFlutterUpdate_Connecting() when connecting != null:
+return connecting();case CloseProximityDisclosureFlutterUpdate_Connected() when connected != null:
+return connected();case CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived() when deviceRequestReceived != null:
+return deviceRequestReceived();case CloseProximityDisclosureFlutterUpdate_Disconnected() when disconnected != null:
+return disconnected();case CloseProximityDisclosureFlutterUpdate_Errored() when errored != null:
+return errored(_that.error);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class CloseProximityDisclosureFlutterUpdate_Connecting extends CloseProximityDisclosureFlutterUpdate {
+  const CloseProximityDisclosureFlutterUpdate_Connecting(): super._();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate_Connecting);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'CloseProximityDisclosureFlutterUpdate.connecting()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class CloseProximityDisclosureFlutterUpdate_Connected extends CloseProximityDisclosureFlutterUpdate {
+  const CloseProximityDisclosureFlutterUpdate_Connected(): super._();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate_Connected);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'CloseProximityDisclosureFlutterUpdate.connected()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived extends CloseProximityDisclosureFlutterUpdate {
+  const CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived(): super._();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'CloseProximityDisclosureFlutterUpdate.deviceRequestReceived()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class CloseProximityDisclosureFlutterUpdate_Disconnected extends CloseProximityDisclosureFlutterUpdate {
+  const CloseProximityDisclosureFlutterUpdate_Disconnected(): super._();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate_Disconnected);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'CloseProximityDisclosureFlutterUpdate.disconnected()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class CloseProximityDisclosureFlutterUpdate_Errored extends CloseProximityDisclosureFlutterUpdate {
+  const CloseProximityDisclosureFlutterUpdate_Errored({required this.error}): super._();
+  
+
+ final  String error;
+
+/// Create a copy of CloseProximityDisclosureFlutterUpdate
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CloseProximityDisclosureFlutterUpdate_ErroredCopyWith<CloseProximityDisclosureFlutterUpdate_Errored> get copyWith => _$CloseProximityDisclosureFlutterUpdate_ErroredCopyWithImpl<CloseProximityDisclosureFlutterUpdate_Errored>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate_Errored&&(identical(other.error, error) || other.error == error));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,error);
+
+@override
+String toString() {
+  return 'CloseProximityDisclosureFlutterUpdate.errored(error: $error)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CloseProximityDisclosureFlutterUpdate_ErroredCopyWith<$Res> implements $CloseProximityDisclosureFlutterUpdateCopyWith<$Res> {
+  factory $CloseProximityDisclosureFlutterUpdate_ErroredCopyWith(CloseProximityDisclosureFlutterUpdate_Errored value, $Res Function(CloseProximityDisclosureFlutterUpdate_Errored) _then) = _$CloseProximityDisclosureFlutterUpdate_ErroredCopyWithImpl;
+@useResult
+$Res call({
+ String error
+});
+
+
+
+
+}
+/// @nodoc
+class _$CloseProximityDisclosureFlutterUpdate_ErroredCopyWithImpl<$Res>
+    implements $CloseProximityDisclosureFlutterUpdate_ErroredCopyWith<$Res> {
+  _$CloseProximityDisclosureFlutterUpdate_ErroredCopyWithImpl(this._self, this._then);
+
+  final CloseProximityDisclosureFlutterUpdate_Errored _self;
+  final $Res Function(CloseProximityDisclosureFlutterUpdate_Errored) _then;
+
+/// Create a copy of CloseProximityDisclosureFlutterUpdate
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? error = null,}) {
+  return _then(CloseProximityDisclosureFlutterUpdate_Errored(
+error: null == error ? _self.error : error // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
 mixin _$StartDisclosureResult {
 
  Organization get relyingParty; bool get sharedDataWithRelyingPartyBefore; DisclosureSessionType get sessionType; List<LocalizedString> get requestPurpose; String get requestOriginBaseUrl;

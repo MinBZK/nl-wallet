@@ -11,7 +11,6 @@ use serde::de::DeserializeOwned;
 
 use utils::generator::Generator;
 
-#[cfg(test)]
 use crate::iso::device_retrieval::DeviceRequest;
 #[cfg(test)]
 use crate::iso::device_retrieval::ReaderAuthenticationBytes;
@@ -41,6 +40,7 @@ pub const EXAMPLE_ATTRIBUTES: [&str; 6] = [
 /// Some of the certificates in the ISO examples are valid from Oct 1, 2020 to Oct 1, 2021.
 /// This generator returns a time in that window.
 pub struct IsoCertTimeGenerator;
+
 impl Generator<DateTime<Utc>> for IsoCertTimeGenerator {
     fn generate(&self) -> DateTime<Utc> {
         Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()
@@ -205,7 +205,6 @@ impl Example for ReaderAuthenticationBytes<'_> {
     }
 }
 
-#[cfg(test)]
 impl Example for DeviceRequest {
     fn example_hex() -> &'static str {
         "a26776657273696f6e63312e306b646f63526571756573747381a26c6974656d7352657175657374d8185893a267646f6354797065756\

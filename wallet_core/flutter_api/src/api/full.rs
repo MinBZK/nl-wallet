@@ -400,7 +400,7 @@ pub async fn start_close_proximity_disclosure(
 pub async fn continue_close_proximity_disclosure() -> anyhow::Result<StartDisclosureResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.continue_close_proximity_disclosure().try_into()?;
+    let result = wallet.continue_close_proximity_disclosure().await.try_into()?;
 
     Ok(result)
 }

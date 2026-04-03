@@ -5,6 +5,7 @@ pub mod disclosure;
 pub mod disclosure_type;
 pub mod issuable_document;
 pub mod validity;
+pub mod verifier_certificate;
 pub mod x509;
 
 #[cfg(feature = "test_credential")]

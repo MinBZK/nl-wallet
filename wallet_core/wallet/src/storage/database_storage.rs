@@ -283,13 +283,12 @@ impl<K> DatabaseStorage<K> {
 
     async fn query_unique_attestations_with_parameters(
         &self,
-        attestation_types: &HashSet<&str>,
+        attestation_types: &HashSet<String>,
         format: Option<CredentialFormat>,
         condition: Option<Condition>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
         // Collect all conditions for the requested attestation types using OR.
         let attestation_type_condition = Condition::any();
-        let attestation_types_iter = attestation_types.iter().copied();
 
         // If SD-JWT was requested, check if any of the extended attestation types match any of the requested
         // attestation types. Note that this results in the following query:
@@ -305,7 +304,7 @@ impl<K> DatabaseStorage<K> {
                         Func::cust("json_each").arg(attestation::Column::ExtendedTypes.into_expr()),
                         "extended_attestation_type",
                     )
-                    .and_where(Expr::col(("extended_attestation_type", "value")).is_in(attestation_types_iter.clone()))
+                    .and_where(Expr::col(("extended_attestation_type", "value")).is_in(attestation_types))
                     .take(),
             )),
             Some(CredentialFormat::MsoMdoc) | None => attestation_type_condition,
@@ -313,7 +312,7 @@ impl<K> DatabaseStorage<K> {
 
         // The `attestation_type` column should match any of the requested attestation types.
         let attestation_type_condition =
-            attestation_type_condition.add(attestation::Column::AttestationType.is_in(attestation_types_iter));
+            attestation_type_condition.add(attestation::Column::AttestationType.is_in(attestation_types));
 
         // The top-level conditions are joined with AND, starting with the attestation types.
         let condition = condition.unwrap_or(Condition::all()).add(attestation_type_condition);
@@ -851,17 +850,17 @@ where
         self.query_unique_attestations(None).await
     }
 
-    async fn fetch_unique_attestations_by_types<'a>(
+    async fn fetch_unique_attestations_by_types(
         &self,
-        attestation_types: &HashSet<&'a str>,
+        attestation_types: &HashSet<String>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.query_unique_attestations_with_parameters(attestation_types, None, None)
             .await
     }
 
-    async fn fetch_unique_attestations_by_types_and_format<'a>(
+    async fn fetch_unique_attestations_by_types_and_format(
         &self,
-        attestation_types: &HashSet<&'a str>,
+        attestation_types: &HashSet<String>,
         format: CredentialFormat,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.query_unique_attestations_with_parameters(attestation_types, Some(format), None)
@@ -870,7 +869,7 @@ where
 
     async fn fetch_valid_unique_attestations_by_types_and_format<T>(
         &self,
-        attestation_types: &HashSet<&str>,
+        attestation_types: &HashSet<String>,
         format: CredentialFormat,
         time_generator: T,
     ) -> StorageResult<Vec<StoredAttestationCopy>>
@@ -1791,7 +1790,7 @@ pub(crate) mod tests {
 
         // Only one unique `AttestationCopy` should be returned when querying
         // the attestation type, but not when the queried format is SD-JWT.
-        let attestation_types = HashSet::from([mdoc.doc_type()]);
+        let attestation_types = HashSet::from([mdoc.doc_type().to_owned()]);
 
         let fetched_unique_any = storage
             .fetch_unique_attestations_by_types(&attestation_types)
@@ -1818,7 +1817,7 @@ pub(crate) mod tests {
 
         let fetched_unique_other = storage
             .fetch_valid_unique_attestations_by_types_and_format(
-                &HashSet::from(["other"]),
+                &HashSet::from(["other".to_owned()]),
                 CredentialFormat::MsoMdoc,
                 MockTimeGenerator::default(),
             )
@@ -1914,7 +1913,10 @@ pub(crate) mod tests {
         assert_ne!(attestation_copy2.attestation_copy_id, remaning_attestation_copy_id1);
 
         // Test that fetching extended VCTs does not return anything, as this should only work for SD-JWT.
-        let extended_vcts = normalized_metadata.extended_vcts().collect::<HashSet<_>>();
+        let extended_vcts = normalized_metadata
+            .extended_vcts()
+            .map(ToOwned::to_owned)
+            .collect::<HashSet<_>>();
 
         assert!(!extended_vcts.is_empty());
 
@@ -2013,7 +2015,7 @@ pub(crate) mod tests {
 
         // Only one unique `AttestationCopy` should be returned when querying
         // the attestation type, but not when the queried format is mdoc.
-        let attestation_types = HashSet::from([attestation_type.as_str()]);
+        let attestation_types = HashSet::from([attestation_type]);
         let fetched_unique_any = storage
             .fetch_unique_attestations_by_types(&attestation_types)
             .await
@@ -2039,7 +2041,7 @@ pub(crate) mod tests {
 
         let fetched_unique_other = storage
             .fetch_valid_unique_attestations_by_types_and_format(
-                &HashSet::from(["other"]),
+                &HashSet::from(["other".to_owned()]),
                 CredentialFormat::SdJwt,
                 MockTimeGenerator::default(),
             )
@@ -2066,7 +2068,10 @@ pub(crate) mod tests {
         assert!(fetched_unique_other.is_empty());
 
         // Test that fetching extended VCTs also works.
-        let extended_vcts = normalized_metadata.extended_vcts().collect::<HashSet<_>>();
+        let extended_vcts = normalized_metadata
+            .extended_vcts()
+            .map(ToOwned::to_owned)
+            .collect::<HashSet<_>>();
 
         assert!(!extended_vcts.is_empty());
 

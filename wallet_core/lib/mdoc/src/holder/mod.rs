@@ -3,8 +3,8 @@
 use error_category::ErrorCategory;
 
 pub mod disclosure;
-
 pub mod mdocs;
+
 pub use mdocs::*;
 
 #[derive(thiserror::Error, Debug, ErrorCategory)]

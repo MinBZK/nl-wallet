@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-import '../result/application_error.dart';
+import '../../../wallet_core/error/core_error.dart';
 
 /// Base class for Bluetooth Low Energy (BLE) connection events.
 sealed class BleConnectionEvent extends Equatable {
@@ -42,7 +42,7 @@ class BleDisconnected extends BleConnectionEvent {
 
 /// An error occurred during the BLE operation.
 class BleError extends BleConnectionEvent {
-  final ApplicationError error;
+  final CoreError error;
 
   const BleError(this.error);
 

@@ -22,6 +22,7 @@ members = [
     "lib/jwe",
     "lib/jwt",
     "lib/mdoc",
+    "lib/mdoc/mdoc_derive",
     "lib/measure",
     "lib/openid4vc",
     "lib/openid4vc_server",
