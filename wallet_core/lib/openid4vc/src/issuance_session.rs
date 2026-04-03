@@ -192,6 +192,14 @@ pub enum IssuanceSessionError {
     #[category(critical)]
     NoCredentialPreviewEndpoint, // TODO (PVW-5559): skip preview when no credential preview endpoint
 
+    #[error("issuer has no credential configurations supported")]
+    #[category(critical)]
+    NoCredentialConfigurationsSupported,
+
+    #[error("issuer has no nonce endpoint, yet one of the credential configurations require cryptographic binding")]
+    #[category(critical)]
+    NoNonceEndpoint,
+
     #[error("error requesting credential preview: {0:?}")]
     #[category(pd)]
     CredentialPreviewRequest(Box<ErrorResponse<CredentialPreviewErrorCode>>),
@@ -217,10 +225,6 @@ pub enum IssuanceSessionError {
     #[error("different issuer registrations found in credential previews")]
     #[category(critical)]
     DifferentIssuerRegistrations(#[source] MultipleItemsFound),
-
-    #[error("issuer has no credential configurations supported")]
-    #[category(critical)]
-    NoCredentialConfigurationsSupported,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -722,6 +726,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .map(|url| url.clone().into_url())
             .ok_or(IssuanceSessionError::NoCredentialPreviewEndpoint)?; // TODO (PVW-5559): skip preview when no credential preview endpoint
 
+        // TODO: Get the credential configuration ids from the `CredentialOffer` instead.
         let credential_configuration_ids: VecNonEmpty<String> = issuer_metadata
             .credential_configurations_supported
             .keys()
@@ -729,6 +734,25 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .collect_vec()
             .try_into()
             .map_err(|_| IssuanceSessionError::NoCredentialConfigurationsSupported)?;
+
+        // According to HAIP, if the issuer requires key binding for any of its credential configurations, it MUST also
+        // offer a nonce endpoint. As the wallet, we interpret this a bit narrower and reject issuance whenver any of
+        // the credential configurations offered require key binding, as the metadata may contain other configurations
+        // that do not concern this particular issuance session.
+        // See: https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-4.1-5
+        if issuer_metadata.nonce_endpoint.is_none()
+            && credential_configuration_ids.iter().any(|config_id| {
+                issuer_metadata
+                    .credential_configurations_supported
+                    .get(config_id)
+                    // This unwrap is safe, because we just got the ids from the issuer metadata.
+                    .unwrap()
+                    .cryptographic_binding
+                    .is_some()
+            })
+        {
+            return Err(IssuanceSessionError::NoNonceEndpoint);
+        }
 
         let oauth_server = issuer_metadata.authorization_servers().into_first();
         let oauth_metadata = message_client.discover_oauth_metadata(oauth_server).await?;
@@ -1274,22 +1298,16 @@ mod tests {
 
     use super::*;
 
-    fn mock_openid_message_client_metadata() -> MockVcMessageClient {
+    fn mock_openid_message_client_metadata(issuer_metadata: IssuerMetadata) -> MockVcMessageClient {
         let mut mock_msg_client = MockVcMessageClient::new();
 
         mock_msg_client
             .expect_discover_metadata()
             .times(1)
-            .returning(|issuer_identifier| {
-                Ok(IssuerMetadata::new_mock(
-                    issuer_identifier.clone(),
-                    PID_ATTESTATION_TYPE,
-                ))
-            });
+            .return_once(|_| Ok(issuer_metadata));
         mock_msg_client
             .expect_discover_oauth_metadata()
-            .times(1)
-            .returning(|issuer_identifier| Ok(oidc::Config::new_mock(issuer_identifier.clone())));
+            .return_once(|issuer_identifier| Ok(oidc::Config::new_mock(issuer_identifier.clone())));
 
         mock_msg_client
     }
@@ -1297,13 +1315,14 @@ mod tests {
     fn test_start_issuance(
         ca: &Ca,
         trust_anchor: TrustAnchor,
+        issuer_metadata: IssuerMetadata,
         preview_payloads: Vec<PreviewableCredentialPayload>,
         type_metadata: TypeMetadata,
         formats: Vec<Format>,
     ) -> Result<HttpIssuanceSession<MockVcMessageClient>, IssuanceSessionError> {
         let issuance_key = generate_pid_issuer_mock_with_registration(ca, IssuerRegistration::new_mock()).unwrap();
 
-        let mut mock_msg_client = mock_openid_message_client_metadata();
+        let mut mock_msg_client = mock_openid_message_client_metadata(issuer_metadata);
         mock_msg_client
             .expect_request_token()
             .return_once(move |_url, _token_request, _dpop_header| {
@@ -1351,6 +1370,7 @@ mod tests {
         let session = test_start_issuance(
             &ca,
             ca.to_trust_anchor(),
+            IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE),
             vec![PreviewableCredentialPayload::example_family_name(
                 &MockTimeGenerator::default(),
             )],
@@ -1380,6 +1400,48 @@ mod tests {
     }
 
     #[test]
+    fn test_start_issuance_no_nonce_endpoint() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+
+        // Starting issuance when the issuer metadata indicates that key
+        // binding is mandatary, yet offers no nonce endpoint should fail.
+        let mut issuer_metadata =
+            IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE);
+        issuer_metadata.nonce_endpoint = None;
+
+        let error = test_start_issuance(
+            &ca,
+            ca.to_trust_anchor(),
+            issuer_metadata.clone(),
+            vec![PreviewableCredentialPayload::example_family_name(
+                &MockTimeGenerator::default(),
+            )],
+            TypeMetadata::pid_example(),
+            vec![Format::MsoMdoc],
+        )
+        .expect_err("starting issuance session should not succeed");
+
+        assert_matches!(error, IssuanceSessionError::NoNonceEndpoint);
+
+        // When key binding is not mandatory however, the nonce endpoint can be absent.
+        for config in issuer_metadata.credential_configurations_supported.values_mut() {
+            config.cryptographic_binding = None;
+        }
+
+        let _ = test_start_issuance(
+            &ca,
+            ca.to_trust_anchor(),
+            issuer_metadata,
+            vec![PreviewableCredentialPayload::example_family_name(
+                &MockTimeGenerator::default(),
+            )],
+            TypeMetadata::pid_example(),
+            vec![Format::MsoMdoc],
+        )
+        .expect("starting issuance session should succeed");
+    }
+
+    #[test]
     fn test_start_issuance_untrusted_credential_preview() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let other_ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -1387,6 +1449,7 @@ mod tests {
         let error = test_start_issuance(
             &ca,
             other_ca.to_trust_anchor(),
+            IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE),
             vec![PreviewableCredentialPayload::example_family_name(
                 &MockTimeGenerator::default(),
             )],
@@ -1410,6 +1473,7 @@ mod tests {
         let error = test_start_issuance(
             &ca,
             ca.to_trust_anchor(),
+            IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE),
             vec![PreviewableCredentialPayload::example_empty(
                 PID_ATTESTATION_TYPE,
                 &MockTimeGenerator::default(),
@@ -1429,6 +1493,7 @@ mod tests {
         let error = test_start_issuance(
             &ca,
             ca.to_trust_anchor(),
+            IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE),
             vec![PreviewableCredentialPayload::example_empty(
                 PID_ATTESTATION_TYPE,
                 &MockTimeGenerator::default(),
@@ -1459,7 +1524,10 @@ mod tests {
         let copies_per_format: IndexMap<Format, NonZeroU8> =
             IndexMap::from_iter([(Format::MsoMdoc, NonZeroU8::MIN), (Format::SdJwt, NonZeroU8::MIN)]);
 
-        let mut mock_msg_client = mock_openid_message_client_metadata();
+        let mut mock_msg_client = mock_openid_message_client_metadata(IssuerMetadata::new_mock(
+            "https://example.com".parse().unwrap(),
+            PID_ATTESTATION_TYPE,
+        ));
         mock_msg_client
             .expect_request_token()
             .return_once(move |_url, _token_request, _dpop_header| {
