@@ -48,7 +48,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         store_connection.clone(),
         storage_settings.into(),
     ));
-    let nonce_store = ProofNonceStore::new(store_connection.clone());
+    let proof_nonce_store = ProofNonceStore::new(store_connection.clone());
 
     let pid_attr_service = BrpPidAttributeService::try_new(
         HttpBrpClient::new(settings.brp_server),
@@ -115,7 +115,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         issuer_settings,
         hsm,
         sessions,
-        nonce_store,
+        proof_nonce_store,
         settings.wua_issuer_pubkey.into_inner(),
         status_list_services,
         status_list_router,

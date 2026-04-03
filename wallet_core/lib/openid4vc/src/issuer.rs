@@ -423,7 +423,7 @@ pub struct Issuer<K, A, S, N, L> {
     attr_service: A,
     issuer_data: IssuerData<K>,
     sessions: Arc<S>,
-    nonce_store: N,
+    proof_nonce_store: N,
     status_list_services: Arc<L>,
     sessions_cleanup_task: AbortHandle,
 }
@@ -472,7 +472,7 @@ where
         wua_config: Option<WuaConfig>,
         attr_service: A,
         sessions: Arc<S>,
-        nonce_store: N,
+        proof_nonce_store: N,
         status_list_services: Arc<L>,
     ) -> Self {
         let credential_configurations_supported = attestation_config
@@ -551,7 +551,7 @@ where
             issuer_data,
             attr_service,
             sessions: Arc::clone(&sessions),
-            nonce_store,
+            proof_nonce_store,
             status_list_services,
             sessions_cleanup_task: sessions.start_cleanup_task(CLEANUP_INTERVAL_SECONDS).abort_handle(),
         }
@@ -607,7 +607,7 @@ where
     pub async fn generate_proof_nonce(&self) -> Result<String, NonceStoreError<N::Error>> {
         let nonce = generate_nonce();
 
-        self.nonce_store.store_nonce(nonce.clone()).await?;
+        self.proof_nonce_store.store_nonce(nonce.clone()).await?;
 
         Ok(nonce)
     }
@@ -786,7 +786,7 @@ where
                 dpop,
                 &self.issuer_data,
                 IssuerServices {
-                    nonce_store: &self.nonce_store,
+                    proof_nonce_store: &self.proof_nonce_store,
                     status_list_services: self.status_list_services.as_ref(),
                 },
             )
@@ -816,7 +816,7 @@ where
                 dpop,
                 &self.issuer_data,
                 IssuerServices {
-                    nonce_store: &self.nonce_store,
+                    proof_nonce_store: &self.proof_nonce_store,
                     status_list_services: self.status_list_services.as_ref(),
                 },
             )
@@ -1064,7 +1064,7 @@ impl TryFrom<SessionState<IssuanceData>> for Session<WaitingForResponse> {
 }
 
 struct IssuerServices<'a, N, S> {
-    nonce_store: &'a N,
+    proof_nonce_store: &'a N,
     status_list_services: &'a S,
 }
 
@@ -1220,7 +1220,7 @@ impl Session<WaitingForResponse> {
 
         // Check the validity of all of the nonces used, which may be equal to each other.
         let nonce_status = services
-            .nonce_store
+            .proof_nonce_store
             .check_nonce_status_and_remove(
                 [request_nonce.as_str(), poa_nonce.as_str()]
                     .iter()
@@ -1381,7 +1381,7 @@ impl Session<WaitingForResponse> {
 
         // Check the validity of all of the nonces used, which may be equal to each other.
         let nonce_status = services
-            .nonce_store
+            .proof_nonce_store
             .check_nonce_status_and_remove(
                 request_nonces
                     .iter()
