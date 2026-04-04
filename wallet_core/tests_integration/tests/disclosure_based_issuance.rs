@@ -72,6 +72,7 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
                 ],
                 intent_to_retain: Some(true),
             }],
+            aki: vec![],
         },
         CredentialFormat::SdJwt => NormalizedCredentialRequest::SdJwt {
             id: "degree".parse().unwrap(),
@@ -79,6 +80,7 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
             claims: vec_nonempty![SdJwtAttributeRequest {
                 path: vec_nonempty![ClaimPath::SelectByKey("education".to_string())],
             }],
+            aki: vec![],
         },
     };
 
