@@ -31,9 +31,11 @@ use x509_parser::extensions::GeneralName;
 use x509_parser::nom;
 use x509_parser::nom::AsBytes;
 use x509_parser::objects::oid_registry;
+use x509_parser::prelude::AuthorityKeyIdentifier;
 use x509_parser::prelude::ExtendedKeyUsage;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::PEMError;
+use x509_parser::prelude::ParsedExtension;
 use x509_parser::prelude::X509Certificate;
 use x509_parser::prelude::X509Error;
 use x509_parser::x509::X509Name;
@@ -353,6 +355,17 @@ impl BorrowingCertificate {
     /// Returns the first DNS SAN, if any, from the certificate.
     pub fn san_dns_name(&self) -> Result<Option<&str>, CertificateError> {
         Ok(self.san_dns_names()?.into_iter().next())
+    }
+
+    pub fn matches_aki(&self, aki: &[u8]) -> Result<bool, CertificateError> {
+        let (_, query) = AuthorityKeyIdentifier::from_der(aki)?;
+
+        let result =
+            self.x509_certificate().extensions().into_iter().any(
+                |ext| matches!(ext.parsed_extension(), ParsedExtension::AuthorityKeyIdentifier(aki) if aki == &query),
+            );
+
+        return Ok(result);
     }
 
     /// Returns all DNS SAN entries from the certificate.

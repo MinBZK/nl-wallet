@@ -98,6 +98,13 @@ impl NormalizedCredentialRequest {
             Self::SdJwt { claims, .. } => Either::Right(claims.iter().map(|claim| &claim.path)),
         }
     }
+
+    pub fn aki(&self) -> &Vec<Vec<u8>> {
+        match self {
+            NormalizedCredentialRequest::MsoMdoc { aki, .. } => aki,
+            NormalizedCredentialRequest::SdJwt { aki, .. } => aki,
+        }
+    }
 }
 
 impl MayHaveUniqueId for NormalizedCredentialRequest {

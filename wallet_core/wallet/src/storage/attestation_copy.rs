@@ -153,6 +153,21 @@ impl StoredAttestationCopy {
         self.attestation_copy_id
     }
 
+    pub fn matches_any_aki(&self, aki: &Vec<Vec<u8>>) -> bool {
+        aki.is_empty()
+            || aki.iter().any(|aki| match &self.attestation {
+                StoredAttestation::MsoMdoc { mdoc } => mdoc
+                    .issuer_certificate()
+                    .expect("stored mdoc should have a valid certificate")
+                    .matches_aki(aki.as_slice())
+                    .expect("stored mdoc should have a valid certificate"),
+                StoredAttestation::SdJwt { sd_jwt, .. } => sd_jwt.issuer_certificate_chain().iter().any(|cert| {
+                    cert.matches_aki(aki.as_slice())
+                        .expect("stored SD-JWT should have valid certificates")
+                }),
+            })
+    }
+
     /// Checks if the stored attestation matches a list of claim paths.
     pub fn matches_requested_attributes<'a, 'b>(
         &'a self,

@@ -400,18 +400,20 @@ where
         let candidate_attestations = stored_attestations
             .into_iter()
             .filter_map(|attestation_copy| {
-                // Only select those attestations that contain all of the requested attributes.
-                // TODO (PVW-4537): Have this be part of the database query using some index.
-                attestation_copy
-                    .matches_requested_attributes(request.claim_paths())
-                    .then(|| {
-                        // Create a disclosure proposal by removing any attributes that were not requested from the
-                        // presentation attributes. Since the filtering above should remove any attestation in which the
-                        // requested claim paths are not present and this is the only error condition, no error should
-                        // occur.
-                        DisclosableAttestation::try_new(attestation_copy, request.claim_paths(), presentation_config)
-                            .expect("all claim paths should be present in attestation")
-                    })
+                // Only select those attestations that contain all of the requested attributes, as well as any
+                // AKI, if specified.
+                // TODO (PVW-4537): Have this (or at least the attributes matching) be part of the database query
+                // using some index.
+                (attestation_copy.matches_requested_attributes(request.claim_paths())
+                    && attestation_copy.matches_any_aki(request.aki()))
+                .then(|| {
+                    // Create a disclosure proposal by removing any attributes that were not requested from the
+                    // presentation attributes. Since the filtering above should remove any attestation in which the
+                    // requested claim paths are not present and this is the only error condition, no error should
+                    // occur.
+                    DisclosableAttestation::try_new(attestation_copy, request.claim_paths(), presentation_config)
+                        .expect("all claim paths should be present in attestation")
+                })
             })
             .collect_vec();
 
