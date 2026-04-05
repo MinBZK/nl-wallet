@@ -153,18 +153,22 @@ impl StoredAttestationCopy {
         self.attestation_copy_id
     }
 
+    /// Returns true if `aki` is empty, and otherwise returns whether any of the attestation's issuer certificates
+    /// match any of the specified AKIs.
+    ///
+    /// (Note that if an AKI is checked against a certificate that has no AKI, this is not a match.)
     pub fn matches_any_aki(&self, aki: &Vec<Vec<u8>>) -> bool {
         aki.is_empty()
             || aki.iter().any(|aki| match &self.attestation {
                 StoredAttestation::MsoMdoc { mdoc } => mdoc
                     .issuer_certificate()
                     .expect("stored mdoc should have a valid certificate")
-                    .matches_aki(aki.as_slice())
-                    .expect("stored mdoc should have a valid certificate"),
-                StoredAttestation::SdJwt { sd_jwt, .. } => sd_jwt.issuer_certificate_chain().iter().any(|cert| {
-                    cert.matches_aki(aki.as_slice())
-                        .expect("stored SD-JWT should have valid certificates")
-                }),
+                    .aki_der()
+                    .is_some_and(|cert_aki| cert_aki == aki),
+                StoredAttestation::SdJwt { sd_jwt, .. } => sd_jwt
+                    .issuer_certificate_chain()
+                    .iter()
+                    .any(|cert| cert.aki_der().is_some_and(|cert_aki| cert_aki == aki)),
             })
     }
 
