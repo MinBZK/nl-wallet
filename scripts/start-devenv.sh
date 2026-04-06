@@ -642,6 +642,7 @@ then
     if [[ $START == '0' ]]
     then
         cd "${BASE_DIR}"/wallet_app
+        ANDROID_NDK_TARGETS="$(uname -m|sed s/arm64/arm64-v8a/)" \
         flutter run \
             --dart-define MOCK_REPOSITORIES=false \
             --dart-define SHOW_DEBUG_OPTIONS=true \
