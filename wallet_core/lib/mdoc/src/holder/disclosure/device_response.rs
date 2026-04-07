@@ -5,6 +5,8 @@ use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
+use wscd::Poa;
+use wscd::wscd::JwtPoaInput;
 
 use crate::errors::Error;
 use crate::errors::Result;
@@ -18,12 +20,13 @@ use crate::iso::engagement::SessionTranscript;
 use super::mdoc::PartialMdoc;
 
 impl DeviceResponse {
-    pub fn new(documents: VecNonEmpty<Document>) -> Self {
+    pub fn new(documents: VecNonEmpty<Document>, poa: Option<Poa>) -> Self {
         Self {
             version: DeviceResponseVersion::default(),
             documents: Some(documents),
             document_errors: None,
             status: 0,
+            poa,
         }
     }
 
@@ -61,19 +64,17 @@ impl DeviceResponse {
         DeviceSigned::new_signatures(keys_and_challenges, wscd, poa_input).await
     }
 
-    pub async fn sign_from_partial_mdocs<K, W, P>(
+    pub async fn sign_from_partial_mdocs<K, W>(
         partial_mdocs: VecNonEmpty<PartialMdoc>,
         session_transcript: &SessionTranscript,
         wscd: &W,
-        poa_input: P::Input,
+        poa_input: JwtPoaInput,
     ) -> Result<Self>
     where
         K: CredentialEcdsaKey,
-        W: DisclosureWscd<Key = K, Poa = P>,
-        P: WscdPoa,
+        W: DisclosureWscd<Key = K, Poa = Poa>,
     {
-        // TODO do something with the POA
-        let (device_signeds, _poa) =
+        let (device_signeds, poa) =
             Self::sign_from_partial_mdocs_inner(&partial_mdocs, session_transcript, wscd, poa_input).await?;
 
         let documents = partial_mdocs
@@ -84,7 +85,7 @@ impl DeviceResponse {
             .try_into()
             // This is safe, as the source iterator is non-empty.
             .unwrap();
-        let device_response = Self::new(documents);
+        let device_response = Self::new(documents, poa);
 
         Ok(device_response)
     }
@@ -106,7 +107,9 @@ impl DeviceResponse {
         let device_responses = partial_mdocs
             .into_iter()
             .zip_eq(device_signeds)
-            .map(|(partial_mdoc, device_signed)| Self::new(vec_nonempty![Document::new(partial_mdoc, device_signed)]))
+            .map(|(partial_mdoc, device_signed)| {
+                Self::new(vec_nonempty![Document::new(partial_mdoc, device_signed)], None)
+            })
             .collect_vec()
             .try_into()
             // This is safe, as the source iterator is non-empty.

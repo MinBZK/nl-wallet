@@ -4438,6 +4438,7 @@ dependencies = [
  "tracing",
  "url",
  "utils",
+ "wscd",
 ]
 
 [[package]]
