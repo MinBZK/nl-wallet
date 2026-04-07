@@ -3,7 +3,7 @@ use jwe::algorithm::EcdhAlgorithm;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweDecrypterError;
-use jwe::decryption::JweSecretKey;
+use jwe::decryption::JweEcdhSecretKey;
 use jwe::encryption::JweCompression;
 use jwe::encryption::JweEncrypter;
 use jwe::encryption::JwePublicKey;
@@ -19,8 +19,8 @@ struct TestPayload {
     numbers: Vec<i64>,
 }
 
-fn setup_receiver(kid: Option<String>) -> (JweSecretKey, Key) {
-    let secret_key = JweSecretKey::new_random(kid, EcdhAlgorithm::EcdhEs);
+fn setup_receiver(kid: Option<String>) -> (JweEcdhSecretKey, Key) {
+    let secret_key = JweEcdhSecretKey::new_random(kid, EcdhAlgorithm::EcdhEs);
     let jwk = Key::from(secret_key.to_jwe_public_key());
 
     (secret_key, jwk)
@@ -58,7 +58,7 @@ fn test_encrypt_decrypt_ok(#[values(None, Some("key_id"))] kid: Option<&str>) {
     let jwe = encrypt_jwe(&jwk, &payload);
 
     // Receiving side again.
-    let decrypted_payload = JweDecrypter::from_secret_key(&secret_key)
+    let decrypted_payload = JweDecrypter::from_ecdh_secret_key(&secret_key)
         .decrypt::<TestPayload>(&jwe)
         .expect("decrypting payload from JWE should succeed");
 
@@ -72,7 +72,7 @@ fn test_encrypt_decrypt_id_mismatch() {
     // The sender should not include a different kid value in the JWE.
     let jwk_wrong_kid = jwk.clone().with_kid("wrong_key_id".to_string());
     let jwe = encrypt_jwe(&jwk_wrong_kid, &());
-    let error = JweDecrypter::from_secret_key(&secret_key)
+    let error = JweDecrypter::from_ecdh_secret_key(&secret_key)
         .decrypt::<()>(&jwe)
         .expect_err("decrypting payload from JWE should fail");
 
@@ -87,7 +87,7 @@ fn test_encrypt_decrypt_id_mismatch() {
         .with_alg(jwk.alg().cloned().unwrap())
         .with_use(jwk.key_use().cloned().unwrap());
     let jwe = encrypt_jwe(&jwk_no_kid, &());
-    let error = JweDecrypter::from_secret_key(&secret_key)
+    let error = JweDecrypter::from_ecdh_secret_key(&secret_key)
         .decrypt::<()>(&jwe)
         .expect_err("decrypting payload from JWE should fail");
 

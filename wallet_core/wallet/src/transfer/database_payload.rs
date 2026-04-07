@@ -5,7 +5,7 @@ use derive_more::Into;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweDecrypterError;
-use jwe::decryption::JweSecretKey;
+use jwe::decryption::JweEcdhSecretKey;
 use jwe::encryption::JweCompression;
 use jwe::encryption::JweEncrypter;
 use jwe::encryption::JweEncrypterError;
@@ -32,8 +32,8 @@ impl WalletDatabasePayload {
         Ok(jwe)
     }
 
-    pub fn decrypt(jwe: &str, secret_key: &JweSecretKey) -> Result<Self, JweDecrypterError> {
-        let decrypter = JweDecrypter::from_secret_key(secret_key);
+    pub fn decrypt(jwe: &str, secret_key: &JweEcdhSecretKey) -> Result<Self, JweDecrypterError> {
+        let decrypter = JweDecrypter::from_ecdh_secret_key(secret_key);
 
         let export = decrypter.decrypt(jwe)?;
 
@@ -45,7 +45,7 @@ impl WalletDatabasePayload {
 mod test {
     use crypto::utils::random_bytes;
     use jwe::algorithm::EcdhAlgorithm;
-    use jwe::decryption::JweSecretKey;
+    use jwe::decryption::JweEcdhSecretKey;
 
     use crate::storage::DatabaseExport;
     use crate::storage::test::SqlCipherKey;
@@ -58,7 +58,7 @@ mod test {
         let database_export = DatabaseExport::new(database_export_key, database_export_bytes.clone());
         let database_payload = WalletDatabasePayload::new(database_export);
 
-        let secret_key = JweSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw);
+        let secret_key = JweEcdhSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw);
 
         let jwe = database_payload.encrypt(secret_key.to_jwe_public_key()).unwrap();
 

@@ -5,7 +5,6 @@ use derive_more::From;
 use derive_more::FromStr;
 use josekit::JoseError;
 use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
-use josekit::jwe::alg::ecdh_es::EcdhEsJweDecrypter;
 use p256::SecretKey;
 use p256::pkcs8::EncodePrivateKey;
 use rand_core::OsRng;
@@ -34,7 +33,7 @@ struct PemSecretKey(SecretKey);
 /// another party. JWEs from this other party can then be decrypted by converting it into a [`JweDecrypter`].
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct JweSecretKey {
+pub struct JweEcdhSecretKey {
     id: Option<String>,
     #[serde_as(as = "DisplayFromStr")]
     key: PemSecretKey,
@@ -42,7 +41,7 @@ pub struct JweSecretKey {
     algorithm: EcdhAlgorithm,
 }
 
-impl JweSecretKey {
+impl JweEcdhSecretKey {
     pub fn new(id: Option<String>, key: SecretKey, algorithm: EcdhAlgorithm) -> Self {
         Self {
             id,
@@ -91,11 +90,11 @@ pub enum JweDecrypterError {
 #[derive(Debug, Clone)]
 pub struct JweDecrypter {
     id: Option<String>,
-    decrypter: EcdhEsJweDecrypter,
+    decrypter: Box<dyn josekit::jwe::JweDecrypter>,
 }
 
 impl JweDecrypter {
-    fn new(id: Option<String>, secret_key: &SecretKey, algorithm: EcdhAlgorithm) -> Self {
+    fn new_ecdh(id: Option<String>, secret_key: &SecretKey, algorithm: EcdhAlgorithm) -> Self {
         let der = secret_key
             .to_pkcs8_der()
             .expect("a p256 secret key should always encode to DER");
@@ -104,11 +103,14 @@ impl JweDecrypter {
             .decrypter_from_der(der.as_bytes())
             .expect("the p256 secret key DER should always be valid");
 
-        Self { id, decrypter }
+        Self {
+            id,
+            decrypter: Box::new(decrypter),
+        }
     }
 
-    pub fn from_secret_key(secret_key: &JweSecretKey) -> Self {
-        Self::new(secret_key.id.clone(), secret_key.key.as_ref(), secret_key.algorithm)
+    pub fn from_ecdh_secret_key(secret_key: &JweEcdhSecretKey) -> Self {
+        Self::new_ecdh(secret_key.id.clone(), secret_key.key.as_ref(), secret_key.algorithm)
     }
 
     pub fn id(&self) -> Option<&str> {
@@ -120,7 +122,7 @@ impl JweDecrypter {
         T: DeserializeOwned,
     {
         let (payload, header) =
-            josekit::jwe::deserialize_compact(jwe, &self.decrypter).map_err(JweDecrypterError::Decryption)?;
+            josekit::jwe::deserialize_compact(jwe, self.decrypter.as_ref()).map_err(JweDecrypterError::Decryption)?;
 
         if let Some(id) = self.id.as_deref() {
             let received_id = header.claim("kid").and_then(serde_json::Value::as_str);
@@ -149,7 +151,7 @@ mod tests {
     use crate::algorithm::EcdhAlgorithm;
 
     use super::JweDecrypter;
-    use super::JweSecretKey;
+    use super::JweEcdhSecretKey;
 
     // Source: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.3-7
     const EXAMPLE_JWE: &str = "eyJhbGciOiJFQ0RILUVTIiwiZW5jIjoiQTEyOEdDTSIsImtpZCI6ImFjIiwiZXBrIjp7Imt0eSI6IkVD\
@@ -199,8 +201,8 @@ mod tests {
         let secret_key = jwk_to_secret_key(&jwk);
         let algorithm = EcdhAlgorithm::try_from_jwk_simple_algorithm(jwk.alg().unwrap()).unwrap();
 
-        let key = JweSecretKey::new(id, secret_key, algorithm);
-        let decrypter = JweDecrypter::from_secret_key(&key);
+        let key = JweEcdhSecretKey::new(id, secret_key, algorithm);
+        let decrypter = JweDecrypter::from_ecdh_secret_key(&key);
 
         let data = decrypter
             .decrypt::<serde_json::Value>(EXAMPLE_JWE)

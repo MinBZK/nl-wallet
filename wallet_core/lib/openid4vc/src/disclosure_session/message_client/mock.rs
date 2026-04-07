@@ -16,7 +16,7 @@ use crypto::utils::random_string;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use jwe::algorithm::EcdhAlgorithm;
-use jwe::decryption::JweSecretKey;
+use jwe::decryption::JweEcdhSecretKey;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
@@ -157,7 +157,7 @@ pub struct MockVerifierSession {
     pub credential_requests: NormalizedCredentialRequests,
     pub nonce: Nonce,
     pub state: Option<String>,
-    pub encryption_secret_key: JweSecretKey,
+    pub encryption_secret_key: JweEcdhSecretKey,
     pub client_id: String,
     pub request_uri: BaseUrl,
     pub request_uri_method: Option<VpRequestUriMethod>,
@@ -188,7 +188,7 @@ impl MockVerifierSession {
 
         // Generate some OpenID4VP specific session material.
         let nonce = Nonce::new_random();
-        let encryption_secret_key = JweSecretKey::new_random(Some(random_string(32)), EcdhAlgorithm::EcdhEs);
+        let encryption_secret_key = JweEcdhSecretKey::new_random(Some(random_string(32)), EcdhAlgorithm::EcdhEs);
         let response_uri = verifier_url.join_base_url("response_uri");
         let client_id = format!(
             "x509_san_dns:{}",

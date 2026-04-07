@@ -45,7 +45,7 @@ use http_utils::urls::BaseUrl;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweDecrypterError;
-use jwe::decryption::JweSecretKey;
+use jwe::decryption::JweEcdhSecretKey;
 use jwe::encryption::JweCompression;
 use jwe::encryption::JweEncrypter;
 use jwe::encryption::JweEncrypterError;
@@ -864,7 +864,7 @@ impl VpAuthorizationResponse {
     #[expect(clippy::too_many_arguments)]
     pub async fn decrypt_and_verify<C>(
         jwe: &str,
-        secret_key: &JweSecretKey,
+        secret_key: &JweEcdhSecretKey,
         auth_request: &NormalizedVpAuthorizationRequest,
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
@@ -891,8 +891,8 @@ impl VpAuthorizationResponse {
             .await
     }
 
-    fn decrypt(jwe: &str, secret_key: &JweSecretKey) -> Result<VpAuthorizationResponse, JweDecrypterError> {
-        let decrypter = JweDecrypter::from_secret_key(secret_key);
+    fn decrypt(jwe: &str, secret_key: &JweEcdhSecretKey) -> Result<VpAuthorizationResponse, JweDecrypterError> {
+        let decrypter = JweDecrypter::from_ecdh_secret_key(secret_key);
 
         decrypter.decrypt(jwe)
     }
@@ -1191,7 +1191,7 @@ mod tests {
     use http_utils::urls::BaseUrl;
     use jwe::algorithm::EcdhAlgorithm;
     use jwe::algorithm::EncryptionAlgorithm;
-    use jwe::decryption::JweSecretKey;
+    use jwe::decryption::JweEcdhSecretKey;
     use jwt::SignedJwt;
     use jwt::nonce::Nonce;
     use jwt::pop::JwtPopClaims;
@@ -1327,7 +1327,7 @@ mod tests {
     fn setup_mdoc() -> (
         TrustAnchor<'static>,
         KeyPair,
-        JweSecretKey,
+        JweEcdhSecretKey,
         NormalizedVpAuthorizationRequest,
     ) {
         setup_with_credential_requests(NormalizedCredentialRequests::new_mock_mdoc_iso_example())
@@ -1338,14 +1338,14 @@ mod tests {
     ) -> (
         TrustAnchor<'static>,
         KeyPair,
-        JweSecretKey,
+        JweEcdhSecretKey,
         NormalizedVpAuthorizationRequest,
     ) {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let trust_anchor = ca.to_trust_anchor().to_owned();
         let rp_keypair = ca.generate_reader_mock().unwrap();
 
-        let encryption_secret_key = JweSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
+        let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
         let encryption_public_key = encryption_secret_key.to_jwe_public_key();
 
         let rp_fqdn = rp_keypair.certificate().san_dns_name().unwrap().unwrap();

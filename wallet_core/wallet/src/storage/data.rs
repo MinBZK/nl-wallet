@@ -5,7 +5,7 @@ use serde_with::DisplayFromStr;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use jwe::decryption::JweSecretKey;
+use jwe::decryption::JweEcdhSecretKey;
 use jwe::encryption::JwePublicKey;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::AccountRevokedData;
@@ -78,7 +78,7 @@ pub struct TransferData {
 #[serde(rename_all_fields = "snake_case")]
 pub enum TransferKeyData {
     Source { public_key: JwePublicKey },
-    Destination { secret_key: JweSecretKey },
+    Destination { secret_key: JweEcdhSecretKey },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
