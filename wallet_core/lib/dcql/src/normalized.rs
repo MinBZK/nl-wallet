@@ -611,6 +611,30 @@ pub mod mock {
     }
 
     impl NormalizedCredentialRequest {
+        pub fn with_aki(self, aki: Vec<Vec<u8>>) -> Self {
+            match self {
+                Self::MsoMdoc {
+                    id,
+                    doctype_value,
+                    claims,
+                    ..
+                } => Self::MsoMdoc {
+                    id,
+                    doctype_value,
+                    claims,
+                    aki,
+                },
+                Self::SdJwt {
+                    id, vct_values, claims, ..
+                } => Self::SdJwt {
+                    id,
+                    vct_values,
+                    claims,
+                    aki,
+                },
+            }
+        }
+
         fn new_mock_from_slices(
             id: &str,
             format: MockCredentialFormat,

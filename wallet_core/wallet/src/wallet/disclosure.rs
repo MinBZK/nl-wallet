@@ -1007,10 +1007,12 @@ mod tests {
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::Organization;
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::validity::ValidityWindow;
+    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
@@ -1109,16 +1111,22 @@ mod tests {
         credential_payload: CredentialPayload,
         metadata: NormalizedTypeMetadata,
     ) -> StoredAttestationCopy {
+        example_stored_attestation_copy_with_key(format, credential_payload, metadata, &ISSUER_KEY.issuance_key)
+    }
+
+    fn example_stored_attestation_copy_with_key(
+        format: CredentialFormat,
+        credential_payload: CredentialPayload,
+        metadata: NormalizedTypeMetadata,
+        issuer_keypair: &crypto::server_keys::KeyPair,
+    ) -> StoredAttestationCopy {
         match format {
             CredentialFormat::MsoMdoc => StoredAttestationCopy::new(
                 Uuid::new_v4(),
                 Uuid::new_v4(),
                 ValidityWindow::new_valid_mock(),
                 StoredAttestation::MsoMdoc {
-                    mdoc: mdoc_from_credential_payload(
-                        credential_payload.previewable_payload,
-                        &ISSUER_KEY.issuance_key,
-                    ),
+                    mdoc: mdoc_from_credential_payload(credential_payload.previewable_payload, issuer_keypair),
                 },
                 metadata,
                 None,
@@ -1129,11 +1137,7 @@ mod tests {
                 ValidityWindow::new_valid_mock(),
                 StoredAttestation::SdJwt {
                     key_identifier: crypto::utils::random_string(16),
-                    sd_jwt: verified_sd_jwt_from_credential_payload(
-                        credential_payload,
-                        &metadata,
-                        &ISSUER_KEY.issuance_key,
-                    ),
+                    sd_jwt: verified_sd_jwt_from_credential_payload(credential_payload, &metadata, issuer_keypair),
                 },
                 metadata,
                 None,
@@ -1146,6 +1150,18 @@ mod tests {
             format,
             CredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
             NormalizedTypeMetadata::nl_pid_example(),
+        )
+    }
+
+    fn example_pid_stored_attestation_copy_with_key(
+        format: CredentialFormat,
+        issuer_keypair: &crypto::server_keys::KeyPair,
+    ) -> StoredAttestationCopy {
+        example_stored_attestation_copy_with_key(
+            format,
+            CredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+            NormalizedTypeMetadata::nl_pid_example(),
+            issuer_keypair,
         )
     }
 
@@ -2006,6 +2022,162 @@ mod tests {
                 !shared_data_with_relying_party_before
         );
         assert!(wallet.session.is_some());
+    }
+
+    fn wallet_expectations_for_aki_tests(
+        wallet: &mut TestWalletMockStorage,
+        stored_attestation: StoredAttestationCopy,
+    ) {
+        wallet
+            .mut_storage()
+            .expect_fetch_valid_unique_attestations_by_types_and_format()
+            .times(1)
+            .returning(move |_, _, _| Ok(vec![stored_attestation.clone()]));
+        wallet
+            .mut_storage()
+            .expect_did_share_data_with_relying_party()
+            .return_once(|_| Ok(false));
+    }
+
+    fn default_pid_credential_requests_with_aki(
+        requested_format: CredentialFormat,
+        aki: Vec<u8>,
+    ) -> NormalizedCredentialRequests {
+        default_pid_credential_requests(requested_format)
+            .into_iter()
+            .map(|r| r.with_aki(vec![aki.clone()]))
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap()
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_wallet_start_disclosure_matching_aki(
+        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+    ) {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Build credential requests containing the AKI of the ISSUER_KEY's certificate,
+        // which matches the stored attestation that will be returned from storage.
+        let aki = ISSUER_KEY
+            .issuance_key
+            .certificate()
+            .aki_der()
+            .expect("issuer certificate should have AKI")
+            .to_vec();
+        let credential_requests = default_pid_credential_requests_with_aki(requested_format, aki);
+
+        setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
+
+        wallet_expectations_for_aki_tests(&mut wallet, example_pid_stored_attestation_copy(requested_format));
+
+        // The AKI matches, so a disclosure proposal should be returned.
+        wallet
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::QrCode)
+            .await
+            .expect("starting disclosure with matching AKI should succeed");
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_wallet_start_disclosure_error_aki_mismatch(
+        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+    ) {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Build credential requests containing the AKI of a different CA, which will not
+        // match the stored attestation that was issued by ISSUER_KEY.
+        let wrong_aki = Ca::generate_issuer_mock_ca()
+            .unwrap()
+            .generate_issuer_mock()
+            .unwrap()
+            .certificate()
+            .aki_der()
+            .expect("issuer certificate should have AKI")
+            .to_vec();
+        let credential_requests = default_pid_credential_requests_with_aki(requested_format, wrong_aki);
+
+        setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
+
+        wallet_expectations_for_aki_tests(&mut wallet, example_pid_stored_attestation_copy(requested_format));
+
+        // The AKI doesn't match the stored attestation's issuer, so no candidates are found.
+        let error = wallet
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::QrCode)
+            .await
+            .expect_err("starting disclosure with mismatching AKI should fail");
+
+        assert_matches!(
+            error,
+            DisclosureError::AttributesNotAvailable(AttributesNotAvailable { .. })
+        );
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_wallet_start_disclosure_no_aki_requested_no_aki_in_cert(
+        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+    ) {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Credential requests with no AKI constraint (empty aki list).
+        let credential_requests = default_pid_credential_requests(requested_format);
+        setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
+
+        // Attestation issued by a CA that does not include AKI in certificates.
+        let ca = Ca::generate_issuer_mock_ca_without_aki().unwrap();
+        let issuance_key = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
+
+        wallet_expectations_for_aki_tests(
+            &mut wallet,
+            example_pid_stored_attestation_copy_with_key(requested_format, &issuance_key),
+        );
+
+        // No AKI constraint means the attestation is a candidate regardless of whether the cert has an AKI.
+        wallet
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::QrCode)
+            .await
+            .expect("starting disclosure with no AKI constraint should succeed even if cert has no AKI");
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_wallet_start_disclosure_error_aki_requested_but_cert_has_no_aki(
+        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+    ) {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Build credential requests with the AKI of a normal (with-AKI) issuer key.
+        let aki = ISSUER_KEY
+            .issuance_key
+            .certificate()
+            .aki_der()
+            .expect("issuer certificate should have AKI")
+            .to_vec();
+        let credential_requests = default_pid_credential_requests_with_aki(requested_format, aki);
+
+        setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
+
+        // Attestation issued by a CA that does not include AKI in certificates.
+        let ca = Ca::generate_issuer_mock_ca_without_aki().unwrap();
+        let issuance_key = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
+
+        wallet_expectations_for_aki_tests(
+            &mut wallet,
+            example_pid_stored_attestation_copy_with_key(requested_format, &issuance_key),
+        );
+
+        // An AKI is requested but the cert has no AKI extension, so no match.
+        let error = wallet
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::QrCode)
+            .await
+            .expect_err("starting disclosure should fail when AKI is requested but cert has no AKI");
+
+        assert_matches!(
+            error,
+            DisclosureError::AttributesNotAvailable(AttributesNotAvailable { .. })
+        );
     }
 
     #[rstest]

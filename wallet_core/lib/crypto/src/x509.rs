@@ -489,10 +489,22 @@ impl AsRef<str> for DistinguishedName {
 }
 
 #[cfg(any(test, feature = "generate"))]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct CertificateConfiguration {
     pub not_before: Option<DateTime<Utc>>,
     pub not_after: Option<DateTime<Utc>>,
+    pub include_aki: bool,
+}
+
+#[cfg(any(test, feature = "generate"))]
+impl Default for CertificateConfiguration {
+    fn default() -> Self {
+        Self {
+            not_before: Default::default(),
+            not_after: Default::default(),
+            include_aki: true,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -555,6 +567,7 @@ mod test {
         let config = CertificateConfiguration {
             not_before: Some(now),
             not_after: Some(later),
+            include_aki: true,
         };
         let ca = Ca::generate("myca", config).unwrap();
         let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
@@ -577,7 +590,11 @@ mod test {
     ) -> CertificateError {
         let ca = generate_ca_for_validity_test();
 
-        let config = CertificateConfiguration { not_before, not_after };
+        let config = CertificateConfiguration {
+            not_before,
+            not_after,
+            include_aki: true,
+        };
         let mdl = MdlExtension;
 
         let issuer_key_pair = ca.generate_key_pair("mycert", mdl, config).unwrap();
@@ -653,6 +670,7 @@ mod test {
         let config = CertificateConfiguration {
             not_before: Some(start),
             not_after: Some(end),
+            include_aki: true,
         };
 
         Ca::generate("myca", config).unwrap()

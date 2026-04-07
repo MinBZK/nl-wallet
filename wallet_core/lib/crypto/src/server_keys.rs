@@ -293,6 +293,7 @@ pub mod generate {
             if let Some(not_after) = source.not_after.and_then(|ts| ts.timestamp_nanos_opt()) {
                 result.not_after = OffsetDateTime::from_unix_timestamp_nanos(i128::from(not_after)).unwrap();
             }
+            result.use_authority_key_identifier_extension = source.include_aki;
             result
         }
     }
@@ -327,6 +328,16 @@ pub mod generate {
         impl Ca {
             pub fn generate_issuer_mock_ca() -> Result<Self, CertificateError> {
                 Self::generate(ISSUANCE_CA_CN, Default::default())
+            }
+
+            pub fn generate_issuer_mock_ca_without_aki() -> Result<Self, CertificateError> {
+                Self::generate(
+                    ISSUANCE_CA_CN,
+                    CertificateConfiguration {
+                        include_aki: false,
+                        ..Default::default()
+                    },
+                )
             }
 
             pub fn generate_reader_mock_ca() -> Result<Self, CertificateError> {

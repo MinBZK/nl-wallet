@@ -192,6 +192,7 @@ mod test {
         let config = CertificateConfiguration {
             not_before: Some(now),
             not_after: Some(later),
+            include_aki: true,
         };
 
         let ca = Ca::generate("myca", Default::default()).unwrap();
@@ -249,6 +250,7 @@ mod test {
         let config = CertificateConfiguration {
             not_before: Some(now),
             not_after: Some(later),
+            include_aki: true,
         };
 
         let ca = Ca::generate("myca", Default::default()).unwrap();
