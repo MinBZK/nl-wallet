@@ -902,6 +902,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             )
             .await?;
 
+        // If for some reason the update of the apple assertion counter fails, we still want to persist the update of
+        // the instruction counter and sequence number.
         let (tx, _) = commit_on_error::<T, _, (), ChallengeError>(tx, async |tx| {
             if let Some(assertion_counter) = assertion_counter {
                 user_state
@@ -1002,6 +1004,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .clear_instruction_challenge(&tx, &wallet_user.wallet_id)
             .await?;
 
+        // Even if the following fails, we still want to persist clearing the instruction challenge.
         let (tx, instruction_payload) = commit_on_error::<_, _, _, InstructionError>(tx, async |tx: &T| {
             debug!("Verifying instruction");
 

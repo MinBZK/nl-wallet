@@ -12,18 +12,23 @@ pub trait TransactionStarter {
     async fn begin_transaction(&self) -> Result<Self::TransactionType, PersistenceError>;
 }
 
-pub async fn commit_on_error<T, F, R, E>(tx: T, action: F) -> Result<(T, R), E>
+/// Perform [`operation`] and commit the [`transaction`] on error, otherwise return both the operation result and the
+/// transaction. When committing the transaction fails, the commit error is logged and the original error is returned.
+///
+/// This is useful whenever any operation done before needs to be persisted even when this action fails.
+/// This is an optimization for committing the previous transaction explicitly and starting a new transaction.
+pub async fn commit_on_error<T, F, R, E>(transaction: T, operation: F) -> Result<(T, R), E>
 where
     T: Committable,
     F: AsyncFnOnce(&T) -> Result<R, E>,
     E: From<PersistenceError>,
 {
-    let result = action(&tx).await;
+    let result = operation(&transaction).await;
 
     match result {
-        Ok(result) => Ok((tx, result)),
+        Ok(result) => Ok((transaction, result)),
         Err(error) => {
-            if let Err(commit_err) = tx.commit().await {
+            if let Err(commit_err) = transaction.commit().await {
                 warn!("Failed to commit transaction after error: {commit_err}");
             }
             Err(error)
