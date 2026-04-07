@@ -57,6 +57,8 @@ impl<'a> MakeWriter<'a> for WriterMaker {
 /// strings.
 pub struct LogWriter<'a>(PlatformLogWriter<'a>);
 
+const REPLACEMENT_CHARACTER: &str = "\u{FFFD}";
+
 impl io::Write for LogWriter<'_> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         for chunk in buf.utf8_chunks() {
@@ -66,7 +68,7 @@ impl io::Write for LogWriter<'_> {
 
             if !chunk.invalid().is_empty() {
                 self.0
-                    .write_str("\u{FFDD}")
+                    .write_str(REPLACEMENT_CHARACTER)
                     .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
             }
         }
