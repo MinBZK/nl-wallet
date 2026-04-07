@@ -44,13 +44,13 @@ use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
-use jwe::decryption::JweDecrypterError;
 use jwe::decryption::JweEcdhSecretKey;
 use jwe::encryption::JweCompression;
 use jwe::encryption::JweEncrypter;
-use jwe::encryption::JweEncrypterError;
 use jwe::encryption::JwePublicKey;
-use jwe::encryption::JwePublicKeyError;
+use jwe::error::EcdhPublicJwkError;
+use jwe::error::JweDecryptionError;
+use jwe::error::JweEncryptionError;
 use jwt::Algorithm;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
@@ -369,7 +369,7 @@ pub enum AuthRequestValidationError {
         errors = .0.iter().join(", ")
     )]
     #[category(pd)]
-    NoSupportedJwk(VecNonEmpty<JwePublicKeyError>),
+    NoSupportedJwk(VecNonEmpty<EcdhPublicJwkError>),
     #[error(
         "no supported value found in client_metadata.encrypted_response_enc_values_supported, received: {}",
         .0.iter().map(ToString::to_string).join(", ")
@@ -726,10 +726,10 @@ pub enum AuthResponseError {
     Json(#[from] serde_json::Error),
 
     #[error("error encrypting JWE: {0}")]
-    JweEncryption(#[source] JweEncrypterError),
+    JweEncryption(#[source] JweEncryptionError),
 
     #[error("error decrypting JWE: {0}")]
-    JweDecryption(#[source] JweDecrypterError),
+    JweDecryption(#[source] JweDecryptionError),
 
     #[error("state had incorrect value: expected {expected:?}, found {found:?}")]
     StateIncorrect {
@@ -847,7 +847,7 @@ impl VpAuthorizationResponse {
         auth_request: &NormalizedVpAuthorizationRequest,
         encryption_algorithm: EncryptionAlgorithm,
         encryption_nonce: &str,
-    ) -> Result<String, JweEncrypterError> {
+    ) -> Result<String, JweEncryptionError> {
         let encrypter = JweEncrypter::from(auth_request.encryption_pubkey.clone());
 
         // Set the `apv` to the nonce contained in the auth request and specified by the verifier,
@@ -891,7 +891,7 @@ impl VpAuthorizationResponse {
             .await
     }
 
-    fn decrypt(jwe: &str, secret_key: &JweEcdhSecretKey) -> Result<VpAuthorizationResponse, JweDecrypterError> {
+    fn decrypt(jwe: &str, secret_key: &JweEcdhSecretKey) -> Result<VpAuthorizationResponse, JweDecryptionError> {
         let decrypter = JweDecrypter::from_ecdh_secret_key(secret_key);
 
         decrypter.decrypt(jwe)

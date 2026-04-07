@@ -4,12 +4,12 @@ use derive_more::Into;
 
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
-use jwe::decryption::JweDecrypterError;
 use jwe::decryption::JweEcdhSecretKey;
 use jwe::encryption::JweCompression;
 use jwe::encryption::JweEncrypter;
-use jwe::encryption::JweEncrypterError;
 use jwe::encryption::JwePublicKey;
+use jwe::error::JweDecryptionError;
+use jwe::error::JweEncryptionError;
 
 use crate::storage::DatabaseExport;
 
@@ -17,7 +17,7 @@ use crate::storage::DatabaseExport;
 pub struct WalletDatabasePayload(DatabaseExport);
 
 impl WalletDatabasePayload {
-    pub fn encrypt(&self, public_key: JwePublicKey) -> Result<String, JweEncrypterError> {
+    pub fn encrypt(&self, public_key: JwePublicKey) -> Result<String, JweEncryptionError> {
         let Self(export) = self;
 
         let encryper = JweEncrypter::from(public_key);
@@ -32,7 +32,7 @@ impl WalletDatabasePayload {
         Ok(jwe)
     }
 
-    pub fn decrypt(jwe: &str, secret_key: &JweEcdhSecretKey) -> Result<Self, JweDecrypterError> {
+    pub fn decrypt(jwe: &str, secret_key: &JweEcdhSecretKey) -> Result<Self, JweDecryptionError> {
         let decrypter = JweDecrypter::from_ecdh_secret_key(secret_key);
 
         let export = decrypter.decrypt(jwe)?;

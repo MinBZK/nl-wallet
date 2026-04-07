@@ -9,9 +9,9 @@ use uuid::Uuid;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use jwe::algorithm::EcdhAlgorithm;
-use jwe::decryption::JweDecrypterError;
 use jwe::decryption::JweEcdhSecretKey;
-use jwe::encryption::JweEncrypterError;
+use jwe::error::JweDecryptionError;
+use jwe::error::JweEncryptionError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -92,11 +92,11 @@ pub enum TransferError {
 
     #[error("could not encrypt database payload: {0}")]
     #[category(pd)]
-    Encryption(#[source] JweEncrypterError),
+    Encryption(#[source] JweEncryptionError),
 
     #[error("could not decrypt database payload: {0}")]
     #[category(pd)]
-    Decryption(#[source] JweDecrypterError),
+    Decryption(#[source] JweDecryptionError),
 
     #[error("invalid transfer uri: {0}")]
     #[category(pd)]

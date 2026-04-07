@@ -3,7 +3,6 @@ use derive_more::Debug;
 use derive_more::Display;
 use derive_more::From;
 use derive_more::FromStr;
-use josekit::JoseError;
 use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
 use p256::SecretKey;
 use p256::pkcs8::EncodePrivateKey;
@@ -16,6 +15,7 @@ use serde_with::serde_as;
 
 use crate::algorithm::EcdhAlgorithm;
 use crate::encryption::JwePublicKey;
+use crate::error::JweDecryptionError;
 
 #[derive(Debug, Clone, From, AsRef, Display, FromStr)]
 #[display(
@@ -73,18 +73,6 @@ impl JweEcdhSecretKey {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum JweDecrypterError {
-    #[error("could not decrypt data: {0}")]
-    Decryption(#[source] JoseError),
-
-    #[error("kid does not match \"{}\": \"{}\"", .0, .1.as_deref().unwrap_or("<NONE>"))]
-    IdMismatch(String, Option<String>),
-
-    #[error("could not deserialize data: {0}")]
-    Deserialization(#[source] serde_json::Error),
-}
-
 /// Wraps JWE decryption using the key that is derived from an eliptic curve P-256 public key and optional `kid` value.
 /// Can be constructed from a [`JweSecretKey`].
 #[derive(Debug, Clone)]
@@ -117,25 +105,25 @@ impl JweDecrypter {
         self.id.as_deref()
     }
 
-    pub fn decrypt<T>(&self, jwe: &str) -> Result<T, JweDecrypterError>
+    pub fn decrypt<T>(&self, jwe: &str) -> Result<T, JweDecryptionError>
     where
         T: DeserializeOwned,
     {
         let (payload, header) =
-            josekit::jwe::deserialize_compact(jwe, self.decrypter.as_ref()).map_err(JweDecrypterError::Decryption)?;
+            josekit::jwe::deserialize_compact(jwe, self.decrypter.as_ref()).map_err(JweDecryptionError::Decryption)?;
 
         if let Some(id) = self.id.as_deref() {
             let received_id = header.claim("kid").and_then(serde_json::Value::as_str);
 
             if received_id != Some(id) {
-                return Err(JweDecrypterError::IdMismatch(
+                return Err(JweDecryptionError::IdMismatch(
                     id.to_string(),
                     received_id.map(str::to_string),
                 ));
             }
         }
 
-        let data = serde_json::from_slice(&payload).map_err(JweDecrypterError::Deserialization)?;
+        let data = serde_json::from_slice(&payload).map_err(JweDecryptionError::Deserialization)?;
 
         Ok(data)
     }

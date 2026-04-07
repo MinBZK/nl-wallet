@@ -2,11 +2,11 @@ use assert_matches::assert_matches;
 use jwe::algorithm::EcdhAlgorithm;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
-use jwe::decryption::JweDecrypterError;
 use jwe::decryption::JweEcdhSecretKey;
 use jwe::encryption::JweCompression;
 use jwe::encryption::JweEncrypter;
 use jwe::encryption::JwePublicKey;
+use jwe::error::JweDecryptionError;
 use jwk_simple::Key;
 use rstest::rstest;
 use serde::Deserialize;
@@ -78,7 +78,7 @@ fn test_encrypt_decrypt_id_mismatch() {
 
     assert_matches!(
         error,
-        JweDecrypterError::IdMismatch(expected_kid, Some(received_kid))
+        JweDecryptionError::IdMismatch(expected_kid, Some(received_kid))
             if &expected_kid == "key_id" && received_kid == "wrong_key_id"
     );
 
@@ -93,6 +93,6 @@ fn test_encrypt_decrypt_id_mismatch() {
 
     assert_matches!(
         error,
-        JweDecrypterError::IdMismatch(expected_kid, None) if &expected_kid == "key_id"
+        JweDecryptionError::IdMismatch(expected_kid, None) if &expected_kid == "key_id"
     );
 }
