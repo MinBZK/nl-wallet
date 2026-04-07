@@ -39,7 +39,7 @@ gpg --batch --gen-key <<EOF
 %no-protection
 Key-Type: EdDSA
 Key-Curve: ed25519
-Name-Real: The Real Bot
+Name-Real: <BOT_NAME>
 Name-Email: <BOT_EMAIL>
 Expire-Date: 0
 EOF
