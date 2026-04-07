@@ -45,6 +45,7 @@ impl OpenIdClient {
             .base_url()
             .as_ref()
             .as_str()
+            .trim_end_matches('/')
             .parse()
             .expect("TlsPinningConfig base URL should be a valid IssuerIdentifier");
         let certs = http_config

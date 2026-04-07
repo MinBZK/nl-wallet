@@ -139,7 +139,7 @@ pub async fn request_userinfo<C>(
 where
     C: DeserializeOwned,
 {
-    let config: AuthorizationServerMetadata = well_known::fetch_well_known_unvalidated(
+    let config: AuthorizationServerMetadata = well_known::fetch_well_known(
         http_client,
         authorization_server,
         well_known::WellKnownPath::OpenidConfiguration,

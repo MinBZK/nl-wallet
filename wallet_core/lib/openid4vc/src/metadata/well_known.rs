@@ -44,19 +44,6 @@ fn well_known_url(issuer: &IssuerIdentifier, suffix: &str) -> Url {
     issuer.as_base_url().join(&format!("/.well-known/{suffix}"))
 }
 
-pub async fn fetch_well_known_unvalidated<T>(
-    client: &HttpJsonClient,
-    issuer: &IssuerIdentifier,
-    path: WellKnownPath,
-) -> Result<T, WellKnownError>
-where
-    T: DeserializeOwned,
-{
-    let url = well_known_url(issuer, path.as_str());
-    let metadata: T = client.get(url).await?;
-    Ok(metadata)
-}
-
 pub async fn fetch_well_known<T>(
     client: &HttpJsonClient,
     issuer: &IssuerIdentifier,
