@@ -1036,15 +1036,12 @@ where
                         // The UI should catch this specific error and close the disclosure screens.
                         //
                         // If terminating the session results in an error, log it but do nothing else.
-                        let _ = self
-                            .terminate_disclosure_session(session)
-                            .await
-                            .inspect_err(|terminate_error| {
-                                error!(
-                                    "Error while terminating disclosure session on PIN timeout: {}",
-                                    terminate_error
-                                );
-                            });
+                        let _ = session.protocol_state.terminate().await.inspect_err(|terminate_error| {
+                            error!(
+                                "Error while terminating disclosure session on PIN timeout: {}",
+                                terminate_error
+                            );
+                        });
 
                         self.lock.lock();
                     }
