@@ -21,7 +21,9 @@ where
     match result {
         Ok(result) => Ok((tx, result)),
         Err(error) => {
-            tx.commit().await?;
+            if let Err(commit_err) = tx.commit().await {
+                warn!("Failed to commit transaction after error: {commit_err}");
+            }
             Err(error)
         }
     }
