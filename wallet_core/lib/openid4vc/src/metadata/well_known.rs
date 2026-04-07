@@ -5,6 +5,7 @@ use http_utils::reqwest::HttpJsonClient;
 
 use crate::issuer_identifier::IssuerIdentifier;
 
+#[derive(Debug, Clone, Copy)]
 pub enum WellKnownPath {
     CredentialIssuer,
     OauthAuthorizationServer,
@@ -12,7 +13,7 @@ pub enum WellKnownPath {
 }
 
 impl WellKnownPath {
-    fn as_str(&self) -> &'static str {
+    fn as_str(self) -> &'static str {
         match self {
             Self::CredentialIssuer => "openid-credential-issuer",
             Self::OauthAuthorizationServer => "oauth-authorization-server",
@@ -38,10 +39,10 @@ pub enum WellKnownError {
 }
 
 /// Constructs a well-known metadata URL by appending the well-known path to the issuer identifier.
-fn well_known_url(issuer: &IssuerIdentifier, suffix: &str) -> Url {
+fn well_known_url(issuer: &IssuerIdentifier, suffix: WellKnownPath) -> Url {
     // TODO (PVW-5527): spec-compliant URL construction (inserting the well-known path between host and path
     // components as per the OpenID4VCI specification) is tracked in PVW-5527.
-    issuer.as_base_url().join(&format!("/.well-known/{suffix}"))
+    issuer.as_base_url().join(&format!("/.well-known/{}", suffix.as_str()))
 }
 
 pub async fn fetch_well_known<T>(
@@ -52,7 +53,7 @@ pub async fn fetch_well_known<T>(
 where
     T: DeserializeOwned + WellKnownMetadata,
 {
-    let url = well_known_url(issuer, path.as_str());
+    let url = well_known_url(issuer, path);
     let metadata: T = client.get(url).await?;
     if metadata.issuer_identifier() != issuer {
         return Err(WellKnownError::IssuerIdentifierMismatch {
@@ -73,10 +74,7 @@ mod tests {
 
     #[test]
     fn test_well_known_url_no_path() {
-        let url = well_known_url(
-            &issuer("https://example.com/"),
-            WellKnownPath::CredentialIssuer.as_str(),
-        );
+        let url = well_known_url(&issuer("https://example.com/"), WellKnownPath::CredentialIssuer);
         assert_eq!(url.as_str(), "https://example.com/.well-known/openid-credential-issuer");
     }
 
@@ -84,10 +82,7 @@ mod tests {
     fn test_well_known_url_with_path() {
         // Note: spec-compliant behavior would insert the well-known path before the tenant segment
         // (PVW-5527). This test documents the current (non-compliant) behavior.
-        let url = well_known_url(
-            &issuer("https://example.com/tenant"),
-            WellKnownPath::CredentialIssuer.as_str(),
-        );
+        let url = well_known_url(&issuer("https://example.com/tenant"), WellKnownPath::CredentialIssuer);
         assert_eq!(
             url.as_str(),
             "https://example.com/tenant/.well-known/openid-credential-issuer"
@@ -96,10 +91,7 @@ mod tests {
 
     #[test]
     fn test_well_known_url_oauth_suffix() {
-        let url = well_known_url(
-            &issuer("https://example.com/"),
-            WellKnownPath::OauthAuthorizationServer.as_str(),
-        );
+        let url = well_known_url(&issuer("https://example.com/"), WellKnownPath::OauthAuthorizationServer);
         assert_eq!(
             url.as_str(),
             "https://example.com/.well-known/oauth-authorization-server"
