@@ -135,9 +135,43 @@ where
     }
 }
 
-/// Wrapper for structs that serializes from/to CBOR sequences (i.e., not including field names).
-/// Used to be able to refer by name instead of by an integer to refer to the contents of the
-/// data structure.
+/// Wrapper that serializes a named-field struct to/from a CBOR array (sequence), dropping all
+/// field names from the wire format.
+///
+/// Normally `serde` serializes struct fields as a map of `{ field_name: value, ... }`. `CborSeq`
+/// instead emits only the values in field declaration order, producing a compact CBOR array as
+/// required by ISO 18013-5 for some of the structs.
+///
+/// The idiomatic pattern in this codebase is to define a `...Keyed` struct with named fields for
+/// use in Rust code, then expose a type alias wrapping it in `CborSeq` as the canonical
+/// (wire-format) type. This keeps field names available for readability while ensuring the
+/// correct on-wire encoding.
+///
+/// - **Serialization**: the struct is encoded as a CBOR array of values in declaration order.
+/// - **Deserialization**: the array elements are zipped with the field names (via
+///   `serde_introspect`) and deserialized back into `T`.
+///
+/// # Example
+///
+/// `SessionTranscript` is a type alias for `CborSeq<SessionTranscriptKeyed>`:
+///
+/// ```ignore
+/// pub struct SessionTranscriptKeyed {       // <-- named fields, used in Rust code
+///     pub device_engagement_bytes: Option<DeviceEngagementBytes>,  // position 0
+///     pub ereader_key_bytes: Option<ESenderKeyBytes>,              // position 1
+///     pub handover: Handover,                                      // position 2
+/// }
+///
+/// pub type SessionTranscript = CborSeq<SessionTranscriptKeyed>;    // <-- wire type
+/// ```
+///
+/// `SessionTranscript` serializes as a CBOR array `[<device_engagement_bytes>, <ereader_key_bytes>, <handover>]`
+/// rather than a map `{"device_engagement_bytes": ..., "ereader_key_bytes": ..., "handover": ...}`.
+///
+/// ```ignore
+/// let transcript: SessionTranscript = SessionTranscriptKeyed { .. }.into();
+/// let bytes = cbor_serialize(&transcript)?; // encodes as [<val0>, <val1>, <val2>]
+/// ```
 #[derive(Debug, Clone)]
 pub struct CborSeq<T>(pub T);
 
@@ -156,10 +190,35 @@ pub trait CborIndexedFields {
     fn field_indices() -> &'static [(&'static str, u64)];
 }
 
-/// Wrapper for structs that serializes from/to CBOR maps that have
-/// integers as keys instead of field names.
-/// Used to be able to refer by name instead of by an integer to refer to the contents of the
-/// data structure.
+/// Wrapper that serializes a named-field struct to/from a CBOR map with integer keys.
+///
+/// Normally `serde` serializes struct fields using their string names as map keys.
+/// `CborIntMap` replaces those string keys with each field's zero-based positional index,
+/// producing the compact integer-keyed maps required by ISO 18013-5 for some of the structs.
+///
+/// - **Serialization**: field names are replaced by their declaration-order index (0, 1, 2, ...);
+///   fields whose value serializes as CBOR null are omitted.
+/// - **Deserialization**: integer keys are mapped back to field names by position before
+///   delegating to `T`'s own deserializer.
+///
+/// # Example
+///
+/// `DeviceEngagement` is a type alias for `CborIntMap<Engagement>`, where `Engagement` is:
+///
+/// ```ignore
+/// pub struct Engagement {
+///     pub version: EngagementVersion,  // serialized as key 0
+///     pub security: Option<Security>,  // serialized as key 1
+/// }
+/// ```
+///
+/// Wrapping it in `CborIntMap` encodes it as `{0: "1.0", 1: <security>}` on the wire
+/// instead of `{"version": "1.0", "security": <security>}`.
+///
+/// ```ignore
+/// let engagement = DeviceEngagement(Engagement { version: EngagementVersion::V1_0, security: None });
+/// let bytes = cbor_serialize(&engagement)?; // encodes as {0: "1.0"}
+/// ```
 #[derive(Debug, Clone)]
 pub struct CborIntMap<T>(pub T);
 
