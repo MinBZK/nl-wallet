@@ -20,6 +20,7 @@ use server_utils::settings::SecretKey;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::test::default_wallet_config;
+use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
 use wscd::mock_remote::MockRemoteWscd;
 
 /// Test the full PID issuance flow, i.e. including OIDC with nl-rdo-max and retrieving the PID from BRP
@@ -45,6 +46,12 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     // Generate a WUA key pair so MockRemoteWscd can sign WUAs accepted by the test pid issuer.
     let wua_signing_key = SigningKey::random(&mut OsRng);
     settings.wua_issuer_pubkey = DerVerifyingKey::from(*wua_signing_key.verifying_key());
+    // The MockRemoteWscd uses the MOCK_WALLET_CLIENT_ID value as `iss` for the WUA, so add it to the list of accepted
+    // wallet client ids.
+    settings
+        .issuer_settings
+        .wallet_client_ids
+        .push(MOCK_WALLET_CLIENT_ID.to_string());
 
     let hsm = settings
         .issuer_settings

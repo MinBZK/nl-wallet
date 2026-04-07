@@ -2,7 +2,6 @@ public_url = 'http://${SERVICES_HOST}:${PID_ISSUER_PORT}/'
 issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 
 brp_server = 'http://${SERVICES_HOST}:${BRP_SERVER_PORT}'
-wallet_client_ids = ["${MOCK_WALLET_CLIENT_ID}", "${NL_WALLET_CLIENT_ID}"]
 
 wua_issuer_pubkey = "${WP_WUA_PUBLIC_KEY}"
 metadata = [
