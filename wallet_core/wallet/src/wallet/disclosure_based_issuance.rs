@@ -91,30 +91,7 @@ where
     ) -> Result<Vec<AttestationPresentation>, DisclosureBasedIssuanceError> {
         info!("Continuing disclosure based issuance");
 
-        let config = self.config_repository.get();
-
-        info!("Fetching update policy");
-        self.update_policy_repository
-            .fetch(&config.update_policy_server.http_config)
-            .await
-            .map_err(DisclosureError::UpdatePolicy)?;
-
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            Err(DisclosureError::VersionBlocked)?;
-        }
-
-        info!("Checking if registered");
-        let (attested_key, registration_data) = self
-            .registration
-            .as_key_and_registration_data()
-            .ok_or_else(|| DisclosureError::NotRegistered)?;
-        let attested_key_and_registration_data = (Arc::clone(attested_key), registration_data.to_owned());
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            Err(DisclosureError::Locked)?;
-        }
+        let attested_key_and_registration_data = self.check_accept_disclosure_preconditions().await?;
 
         info!("Checking if a disclosure session is present");
         let Some(Session::Disclosure(session)) = self.session.take() else {
@@ -183,7 +160,7 @@ where
             .issuance_fetch_previews(
                 token_request,
                 credential_offer.credential_issuer,
-                &config.issuer_trust_anchors(),
+                &self.config_repository.get().issuer_trust_anchors(),
                 None, // we're not doing PID issuance
             )
             .await?;

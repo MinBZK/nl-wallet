@@ -223,6 +223,19 @@ impl DisclosureError {
     }
 }
 
+/// Extracts an [`InstructionError`] from a signing error box.
+// TODO this can be removed when if-let guards are stabilised, which will be in 1.95
+pub(super) fn instruction_error_from_signing_error(
+    signing_error: Box<dyn std::error::Error + Send + Sync + 'static>,
+) -> InstructionError {
+    let Ok(RemoteEcdsaKeyError::Instruction(instruction_error)) =
+        signing_error.downcast::<RemoteEcdsaKeyError>().map(|error| *error)
+    else {
+        unreachable!("called with a signing error that does not downcast to `RemoteEcdsaKeyError::Instruction`")
+    };
+    instruction_error
+}
+
 impl From<VpSessionError> for DisclosureError {
     fn from(value: VpSessionError) -> Self {
         match value {
@@ -237,14 +250,7 @@ impl From<VpSessionError> for DisclosureError {
                 Some(RemoteEcdsaKeyError::Instruction(_))
             ) =>
             {
-                // Note that this statement is safe, as checking is performed within the guard statements above.
-                if let Ok(RemoteEcdsaKeyError::Instruction(instruction_error)) =
-                    signing_error.downcast::<RemoteEcdsaKeyError>().map(|error| *error)
-                {
-                    DisclosureError::Instruction(instruction_error)
-                } else {
-                    unreachable!()
-                }
+                DisclosureError::Instruction(instruction_error_from_signing_error(signing_error))
             }
             // Any other error should result in its generic top-level error variant.
             VpSessionError::Client(client_error) => DisclosureError::VpClient(client_error),
@@ -448,6 +454,97 @@ where
     DCC: DisclosureClient,
     S: Storage,
 {
+    /// Increments the usage count for every attestation copy referenced in the proposal, and collects
+    /// [`AttestationPresentation`]s from those same attestations for use in disclosure event logging.
+    pub(super) async fn increment_usage_count_and_collect_presentations<'a>(
+        &self,
+        attestation_values: VecNonEmpty<&'a DisclosableAttestation>,
+    ) -> (VecNonEmpty<AttestationPresentation>, Result<(), StorageError>)
+    where
+        S: Storage,
+    {
+        let result = self
+            .storage
+            .write()
+            .await
+            .increment_attestation_copies_usage_count(
+                attestation_values
+                    .iter()
+                    .map(|attestation| attestation.attestation_copy_id())
+                    .unique()
+                    .collect(),
+            )
+            .await;
+
+        let attestation_presentations = attestation_values
+            .nonempty_iter()
+            .map(|attestation| attestation.presentation().clone())
+            .collect();
+
+        (attestation_presentations, result)
+    }
+
+    pub(super) async fn prepare_remote_wscd(
+        &mut self,
+        pin: String,
+        (attested_key, registration_data): AttestedKeyAndRegistrationData<AKH>,
+    ) -> Result<RemoteEcdsaWscd<S, AKH::AppleKey, AKH::GoogleKey, APC>, DisclosureError>
+    where
+        APC: AccountProviderClient,
+    {
+        let config = self.config_repository.get();
+        let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
+
+        let remote_instruction = self
+            .new_instruction_client(
+                pin,
+                attested_key,
+                InstructionClientParameters::new(
+                    registration_data.wallet_id,
+                    registration_data.pin_salt,
+                    registration_data.wallet_certificate,
+                    config.account_server.http_config.clone(),
+                    instruction_result_public_key,
+                ),
+            )
+            .await?;
+
+        Ok(RemoteEcdsaWscd::new(remote_instruction))
+    }
+
+    pub(super) async fn check_accept_disclosure_preconditions(
+        &mut self,
+    ) -> Result<AttestedKeyAndRegistrationData<AKH>, DisclosureError>
+    where
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+    {
+        let config = self.config_repository.get();
+
+        info!("Fetching update policy");
+        self.update_policy_repository
+            .fetch(&config.update_policy_server.http_config)
+            .await?;
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(DisclosureError::VersionBlocked);
+        }
+
+        info!("Checking if registered");
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| DisclosureError::NotRegistered)?;
+        let attested_key_and_registration_data = (Arc::clone(attested_key), registration_data.to_owned());
+
+        info!("Checking if locked");
+        if self.lock.is_locked() {
+            return Err(DisclosureError::Locked);
+        }
+
+        Ok(attested_key_and_registration_data)
+    }
+
     /// Checks the common preconditions for disclosure-related operations: version not blocked, wallet registered,
     /// and wallet not locked.
     pub(super) fn check_disclosure_preconditions(&self) -> Result<(), DisclosureError> {
@@ -560,7 +657,7 @@ where
             return Err(DisclosureError::SessionState);
         }
 
-        let wallet_config = &self.config_repository.get();
+        let wallet_config = self.config_repository.get();
 
         let purpose = RedirectUriPurpose::from_uri(uri)?;
         let disclosure_uri_query = uri
@@ -768,32 +865,10 @@ where
     {
         info!("Accepting disclosure");
 
-        let config = self.config_repository.get();
-
-        info!("Fetching update policy");
-        self.update_policy_repository
-            .fetch(&config.update_policy_server.http_config)
-            .await?;
-
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(DisclosureError::VersionBlocked);
-        }
-
-        info!("Checking if registered");
-        let (attested_key, registration_data) = self
-            .registration
-            .as_key_and_registration_data()
-            .ok_or_else(|| DisclosureError::NotRegistered)?;
-        let attested_key_and_registration_data = (Arc::clone(attested_key), registration_data.to_owned());
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(DisclosureError::Locked);
-        }
+        let attested_key_and_registration_data = self.check_accept_disclosure_preconditions().await?;
 
         // We have to take ownership of the disclosure session here, so that `session`
-        // below doesn't borrow from `, as we also borrow mutably from `self` here.
+        // below doesn't borrow from `self`, as we also borrow mutably from `self` here.
         match self.session.take() {
             Some(Session::Disclosure(session)) => {
                 self.perform_disclosure(
@@ -827,7 +902,7 @@ where
         selected_indices: &[usize],
         pin: String,
         redirect_uri_purpose: RedirectUriPurpose,
-        (attested_key, registration_data): AttestedKeyAndRegistrationData<AKH>,
+        attested_key_and_registration_data: AttestedKeyAndRegistrationData<AKH>,
     ) -> Result<Option<Url>, DisclosureError>
     where
         S: Storage,
@@ -847,48 +922,23 @@ where
         }
 
         // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
-        let config = self.config_repository.get();
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
-
-        let remote_instruction = self
-            .new_instruction_client(
-                pin,
-                attested_key,
-                InstructionClientParameters::new(
-                    registration_data.wallet_id,
-                    registration_data.pin_salt,
-                    registration_data.wallet_certificate,
-                    config.account_server.http_config.clone(),
-                    instruction_result_public_key,
-                ),
-            )
+        let remote_wscd = self
+            .prepare_remote_wscd(pin, attested_key_and_registration_data)
             .await?;
 
         // Note that this will panic if any of the indices are out of bounds.
         let attestations = session.attestations.select_proposal(selected_indices);
 
-        let remote_wscd = RemoteEcdsaWscd::new(remote_instruction);
-
-        // Increment the disclosure counts of the attestation copies referenced in the proposal,
-        // so that for the next disclosure different copies are used.
+        // There is guaranteed to be at least one attestation because of the logic in `start_disclosure()`.
+        let attestation_values = VecNonEmpty::try_from(attestations.values().cloned().collect_vec()).unwrap();
 
         // NOTE: If the disclosure fails and is retried, the disclosure count will jump by
         //       more than 1, since the same copies are shared with the verifier again.
         //       It is necessary to increment the disclosure count before sending the attestations
         //       to the verifier, as we do not know if disclosure fails before or after the
         //       verifier has received the attributes.
-
-        let result = self
-            .storage
-            .write()
-            .await
-            .increment_attestation_copies_usage_count(
-                attestations
-                    .values()
-                    .map(|attestation| attestation.attestation_copy_id())
-                    .unique()
-                    .collect(),
-            )
+        let (attestation_presentations, result) = self
+            .increment_usage_count_and_collect_presentations(attestation_values)
             .await;
 
         let (reader_certificate, reader_registration) = session
@@ -896,15 +946,6 @@ where
             .verifier_certificate()
             .clone()
             .into_certificate_and_registration();
-
-        // Generate `AttestationPresentation`s of the disclosed attributes, to store in the disclosure event. Note
-        // that there is guaranteed to be at least one attestation because of the logic in `start_disclosure()`.
-        let attestation_presentations = attestations
-            .values()
-            .map(|attestation| attestation.presentation().clone())
-            .collect_vec()
-            .try_into()
-            .unwrap();
 
         if let Err(error) = result {
             // If storing the event results in an error, log it but do nothing else.

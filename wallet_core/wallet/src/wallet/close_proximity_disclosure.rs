@@ -50,10 +50,7 @@ use crate::DisclosureProposalPresentation;
 use crate::Wallet;
 use crate::account_provider::AccountProviderClient;
 use crate::errors::InstructionError;
-use crate::errors::RemoteEcdsaKeyError;
 use crate::errors::UpdatePolicyError;
-use crate::instruction::InstructionClientParameters;
-use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::PartialAttestation;
@@ -63,6 +60,7 @@ use crate::wallet::Session;
 use crate::wallet::disclosure::AttestedKeyAndRegistrationData;
 use crate::wallet::disclosure::RedirectUriPurpose;
 use crate::wallet::disclosure::WalletDisclosureAttestations;
+use crate::wallet::disclosure::instruction_error_from_signing_error;
 use crate::wallet::disclosure::requested_attribute_paths;
 
 #[derive(Debug)]
@@ -83,10 +81,6 @@ pub type CloseProximityDisclosureCallback =
 pub struct MdocUri(String);
 
 #[derive(Debug, Clone, IsVariant)]
-#[expect(
-    unused,
-    reason = "will be used when continue_close_proximity_disclosure is implemented"
-)]
 enum CloseProximityDisclosureSessionState {
     Advertising,
     SessionEstablished {
@@ -95,11 +89,16 @@ enum CloseProximityDisclosureSessionState {
     },
     DisclosureProposed {
         session_transcript: Box<SessionTranscript>,
+        #[expect(dead_code, reason = "will be used when processing AttributesNotAvailable")]
         device_request: DeviceRequest,
         verifier_certificate: Box<VerifierCertificate>,
         attestations: WalletDisclosureAttestations<usize>,
     },
     Errored {
+        #[expect(
+            dead_code,
+            reason = "will be used when processing close proximity disclosure errors (PVW-5710)"
+        )]
         error: PlatformError,
         verifier_certificate: Option<Box<VerifierCertificate>>,
     },
@@ -275,7 +274,7 @@ where
             return Err(DisclosureError::SessionState);
         };
 
-        let wallet_config = &self.config_repository.get();
+        let wallet_config = self.config_repository.get();
 
         // TODO send error to reader (PVW-5710)
         let device_request = DeviceRequest::try_from_bytes(&device_request)
@@ -303,7 +302,7 @@ where
             .flatten() // remove entries for which no suitable candidates were found
             .collect::<Vec<_>>();
 
-        let reader_registration = verifier_certificate.registration();
+        let reader_registration = verifier_certificate.registration().to_owned();
         let session_type = SessionType::CrossDevice; // all close proximity disclosure sessions are cross-device
         let disclosure_type = DisclosureType::Regular; // all close proximity disclosure sessions are regular
         let purpose = RedirectUriPurpose::Browser; // irrelevant for close proximity disclosure sessions
@@ -317,7 +316,7 @@ where
 
             let proposal = DisclosureProposalPresentation::from_candidates(
                 candidate_attestations.clone(),
-                reader_registration.to_owned(),
+                reader_registration.clone(),
                 shared_data_with_relying_party_before,
                 session_type,
                 disclosure_type,
@@ -340,7 +339,6 @@ where
         info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
 
         let requested_attributes = requested_attribute_paths(device_request.items_requests()).collect();
-        let reader_registration = verifier_certificate.registration().to_owned();
 
         // Store the session so that it will only be terminated on user interaction.
         // This prevents gleaning of missing attributes by a verifier.
@@ -365,7 +363,7 @@ where
         close_proximity_session: CloseProximityDisclosureSession,
         selected_indices: &[usize],
         pin: String,
-        (attested_key, registration_data): AttestedKeyAndRegistrationData<AKH>,
+        attested_key_and_registration_data: AttestedKeyAndRegistrationData<AKH>,
     ) -> Result<(), DisclosureError>
     where
         S: Storage,
@@ -383,59 +381,27 @@ where
             return Err(DisclosureError::SessionState);
         };
 
-        // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
-        let config = self.config_repository.get();
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
+        let reader_certificate = verifier_certificate.certificate().clone();
 
-        let remote_instruction = self
-            .new_instruction_client(
-                pin,
-                attested_key,
-                InstructionClientParameters::new(
-                    registration_data.wallet_id,
-                    registration_data.pin_salt,
-                    registration_data.wallet_certificate,
-                    config.account_server.http_config.clone(),
-                    instruction_result_public_key,
-                ),
-            )
+        // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
+        let remote_wscd = self
+            .prepare_remote_wscd(pin, attested_key_and_registration_data)
             .await?;
 
         // Note that this will panic if any of the indices are out of bounds.
         let attestations = attestations.select_proposal(selected_indices);
 
-        let remote_wscd = RemoteEcdsaWscd::new(remote_instruction);
-
-        // Increment the disclosure counts of the attestation copies referenced in the proposal,
-        // so that for the next disclosure different copies are used.
+        // There is guaranteed to be at least one attestation because of the logic in `start_disclosure()`.
+        let attestation_values = VecNonEmpty::try_from(attestations.values().copied().collect_vec()).unwrap();
 
         // NOTE: If the disclosure fails and is retried, the disclosure count will jump by
         //       more than 1, since the same copies are shared with the verifier again.
         //       It is necessary to increment the disclosure count before sending the attestations
         //       to the verifier, as we do not know if disclosure fails before or after the
         //       verifier has received the attributes.
-
-        let result = self
-            .storage
-            .write()
-            .await
-            .increment_attestation_copies_usage_count(
-                attestations
-                    .values()
-                    .map(|attestation| attestation.attestation_copy_id())
-                    .unique()
-                    .collect(),
-            )
+        let (attestation_presentations, result) = self
+            .increment_usage_count_and_collect_presentations(attestation_values)
             .await;
-
-        // Generate `AttestationPresentation`s of the disclosed attributes, to store in the disclosure event. Note
-        // that there is guaranteed to be at least one attestation because of the logic in `start_disclosure()`.
-        let attestation_presentations = attestations
-            .values()
-            .map(|attestation| attestation.presentation().clone())
-            .collect_vec()
-            .try_into()
-            .unwrap();
 
         let disclosure_type = DisclosureType::Regular;
 
@@ -445,7 +411,7 @@ where
                 .store_disclosure_event(
                     Utc::now(),
                     Some(attestation_presentations),
-                    verifier_certificate.certificate().clone(),
+                    reader_certificate.clone(),
                     disclosure_type,
                     EventStatus::Error,
                     DataDisclosed::NotDisclosed,
@@ -493,20 +459,8 @@ where
                 let disclosure_error = match error {
                     // Upgrade any signing errors that are caused by an instruction error to
                     // `DisclosureError::Instruction`.
-                    mdoc::Error::Cose(CoseError::Signing(signing_error))
-                        if matches!(
-                            signing_error.downcast_ref::<RemoteEcdsaKeyError>(),
-                            Some(RemoteEcdsaKeyError::Instruction(_))
-                        ) =>
-                    {
-                        // Note that this statement is safe, as checking is performed within the guard statements above.
-                        if let Ok(RemoteEcdsaKeyError::Instruction(instruction_error)) =
-                            signing_error.downcast::<RemoteEcdsaKeyError>().map(|error| *error)
-                        {
-                            DisclosureError::Instruction(instruction_error)
-                        } else {
-                            unreachable!()
-                        }
+                    mdoc::Error::Cose(CoseError::Signing(signing_error)) => {
+                        DisclosureError::Instruction(instruction_error_from_signing_error(signing_error))
                     }
                     other => DisclosureError::CloseProximityDisclosureSessionError(
                         CloseProximityDisclosureError::DeviceResponse(other),
@@ -523,7 +477,7 @@ where
                     .store_disclosure_event(
                         Utc::now(),
                         Some(attestation_presentations),
-                        verifier_certificate.into_certificate(),
+                        reader_certificate,
                         disclosure_type,
                         EventStatus::Error,
                         DataDisclosed::NotDisclosed,
@@ -575,7 +529,7 @@ where
         self.store_disclosure_event(
             Utc::now(),
             Some(attestation_presentations),
-            verifier_certificate.into_certificate(),
+            reader_certificate,
             disclosure_type,
             EventStatus::Success,
             DataDisclosed::Disclosed,
