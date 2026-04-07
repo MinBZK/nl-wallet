@@ -1027,7 +1027,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
                     Ok(challenge_response_payload.payload)
                 }
-                Err(validation_error) => Err(validation_error)?,
+                Err(validation_error) => Err(InstructionError::Validation(validation_error)),
             }
         })
         .await?;
@@ -1449,7 +1449,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                             .await?;
                         Err(pin_eval.into())
                     } else {
-                        Err(validation_error)?
+                        Err(InstructionError::Validation(validation_error))
+
                     }
                 }
             }
