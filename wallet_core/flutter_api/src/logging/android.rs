@@ -13,7 +13,7 @@ use tracing_subscriber::fmt::MakeWriter;
 const TAG: &CStr = cstr!("core");
 const DEFAULT_LEVEL: &tracing::Level = &tracing::Level::INFO;
 
-/// We need something that implements the [`WriterMaker`] trait in order to have different
+/// We need something that implements the [`MakeWriter`] trait in order to have different
 /// [`LogWriter`] instances per debug level.
 #[derive(Default)]
 pub struct WriterMaker();
@@ -37,7 +37,7 @@ impl<'a> MakeWriter<'a> for WriterMaker {
 
     fn make_writer(&'a self) -> Self::Writer {
         // This method may never get called (as there should normally be metadata present),
-        // but if it does, we should just pick a debug level ourselves.
+        // but if it is, we should just pick a debug level ourselves.
         self.writer(DEFAULT_LEVEL)
     }
 
@@ -57,18 +57,21 @@ impl<'a> MakeWriter<'a> for WriterMaker {
 /// strings.
 pub struct LogWriter<'a>(PlatformLogWriter<'a>);
 
+const REPLACEMENT_CHARACTER: &str = "\u{FFFD}";
+
 impl io::Write for LogWriter<'_> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.0
-            .write_str(&String::from_utf8_lossy(buf))
-            .map(|_| buf.len())
-            // Convert any resulting error to io::Error.
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        for chunk in buf.utf8_chunks() {
+            self.0
+                .write_str(chunk.valid())
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
-        // Event though we implement flush() below, this does not seem to get called!
-        // For that reason we just flush after every write, so the tracing statements
-        // actually show up in the Android logs.
-        self.0.flush();
+            if !chunk.invalid().is_empty() {
+                self.0
+                    .write_str(REPLACEMENT_CHARACTER)
+                    .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+            }
+        }
 
         Ok(buf.len())
     }
@@ -77,5 +80,11 @@ impl io::Write for LogWriter<'_> {
         self.0.flush();
 
         Ok(())
+    }
+}
+
+impl Drop for LogWriter<'_> {
+    fn drop(&mut self) {
+        self.0.flush();
     }
 }

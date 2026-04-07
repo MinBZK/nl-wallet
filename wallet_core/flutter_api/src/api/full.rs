@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use flutter_rust_bridge::DartFnFuture;
 use flutter_rust_bridge::frb;
-use flutter_rust_bridge::setup_default_user_utils;
 use itertools::Itertools;
 use tokio::sync::OnceCell;
 use tokio::sync::RwLock;
@@ -45,6 +44,17 @@ fn wallet() -> &'static RwLock<Wallet> {
         .expect("Wallet must be initialized. Please execute `init()` first.")
 }
 
+fn set_env_if_unset(name: &str, value: &str) {
+    match std::env::var(name) {
+        Err(std::env::VarError::NotPresent) => unsafe { std::env::set_var(name, value) },
+        Ok(value) => tracing::info!("Skip setting env var `{name}` because it is already set to: {value}"),
+        Err(std::env::VarError::NotUnicode(value)) => tracing::info!(
+            "Skip setting env var `{name}` because it is already set to: {}",
+            value.to_string_lossy()
+        ),
+    }
+}
+
 #[frb(init)]
 #[flutter_api_error]
 pub async fn init() -> anyhow::Result<()> {
@@ -55,13 +65,10 @@ pub async fn init() -> anyhow::Result<()> {
         init_logging();
 
         // Setup logging to console and enable RUST_BACKTRACE to be caught on panics (but not errors) for Sentry.
-        setup_default_user_utils();
-        unsafe {
-            std::env::set_var("RUST_LIB_BACKTRACE", "0");
-        }
+        set_env_if_unset("RUST_BACKTRACE", "1");
+        set_env_if_unset("RUST_LIB_BACKTRACE", "0");
 
         // Initialize Sentry for Rust panics.
-        // This MUST be called before initializing the async runtime.
         init_sentry();
 
         create_wallet().await?;
