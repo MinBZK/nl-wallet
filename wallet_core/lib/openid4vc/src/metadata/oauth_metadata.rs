@@ -171,8 +171,6 @@ pub mod mock {
 
 #[cfg(test)]
 pub mod tests {
-    use http_utils::reqwest::default_reqwest_client_builder;
-    use http_utils::urls::BaseUrl;
     use serde_json::json;
     use wiremock::Mock;
     use wiremock::MockServer;
@@ -180,8 +178,15 @@ pub mod tests {
     use wiremock::matchers::method;
     use wiremock::matchers::path;
 
-    use super::AuthorizationServerMetadata;
     use http_utils::reqwest::HttpJsonClient;
+    use http_utils::reqwest::default_reqwest_client_builder;
+    use http_utils::urls::BaseUrl;
+
+    use crate::issuer_identifier::IssuerIdentifier;
+    use crate::metadata::well_known::WellKnownPath;
+    use crate::metadata::well_known::fetch_well_known;
+
+    use super::AuthorizationServerMetadata;
 
     pub async fn start_discovery_server() -> (MockServer, BaseUrl) {
         let server = MockServer::start().await;
@@ -191,7 +196,7 @@ pub mod tests {
         Mock::given(method("GET"))
             .and(path("/.well-known/openid-configuration"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "issuer": "https://example.com/",
+                "issuer": server_url.as_ref().as_str(),
                 "authorization_endpoint": server_url.join("/oauth2/authorize"),
                 "token_endpoint": server_url.join("/oauth2/token"),
                 "jwks_uri": server_url.join("/.well-known/jwks.json"),
@@ -208,11 +213,13 @@ pub mod tests {
     #[tokio::test]
     async fn test_discovery() {
         let (_server, server_url) = start_discovery_server().await;
+        let issuer_identifier: IssuerIdentifier = server_url.as_ref().as_str().parse().unwrap();
         let client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
-        let discovery_url = server_url.join(".well-known/openid-configuration");
+        let metadata: AuthorizationServerMetadata =
+            fetch_well_known(&client, &issuer_identifier, WellKnownPath::OpenidConfiguration)
+                .await
+                .unwrap();
 
-        let discovered: AuthorizationServerMetadata = client.get(discovery_url).await.unwrap();
-
-        assert_eq!(discovered.issuer.as_ref(), "https://example.com/");
+        assert_eq!(metadata.issuer, issuer_identifier);
     }
 }
