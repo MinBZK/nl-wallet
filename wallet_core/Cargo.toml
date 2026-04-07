@@ -28,6 +28,7 @@ members = [
     "lib/openid4vc_server",
     "lib/sd_jwt",
     "lib/sd_jwt_vc_metadata",
+    "lib/svg_sanitize",
     "lib/status_lists",
     "lib/status_lists/migrations",
     "lib/token_status_list",

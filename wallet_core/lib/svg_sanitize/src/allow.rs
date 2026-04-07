@@ -1,0 +1,386 @@
+use std::collections::HashSet;
+use std::sync::OnceLock;
+
+/// Allowed SVG/XML tag names, all lowercase.
+///
+/// Deliberately omits:
+/// - `script`, `style`         — code execution / unfiltered CSS
+/// - `use`                     — can cause DoS via recursive expansion
+/// - `animate`, `set`          — can modify href/other attrs dynamically (XSS vector)
+/// - `foreignobject`           — embeds arbitrary HTML
+pub fn allowed_tags() -> &'static HashSet<&'static str> {
+    static SET: OnceLock<HashSet<&'static str>> = OnceLock::new();
+    SET.get_or_init(|| {
+        HashSet::from([
+            // SVG structural
+            "svg",
+            "defs",
+            "g",
+            "symbol",
+            "view",
+            "switch",
+            "metadata",
+            // Shapes
+            "circle",
+            "ellipse",
+            "line",
+            "path",
+            "polygon",
+            "polyline",
+            "rect",
+            // Text
+            "text",
+            "tspan",
+            "textpath",
+            "tref",
+            "title",
+            "desc",
+            // Links and images
+            "a",
+            "image",
+            // Gradients and patterns
+            "lineargradient",
+            "radialgradient",
+            "stop",
+            "pattern",
+            // Clip / mask / filter containers
+            "filter",
+            "marker",
+            "mask",
+            "clippath",
+            // Safe animation subset (no attribute-mutating elements)
+            "animatecolor",
+            "animatemotion",
+            "animatetransform",
+            "mpath",
+            // Typography
+            "font",
+            "glyph",
+            "glyphref",
+            "altglyph",
+            "altglyphdef",
+            "altglyphitem",
+            "hkern",
+            "vkern",
+            // Filter primitives — stored lowercase; input is lowercased before lookup
+            "feblend",
+            "fecolormatrix",
+            "fecomponenttransfer",
+            "fecomposite",
+            "feconvolvematrix",
+            "fediffuselighting",
+            "fedisplacementmap",
+            "fedistantlight",
+            "feflood",
+            "fefunca",
+            "fefuncb",
+            "fefuncg",
+            "fefuncr",
+            "fegaussianblur",
+            "femerge",
+            "femergenode",
+            "femorphology",
+            "feoffset",
+            "fepointlight",
+            "fespecularlighting",
+            "fespotlight",
+            "fetile",
+            "feturbulence",
+        ])
+    })
+}
+
+/// Allowed attribute names, all lowercase.
+///
+/// `style` is included but its value is NOT sanitized (CSS is deferred).
+/// Event handler attributes (`onclick`, `onload`, etc.) are absent.
+pub fn allowed_attrs() -> &'static HashSet<&'static str> {
+    static SET: OnceLock<HashSet<&'static str>> = OnceLock::new();
+    SET.get_or_init(|| {
+        HashSet::from([
+            // Geometry and shape
+            "cx",
+            "cy",
+            "d",
+            "dx",
+            "dy",
+            "fx",
+            "fy",
+            "height",
+            "width",
+            "r",
+            "rx",
+            "ry",
+            "x",
+            "x1",
+            "x2",
+            "y",
+            "y1",
+            "y2",
+            "z",
+            "points",
+            "path",
+            "pathlength",
+            // Presentation
+            "clip",
+            "clip-path",
+            "clip-rule",
+            "color",
+            "color-interpolation",
+            "color-interpolation-filters",
+            "color-profile",
+            "color-rendering",
+            "direction",
+            "display",
+            "dominant-baseline",
+            "fill",
+            "fill-opacity",
+            "fill-rule",
+            "filter",
+            "flood-color",
+            "flood-opacity",
+            "font-family",
+            "font-size",
+            "font-size-adjust",
+            "font-stretch",
+            "font-style",
+            "font-variant",
+            "font-weight",
+            "image-rendering",
+            "letter-spacing",
+            "lighting-color",
+            "marker-end",
+            "marker-mid",
+            "marker-start",
+            "mask",
+            "opacity",
+            "overflow",
+            "paint-order",
+            "shape-rendering",
+            "stop-color",
+            "stop-opacity",
+            "stroke",
+            "stroke-dasharray",
+            "stroke-dashoffset",
+            "stroke-linecap",
+            "stroke-linejoin",
+            "stroke-miterlimit",
+            "stroke-opacity",
+            "stroke-width",
+            "text-anchor",
+            "text-decoration",
+            "text-rendering",
+            "vector-effect",
+            "visibility",
+            "word-spacing",
+            "writing-mode",
+            // Style (CSS content unfiltered — known gap, future work)
+            "style",
+            // Layout and transform
+            "alignment-baseline",
+            "baseline-shift",
+            "transform",
+            "transform-origin",
+            "viewbox",
+            "preserveaspectratio",
+            // Identity and linking
+            "id",
+            "class",
+            "name",
+            "lang",
+            "tabindex",
+            "href",
+            "src",
+            "version",
+            // Gradient / pattern / filter attributes
+            "gradientunits",
+            "gradienttransform",
+            "patterncontentunits",
+            "patterntransform",
+            "patternunits",
+            "maskcontentunits",
+            "maskunits",
+            "filterunits",
+            "primitiveunits",
+            "spreadmethod",
+            "offset",
+            "local",
+            // Filter primitive attributes
+            "in",
+            "in2",
+            "result",
+            "mode",
+            "operator",
+            "order",
+            "kernelmatrix",
+            "kernelunitlength",
+            "bias",
+            "divisor",
+            "targetx",
+            "targety",
+            "edgemode",
+            "preservealpha",
+            "scale",
+            "xchannelselector",
+            "ychannelselector",
+            "stddeviation",
+            "azimuth",
+            "elevation",
+            "diffuseconstant",
+            "surfacescale",
+            "specularconstant",
+            "specularexponent",
+            "limitingconeangle",
+            "pointsatx",
+            "pointsaty",
+            "pointsatz",
+            "basefrequency",
+            "numoctaves",
+            "seed",
+            "stitchtiles",
+            "type",
+            "tablevalues",
+            "slope",
+            "intercept",
+            "amplitude",
+            "exponent",
+            "k",
+            "k1",
+            "k2",
+            "k3",
+            "k4",
+            "radius",
+            "refx",
+            "refy",
+            "markerheight",
+            "markerunits",
+            "markerwidth",
+            "orient",
+            "lengthadjust",
+            "textlength",
+            "startoffset",
+            // Clippath
+            "clippathunits",
+            // Glyph / font
+            "g1",
+            "g2",
+            "glyph-name",
+            "glyphref",
+            "u1",
+            "u2",
+            "unicode",
+            "horiz-adv-x",
+            "horiz-origin-x",
+            "horiz-origin-y",
+            "vert-adv-y",
+            "vert-origin-x",
+            "vert-origin-y",
+            "kerning",
+            "accent-height",
+            "ascent",
+            "descent",
+            "cap-height",
+            "x-height",
+            "stemh",
+            "stemv",
+            "ideographic",
+            "alphabetic",
+            "mathematical",
+            "hanging",
+            "underline-position",
+            "underline-thickness",
+            "strikethrough-position",
+            "strikethrough-thickness",
+            "overline-position",
+            "overline-thickness",
+            "units-per-em",
+            "panose-1",
+            "widths",
+            "bbox",
+            "unicode-range",
+            "font-face-name",
+            "font-face-uri",
+            // Symbol / view
+            "zoomandpan",
+            // Animation (safe subset)
+            "attributename",
+            "attributetype",
+            "begin",
+            "dur",
+            "end",
+            "min",
+            "max",
+            "repeatcount",
+            "repeatdur",
+            "restart",
+            "by",
+            "from",
+            "to",
+            "values",
+            "calcmode",
+            "keytimes",
+            "keysplines",
+            "keypoints",
+            "additive",
+            "accumulate",
+            "rotate",
+            "origin",
+            // Switch
+            "systemlanguage",
+            "requiredextensions",
+            // Media / accessibility
+            "media",
+            "wrap",
+            "orientation",
+            // XML namespace attributes (with colon — matched as literal strings)
+            "xmlns",
+            "xmlns:xlink",
+            "xlink:href",
+            "xlink:title",
+            "xlink:type",
+            "xlink:actuate",
+            "xlink:show",
+            "xlink:role",
+            "xlink:arcrole",
+            "xml:id",
+            "xml:space",
+            "xml:lang",
+            // xml:base is intentionally excluded: it rebases relative URI resolution,
+            // allowing `href="#x"` to resolve against a javascript: base URL.
+            // Modern browsers dropped xml:base support (Firefox 66+, 2019), so there
+            // is no legitimate use case that justifies the risk.
+        ])
+    })
+}
+
+/// Returns true if this attribute's value must be validated as a URL.
+pub fn is_url_attr(lower: &str) -> bool {
+    matches!(lower, "href" | "xlink:href" | "src")
+}
+
+/// Conservative URL allowlist. Permits fragment refs, https, and inert image
+/// data URIs. Blocks http://, javascript:, data:image/svg+xml, /, file://,
+/// vbscript:, etc.
+///
+/// `data:image/svg+xml` is intentionally excluded: an SVG-in-SVG data URI
+/// executes as a same-origin document in most browsers and is an XSS vector.
+pub fn is_safe_url(value: &str) -> bool {
+    if value.is_empty() {
+        return true;
+    }
+
+    if value.starts_with('#') || value.starts_with("https://") {
+        return true;
+    }
+
+    // Allow inert raster image data URIs.
+    value.starts_with("data:image/png;")
+        || value.starts_with("data:image/jpeg;")
+        || value.starts_with("data:image/gif;")
+        || value.starts_with("data:image/webp;")
+}
+
+/// Allows `aria-*` and `data-*` attributes through regardless of the static set.
+pub fn is_allowed_by_prefix(lower: &str) -> bool {
+    lower.starts_with("aria-") || lower.starts_with("data-")
+}

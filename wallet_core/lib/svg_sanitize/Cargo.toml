@@ -1,0 +1,12 @@
+[package]
+name = "svg_sanitize"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+quick-xml.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+rstest.workspace = true
