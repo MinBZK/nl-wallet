@@ -1,3 +1,5 @@
+use tracing::warn;
+
 use crate::repository::errors::PersistenceError;
 
 pub trait Committable {
