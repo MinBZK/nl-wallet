@@ -456,9 +456,9 @@ where
 {
     /// Increments the usage count for every attestation copy referenced in the proposal, and collects
     /// [`AttestationPresentation`]s from those same attestations for use in disclosure event logging.
-    pub(super) async fn increment_usage_count_and_collect_presentations<'a>(
+    pub(super) async fn increment_usage_count_and_collect_presentations(
         &self,
-        attestation_values: VecNonEmpty<&'a DisclosableAttestation>,
+        attestation_values: VecNonEmpty<&DisclosableAttestation>,
     ) -> (VecNonEmpty<AttestationPresentation>, Result<(), StorageError>)
     where
         S: Storage,
@@ -930,7 +930,7 @@ where
         let attestations = session.attestations.select_proposal(selected_indices);
 
         // There is guaranteed to be at least one attestation because of the logic in `start_disclosure()`.
-        let attestation_values = VecNonEmpty::try_from(attestations.values().cloned().collect_vec()).unwrap();
+        let attestation_values = VecNonEmpty::try_from(attestations.values().copied().collect_vec()).unwrap();
 
         // NOTE: If the disclosure fails and is retried, the disclosure count will jump by
         //       more than 1, since the same copies are shared with the verifier again.
