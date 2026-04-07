@@ -29,9 +29,16 @@ git switch -C "$branch"
 git add .
 git commit -m "$message"
 
-# Force push if branch does not exist or exists but is different
-if ! git show-ref --quiet "origin/$branch" || [[ -n "$(git diff --shortstat "origin/$branch..$branch")" ]]; then
-    git push -f origin "$branch"
+# Force push if branch does not exist or exists but is different and not edited by someone else
+if ! git show-ref --quiet "origin/$branch"; then
+    git push origin "$branch"
+elif [[ -n "$(git diff --shortstat "origin/$branch..$branch")" ]]; then
+    if [[ "$(git log --format='%ae' -n 1 "origin/$branch")" = "$AUDIT_FIX_GIT_EMAIL" ]]; then
+        git push -f origin "$branch"
+    else
+        echo "Refuse to push, branch was edited by someone else"
+        exit 0
+    fi
 fi
 
 # Create MR if not already exists
