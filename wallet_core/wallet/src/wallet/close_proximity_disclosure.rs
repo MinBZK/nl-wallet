@@ -374,15 +374,22 @@ where
             ..
         } = close_proximity_session.session_state.lock().to_owned()
         else {
+            self.session
+                .replace(Session::CloseProximityDisclosure(close_proximity_session));
             return Err(DisclosureError::SessionState);
         };
 
         let reader_certificate = verifier_certificate.certificate().clone();
 
         // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
-        let remote_wscd = self
-            .prepare_remote_wscd(pin, attested_key_and_registration_data)
-            .await?;
+        let remote_wscd = match self.prepare_remote_wscd(pin, attested_key_and_registration_data).await {
+            Ok(ok) => ok,
+            Err(e) => {
+                self.session
+                    .replace(Session::CloseProximityDisclosure(close_proximity_session));
+                return Err(e);
+            }
+        };
 
         // Note that this will panic if any of the indices are out of bounds.
         let attestations = attestations.select_proposal(selected_indices);
@@ -505,8 +512,8 @@ where
                         self.handle_wallet_revocation(data).await;
                     }
                     _ => {
-                        // If we did not just give away ownership of the disclosure session by terminating it,
-                        // place it back in the wallet state so that the user may retry disclosure.
+                        // If we did not just terminate the close proximity disclosure session, place it back in the
+                        // wallet state so that the user may retry disclosure.
                         self.session
                             .replace(Session::CloseProximityDisclosure(close_proximity_session));
                     }

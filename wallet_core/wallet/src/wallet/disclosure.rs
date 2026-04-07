@@ -911,20 +911,27 @@ where
     {
         // If we do not have a proposal, this method should not have been called, so return an error.
         if !matches!(session.attestations, WalletDisclosureAttestations::Proposal(_)) {
+            self.session.replace(Session::Disclosure(session)); // Put back the session
             return Err(DisclosureError::SessionState);
         }
 
         if session.redirect_uri_purpose != redirect_uri_purpose {
+            let expected = session.redirect_uri_purpose;
+            self.session.replace(Session::Disclosure(session)); // Put back the session
             return Err(DisclosureError::UnexpectedRedirectUriPurpose {
-                expected: session.redirect_uri_purpose,
+                expected,
                 found: redirect_uri_purpose,
             });
         }
 
         // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
-        let remote_wscd = self
-            .prepare_remote_wscd(pin, attested_key_and_registration_data)
-            .await?;
+        let remote_wscd = match self.prepare_remote_wscd(pin, attested_key_and_registration_data).await {
+            Ok(ok) => ok,
+            Err(e) => {
+                self.session.replace(Session::Disclosure(session));
+                return Err(e);
+            }
+        };
 
         // Note that this will panic if any of the indices are out of bounds.
         let attestations = session.attestations.select_proposal(selected_indices);
@@ -2901,19 +2908,6 @@ mod tests {
                     .with(
                         always(),
                         eq(vec![]),
-                        eq(reader_certificate),
-                        eq(EventStatus::Cancelled),
-                        eq(DisclosureType::Regular),
-                    )
-                    .times(1)
-                    .returning(|_, _, _, _, _| Ok(()));
-
-                wallet
-                    .mut_storage()
-                    .expect_log_disclosure_event()
-                    .with(
-                        always(),
-                        eq(vec![]),
                         eq(error_reader_certificate),
                         eq(EventStatus::Error),
                         eq(DisclosureType::Regular),
@@ -2973,8 +2967,7 @@ mod tests {
 
         let expected_event_count = match instruction_expectation {
             InstructionExpectation::Retry => 1,
-            InstructionExpectation::RetryWithEvent => 2,
-            InstructionExpectation::Termination => 3,
+            InstructionExpectation::RetryWithEvent | InstructionExpectation::Termination => 2,
         };
 
         assert_eq!(event_count.load(Ordering::Relaxed), expected_event_count);
