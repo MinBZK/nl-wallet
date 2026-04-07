@@ -14,6 +14,7 @@ rustup component add llvm-tools-preview # needed by cargo-llvm-cov
 cargo --version
 rustc --version
 
+cargo install cargo-audit --features=fix --locked --version 0.22.1
 cargo install cargo-expand --locked --version 1.0.121
 cargo install cargo-llvm-cov --locked --version 0.8.4
 cargo install cargo-hack --locked --version 0.6.43
