@@ -9,12 +9,12 @@ SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -
 while IFS= read -r -d '' lockfile; do
     echo "Fixing $lockfile..."
     cd "$(dirname "$lockfile")"
-    npm audit fix || true
-done < <(find "$BASE_DIR" -name package-lock.json -not -path '*/node_modules/*' -print0)
+    cargo audit fix || true
+done < <(find "$BASE_DIR" -name Cargo.lock -not -path '*/target/*' -print0)
 
 cd "$BASE_DIR"
 
 # Create MR if on CI and main
 if [[ -n $CI && -n $(git status --porcelain) && $CI_COMMIT_BRANCH == "$CI_DEFAULT_BRANCH" ]]; then
-    exec "$BASE_DIR/deploy/audit-fix-pr.sh" npm-audit-fix "Run npm audit fix"
+    exec "$BASE_DIR/deploy/audit-fix-pr.sh" cargo-audit-fix "Run cargo audit fix"
 fi
