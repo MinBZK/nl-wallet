@@ -6,7 +6,6 @@ use attestation_data::issuable_document::IssuableDocument;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
 use hsm::service::HsmError;
-use http_utils::client::TlsPinningConfig;
 use openid4vc::issuer::AttributeService;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
@@ -20,6 +19,7 @@ use crate::pid::brp::client::HttpBrpClient;
 use crate::pid::constants::PID_ATTESTATION_TYPE;
 use crate::pid::constants::PID_BSN;
 use crate::pid::constants::PID_RECOVERY_CODE;
+use crate::settings::DigidClientSettings;
 
 use super::digid;
 use super::digid::OpenIdClient;
@@ -59,12 +59,12 @@ impl BrpPidAttributeService {
         brp_client: HttpBrpClient,
         bsn_privkey: &str,
         client_id: impl Into<String>,
-        http_config: &TlsPinningConfig,
+        digid_client_settings: DigidClientSettings,
         recovery_code_secret_key: SecretKeyVariant,
     ) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
-            openid_client: OpenIdClient::try_new(bsn_privkey, client_id, http_config)?,
+            openid_client: OpenIdClient::try_new(bsn_privkey, client_id, digid_client_settings)?,
             recovery_code_secret_key,
         })
     }

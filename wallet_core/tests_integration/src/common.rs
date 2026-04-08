@@ -863,22 +863,13 @@ pub async fn start_pid_issuer_server(
     )
     .await;
 
-    let authorization_server = settings
-        .digid
-        .http_config
-        .base_url()
-        .as_ref()
-        .clone()
-        .join("authorize")
-        .unwrap();
-
     tokio::spawn(
         async move {
             if let Err(error) = pid_issuer::server::serve_with_listeners(
                 public_listener,
                 internal_listener,
                 attr_service,
-                authorization_server,
+                settings.digid.client_settings.oidc_identifier,
                 settings.issuer_settings,
                 hsm,
                 issuance_sessions,

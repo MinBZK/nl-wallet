@@ -69,7 +69,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             HttpBrpClient::new(settings.brp_server.clone()),
             &settings.digid.bsn_privkey,
             settings.digid.client_id.clone(),
-            &settings.digid.http_config,
+            settings.digid.client_settings.clone(),
             SecretKeyVariant::from_settings(
                 SecretKey::Software {
                     secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
@@ -105,7 +105,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     // Do fake DigiD authentication and parse the access token out of the redirect URL
     let redirect_url = fake_digid_auth(
         authorization_session.auth_url().clone(),
-        settings.digid.http_config.base_url().clone(),
+        settings.digid.client_settings.oidc_identifier.as_base_url().clone(),
         "999991772",
     )
     .await;

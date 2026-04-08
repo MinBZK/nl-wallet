@@ -132,7 +132,7 @@ fn decrypt_jwe(
 
 pub async fn request_userinfo<C>(
     http_client: &HttpJsonClient,
-    authorization_server: &IssuerIdentifier,
+    oidc_identifier: &IssuerIdentifier,
     token_request: TokenRequest,
     client_id: &str,
     expected_sig_alg: Algorithm,
@@ -143,7 +143,7 @@ where
 {
     let config: AuthorizationServerMetadata = well_known::fetch_well_known(
         http_client,
-        authorization_server,
+        oidc_identifier,
         well_known::WellKnownPath::OpenidConfiguration,
     )
     .await?;

@@ -31,8 +31,8 @@ secret_key_type = "software"
 bsn_privkey = '${BSN_PRIVKEY}'
 client_id = "${DIGID_CLIENT_ID}"
 
-[digid.http_config]
-base_url = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"
+[digid.client_settings]
+oidc_identifier = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"
 trust_anchors = ["${DIGID_CA_CRT}"]
 
 [hsm]

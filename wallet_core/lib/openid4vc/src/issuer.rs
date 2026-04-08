@@ -22,7 +22,6 @@ use serde::Serialize;
 use ssri::Integrity;
 use tokio::task::AbortHandle;
 use tracing::info;
-use url::Url;
 use uuid::Uuid;
 
 use attestation_data::attributes::AttributesError;
@@ -416,8 +415,8 @@ pub struct IssuerData<K> {
 
     metadata: IssuerMetadata,
 
-    /// The upstream OAuth authorization endpoint to include in this issuer's OAuth metadata, if any.
-    upstream_authorization_endpoint: Option<Url>,
+    /// The upstream OAuth identifier, if any.
+    upstream_oauth_identifier: Option<IssuerIdentifier>,
 }
 
 pub struct WuaConfig {
@@ -448,7 +447,7 @@ where
         wallet_client_ids: Vec<String>,
         attestation_config: AttestationTypesConfig<K>,
         wua_config: Option<WuaConfig>,
-        upstream_authorization_endpoint: Option<Url>,
+        upstream_oauth_identifier: Option<IssuerIdentifier>,
         attr_service: A,
         sessions: Arc<S>,
         nonce_store: N,
@@ -519,7 +518,7 @@ where
             attestation_config,
             accepted_wallet_client_ids: wallet_client_ids,
             wua_config,
-            upstream_authorization_endpoint,
+            upstream_oauth_identifier,
 
             // In this implementation, the public server URL is composed of the
             // Credential Issuer Identifier appended with the "/issuance/" path.
@@ -833,9 +832,9 @@ where
         AuthorizationServerMetadata {
             authorization_endpoint: self
                 .issuer_data
-                .upstream_authorization_endpoint
-                .clone()
-                .and_then(|url| url.join("authorize").ok()),
+                .upstream_oauth_identifier
+                .as_ref()
+                .map(|identifier| identifier.as_base_url().join("authorize")),
             ..AuthorizationServerMetadata::new(
                 self.issuer_data.metadata.credential_issuer.clone(),
                 issuer_url.join("issuance/token"),

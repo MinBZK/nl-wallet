@@ -50,11 +50,13 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     ));
     let nonce_store = ProofNonceStore::new(store_connection.clone());
 
+    let upstream_oauth_identifier = settings.digid.client_settings.oidc_identifier.clone();
+
     let pid_attr_service = BrpPidAttributeService::try_new(
         HttpBrpClient::new(settings.brp_server),
         &settings.digid.bsn_privkey,
         settings.digid.client_id,
-        &settings.digid.http_config,
+        settings.digid.client_settings,
         SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?,
     )?;
 
@@ -108,12 +110,10 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     let db_checkers = [store_checker, status_list_checker].into_iter().flat_map(boxed);
     let health_router = create_health_router(std::iter::once(hsm_checker).flat_map(boxed).chain(db_checkers));
 
-    let upstream_authorization_endpoint = settings.digid.http_config.base_url().as_ref().clone();
-
     // This will block until the server shuts down.
     server::serve(
         pid_attr_service,
-        upstream_authorization_endpoint,
+        upstream_oauth_identifier,
         issuer_settings,
         hsm,
         sessions,

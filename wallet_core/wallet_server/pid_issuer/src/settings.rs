@@ -10,10 +10,11 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 
 use crypto::p256_der::DerVerifyingKey;
-use http_utils::client::TlsPinningConfig;
+use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::urls::BaseUrl;
 use issuer_common::settings::IssuerSettings;
 use issuer_common::settings::IssuerSettingsError;
+use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::server_state::SessionStoreTimeouts;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::SecretKey;
@@ -21,6 +22,7 @@ use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use status_lists::settings::StatusListsSettings;
 use utils::path::prefix_local_path;
+use utils::vec_at_least::VecNonEmpty;
 
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
@@ -46,7 +48,17 @@ pub struct PidIssuerSettings {
 pub struct Digid {
     pub bsn_privkey: String,
     pub client_id: String,
-    pub http_config: TlsPinningConfig,
+    pub client_settings: DigidClientSettings,
+}
+
+#[serde_as]
+#[derive(Debug, Clone, Deserialize)]
+pub struct DigidClientSettings {
+    pub oidc_identifier: IssuerIdentifier,
+
+    #[debug(skip)]
+    #[serde_as(as = "Vec<Base64>")]
+    pub trust_anchors: VecNonEmpty<ReqwestTrustAnchor>,
 }
 
 impl ServerSettings for PidIssuerSettings {
@@ -91,7 +103,7 @@ impl ServerSettings for PidIssuerSettings {
             .prefix_separator("__")
             .list_separator(",")
             .with_list_parse_key("issuer_trust_anchors")
-            .with_list_parse_key("digid.http_config.trust_anchors")
+            .with_list_parse_key("digid.client_settings.trust_anchors")
             .with_list_parse_key("metadata")
             .try_parsing(true);
 

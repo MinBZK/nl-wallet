@@ -4,7 +4,6 @@ use josekit::jwe::alg::rsaes::RsaesJweDecrypter;
 use josekit::jwe::enc::aescbc_hmac::AescbcHmacJweEncryption;
 use jsonwebtoken::Algorithm;
 
-use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::tls_pinned_client_builder;
 use openid4vc::issuer_identifier::IssuerIdentifier;
@@ -13,6 +12,7 @@ use openid4vc::token::TokenRequest;
 use crate::pid::userinfo;
 use crate::pid::userinfo::UserInfo;
 use crate::pid::userinfo::UserInfoError;
+use crate::settings::DigidClientSettings;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -36,27 +36,24 @@ pub struct OpenIdClient {
     decrypter_private_key: RsaesJweDecrypter,
     client_id: String,
     http_client: HttpJsonClient,
-    authorization_server: IssuerIdentifier,
+    oidc_identifier: IssuerIdentifier,
 }
 
 impl OpenIdClient {
-    pub fn try_new(bsn_privkey: &str, client_id: impl Into<String>, http_config: &TlsPinningConfig) -> Result<Self> {
-        let authorization_server: IssuerIdentifier = http_config
-            .base_url()
-            .as_ref()
-            .as_str()
-            .trim_end_matches('/')
-            .parse()
-            .expect("TlsPinningConfig base URL should be a valid IssuerIdentifier");
-        let certs = http_config
-            .trust_anchors()
-            .iter()
-            .map(|ta| ta.clone().into_certificate());
+    pub fn try_new(
+        bsn_privkey: &str,
+        client_id: impl Into<String>,
+        digid_client_settings: DigidClientSettings,
+    ) -> Result<Self> {
+        let certs = digid_client_settings
+            .trust_anchors
+            .into_iter()
+            .map(|ta| ta.into_certificate());
         let userinfo_client = OpenIdClient {
             decrypter_private_key: Self::decrypter(bsn_privkey)?,
             client_id: client_id.into(),
             http_client: HttpJsonClient::try_new(tls_pinned_client_builder(certs))?,
-            authorization_server,
+            oidc_identifier: digid_client_settings.oidc_identifier,
         };
 
         Ok(userinfo_client)
@@ -65,7 +62,7 @@ impl OpenIdClient {
     pub async fn bsn(&self, token_request: TokenRequest) -> Result<String> {
         let userinfo_claims = userinfo::request_userinfo::<UserInfo>(
             &self.http_client,
-            &self.authorization_server,
+            &self.oidc_identifier,
             token_request,
             &self.client_id,
             Algorithm::RS256,
