@@ -4,8 +4,6 @@ use tracing::instrument;
 use url::Url;
 
 use http_utils::client::TlsPinningConfig;
-use http_utils::reqwest::HttpJsonClient;
-use http_utils::reqwest::default_reqwest_client_builder;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
@@ -73,8 +71,6 @@ async fn main() {
         .await
         .unwrap();
 
-    let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
-
     let update_policy_repository = UpdatePolicyRepository::init();
     let wallet_clients = WalletClients::new().unwrap();
 
@@ -87,7 +83,6 @@ async fn main() {
             config_repository,
             update_policy_repository,
         },
-        HttpIssuanceDiscovery::new(http_json_client.clone()),
         wallet_clients,
     )
     .await

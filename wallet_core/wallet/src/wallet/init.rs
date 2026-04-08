@@ -139,9 +139,6 @@ where
         )
         .await?;
 
-        let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder())?;
-        let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_json_client);
-
         let repositories = WalletRepositories {
             config_repository,
             update_policy_repository,
@@ -149,14 +146,7 @@ where
 
         let wallet_clients = WalletClients::new()?;
 
-        Self::init_registration(
-            storage,
-            key_holder,
-            repositories,
-            credential_issuer_discovery,
-            wallet_clients,
-        )
-        .await
+        Self::init_registration(storage, key_holder, repositories, wallet_clients).await
     }
 }
 
@@ -167,22 +157,26 @@ pub struct WalletRepositories<CR, UR> {
 }
 
 #[derive(Debug, Default)]
-pub struct WalletClients<APC, DCC, SLC> {
+pub struct WalletClients<APC, CID, DCC, SLC> {
     pub account_provider_client: APC,
+    pub credential_issuer_discovery: CID,
     pub disclosure_client: DCC,
     pub status_list_client: SLC,
 }
 
-impl<APC> WalletClients<APC, VpDisclosureClient, HttpStatusListClient>
+impl<APC> WalletClients<APC, HttpIssuanceDiscovery, VpDisclosureClient, HttpStatusListClient>
 where
     APC: Default,
 {
     pub fn new() -> Result<Self, reqwest::Error> {
         let disclosure_client = VpDisclosureClient::new_with_client(default_reqwest_client_builder())?;
         let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
+        let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder())?;
+        let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_json_client);
 
         let clients = Self {
             account_provider_client: APC::default(),
+            credential_issuer_discovery,
             disclosure_client,
             status_list_client,
         };
@@ -202,8 +196,7 @@ where
         storage: S,
         key_holder: AKH,
         repositories: WalletRepositories<CR, UR>,
-        credential_issuer_discovery: CID,
-        wallet_clients: WalletClients<APC, DCC, SLC>,
+        wallet_clients: WalletClients<APC, CID, DCC, SLC>,
         registration_status: RegistrationStatus,
     ) -> Self {
         let registration = match registration_status {
@@ -234,7 +227,7 @@ where
             key_holder,
             registration,
             account_provider_client: Arc::new(wallet_clients.account_provider_client),
-            issuance_discovery: credential_issuer_discovery,
+            issuance_discovery: wallet_clients.credential_issuer_discovery,
             disclosure_client: wallet_clients.disclosure_client,
             close_proximity_disclosure: PhantomData,
             status_list_client: Arc::new(wallet_clients.status_list_client),
@@ -253,8 +246,7 @@ where
         mut storage: S,
         key_holder: AKH,
         repositories: WalletRepositories<CR, UR>,
-        credential_issuer_discovery: CID,
-        wallet_clients: WalletClients<APC, DCC, SLC>,
+        wallet_clients: WalletClients<APC, CID, DCC, SLC>,
     ) -> Result<Self, WalletInitError>
     where
         CR: Repository<Arc<WalletConfiguration>> + Send + Sync + 'static,
@@ -272,14 +264,7 @@ where
 
         let registration_status = Self::fetch_registration_status(&mut storage).await?;
 
-        let mut wallet = Self::new(
-            storage,
-            key_holder,
-            repositories,
-            credential_issuer_discovery,
-            wallet_clients,
-            registration_status,
-        );
+        let mut wallet = Self::new(storage, key_holder, repositories, wallet_clients, registration_status);
 
         wallet.start_background_revocation_checks(REVOCATION_CHECK_FREQUENCY);
 

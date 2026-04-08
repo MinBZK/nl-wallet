@@ -38,7 +38,6 @@ use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
 use http_utils::client::TlsPinningConfig;
 use http_utils::health::create_health_router;
-use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::reqwest::trusted_reqwest_client_builder;
@@ -425,9 +424,6 @@ where
 
     let update_policy_repository = UpdatePolicyRepository::init();
 
-    let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
-    let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_json_client);
-
     let wallet_clients = WalletClients::new().unwrap();
 
     Wallet::init_registration(
@@ -437,7 +433,6 @@ where
             config_repository,
             update_policy_repository,
         },
-        credential_issuer_discovery,
         wallet_clients,
     )
     .await
