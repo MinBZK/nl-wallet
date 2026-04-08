@@ -28,7 +28,9 @@ pub enum VpSessionError {
 impl From<VpMessageClientError> for VpSessionError {
     fn from(source: VpMessageClientError) -> Self {
         match &source {
-            VpMessageClientError::Json(_) => VpSessionError::Verifier(VpVerifierError::Request(source)),
+            VpMessageClientError::Json(_) | VpMessageClientError::InvalidJwt(_) => {
+                VpSessionError::Verifier(VpVerifierError::Request(source))
+            }
             _ => VpSessionError::Client(VpClientError::Request(source)),
         }
     }

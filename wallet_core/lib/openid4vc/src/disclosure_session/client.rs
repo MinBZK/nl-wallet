@@ -33,6 +33,7 @@ use super::error::VpSessionError;
 use super::error::VpVerifierError;
 use super::message_client::HttpVpMessageClient;
 use super::message_client::VpMessageClient;
+use super::message_client::VpMessageClientError;
 use super::session::VpDisclosureSession;
 use super::uri_source::DisclosureUriSource;
 
@@ -56,38 +57,46 @@ impl<H> VpDisclosureClient<H> {
         H: VpMessageClient,
     {
         let error_code = match &error {
-            VpVerifierError::VpFormatsNotSupported(_) => VpAuthorizationErrorCode::VpFormatsNotSupported,
+            VpVerifierError::VpFormatsNotSupported(_) => Some(VpAuthorizationErrorCode::VpFormatsNotSupported),
             VpVerifierError::AuthRequestValidation(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_type",
                 ..
-            }) => VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::UnsupportedResponseType),
-            VpVerifierError::Request(_)
+            }) => Some(VpAuthorizationErrorCode::AuthorizationError(
+                AuthorizationErrorCode::UnsupportedResponseType,
+            )),
+            VpVerifierError::Request(VpMessageClientError::Json(_))
+            | VpVerifierError::Request(VpMessageClientError::InvalidJwt(_))
             | VpVerifierError::AuthRequestValidation(_)
             | VpVerifierError::IncorrectClientId { .. }
             | VpVerifierError::RpCertificate(_)
             | VpVerifierError::NoReaderCertificate
             | VpVerifierError::RequestedAttributesValidation(_)
             | VpVerifierError::MissingSessionType
-            | VpVerifierError::MalformedSessionType(_) => {
-                VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest)
-            }
+            | VpVerifierError::MalformedSessionType(_) => Some(VpAuthorizationErrorCode::AuthorizationError(
+                AuthorizationErrorCode::InvalidRequest,
+            )),
+            VpVerifierError::Request(VpMessageClientError::Http(_))
+            | VpVerifierError::Request(VpMessageClientError::AuthGetResponse(_))
+            | VpVerifierError::Request(VpMessageClientError::AuthPostResponse(_)) => None,
         };
 
-        let error_response = AuthorizationErrorResponse {
-            error_response: ErrorResponse {
-                error: error_code,
-                error_description: Some(error.to_string()),
-                error_uri: None,
-            },
-            state,
-        };
+        if let Some(error_code) = error_code {
+            let error_response = AuthorizationErrorResponse {
+                error_response: ErrorResponse {
+                    error: error_code,
+                    error_description: Some(error.to_string()),
+                    error_uri: None,
+                },
+                state,
+            };
 
-        // If sending the error results in an error, log it but do nothing else.
-        let _ = self
-            .client
-            .send_error(url, error_response)
-            .await
-            .inspect_err(|err| warn!("failed to send error to verifier: {err}"));
+            // If sending the error results in an error, log it but do nothing else.
+            let _ = self
+                .client
+                .send_error(url, error_response)
+                .await
+                .inspect_err(|err| warn!("failed to send error to verifier: {err}"));
+        }
 
         error
     }
@@ -285,6 +294,7 @@ mod tests {
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use http_utils::urls::BaseUrl;
+    use jwt::error::JwtError;
     use mdoc::holder::disclosure::PartialMdoc;
     use sd_jwt::builder::SignedSdJwt;
     use token_status_list::verification::client::mock::StatusListClientStub;
@@ -847,6 +857,22 @@ mod tests {
         assert_matches!(
             error,
             VpSessionError::Verifier(VpVerifierError::Request(VpMessageClientError::Json(_)))
+        );
+        assert_eq!(wallet_messages.len(), 1);
+        assert_matches!(wallet_messages.first().unwrap(), WalletMessage::Request(_));
+    }
+
+    #[rstest]
+    fn test_vp_disclosure_client_start_error_verifier_request_invalid_jwt(
+        #[values(false, true)] error_has_error: bool,
+    ) {
+        let (error, wallet_messages) =
+            start_disclosure_session_http_error(|| JwtError::MissingTyp.into(), error_has_error);
+
+        // InvalidJwt should should be sent to the RP (invalid_request).
+        assert_matches!(
+            error,
+            VpSessionError::Verifier(VpVerifierError::Request(VpMessageClientError::InvalidJwt(_)))
         );
         assert_eq!(wallet_messages.len(), 1);
         assert_matches!(wallet_messages.first().unwrap(), WalletMessage::Request(_));
