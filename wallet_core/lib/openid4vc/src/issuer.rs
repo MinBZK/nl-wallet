@@ -23,6 +23,7 @@ use serde::Serialize;
 use ssri::Integrity;
 use tokio::task::AbortHandle;
 use tracing::info;
+use url::Url;
 use uuid::Uuid;
 
 use attestation_data::attributes::AttributesError;
@@ -417,7 +418,7 @@ pub struct IssuerData<K> {
     metadata: IssuerMetadata,
 
     /// The upstream OAuth authorization endpoint to include in this issuer's OAuth metadata, if any.
-    upstream_authorization_endpoint: Option<url::Url>,
+    upstream_authorization_endpoint: Option<Url>,
 }
 
 pub struct WuaConfig {
@@ -448,7 +449,7 @@ where
         wallet_client_ids: Vec<String>,
         attestation_config: AttestationTypesConfig<K>,
         wua_config: Option<WuaConfig>,
-        upstream_authorization_endpoint: Option<url::Url>,
+        upstream_authorization_endpoint: Option<Url>,
         attr_service: A,
         sessions: Arc<S>,
         nonce_store: N,

@@ -22,6 +22,8 @@ use openid4vc::metadata::jwks::JwksError;
 use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
 use openid4vc::metadata::well_known;
 use openid4vc::metadata::well_known::WellKnownError;
+use openid4vc::token::TokenRequest;
+use openid4vc::token::TokenResponse;
 
 const APPLICATION_JWT: &str = "application/jwt";
 
@@ -72,7 +74,7 @@ pub struct UserInfo {
 async fn request_userinfo_jwt(
     http_client: &HttpJsonClient,
     config: &AuthorizationServerMetadata,
-    token_request: openid4vc::token::TokenRequest,
+    token_request: TokenRequest,
 ) -> Result<String, UserInfoError> {
     // Get userinfo endpoint from discovery, throw an error otherwise.
     let endpoint = config.userinfo_endpoint.clone().ok_or(UserInfoError::NoUserinfoUrl)?;
@@ -87,7 +89,7 @@ async fn request_userinfo_jwt(
             let error = response.json::<ErrorResponse<TokenErrorCode>>().await?;
             return Err(UserInfoError::RequestingAccessToken(error.into()));
         } else {
-            response.json::<openid4vc::token::TokenResponse>().await?
+            response.json::<TokenResponse>().await?
         }
     };
 
@@ -131,7 +133,7 @@ fn decrypt_jwe(
 pub async fn request_userinfo<C>(
     http_client: &HttpJsonClient,
     authorization_server: &IssuerIdentifier,
-    token_request: openid4vc::token::TokenRequest,
+    token_request: TokenRequest,
     client_id: &str,
     expected_sig_alg: Algorithm,
     encryption: Option<(&impl JweDecrypter, &impl JweContentEncryption)>,
