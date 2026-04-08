@@ -26,7 +26,7 @@ use token_status_list::status_list_service::StatusListServices;
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
 pub async fn serve<A, IS, N, L>(
     attr_service: A,
-    upstream_authorization_endpoint: Option<Url>,
+    upstream_authorization_endpoint: Url,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
@@ -64,7 +64,7 @@ pub async fn serve_with_listeners<A, IS, N, L>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
     attr_service: A,
-    upstream_authorization_endpoint: Option<Url>,
+    upstream_authorization_endpoint: Url,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
@@ -92,7 +92,7 @@ where
         Some(WuaConfig {
             wua_issuer_pubkey: (&wua_issuer_pubkey).into(),
         }),
-        upstream_authorization_endpoint,
+        Some(upstream_authorization_endpoint),
         attr_service,
         issuance_sessions,
         nonce_store,

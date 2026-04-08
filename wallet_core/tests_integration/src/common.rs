@@ -883,7 +883,7 @@ pub async fn start_pid_issuer_server(
                 public_listener,
                 internal_listener,
                 attr_service,
-                Some(authorization_server),
+                authorization_server,
                 settings.issuer_settings,
                 hsm,
                 issuance_sessions,

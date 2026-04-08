@@ -108,7 +108,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     let db_checkers = [store_checker, status_list_checker].into_iter().flat_map(boxed);
     let health_router = create_health_router(std::iter::once(hsm_checker).flat_map(boxed).chain(db_checkers));
 
-    let upstream_authorization_endpoint = Some(settings.digid.http_config.base_url().as_ref().clone());
+    let upstream_authorization_endpoint = settings.digid.http_config.base_url().as_ref().clone();
 
     // This will block until the server shuts down.
     server::serve(
