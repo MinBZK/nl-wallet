@@ -58,7 +58,6 @@ futures = { workspace = true, features = ["async-await"] }
 hex.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
-josekit = { workspace = true, features = ["vendored"] }
 jsonwebtoken.workspace = true
 jwk-simple.workspace = true
 mime.workspace = true
