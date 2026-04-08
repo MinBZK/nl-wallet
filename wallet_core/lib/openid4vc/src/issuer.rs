@@ -14,7 +14,6 @@ use derive_more::Debug;
 use derive_more::From;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
-use indexmap::IndexSet;
 use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
@@ -830,8 +829,6 @@ where
 
     pub fn oauth_metadata(&self) -> AuthorizationServerMetadata {
         let issuer_url = self.issuer_data.metadata.credential_issuer.as_base_url();
-        let mut scopes = IndexSet::with_capacity(1);
-        scopes.insert("openid".to_string());
 
         AuthorizationServerMetadata {
             authorization_endpoint: self
@@ -839,7 +836,6 @@ where
                 .upstream_authorization_endpoint
                 .clone()
                 .and_then(|url| url.join("authorize").ok()),
-            scopes_supported: Some(scopes),
             ..AuthorizationServerMetadata::new(
                 self.issuer_data.metadata.credential_issuer.clone(),
                 issuer_url.join("issuance/token"),
