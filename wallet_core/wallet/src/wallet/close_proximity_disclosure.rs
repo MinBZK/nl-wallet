@@ -556,7 +556,10 @@ where
         let (certificate, status) = match state {
             CloseProximityDisclosureSessionState::DisclosureProposed {
                 verifier_certificate, ..
-            } => (verifier_certificate, EventStatus::Cancelled),
+            } => {
+                // TODO send empty device response with status 10 (PVW-5710)
+                (verifier_certificate, EventStatus::Cancelled)
+            }
             CloseProximityDisclosureSessionState::Errored {
                 verifier_certificate: Some(verifier_certificate),
                 ..
