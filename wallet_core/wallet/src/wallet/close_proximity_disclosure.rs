@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use chrono::DateTime;
 use chrono::Utc;
+use ciborium::value::Value;
 use derive_more::IsVariant;
 use itertools::Itertools;
 use nutype::nutype;
@@ -29,6 +30,7 @@ use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborError;
+use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosureClient;
@@ -109,6 +111,12 @@ pub struct CloseProximityDisclosureSession {
     session_state: Arc<Mutex<CloseProximityDisclosureSessionState>>,
 }
 
+// close proximity request failures need to be translated to ISO 18013-5
+// DeviceResponse status codes before the BLE session is torn down.
+const DEVICE_RESPONSE_STATUS_GENERAL_ERROR: u64 = 10;
+const DEVICE_RESPONSE_STATUS_CBOR_DECODING_ERROR: u64 = 11;
+const DEVICE_RESPONSE_STATUS_INVALID_REQUEST: u64 = 12;
+
 fn spawn_listener(
     mut receiver: mpsc::Receiver<PlatformUpdate>,
     session_state: Arc<Mutex<CloseProximityDisclosureSessionState>>,
@@ -137,8 +145,10 @@ fn spawn_listener(
                     }
                 }
                 PlatformUpdate::Closed => CloseProximityDisclosureUpdate::Disconnected,
-                // TODO process error (PVW-5710)
                 PlatformUpdate::Error { error } => {
+                    // Platform support already translated the transport/session failure to the
+                    // reader-facing status code before reporting it here; core keeps the errored
+                    // state so the app can surface the failure.
                     error!("Received PlatformUpdate::Error: {error:?}");
                     let mut current_state = session_state.lock();
                     let verifier_certificate = match &*current_state {
@@ -191,6 +201,14 @@ pub enum CloseProximityDisclosureError {
     #[category(critical)]
     MalformedDeviceRequest(#[from] CborError),
 
+    #[error("Received invalid Device Request structure from reader: {0}")]
+    #[category(critical)]
+    InvalidDeviceRequest(#[source] CborError),
+
+    #[error("Could not encode error DeviceResponse: {0}")]
+    #[category(critical)]
+    ErrorDeviceResponseEncoding(#[source] CborError),
+
     #[error("Received error from native close proximity bridge: {0}")]
     #[category(critical)]
     PlatformError(#[from] PlatformError),
@@ -201,6 +219,42 @@ pub enum CloseProximityDisclosureError {
 }
 
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
+fn parse_device_request(bytes: &[u8]) -> Result<DeviceRequest, CloseProximityDisclosureError> {
+    let _: Value = cbor_deserialize(bytes).map_err(CloseProximityDisclosureError::MalformedDeviceRequest)?;
+
+    DeviceRequest::try_from_bytes(bytes).map_err(CloseProximityDisclosureError::InvalidDeviceRequest)
+}
+
+fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option<u64> {
+    match error {
+        CloseProximityDisclosureError::MalformedDeviceRequest(_) => Some(DEVICE_RESPONSE_STATUS_CBOR_DECODING_ERROR),
+        CloseProximityDisclosureError::InvalidDeviceRequest(_) => Some(DEVICE_RESPONSE_STATUS_INVALID_REQUEST),
+        CloseProximityDisclosureError::MissingReaderAuth
+        | CloseProximityDisclosureError::InconsistentReaderAuths
+        | CloseProximityDisclosureError::InvalidDocRequest(_)
+        | CloseProximityDisclosureError::MissingReaderRegistration
+        | CloseProximityDisclosureError::InvalidCertificateType(_)
+        | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_) => {
+            Some(DEVICE_RESPONSE_STATUS_GENERAL_ERROR)
+        }
+        CloseProximityDisclosureError::ErrorDeviceResponseEncoding(_)
+        | CloseProximityDisclosureError::PlatformError(_)
+        | CloseProximityDisclosureError::DeviceResponse(_) => None,
+    }
+}
+
+fn encode_error_device_response(status: u64) -> Result<Vec<u8>, CloseProximityDisclosureError> {
+    cbor_serialize(&DeviceResponse {
+        version: Default::default(),
+        documents: None,
+        document_errors: None,
+        status,
+        poa: None,
+    })
+    .map_err(CloseProximityDisclosureError::ErrorDeviceResponseEncoding)
+}
+
+impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
@@ -241,6 +295,36 @@ where
         Ok(uri)
     }
 
+    async fn send_close_proximity_error_response_and_stop(
+        &mut self,
+        error: &CloseProximityDisclosureError,
+    ) -> Result<(), DisclosureError> {
+        let Some(status) = error_device_response_status(error) else {
+            return Ok(());
+        };
+
+        // PVW-5710: after sending the error DeviceResponse, always stop BLE and clear the
+        // close proximity session so the verifier is not left waiting on a dead session.
+        let response = encode_error_device_response(status)?;
+        let send_result = CPC::send_device_response(response).await;
+
+        match self.session.take() {
+            Some(Session::CloseProximityDisclosure(session)) => {
+                session.listener.abort();
+            }
+            other => {
+                self.session = other;
+            }
+        }
+
+        let stop_result = CPC::stop_ble_server().await;
+
+        send_result?;
+        stop_result?;
+
+        Ok(())
+    }
+
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn continue_close_proximity_disclosure(
@@ -267,18 +351,28 @@ where
 
         let wallet_config = self.config_repository.get();
 
-        // TODO send error to reader (PVW-5710)
-        let device_request = DeviceRequest::try_from_bytes(&device_request)
-            .map_err(CloseProximityDisclosureError::MalformedDeviceRequest)?;
+        let device_request = match parse_device_request(&device_request) {
+            Ok(device_request) => device_request,
+            Err(error) => {
+                self.send_close_proximity_error_response_and_stop(&error).await?;
+                return Err(error.into());
+            }
+        };
         // the session transcript is made by our own native code, so deserialization errors are programmer errors
         let session_transcript = SessionTranscript::try_from_bytes(&session_transcript).unwrap();
 
-        let verifier_certificate = verify_device_request(
+        let verifier_certificate = match verify_device_request(
             &device_request,
             &session_transcript,
             &TimeGenerator,
             &wallet_config.disclosure.rp_trust_anchors(),
-        )?;
+        ) {
+            Ok(verifier_certificate) => verifier_certificate,
+            Err(error) => {
+                self.send_close_proximity_error_response_and_stop(&error).await?;
+                return Err(error.into());
+            }
+        };
 
         let (candidate_attestations, shared_data_with_relying_party_before) = self
             .prepare_disclosure(
@@ -543,24 +637,30 @@ where
         // First abort the listener, s.t. no more events are passed along
         session.listener.abort();
 
-        CPC::stop_ble_server().await?;
-
         let state = session.session_state.lock().to_owned();
-        // Only store the event if the session is past SessionEstablished state (i.e. DisclosureProposed or later)
-        let (certificate, status) = match state {
+        let (event, send_termination) = match state {
             CloseProximityDisclosureSessionState::DisclosureProposed {
                 verifier_certificate, ..
-            } => {
-                // TODO send empty device response with status 10 (PVW-5710)
-                (verifier_certificate, EventStatus::Cancelled)
-            }
+            } => (Some((verifier_certificate, EventStatus::Cancelled)), true),
             CloseProximityDisclosureSessionState::Errored {
                 verifier_certificate: Some(verifier_certificate),
                 ..
-            } => (verifier_certificate, EventStatus::Error),
-            _ => {
-                return Ok(());
-            }
+            } => (Some((verifier_certificate, EventStatus::Error)), false),
+            _ => (None, false),
+        };
+
+        if send_termination {
+            let send_result = CPC::send_session_termination().await;
+            let stop_result = CPC::stop_ble_server().await;
+            send_result?;
+            stop_result?;
+        } else {
+            CPC::stop_ble_server().await?;
+        }
+
+        // Only store the event if the session is past SessionEstablished state (i.e. DisclosureProposed or later)
+        let Some((certificate, status)) = event else {
+            return Ok(());
         };
 
         self.store_disclosure_event(
@@ -633,8 +733,6 @@ mod tests {
     use futures::future::join_all;
     use indexmap::IndexMap;
     use itertools::Itertools;
-    use mdoc::DeviceResponse;
-    use mdoc::utils::serialization::cbor_deserialize;
     use mockall::predicate::always;
     use mockall::predicate::eq;
     use p256::ecdsa::Signature;
@@ -663,6 +761,7 @@ mod tests {
     use entity::disclosure_event::EventStatus;
     use mdoc::DeviceEngagement;
     use mdoc::DeviceRequest;
+    use mdoc::DeviceResponse;
     use mdoc::Handover;
     use mdoc::ItemsRequest;
     use mdoc::SessionTranscript;
@@ -670,6 +769,7 @@ mod tests {
     use mdoc::holder::disclosure::create_doc_request;
     use mdoc::utils::cose::CoseKey;
     use mdoc::utils::serialization::CborSeq;
+    use mdoc::utils::serialization::cbor_deserialize;
     use mdoc::utils::serialization::cbor_serialize;
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureChannel;
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureChannelImpl;
@@ -708,6 +808,9 @@ mod tests {
     use super::CloseProximityDisclosureSession;
     use super::CloseProximityDisclosureSessionState;
     use super::CloseProximityDisclosureUpdate;
+    use super::DEVICE_RESPONSE_STATUS_CBOR_DECODING_ERROR;
+    use super::DEVICE_RESPONSE_STATUS_GENERAL_ERROR;
+    use super::DEVICE_RESPONSE_STATUS_INVALID_REQUEST;
     use super::verify_device_request;
 
     fn pid_given_name_items_request() -> ItemsRequest {
@@ -844,7 +947,10 @@ mod tests {
 
     #[tokio::test]
     #[serial(MockCloseProximityDisclosureClient)]
-    async fn test_terminate_close_proximity_disclosure_session_disclosure_proposed() {
+    async fn test_terminate_close_proximity_disclosure_session_disclosure_proposed_missing_sends_session_termination() {
+        let send_context = MockCloseProximityDisclosureClient::send_session_termination_context();
+        send_context.expect().once().returning(|| Ok(()));
+
         let context = MockCloseProximityDisclosureClient::stop_ble_server_context();
         context.expect().once().returning(|| Ok(()));
 
@@ -888,6 +994,42 @@ mod tests {
             .expect("terminating close proximity disclosure session should succeed");
     }
 
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_terminate_close_proximity_disclosure_session_disclosure_proposed_proposal_sends_session_termination()
+    {
+        let send_context = MockCloseProximityDisclosureClient::send_session_termination_context();
+        send_context.expect().once().returning(|| Ok(()));
+
+        let context = MockCloseProximityDisclosureClient::stop_ble_server_context();
+        context.expect().once().returning(|| Ok(()));
+
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        let verifier_certificate = setup_close_proximity_disclosure_proposed_session(&mut wallet);
+        let reader_certificate = verifier_certificate.certificate().clone();
+
+        wallet
+            .mut_storage()
+            .expect_log_disclosure_event()
+            .with(
+                always(),
+                eq(vec![]),
+                eq(reader_certificate),
+                eq(EventStatus::Cancelled),
+                eq(DisclosureType::Regular),
+            )
+            .returning(|_, _, _, _, _| Ok(()));
+
+        let Some(Session::CloseProximityDisclosure(session)) = wallet.session.take() else {
+            panic!("expected a close proximity disclosure session");
+        };
+
+        wallet
+            .terminate_close_proximity_disclosure_session(session)
+            .await
+            .expect("terminating close proximity disclosure session should succeed");
+    }
+
     // Set up properties for a close proximity disclosure session.
     async fn setup_close_proximity_disclosure_session(
         wallet: &mut TestWalletMockStorage,
@@ -917,6 +1059,20 @@ mod tests {
         }));
 
         verifier_certificate
+    }
+
+    fn install_session_established_close_proximity_session(
+        wallet: &mut TestWalletMockStorage,
+        session_transcript: Vec<u8>,
+        device_request: Vec<u8>,
+    ) {
+        wallet.session = Some(Session::CloseProximityDisclosure(CloseProximityDisclosureSession {
+            listener: tokio::task::spawn(async {}),
+            session_state: Arc::new(Mutex::new(CloseProximityDisclosureSessionState::SessionEstablished {
+                session_transcript,
+                device_request,
+            })),
+        }));
     }
 
     /// This tests `Wallet::continue_close_proximity_disclosure()` from a session that has already been established.
@@ -999,6 +1155,122 @@ mod tests {
             proposal.attestation_options.first(),
             DisclosureAttestationOptions::Multiple(options) if options.len().get() == 3
         ));
+    }
+
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_wallet_continue_close_proximity_disclosure_reports_invalid_device_request_cbor() {
+        let send_context = MockCloseProximityDisclosureClient::send_device_response_context();
+        send_context
+            .expect()
+            .once()
+            .withf(|response| {
+                let device_response: DeviceResponse = cbor_deserialize(response.as_slice()).unwrap();
+                device_response.documents.is_none()
+                    && device_response.document_errors.is_none()
+                    && device_response.status == DEVICE_RESPONSE_STATUS_CBOR_DECODING_ERROR
+            })
+            .returning(|_| Ok(()));
+
+        let stop_context = MockCloseProximityDisclosureClient::stop_ble_server_context();
+        stop_context.expect().once().returning(|| Ok(()));
+
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        install_session_established_close_proximity_session(
+            &mut wallet,
+            cbor_serialize(&qr_session_transcript(None)).unwrap(),
+            vec![0xff],
+        );
+
+        let result = wallet.continue_close_proximity_disclosure().await;
+
+        assert_matches!(
+            result,
+            Err(DisclosureError::CloseProximityDisclosureSessionError(
+                CloseProximityDisclosureError::MalformedDeviceRequest(_)
+            ))
+        );
+        assert!(wallet.session.is_none());
+    }
+
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_wallet_continue_close_proximity_disclosure_reports_invalid_device_request_structure() {
+        let send_context = MockCloseProximityDisclosureClient::send_device_response_context();
+        send_context
+            .expect()
+            .once()
+            .withf(|response| {
+                let device_response: DeviceResponse = cbor_deserialize(response.as_slice()).unwrap();
+                device_response.documents.is_none()
+                    && device_response.document_errors.is_none()
+                    && device_response.status == DEVICE_RESPONSE_STATUS_INVALID_REQUEST
+            })
+            .returning(|_| Ok(()));
+
+        let stop_context = MockCloseProximityDisclosureClient::stop_ble_server_context();
+        stop_context.expect().once().returning(|| Ok(()));
+
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        install_session_established_close_proximity_session(
+            &mut wallet,
+            cbor_serialize(&qr_session_transcript(None)).unwrap(),
+            cbor_serialize(&42u8).unwrap(),
+        );
+
+        let result = wallet.continue_close_proximity_disclosure().await;
+
+        assert_matches!(
+            result,
+            Err(DisclosureError::CloseProximityDisclosureSessionError(
+                CloseProximityDisclosureError::InvalidDeviceRequest(_)
+            ))
+        );
+        assert!(wallet.session.is_none());
+    }
+
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_wallet_continue_close_proximity_disclosure_reports_reader_auth_failure() {
+        let send_context = MockCloseProximityDisclosureClient::send_device_response_context();
+        send_context
+            .expect()
+            .once()
+            .withf(|response| {
+                let device_response: DeviceResponse = cbor_deserialize(response.as_slice()).unwrap();
+                device_response.documents.is_none()
+                    && device_response.document_errors.is_none()
+                    && device_response.status == DEVICE_RESPONSE_STATUS_GENERAL_ERROR
+            })
+            .returning(|_| Ok(()));
+
+        let stop_context = MockCloseProximityDisclosureClient::stop_ble_server_context();
+        stop_context.expect().once().returning(|| Ok(()));
+
+        let items_request = pid_given_name_items_request();
+        let (mut device_request, session_transcript, _trust_anchors) =
+            setup_device_request(vec![items_request], None).await;
+        device_request
+            .doc_requests
+            .iter_mut()
+            .for_each(|doc_request| doc_request.reader_auth = None);
+
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        install_session_established_close_proximity_session(
+            &mut wallet,
+            cbor_serialize(&session_transcript).unwrap(),
+            cbor_serialize(&device_request).unwrap(),
+        );
+
+        let result = wallet.continue_close_proximity_disclosure().await;
+
+        assert_matches!(
+            result,
+            Err(DisclosureError::CloseProximityDisclosureSessionError(
+                CloseProximityDisclosureError::MissingReaderAuth
+            ))
+        );
+        assert!(wallet.session.is_none());
     }
 
     fn qr_session_transcript(device_engagement: Option<DeviceEngagement>) -> SessionTranscript {

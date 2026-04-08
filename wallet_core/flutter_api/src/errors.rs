@@ -534,10 +534,11 @@ impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
             | CloseProximityDisclosureError::MissingReaderRegistration
             | CloseProximityDisclosureError::InvalidCertificateType(_)
             | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_)
-            | CloseProximityDisclosureError::MalformedDeviceRequest(_) => FlutterApiErrorType::Verifier,
-            CloseProximityDisclosureError::PlatformError(_) | CloseProximityDisclosureError::DeviceResponse(_) => {
-                FlutterApiErrorType::Generic
-            }
+            | CloseProximityDisclosureError::MalformedDeviceRequest(_)
+            | CloseProximityDisclosureError::InvalidDeviceRequest(_) => FlutterApiErrorType::Verifier,
+            CloseProximityDisclosureError::ErrorDeviceResponseEncoding(_)
+            | CloseProximityDisclosureError::PlatformError(_)
+            | CloseProximityDisclosureError::DeviceResponse(_) => FlutterApiErrorType::Generic,
         }
     }
 }

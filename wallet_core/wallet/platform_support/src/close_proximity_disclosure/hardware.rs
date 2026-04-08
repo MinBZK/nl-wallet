@@ -27,6 +27,10 @@ impl CloseProximityDisclosureClient for HardwareCloseProximityDisclosureClient {
             .await
     }
 
+    async fn send_session_termination() -> Result<(), CloseProximityDisclosureError> {
+        get_close_proximity_disclosure_bridge().send_session_termination().await
+    }
+
     async fn stop_ble_server() -> Result<(), CloseProximityDisclosureError> {
         get_close_proximity_disclosure_bridge().stop_ble_server().await
     }

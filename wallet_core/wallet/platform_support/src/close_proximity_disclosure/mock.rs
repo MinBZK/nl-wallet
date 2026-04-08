@@ -37,6 +37,10 @@ impl CloseProximityDisclosureClient for MockCloseProximityDisclosureClient {
         Ok(())
     }
 
+    async fn send_session_termination() -> Result<(), CloseProximityDisclosureError> {
+        Ok(())
+    }
+
     async fn stop_ble_server() -> Result<(), CloseProximityDisclosureError> {
         Ok(())
     }

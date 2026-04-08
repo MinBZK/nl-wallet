@@ -26,7 +26,22 @@ extension CloseProximityDisclosure: CloseProximityDisclosureBridge {
         )
 
         if isActiveSession(session) {
-            startReadMessagesTask(session)
+            await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
+        }
+    }
+
+    func sendSessionTermination() async throws {
+        let session = try requireActiveSession()
+        try requireSessionIsActive(session)
+        await session.cancelReadMessagesTaskAndWait()
+        let establishedSessionContext = try establishedSessionContextOrRestartReadTask(session)
+        try await sendSessionTermination(
+            session: session,
+            transport: establishedSessionContext.transport
+        )
+
+        if isActiveSession(session) {
+            await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
         }
     }
 
@@ -224,6 +239,25 @@ extension CloseProximityDisclosure {
                 message: buildEncryptedDeviceResponse(
                     sessionEncryption: establishedSessionContext.sessionEncryption,
                     deviceResponse: deviceResponse
+                )
+            )
+        } catch {
+            guard isActiveSession(session) else {
+                throw error.asCloseProximityDisclosureError
+            }
+            await failSession(session, error: error)
+            throw error.asCloseProximityDisclosureError
+        }
+    }
+
+    func sendSessionTermination(
+        session: CloseProximityDisclosureActiveSession,
+        transport: MdocTransport
+    ) async throws {
+        do {
+            try await transport.sendMessage(
+                message: SessionEncryption.companion.encodeStatus(
+                    statusCode: Int64(Constants.shared.SESSION_DATA_STATUS_SESSION_TERMINATION)
                 )
             )
         } catch {
