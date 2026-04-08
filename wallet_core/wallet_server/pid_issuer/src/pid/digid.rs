@@ -6,7 +6,7 @@ use jsonwebtoken::Algorithm;
 
 use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::HttpJsonClient;
-use http_utils::reqwest::trusted_reqwest_client_builder;
+use http_utils::reqwest::tls_pinned_client_builder;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::token::TokenRequest;
 
@@ -55,7 +55,7 @@ impl OpenIdClient {
         let userinfo_client = OpenIdClient {
             decrypter_private_key: Self::decrypter(bsn_privkey)?,
             client_id: client_id.into(),
-            http_client: HttpJsonClient::try_new(trusted_reqwest_client_builder(certs))?,
+            http_client: HttpJsonClient::try_new(tls_pinned_client_builder(certs))?,
             authorization_server,
         };
 
