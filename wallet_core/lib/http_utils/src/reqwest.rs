@@ -18,7 +18,6 @@ use reqwest::IntoUrl;
 use reqwest::RequestBuilder;
 use reqwest::Response;
 use serde::de::DeserializeOwned;
-use url::Url;
 use x509_parser::error::X509Error;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::X509Certificate;
@@ -110,7 +109,6 @@ pub trait IntoReqwestClient {
 #[derive(Debug, Clone)]
 pub enum ReqwestClientUrl<'a> {
     Base,
-    Absolute(Url),
     Relative(&'a str),
 }
 
@@ -136,7 +134,6 @@ impl ReqwestClient {
     {
         let url = match url {
             ReqwestClientUrl::Base => self.base_url.as_ref().clone(),
-            ReqwestClientUrl::Absolute(url) => url,
             ReqwestClientUrl::Relative(path) => self.base_url.clone().join(path),
         };
 
