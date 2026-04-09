@@ -33,4 +33,8 @@ class WalletDataSourceImpl implements WalletDataSource {
 
   @override
   Stream<List<WalletCard>> observeCards() => _walletCore.observeCards().map(_cardMapper.mapList);
+
+  @override
+  Future<WalletInstructionResult> delete(String pin, String attestationId) =>
+      _walletCore.deleteAttestation(pin, attestationId);
 }

@@ -14,6 +14,9 @@ import '../feature/blocked/bloc/app_blocked_bloc.dart';
 import '../feature/card/data/argument/card_data_screen_argument.dart';
 import '../feature/card/data/bloc/card_data_bloc.dart';
 import '../feature/card/data/card_data_screen.dart';
+import '../feature/card/delete/argument/delete_card_screen_argument.dart';
+import '../feature/card/delete/bloc/delete_card_bloc.dart';
+import '../feature/card/delete/delete_card_screen.dart';
 import '../feature/card/detail/argument/card_detail_screen_argument.dart';
 import '../feature/card/detail/bloc/card_detail_bloc.dart';
 import '../feature/card/detail/card_detail_screen.dart';
@@ -120,6 +123,7 @@ class WalletRoutes {
   static const aboutRoute = '/about';
   static const biometricsSettingsRoute = '/settings/biometrics';
   static const cardDataRoute = '/card/data';
+  static const cardDeleteRoute = '/card/delete';
   static const cardDetailRoute = '/card/detail';
   static const cardHistoryRoute = '/card/history';
   static const changeLanguageRoute = '/language';
@@ -176,6 +180,7 @@ class WalletRoutes {
     WalletRoutes.dashboardRoute: _createDashboardScreenBuilder,
     WalletRoutes.cardDetailRoute: _createCardDetailScreenBuilder,
     WalletRoutes.cardDataRoute: _createCardDataScreenBuilder,
+    WalletRoutes.cardDeleteRoute: _createDeleteCardScreenBuilder,
     WalletRoutes.cardHistoryRoute: _createCardHistoryScreenBuilder,
     WalletRoutes.demoRoute: (_) => _createDemoScreenBuilder,
     WalletRoutes.contactRoute: (_) => _createContactScreenBuilder,
@@ -313,6 +318,18 @@ WidgetBuilder _createCardDataScreenBuilder(RouteSettings settings) {
     return BlocProvider<CardDataBloc>(
       create: (context) => CardDataBloc(context.read())..add(CardDataLoadTriggered(argument.cardId)),
       child: CardDataScreen(cardTitle: argument.cardTitle),
+    );
+  };
+}
+
+WidgetBuilder _createDeleteCardScreenBuilder(RouteSettings settings) {
+  return (context) {
+    final DeleteCardScreenArgument argument = DeleteCardScreen.getArgument(settings);
+    return BlocProvider<DeleteCardBloc>(
+      create: (context) =>
+          DeleteCardBloc()
+            ..add(DeleteCardLoadTriggered(attestationId: argument.attestationId, cardTitle: argument.cardTitle)),
+      child: const DeleteCardScreen(),
     );
   };
 }
