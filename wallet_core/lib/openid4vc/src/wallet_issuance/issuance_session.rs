@@ -326,7 +326,7 @@ fn credential_request_types_from_preview(
 }
 
 impl<H: VcMessageClient> HttpIssuanceSession<H> {
-    pub async fn start_issuance_inner(
+    pub async fn create(
         message_client: H,
         issuer_metadata: IssuerMetadata,
         token_endpoint: Url,
@@ -920,7 +920,7 @@ mod tests {
         let issuer_metadata = IssuerMetadata::new_mock(issuer_identifier.clone(), PID_ATTESTATION_TYPE);
         let token_endpoint = AuthorizationServerMetadata::new_mock(issuer_identifier).token_endpoint;
 
-        HttpIssuanceSession::start_issuance_inner(
+        HttpIssuanceSession::create(
             mock_msg_client,
             issuer_metadata,
             token_endpoint,
@@ -1086,7 +1086,7 @@ mod tests {
         let issuer_metadata = IssuerMetadata::new_mock(issuer_identifier.clone(), PID_ATTESTATION_TYPE);
         let token_endpoint = AuthorizationServerMetadata::new_mock(issuer_identifier).token_endpoint;
 
-        let error = HttpIssuanceSession::start_issuance_inner(
+        let error = HttpIssuanceSession::create(
             mock_msg_client,
             issuer_metadata,
             token_endpoint,

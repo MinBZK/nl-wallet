@@ -185,7 +185,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             redirect_uri: Some(self.redirect_uri),
         };
 
-        HttpIssuanceSession::start_issuance_inner(
+        HttpIssuanceSession::create(
             message_client,
             self.issuer_metadata,
             token_endpoint,

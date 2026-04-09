@@ -77,7 +77,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
 
         let message_client = HttpVcMessageClient::new(self.http_client.clone());
 
-        HttpIssuanceSession::start_issuance_inner(
+        HttpIssuanceSession::create(
             message_client,
             issuer_metadata,
             oauth_metadata.token_endpoint,
