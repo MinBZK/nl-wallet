@@ -187,7 +187,7 @@ impl MockVerifierSession {
         };
 
         // Generate some OpenID4VP specific session material.
-        let nonce = Nonce::new();
+        let nonce = Nonce::new_random();
         let encryption_secret_key = JweSecretKey::new_random(Some(random_string(32)), EcdhAlgorithm::EcdhEs);
         let response_uri = verifier_url.join_base_url("response_uri");
         let client_id = format!(

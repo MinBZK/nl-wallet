@@ -167,7 +167,7 @@ where
 impl<P: PkcePair> HttpOidcClient<P> {
     pub fn new(config: Config, jwks: JwkSet, client_id: String, redirect_uri: Url) -> Self {
         let csrf_token = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
-        let nonce = Nonce::new();
+        let nonce = Nonce::new_random();
         let pkce_pair = P::generate();
 
         HttpOidcClient {

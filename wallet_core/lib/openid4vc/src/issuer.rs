@@ -605,7 +605,7 @@ where
     N: NonceStore,
 {
     pub async fn generate_proof_nonce(&self) -> Result<Nonce, NonceStoreError<N::Error>> {
-        let nonce = Nonce::new();
+        let nonce = Nonce::new_random();
 
         self.proof_nonce_store.store_nonce(nonce.clone()).await?;
 

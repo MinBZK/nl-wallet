@@ -12,13 +12,7 @@ use crypto::utils::random_string;
 pub struct Nonce(String);
 
 impl Nonce {
-    pub fn new() -> Self {
+    pub fn new_random() -> Self {
         Self(random_string(32))
-    }
-}
-
-impl Default for Nonce {
-    fn default() -> Self {
-        Self::new()
     }
 }

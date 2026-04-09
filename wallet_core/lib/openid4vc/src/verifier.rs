@@ -1330,7 +1330,7 @@ impl Session<Created> {
         )?;
 
         // Construct the Authorization Request.
-        let nonce = Nonce::new();
+        let nonce = Nonce::new_random();
 
         // Use the session token as the `kid` value of the JWK. HAIP mandates `ECDH-ES` as JWE algorithm.
         // See: https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5-2.5
