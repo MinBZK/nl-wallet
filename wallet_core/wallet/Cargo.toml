@@ -36,6 +36,7 @@ cfg-if.workspace = true
 ciborium.workspace = true
 derive_more = { workspace = true, features = ["constructor", "debug", "display", "is_variant"] }
 futures = { workspace = true, features = ["async-await"] }
+hex.workspace = true
 http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true

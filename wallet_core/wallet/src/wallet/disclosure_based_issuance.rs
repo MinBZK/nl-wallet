@@ -89,10 +89,12 @@ where
         selected_indices: &[usize],
         pin: String,
     ) -> Result<Vec<AttestationPresentation>, DisclosureBasedIssuanceError> {
-        let config = self.config_repository.get();
+        info!("Continuing disclosure based issuance");
+
+        let attested_key_and_registration_data = self.check_accept_disclosure_preconditions().await?;
 
         info!("Checking if a disclosure session is present");
-        let Some(Session::Disclosure(session)) = &self.session else {
+        let Some(Session::Disclosure(session)) = self.session.take() else {
             return Err(DisclosureBasedIssuanceError::Disclosure(DisclosureError::SessionState));
         };
 
@@ -104,7 +106,13 @@ where
             .clone();
 
         let redirect_uri = match self
-            .perform_disclosure(selected_indices, pin, RedirectUriPurpose::Issuance, config.as_ref())
+            .perform_disclosure(
+                session,
+                selected_indices,
+                pin,
+                RedirectUriPurpose::Issuance,
+                attested_key_and_registration_data,
+            )
             .await
         {
             Ok(Some(redirect_uri)) if redirect_uri.scheme() == OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME => redirect_uri,
@@ -152,7 +160,7 @@ where
             .issuance_fetch_previews(
                 token_request,
                 credential_offer.credential_issuer,
-                &config.issuer_trust_anchors(),
+                &self.config_repository.get().issuer_trust_anchors(),
                 None, // we're not doing PID issuance
             )
             .await?;

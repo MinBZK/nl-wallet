@@ -2,6 +2,7 @@
 //!
 //! The main citizens of this module are [`DeviceResponse`], which is what the holder sends to the verifier during
 //! verification, and [`IssuerSigned`], which contains the entire issuer-signed mdoc and the disclosed attributes.
+use std::fmt::Debug;
 
 use coset::CoseMac0;
 use coset::CoseSign1;
@@ -9,7 +10,9 @@ use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
-use std::fmt::Debug;
+
+use utils::vec_at_least::VecNonEmpty;
+use wscd::Poa;
 
 use crate::iso::mdocs::*;
 use crate::utils::cose::MdocCose;
@@ -23,9 +26,10 @@ use crate::utils::serialization::TaggedBytes;
 #[serde(rename_all = "camelCase")]
 pub struct DeviceResponse {
     pub version: DeviceResponseVersion,
-    pub documents: Option<Vec<Document>>,
-    pub document_errors: Option<Vec<DocumentError>>,
+    pub documents: Option<VecNonEmpty<Document>>,
+    pub document_errors: Option<VecNonEmpty<DocumentError>>,
     pub status: u64,
+    pub poa: Option<Poa>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
