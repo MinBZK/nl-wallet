@@ -28,11 +28,14 @@ use crate::wallet_issuance::issuance_session::HttpVcMessageClient;
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
 pub enum OAuthError {
-    #[error("URL encoding error: {0}")]
-    UrlEncoding(#[from] serde_urlencoded::ser::Error),
+    #[error("error encoding authorization request to URL: {0}")]
+    AuthRequestUrlEncoding(#[source] serde_urlencoded::ser::Error),
 
-    #[error("URL decoding error: {0}")]
-    UrlDecoding(#[from] serde::de::value::Error),
+    #[error("error decoding authorization response from URL: {0}")]
+    AuthResponseUrlDecoding(#[source] serde::de::value::Error),
+
+    #[error("error decoding error response from URL: {0}")]
+    ErrorResponseUrlDecoding(#[source] serde::de::value::Error),
 
     #[error("error requesting authorization code: {0:?}")]
     RedirectUriError(Box<ErrorResponse<AuthorizationErrorCode>>),
@@ -110,7 +113,9 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             .clone()
             .ok_or(OAuthError::NoAuthorizationEndpoint)?;
 
-        auth_url.set_query(Some(&serde_urlencoded::to_string(params)?));
+        auth_url.set_query(Some(
+            &serde_urlencoded::to_string(params).map_err(OAuthError::AuthRequestUrlEncoding)?,
+        ));
 
         Ok(Self {
             issuer_metadata,
@@ -137,7 +142,8 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
 
         // First see if we received an error
         if received_redirect_uri.query_pairs().any(|(key, _)| key == "error") {
-            let err_response: ErrorResponse<AuthorizationErrorCode> = serde_urlencoded::from_str(auth_response)?;
+            let err_response: ErrorResponse<AuthorizationErrorCode> =
+                serde_urlencoded::from_str(auth_response).map_err(OAuthError::ErrorResponseUrlDecoding)?;
 
             if err_response.error == AuthorizationErrorCode::AccessDenied {
                 return Err(OAuthError::Denied);
@@ -146,7 +152,8 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             }
         }
 
-        let auth_response: AuthorizationResponse = serde_urlencoded::from_str(auth_response)?;
+        let auth_response: AuthorizationResponse =
+            serde_urlencoded::from_str(auth_response).map_err(OAuthError::AuthResponseUrlDecoding)?;
         if auth_response.state.as_ref() != Some(&self.state) {
             return Err(OAuthError::StateTokenMismatch);
         }
@@ -365,7 +372,7 @@ mod tests {
 
         let error = session.authorization_code(&uri).unwrap_err();
 
-        assert_matches!(error, OAuthError::UrlDecoding(err) if err.to_string() == "missing field `code`");
+        assert_matches!(error, OAuthError::AuthResponseUrlDecoding(err) if err.to_string() == "missing field `code`");
     }
 
     #[test]
