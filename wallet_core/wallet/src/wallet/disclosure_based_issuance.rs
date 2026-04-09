@@ -132,7 +132,7 @@ where
             .map_err(|e| convert_and_enrich_error(e, organization.clone()))?;
 
         let previews = self
-            .issuance_fetch_previews(
+            .issuance_process_previews(
                 issuance_session,
                 None, // we're not doing PID issuance
             )

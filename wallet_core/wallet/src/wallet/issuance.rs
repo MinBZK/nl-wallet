@@ -427,11 +427,11 @@ where
                 e => IssuanceError::IssuanceSession(e),
             })?;
 
-        self.issuance_fetch_previews(issuance_session, Some(purpose)).await
+        self.issuance_process_previews(issuance_session, Some(purpose)).await
     }
 
     #[instrument(skip_all)]
-    pub(super) async fn issuance_fetch_previews(
+    pub(super) async fn issuance_process_previews(
         &mut self,
         issuance_session: CID::Issuance,
         pid_purpose: Option<PidIssuancePurpose>,
@@ -1318,7 +1318,7 @@ mod tests {
             .return_const(IssuerRegistration::new_mock());
 
         let mut attestations = wallet
-            .issuance_fetch_previews(issuance_session, purpose)
+            .issuance_process_previews(issuance_session, purpose)
             .await
             .expect("Could not continue issuance");
 
