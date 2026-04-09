@@ -133,14 +133,23 @@ where
                     .await
                     .map_err(ProofNonceStoreError::DbDeleteNonce)?;
 
-                if deleted_nonces.len() >= nonce_count
-                    && deleted_nonces
-                        .into_iter()
-                        .all(|nonce| nonce.created_date_time + C_NONCE_VALIDITY >= self.now())
-                {
-                    NonceStatus::AllValid
-                } else {
-                    NonceStatus::AtLeastOneAbsentOrExpired
+                match deleted_nonces.len() {
+                    deleted_nonce_count if deleted_nonce_count > nonce_count => {
+                        panic!(
+                            "database deleted more nonces than requested, \
+                             this should not happen as the nonce column is unique"
+                        )
+                    }
+                    deleted_nonce_count
+                        if deleted_nonce_count == nonce_count
+                            && deleted_nonces
+                                .into_iter()
+                                .all(|nonce| nonce.created_date_time + C_NONCE_VALIDITY >= self.now()) =>
+                    {
+                        NonceStatus::AllValid
+                    }
+                    // deleted_nonce_count < nonce_count
+                    _ => NonceStatus::AtLeastOneAbsentOrExpired,
                 }
             }
             NonceStoreBackend::Memory(memory_store) => memory_store.remove_and_check(nonces),
