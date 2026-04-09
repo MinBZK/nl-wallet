@@ -40,7 +40,7 @@ int-enum.workspace = true
 num-bigint.workspace = true
 num-traits.workspace = true
 nutype = { workspace = true, features = ["regex", "serde"] }
-p384 = { workspace = true }
+p384.workspace = true
 rasn.workspace = true
 regex.workspace = true
 reqwest.workspace = true

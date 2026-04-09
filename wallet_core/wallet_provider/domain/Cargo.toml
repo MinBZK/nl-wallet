@@ -27,7 +27,7 @@ serde_with.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 trait-variant.workspace = true
-uuid = { workspace = true }
+uuid.workspace = true
 
 hmac = { workspace = true, optional = true }
 rand = { workspace = true, optional = true }
