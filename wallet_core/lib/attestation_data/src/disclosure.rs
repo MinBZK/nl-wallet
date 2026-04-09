@@ -10,16 +10,21 @@ use crypto::x509::CertificateError;
 use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::disclosure::DisclosedCredential;
+use dcql::normalized::NormalizedCredentialRequest;
 use dcql::unique_id_vec::MayHaveUniqueId;
 use http_utils::urls::HttpsUri;
 use mdoc::DataElementIdentifier;
 use mdoc::DataElementValue;
+use mdoc::ItemsRequest;
 use mdoc::NameSpace;
 use mdoc::holder::disclosure::claim_path_to_mdoc_path;
 use mdoc::verifier::DisclosedDocument;
 use sd_jwt::sd_jwt::VerifiedSdJwtPresentation;
 use token_status_list::verification::verifier::RevocationStatus;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 
 use crate::attributes::AttributeValue;
 use crate::attributes::Attributes;
@@ -221,6 +226,57 @@ impl DisclosedCredential for DisclosedAttestation {
             .into_iter()
             .flat_map(|claim_path| (!self.attributes.has_claim_path(claim_path)).then(|| claim_path.clone()))
             .collect()
+    }
+}
+
+pub trait AttestationRequest {
+    fn format(&self) -> CredentialFormat;
+    fn credential_types(&self) -> impl NonEmptyIterator<Item = String>;
+    fn claim_paths(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>>;
+}
+
+impl AttestationRequest for NormalizedCredentialRequest {
+    fn format(&self) -> CredentialFormat {
+        self.format()
+    }
+
+    fn credential_types(&self) -> impl NonEmptyIterator<Item = String> {
+        match self.clone() {
+            Self::MsoMdoc { doctype_value, .. } => vec_nonempty![doctype_value].into_nonempty_iter(),
+            Self::SdJwt { vct_values, .. } => vct_values.into_nonempty_iter(),
+        }
+    }
+
+    fn claim_paths(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>> {
+        self.claim_paths().cloned()
+    }
+}
+
+impl AttestationRequest for ItemsRequest {
+    fn format(&self) -> CredentialFormat {
+        CredentialFormat::MsoMdoc
+    }
+
+    fn credential_types(&self) -> impl NonEmptyIterator<Item = String> {
+        vec_nonempty![self.doc_type.clone()].into_nonempty_iter()
+    }
+
+    fn claim_paths(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>> {
+        self.claims()
+    }
+}
+
+impl<T: AttestationRequest> AttestationRequest for &T {
+    fn format(&self) -> CredentialFormat {
+        (*self).format()
+    }
+
+    fn credential_types(&self) -> impl NonEmptyIterator<Item = String> {
+        (*self).credential_types()
+    }
+
+    fn claim_paths(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>> {
+        (*self).claim_paths()
     }
 }
 

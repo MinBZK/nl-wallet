@@ -19,10 +19,13 @@ use apple_app_attest::AttestationEnvironment;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::validity::ValidityWindow;
+use attestation_data::verifier_certificate::VerifierCertificate;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
+use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_RECOVERY_CODE;
 use attestation_types::status_claim::StatusClaim;
@@ -31,6 +34,7 @@ use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::BorrowingCertificateExtension;
+use dcql::CredentialFormat;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
@@ -61,6 +65,7 @@ use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
+use uuid::Uuid;
 use wallet_account::RevocationCode;
 use wallet_account::messages::instructions::InstructionResultClaims;
 use wallet_account::messages::registration::WalletCertificate;
@@ -83,6 +88,8 @@ use crate::storage::MockStorage;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::storage::StorageState;
+use crate::storage::StoredAttestation;
+use crate::storage::StoredAttestationCopy;
 use crate::storage::WalletEvent;
 use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
@@ -158,6 +165,9 @@ pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
         trust_anchor,
     }
 });
+
+/// The reader CA material, generated once for testing.
+pub static READER_CA: LazyLock<Ca> = LazyLock::new(|| Ca::generate_reader_mock_ca().unwrap());
 
 /// Generates a valid `CredentialPayload` along with its metadata `SortedTypeMetadataDocuments` and
 /// `NormalizedTypeMetadata`.
@@ -308,6 +318,7 @@ fn create_wallet_configuration() -> WalletConfiguration {
     config.account_server.instruction_result_public_key = (*keys.instruction_result_signing_key.verifying_key()).into();
 
     config.issuer_trust_anchors = vec![ISSUER_KEY.trust_anchor.clone()];
+    config.disclosure.rp_trust_anchors = vec![READER_CA.borrowing_trust_anchor().clone()];
 
     config
 }
@@ -613,4 +624,54 @@ pub fn mock_issuance_session(
     });
 
     (client, attestations)
+}
+
+pub fn mock_verifier_certificate() -> VerifierCertificate {
+    let ca = Ca::generate_reader_mock_ca().unwrap();
+    let reader_registration = ReaderRegistration::new_mock();
+    let key_pair = generate_reader_mock_with_registration(&ca, reader_registration).unwrap();
+
+    VerifierCertificate::try_new(key_pair.into()).unwrap().unwrap()
+}
+
+pub fn example_stored_attestation_copy(
+    format: CredentialFormat,
+    credential_payload: CredentialPayload,
+    metadata: NormalizedTypeMetadata,
+) -> StoredAttestationCopy {
+    match format {
+        CredentialFormat::MsoMdoc => StoredAttestationCopy::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            ValidityWindow::new_valid_mock(),
+            StoredAttestation::MsoMdoc {
+                mdoc: mdoc_from_credential_payload(credential_payload.previewable_payload, &ISSUER_KEY.issuance_key),
+            },
+            metadata,
+            None,
+        ),
+        CredentialFormat::SdJwt => StoredAttestationCopy::new(
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            ValidityWindow::new_valid_mock(),
+            StoredAttestation::SdJwt {
+                key_identifier: crypto::utils::random_string(16),
+                sd_jwt: verified_sd_jwt_from_credential_payload(
+                    credential_payload,
+                    &metadata,
+                    &ISSUER_KEY.issuance_key,
+                ),
+            },
+            metadata,
+            None,
+        ),
+    }
+}
+
+pub fn example_pid_stored_attestation_copy(format: CredentialFormat) -> StoredAttestationCopy {
+    example_stored_attestation_copy(
+        format,
+        CredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+        NormalizedTypeMetadata::nl_pid_example(),
+    )
 }

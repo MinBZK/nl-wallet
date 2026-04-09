@@ -2039,7 +2039,22 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   CloseProximityDisclosureFlutterUpdate dco_decode_close_proximity_disclosure_flutter_update(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return CloseProximityDisclosureFlutterUpdate.values[raw as int];
+    switch (raw[0]) {
+      case 0:
+        return CloseProximityDisclosureFlutterUpdate_Connecting();
+      case 1:
+        return CloseProximityDisclosureFlutterUpdate_Connected();
+      case 2:
+        return CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived();
+      case 3:
+        return CloseProximityDisclosureFlutterUpdate_Disconnected();
+      case 4:
+        return CloseProximityDisclosureFlutterUpdate_Errored(
+          error: dco_decode_String(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
   }
 
   @protected
@@ -2984,8 +2999,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var inner = sse_decode_i_32(deserializer);
-    return CloseProximityDisclosureFlutterUpdate.values[inner];
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        return CloseProximityDisclosureFlutterUpdate_Connecting();
+      case 1:
+        return CloseProximityDisclosureFlutterUpdate_Connected();
+      case 2:
+        return CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived();
+      case 3:
+        return CloseProximityDisclosureFlutterUpdate_Disconnected();
+      case 4:
+        var var_error = sse_decode_String(deserializer);
+        return CloseProximityDisclosureFlutterUpdate_Errored(error: var_error);
+      default:
+        throw UnimplementedError('');
+    }
   }
 
   @protected
@@ -3877,12 +3907,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  int cst_encode_close_proximity_disclosure_flutter_update(CloseProximityDisclosureFlutterUpdate raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    return cst_encode_i_32(raw.index);
-  }
-
-  @protected
   int cst_encode_disclosure_session_type(DisclosureSessionType raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return cst_encode_i_32(raw.index);
@@ -4267,7 +4291,19 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.index, serializer);
+    switch (self) {
+      case CloseProximityDisclosureFlutterUpdate_Connecting():
+        sse_encode_i_32(0, serializer);
+      case CloseProximityDisclosureFlutterUpdate_Connected():
+        sse_encode_i_32(1, serializer);
+      case CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived():
+        sse_encode_i_32(2, serializer);
+      case CloseProximityDisclosureFlutterUpdate_Disconnected():
+        sse_encode_i_32(3, serializer);
+      case CloseProximityDisclosureFlutterUpdate_Errored(error: final error):
+        sse_encode_i_32(4, serializer);
+        sse_encode_String(error, serializer);
+    }
   }
 
   @protected

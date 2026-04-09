@@ -25,7 +25,7 @@ void main() {
         return null;
       });
 
-      final result = await checkPermissionUseCase.invoke(Permission.camera);
+      final result = await checkPermissionUseCase.invoke([Permission.camera]);
 
       expect(result, const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
     });
@@ -40,7 +40,7 @@ void main() {
         return null;
       });
 
-      final result = await checkPermissionUseCase.invoke(Permission.camera);
+      final result = await checkPermissionUseCase.invoke([Permission.camera]);
 
       expect(result, const PermissionCheckResult(isGranted: false, isPermanentlyDenied: true));
     });
@@ -55,9 +55,66 @@ void main() {
         return null;
       });
 
-      final result = await checkPermissionUseCase.invoke(Permission.camera);
+      final result = await checkPermissionUseCase.invoke([Permission.camera]);
 
       expect(result, const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
+    });
+
+    test('returns granted when all permissions are granted', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+        MethodCall methodCall,
+      ) async {
+        if (methodCall.method == 'checkPermissionStatus') {
+          return 1; // PermissionStatus.granted
+        }
+        return null;
+      });
+
+      final result = await checkPermissionUseCase.invoke([Permission.camera, Permission.bluetoothConnect]);
+
+      expect(result, const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
+    });
+
+    test('returns denied when any permission is denied', () async {
+      final statuses = <int>[
+        1, // PermissionStatus.granted (camera - isGranted check)
+        0, // PermissionStatus.denied (bluetoothConnect - isGranted check)
+        0, // PermissionStatus.denied (bluetoothConnect - isPermanentlyDenied check)
+      ];
+      int callIndex = 0;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+        MethodCall methodCall,
+      ) async {
+        if (methodCall.method == 'checkPermissionStatus') {
+          return statuses[callIndex++];
+        }
+        return null;
+      });
+
+      final result = await checkPermissionUseCase.invoke([Permission.camera, Permission.bluetoothConnect]);
+
+      expect(result, const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
+    });
+
+    test('returns permanently denied when any permission is permanently denied', () async {
+      final statuses = <int>[
+        1, // PermissionStatus.granted (camera - isGranted check)
+        4, // PermissionStatus.permanentlyDenied (bluetoothConnect - isGranted check)
+        4, // PermissionStatus.permanentlyDenied (bluetoothConnect - isPermanentlyDenied check)
+      ];
+      int callIndex = 0;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+        MethodCall methodCall,
+      ) async {
+        if (methodCall.method == 'checkPermissionStatus') {
+          return statuses[callIndex++];
+        }
+        return null;
+      });
+
+      final result = await checkPermissionUseCase.invoke([Permission.camera, Permission.bluetoothConnect]);
+
+      expect(result, const PermissionCheckResult(isGranted: false, isPermanentlyDenied: true));
     });
 
     test('returns default result when exception occurs', () async {
@@ -67,7 +124,7 @@ void main() {
         throw Exception('Test error');
       });
 
-      final result = await checkPermissionUseCase.invoke(Permission.camera);
+      final result = await checkPermissionUseCase.invoke([Permission.camera]);
 
       expect(result, const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
     });

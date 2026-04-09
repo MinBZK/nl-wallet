@@ -6,16 +6,19 @@ use attestation_types::claim_path::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
 
 mod device_response;
+mod device_retrieval;
 mod device_signed;
 mod document;
 mod issuer_signed;
 mod mdoc;
+mod request;
 
 pub use issuer_signed::claim_path_to_mdoc_path;
 pub use mdoc::PartialMdoc;
 
-#[cfg(test)]
-mod device_retrieval;
+#[cfg(any(test, feature = "test"))]
+pub use device_retrieval::test::create_doc_request;
+
 #[cfg(test)]
 mod iso_tests;
 

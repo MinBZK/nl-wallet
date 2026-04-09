@@ -71,6 +71,15 @@ void main() {
       verify(mockCancelDisclosureUseCase.invoke()).called(1);
     });
 
+    test('Cancel disclosure on missing permission and emit a generic error', () async {
+      bloc.add(const QrPresentPermissionDenied());
+      await Future.microtask(() {}); // Process event
+
+      verify(mockCancelDisclosureUseCase.invoke()).called(1);
+
+      expect(bloc.state, isA<QrPresentError>().having((it) => it.error, 'exposes generic error', isA<GenericError>()));
+    });
+
     test('Cancel disclosure on bloc close', () async {
       await bloc.close();
 

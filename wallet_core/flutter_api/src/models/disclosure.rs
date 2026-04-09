@@ -9,6 +9,8 @@ use wallet::attestation_data::ReaderRegistration;
 use wallet::errors::DisclosureError;
 use wallet::openid4vc::SessionType;
 
+use crate::errors::FlutterApiError;
+
 use super::attestation::AttestationPresentation;
 use super::image::Image;
 use super::instruction::WalletInstructionError;
@@ -54,6 +56,8 @@ pub enum CloseProximityDisclosureFlutterUpdate {
     Connected,
     DeviceRequestReceived,
     Disconnected,
+    // the error is serialized as JSON
+    Errored { error: String },
 }
 
 impl From<CloseProximityDisclosureUpdate> for CloseProximityDisclosureFlutterUpdate {
@@ -63,6 +67,9 @@ impl From<CloseProximityDisclosureUpdate> for CloseProximityDisclosureFlutterUpd
             CloseProximityDisclosureUpdate::Connected => Self::Connected,
             CloseProximityDisclosureUpdate::DeviceRequestReceived => Self::DeviceRequestReceived,
             CloseProximityDisclosureUpdate::Disconnected => Self::Disconnected,
+            CloseProximityDisclosureUpdate::Errored(error) => Self::Errored {
+                error: FlutterApiError::from(error).to_json(),
+            },
         }
     }
 }

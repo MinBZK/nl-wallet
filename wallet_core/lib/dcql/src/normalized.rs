@@ -127,8 +127,6 @@ pub enum UnsupportedDcqlFeatures {
     NoClaims,
     #[error("'claim_sets' are not supported")]
     ClaimSets,
-    #[error("claim query with 'values' is not supported")]
-    ClaimValues,
     #[error("'trusted_authorities' is not suported")]
     TrustedAuthorities,
     #[error("requests that do not require a cryptographic holder binding proof are not supported")]
@@ -262,10 +260,6 @@ impl From<NormalizedCredentialRequest> for CredentialQuery {
 }
 
 fn check_claims_query(claims_query: &ClaimsQuery) -> Result<(), UnsupportedDcqlFeatures> {
-    if !claims_query.values.is_empty() {
-        return Err(UnsupportedDcqlFeatures::ClaimValues);
-    }
-
     if claims_query
         .path
         .nonempty_iter()
@@ -546,6 +540,22 @@ pub mod mock {
             .unwrap()
         }
 
+        pub fn example_with_name_and_address() -> Self {
+            vec![NormalizedCredentialRequest::new_mock_from_slices(
+                "my_credential",
+                MockCredentialFormat::SdJwt,
+                &["https://credentials.example.com/identity_credential"],
+                &[
+                    &["last_name"],
+                    &["first_name"],
+                    &["address", "street_address"],
+                    &["postal_code"],
+                ],
+            )]
+            .try_into()
+            .unwrap()
+        }
+
         pub fn example_with_multiple_credentials() -> Self {
             vec![
                 NormalizedCredentialRequest::new_mock_from_slices(
@@ -674,7 +684,10 @@ mod test {
     use crate::Query;
     use crate::TrustedAuthoritiesQuery;
 
+    use super::MdocAttributeRequest;
+    use super::NormalizedCredentialRequest;
     use super::NormalizedCredentialRequests;
+    use super::SdJwtAttributeRequest;
     use super::UnsupportedDcqlFeatures;
 
     #[rstest]
@@ -688,7 +701,10 @@ mod test {
     )]
     #[case(Query::example_with_credential_sets(), Err(UnsupportedDcqlFeatures::CredentialSets))]
     #[case(Query::example_with_claim_sets(), Err(UnsupportedDcqlFeatures::ClaimSets))]
-    #[case(Query::example_with_values(), Err(UnsupportedDcqlFeatures::ClaimValues))]
+    #[case(
+        Query::example_with_values(),
+        Ok(NormalizedCredentialRequests::example_with_name_and_address())
+    )]
     #[case(
         Query::new_mock_mdoc_iso_example(),
         Ok(NormalizedCredentialRequests::new_mock_mdoc_iso_example())
@@ -715,13 +731,13 @@ mod test {
         mdoc_query_with_invalid_claim_path_variant_by_index(),
         Err(UnsupportedDcqlFeatures::UnsupportedClaimPathVariant)
     )]
-    #[case(mdoc_query_with_values(), Err(UnsupportedDcqlFeatures::ClaimValues))]
+    #[case(mdoc_query_with_values(), Ok(normalized_mdoc_with_ns_attr()))]
     #[case(
         mdoc_query_without_cryptographic_holder_binding_requirement(),
         Err(UnsupportedDcqlFeatures::CryptographicHolderBindingNotRequired)
     )]
     #[case(sd_jwt_single_query(), Ok(sd_jwt_single_request()))]
-    #[case(sd_jwt_values_query(), Err(UnsupportedDcqlFeatures::ClaimValues))]
+    #[case(sd_jwt_values_query(), Ok(normalized_sd_jwt_family_name()))]
     #[case(sd_jwt_no_selectively_disclosable_query(), Err(UnsupportedDcqlFeatures::NoClaims))]
     #[case(sd_jwt_intent_to_retain_query(), Err(UnsupportedDcqlFeatures::IntentToRetainPresent))]
     fn test_conversion(
@@ -733,9 +749,10 @@ mod test {
         assert_eq!(result, expected);
 
         // If the conversion succeeds, test that the conversion back matches the input.
-        // Note that this requires that the input does not use `ClaimsQuery` identifiers.
+        // Note: this requires that the input does not use `ClaimsQuery` identifiers, and that
+        // claim values are stripped from the input before comparing, since normalization drops them.
         if let Ok(normalized) = result {
-            assert_eq!(Query::from(normalized), query);
+            assert_eq!(Query::from(normalized), strip_claim_values(query));
         }
     }
 
@@ -864,6 +881,38 @@ mod test {
         )])
     }
 
+    fn normalized_mdoc_with_ns_attr() -> NormalizedCredentialRequests {
+        vec![NormalizedCredentialRequest::MsoMdoc {
+            id: "mdoc_iso_example".try_into().unwrap(),
+            doctype_value: "org.iso.18013.5.1.mDL".to_string(),
+            claims: vec![MdocAttributeRequest {
+                path: vec_nonempty![
+                    ClaimPath::SelectByKey("ns".to_string()),
+                    ClaimPath::SelectByKey("attr".to_string()),
+                ],
+                intent_to_retain: Some(true),
+            }]
+            .try_into()
+            .unwrap(),
+        }]
+        .try_into()
+        .unwrap()
+    }
+
+    fn normalized_sd_jwt_family_name() -> NormalizedCredentialRequests {
+        vec![NormalizedCredentialRequest::SdJwt {
+            id: "intent_to_retain".try_into().unwrap(),
+            vct_values: vec!["pid".to_string()].try_into().unwrap(),
+            claims: vec![SdJwtAttributeRequest {
+                path: vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())],
+            }]
+            .try_into()
+            .unwrap(),
+        }]
+        .try_into()
+        .unwrap()
+    }
+
     fn sd_jwt_values_query() -> Query {
         let mut credential_query = CredentialQuery::new_mock_sd_jwt("intent_to_retain", &["pid"], &[&["family_name"]]);
 
@@ -912,6 +961,34 @@ mod test {
         Query {
             credentials: vec![credential_query].try_into().unwrap(),
             credential_sets: vec![],
+        }
+    }
+
+    fn strip_claim_values(query: Query) -> Query {
+        Query {
+            credentials: query
+                .credentials
+                .into_iter()
+                .map(|mut cq| {
+                    if let ClaimsSelection::All { claims } = cq.claims_selection {
+                        cq.claims_selection = ClaimsSelection::All {
+                            claims: claims
+                                .into_iter()
+                                .map(|mut c| {
+                                    c.values = vec![];
+                                    c
+                                })
+                                .collect::<Vec<_>>()
+                                .try_into()
+                                .unwrap(),
+                        };
+                    }
+                    cq
+                })
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap(),
+            credential_sets: query.credential_sets,
         }
     }
 }

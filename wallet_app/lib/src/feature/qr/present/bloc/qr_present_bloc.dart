@@ -10,7 +10,7 @@ import '../../../../domain/model/result/application_error.dart';
 import '../../../../domain/usecase/close_proximity/observe_close_proximity_connection_usecase.dart';
 import '../../../../domain/usecase/close_proximity/start_close_proximity_disclosure_usecase.dart';
 import '../../../../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
-import '../../../../util/cast_util.dart';
+import '../../../../util/extension/core_error_extension.dart';
 
 part 'qr_present_event.dart';
 
@@ -31,10 +31,7 @@ class QrPresentBloc extends Bloc<QrPresentEvent, QrPresentState> {
     on<QrPresentStartRequested>(_onStartRequested);
     on<QrPresentStopRequested>(_onStopRequested);
     on<QrPresentEventReceived>(_onConnectionEvent);
-
-    _connectionSubscription = _observeCloseProximityConnectionUseCase.invoke().listen(
-      (event) => add(QrPresentEventReceived(event)),
-    );
+    on<QrPresentPermissionDenied>(_onPermissionDenied);
   }
 
   FutureOr<void> _onStartRequested(QrPresentStartRequested event, Emitter<QrPresentState> emit) async {
@@ -42,20 +39,31 @@ class QrPresentBloc extends Bloc<QrPresentEvent, QrPresentState> {
 
     final result = await _startCloseProximityDisclosureUseCase.invoke();
     await result.process(
-      onSuccess: (qrContents) => emit(QrPresentServerStarted(qrContents)),
+      onSuccess: (qrContents) {
+        emit(QrPresentServerStarted(qrContents));
+        _startObservingConnection();
+      },
       onError: (error) => emit(QrPresentError(error)),
     );
   }
 
   FutureOr<void> _onStopRequested(QrPresentStopRequested event, Emitter<QrPresentState> emit) async {
+    unawaited(_connectionSubscription?.cancel());
     final result = await _cancelDisclosureUseCase.invoke();
     await result.process(
-      onSuccess: (_) => Fimber.d('Close proximity server stopped'),
+      onSuccess: (_) => emit(const QrPresentConnectionFailed()),
       onError: (error) => emit(QrPresentError(error)),
     );
   }
 
-  FutureOr<void> _onConnectionEvent(QrPresentEventReceived event, Emitter<QrPresentState> emit) {
+  void _startObservingConnection() {
+    _connectionSubscription?.cancel();
+    _connectionSubscription = _observeCloseProximityConnectionUseCase.invoke().listen(
+      (event) => add(QrPresentEventReceived(event)),
+    );
+  }
+
+  FutureOr<void> _onConnectionEvent(QrPresentEventReceived event, Emitter<QrPresentState> emit) async {
     switch (event.event) {
       case BleAdvertising():
         Fimber.i('Ble server started');
@@ -68,17 +76,24 @@ class QrPresentBloc extends Bloc<QrPresentEvent, QrPresentState> {
       case BleDisconnected():
         emit(const QrPresentConnectionFailed());
       case BleError(:final error):
-        emit(QrPresentError(error));
+        emit(QrPresentError(await error.asApplicationError()));
     }
+  }
+
+  FutureOr<void> _onPermissionDenied(QrPresentPermissionDenied event, Emitter<QrPresentState> emit) {
+    unawaited(_connectionSubscription?.cancel());
+    unawaited(_cancelDisclosureUseCase.invoke());
+    emit(const QrPresentError(GenericError('Bluetooth permissions are missing', sourceError: 'missing_permissions')));
   }
 
   @override
   Future<dynamic> close() async {
     unawaited(_connectionSubscription?.cancel());
-    final requestReceived = tryCast<QrPresentConnected>(state)?.deviceRequestReceived ?? false;
-    if (!requestReceived) {
-      // Stop BLE server in case we are not connected and about to move to the disclosure screen
-      await _cancelDisclosureUseCase.invoke();
+    switch (state) {
+      case QrPresentConnected(deviceRequestReceived: true):
+        break; // Navigating to [DisclosureScreen], no need to cancel session.
+      default:
+        await _cancelDisclosureUseCase.invoke();
     }
     return super.close();
   }

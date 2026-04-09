@@ -25,11 +25,19 @@ sealed class AcceptDisclosureResult with _$AcceptDisclosureResult {
   }) = AcceptDisclosureResult_InstructionError;
 }
 
-enum CloseProximityDisclosureFlutterUpdate {
-  Connecting,
-  Connected,
-  DeviceRequestReceived,
-  Disconnected,
+@freezed
+sealed class CloseProximityDisclosureFlutterUpdate with _$CloseProximityDisclosureFlutterUpdate {
+  const CloseProximityDisclosureFlutterUpdate._();
+
+  const factory CloseProximityDisclosureFlutterUpdate.connecting() = CloseProximityDisclosureFlutterUpdate_Connecting;
+  const factory CloseProximityDisclosureFlutterUpdate.connected() = CloseProximityDisclosureFlutterUpdate_Connected;
+  const factory CloseProximityDisclosureFlutterUpdate.deviceRequestReceived() =
+      CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived;
+  const factory CloseProximityDisclosureFlutterUpdate.disconnected() =
+      CloseProximityDisclosureFlutterUpdate_Disconnected;
+  const factory CloseProximityDisclosureFlutterUpdate.errored({
+    required String error,
+  }) = CloseProximityDisclosureFlutterUpdate_Errored;
 }
 
 class DisclosureOptions {

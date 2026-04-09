@@ -307,7 +307,7 @@ then
     if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}demo_index${NC}"
-        killall demo_index || true
+        pkill -f 'demo_index$' || true
     fi
     if [[ $START == '0' ]]
     then
@@ -332,7 +332,7 @@ then
     if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}demo_relying_party${NC}"
-        killall demo_relying_party || true
+        pkill -f 'demo_relying_party$' || true
     fi
     if [[ $START == '0' ]]
     then
@@ -357,7 +357,7 @@ then
     if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}demo_issuer${NC}"
-        killall demo_issuer || true
+        pkill -f 'demo_issuer$' || true
     fi
     if [[ $START == '0' ]]
     then
@@ -382,7 +382,7 @@ then
     if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}pid_issuer${NC}"
-        killall pid_issuer || true
+        pkill -f 'pid_issuer$' || true
     fi
     if [[ $START == '0' ]]
     then
@@ -417,7 +417,7 @@ then
     if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}verification_server${NC}"
-        killall verification_server || true
+        pkill -f 'verification_server$' || true
     fi
     if [[ $START == '0' ]]
     then
@@ -448,7 +448,7 @@ then
     if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}issuance_server${NC}"
-        killall issuance_server || true
+        pkill -f 'issuance_server$' || true
     fi
     if [[ $START == '0' ]]
     then
@@ -482,7 +482,7 @@ then
     if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}wallet_provider${NC}"
-        killall wallet_provider || true
+        pkill -f 'wallet_provider$' || true
     fi
     if [[ $START == '0' ]]
     then
@@ -521,7 +521,7 @@ then
     if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}static_server${NC}"
-        killall static_server || true
+        pkill -f 'static_server$' || true
     fi
     if [[ $START == '0' ]]
     then
@@ -546,7 +546,7 @@ then
     if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}update_policy_server${NC}"
-        killall update_policy_server || true
+        pkill -f 'update_policy_server$' || true
     fi
     if [[ $START == '0' ]]
     then
@@ -571,7 +571,7 @@ then
     if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Kill any running ${ORANGE}revocation_portal${NC}"
-        killall revocation_portal || true
+        pkill -f 'revocation_portal$' || true
     fi
     if [[ $START == '0' ]]
     then
@@ -617,7 +617,7 @@ then
     if [[ $STOP == '0' ]]
     then
         echo -e "${INFO}Stopping ${ORANGE}gba_hc_converter${NC}"
-        killall gba_hc_converter || true
+        pkill -f 'gba_hc_converter$' || true
     fi
     if [[ $START == '0' ]]
     then
@@ -642,6 +642,7 @@ then
     if [[ $START == '0' ]]
     then
         cd "${BASE_DIR}"/wallet_app
+        ANDROID_NDK_TARGETS="$(uname -m|sed s/arm64/arm64-v8a/)" \
         flutter run \
             --dart-define MOCK_REPOSITORIES=false \
             --dart-define SHOW_DEBUG_OPTIONS=true \

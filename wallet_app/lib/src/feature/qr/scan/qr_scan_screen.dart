@@ -12,8 +12,8 @@ import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import 'bloc/qr_scan_bloc.dart';
-import 'widget/qr_no_permission.dart';
 import 'widget/qr_scanner.dart';
+import 'widget/qr_scanner_no_permission.dart';
 
 final _scannerKey = Environment.isTest ? ValueKey(clock.now()) : GlobalKey();
 
@@ -85,7 +85,8 @@ class QrScanScreen extends StatelessWidget {
 
   Widget _buildQrInvalidState() => QrScanner(key: _scannerKey);
 
-  Widget _buildNoPermission(bool isPermanentlyDenied) => QrNoPermission(isPermanentlyDenied: isPermanentlyDenied);
+  Widget _buildNoPermission(bool isPermanentlyDenied) =>
+      QrScannerNoPermission(isPermanentlyDenied: isPermanentlyDenied);
 
   Widget _buildScanning() => QrScanner(key: _scannerKey);
 

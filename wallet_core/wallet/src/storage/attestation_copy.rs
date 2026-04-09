@@ -341,6 +341,10 @@ impl DisclosableAttestation {
     pub fn presentation(&self) -> &AttestationPresentation {
         &self.presentation
     }
+
+    pub fn into_presentation(self) -> AttestationPresentation {
+        self.presentation
+    }
 }
 
 #[cfg(test)]

@@ -429,11 +429,6 @@ environment variables to consider setting:
 ```shell
 # Where the rdo-max git repository is cloned to.
 export DIGID_CONNECTOR_PATH="$HOME/Desktop/rdo-max"
-
-# For android, by default, we build x86_64, arm64-v8a and armeabi-v7a,
-# This is quite time consuming. You can opt to only build for one of
-# these. The below would usually choose either x86_64 or arm64-v8a.
-export ANDROID_NDK_TARGETS="$(uname -m|sed s/arm64/arm64-v8a/)"
 ```
 
 To run the setup script, enter the git repository directory and go:

@@ -97,12 +97,6 @@ class WalletTransferNetworkError extends WalletTransferSourceState implements Ne
   @override
   final NetworkError error;
 
-  @override
-  bool get hasInternet => error.hasInternet;
-
-  @override
-  int? get statusCode => error.statusCode;
-
   const WalletTransferNetworkError(this.error);
 
   @override

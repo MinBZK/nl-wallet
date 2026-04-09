@@ -6,10 +6,17 @@ use std::fmt::Debug;
 use ciborium::value::Value;
 use coset::CoseSign1;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
+
+use attestation_types::claim_path::ClaimPath;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 
 use crate::iso::engagement::*;
 use crate::iso::mdocs::*;
@@ -24,11 +31,11 @@ use crate::utils::serialization::cbor_deserialize;
 /// Sent by the RP to the holder to request the disclosure of attributes out of one or more mdocs.
 /// For each mdoc out of which attributes are requested, a [`DocRequest`] is included.
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceRequest {
     pub version: DeviceRequestVersion,
-    pub doc_requests: Vec<DocRequest>,
+    pub doc_requests: VecNonEmpty<DocRequest>,
     /// This is a custom and optional field. Other implementations should ignore it.
     pub return_url: Option<Url>,
 }
@@ -88,22 +95,56 @@ pub struct ItemsRequest {
     pub request_info: Option<IndexMap<String, Value>>,
 }
 
+impl ItemsRequest {
+    pub fn claims(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>> {
+        self.name_spaces.iter().flat_map(|(namespace, identifiers)| {
+            identifiers
+                .into_iter()
+                .map(|(identifier, _)| {
+                    vec_nonempty![
+                        ClaimPath::SelectByKey(namespace.clone()),
+                        ClaimPath::SelectByKey(identifier.clone()),
+                    ]
+                })
+                .collect_vec()
+        })
+    }
+
+    pub fn into_doctype_and_claims(self) -> (DocType, impl Iterator<Item = VecNonEmpty<ClaimPath>>) {
+        (
+            self.doc_type,
+            self.name_spaces.into_iter().flat_map(|(namespace, identifiers)| {
+                identifiers
+                    .into_iter()
+                    .map(|(identifier, _)| {
+                        vec_nonempty![
+                            ClaimPath::SelectByKey(namespace.clone()),
+                            ClaimPath::SelectByKey(identifier),
+                        ]
+                    })
+                    .collect_vec()
+            }),
+        )
+    }
+}
+
 impl DeviceRequest {
     pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, CborError> {
         cbor_deserialize(bytes)
     }
 
-    pub fn from_doc_requests(doc_requests: Vec<DocRequest>) -> Self {
+    pub fn from_doc_requests(doc_requests: VecNonEmpty<DocRequest>) -> Self {
         DeviceRequest {
             doc_requests,
-            ..Default::default()
+            version: DeviceRequestVersion::V1_0,
+            return_url: None,
         }
     }
 
-    pub fn from_items_requests(items_requests: Vec<ItemsRequest>) -> Self {
+    pub fn from_items_requests(items_requests: impl IntoNonEmptyIterator<Item = ItemsRequest>) -> Self {
         Self::from_doc_requests(
             items_requests
-                .into_iter()
+                .into_nonempty_iter()
                 .map(|items_request| DocRequest {
                     items_request: items_request.into(),
                     reader_auth: None,

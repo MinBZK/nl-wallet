@@ -70,7 +70,7 @@ void main() {
       setUp: () {
         when(observePushNotificationsSettingUseCase.invoke()).thenAnswer((_) => Stream.value(true));
         when(
-          checkPermissionUseCase.invoke(Permission.notification),
+          checkPermissionUseCase.invoke([Permission.notification]),
         ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
       },
       expect: () => [const ManageNotificationsLoaded(pushEnabled: true)],
@@ -89,7 +89,7 @@ void main() {
       setUp: () {
         when(observePushNotificationsSettingUseCase.invoke()).thenAnswer((_) => Stream.value(true));
         when(
-          checkPermissionUseCase.invoke(Permission.notification),
+          checkPermissionUseCase.invoke([Permission.notification]),
         ).thenAnswer((_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
       },
       expect: () => [const ManageNotificationsLoaded(pushEnabled: false)],
@@ -108,7 +108,7 @@ void main() {
       setUp: () {
         when(observePushNotificationsSettingUseCase.invoke()).thenAnswer((_) => Stream.value(false));
         when(
-          checkPermissionUseCase.invoke(Permission.notification),
+          checkPermissionUseCase.invoke([Permission.notification]),
         ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
       },
       expect: () => [const ManageNotificationsLoaded(pushEnabled: false)],
@@ -145,7 +145,7 @@ void main() {
       seed: () => const ManageNotificationsLoaded(pushEnabled: false),
       setUp: () {
         when(
-          checkPermissionUseCase.invoke(Permission.notification),
+          checkPermissionUseCase.invoke([Permission.notification]),
         ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
       },
       act: (bloc) => bloc.add(const ManageNotificationsPushNotificationsToggled()),
@@ -167,7 +167,7 @@ void main() {
       seed: () => const ManageNotificationsLoaded(pushEnabled: false),
       setUp: () {
         when(
-          checkPermissionUseCase.invoke(Permission.notification),
+          checkPermissionUseCase.invoke([Permission.notification]),
         ).thenAnswer((_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: true));
       },
       act: (bloc) => bloc.add(const ManageNotificationsPushNotificationsToggled()),
@@ -189,7 +189,7 @@ void main() {
       seed: () => const ManageNotificationsLoaded(pushEnabled: false),
       setUp: () {
         when(
-          checkPermissionUseCase.invoke(Permission.notification),
+          checkPermissionUseCase.invoke([Permission.notification]),
         ).thenAnswer((_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
         when(
           requestPermissionUseCase.invoke([Permission.notification]),
@@ -215,7 +215,7 @@ void main() {
       seed: () => const ManageNotificationsLoaded(pushEnabled: false),
       setUp: () {
         when(
-          checkPermissionUseCase.invoke(Permission.notification),
+          checkPermissionUseCase.invoke([Permission.notification]),
         ).thenAnswer((_) async => const PermissionCheckResult(isGranted: false, isPermanentlyDenied: false));
         when(
           requestPermissionUseCase.invoke([Permission.notification]),
@@ -242,7 +242,7 @@ void main() {
       setUp: () {
         when(observePushNotificationsSettingUseCase.invoke()).thenAnswer((_) => Stream.value(true));
         when(
-          checkPermissionUseCase.invoke(Permission.notification),
+          checkPermissionUseCase.invoke([Permission.notification]),
         ).thenAnswer((_) async => const PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
         when(
           requestPermissionUseCase.invoke([Permission.notification]),
@@ -252,7 +252,7 @@ void main() {
       expect: () => [const ManageNotificationsLoaded(pushEnabled: true)],
       verify: (_) {
         verify(observePushNotificationsSettingUseCase.invoke());
-        verify(checkPermissionUseCase.invoke(Permission.notification));
+        verify(checkPermissionUseCase.invoke([Permission.notification]));
       },
     );
   });

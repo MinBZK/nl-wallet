@@ -58,7 +58,7 @@ class PinBloc extends Bloc<PinEvent, PinState> {
         _currentPin = '';
         switch (error) {
           case NetworkError():
-            emit(PinValidateNetworkError(error: error, hasInternet: error.hasInternet));
+            emit(PinValidateNetworkError(error: error));
           case CheckPinError():
             _handleCheckPinErrors(emit, error.result);
           default:

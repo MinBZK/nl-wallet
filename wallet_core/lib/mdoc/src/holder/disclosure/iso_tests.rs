@@ -70,7 +70,7 @@ async fn do_and_verify_iso_example_disclosure() {
     let device_request = DeviceRequest::example();
 
     // Examine some fields in the device request
-    let items_request = device_request.doc_requests.first().unwrap().items_request.0.clone();
+    let items_request = device_request.doc_requests.first().items_request.0.clone();
     assert_eq!(items_request.doc_type, EXAMPLE_DOC_TYPE);
     let requested_attrs = items_request.name_spaces.get(EXAMPLE_NAMESPACE).unwrap();
     let intent_to_retain = requested_attrs.get(EXAMPLE_ATTR_NAME).unwrap();
@@ -84,7 +84,6 @@ async fn do_and_verify_iso_example_disclosure() {
     let certificate = device_request
         .doc_requests
         .first()
-        .unwrap()
         .verify(&session_transcript, &IsoCertTimeGenerator, reader_trust_anchors)
         .unwrap()
         .unwrap();
@@ -130,7 +129,7 @@ async fn do_and_verify_iso_example_disclosure() {
 /// Disclose some of the attributes of the example mdoc from the spec.
 #[tokio::test]
 async fn iso_examples_custom_disclosure() {
-    let request = DeviceRequest::from_items_requests(vec![ItemsRequest {
+    let request = DeviceRequest::from_items_requests(vec_nonempty![ItemsRequest {
         doc_type: EXAMPLE_DOC_TYPE.to_string(),
         name_spaces: IndexMap::from([(
             EXAMPLE_NAMESPACE.to_string(),

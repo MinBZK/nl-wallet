@@ -22,7 +22,9 @@ get-started/create-an-issuer
 :caption: Architecture
 :maxdepth: 2
 :glob:
-architecture/*
+architecture/architecture-overview
+architecture/use-cases
+architecture/gsn-overview
 ```
 
 ```{toctree}

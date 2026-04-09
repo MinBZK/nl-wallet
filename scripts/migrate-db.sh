@@ -6,7 +6,7 @@ command="${1:-}"
 
 SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
 
-. $SCRIPTS_DIR/configuration.sh
+. "$SCRIPTS_DIR/configuration.sh"
 
 DATABASE_URL="postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/issuance_server" \
     cargo run --manifest-path "$BASE_DIR/wallet_core/Cargo.toml" --bin issuance_server_migrations -- $command

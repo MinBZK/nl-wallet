@@ -8,7 +8,7 @@ use tracing_subscriber::fmt::MakeWriter;
 
 const DEFAULT_LEVEL: &tracing::Level = &tracing::Level::INFO;
 
-/// We need something that implements the [`WriterMaker`] trait in order to have different
+/// We need something that implements the [`MakeWriter`] trait in order to have different
 /// [`LogWriter`] instances per debug level.
 ///
 /// * For [`Level::ERROR`] messages, use the fault logging function.
@@ -51,7 +51,7 @@ impl<'a> MakeWriter<'a> for WriterMaker {
 
     fn make_writer(&'a self) -> Self::Writer {
         // This method may never get called (as there should normally be metadata present),
-        // but if it does we should just return the default writer.
+        // but if it is, we should just return the default writer.
         self.writer(DEFAULT_LEVEL)
     }
 

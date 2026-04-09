@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../../../domain/usecase/permission/request_permission_usecase.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
+import '../../../wallet_constants.dart';
 import '../dialog/ble_permission_dialog.dart';
 import '../widget/button/bottom_close_button.dart';
 import '../widget/menu_item.dart';
@@ -52,9 +52,7 @@ class QrActionSheet extends StatelessWidget {
     // On Android, request the granular BLE permissions introduced in API 31.
     // permission_handler falls back to the legacy BLUETOOTH check on API ≤ 30.
     // On iOS, Permission.bluetooth maps to CoreBluetooth.
-    final permissions = Platform.isAndroid
-        ? [Permission.bluetoothConnect, Permission.bluetoothAdvertise]
-        : [Permission.bluetooth];
+    final permissions = Platform.isAndroid ? kAndroidBlePermissions : kIosBlePermissions;
 
     final requestResult = await context.read<RequestPermissionUseCase>().invoke(permissions);
     if (!context.mounted) return;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/l10n/generated/app_localizations.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/feature/common/widget/button/primary_button.dart';
 import 'package:wallet/src/feature/common/widget/button/tertiary_button.dart';
 import 'package:wallet/src/feature/error/error_screen.dart';
@@ -57,21 +58,40 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      // Verify it's displayed correctly
+
       await screenMatchesGolden('generic.light');
     });
 
-    testGoldens('ErrorScreen.showNetwork()', (tester) async {
+    testGoldens('ErrorScreen.network() (has internet)', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
           builder: (context) {
-            return ErrorScreen.network(context);
+            return ErrorScreen.network(
+              context,
+              error: const NetworkError(hasInternet: true, sourceError: 'test'),
+            );
           },
         ),
       );
       await tester.pumpAndSettle();
-      // Verify it's displayed correctly
+
       await screenMatchesGolden('network.light');
+    });
+
+    testGoldens('ErrorScreen.network() (no internet)', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            return ErrorScreen.network(
+              context,
+              error: const NetworkError(hasInternet: false, sourceError: 'test'),
+            );
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await screenMatchesGolden('network.no_internet.light');
     });
 
     testGoldens('ErrorScreen.deviceIncompatible()', (tester) async {
@@ -83,7 +103,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      // Verify it's displayed correctly
+
       await screenMatchesGolden('device_incompatible.light');
     });
 
@@ -96,7 +116,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      // Verify it's displayed correctly
+
       await screenMatchesGolden('session_expired.light');
     });
   });
@@ -205,9 +225,10 @@ void main() {
   testWidgets('Network ErrorScreen renders expected widgets', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
       Builder(
-        builder: (context) {
-          return ErrorScreen.network(context);
-        },
+        builder: (context) => ErrorScreen.network(
+          context,
+          error: const NetworkError(hasInternet: true, sourceError: ''),
+        ),
       ),
     );
     await tester.pumpAndSettle();

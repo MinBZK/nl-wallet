@@ -203,7 +203,7 @@ void main() {
       });
 
       test('DisclosureNetworkError has correct default FlowProgress', () {
-        final state = DisclosureNetworkError(error: mockApplicationError);
+        final state = const DisclosureNetworkError(error: NetworkError(hasInternet: false, sourceError: 'no_internet'));
         expect(state.stepperProgress, isNull);
       });
     });

@@ -1450,7 +1450,6 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                         Err(pin_eval.into())
                     } else {
                         Err(InstructionError::Validation(validation_error))
-
                     }
                 }
             }

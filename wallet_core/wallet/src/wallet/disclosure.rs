@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::hash::Hash;
+use std::num::NonZeroUsize;
 use std::sync::Arc;
 
+use attestation_data::verifier_certificate::VerifierCertificate;
 use chrono::Utc;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
@@ -14,12 +17,12 @@ use tracing::info;
 use tracing::instrument;
 use url::Url;
 
-pub use openid4vc::disclosure_session::DisclosureUriSource;
-
 use attestation_data::auth::Organization;
 use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::disclosure::AttestationRequest;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_types::claim_path::ClaimPath;
+use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequest;
 use entity::disclosure_event::EventStatus;
@@ -33,23 +36,26 @@ use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosableAttestations;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
+pub use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::disclosure_session::VpVerifierError;
 use openid4vc::oidc::OidcClient;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
-use platform_support::close_proximity_disclosure::CloseProximityDisclosureError;
+use platform_support::close_proximity_disclosure::CloseProximityDisclosureError as PlatformCloseProximityDisclosureError;
 use sd_jwt::claims::NonSelectivelyDisclosableClaimsError;
 use sd_jwt::error::SigningError;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use update_policy_model::update_policy::VersionState;
 use utils::generator::TimeGenerator;
+use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecAtLeastN;
 use utils::vec_at_least::VecAtLeastTwo;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
+use wallet_configuration::wallet_config::PidAttributePaths;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -70,6 +76,7 @@ use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::wallet::HistoryError;
 use crate::wallet::Session;
+use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureError;
 
 use super::UriType;
 use super::Wallet;
@@ -149,7 +156,7 @@ pub enum DisclosureError {
 
     #[error("cannot request recovery code")]
     #[category(critical)]
-    RecoveryCodeRequested,
+    RecoveryCodeRequested(Box<Organization>),
 
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[source] InstructionError),
@@ -182,8 +189,12 @@ pub enum DisclosureError {
     #[category(critical)]
     NonSelectivelyDisclosableClaim(Box<Organization>, #[source] NonSelectivelyDisclosableClaimsError),
 
-    #[error("Close Proximity discolsure session error: {0}")]
+    #[error("Platform Close Proximity disclosure session error: {0}")]
     #[category(critical)]
+    PlatformCloseProximityDisclosureSessionError(#[from] PlatformCloseProximityDisclosureError),
+
+    #[error("Close Proximity disclosure session error: {0}")]
+    #[category(defer)]
     CloseProximityDisclosureSessionError(#[from] CloseProximityDisclosureError),
 }
 
@@ -254,19 +265,16 @@ pub enum RedirectUriPurpose {
 }
 
 #[derive(Debug, Clone)]
-pub(super) enum WalletDisclosureAttestations {
+pub(super) enum WalletDisclosureAttestations<T> {
     Missing,
-    Proposal(IndexMap<CredentialQueryIdentifier, VecNonEmpty<DisclosableAttestation>>),
+    Proposal(IndexMap<T, VecNonEmpty<DisclosableAttestation>>),
 }
 
-impl WalletDisclosureAttestations {
+impl<T: Hash + Eq> WalletDisclosureAttestations<T> {
     /// Returns an [`IndexMap`] selecting one attestation per DCQL query from the proposal. Note that this panics when
     /// [`WalletDisclosureAttestations`] is not a propsal or any of the indices is out of bounds, as this is considered
     /// programmer error.
-    pub fn select_proposal(
-        &self,
-        selected_indices: &[usize],
-    ) -> IndexMap<&CredentialQueryIdentifier, &DisclosableAttestation> {
+    pub fn select_proposal(&self, selected_indices: &[usize]) -> IndexMap<&T, &DisclosableAttestation> {
         match self {
             Self::Missing => panic!("disclosure proposal selected when missing attributes"),
             Self::Proposal(attestations) => {
@@ -304,7 +312,7 @@ impl WalletDisclosureAttestations {
 pub(super) struct WalletDisclosureSession<DCS> {
     pub redirect_uri_purpose: RedirectUriPurpose,
     pub disclosure_type: DisclosureType,
-    pub attestations: WalletDisclosureAttestations,
+    pub attestations: WalletDisclosureAttestations<CredentialQueryIdentifier>,
     pub protocol_state: DCS,
 }
 
@@ -352,26 +360,77 @@ impl RedirectUriPurpose {
 }
 
 /// Check if the PID recovery code is part of a credential request.
-fn is_request_for_recovery_code(
-    request: &NormalizedCredentialRequest,
+pub(super) fn is_request_for_recovery_code(
+    request: impl AttestationRequest,
     pid_attributes: &PidAttributesConfiguration,
 ) -> bool {
-    match &request {
-        NormalizedCredentialRequest::MsoMdoc {
-            doctype_value, claims, ..
-        } => pid_attributes.mso_mdoc.get(doctype_value).is_some_and(|pid_paths| {
-            claims.iter().any(|claim| {
-                ClaimPath::matches_key_path(&claim.path, pid_paths.recovery_code.iter().map(String::as_str))
-            })
-        }),
-        NormalizedCredentialRequest::SdJwt { vct_values, claims, .. } => vct_values.iter().any(|vct| {
-            pid_attributes.sd_jwt.get(vct).is_some_and(|pid_paths| {
-                claims.iter().any(|claim| {
-                    ClaimPath::matches_key_path(&claim.path, pid_paths.recovery_code.iter().map(String::as_str))
-                })
-            })
-        }),
+    let matches_recovery_code_paths = |pid_paths: &PidAttributePaths| {
+        request
+            .claim_paths()
+            .any(|claim| ClaimPath::matches_key_path(&claim, pid_paths.recovery_code.iter().map(String::as_str)))
+    };
+
+    match request.format() {
+        CredentialFormat::MsoMdoc => pid_attributes
+            .mso_mdoc
+            .get(request.credential_types().collect::<VecNonEmpty<_>>().first())
+            .is_some_and(matches_recovery_code_paths),
+        CredentialFormat::SdJwt => request
+            .credential_types()
+            .any(|vct| pid_attributes.sd_jwt.get(&vct).is_some_and(matches_recovery_code_paths)),
     }
+}
+
+impl DisclosureProposalPresentation {
+    /// Converts a collection of candidate attestations into a [`DisclosureProposalPresentation`].
+    pub(super) fn from_candidates(
+        candidate_attestations: VecNonEmpty<VecNonEmpty<DisclosableAttestation>>,
+        reader_registration: ReaderRegistration,
+        shared_data_with_relying_party_before: bool,
+        session_type: SessionType,
+        disclosure_type: DisclosureType,
+        purpose: RedirectUriPurpose,
+    ) -> Self {
+        // Place the proposed attestations in a `DisclosureProposalPresentation`,
+        // along with a copy of the `ReaderRegistration`.
+        let attestation_options = candidate_attestations
+            .into_nonempty_iter()
+            .map(|candidates| {
+                let presentations = candidates
+                    .into_nonempty_iter()
+                    .map(|candidate| candidate.into_presentation())
+                    .collect::<VecNonEmpty<_>>();
+
+                match presentations.len() {
+                    NonZeroUsize::MIN => DisclosureAttestationOptions::Single(Box::new(presentations.into_first())),
+                    _ => DisclosureAttestationOptions::Multiple(presentations.into_inner().try_into().unwrap()),
+                }
+            })
+            .collect();
+
+        DisclosureProposalPresentation {
+            attestation_options,
+            reader_registration,
+            shared_data_with_relying_party_before,
+            session_type,
+            disclosure_type,
+            purpose,
+        }
+    }
+}
+
+/// Builds a list of requested attribute paths from disclosure requests, formatted as `"attestation_type/claim/path"`.
+// TODO (PVW-3813): Attempt to translate the requested attributes using the TAS cache.
+pub(super) fn requested_attribute_paths<'a, T: AttestationRequest + 'a>(
+    requests: impl Iterator<Item = &'a T>,
+) -> impl Iterator<Item = String> {
+    requests.flat_map(|request| {
+        request.credential_types().into_iter().flat_map(|attestation_type| {
+            request
+                .claim_paths()
+                .map(move |claim_path| format!("{}/{}", attestation_type, claim_path.iter().join("/")))
+        })
+    })
 }
 
 impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
@@ -383,53 +442,9 @@ where
     DCC: DisclosureClient,
     S: Storage,
 {
-    /// Helper method that fetches attestation from the database based on their attestation type, filters out any of
-    /// them that do not match the request and convert the remaining ones to a [`DisclosableAttestation`], which
-    /// contains an [`AttestationPresentation`] to show to the user.
-    async fn fetch_candidate_attestations(
-        storage: &S,
-        request: &NormalizedCredentialRequest,
-        presentation_config: &impl AttestationPresentationConfig,
-    ) -> Result<Option<VecNonEmpty<DisclosableAttestation>>, StorageError> {
-        let credential_types = request.credential_types().collect();
-
-        let stored_attestations = storage
-            .fetch_valid_unique_attestations_by_types_and_format(&credential_types, request.format(), TimeGenerator)
-            .await?;
-
-        let candidate_attestations = stored_attestations
-            .into_iter()
-            .filter_map(|attestation_copy| {
-                // Only select those attestations that contain all of the requested attributes.
-                // TODO (PVW-4537): Have this be part of the database query using some index.
-                attestation_copy
-                    .matches_requested_attributes(request.claim_paths())
-                    .then(|| {
-                        // Create a disclosure proposal by removing any attributes that were not requested from the
-                        // presentation attributes. Since the filtering above should remove any attestation in which the
-                        // requested claim paths are not present and this is the only error condition, no error should
-                        // occur.
-                        DisclosableAttestation::try_new(attestation_copy, request.claim_paths(), presentation_config)
-                            .expect("all claim paths should be present in attestation")
-                    })
-            })
-            .collect_vec();
-
-        // Return `None` if the list of candidates is empty.
-        let candidate_attestations = VecNonEmpty::try_from(candidate_attestations).ok();
-
-        Ok(candidate_attestations)
-    }
-
-    #[instrument(skip_all)]
-    #[sentry_capture_error]
-    pub async fn start_disclosure(
-        &mut self,
-        uri: &Url,
-        source: DisclosureUriSource,
-    ) -> Result<DisclosureProposalPresentation, DisclosureError> {
-        info!("Performing disclosure based on received URI: {}", uri);
-
+    /// Checks the common preconditions for disclosure-related operations: version not blocked, wallet registered,
+    /// and wallet not locked.
+    pub(super) fn check_disclosure_preconditions(&self) -> Result<(), DisclosureError> {
         info!("Checking if blocked");
         if self.is_blocked() {
             return Err(DisclosureError::VersionBlocked);
@@ -445,13 +460,101 @@ where
             return Err(DisclosureError::Locked);
         }
 
+        Ok(())
+    }
+
+    /// Helper method that fetches attestation from the database based on their attestation type, filters out any of
+    /// them that do not match the request and convert the remaining ones to a [`DisclosableAttestation`], which
+    /// contains an [`AttestationPresentation`] to show to the user.
+    pub(super) async fn fetch_candidate_attestations(
+        storage: &S,
+        request: &impl AttestationRequest,
+        presentation_config: &impl AttestationPresentationConfig,
+    ) -> Result<Option<VecNonEmpty<DisclosableAttestation>>, StorageError> {
+        let credential_types = request.credential_types().collect();
+
+        let stored_attestations = storage
+            .fetch_valid_unique_attestations_by_types_and_format(&credential_types, request.format(), TimeGenerator)
+            .await?;
+
+        let candidate_attestations = stored_attestations
+            .into_iter()
+            .filter_map(|attestation_copy| {
+                // Only select those attestations that contain all of the requested attributes.
+                // TODO (PVW-4537): Have this be part of the database query using some index.
+                attestation_copy
+                    .matches_requested_attributes(request.claim_paths().collect_vec().iter())
+                    .then(|| {
+                        // Create a disclosure proposal by removing any attributes that were not requested from the
+                        // presentation attributes. Since the filtering above should remove any attestation in which the
+                        // requested claim paths are not present and this is the only error condition, no error should
+                        // occur.
+                        DisclosableAttestation::try_new(
+                            attestation_copy,
+                            request.claim_paths().collect_vec().iter(),
+                            presentation_config,
+                        )
+                        .expect("all claim paths should be present in attestation")
+                    })
+            })
+            .collect_vec();
+
+        // Return `None` if the list of candidates is empty.
+        Ok(VecNonEmpty::try_from(candidate_attestations).ok())
+    }
+
+    pub(super) async fn prepare_disclosure(
+        &self,
+        attestation_requests: &[&impl AttestationRequest],
+        pid_attributes: &PidAttributesConfiguration,
+        verifier_certificate: &VerifierCertificate,
+    ) -> Result<(Vec<Option<VecNonEmpty<DisclosableAttestation>>>, bool), DisclosureError> {
+        // Check for recovery code request
+        if attestation_requests
+            .iter()
+            .any(|request| is_request_for_recovery_code(request, pid_attributes))
+        {
+            return Err(DisclosureError::RecoveryCodeRequested(
+                verifier_certificate.registration().organization.clone(),
+            ));
+        }
+
+        // For each disclosure request, fetch the candidates from the database and convert
+        // each of them to an `AttestationPresentation` that can be shown to the user.
+        let storage = self.storage.read().await;
+        let candidate_attestations = try_join_all(
+            attestation_requests
+                .iter()
+                .map(|request| Self::fetch_candidate_attestations(&*storage, request, pid_attributes)),
+        )
+        .await
+        .map_err(DisclosureError::AttestationRetrieval)?;
+
+        let shared_data_with_relying_party_before = storage
+            .did_share_data_with_relying_party(verifier_certificate.certificate())
+            .await
+            .map_err(DisclosureError::HistoryRetrieval)?;
+
+        Ok((candidate_attestations, shared_data_with_relying_party_before))
+    }
+
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
+    pub async fn start_disclosure(
+        &mut self,
+        uri: &Url,
+        source: DisclosureUriSource,
+    ) -> Result<DisclosureProposalPresentation, DisclosureError> {
+        info!("Performing disclosure based on received URI: {}", uri);
+
+        self.check_disclosure_preconditions()?;
+
         info!("Checking if there is already an active session");
         if self.session.is_some() {
             return Err(DisclosureError::SessionState);
         }
 
         let wallet_config = &self.config_repository.get();
-        let pid_attributes = &wallet_config.pid_attributes;
 
         let purpose = RedirectUriPurpose::from_uri(uri)?;
         let disclosure_uri_query = uri
@@ -468,34 +571,20 @@ where
             )
             .await?;
 
-        // Check for recovery code request
-        if session
-            .credential_requests()
-            .as_ref()
-            .iter()
-            .any(|request| is_request_for_recovery_code(request, pid_attributes))
-        {
-            return Err(DisclosureError::RecoveryCodeRequested);
-        }
+        let (candidate_attestations, shared_data_with_relying_party_before) = self
+            .prepare_disclosure(
+                &session.credential_requests().as_ref().iter().collect_vec(),
+                &wallet_config.pid_attributes,
+                session.verifier_certificate(),
+            )
+            .await?;
 
-        // For each disclosure request, fetch the candidates from the database and convert
-        // each of them to an `AttestationPresentation` that can be shown to the user.
-        let storage = self.storage.read().await;
-        let candidate_attestations = try_join_all(
-            session
-                .credential_requests()
-                .as_ref()
-                .iter()
-                .map(|request| Self::fetch_candidate_attestations(&*storage, request, pid_attributes)),
-        )
-        .await
-        .map_err(DisclosureError::AttestationRetrieval)?
-        .into_iter()
-        .zip(session.credential_requests().as_ref());
+        let candidate_attestations = candidate_attestations
+            .into_iter()
+            .zip(session.credential_requests().as_ref());
 
         // Verify whether all non selectively disclosable claims are requested
-        let verifier_certificate = session.verifier_certificate();
-        let reader_registration = verifier_certificate.registration().clone();
+        let reader_registration = session.verifier_certificate().registration().clone();
         Self::verify_non_selectively_disclosable_claims(
             candidate_attestations.clone(),
             &reader_registration.organization,
@@ -507,95 +596,61 @@ where
 
         // At this point, determine the disclosure type and if data was ever shared with this RP before, as the UI
         // needs this context both for when all requested attributes are present and for when attributes are missing.
-        let disclosure_type =
-            DisclosureType::from_credential_requests(session.credential_requests().as_ref(), pid_attributes);
+        let disclosure_type = DisclosureType::from_credential_requests(
+            session.credential_requests().as_ref(),
+            &wallet_config.pid_attributes,
+        );
 
-        let shared_data_with_relying_party_before = self
-            .storage
-            .read()
-            .await
-            .did_share_data_with_relying_party(verifier_certificate.certificate())
-            .await
-            .map_err(DisclosureError::HistoryRetrieval)?;
+        if let Ok(disclosable_attestations) =
+            VecNonEmpty::try_from(candidate_attestations.values().cloned().collect_vec())
+            && disclosable_attestations.len().get() == session.credential_requests().as_ref().len()
+        {
+            info!(
+                "All attributes in the disclosure request are present in the database, return a proposal to the user"
+            );
 
-        // If no suitable candidates were found for at least one of the requests, report this as an error to the UI.
-        if candidate_attestations.len() < session.credential_requests().as_ref().len() {
-            info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
+            let proposal = DisclosureProposalPresentation::from_candidates(
+                disclosable_attestations,
+                reader_registration,
+                shared_data_with_relying_party_before,
+                session.session_type(),
+                disclosure_type,
+                purpose,
+            );
 
-            // For now we simply represent the requested attribute paths by joining all elements with a slash.
-            // TODO (PVW-3813): Attempt to translate the requested attributes using the TAS cache.
-            let requested_attributes = session
-                .credential_requests()
-                .as_ref()
-                .iter()
-                .flat_map(|request| {
-                    request.credential_types().flat_map(|attestation_type| {
-                        request
-                            .claim_paths()
-                            .map(move |claim_path| format!("{}/{}", attestation_type, claim_path.iter().join("/")))
-                    })
-                })
-                .collect();
-            let session_type = session.session_type();
-
-            // Store the session so that it will only be terminated on user interaction.
-            // This prevents gleaning of missing attributes by a verifier.
+            // Retain the session as `Wallet` state.
             self.session
-                .replace(Session::Disclosure(WalletDisclosureSession::new_missing_attributes(
+                .replace(Session::Disclosure(WalletDisclosureSession::new_proposal(
                     purpose,
                     disclosure_type,
+                    candidate_attestations,
                     session,
                 )));
 
-            return Err(DisclosureError::AttributesNotAvailable(AttributesNotAvailable {
-                reader_registration: Box::new(reader_registration),
-                requested_attributes,
-                shared_data_with_relying_party_before,
-                session_type,
-            }));
+            return Ok(proposal);
         }
 
-        info!("All attributes in the disclosure request are present in the database, return a proposal to the user");
+        // If no suitable candidates were found for at least one of the requests, report this as an error to the UI.
+        info!("At least one attribute from one attestation is missing in order to satisfy the disclosure request");
 
-        // Place the proposed attestations in a `DisclosureProposalPresentation`,
-        // along with a copy of the `ReaderRegistration`.
-        let attestation_options = candidate_attestations
-            .values()
-            .map(|candidates| {
-                let presentations = candidates
-                    .nonempty_iter()
-                    .map(|candidate| candidate.presentation().clone())
-                    .collect::<VecNonEmpty<_>>();
+        let requested_attributes = requested_attribute_paths(session.credential_requests().as_ref().iter()).collect();
+        let session_type = session.session_type();
 
-                if presentations.len().get() > 1 {
-                    DisclosureAttestationOptions::Multiple(presentations.into_inner().try_into().unwrap())
-                } else {
-                    DisclosureAttestationOptions::Single(Box::new(presentations.into_first()))
-                }
-            })
-            .collect_vec()
-            .try_into()
-            // This is safe, as `NormalizedCredentialRequests` guarantees that there is at least one request.
-            .unwrap();
-        let proposal = DisclosureProposalPresentation {
-            attestation_options,
-            reader_registration,
-            shared_data_with_relying_party_before,
-            session_type: session.session_type(),
-            disclosure_type,
-            purpose,
-        };
-
-        // Retain the session as `Wallet` state.
+        // Store the session so that it will only be terminated on user interaction.
+        // This prevents gleaning of missing attributes by a verifier.
         self.session
-            .replace(Session::Disclosure(WalletDisclosureSession::new_proposal(
+            .replace(Session::Disclosure(WalletDisclosureSession::new_missing_attributes(
                 purpose,
                 disclosure_type,
-                candidate_attestations,
                 session,
             )));
 
-        Ok(proposal)
+        Err(DisclosureError::AttributesNotAvailable(AttributesNotAvailable {
+            reader_registration: Box::new(reader_registration),
+            requested_attributes,
+            shared_data_with_relying_party_before,
+            session_type,
+        }))
     }
 
     fn verify_non_selectively_disclosable_claims<'a>(
@@ -675,20 +730,7 @@ where
     {
         info!("Cancelling disclosure");
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(DisclosureError::VersionBlocked);
-        }
-
-        info!("Checking if registered");
-        if !self.registration.is_registered() {
-            return Err(DisclosureError::NotRegistered);
-        }
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(DisclosureError::Locked);
-        }
+        self.check_disclosure_preconditions()?;
 
         info!("Checking if a disclosure session is present");
 
@@ -998,18 +1040,14 @@ mod tests {
     use rstest::rstest;
     use serde::de::Error;
     use url::Url;
-    use utils::vec_nonempty;
-    use uuid::Uuid;
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::Organization;
-    use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::disclosure_type::DisclosureType;
-    use attestation_data::validity::ValidityWindow;
-    use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+    use attestation_data::verifier_certificate::VerifierCertificate;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ADDRESS_GROUP;
@@ -1019,9 +1057,11 @@ mod tests {
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
     use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
-    use crypto::server_keys::generate::Ca;
     use dcql::CredentialFormat;
+    use dcql::normalized::MdocAttributeRequest;
+    use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
+    use dcql::normalized::SdJwtAttributeRequest;
     use entity::disclosure_event::EventStatus;
     use http_utils::urls;
     use http_utils::urls::BaseUrl;
@@ -1032,7 +1072,6 @@ mod tests {
     use openid4vc::disclosure_session::DataDisclosed;
     use openid4vc::disclosure_session::DisclosableAttestations;
     use openid4vc::disclosure_session::DisclosureUriSource;
-    use openid4vc::disclosure_session::VerifierCertificate;
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpMessageClientError;
     use openid4vc::disclosure_session::VpSessionError;
@@ -1050,8 +1089,12 @@ mod tests {
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use update_policy_model::update_policy::VersionState;
     use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_nonempty;
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
+    use wallet_configuration::wallet_config::PidAttributePaths;
+    use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
@@ -1062,16 +1105,14 @@ mod tests {
     use crate::errors::StorageError;
     use crate::storage::ChangePinData;
     use crate::storage::DisclosableAttestation;
-    use crate::storage::StoredAttestation;
-    use crate::storage::StoredAttestationCopy;
+    use crate::wallet::test::example_pid_stored_attestation_copy;
+    use crate::wallet::test::example_stored_attestation_copy;
+    use crate::wallet::test::mock_verifier_certificate;
 
     use super::super::Session;
-    use super::super::test::ISSUER_KEY;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
-    use super::super::test::mdoc_from_credential_payload;
     use super::super::test::setup_mock_recent_history_callback;
-    use super::super::test::verified_sd_jwt_from_credential_payload;
     use super::AttributesNotAvailable;
     use super::DisclosureAttestationOptions;
     use super::DisclosureError;
@@ -1079,6 +1120,7 @@ mod tests {
     use super::RedirectUriPurpose;
     use super::WalletDisclosureAttestations;
     use super::WalletDisclosureSession;
+    use super::is_request_for_recovery_code;
 
     static DISCLOSURE_URI: LazyLock<Url> =
         LazyLock::new(|| urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy?foo=bar"));
@@ -1100,51 +1142,6 @@ mod tests {
             CredentialFormat::MsoMdoc => DEFAULT_MDOC_PID_CREDENTIAL_REQUESTS.clone(),
             CredentialFormat::SdJwt => DEFAULT_SD_JWT_PID_CREDENTIAL_REQUESTS.clone(),
         }
-    }
-
-    fn example_stored_attestation_copy(
-        format: CredentialFormat,
-        credential_payload: CredentialPayload,
-        metadata: NormalizedTypeMetadata,
-    ) -> StoredAttestationCopy {
-        match format {
-            CredentialFormat::MsoMdoc => StoredAttestationCopy::new(
-                Uuid::new_v4(),
-                Uuid::new_v4(),
-                ValidityWindow::new_valid_mock(),
-                StoredAttestation::MsoMdoc {
-                    mdoc: mdoc_from_credential_payload(
-                        credential_payload.previewable_payload,
-                        &ISSUER_KEY.issuance_key,
-                    ),
-                },
-                metadata,
-                None,
-            ),
-            CredentialFormat::SdJwt => StoredAttestationCopy::new(
-                Uuid::new_v4(),
-                Uuid::new_v4(),
-                ValidityWindow::new_valid_mock(),
-                StoredAttestation::SdJwt {
-                    key_identifier: crypto::utils::random_string(16),
-                    sd_jwt: verified_sd_jwt_from_credential_payload(
-                        credential_payload,
-                        &metadata,
-                        &ISSUER_KEY.issuance_key,
-                    ),
-                },
-                metadata,
-                None,
-            ),
-        }
-    }
-
-    fn example_pid_stored_attestation_copy(format: CredentialFormat) -> StoredAttestationCopy {
-        example_stored_attestation_copy(
-            format,
-            CredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
-            NormalizedTypeMetadata::nl_pid_example(),
-        )
     }
 
     // Set up properties for a `MockDisclosureSession`.
@@ -1170,10 +1167,7 @@ mod tests {
     fn setup_disclosure_session(
         credential_requests: NormalizedCredentialRequests,
     ) -> (MockDisclosureSession, VerifierCertificate) {
-        let ca = Ca::generate_reader_mock_ca().unwrap();
-        let reader_registration = ReaderRegistration::new_mock();
-        let key_pair = generate_reader_mock_with_registration(&ca, reader_registration).unwrap();
-        let verifier_certificate = VerifierCertificate::try_new(key_pair.into()).unwrap().unwrap();
+        let verifier_certificate = mock_verifier_certificate();
 
         let disclosure_session =
             setup_disclosure_session_verifier_certificate(verifier_certificate.clone(), credential_requests);
@@ -1366,7 +1360,7 @@ mod tests {
                 .mut_storage()
                 .expect_fetch_valid_unique_attestations_by_types_and_format()
                 .withf(move |attestation_types, format, _| {
-                    *attestation_types == HashSet::from([attestation_type]) && *format == requested_format
+                    *attestation_types == HashSet::from([attestation_type.to_owned()]) && *format == requested_format
                 })
                 .times(1)
                 .return_once(move |_, _, _| Ok(attestations));
@@ -1866,7 +1860,8 @@ mod tests {
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_types_and_format()
             .withf(move |attestation_types, format, _| {
-                *attestation_types == HashSet::from([PID_ATTESTATION_TYPE]) && *format == CredentialFormat::MsoMdoc
+                *attestation_types == HashSet::from([PID_ATTESTATION_TYPE.to_owned()])
+                    && *format == CredentialFormat::MsoMdoc
             })
             .times(1)
             .return_once(move |_, _, _| Ok(vec![expectation_attestation_copy.clone()]));
@@ -2034,7 +2029,7 @@ mod tests {
             .await
             .expect_err("starting disclosure should not succeed");
 
-        assert_matches!(error, DisclosureError::RecoveryCodeRequested);
+        assert_matches!(error, DisclosureError::RecoveryCodeRequested(_));
         assert!(wallet.session.is_none());
     }
 
@@ -2434,7 +2429,7 @@ mod tests {
             error,
             DisclosureError::UnexpectedRedirectUriPurpose {
                 expected: RedirectUriPurpose::Issuance,
-                found: RedirectUriPurpose::Browser
+                found: RedirectUriPurpose::Browser,
             }
         );
         assert!(error.return_url().is_none());
@@ -2999,13 +2994,17 @@ mod tests {
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_types_and_format()
             .withf(move |attestation_types, format, _| {
-                *attestation_types == HashSet::from([attestation_type]) && *format == CredentialFormat::SdJwt
+                *attestation_types == HashSet::from([attestation_type.to_owned()]) && *format == CredentialFormat::SdJwt
             })
             .times(1)
             .return_once(move |_, _, _| Ok(attestations));
 
         // The wallet will not check in the database if data was shared with the RP before.
-        wallet.mut_storage().expect_did_share_data_with_relying_party().never();
+        wallet
+            .mut_storage()
+            .expect_did_share_data_with_relying_party()
+            .times(1)
+            .returning(|_| Ok(false));
 
         // Starting disclosure should not cause attestation copy usage counts to be incremented.
         wallet
@@ -3173,5 +3172,88 @@ mod tests {
                 InstructionError::AccountRevoked(data),
             )))),
         )))
+    }
+
+    fn setup_pid_attributes_config() -> PidAttributesConfiguration {
+        PidAttributesConfiguration {
+            mso_mdoc: HashMap::from([(
+                PID_ATTESTATION_TYPE.to_owned(),
+                PidAttributePaths {
+                    login: vec_nonempty!["login".to_owned()],
+                    recovery_code: vec_nonempty![PID_ATTESTATION_TYPE.to_owned(), PID_RECOVERY_CODE.to_owned()],
+                },
+            )]),
+            sd_jwt: HashMap::from([(
+                PID_ATTESTATION_TYPE.to_owned(),
+                PidAttributePaths {
+                    login: vec_nonempty!["login".to_owned()],
+                    recovery_code: vec_nonempty![PID_RECOVERY_CODE.to_owned()],
+                },
+            )]),
+        }
+    }
+
+    #[rstest]
+    #[case::mdoc_reco(
+        CredentialFormat::MsoMdoc,
+        PID_ATTESTATION_TYPE,
+        vec_nonempty![ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_owned()), ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())],
+        true,
+    )]
+    #[case::mdoc_not_reco(
+        CredentialFormat::MsoMdoc,
+        PID_ATTESTATION_TYPE,
+        vec_nonempty![ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_owned()), ClaimPath::SelectByKey(PID_FAMILY_NAME.to_owned())],
+        false,
+    )]
+    #[case::mdoc_unknown(
+        CredentialFormat::MsoMdoc,
+        "unknown_doctype",
+        vec_nonempty![ClaimPath::SelectByKey("unknown_doctype".to_owned()), ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())],
+        false,
+    )]
+    #[case::sdjwt_reco(
+        CredentialFormat::SdJwt,
+        PID_ATTESTATION_TYPE,
+        vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())],
+        true,
+    )]
+    #[case::sdjwt_not_reco(
+        CredentialFormat::SdJwt,
+        PID_ATTESTATION_TYPE,
+        vec_nonempty![ClaimPath::SelectByKey(PID_FAMILY_NAME.to_owned())],
+        false,
+    )]
+    #[case::sdjwt_unknown(
+        CredentialFormat::SdJwt,
+        "unknown_vct",
+        vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())],
+        false,
+    )]
+    fn test_is_request_for_recovery_code(
+        #[case] format: CredentialFormat,
+        #[case] credential_type: &str,
+        #[case] path: VecNonEmpty<ClaimPath>,
+        #[case] expected: bool,
+    ) {
+        let pid_attributes = setup_pid_attributes_config();
+
+        let request = match format {
+            CredentialFormat::MsoMdoc => NormalizedCredentialRequest::MsoMdoc {
+                id: "identifier".try_into().unwrap(),
+                doctype_value: credential_type.to_owned(),
+                claims: vec_nonempty![MdocAttributeRequest {
+                    path,
+                    intent_to_retain: Some(false),
+                }],
+            },
+            CredentialFormat::SdJwt => NormalizedCredentialRequest::SdJwt {
+                id: "identifier".try_into().unwrap(),
+                vct_values: vec_nonempty![credential_type.to_owned()],
+                claims: vec_nonempty![SdJwtAttributeRequest { path }],
+            },
+        };
+
+        assert_eq!(is_request_for_recovery_code(request, &pid_attributes), expected);
     }
 }

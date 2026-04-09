@@ -55,3 +55,10 @@ echo "36352a993b97e9758793cdb87f9ba674bd6d88c914488e122be78a1962203803  gh.tar.g
 tar -xf gh.tar.gz --exclude 'LICENSE' --exclude 'share'
 mv gh_*/bin/gh /usr/local/bin/
 rm -rf gh_* gh.tar.gz
+
+# GitLab CLI
+# Download from: https://gitlab.com/gitlab-org/cli/-/releases
+wget --no-hsts -q -O glab.deb https://gitlab.com/gitlab-org/cli/-/releases/v1.91.0/downloads/glab_1.91.0_linux_amd64.deb
+echo "8b02efce7e5ac77c371a5dd81cc577f209610ec92149de0f691f2daa774fb3a4  glab.deb" | sha256sum -c
+dpkg -i glab.deb
+rm glab.deb

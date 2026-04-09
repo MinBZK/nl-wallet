@@ -1218,6 +1218,35 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_close_proximity_disclosure_flutter_update(
+    CloseProximityDisclosureFlutterUpdate apiObj,
+    wire_cst_close_proximity_disclosure_flutter_update wireObj,
+  ) {
+    if (apiObj is CloseProximityDisclosureFlutterUpdate_Connecting) {
+      wireObj.tag = 0;
+      return;
+    }
+    if (apiObj is CloseProximityDisclosureFlutterUpdate_Connected) {
+      wireObj.tag = 1;
+      return;
+    }
+    if (apiObj is CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived) {
+      wireObj.tag = 2;
+      return;
+    }
+    if (apiObj is CloseProximityDisclosureFlutterUpdate_Disconnected) {
+      wireObj.tag = 3;
+      return;
+    }
+    if (apiObj is CloseProximityDisclosureFlutterUpdate_Errored) {
+      var pre_error = cst_encode_String(apiObj.error);
+      wireObj.tag = 4;
+      wireObj.kind.Errored.error = pre_error;
+      return;
+    }
+  }
+
+  @protected
   void cst_api_fill_to_wire_disclosure_based_issuance_result(
     DisclosureBasedIssuanceResult apiObj,
     wire_cst_disclosure_based_issuance_result wireObj,
@@ -1696,9 +1725,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   bool cst_encode_bool(bool raw);
-
-  @protected
-  int cst_encode_close_proximity_disclosure_flutter_update(CloseProximityDisclosureFlutterUpdate raw);
 
   @protected
   int cst_encode_disclosure_session_type(DisclosureSessionType raw);
@@ -4024,6 +4050,21 @@ final class wire_cst_accept_disclosure_result extends ffi.Struct {
   external int tag;
 
   external AcceptDisclosureResultKind kind;
+}
+
+final class wire_cst_CloseProximityDisclosureFlutterUpdate_Errored extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> error;
+}
+
+final class CloseProximityDisclosureFlutterUpdateKind extends ffi.Union {
+  external wire_cst_CloseProximityDisclosureFlutterUpdate_Errored Errored;
+}
+
+final class wire_cst_close_proximity_disclosure_flutter_update extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external CloseProximityDisclosureFlutterUpdateKind kind;
 }
 
 final class wire_cst_DisclosureBasedIssuanceResult_Ok extends ffi.Struct {

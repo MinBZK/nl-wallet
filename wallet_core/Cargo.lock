@@ -182,17 +182,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "android_logger"
-version = "0.15.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbb4e440d04be07da1f1bf44fb4495ebd58669372fe0cffa6e48595ac5bd88a3"
-dependencies = [
- "android_log-sys",
- "env_filter",
- "log",
-]
-
-[[package]]
 name = "android_system_properties"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1392,16 +1381,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "console_error_panic_hook"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
-dependencies = [
- "cfg-if",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "const-decoder"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2435,7 +2414,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1bf3c259d255ca70051b30e2e95b5446cdb8949ac4cd22c0d7fd634d89f568e2"
 dependencies = [
  "log",
- "regex",
 ]
 
 [[package]]
@@ -2660,7 +2638,7 @@ dependencies = [
 name = "flutter_api"
 version = "0.6.0-dev"
 dependencies = [
- "android_logger 0.14.1",
+ "android_logger",
  "anyhow",
  "backtrace",
  "chrono",
@@ -2698,20 +2676,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dde126295b2acc5f0a712e265e91b6fdc0ed38767496483e592ae7134db83725"
 dependencies = [
  "allo-isolate",
- "android_logger 0.15.1",
  "anyhow",
  "build-target",
  "bytemuck",
  "byteorder",
- "console_error_panic_hook",
  "dart-sys",
  "delegate-attr",
  "flutter_rust_bridge_macros",
  "futures",
  "js-sys",
  "lazy_static",
- "log",
- "oslog",
  "portable-atomic",
  "threadpool",
  "tokio",
@@ -4441,6 +4415,7 @@ dependencies = [
  "indexmap 2.12.1",
  "itertools 0.14.0",
  "jsonwebtoken",
+ "mdoc_derive",
  "nom 8.0.0",
  "nutype",
  "p256",
@@ -4463,6 +4438,15 @@ dependencies = [
  "tracing",
  "url",
  "utils",
+]
+
+[[package]]
+name = "mdoc_derive"
+version = "0.6.0-dev"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.111",
 ]
 
 [[package]]
@@ -5212,8 +5196,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80d2043d1f61d77cb2f4b1f7b7b2295f40507f5f8e9d1c8bf10a1ca5f97a3969"
 dependencies = [
  "cc",
- "dashmap 5.5.3",
- "log",
 ]
 
 [[package]]
@@ -5659,7 +5641,7 @@ version = "0.6.0-dev"
 dependencies = [
  "aes-gcm",
  "android_attest",
- "android_logger 0.14.1",
+ "android_logger",
  "apple_app_attest",
  "assert_matches",
  "async-trait",
@@ -9634,7 +9616,6 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
- "tracing-test",
  "url",
  "utils",
  "utoipa",
