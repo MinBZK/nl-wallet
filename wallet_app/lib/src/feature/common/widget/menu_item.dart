@@ -40,6 +40,9 @@ class MenuItem extends StatefulWidget {
   /// Specifies which sides of the menu item should have a divider.
   final DividerSide dividerSide;
 
+  /// Color override for the label text.
+  final Color? labelColor;
+
   const MenuItem({
     this.label,
     this.subtitle,
@@ -50,6 +53,7 @@ class MenuItem extends StatefulWidget {
     this.onPressed,
     this.largeIcon = false,
     this.dividerSide = DividerSide.none,
+    this.labelColor,
     super.key,
   });
 
@@ -110,7 +114,7 @@ class _MenuItemState extends State<MenuItem> {
                       children: [
                         if (widget.label != null)
                           DefaultTextAndFocusStyle(
-                            textStyle: context.textTheme.titleMedium!,
+                            textStyle: context.textTheme.titleMedium!.copyWith(color: widget.labelColor),
                             statesController: _statesController,
                             pressedOrFocusedColor: textPressedColor,
                             child: widget.label!,
