@@ -101,7 +101,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             }),
             scope: Some(scopes), /* TODO (PVW-5572): remove. "openid" scope should be an implementation detail of the
                                   * pid_issuer. Currently necessary because nl-rdo-max requires it. */
-            nonce: Some(nonce),
+            nonce: Some(nonce), // TODO (PVW-5572): remove. Is not part of openid4vci spec
             response_mode: None,
         };
 
