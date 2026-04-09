@@ -151,23 +151,6 @@ const fn bool_value<const B: bool>() -> bool {
     B
 }
 
-#[cfg(feature = "mock")]
-pub mod mock {
-    use url::Url;
-
-    use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
-
-    impl AuthorizationServerMetadata {
-        pub fn new_with_auth_url(auth_url: &str) -> Self {
-            AuthorizationServerMetadata {
-                authorization_endpoint: Some(Url::parse(auth_url).unwrap()),
-                jwks_uri: Some(Url::parse(auth_url).unwrap()),
-                ..AuthorizationServerMetadata::new("http://example.com".parse().unwrap(), Url::parse(auth_url).unwrap())
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 pub mod tests {
     use serde_json::json;
