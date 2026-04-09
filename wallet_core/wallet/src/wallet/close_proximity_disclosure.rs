@@ -23,6 +23,7 @@ use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
+use jwt::nonce::Nonce;
 use mdoc::DeviceRequest;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
@@ -447,9 +448,10 @@ where
 
         // Actually perform disclosure, casting any `InstructionError` that occurs during signing
         // to `RemoteEcdsaKeyError::Instruction`.
+        // if this fails, there's a bug in the code
+        let nonce = Nonce::from(hex::encode(cbor_serialize(session_transcript.as_ref()).unwrap()));
         let poa_input = JwtPoaInput::new(
-            // if this fails, there's a bug in the code
-            Some(hex::encode(cbor_serialize(&*session_transcript).unwrap())),
+            Some(nonce),
             "aud".to_string(), // TODO what should this be?
         );
 
