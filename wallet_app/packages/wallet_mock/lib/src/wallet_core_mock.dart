@@ -390,7 +390,14 @@ class WalletCoreMock implements WalletCoreApi {
     required String pin,
     required String attestationId,
   }) async {
-    throw UnimplementedError();
+    final result = _pinManager.checkPin(pin);
+    switch (result) {
+      case WalletInstructionResult_Ok():
+        _wallet.remove(attestationId);
+        return result;
+      case WalletInstructionResult_InstructionError():
+        return result;
+    }
   }
 
   @override
@@ -398,6 +405,6 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Future<String> crateApiFullStartCloseProximityDisclosure({
-    required FutureOr<dynamic> Function(CloseProximityDisclosureFlutterUpdate) callback,
+    required FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) callback,
   }) async => 'mdoc:example.org';
 }

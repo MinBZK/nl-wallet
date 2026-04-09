@@ -56,7 +56,7 @@ pub struct IssuerSignedVerificationResult {
 #[derive(thiserror::Error, Debug)]
 pub enum VerificationError {
     #[error("errors in device response: {0:#?}")]
-    DeviceResponseErrors(Vec<DocumentError>),
+    DeviceResponseErrors(VecNonEmpty<DocumentError>),
     #[error("unexpected status: {0}")]
     UnexpectedStatus(u64),
     #[error("no documents found in device response")]

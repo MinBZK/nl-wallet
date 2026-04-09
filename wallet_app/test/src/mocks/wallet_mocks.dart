@@ -40,6 +40,7 @@ import 'package:wallet/src/domain/usecase/biometrics/get_supported_biometrics_us
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/request_biometrics_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/set_biometrics_usecase.dart';
+import 'package:wallet/src/domain/usecase/card/delete_wallet_card_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/get_pid_cards_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/get_wallet_card_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/get_wallet_cards_usecase.dart';
@@ -245,6 +246,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<CheckPermissionUseCase>()])
 @GenerateNiceMocks([MockSpec<ObserveDashboardNotificationsUseCase>()])
 @GenerateNiceMocks([MockSpec<ObserveOsNotificationsUseCase>()])
+@GenerateNiceMocks([MockSpec<DeleteWalletCardUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckIsPidUseCase>()])
 @GenerateNiceMocks([MockSpec<MoveToReadyStateUseCase>()])
 @GenerateNiceMocks([MockSpec<ObservePushNotificationsSettingUseCase>()])

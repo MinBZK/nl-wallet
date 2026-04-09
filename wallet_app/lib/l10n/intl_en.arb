@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-03-30T16:48:15+02:00",
+    "@@last_modified": "2026-04-07T15:13:06+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -362,6 +362,9 @@
     "deleteCardDialogCancelCta": "Cancel",
     "deleteCardDialogConfirmCta": "Yes, delete",
     "deleteCardDialogTitle": "Do you want to delete {cardTitle} card?",
+    "deleteCardSuccessPageDescription": "You can still view the previous activities of this card in your wallet.",
+    "deleteCardSuccessPageTitle": "{cardTitle} card has been deleted",
+    "deleteCardSuccessPageToDashboardCta": "To my overview",
     "demoScreenContentBullets": "The Ministry of the Interior (MinBZK) is still developing the app.\nWe expect the app to be available in 2027.\nThe app uses only test data, not real data.\nDuring testing we will track how you use the app, to make it better.\nThe app can update anytime, older versions may not work.\nThe app may sometimes be unstable.",
     "demoScreenContentFooter": "If something goes wrong, reinstall the app.",
     "demoScreenContentHeader": "You are now using a demo version of the app.",
@@ -441,6 +444,18 @@
     "disclosureConfirmDataAttributesSubtitleTerms": "Agreements",
     "disclosureConfirmPinPageForLoginTitle": "Agree with your PIN",
     "disclosureConfirmPinPageTitle": "Agree with your PIN",
+    "disclosureDisconnectedPageDescription": "You cannot continue {action}.\n\nKeep the devices close together. Check your Bluetooth connection.\n\nClose this screen and start again.",
+    "@disclosureDisconnectedPageDescription": {
+        "placeholders": {
+            "action": {
+                "example": "sharing",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureDisconnectedPageLoginAction": "logging in",
+    "disclosureDisconnectedPageSharingAction": "sharing",
+    "disclosureDisconnectedPageTitle": "Sorry, connection lost",
     "disclosureGenericErrorPageTitle": "Something went wrong",
     "disclosureLoadingSubtitle": "Your request is being retrieved",
     "disclosureLoadingTitle": "Please wait",

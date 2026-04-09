@@ -1401,18 +1401,11 @@ mod tests {
 
         let decrypted_device_response = decrypted_device_responses.into_first();
 
-        assert_eq!(
-            decrypted_device_response
-                .documents
-                .as_ref()
-                .map(|documents| documents.len())
-                .unwrap_or_default(),
-            1
-        );
+        let decrypted_documents = decrypted_device_response.documents.unwrap();
+        assert_eq!(decrypted_documents.len().get(), 1);
 
-        let encrypted_document = encrypted_device_response.documents.unwrap().into_iter().next().unwrap();
-        let decrypted_document = decrypted_device_response.documents.unwrap().into_iter().next().unwrap();
-
+        let encrypted_document = encrypted_device_response.documents.unwrap().into_first();
+        let decrypted_document = decrypted_documents.into_first();
         assert_eq!(decrypted_document.doc_type, encrypted_document.doc_type);
         assert_eq!(decrypted_document.issuer_signed, encrypted_document.issuer_signed);
     }
@@ -2264,17 +2257,10 @@ mod tests {
 
         let decrypted_device_response = device_responses.into_first();
 
-        assert_eq!(
-            decrypted_device_response
-                .documents
-                .as_ref()
-                .map(|documents| documents.len())
-                .unwrap_or_default(),
-            1
-        );
+        let decrypted_documents = decrypted_device_response.documents.unwrap();
+        assert_eq!(decrypted_documents.len().get(), 1);
 
-        let decrypted_document = decrypted_device_response.documents.unwrap().into_iter().next().unwrap();
-
+        let decrypted_document = decrypted_documents.into_first();
         assert_eq!(decrypted_document.doc_type, "org.iso.18013.5.1.mDL".to_string());
     }
 

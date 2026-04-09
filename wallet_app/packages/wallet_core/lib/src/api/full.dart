@@ -20,7 +20,7 @@ import '../models/wallet_event.dart';
 import '../models/wallet_state.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `create_wallet`, `wallet`
+// These functions are ignored because they are not marked as `pub`: `create_wallet`, `set_env_if_unset`, `wallet`
 
 Future<bool> isInitialized() => WalletCore.instance.api.crateApiFullIsInitialized();
 

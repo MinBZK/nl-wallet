@@ -139,6 +139,9 @@ class TypedWalletCore {
 
   Stream<List<core.AttestationPresentation>> observeCards() => _attestations.stream;
 
+  Future<core.WalletInstructionResult> deleteAttestation(String pin, String attestationId) =>
+      call(() => core.deleteAttestation(pin: pin, attestationId: attestationId));
+
   Future<void> resetWallet() => call(core.resetWallet);
 
   Future<List<core.WalletEvent>> getHistory() => call(core.getHistory);

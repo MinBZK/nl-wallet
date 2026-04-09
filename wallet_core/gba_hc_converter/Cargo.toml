@@ -23,7 +23,7 @@ clio = { workspace = true, features = ["clap-parse"] }
 config = { workspace = true, features = ["toml"] }
 csv.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "debug"] }
-hex = { workspace = true }
+hex.workspace = true
 hmac.workspace = true
 http.workspace = true
 indexmap.workspace = true
@@ -49,7 +49,7 @@ trait-variant.workspace = true
 
 crypto.path = "../lib/crypto"
 http_utils = { path = "../lib/http_utils", features = ["server", "client"] }
-utils = { path = "../lib/utils" }
+utils.path = "../lib/utils"
 
 [dev-dependencies]
 assert-json-diff.workspace = true

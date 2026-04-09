@@ -27,8 +27,16 @@ impl VerifierCertificate {
         &self.certificate
     }
 
+    pub fn into_certificate(self) -> BorrowingCertificate {
+        self.certificate
+    }
+
     pub fn registration(&self) -> &ReaderRegistration {
         &self.registration
+    }
+
+    pub fn into_registration(self) -> ReaderRegistration {
+        self.registration
     }
 
     pub fn into_certificate_and_registration(self) -> (BorrowingCertificate, ReaderRegistration) {

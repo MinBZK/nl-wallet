@@ -4,6 +4,9 @@ use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
+use wscd::Poa;
+use wscd::wscd::JwtPoaInput;
 
 use crate::errors::Error;
 use crate::errors::Result;
@@ -17,21 +20,22 @@ use crate::iso::engagement::SessionTranscript;
 use super::mdoc::PartialMdoc;
 
 impl DeviceResponse {
-    pub fn new(documents: Vec<Document>) -> Self {
+    pub fn new(documents: VecNonEmpty<Document>, poa: Option<Poa>) -> Self {
         Self {
             version: DeviceResponseVersion::default(),
             documents: Some(documents),
             document_errors: None,
             status: 0,
+            poa,
         }
     }
 
-    pub async fn sign_multiple_from_partial_mdocs<K, W, P>(
-        partial_mdocs: VecNonEmpty<PartialMdoc>,
+    async fn sign_from_partial_mdocs_inner<K, W, P>(
+        partial_mdocs: &VecNonEmpty<PartialMdoc>,
         session_transcript: &SessionTranscript,
         wscd: &W,
         poa_input: P::Input,
-    ) -> Result<(VecNonEmpty<Self>, Option<P>)>
+    ) -> Result<(Vec<DeviceSigned>, Option<P>)>
     where
         K: CredentialEcdsaKey,
         W: DisclosureWscd<Key = K, Poa = P>,
@@ -57,12 +61,55 @@ impl DeviceResponse {
 
         // Create all of the DeviceSigned values in bulk using the keys
         // and challenges, then use these to create the Document values.
-        let (device_signeds, poa) = DeviceSigned::new_signatures(keys_and_challenges, wscd, poa_input).await?;
+        DeviceSigned::new_signatures(keys_and_challenges, wscd, poa_input).await
+    }
+
+    pub async fn sign_from_partial_mdocs<K, W>(
+        partial_mdocs: VecNonEmpty<PartialMdoc>,
+        session_transcript: &SessionTranscript,
+        wscd: &W,
+        poa_input: JwtPoaInput,
+    ) -> Result<Self>
+    where
+        K: CredentialEcdsaKey,
+        W: DisclosureWscd<Key = K, Poa = Poa>,
+    {
+        let (device_signeds, poa) =
+            Self::sign_from_partial_mdocs_inner(&partial_mdocs, session_transcript, wscd, poa_input).await?;
+
+        let documents = partial_mdocs
+            .into_iter()
+            .zip_eq(device_signeds)
+            .map(|(partial_mdoc, device_signed)| Document::new(partial_mdoc, device_signed))
+            .collect_vec()
+            .try_into()
+            // This is safe, as the source iterator is non-empty.
+            .unwrap();
+        let device_response = Self::new(documents, poa);
+
+        Ok(device_response)
+    }
+
+    pub async fn sign_multiple_from_partial_mdocs<K, W, P>(
+        partial_mdocs: VecNonEmpty<PartialMdoc>,
+        session_transcript: &SessionTranscript,
+        wscd: &W,
+        poa_input: P::Input,
+    ) -> Result<(VecNonEmpty<Self>, Option<P>)>
+    where
+        K: CredentialEcdsaKey,
+        W: DisclosureWscd<Key = K, Poa = P>,
+        P: WscdPoa,
+    {
+        let (device_signeds, poa) =
+            Self::sign_from_partial_mdocs_inner(&partial_mdocs, session_transcript, wscd, poa_input).await?;
 
         let device_responses = partial_mdocs
             .into_iter()
             .zip_eq(device_signeds)
-            .map(|(partial_mdoc, device_signed)| Self::new(vec![Document::new(partial_mdoc, device_signed)]))
+            .map(|(partial_mdoc, device_signed)| {
+                Self::new(vec_nonempty![Document::new(partial_mdoc, device_signed)], None)
+            })
             .collect_vec()
             .try_into()
             // This is safe, as the source iterator is non-empty.
@@ -119,8 +166,8 @@ mod tests {
         .expect("signing DeviceResponse from mdocs should succeed");
 
         for (document, partial_mdoc) in device_responses
-            .iter()
-            .flat_map(|device_response| device_response.documents.as_deref().unwrap_or_default())
+            .into_iter()
+            .flat_map(|device_response| device_response.documents.map(|v| v.into_inner()).unwrap_or_default())
             .zip(&partial_mdocs)
         {
             // For each created `Document`, check the contents against the input mdoc.
