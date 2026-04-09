@@ -57,27 +57,34 @@ impl<H> VpDisclosureClient<H> {
         H: VpMessageClient,
     {
         let error_code = match &error {
-            VpVerifierError::VpFormatsNotSupported(_) => Some(VpAuthorizationErrorCode::VpFormatsNotSupported),
+            // Unsupported response type.
             VpVerifierError::AuthRequestValidation(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_type",
                 ..
             }) => Some(VpAuthorizationErrorCode::AuthorizationError(
                 AuthorizationErrorCode::UnsupportedResponseType,
             )),
-            VpVerifierError::AuthRequestValidation(_)
-            | VpVerifierError::IncorrectClientId { .. }
+
+            // Invalid request.
+            VpVerifierError::MissingSessionType
             | VpVerifierError::MalformedSessionType(_)
-            | VpVerifierError::MissingSessionType
+            | VpVerifierError::AuthRequestValidation(_)
+            | VpVerifierError::IncorrectClientId { .. }
+            | VpVerifierError::RpCertificate(_)
             | VpVerifierError::NoReaderCertificate
-            | VpVerifierError::RequestedAttributesValidation(_)
-            | VpVerifierError::RpCertificate(_) => Some(VpAuthorizationErrorCode::AuthorizationError(
+            | VpVerifierError::RequestedAttributesValidation(_) => Some(VpAuthorizationErrorCode::AuthorizationError(
                 AuthorizationErrorCode::InvalidRequest,
             )),
-            | VpVerifierError::Request(VpMessageClientError::AuthGetResponse(_))
+
+            // None.
+            VpVerifierError::Request(VpMessageClientError::AuthGetResponse(_))
             | VpVerifierError::Request(VpMessageClientError::AuthPostResponse(_))
             | VpVerifierError::Request(VpMessageClientError::Http(_))
             | VpVerifierError::Request(VpMessageClientError::InvalidJwt(_))
             | VpVerifierError::Request(VpMessageClientError::Json(_)) => None,
+
+            // Formats not supported.
+            VpVerifierError::VpFormatsNotSupported(_) => Some(VpAuthorizationErrorCode::VpFormatsNotSupported),
         };
 
         if let Some(error_code) = error_code {
