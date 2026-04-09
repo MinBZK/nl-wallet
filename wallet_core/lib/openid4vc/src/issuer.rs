@@ -153,7 +153,7 @@ pub enum CredentialRequestError {
     UseBatchIssuance,
 
     #[error("invalid proof JWT: {0}")]
-    InvalidProofJwk(#[source] JwtError),
+    InvalidProofJwt(#[source] JwtError),
 
     #[error("could not extract holder public key from proof JWT: {0}")]
     InvalidProofPublicKey(#[source] JwkConversionError),
@@ -1557,7 +1557,7 @@ impl CredentialRequestProof {
 
         let (header, payload) = jwt
             .parse_and_verify_with_jwk(&validation_options)
-            .map_err(CredentialRequestError::InvalidProofJwk)?;
+            .map_err(CredentialRequestError::InvalidProofJwt)?;
 
         let public_key = header
             .verifying_key()

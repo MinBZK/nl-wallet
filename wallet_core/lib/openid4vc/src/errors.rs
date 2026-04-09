@@ -125,7 +125,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::InvalidNonce => CredentialErrorCode::InvalidNonce,
 
                 // TODO (PVW-5541): Return `CredentialErrorCode::UnknownCredentialIdentifier` when appropriate.
-                CredentialRequestError::InvalidProofJwk(_)
+                CredentialRequestError::InvalidProofJwt(_)
                 | CredentialRequestError::Jwt(_)
                 | CredentialRequestError::InvalidProofPublicKey(_)
                 | CredentialRequestError::MissingCredentialRequestPoP
