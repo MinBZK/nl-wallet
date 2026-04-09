@@ -23,7 +23,7 @@ clio = { workspace = true, features = ["clap-parse"] }
 config = { workspace = true, features = ["toml"] }
 csv.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "debug"] }
-hex.workspace = true
+hex = { workspace = true }
 hmac.workspace = true
 http.workspace = true
 indexmap.workspace = true

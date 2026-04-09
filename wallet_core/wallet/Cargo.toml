@@ -36,6 +36,7 @@ cfg-if.workspace = true
 ciborium.workspace = true
 derive_more = { workspace = true, features = ["constructor", "debug", "display", "is_variant"] }
 futures = { workspace = true, features = ["async-await"] }
+hex.workspace = true
 http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
@@ -76,7 +77,6 @@ crypto.path = "../lib/crypto"
 dcql.path = "../lib/dcql"
 entity.path = "entity"
 error_category = { path = "../lib/error_category", features = ["sentry"] }
-hex.workspace = true
 http_utils.path = "../lib/http_utils"
 jwe.path = "../lib/jwe"
 jwt.path = "../lib/jwt"
