@@ -14,7 +14,6 @@ use jwe::decryption::JweSecretKey;
 use jwe::encryption::JweEncrypterError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
-
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use utils::built_info::version;
