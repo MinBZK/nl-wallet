@@ -64,20 +64,20 @@ impl<H> VpDisclosureClient<H> {
             }) => Some(VpAuthorizationErrorCode::AuthorizationError(
                 AuthorizationErrorCode::UnsupportedResponseType,
             )),
-            VpVerifierError::Request(VpMessageClientError::Json(_))
-            | VpVerifierError::Request(VpMessageClientError::InvalidJwt(_))
-            | VpVerifierError::AuthRequestValidation(_)
+            VpVerifierError::AuthRequestValidation(_)
             | VpVerifierError::IncorrectClientId { .. }
-            | VpVerifierError::RpCertificate(_)
+            | VpVerifierError::MalformedSessionType(_)
+            | VpVerifierError::MissingSessionType
             | VpVerifierError::NoReaderCertificate
             | VpVerifierError::RequestedAttributesValidation(_)
-            | VpVerifierError::MissingSessionType
-            | VpVerifierError::MalformedSessionType(_) => Some(VpAuthorizationErrorCode::AuthorizationError(
+            | VpVerifierError::RpCertificate(_) => Some(VpAuthorizationErrorCode::AuthorizationError(
                 AuthorizationErrorCode::InvalidRequest,
             )),
-            VpVerifierError::Request(VpMessageClientError::Http(_))
             | VpVerifierError::Request(VpMessageClientError::AuthGetResponse(_))
-            | VpVerifierError::Request(VpMessageClientError::AuthPostResponse(_)) => None,
+            | VpVerifierError::Request(VpMessageClientError::AuthPostResponse(_))
+            | VpVerifierError::Request(VpMessageClientError::Http(_))
+            | VpVerifierError::Request(VpMessageClientError::InvalidJwt(_))
+            | VpVerifierError::Request(VpMessageClientError::Json(_)) => None,
         };
 
         if let Some(error_code) = error_code {
@@ -852,8 +852,6 @@ mod tests {
         let (error, wallet_messages) =
             start_disclosure_session_http_error(|| serde_json::Error::custom("").into(), error_has_error);
 
-        // Trying to start a session in which the transport gives a
-        // JSON error should result in the error being forwarded.
         assert_matches!(
             error,
             VpSessionError::Verifier(VpVerifierError::Request(VpMessageClientError::Json(_)))
@@ -869,7 +867,6 @@ mod tests {
         let (error, wallet_messages) =
             start_disclosure_session_http_error(|| JwtError::MissingTyp.into(), error_has_error);
 
-        // InvalidJwt should should be sent to the RP (invalid_request).
         assert_matches!(
             error,
             VpSessionError::Verifier(VpVerifierError::Request(VpMessageClientError::InvalidJwt(_)))
