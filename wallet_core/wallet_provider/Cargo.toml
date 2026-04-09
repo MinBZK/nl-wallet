@@ -83,13 +83,13 @@ utoipa-swagger-ui = { workspace = true, optional = true }
 android_attest.path = "../lib/android_attest"
 apple_app_attest.path = "../lib/apple_app_attest"
 audit_log.path = "audit_log"
-crypto = { path = "../lib/crypto" }
+crypto.path = "../lib/crypto"
 health_checkers.path = "../lib/health_checkers"
 hsm.path = "../lib/hsm"
 http_utils = { path = "../lib/http_utils", features = ["server", "client"] }
 readable_identifier.path = "readable_identifier"
 status_lists = { path = "../lib/status_lists", features = ["axum"] }
-utils = { path = "../lib/utils" }
+utils.path = "../lib/utils"
 wallet_account = { path = "wallet_account", features = ["server"] }
 wallet_provider_domain = { path = "domain", features = ["utoipa"] }
 wallet_provider_persistence.path = "persistence"
