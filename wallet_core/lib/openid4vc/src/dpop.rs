@@ -156,6 +156,7 @@ impl Dpop {
             access_token_hash: access_token.map(AccessToken::sha256),
         };
         let jwt = SignedJwt::sign_with_jwk(&payload, signing_key)
+            // This is safe, as the `EcdsaKey::try_sign()` implementation on `SigningKey` will return immediately.
             .now_or_never()
             .unwrap()?;
 
