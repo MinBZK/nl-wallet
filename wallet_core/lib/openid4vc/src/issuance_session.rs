@@ -736,9 +736,9 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .map_err(|_| IssuanceSessionError::NoCredentialConfigurationsSupported)?;
 
         // According to HAIP, if the issuer requires key binding for any of its credential configurations, it MUST also
-        // offer a nonce endpoint. As the wallet, we interpret this a bit narrower and reject issuance whenver any of
-        // the credential configurations offered require key binding, as the metadata may contain other configurations
-        // that do not concern this particular issuance session.
+        // offer a nonce endpoint. As the wallet, we interpret this a bit more loosely and reject issuance whenver any
+        // of the credential configurations offered require key binding, as the metadata may contain other
+        // configurations that do not concern this particular issuance session.
         // See: https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-4.1-5
         if issuer_metadata.nonce_endpoint.is_none()
             && credential_configuration_ids.iter().any(|config_id| {
