@@ -891,7 +891,10 @@ where
 
                 Ok(None)
             }
-            _ => Err(DisclosureError::SessionState),
+            other => {
+                self.session = other;
+                Err(DisclosureError::SessionState)
+            }
         }
     }
 
