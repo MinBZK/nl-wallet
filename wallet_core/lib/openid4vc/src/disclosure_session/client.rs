@@ -33,7 +33,6 @@ use super::error::VpSessionError;
 use super::error::VpVerifierError;
 use super::message_client::HttpVpMessageClient;
 use super::message_client::VpMessageClient;
-use super::message_client::VpMessageClientError;
 use super::session::VpDisclosureSession;
 use super::uri_source::DisclosureUriSource;
 
@@ -77,11 +76,7 @@ impl<H> VpDisclosureClient<H> {
             )),
 
             // None.
-            VpVerifierError::Request(VpMessageClientError::AuthGetResponse(_))
-            | VpVerifierError::Request(VpMessageClientError::AuthPostResponse(_))
-            | VpVerifierError::Request(VpMessageClientError::Http(_))
-            | VpVerifierError::Request(VpMessageClientError::InvalidJwt(_))
-            | VpVerifierError::Request(VpMessageClientError::Json(_)) => None,
+            VpVerifierError::Request(_) => None,
 
             // Formats not supported.
             VpVerifierError::VpFormatsNotSupported(_) => Some(VpAuthorizationErrorCode::VpFormatsNotSupported),
