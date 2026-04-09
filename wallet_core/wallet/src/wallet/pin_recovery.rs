@@ -367,7 +367,7 @@ where
         let issuance_result = issuance_session
             .accept_issuance(&config.issuer_trust_anchors(), &pin_recovery_wscd, true)
             .await
-            .map_err(|error| Self::handle_accept_issuance_error(error, &**issuance_session));
+            .map_err(|error| Self::handle_accept_issuance_error(error, issuance_session.as_ref()));
 
         let issuance_result = match issuance_result {
             Err(error @ IssuanceError::Instruction(InstructionError::AccountRevoked(data))) => {
