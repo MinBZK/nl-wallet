@@ -28,6 +28,7 @@ use attestation_types::status_claim::StatusClaim;
 use crypto::utils::random_bytes;
 use http_utils::urls::HttpsUri;
 use utils::date_time_seconds::DateTimeSeconds;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::utils::cose::CoseKey;
 use crate::utils::crypto::CryptoError;
@@ -36,6 +37,10 @@ use crate::utils::serialization::CborError;
 use crate::utils::serialization::TaggedBytes;
 
 /// Name of a namespace within an mdoc.
+///
+/// ```cddl
+/// NameSpace = tstr
+/// ```
 pub type NameSpace = String;
 
 /// An attribute name and value.
@@ -50,70 +55,129 @@ pub struct Entry {
 
 /// Digest (hash) of an attribute, computed over a [`IssuerSignedItemBytes`], included in the device-signed part
 /// ([`MobileSecurityObject`]) of an mdoc.
+///
+/// ```cddl
+/// Digest = bstr
+/// ```
 pub type Digest = ByteBuf;
 
 /// Incrementing integer identifying attributes within an mdoc.
+///
+/// ```cddl
+/// DigestID = uint
+/// ```
 pub type DigestID = u64;
 
 /// A map containing attribute digests keyed by the attribute ID (an incrementing integer).
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct DigestIDs(pub IndexMap<DigestID, Digest>);
+///
+/// ```cddl
+/// DigestIDs = { + DigestID => Digest }
+/// ```
+#[nutype(
+    derive(Debug, Clone, TryFrom, AsRef, PartialEq, Eq, Serialize, Deserialize),
+    validate(predicate = |ids| !ids.is_empty()),
+)]
+pub struct DigestIDs(IndexMap<DigestID, Digest>);
 
 impl TryFrom<&Attributes> for DigestIDs {
     type Error = CborError;
     fn try_from(val: &Attributes) -> Result<Self, Self::Error> {
-        let ids = DigestIDs(
-            val.as_ref()
-                .iter()
-                .enumerate()
-                .map(|(i, attr)| Ok((i as u64, ByteBuf::from(cbor_digest(attr)?))))
-                .collect::<Result<IndexMap<_, _>, CborError>>()?,
-        );
+        let ids = val
+            .as_ref()
+            .iter()
+            .enumerate()
+            .map(|(i, attr)| Ok((i as u64, ByteBuf::from(cbor_digest(attr)?))))
+            .collect::<Result<IndexMap<_, _>, CborError>>()?
+            .try_into()
+            .unwrap(); // `Attributes` is non-empty
         Ok(ids)
     }
 }
 
 /// Digests of the attributes, grouped per [`NameSpace`].
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
-pub struct ValueDigests(pub IndexMap<NameSpace, DigestIDs>);
+///
+/// ```cddl
+/// ValueDigests = { + NameSpace => DigestIDs }
+/// ```
+#[nutype(
+    derive(Debug, Clone, TryFrom, AsRef, PartialEq, Eq, Serialize, Deserialize),
+    validate(predicate = |ids| !ids.is_empty()),
+)]
+pub struct ValueDigests(IndexMap<NameSpace, DigestIDs>);
 
 impl TryFrom<&IssuerNameSpaces> for ValueDigests {
     type Error = CborError;
     fn try_from(val: &IssuerNameSpaces) -> Result<Self, Self::Error> {
-        let digests = ValueDigests(
-            val.as_ref()
-                .iter()
-                .map(|(namespace, attrs)| Ok((namespace.clone(), DigestIDs::try_from(attrs)?)))
-                .collect::<Result<IndexMap<_, _>, CborError>>()?,
-        );
+        let digests = val
+            .as_ref()
+            .iter()
+            .map(|(namespace, attrs)| Ok((namespace.clone(), DigestIDs::try_from(attrs)?)))
+            .collect::<Result<IndexMap<_, _>, CborError>>()?
+            .try_into()
+            .unwrap(); // `IssuerNameSpaces` is non-empty
         Ok(digests)
     }
 }
 
 /// Free-form information about the device key (see [`DeviceKeyInfo`]).
 ///
-///  ISO 18013-5: "Positive integers are RFU, negative integers may be used for proprietary use".
+/// Positive integers are RFU, negative integers may be used for proprietary use.
+///
+/// ```cddl
+/// KeyInfo = { * int => any}
+/// ```
 pub type KeyInfo = IndexMap<i32, Value>;
 
 /// Namespaces under which the holder may include self-asserted attributes, as determined by the [`KeyAuthorizations`]
 /// in the mdoc's device key.
-pub type AuthorizedNameSpaces = Vec<NameSpace>;
+///
+/// ```cddl
+/// AuthorizedNameSpaces = [+ NameSpace]
+/// ```
+pub type AuthorizedNameSpaces = VecNonEmpty<NameSpace>;
 /// Specific attributes grouped by namespace that the holder may include in its self-asserted attributes, as determined
 /// by the [`KeyAuthorizations`] in the mdoc's device key.
-pub type AuthorizedDataElements = IndexMap<NameSpace, DataElementsArray>;
+///
+/// ```cddl
+/// AuthorizedDataElements = {+ NameSpace => DataElementsArray}
+/// ```
+#[nutype(
+    derive(Debug, Clone, TryFrom, PartialEq, Eq, AsRef, IntoIterator, Serialize, Deserialize),
+    validate(predicate = |elems| !elems.is_empty()),
+)]
+pub struct AuthorizedDataElements(IndexMap<NameSpace, DataElementsArray>);
 /// Specific attributes in a namespace that the holder may include in its self-asserted attributes, as determined
 /// by the [`KeyAuthorizations`] in the mdoc's device key.
-pub type DataElementsArray = Vec<DataElementIdentifier>;
+///
+/// ```cddl
+/// DataElementsArray = [+ DataElementIdentifier]
+/// ```
+pub type DataElementsArray = VecNonEmpty<DataElementIdentifier>;
 
 /// Name of an attribute, see [`IssuerSignedItem`].
+///
+/// ```cddl
+/// DataElementIdentifier = tstr
+/// ```
 pub type DataElementIdentifier = String;
 /// Value of an attribute, see [`IssuerSignedItem`]. May be any CBOR value.
+///
+/// ```cddl
+/// DataElementValue = any
+/// ```
 pub type DataElementValue = Value;
 
 /// Specific attributes that the holder of this mdoc is allowed to self-assert, or whole namespaces under which the
 /// holder is allowed to self-assert attributes.
+///
+/// ```cddl
+/// KeyAuthorizations = {
+///     ? "nameSpaces" : AuthorizedNameSpaces,
+///     ? "dataElements" : AuthorizedDataElements
+/// }
+/// ```
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KeyAuthorizations {
     pub name_spaces: Option<AuthorizedNameSpaces>,
@@ -122,8 +186,16 @@ pub struct KeyAuthorizations {
 
 /// An mdoc public key ([`DeviceKey`]) along with some information about it, as part of the
 /// [`MobileSecurityObject`] of an mdoc.
+///
+/// ```cddl
+/// DeviceKeyInfo = {
+///     "deviceKey" : DeviceKey,
+///     ? "keyAuthorizations" : KeyAuthorizations,
+///     ? "keyInfo" : KeyInfo
+/// }
+/// ```
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceKeyInfo {
     pub device_key: DeviceKey,
@@ -160,6 +232,10 @@ impl From<CoseKey> for DeviceKeyInfo {
 }
 
 /// Public key of an mdoc, contained in [`DeviceKeyInfo`] which is contained in [`MobileSecurityObject`].
+///
+/// ```cddl
+/// DeviceKey = COSE_Key
+/// ```
 pub type DeviceKey = CoseKey;
 
 /// Data signed by the issuer, containing a.o.
@@ -169,18 +245,36 @@ pub type DeviceKey = CoseKey;
 /// - When the mdoc was signed by the issuer and when it expires ([`ValidityInfo`]).
 ///
 /// This is signed by the issuer during issuance into a COSE and included in an [`IssuerSigned`](super::IssuerSigned).
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+///
+/// ```cddl
+/// MobileSecurityObject = {
+///     "version" : tstr,
+///     "digestAlgorithm" : tstr,
+///     "valueDigests" : ValueDigests,
+///     "deviceKeyInfo" : DeviceKeyInfo,
+///     "docType" : tstr,
+///     "validityInfo" : ValidityInfo
+/// }
+/// ```
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MobileSecurityObject {
+    /// Version of the MobileSecurityObject
     pub version: MobileSecurityObjectVersion,
+
+    /// Message digest algorithm used
     pub digest_algorithm: DigestAlgorithm,
+
+    /// Digests of all data elements per namespace
     pub value_digests: ValueDigests,
     pub device_key_info: DeviceKeyInfo,
-    pub doc_type: String,
+
+    /// docType as used in Documents
+    pub doc_type: DocType,
     pub validity_info: ValidityInfo,
 
-    /// The SAN DNS name or URI of the issuer, as it appears in the issuer's certificate. Optional because it is not in
-    /// the spec.
+    /// The SAN DNS name or URI of the issuer, as it appears in the issuer's certificate.
+    /// Optional because it is not in the spec.
     pub issuer_uri: Option<HttpsUri>,
 
     /// Optional because it is not in the spec.
@@ -189,29 +283,51 @@ pub struct MobileSecurityObject {
     /// Optional because it is not in the spec.
     pub attestation_qualification: Option<AttestationQualification>,
 
-    /// This value is optional, as it is not part of the spec.
+    /// Optional because it is not in the spec.
     pub type_metadata_integrity: Option<Integrity>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+/// Version of the [`MobileSecurityObject`] structure
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MobileSecurityObjectVersion {
     #[serde(rename = "1.0")]
     V1_0,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DigestAlgorithm {
     #[serde(rename = "SHA-256")]
     SHA256,
 }
 
+/// Contains information related to the validity of the MSO and its signature.
+///
+/// The timestamp of `validFrom` shall be equal or later than the `signed` field. The value of `validUntil` shall be
+/// later than the `validFrom` field.
+///
+/// ```cddl
+/// ValidityInfo = {
+///     "signed" : tdate,
+///     "validFrom" : tdate,
+///     "validUntil" : tdate,
+///     ? "expectedUpdate" : tdate
+/// }
+/// ```
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ValidityInfo {
+    /// The timestamp at which the MSO signature was created
     pub signed: Tdate,
+
+    /// The timestamp before which the MSO is not yet valid
     pub valid_from: Tdate,
+
+    /// The timestamp after which the MSO is no longer valid
     pub valid_until: Tdate,
+
+    /// The timestamp at which the issuing authority infrastructure expects to re-sign the MSO (and potentially update
+    /// data elements).
     pub expected_update: Option<Tdate>,
 }
 
@@ -249,13 +365,26 @@ impl TryFrom<&Tdate> for DateTimeSeconds {
     }
 }
 
-/// Doctype of an mdoc. For example, `"org.iso.18013.5.1.mDL"`. Determines the namespaces and attribute names that the
-/// mdoc may or must contain, and the issuer(s) that are authorized to sign it.
+/// Doctype of an mdoc.
+///
+/// For example, `"org.iso.18013.5.1.mDL"`. Determines the namespaces and attribute names that the mdoc may or must
+/// contain, and the issuer(s) that are authorized to sign it.
+///
+/// ```cddl
+/// DocType = tstr
+/// ```
 pub type DocType = String;
 
-/// [`Attributes`], which contains [`IssuerSignedItem`]s, grouped per [`NameSpace`].
+/// Returned data elements for each namespace; [`Attributes`], which contains [`IssuerSignedItem`]s, grouped per
+/// [`NameSpace`].
+///
+/// ```cddl
+/// IssuerNameSpaces = {
+///     + NameSpace => [ + IssuerSignedItemBytes ],
+/// }
+/// ```
 #[nutype(
-    derive(Debug, Clone, PartialEq, AsRef, TryFrom, Into, IntoIterator, Serialize, Deserialize),
+    derive(Debug, Clone, TryFrom, AsRef, Into, PartialEq, IntoIterator, Serialize, Deserialize),
     validate(predicate = |name_spaces| !name_spaces.is_empty()),
 )]
 pub struct IssuerNameSpaces(IndexMap<NameSpace, Attributes>);
@@ -282,9 +411,11 @@ impl TryFrom<IndexMap<NameSpace, Vec<Entry>>> for IssuerNameSpaces {
 }
 
 /// A `Vec` of [`IssuerSignedItemBytes`], i.e., attributes. In the [`IssuerNameSpaces`] map,
-/// this is used as the type of the keys. (This datastructure is itself not named in the spec.)
+/// this is used as the type of the keys.
+///
+/// Note: this datastructure is not named in the spec.
 #[nutype(
-    derive(Debug, Clone, PartialEq, AsRef, TryFrom, Into, IntoIterator, Serialize, Deserialize),
+    derive(Debug, Clone, TryFrom, AsRef, Into, PartialEq, IntoIterator, Serialize, Deserialize),
     validate(predicate = |items| {
         !items.is_empty() && items.iter().map(|TaggedBytes(item)| &item.element_identifier).all_unique()
     }),
@@ -330,6 +461,10 @@ impl From<Attributes> for Vec<Entry> {
 }
 
 /// See [`IssuerSignedItem`].
+///
+/// ```cddl
+/// IssuerSignedItemBytes = #6.24(bstr .cbor IssuerSignedItem)
+/// ```
 pub type IssuerSignedItemBytes = TaggedBytes<IssuerSignedItem>;
 
 /// An attribute, containing
@@ -345,13 +480,29 @@ pub type IssuerSignedItemBytes = TaggedBytes<IssuerSignedItem>;
 /// See also
 /// - [`Entry`], which contains just the name and value of the attribute,
 /// - [`Digest`] and [`DigestIDs`]: the digests (hashes) of [`IssuerSignedItem`]s, contained in the MSO.
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+///
+/// ```cddl
+/// IssuerSignedItem = {
+///     "digestID": uint,
+///     "random": bstr,
+///     "elementIdentifier": DataElementIdentifier,
+///     "elementValue": DataElementValue
+/// }
+/// ```
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IssuerSignedItem {
+    /// Digest ID for issuer data authentication
     #[serde(rename = "digestID")]
     pub digest_id: u64,
+
+    /// Random value for issuer data authentication
     pub random: ByteBuf,
+
+    /// Data element identifier
     pub element_identifier: DataElementIdentifier,
+
+    /// Data element value
     pub element_value: DataElementValue,
 }
 

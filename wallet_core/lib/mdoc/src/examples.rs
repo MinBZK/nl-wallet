@@ -10,6 +10,8 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 
 use crate::iso::device_retrieval::DeviceRequest;
 #[cfg(test)]
@@ -28,14 +30,16 @@ pub const EXAMPLE_ATTR_NAME: &str = "family_name";
 pub static EXAMPLE_ATTR_VALUE: LazyLock<Value> = LazyLock::new(|| Value::Text("Doe".to_string()));
 
 // Describe what is in `DeviceResponse::example()`.
-pub const EXAMPLE_ATTRIBUTES: [&str; 6] = [
-    "family_name",
-    "issue_date",
-    "expiry_date",
-    "document_number",
-    "portrait",
-    "driving_privileges",
-];
+pub static EXAMPLE_ATTRIBUTES: LazyLock<VecNonEmpty<&'static str>> = LazyLock::new(|| {
+    vec_nonempty![
+        "family_name",
+        "issue_date",
+        "expiry_date",
+        "document_number",
+        "portrait",
+        "driving_privileges",
+    ]
+});
 
 /// Some of the certificates in the ISO examples are valid from Oct 1, 2020 to Oct 1, 2021.
 /// This generator returns a time in that window.

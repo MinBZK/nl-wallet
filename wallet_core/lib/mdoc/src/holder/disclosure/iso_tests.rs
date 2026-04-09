@@ -72,8 +72,8 @@ async fn do_and_verify_iso_example_disclosure() {
     // Examine some fields in the device request
     let items_request = device_request.doc_requests.first().items_request.0.clone();
     assert_eq!(items_request.doc_type, EXAMPLE_DOC_TYPE);
-    let requested_attrs = items_request.name_spaces.get(EXAMPLE_NAMESPACE).unwrap();
-    let intent_to_retain = requested_attrs.get(EXAMPLE_ATTR_NAME).unwrap();
+    let requested_attrs = items_request.name_spaces.as_ref().get(EXAMPLE_NAMESPACE).unwrap();
+    let intent_to_retain = requested_attrs.as_ref().get(EXAMPLE_ATTR_NAME).unwrap();
     assert!(intent_to_retain);
     println!("DeviceRequest: {:#?}", DebugCollapseBts::from(&device_request));
 
@@ -133,8 +133,12 @@ async fn iso_examples_custom_disclosure() {
         doc_type: EXAMPLE_DOC_TYPE.to_string(),
         name_spaces: IndexMap::from([(
             EXAMPLE_NAMESPACE.to_string(),
-            IndexMap::from([(EXAMPLE_ATTR_NAME.to_string(), false)]),
-        )]),
+            IndexMap::from([(EXAMPLE_ATTR_NAME.to_string(), false)])
+                .try_into()
+                .unwrap(),
+        )])
+        .try_into()
+        .unwrap(),
         request_info: None,
     }]);
     println!("My Request: {:#?}", DebugCollapseBts::from(&request));

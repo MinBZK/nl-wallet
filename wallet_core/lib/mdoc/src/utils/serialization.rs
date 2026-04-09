@@ -148,8 +148,8 @@ where
 /// correct on-wire encoding.
 ///
 /// - **Serialization**: the struct is encoded as a CBOR array of values in declaration order.
-/// - **Deserialization**: the array elements are zipped with the field names (via
-///   `serde_introspect`) and deserialized back into `T`.
+/// - **Deserialization**: the array elements are zipped with the field names (via `serde_introspect`) and deserialized
+///   back into `T`.
 ///
 /// # Example
 ///
@@ -196,10 +196,10 @@ pub trait CborIndexedFields {
 /// `CborIntMap` replaces those string keys with each field's zero-based positional index,
 /// producing the compact integer-keyed maps required by ISO 18013-5 for some of the structs.
 ///
-/// - **Serialization**: field names are replaced by their declaration-order index (0, 1, 2, ...);
-///   fields whose value serializes as CBOR null are omitted.
-/// - **Deserialization**: integer keys are mapped back to field names by position before
-///   delegating to `T`'s own deserializer.
+/// - **Serialization**: field names are replaced by their declaration-order index (0, 1, 2, ...); fields whose value
+///   serializes as CBOR null are omitted.
+/// - **Deserialization**: integer keys are mapped back to field names by position before delegating to `T`'s own
+///   deserializer.
 ///
 /// # Example
 ///
