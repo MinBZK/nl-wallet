@@ -9,9 +9,8 @@ use url::Url;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::well_known::WellKnownMetadata;
 
-/// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414),
-/// to be published at `.well-known/oauth-authorization-server`, and a superset of the OpenID Connect
-/// Discovery 1.0 metadata published at `.well-known/openid-configuration`.
+/// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414), to be
+/// published at `.well-known/oauth-authorization-server`.
 #[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AuthorizationServerMetadata {
