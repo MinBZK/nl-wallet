@@ -9648,6 +9648,7 @@ dependencies = [
  "serde_with",
  "strum 0.28.0",
  "thiserror 2.0.17",
+ "tracing",
  "trait-variant",
  "utoipa",
  "uuid",
