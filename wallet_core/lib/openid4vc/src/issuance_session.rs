@@ -834,7 +834,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let key_count = self.session_state.credential_request_types.len();
 
         // Determine the correct credential endpoint URL, to be used below.
-        let credential_url = if key_count.get() == 1 {
+        let credential_endpoint_url = if key_count.get() == 1 {
             &issuer_metadata.credential_endpoint
         } else {
             issuer_metadata
@@ -913,12 +913,15 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                 let mut credential_request = credential_requests.pop().unwrap();
                 credential_request.attestations = issuance_data.wua.take();
                 credential_request.poa = issuance_data.poa.take();
-                vec![self.request_credential(credential_url, &credential_request).await?]
+                vec![
+                    self.request_credential(credential_endpoint_url, &credential_request)
+                        .await?,
+                ]
             }
             _ => {
                 let credential_requests = VecNonEmpty::try_from(credential_requests).unwrap();
                 self.request_batch_credentials(
-                    credential_url,
+                    credential_endpoint_url,
                     credential_requests,
                     issuance_data.wua.take(),
                     issuance_data.poa.take(),
