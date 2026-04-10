@@ -12,6 +12,7 @@ class DashboardScreen : MobileActions() {
     private val revokedLabel = l10n.getString("cardStatusMetadataWalletItemRevoked")
     private val cardRevocationBannerTitle = l10n.getString("cardRevocationBannerTitle")
     private val actionDrawerScanQrButton = l10n.getString("qrActionSheetScanQrTitle")
+    private val actionDrawerShowQrButton = l10n.getString("qrActionSheetShowQrTitle")
 
     fun visible() = elementContainingTextVisible(menuButton) && elementContainingTextVisible(actionButton)
 
@@ -33,6 +34,11 @@ class DashboardScreen : MobileActions() {
     fun openQRScanner() {
         clickElementContainingText(actionButton)
         clickElementContainingText(actionDrawerScanQrButton)
+    }
+
+    fun showQRCode() {
+        clickElementContainingText(actionButton)
+        clickElementContainingText(actionDrawerShowQrButton)
     }
 
     fun cardVisible(cardDisplayContent: String) = elementContainingTextVisible(cardDisplayContent)

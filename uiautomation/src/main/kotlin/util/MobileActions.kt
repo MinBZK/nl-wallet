@@ -227,7 +227,8 @@ open class MobileActions {
             // Wait for the web view context to be available
             val wait = WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS))
             val contextHandle = wait.until {
-                driver.contextHandles.firstOrNull { it.startsWith(WEB_VIEW_CONTEXT_PREFIX) }
+                val handles = driver.contextHandles
+                handles.firstOrNull { it.startsWith(WEB_VIEW_CONTEXT_PREFIX) }
             }
 
             // Switch to the web view context
@@ -610,6 +611,7 @@ open class MobileActions {
         private const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 8000L
         private const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 4000L
         private const val BROWSER_STARTUP_TIMEOUT = 2000L
+        const val DEFAULT_RESET_SLEEP = 10_000L
 
         private const val WEB_VIEW_CONTEXT_PREFIX = "WEBVIEW_"
         private const val NATIVE_APP_CONTEXT = "NATIVE_APP"
