@@ -7,6 +7,7 @@ project.
 
 - Python 3
 - pip3
+- pip-tools
 
 ## Building the Documentation
 
@@ -69,6 +70,12 @@ sphinx-autobuild . _build/html
 
 This will start a local web server and automatically rebuild the documentation
 when files change.
+
+## Compile requirements.txt
+
+```bash
+pip-compile --generate-hashes
+```
 
 ## Notes
 
