@@ -326,7 +326,7 @@ fn credential_request_types_from_preview(
 }
 
 impl<H: VcMessageClient> HttpIssuanceSession<H> {
-    pub async fn create(
+    pub(crate) async fn create(
         message_client: H,
         issuer_metadata: IssuerMetadata,
         token_endpoint: Url,

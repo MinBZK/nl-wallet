@@ -183,7 +183,7 @@ async fn accept_issuance(#[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap
 
     let issuer_metadata = message_client.issuer.metadata().clone();
     let token_endpoint = AuthorizationServerMetadata::new_mock(issuer_identifier).token_endpoint;
-    let session = HttpIssuanceSession::create(
+    let session = HttpIssuanceSession::new_mock(
         message_client,
         issuer_metadata,
         token_endpoint,
@@ -227,7 +227,7 @@ async fn reject_issuance() {
 
     let issuer_metadata = message_client.issuer.metadata().clone();
     let token_endpoint = AuthorizationServerMetadata::new_mock(issuer_identifier).token_endpoint;
-    let session = HttpIssuanceSession::create(
+    let session = HttpIssuanceSession::new_mock(
         message_client,
         issuer_metadata,
         token_endpoint,
@@ -249,7 +249,7 @@ async fn start_and_accept_err(
     let trust_anchors = &[trust_anchor];
     let issuer_metadata = message_client.issuer.metadata().clone();
     let token_endpoint = AuthorizationServerMetadata::new_mock(issuer_identifier).token_endpoint;
-    let session = HttpIssuanceSession::create(
+    let session = HttpIssuanceSession::new_mock(
         message_client,
         issuer_metadata,
         token_endpoint,

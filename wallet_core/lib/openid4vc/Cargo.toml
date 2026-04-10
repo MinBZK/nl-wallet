@@ -20,6 +20,11 @@ name = "issuance"
 path = "tests/issuance.rs"
 required-features = ["integration"]
 
+[[test]]
+name = "discovery"
+path = "tests/discovery.rs"
+required-features = ["integration"]
+
 [features]
 # Include implementations of the axum IntoResponse trait.
 axum = ["axum/json"]
@@ -30,7 +35,7 @@ mock = ["crypto/generate", "dep:mockall", "token_status_list/mock", "wscd/mock"]
 # Include miscellaneous test utilities
 test = ["dep:assert_matches", "dep:parking_lot", "jwt/test", "tokio/test-util", "utils/mock_time", "wscd/mock"]
 # All features needed to run the integration test
-integration = ["example_constructors", "mock", "test"]
+integration = ["allow_insecure_url", "example_constructors", "mock", "test"]
 # Credential payload examples
 example_credential_payloads = []
 # Offers example constructors

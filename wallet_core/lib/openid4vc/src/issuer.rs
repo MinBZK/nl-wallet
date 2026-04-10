@@ -939,7 +939,7 @@ impl Session<Created> {
         (id, preview)
     }
 
-    pub async fn process_token_request_inner(
+    async fn process_token_request_inner(
         &self,
         token_request: TokenRequest,
         dpop: Dpop,
