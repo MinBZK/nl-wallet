@@ -837,6 +837,7 @@ where
                 .issuer_data
                 .upstream_oauth_identifier
                 .as_ref()
+                // TODO (PVW-5746): decouple from upstream OAuth
                 .map(|identifier| identifier.as_base_url().join("authorize")),
             ..AuthorizationServerMetadata::new(
                 self.issuer_data.metadata.credential_issuer.clone(),
