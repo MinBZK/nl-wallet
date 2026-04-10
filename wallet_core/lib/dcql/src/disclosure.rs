@@ -161,10 +161,10 @@ impl NormalizedCredentialRequests {
         // of the certificates of the received credential.
         let unmatched_akis = requests_and_credentials
             .iter()
-            .filter_map(|(id, (request, credential))| {
-                (!(request.aki().is_empty() || request.aki().iter().any(|aki| credential.aki().contains(aki))))
-                    .then(|| ((*id).clone(), request.aki().clone()))
+            .filter(|&(_, (request, credential))| {
+                !(request.aki().is_empty() || request.aki().iter().any(|aki| credential.aki().contains(aki)))
             })
+            .map(|(id, (request, _))| ((*id).clone(), request.aki().clone()))
             .collect::<HashMap<_, _>>();
 
         if !unmatched_akis.is_empty() {
