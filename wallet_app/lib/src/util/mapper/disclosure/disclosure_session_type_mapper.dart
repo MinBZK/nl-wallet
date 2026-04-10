@@ -11,6 +11,7 @@ class DisclosureSessionTypeMapper extends Mapper<core.DisclosureSessionType, Dis
     return switch (input) {
       core.DisclosureSessionType.SameDevice => DisclosureSessionType.sameDevice,
       core.DisclosureSessionType.CrossDevice => DisclosureSessionType.crossDevice,
+      core.DisclosureSessionType.CloseProximity => DisclosureSessionType.closeProximity,
     };
   }
 }

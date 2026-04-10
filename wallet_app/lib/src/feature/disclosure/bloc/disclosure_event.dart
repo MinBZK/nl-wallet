@@ -8,27 +8,18 @@ abstract class DisclosureEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-/// Initiates a disclosure session from a URI (QR code or deep link).
+/// Initiates a disclosure session from a [StartDisclosureRequest] (Deeplink/Qr/CloseProximity).
 ///
 /// Cancels any ongoing session and triggers [StartDisclosureUseCase].
 /// Results in [DisclosureCheckUrl], [DisclosureConfirmDataAttributes],
 /// [DisclosureCheckOrganizationForLogin], or [DisclosureMissingAttributes].
 class DisclosureSessionStarted extends DisclosureEvent {
-  final String uri;
-  final bool isQrCode;
+  final StartDisclosureRequest request;
 
-  const DisclosureSessionStarted(this.uri, {this.isQrCode = false});
+  const DisclosureSessionStarted(this.request);
 
   @override
-  List<Object?> get props => [uri, isQrCode];
-}
-
-/// Initiates a close proximity disclosure session (e.g., via Bluetooth).
-///
-/// This event is used when the disclosure starts through a BLE/NFC
-/// connection between devices rather than a URI.
-class DisclosureCloseProximitySessionStarted extends DisclosureEvent {
-  const DisclosureCloseProximitySessionStarted();
+  List<Object?> get props => [request, ...super.props];
 }
 
 /// User approves the origin URL in a cross-device flow.
@@ -104,4 +95,14 @@ class DisclosureConfirmPinFailed extends DisclosureEvent {
 
   @override
   List<Object?> get props => [error];
+}
+
+/// Triggered when a close proximity [BleConnectionEvent] is received.
+class DisclosureCloseProximityEventReceived extends DisclosureEvent {
+  final BleConnectionEvent event;
+
+  const DisclosureCloseProximityEventReceived(this.event);
+
+  @override
+  List<Object?> get props => [...super.props, event];
 }
