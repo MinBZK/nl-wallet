@@ -18,7 +18,7 @@ projectName: "NL Wallet Mobile"
 buildIdentifier: "${CI_JOB_ID}"
 
 nativeWebTap: true
-defaultAlertAction: ${IOS_ACCEPT_ALERTS}
+autoAcceptAlerts: ${IOS_ACCEPT_ALERTS}
 'appium:includeSafariInWebviews': true
 automationName: XCUITest
 newCommandTimeout: 350
