@@ -356,9 +356,13 @@ impl BorrowingCertificate {
         Ok(self.san_dns_names()?.into_iter().next())
     }
 
+    // TODO rename
     pub fn aki_der<'a>(&'a self) -> Option<&'a [u8]> {
         self.x509_certificate().extensions().iter().find_map(|ext| {
-            matches!(ext.parsed_extension(), ParsedExtension::AuthorityKeyIdentifier(_)).then_some(ext.value)
+            let ParsedExtension::AuthorityKeyIdentifier(aki) = ext.parsed_extension() else {
+                return None;
+            };
+            aki.key_identifier.as_ref().map(|ki| ki.0)
         })
     }
 
