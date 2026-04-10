@@ -30,6 +30,8 @@ scheduled-automation-tests-trigger:
     - set -euxo pipefail
   variables:
     APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
+    AUTO_GRANT_PERMISSIONS: "true"
+    IOS_ACCEPT_ALERTS: "true"
     ENABLE_BROWSERSTACK_A11Y_CHECKS: false
 
 .run-automation-tests-common-setup:
@@ -73,6 +75,7 @@ run-automation-tests-publish-results:
     - { job: run-automation-security-tests }
     - { job: run-automation-notifications-tests }
     - { job: run-automation-revocation-tests }
+    - { job: run-automation-permissions-tests }
   script:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e.zip uiautomation/build/test-results/test/*.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/e2e.zip uiautomation/build/allure-results/*
@@ -121,6 +124,13 @@ run-automation-revocation-tests:
   extends: .run-automation-tests-default
   variables:
     TESTS: "suite.RevocationTestSuite"
+
+run-automation-permissions-tests:
+  extends: .run-automation-tests-default
+  variables:
+    TESTS: "suite.PermissionsTestSuite"
+    AUTO_GRANT_PERMISSIONS: "false"
+    IOS_DEFAULT_ALERT_ACTION: "dismiss"
 
 run-automation-english-tests:
   extends: .run-automation-tests-common-setup
