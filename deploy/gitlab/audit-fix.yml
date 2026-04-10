@@ -13,3 +13,11 @@ cargo-audit-fix:
     - !reference [.on-schedule-scan, rules]
   script:
     - scripts/cargo-audit-fix.sh
+
+pip-audit-fix:
+  tags:
+    - linux
+  rules:
+    - !reference [.on-schedule-scan, rules]
+  script:
+    - scripts/pip-audit-fix.sh
