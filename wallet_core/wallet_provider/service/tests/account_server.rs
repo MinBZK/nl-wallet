@@ -14,6 +14,7 @@ use crypto::server_keys::generate::Ca;
 use db_test::DbSetup;
 use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
+use jwt::nonce::Nonce;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
 use status_lists::config::StatusListConfig;
 use status_lists::postgres::PostgresStatusListService;
@@ -278,7 +279,7 @@ async fn test_wua_status() {
                 issuance_instruction: PerformIssuance {
                     key_count: NonZeroUsize::MIN,
                     aud: "aud".to_string(),
-                    nonce: Some("nonce".to_string()),
+                    nonce: Some(Nonce::from("nonce".to_string())),
                 },
             },
             challenge,

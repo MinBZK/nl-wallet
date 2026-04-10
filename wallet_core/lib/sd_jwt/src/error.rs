@@ -9,6 +9,7 @@ use crypto::x509::CertificateError;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::error::JwtX5cError;
+use jwt::nonce::Nonce;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 
 use crate::claims::ArrayClaim;
@@ -142,7 +143,7 @@ pub enum EncoderError {
 #[derive(Debug, thiserror::Error)]
 pub enum KeyBindingError {
     #[error("unexpected nonce, got `{0}``")]
-    NonceMismatch(String),
+    NonceMismatch(Nonce),
 
     #[error("iat ({0}) not in acceptable window with duration `{1:?}`, current time: `{2}`")]
     InvalidSignatureTimestamp(DateTime<Utc>, Duration, DateTime<Utc>),

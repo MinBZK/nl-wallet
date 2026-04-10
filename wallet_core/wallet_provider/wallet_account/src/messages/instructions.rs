@@ -18,6 +18,7 @@ use jwt::JwtSub;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
+use jwt::nonce::Nonce;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
@@ -165,7 +166,7 @@ impl InstructionAndResult for StartPinRecovery {
 pub struct PerformIssuance {
     pub key_count: NonZeroUsize,
     pub aud: String,
-    pub nonce: Option<String>,
+    pub nonce: Option<Nonce>,
 }
 
 #[serde_as]
@@ -210,7 +211,7 @@ impl InstructionAndResult for PerformIssuanceWithWua {
 pub struct Sign {
     #[serde_as(as = "Vec<(Base64, _)>")]
     pub messages_with_identifiers: Vec<(Vec<u8>, Vec<String>)>,
-    pub poa_nonce: Option<String>,
+    pub poa_nonce: Option<Nonce>,
     pub poa_aud: String,
 }
 

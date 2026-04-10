@@ -5,6 +5,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::JwtTyp;
+use crate::nonce::Nonce;
 
 pub const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";
 
@@ -14,13 +15,13 @@ pub const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";
 pub struct JwtPopClaims {
     pub iss: String,
     pub aud: String,
-    pub nonce: Option<String>,
+    pub nonce: Option<Nonce>,
     #[serde(with = "ts_seconds")]
     pub iat: DateTime<Utc>,
 }
 
 impl JwtPopClaims {
-    pub fn new(nonce: Option<String>, iss: String, aud: String) -> Self {
+    pub fn new(nonce: Option<Nonce>, iss: String, aud: String) -> Self {
         Self {
             nonce,
             iss,

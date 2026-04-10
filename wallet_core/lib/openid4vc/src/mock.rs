@@ -61,7 +61,7 @@ impl IssuanceSession for MockIssuanceSession {
     }
 
     async fn accept_issuance<W>(
-        &self,
+        &mut self,
         _: &[TrustAnchor<'_>],
         _: &W,
         _: bool,

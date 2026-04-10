@@ -6,6 +6,7 @@ use derive_more::Constructor;
 use crypto::wscd::WscdPoa;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
+use jwt::nonce::Nonce;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use utils::vec_at_least::VecNonEmpty;
@@ -19,7 +20,7 @@ pub trait IssuanceWscd {
         &self,
         count: NonZeroUsize,
         aud: String,
-        nonce: Option<String>,
+        nonce: Option<Nonce>,
         include_wua: bool,
     ) -> Result<IssuanceResult<Self::Poa>, Self::Error>;
 }
@@ -34,6 +35,6 @@ pub struct IssuanceResult<P> {
 
 #[derive(Debug, Constructor)]
 pub struct JwtPoaInput {
-    pub nonce: Option<String>,
+    pub nonce: Option<Nonce>,
     pub aud: String,
 }

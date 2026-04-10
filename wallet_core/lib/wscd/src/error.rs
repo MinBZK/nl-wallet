@@ -20,6 +20,8 @@ pub enum PoaVerificationError {
     UnexpectedSignatureCount { expected: usize, found: usize },
     #[error("unexpected amount of keys in PoA: expected {expected}, found {found}")]
     UnexpectedKeyCount { expected: usize, found: usize },
+    #[error("nonce is missing from PoA payload")]
+    MissingNonce,
     #[error("incorrect nonce")]
     IncorrectNonce,
     #[error("error converting key from/to JWK: {0}")]

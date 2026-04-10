@@ -48,7 +48,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         store_connection.clone(),
         storage_settings.into(),
     ));
-    let nonce_store = ProofNonceStore::new(store_connection.clone());
+    let proof_nonce_store = ProofNonceStore::new(store_connection.clone());
     let disclosure_sessions = Arc::new(SessionStoreVariant::new(
         store_connection.clone(),
         storage_settings.into(),
@@ -120,7 +120,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         settings,
         hsm,
         issuance_sessions,
-        nonce_store,
+        proof_nonce_store,
         disclosure_sessions,
         attributes_fetcher,
         status_list_services,
