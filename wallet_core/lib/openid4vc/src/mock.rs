@@ -88,8 +88,8 @@ impl IssuerMetadata {
 impl TokenRequest {
     pub fn new_mock() -> TokenRequest {
         TokenRequest {
-            grant_type: TokenRequestGrantType::PreAuthorizedCode {
-                pre_authorized_code: "123".to_string().into(),
+            grant_type: TokenRequestGrantType::AuthorizationCode {
+                code: "123".to_string().into(),
             },
             code_verifier: None,
             client_id: None,

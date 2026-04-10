@@ -145,11 +145,11 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             let err_response: ErrorResponse<AuthorizationErrorCode> =
                 serde_urlencoded::from_str(auth_response).map_err(OAuthError::ErrorResponseUrlDecoding)?;
 
-            if err_response.error == AuthorizationErrorCode::AccessDenied {
-                return Err(OAuthError::Denied);
+            return if err_response.error == AuthorizationErrorCode::AccessDenied {
+                Err(OAuthError::Denied)
             } else {
-                return Err(OAuthError::RedirectUriError(Box::new(err_response)));
-            }
+                Err(OAuthError::RedirectUriError(Box::new(err_response)))
+            };
         }
 
         let auth_response: AuthorizationResponse =
@@ -174,12 +174,14 @@ impl AuthorizationSession for HttpAuthorizationSession {
         received_redirect_uri: &Url,
         trust_anchors: &[TrustAnchor<'_>],
     ) -> Result<Self::Issuance, WalletIssuanceError> {
-        let pre_authorized_code = self.authorization_code(received_redirect_uri)?;
+        let authorization_code = self.authorization_code(received_redirect_uri)?;
         let message_client = HttpVcMessageClient::new(self.http_client);
         let token_endpoint = self.oauth_metadata.token_endpoint;
 
         let token_request = TokenRequest {
-            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+            grant_type: TokenRequestGrantType::AuthorizationCode {
+                code: authorization_code,
+            },
             code_verifier: Some(self.pkce_pair.into_code_verifier()),
             client_id: Some(self.client_id),
             redirect_uri: Some(self.redirect_uri),

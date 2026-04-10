@@ -8,7 +8,6 @@ use crypto::x509::CertificateError;
 use hsm::service::HsmError;
 use openid4vc::issuer::AttributeService;
 use openid4vc::token::TokenRequest;
-use openid4vc::token::TokenRequestGrantType;
 use server_utils::keys::SecretKeyVariant;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -74,14 +73,7 @@ impl AttributeService for BrpPidAttributeService {
     type Error = Error;
 
     async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Error> {
-        let openid_token_request = TokenRequest {
-            grant_type: TokenRequestGrantType::AuthorizationCode {
-                code: token_request.code().clone(),
-            },
-            ..token_request
-        };
-
-        let bsn = self.openid_client.bsn(openid_token_request).await?;
+        let bsn = self.openid_client.bsn(token_request).await?;
         let mut persons = self.brp_client.get_person_by_bsn(&bsn).await?;
 
         if persons.persons.len() != 1 {

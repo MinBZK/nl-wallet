@@ -122,8 +122,11 @@ pub enum TokenRequestError {
     #[error("issuance error: {0}")]
     IssuanceError(#[from] IssuanceError),
 
-    #[error("unsupported token request type: must be of type pre-authorized_code")]
-    UnsupportedTokenRequestType,
+    #[error("unexpected grant type for this session: expected {expected}, got {actual}")]
+    UnexpectedGrantType {
+        expected: &'static str,
+        actual: &'static str,
+    },
 
     #[error("failed to get attributes to be issued: {0}")]
     AttributeService(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
@@ -905,6 +908,10 @@ impl Session<Created> {
         }
     }
 
+    fn is_prepopulated(&self) -> bool {
+        self.session_data().issuable_documents.is_some()
+    }
+
     fn id_and_credential_preview_from_issuable_document(
         document: IssuableDocument,
         attestation_data: &AttestationTypeConfig<impl EcdsaKeySend>,
@@ -949,11 +956,24 @@ impl Session<Created> {
         ),
         TokenRequestError,
     > {
-        if !matches!(
-            token_request.grant_type,
-            TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code: _ }
-        ) {
-            return Err(TokenRequestError::UnsupportedTokenRequestType);
+        // Pre-populated sessions (e.g. disclosure-based issuance) must use PreAuthorizedCode.
+        // New sessions (authorization code flow) must use AuthorizationCode.
+        let is_pre_populated_session = self.is_prepopulated();
+        match (&token_request.grant_type, is_pre_populated_session) {
+            (TokenRequestGrantType::AuthorizationCode { .. }, false)
+            | (TokenRequestGrantType::PreAuthorizedCode { .. }, true) => {}
+            (TokenRequestGrantType::PreAuthorizedCode { .. }, false) => {
+                return Err(TokenRequestError::UnexpectedGrantType {
+                    expected: "authorization_code",
+                    actual: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+                });
+            }
+            (TokenRequestGrantType::AuthorizationCode { .. }, true) => {
+                return Err(TokenRequestError::UnexpectedGrantType {
+                    expected: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+                    actual: "authorization_code",
+                });
+            }
         }
 
         let dpop_public_key = dpop
