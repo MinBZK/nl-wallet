@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../domain/model/attribute/attribute.dart';
 import '../domain/model/consumable.dart';
+import '../domain/model/disclosure/start_disclosure_request.dart';
 import '../domain/model/result/application_error.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../domain/usecase/transfer/confirm_wallet_transfer_usecase.dart';
@@ -359,10 +360,12 @@ WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
           context.read(),
         );
         switch (args.type) {
-          case RemoteDisclosure(:final uri, :final isQrCode):
-            bloc.add(DisclosureSessionStarted(uri, isQrCode: isQrCode));
+          case RemoteDisclosure(:final uri, isQrCode: false):
+            bloc.add(DisclosureSessionStarted(StartDisclosureRequest.deeplink(uri)));
+          case RemoteDisclosure(:final uri, isQrCode: true):
+            bloc.add(DisclosureSessionStarted(StartDisclosureRequest.qrScan(uri)));
           case CloseProximityDisclosure():
-            bloc.add(const DisclosureCloseProximitySessionStarted());
+            bloc.add(const DisclosureSessionStarted(StartDisclosureRequest.closeProximity()));
         }
         return bloc;
       },

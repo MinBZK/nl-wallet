@@ -59,6 +59,7 @@ class DisclosureOptions {
 enum DisclosureSessionType {
   SameDevice,
   CrossDevice,
+  CloseProximity,
 }
 
 enum DisclosureType {
