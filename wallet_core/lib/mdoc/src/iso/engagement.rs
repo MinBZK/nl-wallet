@@ -476,6 +476,7 @@ mod tests {
 
     #[test]
     fn test_deserialize_session_transcript() {
+        // Example taken from multipaz interaction
         let example_session_transcript = hex::decode(
             "83d8185874a30063312e30018201d818584ba401022001215820423222782a6b167018f903e1972ec8f42f8e2810efe33f2568cb3e\
              935ed4eec02258202fdeabd892c74ed215ea9d9fbd294a2e8de53d05b2154b4e6d9484ae6a2b7f7a0281830201a300f501f40a5088\
@@ -508,22 +509,6 @@ mod tests {
         assert_eq!(
             serialization::cbor_serialize(&session_transcript).unwrap(),
             example_session_transcript
-        );
-    }
-
-    #[test]
-    fn test_deserialize_device_engagement() {
-        let example_device_engagement = hex::decode(
-            "a30063312e30018201d818584ba4010220012158205a88d182bce5f42efa59943f33359d2e8a968ff289d93e5fa444b624343167fe\
-            225820b16e8cf858ddc7690407ba61d4c338237a8cfcf3de6aa672fc60a557aa32fc670281830201a300f401f50b5045efef742b2c4\
-            837a9a3b0e1d05a6917",
-        )
-        .unwrap();
-        let device_engagement: DeviceEngagement = cbor_deserialize(example_device_engagement.as_slice()).unwrap();
-
-        assert_eq!(
-            serialization::cbor_serialize(&device_engagement).unwrap(),
-            example_device_engagement
         );
     }
 
