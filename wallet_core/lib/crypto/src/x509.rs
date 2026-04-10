@@ -356,8 +356,9 @@ impl BorrowingCertificate {
         Ok(self.san_dns_names()?.into_iter().next())
     }
 
-    // TODO rename
-    pub fn aki_der<'a>(&'a self) -> Option<&'a [u8]> {
+    /// From the AuthorityKeyIdentifier in the certificate, if present, return the key identifier field:
+    /// the hash over the public key that signed this certificate.
+    pub fn authority_key_id(&self) -> Option<&[u8]> {
         self.x509_certificate().extensions().iter().find_map(|ext| {
             let ParsedExtension::AuthorityKeyIdentifier(aki) = ext.parsed_extension() else {
                 return None;

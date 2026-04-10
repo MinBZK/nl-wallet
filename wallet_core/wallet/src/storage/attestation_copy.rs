@@ -163,12 +163,12 @@ impl StoredAttestationCopy {
                 StoredAttestation::MsoMdoc { mdoc } => mdoc
                     .issuer_certificate()
                     .expect("stored mdoc should have a valid certificate")
-                    .aki_der()
+                    .authority_key_id()
                     .is_some_and(|cert_aki| cert_aki == aki),
                 StoredAttestation::SdJwt { sd_jwt, .. } => sd_jwt
                     .issuer_certificate_chain()
                     .iter()
-                    .any(|cert| cert.aki_der().is_some_and(|cert_aki| cert_aki == aki)),
+                    .any(|cert| cert.authority_key_id().is_some_and(|cert_aki| cert_aki == aki)),
             })
     }
 

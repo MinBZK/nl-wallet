@@ -163,7 +163,7 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
             .sd_jwt()
             .issuer_certificate_chain()
             .into_nonempty_iter()
-            .filter_map(|cert| cert.aki_der().map(|bts| bts.to_vec()))
+            .filter_map(|cert| cert.authority_key_id().map(|bts| bts.to_vec()))
             .collect_vec();
 
         let claims = sd_jwt_presentation.into_claims();

@@ -395,7 +395,7 @@ impl Document {
         };
 
         let aki = issuer_certificate
-            .aki_der()
+            .authority_key_id()
             .map(|bts| vec![bts.to_vec()])
             .unwrap_or_default();
 

@@ -2063,7 +2063,7 @@ mod tests {
         let aki = ISSUER_KEY
             .issuance_key
             .certificate()
-            .aki_der()
+            .authority_key_id()
             .expect("issuer certificate should have AKI")
             .to_vec();
         let credential_requests = default_pid_credential_requests_with_aki(requested_format, aki);
@@ -2093,7 +2093,7 @@ mod tests {
             .generate_issuer_mock()
             .unwrap()
             .certificate()
-            .aki_der()
+            .authority_key_id()
             .expect("issuer certificate should have AKI")
             .to_vec();
         let credential_requests = default_pid_credential_requests_with_aki(requested_format, wrong_aki);
@@ -2152,7 +2152,7 @@ mod tests {
         let aki = ISSUER_KEY
             .issuance_key
             .certificate()
-            .aki_der()
+            .authority_key_id()
             .expect("issuer certificate should have AKI")
             .to_vec();
         let credential_requests = default_pid_credential_requests_with_aki(requested_format, aki);
