@@ -13,6 +13,7 @@ use db_test::DbSetup;
 use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
+use dcql::TrustedAuthoritiesQuery;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::error::HttpJsonErrorBody;
@@ -24,6 +25,7 @@ use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
 use pid_issuer::pid::constants::EUDI_PID_ATTESTATION_TYPE;
+use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
 use pid_issuer::pid::constants::PID_GIVEN_NAME;
 use tests_integration::common::*;
 use tests_integration::test_credential::new_mock_mdoc_pid_example;
@@ -32,6 +34,7 @@ use tests_integration::test_credential::nl_pid_credentials_full_name;
 use tests_integration::test_credential::nl_pid_credentials_given_name;
 use tests_integration::test_credential::nl_pid_credentials_given_name_for_query_id;
 use tests_integration::test_credential::nl_pid_full_name_and_minimal_address;
+use utils::vec_nonempty;
 use wallet::AttributesNotAvailable;
 use wallet::DisclosureUriSource;
 use wallet::errors::DisclosureError;
@@ -288,9 +291,9 @@ async fn ltc15_test_disclosure_extended_vct_ok() {
     .await;
 }
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm)]
-async fn ltc20_test_disclosure_without_pid() {
+async fn failed_disclosure_session(
+    start_request: StartDisclosureRequest,
+) -> (WalletWithStorage, DisclosureError, Url, Url) {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
 
@@ -299,11 +302,6 @@ async fn ltc20_test_disclosure_without_pid() {
 
     let client = reqwest::Client::new();
 
-    let start_request = StartDisclosureRequest {
-        usecase: "xyz_bank_no_return_url".to_owned(),
-        dcql_query: Some(new_mock_mdoc_pid_example()),
-        return_url_template: None,
-    };
     let response = client
         .post(urls.verifier_internal_url.join("disclosure/sessions"))
         .json(&start_request)
@@ -349,6 +347,20 @@ async fn ltc20_test_disclosure_without_pid() {
         StatusResponse::WaitingForResponse
     );
 
+    return (wallet, error, status_url, disclosed_attributes_url);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+#[serial(hsm)]
+async fn ltc20_test_disclosure_without_pid() {
+    let start_request = StartDisclosureRequest {
+        usecase: "xyz_bank_no_return_url".to_owned(),
+        dcql_query: Some(new_mock_mdoc_pid_example()),
+        return_url_template: None,
+    };
+
+    let (mut wallet, error, status_url, disclosed_attributes_url) = failed_disclosure_session(start_request).await;
+
     assert_matches!(
         error,
         DisclosureError::AttributesNotAvailable(AttributesNotAvailable {
@@ -360,6 +372,8 @@ async fn ltc20_test_disclosure_without_pid() {
             "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/family_name".to_string(),
         ])
     );
+
+    let client = reqwest::Client::new();
 
     wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
     assert_matches!(
@@ -379,4 +393,87 @@ async fn ltc20_test_disclosure_without_pid() {
     let response = client.get(disclosed_attributes_url).send().await.unwrap();
     // a cancelled disclosure does not result in any disclosed attributes
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+#[serial(hsm, MockOidcClient)]
+async fn test_disclosure_aki_ok() {
+    let session_type = SessionType::SameDevice;
+    let return_url_template = None;
+    let usecase = "xyz_bank_no_return_url".to_owned();
+    let format = CredentialFormat::SdJwt;
+
+    let test_credentials = nl_pid_credentials_full_name();
+    let mut dcql_query = test_credentials.to_dcql_query(std::iter::repeat_n(format, test_credentials.as_ref().len()));
+
+    let (pid_issuer_settings, _) = pid_issuer_settings(Url::parse("postgres://unused").unwrap());
+    let aki = pid_issuer_settings
+        .issuer_settings
+        .attestation_settings
+        .into_iter()
+        .find(|(vct, _)| *vct == PID_ATTESTATION_TYPE)
+        .unwrap()
+        .1
+        .keypair
+        .certificate
+        .authority_key_id()
+        .unwrap()
+        .to_vec();
+
+    dcql_query.credentials = dcql_query
+        .credentials
+        .into_iter()
+        .map(|mut query| {
+            query.trusted_authorities = vec![TrustedAuthoritiesQuery::Aki(vec_nonempty![aki.clone()])];
+            query
+        })
+        .collect_vec()
+        .try_into()
+        .unwrap();
+
+    assert_disclosure_ok(
+        session_type,
+        usecase,
+        return_url_template,
+        format,
+        dcql_query,
+        test_credentials,
+    )
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+#[serial(hsm, MockOidcClient)]
+async fn test_disclosure_wrong_aki_wallet_aborts() {
+    let mut dcql_query = new_mock_mdoc_pid_example();
+    dcql_query.credentials = dcql_query
+        .credentials
+        .into_iter()
+        .map(|mut query| {
+            query.trusted_authorities = vec![TrustedAuthoritiesQuery::Aki(vec_nonempty![vec![42]])];
+            query
+        })
+        .collect_vec()
+        .try_into()
+        .unwrap();
+
+    let start_request = StartDisclosureRequest {
+        usecase: "xyz_bank_no_return_url".to_owned(),
+        dcql_query: Some(dcql_query),
+        return_url_template: None,
+    };
+
+    let (_, error, _, _) = failed_disclosure_session(start_request).await;
+
+    assert_matches!(
+        error,
+        DisclosureError::AttributesNotAvailable(AttributesNotAvailable {
+            requested_attributes,
+            ..
+        }) if requested_attributes == HashSet::from([
+            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/bsn".to_string(),
+            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/given_name".to_string(),
+            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/family_name".to_string(),
+        ])
+    );
 }
