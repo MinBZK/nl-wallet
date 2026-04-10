@@ -1942,6 +1942,7 @@ name = "dcql"
 version = "0.6.0-dev"
 dependencies = [
  "attestation_types",
+ "base64 0.22.1",
  "derive_more",
  "error_category",
  "itertools 0.14.0",

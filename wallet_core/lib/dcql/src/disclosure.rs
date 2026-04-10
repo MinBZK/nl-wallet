@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::iter;
 
+use base64::prelude::*;
 use itertools::Either;
 use itertools::Itertools;
 
@@ -40,12 +41,17 @@ pub enum CredentialValidationError {
         }).join(", "))
     }).join(" / "))]
     MissingAttributes(HashMap<CredentialQueryIdentifier, HashSet<VecNonEmpty<ClaimPath>>>),
+    #[error("requested AKIs did not match any of the returned credential(s): {}", .0.iter().map(|(id, akis)| {
+        format!("({}): {}", id, akis.iter().map(|aki| BASE64_URL_SAFE_NO_PAD.encode(aki)).join(", "))
+    }).join(" / "))]
+    UnmatchedAkis(HashMap<CredentialQueryIdentifier, Vec<Vec<u8>>>),
 }
 
 /// This should be implemented on a credential that a verifier receives from the holder.
 pub trait DisclosedCredential {
     fn format(&self) -> CredentialFormat;
     fn credential_type(&self) -> &str;
+    fn aki(&self) -> &Vec<Vec<u8>>;
     fn missing_claim_paths<'a, 'b>(
         &'a self,
         request_claim_paths: impl IntoIterator<Item = &'b VecNonEmpty<ClaimPath>>,
@@ -151,6 +157,20 @@ impl NormalizedCredentialRequests {
             ));
         }
 
+        // For each of the requested credentials, any one of the specified AKIs (if present) should be present in any
+        // of the certificates of the received credential.
+        let unmatched_akis = requests_and_credentials
+            .iter()
+            .filter_map(|(id, (request, credential))| {
+                (!(request.aki().is_empty() || request.aki().iter().any(|aki| credential.aki().contains(aki))))
+                    .then(|| ((*id).clone(), request.aki().clone()))
+            })
+            .collect::<HashMap<_, _>>();
+
+        if !unmatched_akis.is_empty() {
+            return Err(CredentialValidationError::UnmatchedAkis(unmatched_akis));
+        }
+
         // Finally, each received credential should contain all of the requested attributes,
         // as optional attributes are not supported.
         let missing_attribute_credentials = requests_and_credentials
@@ -202,6 +222,7 @@ mod tests {
         format: CredentialFormat,
         credential_type: String,
         claim_paths: HashSet<VecNonEmpty<ClaimPath>>,
+        aki: Vec<Vec<u8>>,
     }
 
     impl MockDisclosedCredential {
@@ -218,6 +239,7 @@ mod tests {
                         ]
                     })
                     .collect(),
+                aki: vec![],
             }
         }
 
@@ -229,6 +251,7 @@ mod tests {
                     .iter()
                     .map(|attribute| vec_nonempty![ClaimPath::SelectByKey(attribute.to_string())])
                     .collect(),
+                aki: vec![],
             }
         }
     }
@@ -240,6 +263,10 @@ mod tests {
 
         fn credential_type(&self) -> &str {
             &self.credential_type
+        }
+
+        fn aki(&self) -> &Vec<Vec<u8>> {
+            &self.aki
         }
 
         fn missing_claim_paths<'a, 'b>(

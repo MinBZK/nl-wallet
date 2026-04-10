@@ -228,6 +228,7 @@ mod tests {
                 ca: "ca".to_string(),
                 issuance_validity: IssuanceValidity::new(Utc::now(), Some(Utc::now()), Some(Utc::now())),
                 revocation_status: Some(RevocationStatus::Valid),
+                aki: vec![],
             }],
         }])
         .unwrap()

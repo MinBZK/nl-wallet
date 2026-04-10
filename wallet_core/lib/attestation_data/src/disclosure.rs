@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use indexmap::IndexMap;
+use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -19,6 +20,8 @@ use mdoc::holder::disclosure::claim_path_to_mdoc_path;
 use mdoc::verifier::DisclosedDocument;
 use sd_jwt::sd_jwt::VerifiedSdJwtPresentation;
 use token_status_list::verification::verifier::RevocationStatus;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::attributes::AttributeValue;
@@ -106,6 +109,9 @@ pub struct DisclosedAttestation {
     pub ca: String,
     pub issuance_validity: IssuanceValidity,
     pub revocation_status: Option<RevocationStatus>,
+
+    #[serde(default = "Vec::new", skip_serializing_if = "Vec::is_empty")]
+    pub aki: Vec<Vec<u8>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -134,6 +140,7 @@ impl TryFrom<DisclosedDocument> for DisclosedAttestation {
             ca: doc.ca,
             issuance_validity: (&doc.validity_info).try_into()?,
             revocation_status: doc.revocation_status,
+            aki: doc.aki,
         })
     }
 }
@@ -151,6 +158,13 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
             .to_string();
 
         let revocation_status = sd_jwt_presentation.revocation_status();
+
+        let aki = sd_jwt_presentation
+            .sd_jwt()
+            .issuer_certificate_chain()
+            .into_nonempty_iter()
+            .filter_map(|cert| cert.aki_der().map(|bts| bts.to_vec()))
+            .collect_vec();
 
         let claims = sd_jwt_presentation.into_claims();
 
@@ -173,6 +187,7 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
             ca,
             issuance_validity,
             revocation_status,
+            aki,
         })
     }
 }
@@ -211,6 +226,10 @@ impl DisclosedCredential for DisclosedAttestation {
 
     fn credential_type(&self) -> &str {
         &self.attestation_type
+    }
+
+    fn aki(&self) -> &Vec<Vec<u8>> {
+        &self.aki
     }
 
     fn missing_claim_paths<'a, 'b>(
@@ -267,6 +286,7 @@ mod test {
                 ca: "Example CA".to_string(),
                 issuance_validity: IssuanceValidity::new(Utc::now(), None, None),
                 revocation_status: Some(RevocationStatus::Valid),
+                aki: vec![],
             }
         }
 
@@ -291,6 +311,7 @@ mod test {
                 ca: "Example CA".to_string(),
                 issuance_validity: IssuanceValidity::new(Utc::now(), None, None),
                 revocation_status: Some(RevocationStatus::Valid),
+                aki: vec![],
             }
         }
     }

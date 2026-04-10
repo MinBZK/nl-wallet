@@ -44,6 +44,7 @@ pub struct DisclosedDocument {
     pub validity_info: ValidityInfo,
     pub revocation_status: Option<RevocationStatus>,
     pub device_key: VerifyingKey,
+    pub aki: Vec<Vec<u8>>,
 }
 
 #[derive(Debug, Clone)]
@@ -376,9 +377,10 @@ impl Document {
         }
         debug!("signature valid");
 
+        let issuer_certificate = &self.issuer_signed.issuer_auth.signing_cert()?;
+
         let revocation_status = match &mso.status {
             Some(status_claim) => {
-                let issuer_certificate = &self.issuer_signed.issuer_auth.signing_cert()?;
                 let revocation_status = revocation_verifier
                     .verify(
                         trust_anchors,
@@ -392,6 +394,11 @@ impl Document {
             _ => None,
         };
 
+        let aki = issuer_certificate
+            .aki_der()
+            .map(|bts| vec![bts.to_vec()])
+            .unwrap_or_default();
+
         let disclosed_document = DisclosedDocument {
             doc_type: mso.doc_type,
             attributes,
@@ -402,6 +409,7 @@ impl Document {
             validity_info: mso.validity_info,
             revocation_status,
             device_key,
+            aki,
         };
 
         Ok(disclosed_document)
