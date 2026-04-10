@@ -479,7 +479,6 @@ pub enum SessionType {
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SessionTypeReturnUrl {
-    Neither,
     #[default]
     SameDevice,
     Both,
@@ -602,7 +601,6 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
         // Check if we should or should not have received a return URL
         // template, based on the configuration for the use case.
         if match self.data.session_type_return_url {
-            SessionTypeReturnUrl::Neither => redirect_uri_template.is_some(),
             SessionTypeReturnUrl::SameDevice | SessionTypeReturnUrl::Both => redirect_uri_template.is_none(),
         } {
             return Err(NewSessionError::ReturnUrlConfigurationMismatch);
@@ -1372,9 +1370,7 @@ impl Session<Created> {
                     share_on_error: return_url_config.share_on_error,
                 }))
             }
-            (SessionTypeReturnUrl::Neither, _, _) | (SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, _) => {
-                Ok(None)
-            }
+            (SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, _) => Ok(None),
             (_, _, template) => {
                 // We checked for this case when the session was created, so this should not happen
                 // except when the configuration has changed during this session.
@@ -1626,7 +1622,6 @@ mod tests {
     use super::WalletInitiatedUseCase;
     use super::WalletInitiatedUseCases;
 
-    const DISCLOSURE_USECASE_NO_REDIRECT_URI: &str = "example_usecase_no_redirect_uri";
     const DISCLOSURE_USECASE: &str = "example_usecase";
     const DISCLOSURE_USECASE_ALL_REDIRECT_URI: &str = "example_usecase_all_redirect_uri";
 
@@ -1657,18 +1652,6 @@ mod tests {
         let reader_registration = ReaderRegistration::new_mock();
 
         let use_cases = HashMap::from([
-            (
-                DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
-                RpInitiatedUseCase::try_new(
-                    generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
-                    &public_url,
-                    SessionTypeReturnUrl::Neither,
-                    None,
-                    None,
-                    false,
-                )
-                .unwrap(),
-            ),
             (
                 DISCLOSURE_USECASE.to_string(),
                 RpInitiatedUseCase::try_new(
@@ -1718,8 +1701,6 @@ mod tests {
     }
 
     #[rstest]
-    #[case(DISCLOSURE_USECASE_NO_REDIRECT_URI, false, true)]
-    #[case(DISCLOSURE_USECASE_NO_REDIRECT_URI, true, false)]
     #[case(DISCLOSURE_USECASE, false, false)]
     #[case(DISCLOSURE_USECASE, true, true)]
     #[case(DISCLOSURE_USECASE_ALL_REDIRECT_URI, false, false)]
@@ -2095,11 +2076,11 @@ mod tests {
         let reader_registration = ReaderRegistration::new_mock();
 
         let use_cases = HashMap::from([(
-            DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
+            DISCLOSURE_USECASE.to_string(),
             WalletInitiatedUseCase {
                 data: UseCaseData {
                     key_pair: generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
-                    session_type_return_url: SessionTypeReturnUrl::Neither,
+                    session_type_return_url: SessionTypeReturnUrl::SameDevice,
                     client_id: "client_id".into(),
                 },
                 credential_requests: NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
@@ -2132,7 +2113,7 @@ mod tests {
 
         verifier
             .process_get_request(
-                DISCLOSURE_USECASE_NO_REDIRECT_URI,
+                DISCLOSURE_USECASE,
                 &"https://example.com/response_uri".parse().unwrap(),
                 Some(&query_params),
                 None,

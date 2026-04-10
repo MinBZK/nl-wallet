@@ -426,7 +426,6 @@ impl VpMessageClient for DirectMockVpMessageClient {
     }
 }
 
-const NO_RETURN_URL_USE_CASE: &str = "no_return_url";
 const DEFAULT_RETURN_URL_USE_CASE: &str = "default_return_url";
 const ALL_RETURN_URL_USE_CASE: &str = "all_return_url";
 const WALLET_INITIATED_RETURN_URL_USE_CASE: &str = "wallet_initiated_return_url";
@@ -460,12 +459,6 @@ impl DisclosureResultHandler for MockDisclosureResultHandler {
 #[rstest]
 #[case(
     SessionType::SameDevice,
-    None,
-    NO_RETURN_URL_USE_CASE,
-    nl_pid_credentials_full_name()
-)]
-#[case(
-    SessionType::SameDevice,
     Some("https://example.com/return_url".parse().unwrap()),
     DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_full_name(),
@@ -475,12 +468,6 @@ impl DisclosureResultHandler for MockDisclosureResultHandler {
     Some("https://example.com/return_url".parse().unwrap()),
     ALL_RETURN_URL_USE_CASE,
     nl_pid_credentials_full_name(),
-)]
-#[case(
-    SessionType::CrossDevice,
-    None,
-    NO_RETURN_URL_USE_CASE,
-    nl_pid_credentials_full_name()
 )]
 #[case(
     SessionType::CrossDevice,
@@ -496,27 +483,27 @@ impl DisclosureResultHandler for MockDisclosureResultHandler {
 )]
 #[case(
     SessionType::SameDevice,
-    None,
-    NO_RETURN_URL_USE_CASE,
+    Some("https://example.com/return_url".parse().unwrap()),
+    DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_given_name()
 )]
 // attributes from different documents, so this case also tests the PoA
 #[case(
     SessionType::SameDevice,
-    None,
-    NO_RETURN_URL_USE_CASE,
+    Some("https://example.com/return_url".parse().unwrap()),
+    DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_given_name() + nl_pid_address_minimal_address(),
 )]
 #[case(
     SessionType::SameDevice,
-    None,
-    NO_RETURN_URL_USE_CASE,
+    Some("https://example.com/return_url".parse().unwrap()),
+    DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_given_name() + nl_pid_credentials_family_name(),
 )]
 #[case(
     SessionType::SameDevice,
-    None,
-    NO_RETURN_URL_USE_CASE,
+    Some("https://example.com/return_url".parse().unwrap()),
+    DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_given_name() + nl_pid_credentials_full_name() + nl_pid_credentials_all(),
 )]
 #[tokio::test]
@@ -572,7 +559,6 @@ async fn test_client_and_server(
 
     // Check if we received a redirect URI when we should have, based on the use case and session type.
     let should_have_redirect_uri = match (use_case, session_type) {
-        (use_case, _) if use_case == NO_RETURN_URL_USE_CASE => false,
         (use_case, _) if use_case == ALL_RETURN_URL_USE_CASE => true,
         (_, SessionType::SameDevice) => true,
         (_, SessionType::CrossDevice) => false,
@@ -770,13 +756,17 @@ async fn test_disclosure_invalid_poa() {
 
     let test_credentials = nl_pid_credentials_full_name() + nl_pid_address_minimal_address();
     let dcql_query = test_credentials.to_dcql_query([CredentialFormat::SdJwt, CredentialFormat::SdJwt]);
-    let use_case = NO_RETURN_URL_USE_CASE;
+    let use_case = DEFAULT_RETURN_URL_USE_CASE;
 
     let (verifier, rp_trust_anchor, issuer_keypair) = setup_verifier(&dcql_query, None);
 
     // Start the session
     let session_token = verifier
-        .new_session(use_case.to_string(), Some(dcql_query), None)
+        .new_session(
+            use_case.to_string(),
+            Some(dcql_query),
+            Some("https://example.com/{session_token}".parse().unwrap()),
+        )
         .await
         .unwrap();
 
@@ -1135,18 +1125,6 @@ fn setup_verifier(
     let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
     let reader_registration = ReaderRegistration::mock_from_dcql_query(dcql_query);
     let usecases = HashMap::from([
-        (
-            NO_RETURN_URL_USE_CASE.to_string(),
-            RpInitiatedUseCase::try_new(
-                generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
-                &public_url,
-                SessionTypeReturnUrl::Neither,
-                None,
-                None,
-                false,
-            )
-            .unwrap(),
-        ),
         (
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::try_new(
