@@ -157,7 +157,7 @@ impl StoredAttestationCopy {
     /// match any of the specified AKIs.
     ///
     /// (Note that if an AKI is checked against a certificate that has no AKI, this is not a match.)
-    pub fn matches_any_aki(&self, aki: &Vec<Vec<u8>>) -> bool {
+    pub fn matches_any_aki(&self, aki: &[Vec<u8>]) -> bool {
         aki.is_empty()
             || aki.iter().any(|aki| match &self.attestation {
                 StoredAttestation::MsoMdoc { mdoc } => mdoc

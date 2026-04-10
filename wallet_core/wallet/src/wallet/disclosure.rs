@@ -2041,11 +2041,11 @@ mod tests {
 
     fn default_pid_credential_requests_with_aki(
         requested_format: CredentialFormat,
-        aki: Vec<u8>,
+        aki: &[u8],
     ) -> NormalizedCredentialRequests {
         default_pid_credential_requests(requested_format)
             .into_iter()
-            .map(|r| r.with_aki(vec![aki.clone()]))
+            .map(|r| r.with_aki(vec![aki.to_vec()]))
             .collect::<Vec<_>>()
             .try_into()
             .unwrap()
@@ -2066,7 +2066,7 @@ mod tests {
             .authority_key_id()
             .expect("issuer certificate should have AKI")
             .to_vec();
-        let credential_requests = default_pid_credential_requests_with_aki(requested_format, aki);
+        let credential_requests = default_pid_credential_requests_with_aki(requested_format, &aki);
 
         setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
 
@@ -2096,7 +2096,7 @@ mod tests {
             .authority_key_id()
             .expect("issuer certificate should have AKI")
             .to_vec();
-        let credential_requests = default_pid_credential_requests_with_aki(requested_format, wrong_aki);
+        let credential_requests = default_pid_credential_requests_with_aki(requested_format, &wrong_aki);
 
         setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
 
@@ -2155,7 +2155,7 @@ mod tests {
             .authority_key_id()
             .expect("issuer certificate should have AKI")
             .to_vec();
-        let credential_requests = default_pid_credential_requests_with_aki(requested_format, aki);
+        let credential_requests = default_pid_credential_requests_with_aki(requested_format, &aki);
 
         setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
 
