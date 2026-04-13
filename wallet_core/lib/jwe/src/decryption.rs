@@ -15,7 +15,9 @@ use serde_with::serde_as;
 
 use crate::algorithm::EcdhAlgorithm;
 use crate::encryption::JwePublicKey;
+use crate::error::JweDecryptionError;
 use crate::error::JweJsonDecryptionError;
+use crate::error::JweStringDecryptionError;
 
 #[cfg(feature = "rsa")]
 pub use rsa::JweRsaPrivateKey;
@@ -108,25 +110,39 @@ impl JweDecrypter {
         self.id.as_deref()
     }
 
-    pub fn decrypt_json<T>(&self, jwe: &str) -> Result<T, JweJsonDecryptionError>
-    where
-        T: DeserializeOwned,
-    {
-        let (payload, header) = josekit::jwe::deserialize_compact(jwe, self.decrypter.as_ref())
-            .map_err(JweJsonDecryptionError::Decryption)?;
+    pub fn decrypt(&self, jwe: &str) -> Result<Vec<u8>, JweDecryptionError> {
+        let (payload, header) =
+            josekit::jwe::deserialize_compact(jwe, self.decrypter.as_ref()).map_err(JweDecryptionError::Decryption)?;
 
         if let Some(id) = self.id.as_deref() {
             let received_id = header.claim("kid").and_then(serde_json::Value::as_str);
 
             if received_id != Some(id) {
-                return Err(JweJsonDecryptionError::IdMismatch(
+                return Err(JweDecryptionError::IdMismatch(
                     id.to_string(),
                     received_id.map(str::to_string),
                 ));
             }
         }
 
+        Ok(payload)
+    }
+
+    pub fn decrypt_json<T>(&self, jwe: &str) -> Result<T, JweJsonDecryptionError>
+    where
+        T: DeserializeOwned,
+    {
+        let payload = self.decrypt(jwe)?;
+
         let data = serde_json::from_slice(&payload).map_err(JweJsonDecryptionError::Deserialization)?;
+
+        Ok(data)
+    }
+
+    pub fn decrypt_string(&self, jwe: &str) -> Result<String, JweStringDecryptionError> {
+        let payload = self.decrypt(jwe)?;
+
+        let data = String::from_utf8(payload).map_err(JweStringDecryptionError::InvalidUtf8)?;
 
         Ok(data)
     }
@@ -364,8 +380,12 @@ mod tests {
 
         let data = decrypter
             .decrypt_json::<serde_json::Value>(EXAMPLE_JWE)
-            .expect("decrypting example JWE should succeed");
+            .expect("decrypting example JWE as JSON should succeed");
 
         assert_eq!(data, example_jwe_contents());
+
+        let _ = decrypter
+            .decrypt_string(EXAMPLE_JWE)
+            .expect("decrypting example JWE as string should succeed");
     }
 }

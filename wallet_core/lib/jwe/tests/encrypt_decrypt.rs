@@ -6,6 +6,7 @@ use jwe::decryption::JweEcdhSecretKey;
 use jwe::encryption::JweCompression;
 use jwe::encryption::JweEncrypter;
 use jwe::encryption::JwePublicKey;
+use jwe::error::JweDecryptionError;
 use jwe::error::JweJsonDecryptionError;
 use jwk_simple::Key;
 use rstest::rstest;
@@ -78,7 +79,7 @@ fn test_encrypt_decrypt_id_mismatch() {
 
     assert_matches!(
         error,
-        JweJsonDecryptionError::IdMismatch(expected_kid, Some(received_kid))
+        JweJsonDecryptionError::JweDecryption(JweDecryptionError::IdMismatch(expected_kid, Some(received_kid)))
             if &expected_kid == "key_id" && received_kid == "wrong_key_id"
     );
 
@@ -93,6 +94,7 @@ fn test_encrypt_decrypt_id_mismatch() {
 
     assert_matches!(
         error,
-        JweJsonDecryptionError::IdMismatch(expected_kid, None) if &expected_kid == "key_id"
+        JweJsonDecryptionError::JweDecryption(JweDecryptionError::IdMismatch(expected_kid, None))
+            if &expected_kid == "key_id"
     );
 }
