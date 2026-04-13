@@ -200,6 +200,8 @@ impl AuthorizationSession for HttpAuthorizationSession {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use assert_matches::assert_matches;
     use rstest::rstest;
     use serial_test::serial;
@@ -232,23 +234,6 @@ mod tests {
         url
     }
 
-    fn try_new_mock_session() -> HttpAuthorizationSession<MockPkcePair> {
-        let pkce_context = MockPkcePair::generate_context();
-        pkce_context.expect().return_once(|| {
-            let mut pkce_pair = MockPkcePair::new();
-            pkce_pair.expect_code_challenge().return_const("challenge".to_string());
-            pkce_pair
-        });
-        HttpAuthorizationSession::<MockPkcePair>::try_new(
-            HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
-            IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test"),
-            AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
-            CLIENT_ID.to_string(),
-            REDIRECT_URI.parse().unwrap(),
-        )
-        .unwrap()
-    }
-
     fn create_session() -> HttpAuthorizationSession<MockPkcePair> {
         let mut pkce_pair = MockPkcePair::new();
         pkce_pair.expect_code_challenge().return_const("challenge".to_string());
@@ -265,9 +250,8 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial(MockPkcePair)]
-    async fn test_start_and_into_token_request() {
-        let session = try_new_mock_session();
+    async fn test_authorization_code() {
+        let session = create_session();
 
         let state = session.state.clone();
         let redirect_uri: Url = REDIRECT_URI.parse().unwrap();
@@ -279,9 +263,8 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial(MockPkcePair)]
     async fn test_user_cancels() {
-        let session = try_new_mock_session();
+        let session = create_session();
 
         let state = session.state.clone();
         let redirect_uri: Url = REDIRECT_URI.parse().unwrap();
@@ -295,9 +278,22 @@ mod tests {
     #[tokio::test]
     #[serial(MockPkcePair)]
     async fn test_auth_url() {
-        let session = try_new_mock_session();
+        let pkce_context = MockPkcePair::generate_context();
+        pkce_context.expect().return_once(|| {
+            let mut pkce_pair = MockPkcePair::new();
+            pkce_pair.expect_code_challenge().return_const("challenge".to_string());
+            pkce_pair
+        });
+        let session = HttpAuthorizationSession::<MockPkcePair>::try_new(
+            HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
+            IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test"),
+            AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
+            CLIENT_ID.to_string(),
+            REDIRECT_URI.parse().unwrap(),
+        )
+        .unwrap();
 
-        let params: std::collections::HashMap<_, _> = session.auth_url.query_pairs().collect();
+        let params: HashMap<_, _> = session.auth_url.query_pairs().collect();
 
         assert_eq!(params.get("response_type").map(|v| v.as_ref()), Some("code"));
         assert_eq!(params.get("client_id").map(|v| v.as_ref()), Some(CLIENT_ID));
@@ -386,24 +382,6 @@ mod tests {
         );
 
         assert_eq!(session.authorization_code(&uri).unwrap().as_ref(), "123");
-    }
-
-    #[test]
-    fn test_into_token_request() {
-        let mut session = create_session();
-        session
-            .pkce_pair
-            .expect_into_code_verifier()
-            .return_const("code_verifier".to_string());
-
-        let uri = url_with_query_pairs(
-            Url::parse(REDIRECT_URI).unwrap(),
-            &[("state", CSRF_TOKEN), ("code", "123")],
-        );
-
-        let code = session.authorization_code(&uri).unwrap();
-
-        assert_eq!(code.as_ref(), "123");
     }
 
     #[rstest]
