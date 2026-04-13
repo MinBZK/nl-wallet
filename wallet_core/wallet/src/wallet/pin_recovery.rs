@@ -519,7 +519,6 @@ mod tests {
     use crate::wallet::test::AUTH_URL;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
-    use crate::wallet::test::create_authorization_sesession;
     use crate::wallet::test::create_example_pid_preview_data;
     use crate::wallet::test::create_example_pid_sd_jwt;
     use crate::wallet::test::create_wp_result;
@@ -571,7 +570,7 @@ mod tests {
     pub async fn continue_pin_recovery() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let (_, redirect_uri) = create_authorization_sesession(AUTH_URL);
+        let redirect_uri = Url::parse(AUTH_URL).unwrap();
 
         let mut authorization_session = MockAuthorizationSession::new();
         authorization_session.expect_start_issuance_sync().return_once(|| {
@@ -798,7 +797,7 @@ mod tests {
     pub async fn continue_pin_recovery_received_no_recovery_code() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let (_, redirect_uri) = create_authorization_sesession(AUTH_URL);
+        let redirect_uri = Url::parse(AUTH_URL).unwrap();
 
         let mut authorization_session = MockAuthorizationSession::new();
         authorization_session.expect_start_issuance_sync().return_once(|| {
@@ -842,7 +841,7 @@ mod tests {
     pub async fn continue_pin_recovery_received_wrong_recovery_code() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let (_, redirect_uri) = create_authorization_sesession(AUTH_URL);
+        let redirect_uri = Url::parse(AUTH_URL).unwrap();
 
         let mut authorization_session = MockAuthorizationSession::new();
         authorization_session

@@ -102,10 +102,10 @@ pub enum IssuanceError {
     #[category(expected)]
     IssuerMetadataDiscovery(#[from] WellKnownError),
 
-    #[error("could not start DigiD session: {0}")]
+    #[error("could not start authorization session: {0}")]
     AuthSessionStart(#[source] OAuthError),
 
-    #[error("could not finish DigiD session: {0}")]
+    #[error("could not finish authorization session: {0}")]
     AuthSessionFinish(#[source] OAuthError),
 
     #[error("user denied DigiD authentication")]

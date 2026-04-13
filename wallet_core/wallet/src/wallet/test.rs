@@ -13,7 +13,6 @@ use rand_core::OsRng;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use ssri::Integrity;
-use url::Url;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
@@ -45,7 +44,6 @@ use openid4vc::token::CredentialPreviewContent;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredential;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
-use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
 use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
 use openid4vc::wallet_issuance::mock::MockIssuanceSession;
 use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
@@ -693,11 +691,4 @@ pub fn example_pid_stored_attestation_copy(format: CredentialFormat) -> StoredAt
         CredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
         NormalizedTypeMetadata::nl_pid_example(),
     )
-}
-
-/// Creates a stub [`MockAuthorizationSession`] and a redirect URI for use in tests.
-/// Callers that need `start_issuance` to succeed must set up `expect_start_issuance_sync` themselves.
-pub fn create_authorization_sesession(redirect_uri: &str) -> (MockAuthorizationSession, Url) {
-    let redirect_uri = Url::parse(redirect_uri).unwrap();
-    (MockAuthorizationSession::new(), redirect_uri)
 }
