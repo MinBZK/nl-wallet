@@ -15,6 +15,7 @@ use tracing::warn;
 
 use attestation_types::qualification::AttestationQualification;
 use crypto::x509::CertificateUsage;
+use crypto::x509::KeyIdentifier;
 use http_utils::urls::HttpsUri;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
@@ -44,7 +45,7 @@ pub struct DisclosedDocument {
     pub validity_info: ValidityInfo,
     pub revocation_status: Option<RevocationStatus>,
     pub device_key: VerifyingKey,
-    pub aki: Vec<Vec<u8>>,
+    pub aki: Vec<KeyIdentifier>,
 }
 
 #[derive(Debug, Clone)]
@@ -394,10 +395,7 @@ impl Document {
             _ => None,
         };
 
-        let aki = issuer_certificate
-            .authority_key_id()
-            .map(|bts| vec![bts.to_vec()])
-            .unwrap_or_default();
+        let aki = issuer_certificate.authority_key_id().into_iter().collect();
 
         let disclosed_document = DisclosedDocument {
             doc_type: mso.doc_type,

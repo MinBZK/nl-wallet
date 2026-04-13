@@ -347,7 +347,7 @@ async fn failed_disclosure_session(
         StatusResponse::WaitingForResponse
     );
 
-    return (wallet, error, status_url, disclosed_attributes_url);
+    (wallet, error, status_url, disclosed_attributes_url)
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -417,8 +417,7 @@ async fn test_disclosure_aki_ok() {
         .keypair
         .certificate
         .authority_key_id()
-        .unwrap()
-        .to_vec();
+        .unwrap();
 
     dcql_query.credentials = dcql_query
         .credentials
@@ -450,7 +449,7 @@ async fn test_disclosure_wrong_aki_wallet_aborts() {
         .credentials
         .into_iter()
         .map(|mut query| {
-            query.trusted_authorities = vec![TrustedAuthoritiesQuery::Aki(vec_nonempty![vec![42]])];
+            query.trusted_authorities = vec![TrustedAuthoritiesQuery::Aki(vec_nonempty![vec![42].into()])];
             query
         })
         .collect_vec()

@@ -8,6 +8,7 @@ use serde::Serialize;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
 use crypto::x509::CertificateError;
+use crypto::x509::KeyIdentifier;
 use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::disclosure::DisclosedCredential;
@@ -111,7 +112,7 @@ pub struct DisclosedAttestation {
     pub revocation_status: Option<RevocationStatus>,
 
     #[serde(default = "Vec::new", skip_serializing_if = "Vec::is_empty")]
-    pub aki: Vec<Vec<u8>>,
+    pub aki: Vec<KeyIdentifier>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -163,7 +164,7 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
             .sd_jwt()
             .issuer_certificate_chain()
             .into_nonempty_iter()
-            .filter_map(|cert| cert.authority_key_id().map(|bts| bts.to_vec()))
+            .filter_map(|cert| cert.authority_key_id())
             .collect_vec();
 
         let claims = sd_jwt_presentation.into_claims();
@@ -228,7 +229,7 @@ impl DisclosedCredential for DisclosedAttestation {
         &self.attestation_type
     }
 
-    fn aki(&self) -> &Vec<Vec<u8>> {
+    fn aki(&self) -> &Vec<KeyIdentifier> {
         &self.aki
     }
 

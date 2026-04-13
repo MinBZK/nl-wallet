@@ -4,6 +4,7 @@ use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crypto::x509::KeyIdentifier;
 use error_category::ErrorCategory;
 use utils::vec_at_least::Iter;
 use utils::vec_at_least::NonEmptyIterator;
@@ -57,14 +58,14 @@ pub enum NormalizedCredentialRequest {
         id: CredentialQueryIdentifier,
         doctype_value: String,
         claims: VecNonEmpty<MdocAttributeRequest>,
-        aki: Vec<Vec<u8>>,
+        aki: Vec<KeyIdentifier>,
     },
     #[serde(rename = "dc+sd-jwt")]
     SdJwt {
         id: CredentialQueryIdentifier,
         vct_values: VecNonEmpty<String>,
         claims: VecNonEmpty<SdJwtAttributeRequest>,
-        aki: Vec<Vec<u8>>,
+        aki: Vec<KeyIdentifier>,
     },
 }
 
@@ -99,7 +100,7 @@ impl NormalizedCredentialRequest {
         }
     }
 
-    pub fn aki(&self) -> &Vec<Vec<u8>> {
+    pub fn aki(&self) -> &Vec<KeyIdentifier> {
         match self {
             NormalizedCredentialRequest::MsoMdoc { aki, .. } => aki,
             NormalizedCredentialRequest::SdJwt { aki, .. } => aki,
@@ -373,6 +374,7 @@ pub mod mock {
 
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::ROOT_PID_ATTESTATION_TYPE;
+    use crypto::x509::KeyIdentifier;
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
     use mdoc::examples::EXAMPLE_NAMESPACE;
@@ -611,7 +613,7 @@ pub mod mock {
     }
 
     impl NormalizedCredentialRequest {
-        pub fn with_aki(self, aki: Vec<Vec<u8>>) -> Self {
+        pub fn with_aki(self, aki: Vec<KeyIdentifier>) -> Self {
             match self {
                 Self::MsoMdoc {
                     id,

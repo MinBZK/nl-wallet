@@ -1,3 +1,4 @@
+use crypto::x509::KeyIdentifier;
 use uuid::Uuid;
 
 use attestation_data::attributes::Attributes;
@@ -157,18 +158,18 @@ impl StoredAttestationCopy {
     /// match any of the specified AKIs.
     ///
     /// (Note that if an AKI is checked against a certificate that has no AKI, this is not a match.)
-    pub fn matches_any_aki(&self, aki: &[Vec<u8>]) -> bool {
+    pub fn matches_any_aki(&self, aki: &[KeyIdentifier]) -> bool {
         aki.is_empty()
             || aki.iter().any(|aki| match &self.attestation {
                 StoredAttestation::MsoMdoc { mdoc } => mdoc
                     .issuer_certificate()
                     .expect("stored mdoc should have a valid certificate")
                     .authority_key_id()
-                    .is_some_and(|cert_aki| cert_aki == aki),
+                    .is_some_and(|cert_aki| cert_aki == *aki),
                 StoredAttestation::SdJwt { sd_jwt, .. } => sd_jwt
                     .issuer_certificate_chain()
                     .iter()
-                    .any(|cert| cert.authority_key_id().is_some_and(|cert_aki| cert_aki == aki)),
+                    .any(|cert| cert.authority_key_id().is_some_and(|cert_aki| cert_aki == *aki)),
             })
     }
 

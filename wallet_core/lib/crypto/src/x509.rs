@@ -1,13 +1,16 @@
+use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
+use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Constructor;
 use derive_more::Debug;
 use derive_more::Display;
+use derive_more::From;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
@@ -22,6 +25,8 @@ use rustls_pki_types::pem::PemObject;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 use webpki::EndEntityCert;
 use webpki::ring::ECDSA_P256_SHA256;
 use x509_parser::asn1_rs::SerializeError;
@@ -358,12 +363,12 @@ impl BorrowingCertificate {
 
     /// From the AuthorityKeyIdentifier in the certificate, if present, return the key identifier field:
     /// the hash over the public key that signed this certificate.
-    pub fn authority_key_id(&self) -> Option<&[u8]> {
+    pub fn authority_key_id(&self) -> Option<KeyIdentifier> {
         self.x509_certificate().extensions().iter().find_map(|ext| {
             let ParsedExtension::AuthorityKeyIdentifier(aki) = ext.parsed_extension() else {
                 return None;
             };
-            aki.key_identifier.as_ref().map(|ki| ki.0)
+            aki.key_identifier.as_ref().map(|ki| ki.0.to_vec().into())
         })
     }
 
@@ -471,6 +476,20 @@ where
                 .map_err(|error| CertificateError::DerEncodingError(Box::new(error)))?,
         );
         Ok(ext)
+    }
+}
+
+/// The KeyIdentifier of a public key from a certificate, being its SHA1 hash.
+///
+/// Returned from [`BorrowingCertificate::authority_key_id`].
+#[derive(Debug, Clone, PartialEq, Eq, From, Display, SerializeDisplay, DeserializeFromStr)]
+#[display("{}", BASE64_URL_SAFE_NO_PAD.encode(&self.0))]
+pub struct KeyIdentifier(Vec<u8>);
+
+impl FromStr for KeyIdentifier {
+    type Err = base64::DecodeError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(KeyIdentifier(BASE64_URL_SAFE_NO_PAD.decode(s)?))
     }
 }
 

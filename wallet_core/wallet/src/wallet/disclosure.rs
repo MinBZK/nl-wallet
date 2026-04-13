@@ -1000,7 +1000,6 @@ mod tests {
     use rstest::rstest;
     use serde::de::Error;
     use url::Url;
-    use utils::vec_nonempty;
     use uuid::Uuid;
 
     use attestation_data::attributes::Attribute;
@@ -1024,6 +1023,7 @@ mod tests {
     use attestation_types::pid_constants::PID_RESIDENT_HOUSE_NUMBER;
     use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
     use crypto::server_keys::generate::Ca;
+    use crypto::x509::KeyIdentifier;
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
@@ -1054,6 +1054,7 @@ mod tests {
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use update_policy_model::update_policy::VersionState;
     use utils::generator::mock::MockTimeGenerator;
+    use utils::vec_nonempty;
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
 
@@ -2041,11 +2042,11 @@ mod tests {
 
     fn default_pid_credential_requests_with_aki(
         requested_format: CredentialFormat,
-        aki: &[u8],
+        aki: &KeyIdentifier,
     ) -> NormalizedCredentialRequests {
         default_pid_credential_requests(requested_format)
             .into_iter()
-            .map(|r| r.with_aki(vec![aki.to_vec()]))
+            .map(|r| r.with_aki(vec![aki.clone()]))
             .collect::<Vec<_>>()
             .try_into()
             .unwrap()
@@ -2064,8 +2065,7 @@ mod tests {
             .issuance_key
             .certificate()
             .authority_key_id()
-            .expect("issuer certificate should have AKI")
-            .to_vec();
+            .expect("issuer certificate should have AKI");
         let credential_requests = default_pid_credential_requests_with_aki(requested_format, &aki);
 
         setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
@@ -2094,8 +2094,7 @@ mod tests {
             .unwrap()
             .certificate()
             .authority_key_id()
-            .expect("issuer certificate should have AKI")
-            .to_vec();
+            .expect("issuer certificate should have AKI");
         let credential_requests = default_pid_credential_requests_with_aki(requested_format, &wrong_aki);
 
         setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
@@ -2153,8 +2152,7 @@ mod tests {
             .issuance_key
             .certificate()
             .authority_key_id()
-            .expect("issuer certificate should have AKI")
-            .to_vec();
+            .expect("issuer certificate should have AKI");
         let credential_requests = default_pid_credential_requests_with_aki(requested_format, &aki);
 
         setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);

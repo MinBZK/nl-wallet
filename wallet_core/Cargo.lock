@@ -1607,6 +1607,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+ "serde_with",
  "sha2",
  "thiserror 2.0.17",
  "time",
@@ -1942,7 +1943,7 @@ name = "dcql"
 version = "0.6.0-dev"
 dependencies = [
  "attestation_types",
- "base64 0.22.1",
+ "crypto",
  "derive_more",
  "error_category",
  "itertools 0.14.0",

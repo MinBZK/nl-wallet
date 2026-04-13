@@ -15,7 +15,6 @@ examples = []
 mock = ["attestation_types/test_pid_constants", "mdoc/examples", "mdoc/mock_example_constructors"]
 
 [dependencies]
-base64.workspace = true
 derive_more = { workspace = true, features = ["into_iterator"] }
 nutype = { workspace = true, features = ["serde"] }
 itertools.workspace = true
@@ -26,6 +25,7 @@ strum.workspace = true
 thiserror.workspace = true
 
 attestation_types.path = "../attestation_types"
+crypto.path = "../crypto"
 error_category.path = "../error_category"
 utils.path = "../utils"
 

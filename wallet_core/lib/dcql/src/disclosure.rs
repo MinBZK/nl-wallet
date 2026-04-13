@@ -2,11 +2,11 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::iter;
 
-use base64::prelude::*;
 use itertools::Either;
 use itertools::Itertools;
 
 use attestation_types::claim_path::ClaimPath;
+use crypto::x509::KeyIdentifier;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::CredentialFormat;
@@ -42,16 +42,16 @@ pub enum CredentialValidationError {
     }).join(" / "))]
     MissingAttributes(HashMap<CredentialQueryIdentifier, HashSet<VecNonEmpty<ClaimPath>>>),
     #[error("requested AKIs did not match any of the returned credential(s): {}", .0.iter().map(|(id, akis)| {
-        format!("({}): {}", id, akis.iter().map(|aki| BASE64_URL_SAFE_NO_PAD.encode(aki)).join(", "))
+        format!("({}): {}", id, akis.iter().map(KeyIdentifier::to_string).join(", "))
     }).join(" / "))]
-    UnmatchedAkis(HashMap<CredentialQueryIdentifier, Vec<Vec<u8>>>),
+    UnmatchedAkis(HashMap<CredentialQueryIdentifier, Vec<KeyIdentifier>>),
 }
 
 /// This should be implemented on a credential that a verifier receives from the holder.
 pub trait DisclosedCredential {
     fn format(&self) -> CredentialFormat;
     fn credential_type(&self) -> &str;
-    fn aki(&self) -> &Vec<Vec<u8>>;
+    fn aki(&self) -> &Vec<KeyIdentifier>;
     fn missing_claim_paths<'a, 'b>(
         &'a self,
         request_claim_paths: impl IntoIterator<Item = &'b VecNonEmpty<ClaimPath>>,
@@ -200,6 +200,7 @@ mod tests {
     use rstest::rstest;
 
     use attestation_types::claim_path::ClaimPath;
+    use crypto::x509::KeyIdentifier;
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
     use mdoc::examples::EXAMPLE_NAMESPACE;
@@ -222,7 +223,7 @@ mod tests {
         format: CredentialFormat,
         credential_type: String,
         claim_paths: HashSet<VecNonEmpty<ClaimPath>>,
-        aki: Vec<Vec<u8>>,
+        aki: Vec<KeyIdentifier>,
     }
 
     impl MockDisclosedCredential {
@@ -265,7 +266,7 @@ mod tests {
             &self.credential_type
         }
 
-        fn aki(&self) -> &Vec<Vec<u8>> {
+        fn aki(&self) -> &Vec<KeyIdentifier> {
             &self.aki
         }
 
