@@ -571,13 +571,13 @@ where
             _ => issuance_result?,
         };
 
+        let pid_purpose = *pid_purpose;
+
         info!("Issuance succeeded; removing issuance session state");
-        let (pid_purpose, preview_attestations) = match self.session.take() {
+        let preview_attestations = match self.session.take() {
             Some(Session::Issuance(WalletIssuanceSession::Issuance {
-                pid_purpose,
-                preview_attestations,
-                ..
-            })) => (pid_purpose, preview_attestations),
+                preview_attestations, ..
+            })) => preview_attestations,
             _ => unreachable!(),
         };
 
