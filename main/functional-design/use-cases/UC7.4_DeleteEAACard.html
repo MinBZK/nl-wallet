@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Use Case 9.2 Get app information &mdash; NL Wallet 0.6.0-dev documentation</title>
+  <title>Use Case 3.3 Renew PID &mdash; NL Wallet 0.6.0-dev documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=bd54c151" />
@@ -23,8 +23,8 @@
     <link rel="author" title="About these documents" href="../../about.html" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Use Case 9.3 Change app language" href="UC9.3_ChangeAppLanguage.html" />
-    <link rel="prev" title="Use Case 9.1 Show app menu" href="UC9.1_ShowAppMenu.html" /> 
+    <link rel="next" title="Use Case 9.10 Transfer Wallet to another device" href="UC9.10_TransferWallet.html" />
+    <link rel="prev" title="Use Case 7.2 Show card details" href="UC7.2_ShowCardDetails.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -101,12 +101,12 @@
 <li class="toctree-l2"><a class="reference internal" href="UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
-<li class="toctree-l2"><a class="reference internal" href="UC7.4_DeleteEAACard.html">Use Case 3.3 Renew PID</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Use Case 3.3 Renew PID</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.11_ConfigureNotifications.html">Use Case 9.11 Configure Notifications</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.12_ViewRevocationCode.html">Use Case 9.12 View revocation code in Settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Use Case 9.2 Get app information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.4_WipeAllAppData.html">Use Case 9.4 Wipe all app data</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.6_GetHelp.html">Use Case 9.6 Get help</a></li>
@@ -177,9 +177,9 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../use-cases.html">Use Cases</a></li>
-      <li class="breadcrumb-item active">Use Case 9.2 Get app information</li>
+      <li class="breadcrumb-item active">Use Case 3.3 Renew PID</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/functional-design/use-cases/UC9.2_GetAppInformation.md.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/functional-design/use-cases/UC7.4_DeleteEAACard.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -187,8 +187,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="use-case-9-2-get-app-information">
-<h1>Use Case 9.2 Get app information<a class="headerlink" href="#use-case-9-2-get-app-information" title="Link to this heading"></a></h1>
+  <section id="use-case-3-3-renew-pid">
+<h1>Use Case 3.3 Renew PID<a class="headerlink" href="#use-case-3-3-renew-pid" title="Link to this heading"></a></h1>
 <section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
 <table class="docutils align-default">
@@ -199,19 +199,19 @@
 </thead>
 <tbody>
 <tr class="row-even"><td><p><strong>Summary</strong></p></td>
-<td><p>The user views app information, including links to the NL Wallet website and privacy statement.</p></td>
+<td><p>The user deletes an EAA card from their wallet by confirming this with their PIN to complete the process.</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Goal</strong></p></td>
-<td><p>Learning more about the app</p></td>
+<td><p>The user delete an EAA card from NL Wallet in a safe way.</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Preconditions</strong></p></td>
 <td><p><em>None</em></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Postconditions</strong></p></td>
-<td><p><em>None</em></p></td>
+<td><p><ul><li>Card is no longer available in the wallet</li><li>Card deleted event is added in the history.</li></ul></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Triggered by</strong></p></td>
-<td><p><ul><li>User selects ‘About this app’ in <a class="reference internal" href="UC9.1_ShowAppMenu.html"><span class="std std-doc">UC9.1 Show app menu</span></a>.</li><li>User selects Info in <a class="reference internal" href="UC2.1_SetupRemotePinAndBiometricsUnlock.html"><span class="std std-doc">UC2.1 Setup a remote PIN and biometric unlock</span></a>.</li><li>User selects Info in <a class="reference internal" href="UC2.3_UnlockTheApp.html"><span class="std std-doc">UC2.3 Unlock the app</span></a>.</li><li>User selects Info in <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="std std-doc">UC7.1 Show all available cards</span></a>.</li></ul></p></td>
+<td><p><ul><li>User selects ‘Delete card’ in <a class="reference internal" href="UC7.2_ShowCardDetails.html"><span class="std std-doc">UC7.2 Show card details</span></a></li></ul></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Additional Documentation</strong></p></td>
 <td><p><em>None</em></p></td>
@@ -220,7 +220,7 @@
 <td><p><em>None</em></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Logical test cases</strong></p></td>
-<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc28"><span class="std std-ref">LTC28 View app information</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc29"><span class="std std-ref">LTC29 View privacy statement</span></a></li></ul></p></td>
+<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc79"><span class="std std-ref">LTC79 Delete card</span></a></li></ul></p></td>
 </tr>
 </tbody>
 </table>
@@ -241,32 +241,48 @@
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>1.1</strong></p></td>
-<td><p><strong>System displays screen ‘About App’</strong><ul><li>Message: About the NL Wallet</li><li>Actions: Go To edi.pleio.nl, Read Privacy Statement, Back</li></ul></p></td>
+<td><p><strong>System displays prompt ‘Do you want to delete [card_name] card’</strong><ul><li>Message: The card will be permanently deleted</li><li>Actions: Cancel, Yes, delete</li></ul></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p>1.1a</p></td>
-<td><p>User selects Go To edi.pleio.nl <br>→ System opens browser and suspends app</p></td>
-<td><p></p></td>
+<td><p>User selects Yes, delete</p></td>
+<td><p>1.2</p></td>
 </tr>
 <tr class="row-odd"><td><p>1.1b</p></td>
-<td><p>User selects Read Privacy Statement</p></td>
-<td><p>2</p></td>
+<td><p>User selects Cancel</p></td>
+<td><p>Go to: <a class="reference internal" href="UC7.2_ShowCardDetails.html"><span class="std std-doc">UC7.2 Show card details</span></a></p></td>
 </tr>
-<tr class="row-even"><td><p>1.1c</p></td>
-<td><p>User selects Back</p></td>
-<td><p>Back</p></td>
-</tr>
-<tr class="row-odd"><td><p><strong>2</strong></p></td>
-<td><p><strong>READ PRIVACY STATEMENT</strong></p></td>
+<tr class="row-even"><td><p><strong>1.2</strong></p></td>
+<td><p><strong>System executes partial flow <a class="reference internal" href="../partial-flows/PF2.4_ConfirmProtectedAction.html"><span class="std std-doc">PF2.4 Confirm a protected action</span></a></strong><ul><li>Cancelable</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><strong>2.1</strong></p></td>
-<td><p><strong>System displays screen ‘Privacy Statement’</strong><ul><li>Privacy statement Public Wallet (first trial period)</li><li>Actions: Back</li></ul></p></td>
+<tr class="row-odd"><td><p>1.2a</p></td>
+<td><p>Result: Confirm</p></td>
+<td><p>1.3</p></td>
+</tr>
+<tr class="row-even"><td><p>1.2b</p></td>
+<td><p>Result: Cancel</p></td>
+<td><p>Go to: <a class="reference internal" href="UC7.2_ShowCardDetails.html"><span class="std std-doc">UC7.2 Show card details</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.2c</p></td>
+<td><p>Result: Back</p></td>
+<td><p>Go to: <a class="reference internal" href="UC7.2_ShowCardDetails.html"><span class="std std-doc">UC7.2 Show card details</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>1.3</strong></p></td>
+<td><p><strong>System displays screen ‘[Card_name] has been deleted’</strong><ul><li>Message: You can still see previous activities</li><li>Actions: To my overview, Close, Help</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>2.1a</p></td>
-<td><p>User selects Back</p></td>
-<td><p>Back</p></td>
+<tr class="row-odd"><td><p>1.3a</p></td>
+<td><p>User selects To my overview</p></td>
+<td><p>Go to: <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="doc std std-doc">UC7.1 Show all available cards</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>1.3b</p></td>
+<td><p>User selects Close</p></td>
+<td><p>Go to: <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="doc std std-doc">UC7.1 Show all available cards</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.3c</p></td>
+<td><p>User selects Help</p></td>
+<td><p>Show placeholder ‘under construction’</p></td>
 </tr>
 </tbody>
 </table>
@@ -277,8 +293,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="UC9.1_ShowAppMenu.html" class="btn btn-neutral float-left" title="Use Case 9.1 Show app menu" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="UC9.3_ChangeAppLanguage.html" class="btn btn-neutral float-right" title="Use Case 9.3 Change app language" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="UC7.2_ShowCardDetails.html" class="btn btn-neutral float-left" title="Use Case 7.2 Show card details" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="UC9.10_TransferWallet.html" class="btn btn-neutral float-right" title="Use Case 9.10 Transfer Wallet to another device" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
@@ -304,13 +320,13 @@
     <div class="rst-other-versions">
         <dl>
             <dt>Releases</dt>
-            <dd><a href="../../../v0.4.0/functional-design/use-cases/UC9.2_GetAppInformation.html">v0.4.0</a></dd>
-            <dd><a href="../../../v0.4.1/functional-design/use-cases/UC9.2_GetAppInformation.html">v0.4.1</a></dd>
-            <dd><a href="../../../v0.5.0/functional-design/use-cases/UC9.2_GetAppInformation.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.4.1/index.html">v0.4.1</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="UC9.2_GetAppInformation.html">main</a></dd>
+            <dd><a href="UC7.4_DeleteEAACard.html">main</a></dd>
         </dl>
     </div>
 </div><script>
