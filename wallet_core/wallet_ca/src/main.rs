@@ -205,7 +205,7 @@ impl Command {
         CertificateConfiguration {
             not_before: Some(not_before),
             not_after: Some(not_after),
-            include_aki: true,
+            ..Default::default()
         }
     }
 

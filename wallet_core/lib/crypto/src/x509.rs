@@ -591,7 +591,7 @@ mod test {
         let config = CertificateConfiguration {
             not_before: Some(now),
             not_after: Some(later),
-            include_aki: true,
+            ..Default::default()
         };
         let ca = Ca::generate("myca", config).unwrap();
         let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
@@ -617,7 +617,7 @@ mod test {
         let config = CertificateConfiguration {
             not_before,
             not_after,
-            include_aki: true,
+            ..Default::default()
         };
         let mdl = MdlExtension;
 
@@ -694,7 +694,7 @@ mod test {
         let config = CertificateConfiguration {
             not_before: Some(start),
             not_after: Some(end),
-            include_aki: true,
+            ..Default::default()
         };
 
         Ca::generate("myca", config).unwrap()

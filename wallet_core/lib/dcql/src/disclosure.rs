@@ -51,7 +51,7 @@ pub enum CredentialValidationError {
 pub trait DisclosedCredential {
     fn format(&self) -> CredentialFormat;
     fn credential_type(&self) -> &str;
-    fn aki(&self) -> &Vec<KeyIdentifier>;
+    fn aki(&self) -> &[KeyIdentifier];
     fn missing_claim_paths<'a, 'b>(
         &'a self,
         request_claim_paths: impl IntoIterator<Item = &'b VecNonEmpty<ClaimPath>>,
@@ -164,7 +164,7 @@ impl NormalizedCredentialRequests {
             .filter(|&(_, (request, credential))| {
                 !(request.aki().is_empty() || request.aki().iter().any(|aki| credential.aki().contains(aki)))
             })
-            .map(|(id, (request, _))| ((*id).clone(), request.aki().clone()))
+            .map(|(id, (request, _))| ((*id).clone(), request.aki().to_vec()))
             .collect::<HashMap<_, _>>();
 
         if !unmatched_akis.is_empty() {
@@ -266,7 +266,7 @@ mod tests {
             &self.credential_type
         }
 
-        fn aki(&self) -> &Vec<KeyIdentifier> {
+        fn aki(&self) -> &[KeyIdentifier] {
             &self.aki
         }
 

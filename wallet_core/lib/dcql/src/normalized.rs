@@ -9,7 +9,6 @@ use error_category::ErrorCategory;
 use utils::vec_at_least::Iter;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-use utils::vec_nonempty;
 
 use crate::ClaimPath;
 use crate::ClaimsQuery;
@@ -100,7 +99,7 @@ impl NormalizedCredentialRequest {
         }
     }
 
-    pub fn aki(&self) -> &Vec<KeyIdentifier> {
+    pub fn aki(&self) -> &[KeyIdentifier] {
         match self {
             NormalizedCredentialRequest::MsoMdoc { aki, .. } => aki,
             NormalizedCredentialRequest::SdJwt { aki, .. } => aki,
@@ -142,7 +141,7 @@ pub enum UnsupportedDcqlFeatures {
     #[error("claim query with 'values' is not supported")]
     ClaimValues,
     #[error("received unsupported 'trusted_authorities' variant: {0:?}")]
-    UnsupportedTrustedAuthority(Vec<String>),
+    UnsupportedTrustedAuthority(VecNonEmpty<String>),
     #[error("requests that do not require a cryptographic holder binding proof are not supported")]
     CryptographicHolderBindingNotRequired,
     #[error("unsupported ClaimPath variant, only SelectByKey is supported")]
@@ -209,9 +208,9 @@ impl TryFrom<CredentialQuery> for NormalizedCredentialRequest {
             .into_iter()
             .map(|trusted_authority| match trusted_authority {
                 TrustedAuthoritiesQuery::Aki(aki) => Ok(aki.into_inner()),
-                TrustedAuthoritiesQuery::Other(unsupported) => Err(
-                    UnsupportedDcqlFeatures::UnsupportedTrustedAuthority(unsupported.into_inner()),
-                ),
+                TrustedAuthoritiesQuery::Other(unsupported) => {
+                    Err(UnsupportedDcqlFeatures::UnsupportedTrustedAuthority(unsupported))
+                }
             })
             .collect::<Result<Vec<Vec<_>>, _>>()? // check for failures
             .into_iter()
@@ -282,9 +281,9 @@ impl From<NormalizedCredentialRequest> for CredentialQuery {
             id,
             format,
             multiple: false,
-            trusted_authorities: aki
+            trusted_authorities: VecNonEmpty::try_from(aki)
                 .into_iter()
-                .map(|aki| TrustedAuthoritiesQuery::Aki(vec_nonempty![aki]))
+                .map(TrustedAuthoritiesQuery::Aki)
                 .collect(),
             require_cryptographic_holder_binding: true,
             claims_selection: ClaimsSelection::All {
@@ -766,7 +765,7 @@ mod test {
     )]
     #[case(
         mdoc_query_with_unsupported_trusted_authorities(),
-        Err(UnsupportedDcqlFeatures::UnsupportedTrustedAuthority(vec!["unsupported".to_string()]))
+        Err(UnsupportedDcqlFeatures::UnsupportedTrustedAuthority(vec_nonempty!["unsupported".to_string()]))
     )]
     #[case(mdoc_query_without_claims(), Err(UnsupportedDcqlFeatures::NoClaims))]
     #[case(mdoc_query_with_claim_sets(), Err(UnsupportedDcqlFeatures::ClaimSets))]

@@ -229,7 +229,7 @@ impl DisclosedCredential for DisclosedAttestation {
         &self.attestation_type
     }
 
-    fn aki(&self) -> &Vec<KeyIdentifier> {
+    fn aki(&self) -> &[KeyIdentifier] {
         &self.aki
     }
 
