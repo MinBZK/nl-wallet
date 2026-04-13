@@ -388,7 +388,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             return Err(WalletIssuanceError::NoNonceEndpoint);
         }
 
-        let token_endpoint = oauth_metadata.token_endpoint.clone();
+        let token_endpoint = oauth_metadata.token_endpoint;
         let dpop_signing_key = SigningKey::random(&mut OsRng);
         let dpop_header = Dpop::new(&dpop_signing_key, token_endpoint.clone(), &Method::POST, None, None)?;
 
