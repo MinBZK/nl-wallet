@@ -9,6 +9,7 @@ import '../policy/policy.dart';
 
 export '../disclosure/disclosure_type.dart';
 
+part 'deletion_event.dart';
 part 'disclosure_event.dart';
 part 'issuance_event.dart';
 part 'sign_event.dart';
@@ -23,6 +24,12 @@ sealed class WalletEvent extends Equatable {
     required this.dateTime,
     required this.status,
   });
+
+  const factory WalletEvent.deletion({
+    required DateTime dateTime,
+    required EventStatus status,
+    required WalletCard card,
+  }) = DeletionEvent;
 
   const factory WalletEvent.disclosure({
     required DateTime dateTime,

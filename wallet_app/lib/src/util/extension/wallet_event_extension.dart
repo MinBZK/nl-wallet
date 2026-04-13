@@ -7,6 +7,7 @@ import 'date_time_extension.dart';
 
 extension WalletEventExtensions on WalletEvent {
   Organization get relyingPartyOrIssuer => switch (this) {
+    DeletionEvent() => (this as DeletionEvent).card.issuer,
     DisclosureEvent() => (this as DisclosureEvent).relyingParty,
     IssuanceEvent() => (this as IssuanceEvent).card.issuer,
     SignEvent() => (this as SignEvent).relyingParty,
