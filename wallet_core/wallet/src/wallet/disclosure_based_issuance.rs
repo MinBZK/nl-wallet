@@ -138,7 +138,7 @@ where
                 &config.issuer_trust_anchors(),
             )
             .await
-            .map_err(|e| convert_and_enrich_error(e, organization.clone()))?;
+            .map_err(|e| convert_and_enrich_error(e, &organization))?;
 
         let previews = self
             .issuance_process_previews(
@@ -151,19 +151,19 @@ where
     }
 }
 
-fn convert_and_enrich_error(
-    error: WalletIssuanceError,
-    organization: Box<Organization>,
-) -> DisclosureBasedIssuanceError {
+fn convert_and_enrich_error(error: WalletIssuanceError, organization: &Organization) -> DisclosureBasedIssuanceError {
     match error {
         WalletIssuanceError::MissingCredentialOfferQuery => {
-            DisclosureBasedIssuanceError::MissingRedirectUriQuery(organization)
+            DisclosureBasedIssuanceError::MissingRedirectUriQuery(Box::new(organization.clone()))
         }
         WalletIssuanceError::CredentialOfferDeserialization(error) => {
-            DisclosureBasedIssuanceError::UrlDecoding(error, organization)
+            DisclosureBasedIssuanceError::UrlDecoding(error, Box::new(organization.clone()))
         }
         WalletIssuanceError::MissingPreAuthorizedCodeGrant => {
-            DisclosureBasedIssuanceError::Issuance(IssuanceError::IssuerServer { error, organization })
+            DisclosureBasedIssuanceError::Issuance(IssuanceError::IssuerServer {
+                error,
+                organization: Box::new(organization.clone()),
+            })
         }
         other => DisclosureBasedIssuanceError::Issuance(IssuanceError::IssuanceSession(other)),
     }
