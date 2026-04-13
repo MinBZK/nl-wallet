@@ -26,6 +26,11 @@ class WalletEventMapper extends Mapper<core.WalletEvent, WalletEvent> {
   @override
   WalletEvent map(core.WalletEvent input) {
     return switch (input) {
+      WalletEvent_Deletion() => WalletEvent.deletion(
+        dateTime: DateTime.parse(input.dateTime).toLocal(),
+        status: EventStatus.success,
+        card: _cardMapper.map(input.attestation),
+      ),
       WalletEvent_Disclosure() => WalletEvent.disclosure(
         dateTime: DateTime.parse(input.dateTime).toLocal(),
         relyingParty: _relyingPartyMapper.map(input.relyingParty),
@@ -42,15 +47,8 @@ class WalletEventMapper extends Mapper<core.WalletEvent, WalletEvent> {
         // TODO(Daan): Implement issuanceEventType mapping once Core logic is implemented in [PVW-4566];
         eventType: !input.renewed ? IssuanceEventType.cardIssued : IssuanceEventType.cardRenewed,
       ),
-      // TODO(Daan): Map deletion events instead of filtering them out in [mapList] in [PVW-5722]
-      WalletEvent_Deletion() => throw UnimplementedError('WalletEvent_Deletion is not yet mapped'),
     };
   }
-
-  @override
-  List<WalletEvent> mapList(Iterable<core.WalletEvent> input) =>
-      // TODO(Daan): Remove the deletion filter once [WalletEvent_Deletion] is mapped in [PVW-5722]
-      input.where((e) => e is! WalletEvent_Deletion).map(map).toList();
 
   EventStatus _resolveInteractionStatus(core.DisclosureStatus status) {
     return switch (status) {

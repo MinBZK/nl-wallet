@@ -65,7 +65,7 @@ impl From<ItemsRequest> for Vec<VecNonEmpty<ClaimPath>> {
             .name_spaces
             .into_iter()
             .flat_map(|(name_space, attributes)| {
-                let attribute_count = attributes.len();
+                let attribute_count = attributes.as_ref().len();
 
                 itertools::repeat_n(name_space, attribute_count).zip(attributes).map(
                     |(name_space, (attribute, _intent_to_retain))| {
@@ -137,7 +137,7 @@ mod tests {
 
         // Create a basic session transcript, item request and a `DocRequest`.
         let session_transcript = SessionTranscript::new_mock();
-        let items_request = ItemsRequest::new_example_empty();
+        let items_request = ItemsRequest::new_example();
         let doc_request = create_doc_request(items_request.clone(), &session_transcript, &private_key).await;
 
         // Verification of the `DocRequest` should succeed and return the certificate contained within it.

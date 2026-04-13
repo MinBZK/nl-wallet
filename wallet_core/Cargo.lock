@@ -9450,7 +9450,6 @@ dependencies = [
  "mockall",
  "nutype",
  "openid4vc",
- "openssl-sys",
  "p256",
  "parking_lot",
  "platform_support",

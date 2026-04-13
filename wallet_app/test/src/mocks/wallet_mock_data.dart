@@ -183,6 +183,16 @@ abstract class WalletMockData {
     displayTargets: [Os(notifyAt: defaultNotifyAt)],
   );
 
+  /// Deletion events
+
+  static DeletionEvent get deletionEvent =>
+      WalletEvent.deletion(
+            dateTime: DateTime(2024, 5, 1),
+            status: EventStatus.success,
+            card: card,
+          )
+          as DeletionEvent;
+
   /// Disclosure events
 
   static DisclosureEvent get disclosureEvent =>

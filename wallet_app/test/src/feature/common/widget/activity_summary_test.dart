@@ -31,6 +31,14 @@ void main() {
           )
           as DisclosureEvent;
 
+  DeletionEvent deletionAt(DateTime time) =>
+      WalletEvent.deletion(
+            dateTime: time,
+            status: EventStatus.success,
+            card: WalletMockData.card,
+          )
+          as DeletionEvent;
+
   setUp(() async {
     l10n = await TestUtils.englishLocalizations;
   });
@@ -109,6 +117,11 @@ void main() {
         expect(summary.mode, ActivityDisplayMode.lastWeek);
       },
     );
+
+    test('when the only activity is a deletion that happened today, the mode is today', () {
+      final summary = ActivitySummary(events: [deletionAt(clock.now())]);
+      expect(summary.mode, ActivityDisplayMode.today);
+    });
   });
 
   group('widgets', () {
@@ -169,6 +182,55 @@ void main() {
         l10n.activitySummaryCardsAdded(3, 3),
       );
       expect(cardsAddedFinder, findsOneWidget);
+    });
+
+    testWidgets('single card deleted subtitle is shown', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        ActivitySummary(
+          events: [deletionAt(clock.now())],
+        ),
+      );
+
+      final cardsDeletedFinder = find.textContaining(
+        l10n.activitySummaryCardsDeleted(1, 1),
+      );
+      expect(cardsDeletedFinder, findsOneWidget);
+    });
+
+    testWidgets('multiple cards deleted subtitle is shown', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        ActivitySummary(
+          events: [
+            deletionAt(clock.now()),
+            deletionAt(clock.now()),
+            deletionAt(clock.now()),
+          ],
+        ),
+      );
+
+      final cardsDeletedFinder = find.textContaining(
+        l10n.activitySummaryCardsDeleted(3, 3),
+      );
+      expect(cardsDeletedFinder, findsOneWidget);
+    });
+
+    testWidgets('cards added and deleted subtitles are both shown', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        ActivitySummary(
+          events: [
+            WalletEvent.issuance(
+              dateTime: clock.now(),
+              status: EventStatus.success,
+              card: WalletMockData.card,
+              eventType: IssuanceEventType.cardIssued,
+            ),
+            deletionAt(clock.now()),
+          ],
+        ),
+      );
+
+      expect(find.textContaining(l10n.activitySummaryCardsAdded(1, 1)), findsOneWidget);
+      expect(find.textContaining(l10n.activitySummaryCardsDeleted(1, 1)), findsOneWidget);
     });
 
     testWidgets('relevant organization name is shown', (tester) async {
@@ -396,7 +458,9 @@ void main() {
       await screenMatchesGolden('activity_summary/more_than_three_orgs_shared_with');
     });
 
-    testGoldens('all interactions - new cards, updated cards, shared with, logged in at', (tester) async {
+    testGoldens('all interactions - new cards, renewed cards, deleted cards, shared with, logged in at', (
+      tester,
+    ) async {
       await tester.pumpWidgetWithAppWrapper(
         ActivitySummary(
           events: [
@@ -422,11 +486,22 @@ void main() {
               card: WalletMockData.card,
               eventType: IssuanceEventType.cardRenewed,
             ),
+            deletionAt(clock.now()),
           ],
         ),
-        surfaceSize: Size(kGoldenSize.width, kGoldenSize.height + 66),
+        surfaceSize: Size(kGoldenSize.width, kGoldenSize.height + 88),
       );
       await screenMatchesGolden('activity_summary/all_interactions');
+    });
+
+    testGoldens('single card deleted', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        ActivitySummary(
+          events: [deletionAt(clock.now())],
+        ),
+        surfaceSize: kGoldenSize,
+      );
+      await screenMatchesGolden('activity_summary/single_card_deleted');
     });
   });
 }

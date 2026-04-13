@@ -14,6 +14,7 @@ import '../../common/widget/utility/scroll_offset_provider.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import 'argument/history_detail_screen_argument.dart';
 import 'bloc/history_detail_bloc.dart';
+import 'widget/page/history_detail_deletion_page.dart';
 import 'widget/page/history_detail_disclose_page.dart';
 import 'widget/page/history_detail_issue_page.dart';
 import 'widget/page/history_detail_login_page.dart';
@@ -86,6 +87,8 @@ class HistoryDetailScreen extends StatelessWidget {
   Widget _buildSuccess(BuildContext context, HistoryDetailLoadSuccess state) {
     final WalletEvent event = state.event;
     switch (event) {
+      case DeletionEvent():
+        return HistoryDetailDeletionPage(event: event);
       case DisclosureEvent():
         switch (event.type) {
           case DisclosureType.regular:
@@ -150,6 +153,8 @@ class HistoryDetailScreen extends StatelessWidget {
     final event = tryCast<HistoryDetailLoadSuccess>(state)?.event;
     if (event == null) return context.l10n.historyDetailScreenTitle;
     switch (event) {
+      case DeletionEvent():
+        return HistoryDetailDeletionPage.resolveTitle(context, event);
       case DisclosureEvent():
         switch (event.type) {
           case DisclosureType.regular:

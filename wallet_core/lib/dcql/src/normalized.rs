@@ -441,7 +441,7 @@ pub mod mock {
                 "mdoc_iso_example",
                 EXAMPLE_DOC_TYPE,
                 EXAMPLE_NAMESPACE,
-                &EXAMPLE_ATTRIBUTES,
+                EXAMPLE_ATTRIBUTES.as_slice(),
             )
         }
 

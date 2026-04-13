@@ -294,10 +294,10 @@ impl MobileSecurityObject {
         let digest_id = item.0.digest_id;
         let digest = self
             .value_digests
-            .0
+            .as_ref()
             .get(namespace)
             .ok_or_else(|| VerificationError::MissingNamespace(namespace.clone()))?
-            .0
+            .as_ref()
             .get(&digest_id)
             .ok_or_else(|| VerificationError::MissingDigestID(digest_id))?;
         if *digest != cbor_digest(item)? {

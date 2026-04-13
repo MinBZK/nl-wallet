@@ -8,6 +8,7 @@ import org.junit.platform.suite.api.SuiteDisplayName
     feature.cards_and_history.CardDetailTests::class,
     feature.cards_and_history.DashboardTests::class,
     feature.cards_and_history.HistoryTests::class,
+    feature.cards_and_history.DeleteCardTests::class,
 )
 @Suite
 @SuiteDisplayName("Cards and history Test Suite")

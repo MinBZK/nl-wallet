@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2026-04-07T15:13:06+02:00",
+    "@@last_modified": "2026-04-10T14:19:19+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -9,7 +9,8 @@
     "activeSessionDialogDescription": "Je bent al begonnen met delen. Maak het af of stop deze actie. Open daarna de link opnieuw.",
     "activeSessionDialogTitle": "Maak het delen af",
     "activitySummaryCardsAdded": "{activitySummaryCardsAdded, plural, one {{count} kaart toegevoegd} other {{count} kaarten toegevoegd}}",
-    "activitySummaryCardsUpdated": "{activitySummaryCardsUpdated, plural, one {{count} kaart bijgewerkt} other {{count} kaarten bijgewerkt}}",
+    "activitySummaryCardsDeleted": "{activitySummaryCardsDeleted, plural, one {{count} kaart verwijderd} other {{count} kaarten verwijderd}}",
+    "activitySummaryCardsRenewed": "{activitySummaryCardsRenewed, plural, one {{count} kaart vervangen} other {{count} kaarten vervangen}}",
     "activitySummaryEmpty": "Geen activiteiten",
     "activitySummaryLastMonth": "Activiteiten vorige maand",
     "activitySummaryLastWeek": "Activiteiten vorige week",
@@ -197,6 +198,7 @@
         }
     },
     "cardExpiryBannerSubtitle": "Vervang deze kaart als je hem nog nodig hebt.",
+    "cardHistoryDeletionSuccess": "Kaart verwijderd",
     "cardHistoryDisclosureCancelled": "Delen gestopt",
     "cardHistoryDisclosureError": "Delen mogelijk mislukt",
     "cardHistoryDisclosureErrorNoDataShared": "Delen mislukt",
@@ -808,6 +810,7 @@
     "historyDetailScreenTermsCta": "Lees de afspraak",
     "historyDetailScreenTermsTitle": "Afspraken",
     "historyDetailScreenTitle": "Details",
+    "historyDetailScreenTitleForCardDeleted": "{cardTitle} verwijderd",
     "historyDetailScreenTitleForCardIssued": "{card} aangemaakt",
     "historyDetailScreenTitleForCardRenewed": "{card} vernieuwd",
     "historyDetailScreenTitleForDisclosure": "Gedeeld met {organization}",
