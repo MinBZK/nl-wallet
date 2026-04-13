@@ -351,10 +351,7 @@ where
         }
 
         info!("Checking if there is an active issuance session");
-        if !matches!(
-            self.session,
-            Some(Session::PinRecovery { .. }) | Some(Session::Issuance(..))
-        ) {
+        if !matches!(self.session, Some(Session::Issuance(..))) {
             return Err(IssuanceError::SessionState);
         }
 
