@@ -1,6 +1,7 @@
-use http_utils::reqwest::HttpJsonClient;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
+
+use http_utils::reqwest::HttpJsonClient;
 
 use crate::credential::CredentialOfferContainer;
 use crate::issuer_identifier::IssuerIdentifier;
@@ -8,7 +9,6 @@ use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::metadata::well_known;
 use crate::metadata::well_known::WellKnownPath;
-use crate::pkce::S256PkcePair;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 use crate::wallet_issuance::IssuanceDiscovery;
@@ -28,7 +28,7 @@ impl HttpIssuanceDiscovery {
 }
 
 impl IssuanceDiscovery for HttpIssuanceDiscovery {
-    type Authorization = HttpAuthorizationSession<S256PkcePair>;
+    type Authorization = HttpAuthorizationSession;
     type Issuance = HttpIssuanceSession;
 
     async fn start_authorization_code_flow(

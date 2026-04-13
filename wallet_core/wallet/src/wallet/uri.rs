@@ -172,7 +172,7 @@ mod tests {
             UriIdentificationError::Unknown(uri) if uri.as_str() == digid_uri
         );
 
-        // Set up an enrollment `DigidSession` that will match the URI.
+        // Set up an enrollment session that will match the URI.
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
             authorization_session: Box::new(MockAuthorizationSession::new()),
@@ -181,7 +181,7 @@ mod tests {
         // The wallet should now recognise the DigiD URI.
         assert_matches!(wallet.identify_uri(digid_uri).unwrap(), UriType::PidIssuance);
 
-        // Set up a PID renewal `DigidSession` that will match the URI.
+        // Set up a PID renewal session that will match the URI.
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
             purpose: PidIssuancePurpose::Renewal,
             authorization_session: Box::new(MockAuthorizationSession::new()),
@@ -190,7 +190,7 @@ mod tests {
         // The wallet should now recognise the DigiD URI.
         assert_matches!(wallet.identify_uri(digid_uri).unwrap(), UriType::PidRenewal);
 
-        // After clearing the `DigidSession`, the URI should not be recognised again.
+        // After clearing the session, the URI should not be recognised again.
         wallet.session = None;
 
         assert_matches!(

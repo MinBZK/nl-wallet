@@ -79,7 +79,7 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
 impl<P: PkcePair> HttpAuthorizationSession<P> {
     /// Create a new authorization server session and compute the authorization URL.
     /// Returns an error if the provider has no authorization endpoint or the URL cannot be encoded.
-    pub fn try_new(
+    pub(super) fn try_new(
         http_client: HttpJsonClient,
         issuer_metadata: IssuerMetadata,
         oauth_metadata: AuthorizationServerMetadata,

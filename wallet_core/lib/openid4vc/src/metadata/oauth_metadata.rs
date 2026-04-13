@@ -7,7 +7,8 @@ use serde_with::skip_serializing_none;
 use url::Url;
 
 use crate::issuer_identifier::IssuerIdentifier;
-use crate::metadata::well_known::WellKnownMetadata;
+
+use super::well_known::WellKnownMetadata;
 
 /// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414), to be
 /// published at `.well-known/oauth-authorization-server`.
