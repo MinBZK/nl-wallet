@@ -731,6 +731,7 @@ where
                 &self.attr_service,
                 &self.issuer_data.server_url,
                 &self.issuer_data.attestation_config,
+                is_new_session,
             )
             .await;
 
@@ -913,9 +914,17 @@ impl Session<Created> {
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
         attestation_settings: &AttestationTypesConfig<impl EcdsaKeySend>,
+        is_new_session: bool,
     ) -> Result<(TokenResponse, String, Session<WaitingForResponse>), (TokenRequestError, Session<Done>)> {
         let result = self
-            .process_token_request_inner(token_request, dpop, attr_service, server_url, attestation_settings)
+            .process_token_request_inner(
+                token_request,
+                dpop,
+                attr_service,
+                server_url,
+                attestation_settings,
+                is_new_session,
+            )
             .await;
 
         match result {
@@ -939,10 +948,6 @@ impl Session<Created> {
                 Err((err, next))
             }
         }
-    }
-
-    fn is_prepopulated(&self) -> bool {
-        self.session_data().issuable_documents.is_some()
     }
 
     fn id_and_credential_preview_from_issuable_document(
@@ -972,6 +977,7 @@ impl Session<Created> {
         (id, preview)
     }
 
+    #[expect(clippy::too_many_arguments, reason = "Cascading effect because of constructor")]
     async fn process_token_request_inner(
         &self,
         token_request: TokenRequest,
@@ -979,6 +985,7 @@ impl Session<Created> {
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
         attestation_settings: &AttestationTypesConfig<impl EcdsaKeySend>,
+        is_new_session: bool,
     ) -> Result<
         (
             TokenResponse,
@@ -991,17 +998,16 @@ impl Session<Created> {
     > {
         // Pre-populated sessions (e.g. disclosure-based issuance) must use PreAuthorizedCode.
         // New sessions (authorization code flow) must use AuthorizationCode.
-        let is_pre_populated_session = self.is_prepopulated();
-        match (&token_request.grant_type, is_pre_populated_session) {
-            (TokenRequestGrantType::AuthorizationCode { .. }, false)
-            | (TokenRequestGrantType::PreAuthorizedCode { .. }, true) => {}
-            (TokenRequestGrantType::PreAuthorizedCode { .. }, false) => {
+        match (&token_request.grant_type, is_new_session) {
+            (TokenRequestGrantType::AuthorizationCode { .. }, true)
+            | (TokenRequestGrantType::PreAuthorizedCode { .. }, false) => {}
+            (TokenRequestGrantType::PreAuthorizedCode { .. }, true) => {
                 return Err(TokenRequestError::UnexpectedGrantType {
                     expected: "authorization_code",
                     actual: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
                 });
             }
-            (TokenRequestGrantType::AuthorizationCode { .. }, true) => {
+            (TokenRequestGrantType::AuthorizationCode { .. }, false) => {
                 return Err(TokenRequestError::UnexpectedGrantType {
                     expected: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
                     actual: "authorization_code",
