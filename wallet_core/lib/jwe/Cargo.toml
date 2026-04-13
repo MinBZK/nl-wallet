@@ -14,6 +14,9 @@ doctest = false
 name = "encrypt_decrypt"
 path = "tests/encrypt_decrypt.rs"
 
+[features]
+rsa = ["dep:rsa"]
+
 [dependencies]
 derive_more = { workspace = true, features = ["as_ref", "constructor", "debug", "display", "from", "from_str", "into"] }
 p256 = { workspace = true, features = ["pem"] }
@@ -25,6 +28,8 @@ strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 josekit.workspace = true
 jwk-simple.workspace = true
+
+rsa = { workspace = true, optional = true }
 
 [target.'cfg(any(target_env = "musl", target_os = "android", target_os = "ios"))'.dependencies]
 # When compiling for "musl", Android or iOS, make sure that the "vendored" feature of "josekit" is enabled, which in

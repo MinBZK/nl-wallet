@@ -2,6 +2,9 @@ use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
 use jwk_simple::Algorithm;
 use strum::EnumString;
 
+#[cfg(feature = "rsa")]
+pub use rsa::RsaAlgorithm;
+
 /// A type representing possible values of the "alg" header parameter value for JWE, when using an elliptic curve
 /// secret and public key. It contains only those algorithms supported by this crate.
 /// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-4>
@@ -65,4 +68,61 @@ pub enum EncryptionAlgorithm {
     A128Gcm,
     A192Gcm,
     A256Gcm,
+}
+
+#[cfg(feature = "rsa")]
+mod rsa {
+    use josekit::jwe::alg::rsaes::RsaesJweAlgorithm;
+    use jwk_simple::Algorithm;
+    use strum::EnumString;
+
+    /// A type representing possible values of the "alg" header parameter value for JWE, when using a RSA private and
+    /// public key. It contains only those algorithms supported by this crate. "RSA1_5" is not among them, as this
+    /// algorithm is deprecated.
+    /// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-4>
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, EnumString)]
+    #[strum(serialize_all = "SCREAMING-KEBAB-CASE")]
+    pub enum RsaAlgorithm {
+        RsaOaep,
+        #[strum(serialize = "RSA-OAEP-256")]
+        RsaOaep256,
+        #[strum(serialize = "RSA-OAEP-384")]
+        RsaOaep384,
+        #[strum(serialize = "RSA-OAEP-512")]
+        RsaOaep512,
+    }
+
+    impl RsaAlgorithm {
+        pub fn try_from_jwk_simple_algorithm(value: &Algorithm) -> Option<Self> {
+            match &value {
+                Algorithm::RsaOaep => Some(Self::RsaOaep),
+                Algorithm::RsaOaep256 => Some(Self::RsaOaep256),
+                Algorithm::RsaOaep384 => Some(Self::RsaOaep384),
+                Algorithm::RsaOaep512 => Some(Self::RsaOaep512),
+                _ => None,
+            }
+        }
+    }
+
+    impl From<RsaAlgorithm> for Algorithm {
+        fn from(value: RsaAlgorithm) -> Self {
+            match value {
+                RsaAlgorithm::RsaOaep => Self::RsaOaep,
+                RsaAlgorithm::RsaOaep256 => Self::RsaOaep256,
+                RsaAlgorithm::RsaOaep384 => Self::RsaOaep384,
+                RsaAlgorithm::RsaOaep512 => Self::RsaOaep512,
+            }
+        }
+    }
+
+    impl From<RsaAlgorithm> for RsaesJweAlgorithm {
+        fn from(value: RsaAlgorithm) -> Self {
+            match value {
+                RsaAlgorithm::RsaOaep => Self::RsaOaep,
+                RsaAlgorithm::RsaOaep256 => Self::RsaOaep256,
+                RsaAlgorithm::RsaOaep384 => Self::RsaOaep384,
+                RsaAlgorithm::RsaOaep512 => Self::RsaOaep512,
+            }
+        }
+    }
 }

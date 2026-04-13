@@ -33,6 +33,29 @@ pub enum EcdhPublicJwkError {
     UnsupportedJwkEcCurve(EcCurve),
 }
 
+#[cfg(feature = "rsa")]
+#[derive(Debug, thiserror::Error)]
+#[cfg_attr(test, derive(strum::EnumDiscriminants))]
+pub enum RsaPrivateJwkError {
+    #[error("{0}")]
+    Jwk(#[from] JwkError),
+
+    #[error("JWK with multi-prima RSA key is not supported")]
+    MultiPrimeUnsupported,
+
+    #[error("JWK is missing private exponent")]
+    MissingPrivateExponent,
+
+    #[error("JWK is missing first prime factor")]
+    MissingFirstPrime,
+
+    #[error("JWK is missing second prime factor")]
+    MissingSecondPrime,
+
+    #[error("JWK contains invalid RSA private key: {0}")]
+    InvalidRsa(#[source] rsa::Error),
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum JweJsonEncryptionError {
     #[error("could not serialize data: {0}")]
