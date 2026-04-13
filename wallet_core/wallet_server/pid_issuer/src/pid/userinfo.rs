@@ -17,13 +17,14 @@ use openid4vc::AuthBearerErrorCode;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
 use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::metadata::jwks::HttpJwksClient;
-use openid4vc::metadata::jwks::JwksError;
 use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
 use openid4vc::metadata::well_known;
 use openid4vc::metadata::well_known::WellKnownError;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponse;
+
+use super::jwks::HttpJwksClient;
+use super::jwks::JwksError;
 
 const APPLICATION_JWT: &str = "application/jwt";
 

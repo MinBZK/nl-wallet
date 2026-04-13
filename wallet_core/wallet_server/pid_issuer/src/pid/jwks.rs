@@ -2,14 +2,11 @@ use derive_more::Constructor;
 use jsonwebtoken::jwk::JwkSet;
 use url::Url;
 
-use error_category::ErrorCategory;
 use http_utils::reqwest::HttpJsonClient;
 
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-#[category(pd)]
+#[derive(Debug, thiserror::Error)]
 pub enum JwksError {
     #[error("error fetching jwks: {0}")]
-    #[category(expected)]
     Http(#[from] reqwest::Error),
 }
 
