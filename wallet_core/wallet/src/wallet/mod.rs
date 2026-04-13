@@ -41,7 +41,6 @@ use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::hardware::HardwareCloseProximityDisclosureClient;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use token_status_list::verification::reqwest::HttpStatusListClient;
-use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
 use crate::account_provider::HttpAccountProviderClient;
 use crate::config::WalletConfigurationRepository;
@@ -130,10 +129,7 @@ enum Session<AS, IS, DCS> {
     Issuance(WalletIssuanceSession<AS, IS>),
     Disclosure(WalletDisclosureSession<DCS>),
     CloseProximityDisclosure(CloseProximityDisclosureSession),
-    PinRecovery {
-        pid_config: PidAttributesConfiguration,
-        session: PinRecoverySession<AS, IS>,
-    },
+    PinRecovery(PinRecoverySession<AS, IS>),
 }
 
 pub struct Wallet<

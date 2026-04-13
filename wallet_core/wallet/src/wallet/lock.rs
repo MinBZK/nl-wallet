@@ -141,10 +141,7 @@ where
         // Clear this state if the wallet is locked, to force them to start over with PIN recovery.
         if matches!(
             self.session,
-            Some(Session::PinRecovery {
-                session: PinRecoverySession::Issuance { .. },
-                ..
-            })
+            Some(Session::PinRecovery(PinRecoverySession::Issuance { .. }))
         ) {
             self.session.take();
         };

@@ -107,10 +107,7 @@ where
             Some(UriType::PidIssuance)
                 if matches!(
                     self.session,
-                    Some(Session::PinRecovery {
-                        session: PinRecoverySession::OAuth { .. },
-                        ..
-                    })
+                    Some(Session::PinRecovery(PinRecoverySession::OAuth { .. }))
                 ) =>
             {
                 UriType::PinRecovery

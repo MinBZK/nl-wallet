@@ -166,7 +166,6 @@ mod tests {
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
-    use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
     use crate::BlockedReason;
     use crate::PidIssuancePurpose;
@@ -577,14 +576,8 @@ mod tests {
     }
 
     fn pin_recovery_session() -> Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession> {
-        Session::PinRecovery {
-            pid_config: PidAttributesConfiguration {
-                mso_mdoc: Default::default(),
-                sd_jwt: Default::default(),
-            },
-            session: PinRecoverySession::OAuth {
-                authorization_session: MockAuthorizationSession::new(),
-            },
-        }
+        Session::PinRecovery(PinRecoverySession::OAuth {
+            authorization_session: MockAuthorizationSession::new(),
+        })
     }
 }

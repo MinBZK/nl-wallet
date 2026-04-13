@@ -20,6 +20,7 @@ use openid4vc::wallet_issuance::credential::IssuedCredential;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
+use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::PidAttributesConfigurationError;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -116,6 +117,7 @@ pub enum PinRecoverySession<AS, IS> {
         authorization_session: AS,
     },
     Issuance {
+        pid_config: PidAttributesConfiguration,
         pid_attestation_type: String,
         issuance_session: IS,
     },
@@ -179,10 +181,9 @@ where
 
         info!("PIN recovery DigiD auth URL generated");
         let auth_url = authorization_session.auth_url().clone();
-        self.session.replace(Session::PinRecovery {
-            pid_config: config.pid_attributes.clone(),
-            session: PinRecoverySession::OAuth { authorization_session },
-        });
+        self.session.replace(Session::PinRecovery(PinRecoverySession::OAuth {
+            authorization_session,
+        }));
 
         Ok(auth_url)
     }
@@ -207,18 +208,12 @@ where
         info!("Checking if there is an active PIN recovery session");
         if !matches!(
             self.session,
-            Some(Session::PinRecovery {
-                session: PinRecoverySession::OAuth { .. },
-                ..
-            })
+            Some(Session::PinRecovery(PinRecoverySession::OAuth { .. }))
         ) {
             return Err(PinRecoveryError::SessionState);
         }
 
-        let Some(Session::PinRecovery {
-            session: PinRecoverySession::OAuth { authorization_session },
-            ..
-        }) = self.session.take()
+        let Some(Session::PinRecovery(PinRecoverySession::OAuth { authorization_session })) = self.session.take()
         else {
             unreachable!("session contained no PinRecovery OAuth session"); // we just checked this above
         };
@@ -243,13 +238,11 @@ where
         self.compare_recovery_code_against_stored(pid_preview, pid_config)
             .await?;
 
-        self.session.replace(Session::PinRecovery {
+        self.session.replace(Session::PinRecovery(PinRecoverySession::Issuance {
             pid_config: pid_config.clone(),
-            session: PinRecoverySession::Issuance {
-                pid_attestation_type: pid_preview.content.credential_payload.attestation_type.clone(),
-                issuance_session,
-            },
-        });
+            pid_attestation_type: pid_preview.content.credential_payload.attestation_type.clone(),
+            issuance_session,
+        }));
 
         // After this function is done, the user is asked to choose their new PIN.
         // Therefore, regardless of the state of `self.lock` the app is effectively accessible to whoever holds the
@@ -303,22 +296,16 @@ where
         info!("Checking if there is an active issuance session");
         if !matches!(
             self.session,
-            Some(Session::PinRecovery {
-                session: PinRecoverySession::Issuance { .. },
-                ..
-            })
+            Some(Session::PinRecovery(PinRecoverySession::Issuance { .. }))
         ) {
             return Err(PinRecoveryError::SessionState);
         }
 
-        let Some(Session::PinRecovery {
+        let Some(Session::PinRecovery(PinRecoverySession::Issuance {
             pid_config,
-            session:
-                PinRecoverySession::Issuance {
-                    pid_attestation_type: offered_pid,
-                    issuance_session,
-                },
-        }) = &mut self.session.take()
+            pid_attestation_type: offered_pid,
+            issuance_session,
+        })) = &mut self.session.take()
         else {
             unreachable!("session contained no PIN recovery issuance session"); // we just checked this above
         };
@@ -501,7 +488,6 @@ mod tests {
     use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::registration::WalletCertificateClaims;
-    use wallet_configuration::wallet_config::PidAttributesConfiguration;
     use wscd::Poa;
     use wscd::wscd::IssuanceWscd;
 
@@ -589,13 +575,9 @@ mod tests {
             Ok(client)
         });
 
-        wallet.session = Some(Session::PinRecovery {
-            pid_config: PidAttributesConfiguration {
-                mso_mdoc: Default::default(),
-                sd_jwt: Default::default(),
-            },
-            session: PinRecoverySession::OAuth { authorization_session },
-        });
+        wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
+            authorization_session,
+        }));
 
         wallet
             .mut_storage()
@@ -712,10 +694,7 @@ mod tests {
 
         assert_matches!(
             &wallet.session,
-            Some(Session::PinRecovery {
-                session: PinRecoverySession::Issuance { .. },
-                ..
-            })
+            Some(Session::PinRecovery(PinRecoverySession::Issuance { .. }))
         );
 
         wallet.cancel_pin_recovery().await.unwrap();
@@ -778,13 +757,9 @@ mod tests {
             .expect_start_issuance_sync()
             .return_once(|| Err(WalletIssuanceError::OAuth(OAuthError::Denied)));
 
-        wallet.session = Some(Session::PinRecovery {
-            pid_config: PidAttributesConfiguration {
-                mso_mdoc: Default::default(),
-                sd_jwt: Default::default(),
-            },
-            session: PinRecoverySession::OAuth { authorization_session },
-        });
+        wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
+            authorization_session,
+        }));
 
         // Pass a redirect URI with `error=access_denied` to simulate user denial
         let denied_redirect = Url::parse(&format!("{AUTH_URL}?error=access_denied&state=whatever")).unwrap();
@@ -821,13 +796,9 @@ mod tests {
             Ok(client)
         });
 
-        wallet.session = Some(Session::PinRecovery {
-            pid_config: PidAttributesConfiguration {
-                mso_mdoc: Default::default(),
-                sd_jwt: Default::default(),
-            },
-            session: PinRecoverySession::OAuth { authorization_session },
-        });
+        wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
+            authorization_session,
+        }));
 
         let err = wallet.continue_pin_recovery(redirect_uri).await.unwrap_err();
 
@@ -870,13 +841,9 @@ mod tests {
                 Ok(client)
             });
 
-        wallet.session = Some(Session::PinRecovery {
-            pid_config: PidAttributesConfiguration {
-                mso_mdoc: Default::default(),
-                sd_jwt: Default::default(),
-            },
-            session: PinRecoverySession::OAuth { authorization_session },
-        });
+        wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
+            authorization_session,
+        }));
 
         wallet
             .mut_storage()
@@ -960,13 +927,11 @@ mod tests {
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
 
-        wallet.session = Some(Session::PinRecovery {
+        wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
-            session: PinRecoverySession::Issuance {
-                pid_attestation_type: PID_ATTESTATION_TYPE.to_string(),
-                issuance_session: pid_issuer,
-            },
-        });
+            pid_attestation_type: PID_ATTESTATION_TYPE.to_string(),
+            issuance_session: pid_issuer,
+        }));
     }
 
     struct MockPinWscd;
