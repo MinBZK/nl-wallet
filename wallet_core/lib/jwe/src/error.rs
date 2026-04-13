@@ -6,21 +6,28 @@ use jwk_simple::KeyUse;
 
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(test, derive(strum::EnumDiscriminants))]
-pub enum EcdhPublicJwkError {
+pub enum JwkError {
     #[error("JWK is not valid: {0}")]
-    JwkInvalid(#[source] jwk_simple::Error),
-
-    #[error("JWK does not contain an algorithm")]
-    MissingJwkAlgorithm,
+    Invalid(#[source] jwk_simple::Error),
 
     #[error("JWK specifies key use \"{0}\", not encryption")]
-    InvalidJwkKeyUse(KeyUse),
+    InvalidKeyUse(KeyUse),
 
     #[error("JWK algorithm \"{0}\" is not supported")]
-    UnsupportedJwkAlgorithm(Algorithm),
+    UnsupportedAlgorithm(Algorithm),
 
     #[error("JWK key type \"{0}\" is not consistent with algorithm \"{1}\"")]
-    InconsistentJwkKeyType(KeyType, Algorithm),
+    InconsistentKeyType(KeyType, Algorithm),
+}
+
+#[derive(Debug, thiserror::Error)]
+#[cfg_attr(test, derive(strum::EnumDiscriminants))]
+pub enum EcdhPublicJwkError {
+    #[error("{0}")]
+    Jwk(#[from] JwkError),
+
+    #[error("JWK does not contain an algorithm")]
+    MissingAlgorithm,
 
     #[error("JWK EC curve is \"{0}\", not P-256")]
     UnsupportedJwkEcCurve(EcCurve),

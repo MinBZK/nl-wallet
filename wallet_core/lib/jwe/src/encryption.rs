@@ -24,6 +24,7 @@ use crate::algorithm::EcdhAlgorithm;
 use crate::algorithm::EncryptionAlgorithm;
 use crate::error::EcdhPublicJwkError;
 use crate::error::JweEncryptionError;
+use crate::error::JwkError;
 
 #[derive(Debug, Clone, Copy, From, Into, Display, FromStr)]
 #[display(
@@ -58,24 +59,21 @@ impl JwePublicKey {
     }
 
     pub fn try_from_jwk(jwk: &Key) -> Result<Self, EcdhPublicJwkError> {
-        jwk.validate().map_err(EcdhPublicJwkError::JwkInvalid)?;
+        jwk.validate().map_err(JwkError::Invalid)?;
 
-        let algorithm = jwk.alg().ok_or(EcdhPublicJwkError::MissingJwkAlgorithm)?;
+        let algorithm = jwk.alg().ok_or(EcdhPublicJwkError::MissingAlgorithm)?;
 
         if let Some(key_use) = jwk.key_use()
             && *key_use != KeyUse::Encryption
         {
-            return Err(EcdhPublicJwkError::InvalidJwkKeyUse(key_use.clone()));
+            return Err(JwkError::InvalidKeyUse(key_use.clone()).into());
         }
 
         let jwe_algorithm = EcdhAlgorithm::try_from_jwk_simple_algorithm(algorithm)
-            .ok_or(EcdhPublicJwkError::UnsupportedJwkAlgorithm(algorithm.clone()))?;
+            .ok_or(JwkError::UnsupportedAlgorithm(algorithm.clone()))?;
 
         if !jwk.is_algorithm_compatible(algorithm) {
-            return Err(EcdhPublicJwkError::InconsistentJwkKeyType(
-                jwk.params().key_type(),
-                algorithm.clone(),
-            ));
+            return Err(JwkError::InconsistentKeyType(jwk.params().key_type(), algorithm.clone()).into());
         }
 
         let KeyParams::Ec(ec_params) = jwk.params() else {
@@ -233,7 +231,9 @@ mod tests {
 
     use crate::algorithm::EcdhAlgorithm;
     use crate::algorithm::EncryptionAlgorithm;
+    use crate::error::EcdhPublicJwkError;
     use crate::error::EcdhPublicJwkErrorDiscriminants;
+    use crate::error::JwkErrorDiscriminants;
 
     use super::JweCompression;
     use super::JweEncrypter;
@@ -332,31 +332,49 @@ mod tests {
         })
     }
 
+    #[derive(Clone, Copy)]
+    enum ExpectedTryFromJwkError {
+        Jwk(JwkErrorDiscriminants),
+        EcdhPublicJwk(EcdhPublicJwkErrorDiscriminants),
+    }
+
     #[rstest]
-    #[case::valid(example_jwk(), Ok(()))]
-    #[case::valid_ecdh_es_a256kw(example_jwk_with_alg(EcdhAlgorithm::EcdhEsA256kw), Ok(()))]
-    #[case::valid_no_kid(example_jwk_no_kid(), Ok(()))]
-    #[case::invalid_key_length(example_jwk_invalid_key_length(), Err(EcdhPublicJwkErrorDiscriminants::JwkInvalid))]
-    #[case::invalid_no_alg(example_jwk_no_alg(), Err(EcdhPublicJwkErrorDiscriminants::MissingJwkAlgorithm))]
-    #[case::invalid_key_use(example_jwk_key_use_sig(), Err(EcdhPublicJwkErrorDiscriminants::InvalidJwkKeyUse))]
+    #[case::valid(example_jwk(), None)]
+    #[case::valid_ecdh_es_a256kw(example_jwk_with_alg(EcdhAlgorithm::EcdhEsA256kw), None)]
+    #[case::valid_no_kid(example_jwk_no_kid(), None)]
+    #[case::invalid_key_length(
+        example_jwk_invalid_key_length(),
+        Some(ExpectedTryFromJwkError::Jwk(JwkErrorDiscriminants::Invalid))
+    )]
+    #[case::invalid_no_alg(
+        example_jwk_no_alg(),
+        Some(ExpectedTryFromJwkError::EcdhPublicJwk(EcdhPublicJwkErrorDiscriminants::MissingAlgorithm))
+    )]
+    #[case::invalid_key_use(
+        example_jwk_key_use_sig(),
+        Some(ExpectedTryFromJwkError::Jwk(JwkErrorDiscriminants::InvalidKeyUse))
+    )]
     #[case::invalid_alg_es256(
         example_jwk_alg_es256(),
-        Err(EcdhPublicJwkErrorDiscriminants::UnsupportedJwkAlgorithm)
+        Some(ExpectedTryFromJwkError::Jwk(JwkErrorDiscriminants::UnsupportedAlgorithm))
     )]
     #[case::example_jwk_rsa_alg_ecdh_es(
         example_jwk_rsa_alg_ecdh_es(),
-        Err(EcdhPublicJwkErrorDiscriminants::InconsistentJwkKeyType)
+        Some(ExpectedTryFromJwkError::Jwk(JwkErrorDiscriminants::InconsistentKeyType))
     )]
-    #[case::invalid_curve(example_jwk_p521(), Err(EcdhPublicJwkErrorDiscriminants::UnsupportedJwkEcCurve))]
+    #[case::invalid_curve(
+        example_jwk_p521(),
+        Some(ExpectedTryFromJwkError::EcdhPublicJwk(EcdhPublicJwkErrorDiscriminants::UnsupportedJwkEcCurve))
+    )]
     fn test_jwe_encryption_key(
         #[case] json: serde_json::Value,
-        #[case] expected_result: Result<(), EcdhPublicJwkErrorDiscriminants>,
+        #[case] expected_error: Option<ExpectedTryFromJwkError>,
     ) {
         let jwk = serde_json::from_value(json).unwrap();
         let result = JwePublicKey::try_from_jwk(&jwk);
 
-        match expected_result {
-            Ok(()) => {
+        match expected_error {
+            None => {
                 let key = result.expect("converting from JWK to JweEncryptionKey should succeed");
 
                 assert_eq!(key.id(), jwk.kid());
@@ -368,10 +386,21 @@ mod tests {
                 assert_eq!(output_jwk.key_use(), Some(&KeyUse::Encryption));
                 assert_eq!(output_jwk.kid(), jwk.kid());
             }
-            Err(expected_error) => {
+            Some(expected_error) => {
                 let error = result.expect_err("converting from JWK to JweEncryptionKey should fail");
 
-                assert_eq!(EcdhPublicJwkErrorDiscriminants::from(&error), expected_error);
+                match expected_error {
+                    ExpectedTryFromJwkError::Jwk(expected_discriminant) => {
+                        assert_matches!(
+                            error,
+                            EcdhPublicJwkError::Jwk(error)
+                                if JwkErrorDiscriminants::from(&error) == expected_discriminant
+                        )
+                    }
+                    ExpectedTryFromJwkError::EcdhPublicJwk(expected_discriminant) => {
+                        assert_eq!(EcdhPublicJwkErrorDiscriminants::from(&error), expected_discriminant)
+                    }
+                }
             }
         }
     }
