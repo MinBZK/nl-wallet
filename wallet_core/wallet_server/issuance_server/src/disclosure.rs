@@ -309,7 +309,7 @@ mod tests {
             .unwrap();
         let credential_offer: CredentialOffer = serde_json::from_str(&query_params["credential_offer"]).unwrap();
 
-        let code = credential_offer.grants.as_ref().unwrap().authorization_code().unwrap();
+        let code = credential_offer.grants.as_ref().unwrap().pre_authorized_code().unwrap();
 
         // The session handler should have inserted a new issuance session in the session store.
         let IssuanceData::Created(session) = sessions

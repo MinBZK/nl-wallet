@@ -221,8 +221,8 @@ pub struct CredentialOffer {
 }
 
 impl CredentialOffer {
-    pub fn authorization_code(&self) -> Option<AuthorizationCode> {
-        self.grants.as_ref()?.authorization_code()
+    pub fn pre_authorized_code(&self) -> Option<&AuthorizationCode> {
+        self.grants.as_ref()?.pre_authorized_code()
     }
 }
 
@@ -258,12 +258,12 @@ pub enum Grants {
 }
 
 impl Grants {
-    pub fn authorization_code(&self) -> Option<AuthorizationCode> {
+    pub fn pre_authorized_code(&self) -> Option<&AuthorizationCode> {
         match self {
             Grants::Both {
                 pre_authorized_code, ..
-            } => Some(pre_authorized_code.pre_authorized_code.clone()),
-            Grants::PreAuthorizedCode { pre_authorized_code } => Some(pre_authorized_code.pre_authorized_code.clone()),
+            } => Some(&pre_authorized_code.pre_authorized_code),
+            Grants::PreAuthorizedCode { pre_authorized_code } => Some(&pre_authorized_code.pre_authorized_code),
             Grants::AuthorizationCode { .. } => None,
         }
     }
