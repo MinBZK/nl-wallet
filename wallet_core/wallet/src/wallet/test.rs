@@ -401,10 +401,7 @@ where
                 config_repository,
                 update_policy_repository: MockUpdatePolicyRepository::default(),
             },
-            WalletClients {
-                credential_issuer_discovery: MockIssuanceDiscovery::new(),
-                ..WalletClients::default()
-            },
+            WalletClients::default(),
             RegistrationStatus::Unregistered,
         )
     }
@@ -421,10 +418,7 @@ where
                 config_repository,
                 update_policy_repository: MockUpdatePolicyRepository::default(),
             },
-            WalletClients {
-                credential_issuer_discovery: MockIssuanceDiscovery::new(),
-                ..WalletClients::default()
-            },
+            WalletClients::default(),
         )
         .await
     }
@@ -487,10 +481,7 @@ impl TestWalletMockStorage {
                 config_repository,
                 update_policy_repository: MockUpdatePolicyRepository::default(),
             },
-            WalletClients {
-                credential_issuer_discovery: MockIssuanceDiscovery::new(),
-                ..WalletClients::default()
-            },
+            WalletClients::default(),
         )
         .await
     }
