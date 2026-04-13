@@ -660,9 +660,9 @@ where
         Ok(IssuanceResult { transfer_session_id })
     }
 
-    pub(super) fn handle_accept_issuance_error<IS: IssuanceSession>(
+    pub(super) fn handle_accept_issuance_error(
         error: WalletIssuanceError,
-        issuance_session: &IS,
+        issuance_session: &CID::Issuance,
     ) -> IssuanceError {
         match error {
             // We knowingly call unwrap() on the downcast to `RemoteEcdsaKeyError` here because we know
