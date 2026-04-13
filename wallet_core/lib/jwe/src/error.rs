@@ -34,7 +34,7 @@ pub enum EcdhPublicJwkError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum JweEncryptionError {
+pub enum JweJsonEncryptionError {
     #[error("could not serialize data: {0}")]
     Serialization(#[source] serde_json::Error),
 
@@ -43,7 +43,7 @@ pub enum JweEncryptionError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum JweDecryptionError {
+pub enum JweJsonDecryptionError {
     #[error("could not decrypt data: {0}")]
     Decryption(#[source] JoseError),
 

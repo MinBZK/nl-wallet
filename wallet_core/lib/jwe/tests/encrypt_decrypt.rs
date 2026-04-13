@@ -6,7 +6,7 @@ use jwe::decryption::JweEcdhSecretKey;
 use jwe::encryption::JweCompression;
 use jwe::encryption::JweEncrypter;
 use jwe::encryption::JwePublicKey;
-use jwe::error::JweDecryptionError;
+use jwe::error::JweJsonDecryptionError;
 use jwk_simple::Key;
 use rstest::rstest;
 use serde::Deserialize;
@@ -33,7 +33,7 @@ where
     let public_key = JwePublicKey::try_from_jwk(jwk).expect("converting JWK to JwePublicKey should succeed");
 
     JweEncrypter::from(public_key)
-        .encrypt(
+        .encrypt_json(
             &payload,
             EncryptionAlgorithm::A256Gcm,
             Some(b"apu"),
@@ -59,7 +59,7 @@ fn test_encrypt_decrypt_ok(#[values(None, Some("key_id"))] kid: Option<&str>) {
 
     // Receiving side again.
     let decrypted_payload = JweDecrypter::from_ecdh_secret_key(&secret_key)
-        .decrypt::<TestPayload>(&jwe)
+        .decrypt_json::<TestPayload>(&jwe)
         .expect("decrypting payload from JWE should succeed");
 
     assert_eq!(decrypted_payload, payload);
@@ -73,12 +73,12 @@ fn test_encrypt_decrypt_id_mismatch() {
     let jwk_wrong_kid = jwk.clone().with_kid("wrong_key_id".to_string());
     let jwe = encrypt_jwe(&jwk_wrong_kid, &());
     let error = JweDecrypter::from_ecdh_secret_key(&secret_key)
-        .decrypt::<()>(&jwe)
+        .decrypt_json::<()>(&jwe)
         .expect_err("decrypting payload from JWE should fail");
 
     assert_matches!(
         error,
-        JweDecryptionError::IdMismatch(expected_kid, Some(received_kid))
+        JweJsonDecryptionError::IdMismatch(expected_kid, Some(received_kid))
             if &expected_kid == "key_id" && received_kid == "wrong_key_id"
     );
 
@@ -88,11 +88,11 @@ fn test_encrypt_decrypt_id_mismatch() {
         .with_use(jwk.key_use().cloned().unwrap());
     let jwe = encrypt_jwe(&jwk_no_kid, &());
     let error = JweDecrypter::from_ecdh_secret_key(&secret_key)
-        .decrypt::<()>(&jwe)
+        .decrypt_json::<()>(&jwe)
         .expect_err("decrypting payload from JWE should fail");
 
     assert_matches!(
         error,
-        JweDecryptionError::IdMismatch(expected_kid, None) if &expected_kid == "key_id"
+        JweJsonDecryptionError::IdMismatch(expected_kid, None) if &expected_kid == "key_id"
     );
 }

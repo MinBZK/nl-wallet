@@ -23,7 +23,7 @@ use serde_with::serde_as;
 use crate::algorithm::EcdhAlgorithm;
 use crate::algorithm::EncryptionAlgorithm;
 use crate::error::EcdhPublicJwkError;
-use crate::error::JweEncryptionError;
+use crate::error::JweJsonEncryptionError;
 use crate::error::JwkError;
 
 #[derive(Debug, Clone, Copy, From, Into, Display, FromStr)]
@@ -173,18 +173,18 @@ impl JweEncrypter {
         self.id.as_deref()
     }
 
-    pub fn encrypt<T>(
+    pub fn encrypt_json<T>(
         &self,
         data: &T,
         encryption_algorithm: EncryptionAlgorithm,
         apu: Option<&[u8]>,
         apv: Option<&[u8]>,
         use_compression: JweCompression,
-    ) -> Result<String, JweEncryptionError>
+    ) -> Result<String, JweJsonEncryptionError>
     where
         T: Serialize,
     {
-        let payload = serde_json::to_vec(data).map_err(JweEncryptionError::Serialization)?;
+        let payload = serde_json::to_vec(data).map_err(JweJsonEncryptionError::Serialization)?;
 
         let mut header = JweHeader::new();
 
@@ -206,7 +206,7 @@ impl JweEncrypter {
         }
 
         let jwe = josekit::jwe::serialize_compact(&payload, &header, &self.encrypter)
-            .map_err(JweEncryptionError::Encryption)?;
+            .map_err(JweJsonEncryptionError::Encryption)?;
 
         Ok(jwe)
     }
@@ -237,7 +237,7 @@ mod tests {
 
     use super::JweCompression;
     use super::JweEncrypter;
-    use super::JweEncryptionError;
+    use super::JweJsonEncryptionError;
     use super::JwePublicKey;
 
     fn example_jwk() -> serde_json::Value {
@@ -447,7 +447,7 @@ mod tests {
         let encrypter = JweEncrypter::from(key);
 
         let jws = encrypter
-            .encrypt(
+            .encrypt_json(
                 &data,
                 encryption_algorithm,
                 apu.map(str::as_bytes),
@@ -486,10 +486,10 @@ mod tests {
         let encrypter = JweEncrypter::from(key);
 
         let data = HashMap::from([(("one".to_string(), "two".to_string()), "three".to_string())]);
-        let result = encrypter.encrypt(&data, EncryptionAlgorithm::A256Gcm, None, None, JweCompression::None);
+        let result = encrypter.encrypt_json(&data, EncryptionAlgorithm::A256Gcm, None, None, JweCompression::None);
 
         let error = result.expect_err("encrypting data with JweEncrypter should fail");
 
-        assert_matches!(error, JweEncryptionError::Serialization(_));
+        assert_matches!(error, JweJsonEncryptionError::Serialization(_));
     }
 }
