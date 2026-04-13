@@ -111,7 +111,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     .await;
 
     // Start issuance by exchanging the authorization code for the attestation previews
-    let issuance_session = authorization_session
+    let mut issuance_session = authorization_session
         .start_issuance(&redirect_url, &wallet_config.issuer_trust_anchors())
         .await
         .unwrap();

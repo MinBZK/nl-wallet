@@ -565,7 +565,7 @@ where
             protocol_state,
             pid_purpose,
             ..
-        })) = &self.session
+        })) = &mut self.session
         else {
             return Err(IssuanceError::SessionState);
         };
@@ -1218,7 +1218,7 @@ mod tests {
         let mut authorization_session = MockAuthorizationSession::new();
         authorization_session
             .expect_start_issuance_sync()
-            .return_once(|| Err(WalletIssuanceError::MissingNonce));
+            .return_once(|| Err(WalletIssuanceError::IssuerMismatch));
 
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
@@ -1343,7 +1343,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
             client
                 .expect_reject()
-                .return_once(|| Err(WalletIssuanceError::MissingNonce));
+                .return_once(|| Err(WalletIssuanceError::IssuerMismatch));
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
@@ -1701,7 +1701,7 @@ mod tests {
             let mut client = MockIssuanceSession::new();
             client
                 .expect_accept()
-                .return_once(|| Err(WalletIssuanceError::MissingNonce));
+                .return_once(|| Err(WalletIssuanceError::IssuerMismatch));
 
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 

@@ -49,6 +49,7 @@ pub enum DisclosureType {
 pub enum DisclosureSessionType {
     SameDevice,
     CrossDevice,
+    CloseProximity,
 }
 
 pub enum CloseProximityDisclosureFlutterUpdate {

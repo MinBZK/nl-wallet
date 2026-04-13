@@ -6,7 +6,7 @@ crate="${1:-}"
 
 SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
 
-. $SCRIPTS_DIR/configuration.sh
+. "$SCRIPTS_DIR/configuration.sh"
 
 if [[ -z $crate || $crate == 'server_utils' ]]; then
     rm -f "$BASE_DIR/wallet_core/wallet_server/server_utils/src/entity"/*

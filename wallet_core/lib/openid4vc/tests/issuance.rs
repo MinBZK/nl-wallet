@@ -42,6 +42,7 @@ use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::nonce::memory_store::MemoryNonceStore;
+use openid4vc::nonce::response::NonceResponse;
 use openid4vc::preview::CredentialPreviewRequest;
 use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::MemorySessionStore;
@@ -165,7 +166,7 @@ where
         None,
         attr_service,
         sessions,
-        MemoryNonceStore::default(),
+        MemoryNonceStore::new(),
         Arc::new(status_list_service),
     );
 
@@ -182,11 +183,11 @@ async fn accept_issuance(#[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap
     let copy_count = 4;
 
     let issuer_metadata = message_client.issuer.metadata().clone();
-    let token_endpoint = AuthorizationServerMetadata::new_mock(issuer_identifier).token_endpoint;
-    let session = HttpIssuanceSession::new_mock(
+    let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
+    let mut session = HttpIssuanceSession::new_mock(
         message_client,
         issuer_metadata,
-        token_endpoint,
+        oauth_metadata,
         TokenRequest::new_mock(),
         trust_anchors,
     )
@@ -226,11 +227,11 @@ async fn reject_issuance() {
     let message_client = MockOpenidMessageClient::new(issuer);
 
     let issuer_metadata = message_client.issuer.metadata().clone();
-    let token_endpoint = AuthorizationServerMetadata::new_mock(issuer_identifier).token_endpoint;
+    let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
     let session = HttpIssuanceSession::new_mock(
         message_client,
         issuer_metadata,
-        token_endpoint,
+        oauth_metadata,
         TokenRequest::new_mock(),
         &[trust_anchor],
     )
@@ -248,11 +249,11 @@ async fn start_and_accept_err(
 ) -> WalletIssuanceError {
     let trust_anchors = &[trust_anchor];
     let issuer_metadata = message_client.issuer.metadata().clone();
-    let token_endpoint = AuthorizationServerMetadata::new_mock(issuer_identifier).token_endpoint;
-    let session = HttpIssuanceSession::new_mock(
+    let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
+    let mut session = HttpIssuanceSession::new_mock(
         message_client,
         issuer_metadata,
-        token_endpoint,
+        oauth_metadata,
         TokenRequest::new_mock(),
         trust_anchors,
     )
@@ -522,6 +523,13 @@ impl VcMessageClient for MockOpenidMessageClient {
             .process_credential_preview(access_token.clone(), preview_request.clone())
             .await
             .map_err(|err| WalletIssuanceError::CredentialPreviewRequest(Box::new(err.into())))
+    }
+
+    async fn request_nonce(&self, _url: Url) -> Result<(NonceResponse, Option<String>), WalletIssuanceError> {
+        let c_nonce = self.issuer.generate_proof_nonce().await.unwrap();
+        let nonce_response = NonceResponse { c_nonce };
+
+        Ok((nonce_response, None))
     }
 
     async fn request_credential(

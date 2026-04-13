@@ -6,6 +6,7 @@ use url::Url;
 
 use error_category::ErrorCategory;
 use http_utils::reqwest::HttpJsonClient;
+use jwt::nonce::Nonce;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
@@ -87,7 +88,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
     ) -> Result<Self, OAuthError> {
         let pkce_pair = P::generate();
         let state = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
-        let nonce = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
+        let nonce = Nonce::new_random();
 
         let mut scopes = IndexSet::with_capacity(1);
         scopes.insert("openid".to_string());
@@ -176,7 +177,6 @@ impl AuthorizationSession for HttpAuthorizationSession {
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         let authorization_code = self.authorization_code(received_redirect_uri)?;
         let message_client = HttpVcMessageClient::new(self.http_client);
-        let token_endpoint = self.oauth_metadata.token_endpoint;
 
         let token_request = TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode {
@@ -190,7 +190,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
         HttpIssuanceSession::create(
             message_client,
             self.issuer_metadata,
-            token_endpoint,
+            self.oauth_metadata,
             token_request,
             trust_anchors,
         )

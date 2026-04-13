@@ -191,6 +191,7 @@ if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
 
   # Create an RDO max container.
   make setup-remote
+  npm run build
 
   # Create our config files (overwrites defaults created in make targets).
   render_template "${DEVENV}/digid-connector/max.conf" "${DIGID_CONNECTOR_PATH}/max.conf"

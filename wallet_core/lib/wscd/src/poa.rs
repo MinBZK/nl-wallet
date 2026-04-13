@@ -20,6 +20,7 @@ use jwt::jwk::Jwk;
 use jwt::jwk::jwk_alg_from_p256;
 use jwt::jwk::jwk_from_p256;
 use jwt::jwk::jwk_to_p256;
+use jwt::nonce::Nonce;
 use jwt::pop::JwtPopClaims;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
@@ -102,8 +103,30 @@ impl Poa {
         expected_keys: &[VerifyingKey],
         expected_aud: &str,
         accepted_issuers: &[String],
-        expected_nonce: &str,
+        expected_nonce: &Nonce,
     ) -> Result<(), PoaVerificationError> {
+        let nonce = self.verify_returning_nonce(expected_keys, expected_aud, accepted_issuers)?;
+
+        if nonce != *expected_nonce {
+            return Err(PoaVerificationError::IncorrectNonce);
+        }
+
+        Ok(())
+    }
+
+    /// Verify the PoA and return the nonce used, checking that:
+    ///
+    /// - all `expected_keys` are in the PoA (and no other keys). The keys may be passed in any order.
+    /// - all signatures are valid against all keys in the PoA, and the order of the JWKs in the payload corresponds to
+    ///   the order of the signatures.
+    /// - the `aud` and `iss` fields in the payload have the expected values.
+    /// - a nonce is present in the payload
+    pub fn verify_returning_nonce(
+        self,
+        expected_keys: &[VerifyingKey],
+        expected_aud: &str,
+        accepted_issuers: &[String],
+    ) -> Result<Nonce, PoaVerificationError> {
         let jwts: Vec<UnverifiedJwt<_, _>> = self.into();
 
         if jwts.len() != expected_keys.len() {
@@ -124,9 +147,8 @@ impl Poa {
                 found: payload.jwks.as_slice().len(),
             });
         }
-        if payload.payload.nonce.as_deref() != Some(expected_nonce) {
-            return Err(PoaVerificationError::IncorrectNonce);
-        }
+
+        let nonce = payload.payload.nonce.ok_or(PoaVerificationError::MissingNonce)?;
 
         // Validate all the JWTs, against the keys in the payload of the JWTs.
         let mut validations = DEFAULT_VALIDATIONS.to_owned();
@@ -151,7 +173,7 @@ impl Poa {
             }
         }
 
-        Ok(())
+        Ok(nonce)
     }
 
     #[cfg(feature = "mock")]
@@ -175,6 +197,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use jwt::DEFAULT_VALIDATIONS;
     use jwt::UnverifiedJwt;
+    use jwt::nonce::Nonce;
     use jwt::pop::JwtPopClaims;
     use utils::vec_at_least::VecNonEmpty;
 
@@ -182,13 +205,13 @@ mod tests {
     use super::PoaPayload;
     use super::PoaVerificationError;
 
-    async fn poa_setup() -> (Poa, VerifyingKey, VerifyingKey, String, String, String) {
+    async fn poa_setup() -> (Poa, VerifyingKey, VerifyingKey, String, String, Nonce) {
         let key1 = MockRemoteEcdsaKey::new_random("key1".into());
         let key2 = MockRemoteEcdsaKey::new_random("key2".into());
 
         let iss = "iss".to_string();
         let aud = "aud".to_string();
-        let nonce = "nonce".to_string();
+        let nonce = Nonce::from("nonce".to_string());
 
         let poa = Poa::new(
             vec![&key1, &key2].try_into().unwrap(),
@@ -240,7 +263,9 @@ mod tests {
             &[key1, key2],
             verification_aud.unwrap_or(&aud),
             &[verification_iss.unwrap_or(&iss).to_string()],
-            verification_nonce.unwrap_or(&nonce),
+            &verification_nonce
+                .map(|nonce| Nonce::from(nonce.to_string()))
+                .unwrap_or(nonce),
         )
         .unwrap_err();
     }

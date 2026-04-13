@@ -132,12 +132,21 @@ class TypedWalletCore {
     bool isQrCode = false,
   }) => call(() => core.startDisclosure(uri: uri, isQrCode: isQrCode));
 
+  Future<String> startCloseProximityDisclosure({
+    required FutureOr<void> Function(core.CloseProximityDisclosureFlutterUpdate) callback,
+  }) => call(() => core.startCloseProximityDisclosure(callback: callback));
+
+  Future<core.StartDisclosureResult> continueCloseProximityDisclosure() => call(core.continueCloseProximityDisclosure);
+
   Future<String?> cancelDisclosure() => call(core.cancelDisclosure);
 
   Future<core.AcceptDisclosureResult> acceptDisclosure(String pin, List<int> selectedIndices) =>
       call(() => core.acceptDisclosure(selectedIndices: selectedIndices, pin: pin));
 
   Stream<List<core.AttestationPresentation>> observeCards() => _attestations.stream;
+
+  Future<core.WalletInstructionResult> deleteAttestation(String pin, String attestationId) =>
+      call(() => core.deleteAttestation(pin: pin, attestationId: attestationId));
 
   Future<void> resetWallet() => call(core.resetWallet);
 
@@ -186,10 +195,6 @@ class TypedWalletCore {
   Future<String> getRegistrationRevocationCode() => call(core.getRegistrationRevocationCode);
 
   Future<core.RevocationCodeResult> getRevocationCode(String pin) => call(() => core.getRevocationCode(pin: pin));
-
-  Future<String> startCloseProximityDisclosure({
-    required FutureOr<void> Function(core.CloseProximityDisclosureFlutterUpdate) callback,
-  }) => call(() => core.startCloseProximityDisclosure(callback: callback));
 
   /// This function should be used to call through to the core, as it makes sure potential exceptions are processed
   /// before they are (re)thrown.

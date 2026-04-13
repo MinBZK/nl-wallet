@@ -39,6 +39,7 @@ pub mod error;
 pub mod headers;
 pub mod jwk;
 pub mod jwt;
+pub mod nonce;
 pub mod pop;
 pub mod wua;
 

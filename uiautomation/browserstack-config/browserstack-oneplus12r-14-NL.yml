@@ -17,7 +17,7 @@ buildName: "${CI_PIPELINE_ID}"
 projectName: "NL Wallet Mobile"
 buildIdentifier: "${CI_JOB_ID}"
 
-autoGrantPermissions: true
+autoGrantPermissions: ${AUTO_GRANT_PERMISSIONS}
 automationName: UIAutomator2
 newCommandTimeout: 350
 networkLogs: true

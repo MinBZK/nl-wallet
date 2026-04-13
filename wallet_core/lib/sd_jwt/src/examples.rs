@@ -17,6 +17,7 @@ use jwt::Header;
 use jwt::JwtTyp;
 use jwt::confirmation::ConfirmationClaim;
 use jwt::jwk::jwk_to_p256;
+use jwt::nonce::Nonce;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
@@ -127,7 +128,7 @@ impl VerifiedSdJwtPresentation {
             .into_verified(
                 &examples_sd_jwt_decoding_key(),
                 WITH_KB_SD_JWT_AUD,
-                WITH_KB_SD_JWT_NONCE,
+                &Nonce::from(WITH_KB_SD_JWT_NONCE.to_string()),
                 Duration::from_secs(2 * 60),
                 &MockTimeGenerator::default(),
             )

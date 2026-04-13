@@ -404,14 +404,8 @@ mod tests {
     #[test]
     fn test_mdoc_credential_response_serialization() {
         let device_response = DeviceResponse::example();
-        let issuer_signed = &device_response
-            .documents
-            .as_ref()
-            .unwrap()
-            .first()
-            .unwrap()
-            .issuer_signed;
-        let credential = BASE64_URL_SAFE_NO_PAD.encode(cbor_serialize(issuer_signed).unwrap());
+        let issuer_signed = device_response.documents.unwrap().into_first().issuer_signed;
+        let credential = BASE64_URL_SAFE_NO_PAD.encode(cbor_serialize(&issuer_signed).unwrap());
 
         // Source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.3-8
         let json = json!({

@@ -539,7 +539,9 @@ impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
             | CloseProximityDisclosureError::InvalidCertificateType(_)
             | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_)
             | CloseProximityDisclosureError::MalformedDeviceRequest(_) => FlutterApiErrorType::Verifier,
-            CloseProximityDisclosureError::PlatformError(_) => FlutterApiErrorType::Generic,
+            CloseProximityDisclosureError::PlatformError(_) | CloseProximityDisclosureError::DeviceResponse(_) => {
+                FlutterApiErrorType::Generic
+            }
         }
     }
 }

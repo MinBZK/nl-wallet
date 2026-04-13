@@ -36,6 +36,16 @@ class CoreDisclosureRepository implements DisclosureRepository {
   @override
   Future<StartDisclosureResult> startDisclosure(String disclosureUri, {bool isQrCode = false}) async {
     final result = await _walletCore.startDisclosure(disclosureUri, isQrCode: isQrCode);
+    return _processDisclosureResult(result);
+  }
+
+  @override
+  Future<StartDisclosureResult> continueCloseProximityDisclosure() async {
+    final result = await _walletCore.continueCloseProximityDisclosure();
+    return _processDisclosureResult(result);
+  }
+
+  StartDisclosureResult _processDisclosureResult(core.StartDisclosureResult result) {
     switch (result) {
       case core.StartDisclosureResult_Request():
         final List<DiscloseCardRequest> requests = result.disclosureOptions

@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2026-03-30T16:48:15+02:00",
+    "@@last_modified": "2026-04-07T15:13:06+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -118,7 +118,7 @@
     "cardDetailScreenCardDataCta": "Gegevens in deze kaart",
     "cardDetailScreenCardDataPrivacyWarning": "Houd je gegevens privé",
     "cardDetailScreenCardDeleteCta": "Verwijder kaart",
-    "cardDetailScreenCardDeleteWarning": "Deze kaart wordt permanent verwijderd",
+    "cardDetailScreenCardDeleteWarning": "Deze kaart wordt definitief verwijderd",
     "cardDetailScreenCardHistoryCta": "Kaartactiviteiten",
     "cardDetailScreenCardValidUntil": "Geldig tot en met {dateTime}",
     "@cardDetailScreenCardValidUntil": {
@@ -354,10 +354,13 @@
     "dataIncorrectScreenDeclineTitle": "Kaart afwijzen",
     "dataIncorrectScreenHeaderDescription": "Laat de gegevens dan aanpassen door de organisatie die ze aanbiedt. Je kunt nu twee dingen doen:",
     "dataIncorrectScreenHeaderTitle": "Kloppen de gegevens niet?",
-    "deleteCardDialogBody": "",
-    "deleteCardDialogCancelCta": "",
-    "deleteCardDialogConfirmCta": "Ja, verwijder",
-    "deleteCardDialogTitle": "TODO {cardTitle}",
+    "deleteCardDialogBody": "Deze kaart wordt definitief verwijderd uit je wallet.\n\nJe kunt de vorige activiteiten van deze kaart nog steeds in je wallet bekijken.",
+    "deleteCardDialogCancelCta": "Annuleren",
+    "deleteCardDialogConfirmCta": "Ja, verwijderen",
+    "deleteCardDialogTitle": "Wil je {cardTitle} kaart verwijderen?",
+    "deleteCardSuccessPageDescription": "Je kunt de vorige activiteiten van deze kaart nog steeds in je wallet bekijken.",
+    "deleteCardSuccessPageTitle": "{cardTitle} kaart is verwijderd",
+    "deleteCardSuccessPageToDashboardCta": "Naar mijn overzicht",
     "demoScreenContentBullets": "Het Ministerie van Binnenlandse Zaken (MinBZK) ontwikkelt de app nog.  \nWe verwachten dat de app in 2027 beschikbaar zal zijn.  \nDe app gebruikt alleen testgegevens, geen echte gegevens.  \nTijdens het testen volgen we hoe je de app gebruikt om deze te verbeteren.  \nDe app kan op elk moment worden bijgewerkt, oudere versies werken mogelijk niet.  \nDe app kan soms instabiel zijn.",
     "demoScreenContentFooter": "Als er iets misgaat, installeer de app dan opnieuw.",
     "demoScreenContentHeader": "Je gebruikt nu een demoversie van de app.",
@@ -437,6 +440,18 @@
     "disclosureConfirmDataAttributesSubtitleTerms": "Afspraken",
     "disclosureConfirmPinPageForLoginTitle": "Geef akkoord met pincode",
     "disclosureConfirmPinPageTitle": "Geef akkoord met pincode",
+    "disclosureDisconnectedPageDescription": "Je kunt het {action} niet voortzetten.\n\nHoud de apparaten dicht bij elkaar. Controleer je Bluetooth-verbinding.\n\nSluit dit scherm en begin opnieuw.",
+    "@disclosureDisconnectedPageDescription": {
+        "placeholders": {
+            "action": {
+                "example": "sharing",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureDisconnectedPageLoginAction": "aanmelden",
+    "disclosureDisconnectedPageSharingAction": "delen",
+    "disclosureDisconnectedPageTitle": "Sorry, verbinding verbroken",
     "disclosureGenericErrorPageTitle": "Er ging iets mis",
     "disclosureLoadingSubtitle": "De aanvraag wordt opgehaald",
     "disclosureLoadingTitle": "Even geduld",

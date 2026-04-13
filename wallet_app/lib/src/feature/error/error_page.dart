@@ -221,11 +221,26 @@ class ErrorPage extends StatelessWidget {
       title: context.l10n.genericRelyingPartyErrorTitle,
       description: description,
       illustration: WalletAssets.svg_error_card_blocked,
-      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(
-        context,
-        style,
-        onPressed: onPrimaryActionPressed,
-      ),
+      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style, onPressed: onPrimaryActionPressed),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+    );
+  }
+
+  /// Creates an [ErrorPage] for when a close proximity connection (e.g. Bluetooth) is lost.
+  ///
+  /// [actionText] is a description of the action that was interrupted (e.g. login or sharing).
+  /// Use [style] to determine the CTA button behavior (defaults to [ErrorCtaStyle.close]).
+  factory ErrorPage.closeProximityDisconnected(
+    BuildContext context, {
+    required String actionText,
+    VoidCallback? onPrimaryActionPressed,
+    ErrorCtaStyle style = ErrorCtaStyle.close,
+  }) {
+    return ErrorPage(
+      title: context.l10n.disclosureDisconnectedPageTitle,
+      description: context.l10n.disclosureDisconnectedPageDescription(actionText),
+      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style, onPressed: onPrimaryActionPressed),
+      illustration: WalletAssets.svg_error_bluetooth,
       secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
     );
   }

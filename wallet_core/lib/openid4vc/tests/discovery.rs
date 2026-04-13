@@ -82,9 +82,7 @@ async fn start_wiremock_issuer(
         access_token: "mock_access_token".to_string().into(),
         token_type: TokenType::DPoP,
         refresh_token: None,
-        c_nonce: Some("mock_c_nonce".to_string()),
         scope: None,
-        c_nonce_expires_in: None,
         expires_in: None,
         authorization_details: None,
     };

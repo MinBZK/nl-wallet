@@ -18,6 +18,7 @@ use crate::UnverifiedJwt;
 use crate::confirmation::ConfirmationClaim;
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
+use crate::nonce::Nonce;
 use crate::pop::JwtPopClaims;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -70,8 +71,8 @@ impl WuaDisclosure {
 
 #[derive(Debug, thiserror::Error)]
 pub enum WuaError {
-    #[error("incorrect nonce")]
-    IncorrectNonce,
+    #[error("nonce is missing from WUA payload")]
+    MissingNonce,
     #[error("JWK conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
     #[error("JWT error: {0}")]
@@ -84,8 +85,7 @@ impl WuaDisclosure {
         issuer_public_key: &EcdsaDecodingKey,
         expected_aud: &str,
         accepted_wallet_client_ids: &[String],
-        expected_nonce: &str,
-    ) -> Result<VerifyingKey, WuaError> {
+    ) -> Result<(VerifyingKey, Nonce), WuaError> {
         let (_, verified_wua_claims) = self.0.parse_and_verify(issuer_public_key, &WUA_JWT_VALIDATIONS)?;
         let wua_pubkey = verified_wua_claims.cnf.verifying_key()?;
         tracing::debug!("WUA status claim: {:?}", verified_wua_claims.status);
@@ -95,11 +95,9 @@ impl WuaDisclosure {
         validations.set_issuer(accepted_wallet_client_ids);
         let (_, wua_disclosure_claims) = self.1.parse_and_verify(&(&wua_pubkey).into(), &validations)?;
 
-        if wua_disclosure_claims.nonce.as_deref() != Some(expected_nonce) {
-            return Err(WuaError::IncorrectNonce);
-        }
+        let nonce = wua_disclosure_claims.nonce.ok_or(WuaError::MissingNonce)?;
 
-        Ok(wua_pubkey)
+        Ok((wua_pubkey, nonce))
     }
 }
 

@@ -53,8 +53,8 @@ url = { workspace = true, features = ["serde"] }
 
 utoipa-swagger-ui = { workspace = true, optional = true }
 
-attestation_data = { path = "../../lib/attestation_data" }
-attestation_types = { path = "../../lib/attestation_types" }
+attestation_data.path = "../../lib/attestation_data"
+attestation_types.path = "../../lib/attestation_types"
 crypto.path = "../../lib/crypto"
 issuer_common.path = "../issuer_common"
 health_checkers.path = "../../lib/health_checkers"
@@ -62,7 +62,7 @@ hsm.path = "../../lib/hsm"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["issuance"] }
-utils = { path = "../../lib/utils" }
+utils.path = "../../lib/utils"
 server_utils = { path = "../server_utils", features = ["postgres"] }
 status_lists = { path = "../../lib/status_lists", features = ["axum"] }
 token_status_list.path = "../../lib/token_status_list"

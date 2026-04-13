@@ -20,6 +20,7 @@ use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
+use jwt::nonce::Nonce;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -46,7 +47,7 @@ impl JwtTyp for KeyBindingJwtClaims {
 /// - `iat_acceptance_window`: allowed duration after `iat`.
 pub struct KbVerificationOptions<'a> {
     pub expected_aud: &'a str,
-    pub expected_nonce: &'a str,
+    pub expected_nonce: &'a Nonce,
     pub iat_leeway: Duration,
     pub iat_acceptance_window: Duration,
 }
@@ -82,7 +83,7 @@ impl UnverifiedKeyBindingJwt {
         let verified = self.0.into_verified(pubkey, &validation_options)?;
 
         let payload = verified.payload();
-        if payload.nonce != kb_verification_options.expected_nonce {
+        if payload.nonce != *kb_verification_options.expected_nonce {
             return Err(KeyBindingError::NonceMismatch(payload.nonce.clone()));
         };
 
@@ -123,11 +124,11 @@ static BASE_KB_JWT_VALIDATION: LazyLock<Validation> = LazyLock::new(|| {
 #[derive(Debug, Clone)]
 pub struct KeyBindingJwtBuilder {
     aud: String,
-    nonce: String,
+    nonce: Nonce,
 }
 
 impl KeyBindingJwtBuilder {
-    pub fn new(aud: String, nonce: String) -> Self {
+    pub fn new(aud: String, nonce: Nonce) -> Self {
         Self { aud, nonce }
     }
 
@@ -209,12 +210,12 @@ impl KeyBindingJwtBuilder {
 }
 
 /// Claims set for key binding JWT.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 pub struct KeyBindingJwtClaims {
     #[serde(with = "ts_seconds")]
     pub iat: DateTime<Utc>,
     pub aud: String,
-    pub nonce: String,
+    pub nonce: Nonce,
     pub sd_hash: String,
 }
 
@@ -264,7 +265,7 @@ mod test {
             &KeyBindingJwtClaims {
                 iat,
                 aud: String::from("aud"),
-                nonce: String::from("abc123"),
+                nonce: Nonce::from(String::from("abc123")),
                 sd_hash: String::from("sd_hash"),
             },
             signing_key,
@@ -298,7 +299,7 @@ mod test {
 
         let time = MockTimeGenerator::new(Utc::now());
 
-        let kb_jwt = KeyBindingJwtBuilder::new(String::from("receiver"), String::from("abc123"))
+        let kb_jwt = KeyBindingJwtBuilder::new(String::from("receiver"), Nonce::from(String::from("abc123")))
             .finish(&sd_jwt, &signing_key, &time)
             .now_or_never()
             .unwrap()
@@ -353,7 +354,7 @@ mod test {
             })
             .collect();
 
-        let (kb_jwts, poa) = KeyBindingJwtBuilder::new(String::from("receiver"), String::from("abc123"))
+        let (kb_jwts, poa) = KeyBindingJwtBuilder::new(String::from("receiver"), Nonce::from(String::from("abc123")))
             .finish_multiple(&sd_jwts_and_keys, &wscd, (), &mock_time)
             .now_or_never()
             .unwrap()
@@ -394,7 +395,7 @@ mod test {
 
         let kb_verification_options = KbVerificationOptions {
             expected_aud: "aud",
-            expected_nonce: "abc123",
+            expected_nonce: &Nonce::from("abc123".to_string()),
             iat_leeway: Duration::ZERO,
             iat_acceptance_window: Duration::from_secs(3 * 24 * 60 * 60),
         };
@@ -442,7 +443,7 @@ mod test {
 
         let kb_verification_options = KbVerificationOptions {
             expected_aud: "aud",
-            expected_nonce: "abc123",
+            expected_nonce: &Nonce::from("abc123".to_string()),
             iat_leeway: leeway,
             iat_acceptance_window,
         };
@@ -470,7 +471,7 @@ mod test {
 
         let kb_verification_options = KbVerificationOptions {
             expected_aud: "aud",
-            expected_nonce: "def456",
+            expected_nonce: &Nonce::from("def456".to_string()),
             iat_leeway: Duration::ZERO,
             iat_acceptance_window: Duration::from_secs(3 * 24 * 60 * 60),
         };
@@ -486,7 +487,7 @@ mod test {
             .expect_err("should fail validation");
         assert_matches!(
             err,
-            KeyBindingError::NonceMismatch(actual) if &actual == "abc123"
+            KeyBindingError::NonceMismatch(actual) if actual.as_ref() == "abc123"
         );
     }
 
@@ -496,7 +497,7 @@ mod test {
 
         let kb_verification_options = KbVerificationOptions {
             expected_aud: "other_aud",
-            expected_nonce: "abc123",
+            expected_nonce: &Nonce::from("abc123".to_string()),
             iat_leeway: Duration::ZERO,
             iat_acceptance_window: Duration::from_secs(3 * 24 * 60 * 60),
         };

@@ -117,7 +117,7 @@ pub enum TokenRequestGrantType {
 }
 
 /// See
-/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-successful-token-response>
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-6.2>
 /// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-5.1>.
 #[serde_as]
 #[skip_serializing_none]
@@ -126,13 +126,9 @@ pub struct TokenResponse {
     pub access_token: AccessToken,
     pub token_type: TokenType,
     pub refresh_token: Option<String>,
-    pub c_nonce: Option<String>,
 
     #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, String>>")]
     pub scope: Option<IndexSet<String>>,
-
-    #[serde_as(as = "Option<DurationSeconds<u64>>")]
-    pub c_nonce_expires_in: Option<Duration>, // lifetime of `c_nonce`
 
     #[serde_as(as = "Option<DurationSeconds<u64>>")]
     pub expires_in: Option<Duration>,
@@ -140,6 +136,19 @@ pub struct TokenResponse {
     /// "REQUIRED when authorization_details parameter is used to request issuance of a certain Credential type
     /// as defined in Section 5.1.1. MUST NOT be used otherwise."
     pub authorization_details: Option<AuthorizationDetails>,
+}
+
+impl TokenResponse {
+    pub fn new(access_token: AccessToken) -> Self {
+        Self {
+            access_token,
+            token_type: TokenType::DPoP,
+            expires_in: None,
+            refresh_token: None,
+            scope: None,
+            authorization_details: None,
+        }
+    }
 }
 
 #[serde_as]
@@ -235,8 +244,6 @@ pub enum TokenType {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
     use indexmap::IndexSet;
     use serde_json::json;
 
@@ -271,9 +278,7 @@ mod tests {
             serde_json::to_string(&TokenResponse {
                 access_token: "access_token".to_string().into(),
                 token_type: crate::token::TokenType::Bearer,
-                c_nonce: Some("c_nonce".to_string()),
                 scope: Some(IndexSet::from_iter(["scope1".to_string(), "scope2".to_string()])),
-                c_nonce_expires_in: Some(Duration::from_secs(10)),
                 expires_in: None,
                 refresh_token: None,
                 authorization_details: None,
@@ -282,9 +287,7 @@ mod tests {
             json!({
                 "access_token": "access_token",
                 "token_type": "Bearer",
-                "c_nonce": "c_nonce",
-                "scope": "scope1 scope2",
-                "c_nonce_expires_in": 10
+                "scope": "scope1 scope2"
             })
             .to_string(),
         );

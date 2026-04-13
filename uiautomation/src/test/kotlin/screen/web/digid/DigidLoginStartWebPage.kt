@@ -1,6 +1,7 @@
 package screen.web.digid
 
 import org.openqa.selenium.By
+import org.openqa.selenium.JavascriptExecutor
 import util.MobileActions
 
 class DigidLoginStartWebPage : MobileActions() {
@@ -14,6 +15,7 @@ class DigidLoginStartWebPage : MobileActions() {
 
     fun clickMockLoginButton() {
         switchToWebViewContext()
-        clickWebElement(findWebElement(mockLoginButtonLocator))
+        val element = findWebElement(mockLoginButtonLocator)
+        (driver as JavascriptExecutor).executeScript("arguments[0].click()", element)
     }
 }

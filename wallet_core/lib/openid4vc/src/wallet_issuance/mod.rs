@@ -163,6 +163,10 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     NoCredentialPreviewEndpoint, // TODO (PVW-5559): skip preview when no credential preview endpoint
 
+    #[error("issuer has no nonce endpoint, yet one of the credential configurations require cryptographic binding")]
+    #[category(critical)]
+    NoNonceEndpoint,
+
     #[error("error requesting credential preview: {0:?}")]
     #[category(pd)]
     CredentialPreviewRequest(Box<ErrorResponse<CredentialPreviewErrorCode>>),
@@ -251,7 +255,7 @@ pub trait AuthorizationSession {
 /// Represents an active credential issuance session for which previews are available.
 pub trait IssuanceSession {
     async fn accept_issuance<W>(
-        &self,
+        &mut self,
         trust_anchors: &[TrustAnchor<'_>],
         wscd: &W,
         include_wua: bool,

@@ -80,7 +80,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         HttpIssuanceSession::create(
             message_client,
             issuer_metadata,
-            oauth_metadata.token_endpoint,
+            oauth_metadata,
             token_request,
             trust_anchors,
         )
