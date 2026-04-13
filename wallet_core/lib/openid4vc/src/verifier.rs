@@ -598,11 +598,8 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
                 share_on_error: true,
             });
 
-        // Check if we should or should not have received a return URL
-        // template, based on the configuration for the use case.
-        if match self.data.session_type_return_url {
-            SessionTypeReturnUrl::SameDevice | SessionTypeReturnUrl::Both => redirect_uri_template.is_none(),
-        } {
+        // Check if we have received a return URL template.
+        if redirect_uri_template.is_none() {
             return Err(NewSessionError::ReturnUrlConfigurationMismatch);
         }
 
