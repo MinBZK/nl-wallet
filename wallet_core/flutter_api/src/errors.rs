@@ -449,10 +449,7 @@ impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
         match self {
             Self::Disclosure(error) => error.typ(),
             Self::Issuance(error) => error.typ(),
-            Self::MissingRedirectUri(_)
-            | Self::MissingRedirectUriQuery(_)
-            | Self::UrlDecoding(_, _)
-            | Self::UnexpectedScheme(_, _) => FlutterApiErrorType::Issuer,
+            Self::MissingRedirectUri(_) | Self::UnexpectedScheme(_, _) => FlutterApiErrorType::Issuer,
         }
     }
 
@@ -460,13 +457,12 @@ impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
         match self {
             Self::Disclosure(error) => error.data(),
             Self::Issuance(error) => error.data(),
-            Self::MissingRedirectUri(organization)
-            | Self::MissingRedirectUriQuery(organization)
-            | Self::UrlDecoding(_, organization)
-            | Self::UnexpectedScheme(_, organization) => serde_json::to_value(DisclosureBasedIssuanceErrorData {
-                organization_name: organization.display_name.clone(),
-            })
-            .unwrap(),
+            Self::MissingRedirectUri(organization) | Self::UnexpectedScheme(_, organization) => {
+                serde_json::to_value(DisclosureBasedIssuanceErrorData {
+                    organization_name: organization.display_name.clone(),
+                })
+                .unwrap()
+            }
         }
     }
 }

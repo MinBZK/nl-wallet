@@ -40,19 +40,11 @@ pub enum DisclosureBasedIssuanceError {
     Disclosure(#[from] DisclosureError),
 
     #[error("retrieving attribute previews failed: {0}")]
-    Issuance(#[from] IssuanceError),
+    Issuance(#[source] IssuanceError),
 
     #[error("missing redirect URI from verifier response")]
     #[category(critical)]
     MissingRedirectUri(Box<Organization>),
-
-    #[error("missing query in redirect URI")]
-    #[category(critical)]
-    MissingRedirectUriQuery(Box<Organization>),
-
-    #[error("failed to deserialize Credential Offer: {0}")]
-    #[category(pd)]
-    UrlDecoding(#[source] serde_urlencoded::de::Error, Box<Organization>),
 
     #[error("unexpected scheme: expected '{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}', found '{0}'")]
     #[category(critical)]
@@ -145,7 +137,8 @@ where
                 issuance_session,
                 None, // we're not doing PID issuance
             )
-            .await?;
+            .await
+            .map_err(DisclosureBasedIssuanceError::Issuance)?;
 
         Ok(previews)
     }
@@ -153,13 +146,9 @@ where
 
 fn convert_and_enrich_error(error: WalletIssuanceError, organization: &Organization) -> DisclosureBasedIssuanceError {
     match error {
-        WalletIssuanceError::MissingCredentialOfferQuery => {
-            DisclosureBasedIssuanceError::MissingRedirectUriQuery(Box::new(organization.clone()))
-        }
-        WalletIssuanceError::CredentialOfferDeserialization(error) => {
-            DisclosureBasedIssuanceError::UrlDecoding(error, Box::new(organization.clone()))
-        }
-        WalletIssuanceError::MissingPreAuthorizedCodeGrant => {
+        WalletIssuanceError::MissingCredentialOfferQuery
+        | WalletIssuanceError::MissingPreAuthorizedCodeGrant
+        | WalletIssuanceError::CredentialOfferDeserialization(_) => {
             DisclosureBasedIssuanceError::Issuance(IssuanceError::IssuerServer {
                 error,
                 organization: Box::new(organization.clone()),
