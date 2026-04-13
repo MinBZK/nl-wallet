@@ -681,13 +681,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         url: &Url,
         credential_request: &CredentialRequest,
     ) -> Result<CredentialResponse, WalletIssuanceError> {
-        // let url = self
-        //     .session_state
-        //     .issuer_metadata
-        //     .credential_endpoint
-        //     .clone()
-        //     .into_url();
-
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), &Method::POST)?;
 
         let response = self
@@ -705,14 +698,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         wua_disclosure: Option<WuaDisclosure>,
         poa: Option<Poa>,
     ) -> Result<Vec<CredentialResponse>, WalletIssuanceError> {
-        // let url = self
-        //     .session_state
-        //     .issuer_metadata
-        //     .batch_credential_endpoint
-        //     .clone()
-        //     .map(|u| u.into_url())
-        //     .ok_or(WalletIssuanceError::NoBatchCredentialEndpoint)?;
-
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), &Method::POST)?;
 
         let expected_response_count = credential_requests.len().get();
