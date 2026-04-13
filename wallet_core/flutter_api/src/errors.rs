@@ -267,10 +267,11 @@ impl FlutterApiErrorFields for IssuanceError {
             IssuanceError::NotRegistered | IssuanceError::Locked | IssuanceError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
-            IssuanceError::AuthSessionFinish(OAuthError::RedirectUriError(_)) => FlutterApiErrorType::RedirectUri,
+            IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(_))) => {
+                FlutterApiErrorType::RedirectUri
+            }
             IssuanceError::IssuanceSession(WalletIssuanceError::TokenRequest(_))
-            | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(_))
-            | IssuanceError::AuthSessionStart(OAuthError::RedirectUriError(_)) => FlutterApiErrorType::Server,
+            | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(_)) => FlutterApiErrorType::Server,
             IssuanceError::AttestationPreview(_)
             | IssuanceError::Attestation { .. }
             | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
@@ -285,11 +286,12 @@ impl FlutterApiErrorFields for IssuanceError {
     }
 
     fn data(&self) -> serde_json::Value {
-        let redirect_error = if let Self::AuthSessionFinish(OAuthError::RedirectUriError(err)) = self {
-            Some(err.error.clone())
-        } else {
-            None
-        };
+        let redirect_error =
+            if let Self::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(err))) = self {
+                Some(err.error.clone())
+            } else {
+                None
+            };
 
         let organization_name = match self {
             IssuanceError::Attestation { organization, .. } | IssuanceError::IssuerServer { organization, .. } => {
@@ -716,6 +718,7 @@ mod tests {
     use wallet::errors::openid4vc::AuthorizationErrorCode;
     use wallet::errors::openid4vc::ErrorResponse;
     use wallet::errors::openid4vc::OAuthError;
+    use wallet::errors::openid4vc::WalletIssuanceError;
 
     use super::FlutterApiError;
     use super::FlutterApiErrorType;
@@ -739,35 +742,26 @@ mod tests {
         serde_json::Value::Null
     )]
     #[case(
-        IssuanceError::AuthSessionFinish(OAuthError::RedirectUriError(
+        IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(
             Box::new(ErrorResponse {
                 error: AuthorizationErrorCode::InvalidRequest,
                 error_description: None,
                 error_uri: None,
             })
-        )),
+        ))),
         FlutterApiErrorType::RedirectUri,
         json!({"redirect_error": "invalid_request"})
     )]
     #[case(
-        IssuanceError::AuthSessionFinish(OAuthError::RedirectUriError(
+    IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(
             Box::new(ErrorResponse {
                 error: AuthorizationErrorCode::Other("some_error".to_string()),
                 error_description: None,
                 error_uri: None,
             })
-        )),
+        ))),
         FlutterApiErrorType::RedirectUri,
         json!({"redirect_error": "some_error"})
-    )]
-    #[case(
-        IssuanceError::AuthSessionStart(OAuthError::RedirectUriError(Box::new(ErrorResponse {
-            error: AuthorizationErrorCode::InvalidRequest,
-            error_description: None,
-            error_uri: None,
-        }))),
-        FlutterApiErrorType::Server,
-        serde_json::Value::Null
     )]
     #[case(
         IssuanceError::MissingSignature,

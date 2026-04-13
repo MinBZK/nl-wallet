@@ -102,12 +102,6 @@ pub enum IssuanceError {
     #[category(expected)]
     IssuerMetadataDiscovery(#[from] WellKnownError),
 
-    #[error("could not start authorization session: {0}")]
-    AuthSessionStart(#[source] OAuthError),
-
-    #[error("could not finish authorization session: {0}")]
-    AuthSessionFinish(#[source] OAuthError),
-
     #[error("user denied DigiD authentication")]
     #[category(expected)]
     DeniedDigiD,
@@ -189,16 +183,6 @@ pub enum IssuanceError {
 
     #[error("recovery code error: {0}")]
     RecoveryCode(#[from] RecoveryCodeError),
-}
-
-impl From<OAuthError> for IssuanceError {
-    fn from(error: OAuthError) -> Self {
-        if matches!(error, OAuthError::Denied) {
-            IssuanceError::DeniedDigiD
-        } else {
-            IssuanceError::AuthSessionFinish(error)
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -420,7 +404,6 @@ where
             .await
             .map_err(|e| match e {
                 WalletIssuanceError::OAuth(OAuthError::Denied) => IssuanceError::DeniedDigiD,
-                WalletIssuanceError::OAuth(e) => IssuanceError::AuthSessionFinish(e),
                 e => IssuanceError::IssuanceSession(e),
             })?;
 

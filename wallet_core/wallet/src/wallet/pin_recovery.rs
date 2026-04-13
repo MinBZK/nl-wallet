@@ -101,16 +101,6 @@ pub enum PinRecoveryError {
     PidAttributesConfiguration(#[from] PidAttributesConfigurationError),
 }
 
-impl From<OAuthError> for PinRecoveryError {
-    fn from(error: OAuthError) -> Self {
-        if matches!(error, OAuthError::Denied) {
-            PinRecoveryError::DeniedDigiD
-        } else {
-            PinRecoveryError::Issuance(IssuanceError::AuthSessionFinish(error))
-        }
-    }
-}
-
 #[derive(Debug)]
 pub enum PinRecoverySession<AS, IS> {
     OAuth {
@@ -225,7 +215,6 @@ where
             .await
             .map_err(|e| match e {
                 WalletIssuanceError::OAuth(OAuthError::Denied) => PinRecoveryError::DeniedDigiD,
-                WalletIssuanceError::OAuth(e) => PinRecoveryError::Issuance(IssuanceError::AuthSessionFinish(e)),
                 e => PinRecoveryError::Issuance(IssuanceError::IssuanceSession(e)),
             })?;
 
