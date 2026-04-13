@@ -610,6 +610,7 @@ open class MobileActions {
         private const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 8000L
         private const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 4000L
         private const val BROWSER_STARTUP_TIMEOUT = 2000L
+        const val DEFAULT_RESET_SLEEP = 10_000L
 
         private const val WEB_VIEW_CONTEXT_PREFIX = "WEBVIEW_"
         private const val NATIVE_APP_CONTEXT = "NATIVE_APP"

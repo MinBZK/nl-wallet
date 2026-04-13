@@ -482,6 +482,7 @@ extract-manual-test-set:
 
 test-android-platform-support-browserstack:
   extends: [.upload-browserstack-base]
+  resource_group: automation-tests
   rules:
     - !reference [.on-schedule-automation, rules]
     - !reference [.merge-request-manual, rules]
