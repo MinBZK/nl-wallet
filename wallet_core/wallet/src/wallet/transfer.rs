@@ -537,7 +537,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_session: Box::new(MockAuthorizationSession::new()),
+            authorization_session: MockAuthorizationSession::new(),
         }));
 
         let error = wallet

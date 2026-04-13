@@ -208,8 +208,8 @@ pub enum WalletIssuanceError {
 
 /// Discovers credential issuer and OAuth authorization server metadata, then starts an issuance flow.
 pub trait IssuanceDiscovery {
-    type Authorization: AuthorizationSession<Issuance = Self::Issuance> + Debug;
-    type Issuance: IssuanceSession + Debug;
+    type Authorization: AuthorizationSession<Issuance = Self::Issuance>;
+    type Issuance: IssuanceSession;
 
     /// Fetches issuer and OAuth metadata, constructs a PKCE-protected authorization URL, and returns
     /// an [`AuthorizationSession`] the caller can use to redirect the user and later exchange the

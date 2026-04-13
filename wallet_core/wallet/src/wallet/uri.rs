@@ -175,7 +175,7 @@ mod tests {
         // Set up an enrollment session that will match the URI.
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_session: Box::new(MockAuthorizationSession::new()),
+            authorization_session: MockAuthorizationSession::new(),
         }));
 
         // The wallet should now recognise the DigiD URI.
@@ -184,7 +184,7 @@ mod tests {
         // Set up a PID renewal session that will match the URI.
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
             purpose: PidIssuancePurpose::Renewal,
-            authorization_session: Box::new(MockAuthorizationSession::new()),
+            authorization_session: MockAuthorizationSession::new(),
         }));
 
         // The wallet should now recognise the DigiD URI.

@@ -126,13 +126,13 @@ impl<A, G> WalletRegistration<A, G> {
 }
 
 #[derive(Debug)]
-enum Session<CID: IssuanceDiscovery, DCS> {
-    Issuance(WalletIssuanceSession<CID>),
+enum Session<AS, IS, DCS> {
+    Issuance(WalletIssuanceSession<AS, IS>),
     Disclosure(WalletDisclosureSession<DCS>),
     CloseProximityDisclosure(CloseProximityDisclosureSession),
     PinRecovery {
         pid_config: PidAttributesConfiguration,
-        session: PinRecoverySession<CID>,
+        session: PinRecoverySession<AS, IS>,
     },
 }
 
@@ -161,7 +161,7 @@ pub struct Wallet<
     disclosure_client: DCC,
     close_proximity_disclosure: PhantomData<CPC>,
     status_list_client: Arc<SLC>,
-    session: Option<Session<CID, DCC::Session>>,
+    session: Option<Session<CID::Authorization, CID::Issuance, DCC::Session>>,
     lock: WalletLock,
     attestations_callback: Arc<Mutex<Option<AttestationsCallback>>>,
     recent_history_callback: Option<RecentHistoryCallback>,

@@ -1150,7 +1150,8 @@ mod tests {
     use openid4vc::errors::ErrorResponse;
     use openid4vc::errors::GetRequestErrorCode;
     use openid4vc::verifier::SessionType;
-    use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
+    use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
@@ -1261,7 +1262,7 @@ mod tests {
     fn setup_wallet_disclosure_session_missing_attributes(
         requested_format: CredentialFormat,
     ) -> (
-        Session<MockIssuanceDiscovery, MockDisclosureSession>,
+        Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
     ) {
         let (disclosure_session, verifier_certificate) =
@@ -1279,7 +1280,7 @@ mod tests {
     fn setup_wallet_disclosure_session(
         requested_format: CredentialFormat,
     ) -> (
-        Session<MockIssuanceDiscovery, MockDisclosureSession>,
+        Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
     ) {
         let credential_requests = default_pid_credential_requests(requested_format);

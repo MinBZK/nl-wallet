@@ -205,7 +205,7 @@ mod tests {
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
             pid_purpose: Some(PidIssuancePurpose::Enrollment),
             preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
-            protocol_state: Box::new(MockIssuanceSession::default()),
+            protocol_state: MockIssuanceSession::default(),
         }));
 
         wallet

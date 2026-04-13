@@ -111,13 +111,13 @@ impl From<OAuthError> for PinRecoveryError {
 }
 
 #[derive(Debug)]
-pub enum PinRecoverySession<CID: IssuanceDiscovery> {
+pub enum PinRecoverySession<AS, IS> {
     OAuth {
-        authorization_session: Box<CID::Authorization>,
+        authorization_session: AS,
     },
     Issuance {
         pid_attestation_type: String,
-        issuance_session: Box<CID::Issuance>,
+        issuance_session: IS,
     },
 }
 
@@ -181,9 +181,7 @@ where
         let auth_url = authorization_session.auth_url().clone();
         self.session.replace(Session::PinRecovery {
             pid_config: config.pid_attributes.clone(),
-            session: PinRecoverySession::OAuth {
-                authorization_session: Box::new(authorization_session),
-            },
+            session: PinRecoverySession::OAuth { authorization_session },
         });
 
         Ok(auth_url)
@@ -249,7 +247,7 @@ where
             pid_config: pid_config.clone(),
             session: PinRecoverySession::Issuance {
                 pid_attestation_type: pid_preview.content.credential_payload.attestation_type.clone(),
-                issuance_session: Box::new(issuance_session),
+                issuance_session,
             },
         });
 
@@ -367,7 +365,7 @@ where
         let issuance_result = issuance_session
             .accept_issuance(&config.issuer_trust_anchors(), &pin_recovery_wscd, true)
             .await
-            .map_err(|error| Self::handle_accept_issuance_error(error, issuance_session.as_ref()));
+            .map_err(|error| Self::handle_accept_issuance_error(error, issuance_session));
 
         let issuance_result = match issuance_result {
             Err(error @ IssuanceError::Instruction(InstructionError::AccountRevoked(data))) => {
@@ -597,9 +595,7 @@ mod tests {
                 mso_mdoc: Default::default(),
                 sd_jwt: Default::default(),
             },
-            session: PinRecoverySession::OAuth {
-                authorization_session: Box::new(authorization_session),
-            },
+            session: PinRecoverySession::OAuth { authorization_session },
         });
 
         wallet
@@ -788,9 +784,7 @@ mod tests {
                 mso_mdoc: Default::default(),
                 sd_jwt: Default::default(),
             },
-            session: PinRecoverySession::OAuth {
-                authorization_session: Box::new(authorization_session),
-            },
+            session: PinRecoverySession::OAuth { authorization_session },
         });
 
         // Pass a redirect URI with `error=access_denied` to simulate user denial
@@ -833,9 +827,7 @@ mod tests {
                 mso_mdoc: Default::default(),
                 sd_jwt: Default::default(),
             },
-            session: PinRecoverySession::OAuth {
-                authorization_session: Box::new(authorization_session),
-            },
+            session: PinRecoverySession::OAuth { authorization_session },
         });
 
         let err = wallet.continue_pin_recovery(redirect_uri).await.unwrap_err();
@@ -884,9 +876,7 @@ mod tests {
                 mso_mdoc: Default::default(),
                 sd_jwt: Default::default(),
             },
-            session: PinRecoverySession::OAuth {
-                authorization_session: Box::new(authorization_session),
-            },
+            session: PinRecoverySession::OAuth { authorization_session },
         });
 
         wallet
@@ -975,7 +965,7 @@ mod tests {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
             session: PinRecoverySession::Issuance {
                 pid_attestation_type: PID_ATTESTATION_TYPE.to_string(),
-                issuance_session: Box::new(pid_issuer),
+                issuance_session: pid_issuer,
             },
         });
     }

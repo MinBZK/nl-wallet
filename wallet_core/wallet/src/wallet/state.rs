@@ -162,7 +162,7 @@ mod tests {
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
-    use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
+    use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
@@ -339,7 +339,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_session(
         #[case] is_locked: bool,
-        #[case] session: Session<MockIssuanceDiscovery, MockDisclosureSession>,
+        #[case] session: Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession>,
         #[case] expected_state: WalletState,
     ) {
         // Prepare a registered and unlocked wallet.
@@ -447,7 +447,7 @@ mod tests {
         #[case] change_pin_data: Option<impl Into<ChangePinData>>,
         #[case] transfer_data: Option<TransferData>,
         #[case] pin_recovery_data: Option<PinRecoveryData>,
-        #[case] session: Option<Session<MockIssuanceDiscovery, MockDisclosureSession>>,
+        #[case] session: Option<Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession>>,
         #[case] expected_state: WalletState,
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -542,14 +542,14 @@ mod tests {
         }
     }
 
-    fn auth_session() -> Session<MockIssuanceDiscovery, MockDisclosureSession> {
+    fn auth_session() -> Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession> {
         Session::Issuance(WalletIssuanceSession::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_session: Box::new(MockAuthorizationSession::new()),
+            authorization_session: MockAuthorizationSession::new(),
         })
     }
 
-    fn issuance_session() -> Session<MockIssuanceDiscovery, MockDisclosureSession> {
+    fn issuance_session() -> Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession> {
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
@@ -564,11 +564,11 @@ mod tests {
         Session::Issuance(WalletIssuanceSession::Issuance {
             pid_purpose: Some(PidIssuancePurpose::Enrollment),
             preview_attestations: attestations,
-            protocol_state: Box::new(pid_issuer),
+            protocol_state: pid_issuer,
         })
     }
 
-    fn disclosure_session() -> Session<MockIssuanceDiscovery, MockDisclosureSession> {
+    fn disclosure_session() -> Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession> {
         Session::Disclosure(WalletDisclosureSession::new_missing_attributes(
             RedirectUriPurpose::Browser,
             DisclosureType::Regular,
@@ -576,14 +576,14 @@ mod tests {
         ))
     }
 
-    fn pin_recovery_session() -> Session<MockIssuanceDiscovery, MockDisclosureSession> {
+    fn pin_recovery_session() -> Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession> {
         Session::PinRecovery {
             pid_config: PidAttributesConfiguration {
                 mso_mdoc: Default::default(),
                 sd_jwt: Default::default(),
             },
             session: PinRecoverySession::OAuth {
-                authorization_session: Box::new(MockAuthorizationSession::new()),
+                authorization_session: MockAuthorizationSession::new(),
             },
         }
     }
