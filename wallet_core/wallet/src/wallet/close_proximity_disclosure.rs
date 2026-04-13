@@ -19,6 +19,7 @@ use attestation_data::auth::reader_auth::ValidationError;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::verifier_certificate::VerifierCertificate;
 use attestation_data::x509::CertificateTypeError;
+use crypto::x509::CertificateError;
 use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -34,6 +35,8 @@ use mdoc::utils::serialization::CborError;
 use mdoc::utils::serialization::cbor_serialize;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::oidc::OidcClient;
+use openid4vc::openid4vp::ClientId;
 use openid4vc::verifier::SessionType;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -211,6 +214,14 @@ pub enum CloseProximityDisclosureError {
     #[error("Failed creating device response: {0}")]
     #[category(pd)]
     DeviceResponse(#[source] mdoc::Error),
+
+    #[error("Could not extract SAN DNS name from certificate: {0}")]
+    #[category(critical)]
+    InvalidCertificate(#[source] CertificateError),
+
+    #[error("No SAN DNS name found in certificate")]
+    #[category(critical)]
+    MissingSanDnsName,
 }
 
 fn parse_device_request(bytes: &[u8]) -> Result<DeviceRequest, CloseProximityDisclosureError> {
@@ -521,15 +532,21 @@ where
             .try_into()
             .unwrap();
 
-        // Actually perform disclosure, casting any `InstructionError` that occurs during signing
-        // to `RemoteEcdsaKeyError::Instruction`.
         // if this fails, there's a bug in the code
         let nonce = Nonce::from(hex::encode(cbor_serialize(session_transcript.as_ref()).unwrap()));
-        let poa_input = JwtPoaInput::new(
-            Some(nonce),
-            "aud".to_string(), // TODO what should this be?
-        );
+        // use the same aud as for SD-JWT
+        let aud = ClientId::x509_san_dns(
+            verifier_certificate
+                .certificate()
+                .san_dns_name()
+                .map_err(CloseProximityDisclosureError::InvalidCertificate)?
+                .ok_or(CloseProximityDisclosureError::MissingSanDnsName)?,
+        )
+        .to_string();
+        let poa_input = JwtPoaInput::new(Some(nonce), aud);
 
+        // Create the device response, casting any `InstructionError` that occurs during signing
+        // to `RemoteEcdsaKeyError::Instruction`.
         let result =
             DeviceResponse::sign_from_partial_mdocs(partial_mdocs, &session_transcript, &remote_wscd, poa_input).await;
 
@@ -605,6 +622,7 @@ where
             }
         };
 
+        // Actually perform the disclosure by sending the device response to the reader
         // if serialization fails, there's a bug in the code
         CPC::send_device_response(cbor_serialize(&device_response).unwrap()).await?;
 
