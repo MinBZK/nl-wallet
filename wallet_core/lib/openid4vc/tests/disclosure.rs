@@ -459,57 +459,57 @@ impl DisclosureResultHandler for MockDisclosureResultHandler {
 #[rstest]
 #[case(
     SessionType::SameDevice,
-    Some("https://example.com/return_url".parse().unwrap()),
+    "https://example.com/return_url".parse().unwrap(),
     DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_full_name(),
 )]
 #[case(
     SessionType::SameDevice,
-    Some("https://example.com/return_url".parse().unwrap()),
+    "https://example.com/return_url".parse().unwrap(),
     ALL_RETURN_URL_USE_CASE,
     nl_pid_credentials_full_name(),
 )]
 #[case(
     SessionType::CrossDevice,
-    Some("https://example.com/return_url".parse().unwrap()),
+    "https://example.com/return_url".parse().unwrap(),
     DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_full_name(),
 )]
 #[case(
     SessionType::CrossDevice,
-    Some("https://example.com/return_url".parse().unwrap()),
+    "https://example.com/return_url".parse().unwrap(),
     ALL_RETURN_URL_USE_CASE,
     nl_pid_credentials_full_name(),
 )]
 #[case(
     SessionType::SameDevice,
-    Some("https://example.com/return_url".parse().unwrap()),
+    "https://example.com/return_url".parse().unwrap(),
     DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_given_name()
 )]
 // attributes from different documents, so this case also tests the PoA
 #[case(
     SessionType::SameDevice,
-    Some("https://example.com/return_url".parse().unwrap()),
+    "https://example.com/return_url".parse().unwrap(),
     DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_given_name() + nl_pid_address_minimal_address(),
 )]
 #[case(
     SessionType::SameDevice,
-    Some("https://example.com/return_url".parse().unwrap()),
+    "https://example.com/return_url".parse().unwrap(),
     DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_given_name() + nl_pid_credentials_family_name(),
 )]
 #[case(
     SessionType::SameDevice,
-    Some("https://example.com/return_url".parse().unwrap()),
+    "https://example.com/return_url".parse().unwrap(),
     DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_given_name() + nl_pid_credentials_full_name() + nl_pid_credentials_all(),
 )]
 #[tokio::test]
 async fn test_client_and_server(
     #[case] session_type: SessionType,
-    #[case] return_url_template: Option<ReturnUrlTemplate>,
+    #[case] return_url_template: ReturnUrlTemplate,
     #[case] use_case: &str,
     #[case] test_credentials: TestCredentials,
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
@@ -522,7 +522,7 @@ async fn test_client_and_server(
 
     // Start the session
     let session_token = verifier
-        .new_session(use_case.to_string(), Some(dcql_query), return_url_template)
+        .new_session(use_case.to_string(), Some(dcql_query), Some(return_url_template))
         .await
         .unwrap();
 
