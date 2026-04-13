@@ -53,15 +53,21 @@ class WalletEventRow extends StatelessWidget {
     );
   }
 
-  /// For card related operations (issued/renewed/expired) show the card as a thumbnail,
+  /// For card related operations (issued/renewed/expired/deleted) show the card as a thumbnail,
   /// otherwise show the organization logo as the thumbnail.
   Widget _buildThumbnail(BuildContext context, WalletEvent event) {
-    if (event is IssuanceEvent) {
+    final card = switch (event) {
+      DeletionEvent() => event.card,
+      IssuanceEvent() => event.card,
+      _ => null,
+    };
+
+    if (card != null) {
       return SizedBox(
         width: _kThumbnailSize,
         child: WalletCardItem.fromWalletCard(
           context,
-          event.card,
+          card,
           scaleText: false,
           showText: false,
         ),

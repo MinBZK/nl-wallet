@@ -99,6 +99,35 @@ void main() {
     );
 
     testGoldens(
+      'light wallet_event card deleted',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          WalletEventRow(
+            event: WalletMockData.deletionEvent,
+            onPressed: () {},
+          ),
+          surfaceSize: kGoldenSize,
+        );
+        await screenMatchesGolden('wallet_event_row/light.operation.deleted');
+      },
+    );
+
+    testGoldens(
+      'dark wallet_event card deleted',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          WalletEventRow(
+            event: WalletMockData.deletionEvent,
+            onPressed: () {},
+          ),
+          brightness: Brightness.dark,
+          surfaceSize: kGoldenSize,
+        );
+        await screenMatchesGolden('wallet_event_row/dark.operation.deleted');
+      },
+    );
+
+    testGoldens(
       'light wallet_event interaction success',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
@@ -225,6 +254,18 @@ void main() {
   });
 
   group('widgets', () {
+    testWidgets('deletion event uses the deleted card title', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        WalletEventRow(
+          event: WalletMockData.deletionEvent,
+          onPressed: () {},
+        ),
+      );
+
+      // The row title for a deletion event is the title of the deleted card.
+      expect(find.text(WalletMockData.deletionEvent.card.title.testValue), findsOneWidget);
+    });
+
     testWidgets('onPressed is triggered', (tester) async {
       bool tapped = false;
       await tester.pumpWidgetWithAppWrapper(

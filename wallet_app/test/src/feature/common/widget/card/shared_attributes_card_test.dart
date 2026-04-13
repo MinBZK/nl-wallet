@@ -13,6 +13,7 @@ const _defaultTestSurfaceSize = Size(328, 206);
 const _expiredFooterTestSurfaceSize = Size(328, 243);
 const _largeTestSurfaceSize = Size(328, 261);
 const _extraLargeTestSurfaceSize = Size(328, 316);
+const _noCtaTestSurfaceSize = Size(328, 140);
 
 void main() {
   group('widgets', () {
@@ -84,9 +85,65 @@ void main() {
       // Validate the onTap listener was called
       expect(listenerTriggered, isTrue);
     });
+
+    testWidgets('showCta: false hides the View call-to-action', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        SharedAttributesCard(
+          card: WalletMockData.card,
+          attributes: WalletMockData.card.attributes,
+          showCta: false,
+        ),
+      );
+
+      // The View label and forward arrow should be absent.
+      expect(find.byIcon(Icons.arrow_forward), findsNothing);
+      // The card title and attributes should still render.
+      expect(find.textContaining(WalletMockData.card.title.testValue), findsOneWidget);
+    });
   });
 
   group('goldens', () {
+    testGoldens(
+      'shared attributes without CTA - light mode',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          surfaceSize: _noCtaTestSurfaceSize,
+          Container(
+            height: _noCtaTestSurfaceSize.height,
+            width: _noCtaTestSurfaceSize.width,
+            padding: const EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
+            child: SharedAttributesCard(
+              card: WalletMockData.card,
+              attributes: WalletMockData.card.attributes,
+              showCta: false,
+            ),
+          ),
+        );
+        await screenMatchesGolden('shared_attributes/no_cta.light');
+      },
+    );
+
+    testGoldens(
+      'shared attributes without CTA - dark mode',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          surfaceSize: _noCtaTestSurfaceSize,
+          Container(
+            height: _noCtaTestSurfaceSize.height,
+            width: _noCtaTestSurfaceSize.width,
+            padding: const EdgeInsets.only(bottom: 8),
+            child: SharedAttributesCard(
+              card: WalletMockData.card,
+              attributes: WalletMockData.card.attributes,
+              showCta: false,
+            ),
+          ),
+          brightness: Brightness.dark,
+        );
+        await screenMatchesGolden('shared_attributes/no_cta.dark');
+      },
+    );
+
     testGoldens(
       'shared attributes with simple rendering card - light mode',
       (tester) async {
