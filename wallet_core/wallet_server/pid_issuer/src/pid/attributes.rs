@@ -1,3 +1,5 @@
+use jwk_simple::Key;
+
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
@@ -56,7 +58,7 @@ pub struct BrpPidAttributeService {
 impl BrpPidAttributeService {
     pub fn try_new(
         brp_client: HttpBrpClient,
-        bsn_privkey: &str,
+        bsn_privkey: &Key,
         client_id: impl Into<String>,
         digid_client_settings: DigidClientSettings,
         recovery_code_secret_key: SecretKeyVariant,

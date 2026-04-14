@@ -5,8 +5,10 @@ use config::ConfigError;
 use config::Environment;
 use config::File;
 use derive_more::Debug;
+use jwk_simple::Key;
 use serde::Deserialize;
 use serde_with::base64::Base64;
+use serde_with::json::JsonString;
 use serde_with::serde_as;
 
 use crypto::p256_der::DerVerifyingKey;
@@ -44,9 +46,11 @@ pub struct PidIssuerSettings {
     pub status_lists: StatusListsSettings,
 }
 
+#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Digid {
-    pub bsn_privkey: String,
+    #[serde_as(as = "JsonString")]
+    pub bsn_privkey: Key,
     pub client_id: String,
     pub client_settings: DigidClientSettings,
 }
