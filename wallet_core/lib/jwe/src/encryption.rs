@@ -103,8 +103,8 @@ impl JwePublicKey {
 
         let KeyParams::Ec(ec_params) = jwk.params() else {
             unreachable!(
-                "Key::is_algorithm_compatible() in combination with Self::is_algorithm_supported() \
-                    guarantees a supported key type"
+                "Key::is_algorithm_compatible() in combination with Self::is_algorithm_supported() guarantees a \
+                 supported key type"
             );
         };
 
