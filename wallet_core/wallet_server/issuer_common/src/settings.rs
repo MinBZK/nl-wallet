@@ -48,7 +48,8 @@ pub type TypeMetadataByVct = HashMap<String, (UncheckedTypeMetadata, Vec<u8>)>;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct IssuerSettings {
-    /// Publicly reachable URL used by the wallet during sessions, which should be a valid Credential Issuer Identifier.
+    /// Publicly reachable URL used by the wallet during sessions, which should be a valid Credential Issuer
+    /// Identifier.
     pub public_url: IssuerIdentifier,
 
     pub attestation_settings: AttestationTypesConfigSettings,

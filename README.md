@@ -564,13 +564,43 @@ only has to be performed when the API code changes.
 
 #### Format Rust and Dart source code files (optional)
 
-You can format Rust code as follows:
+Rust formatting in this repository uses nightly `rustfmt`. Install it once and
+format Rust code as follows:
 
 ```shell
+rustup toolchain install nightly --profile minimal --component rustfmt
 cd nl-wallet
 cargo clippy --manifest-path wallet_core/Cargo.toml --all-features --tests -- -Dwarnings
-find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 cargo fmt --manifest-path
+find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 cargo +nightly fmt --manifest-path
 ```
+
+For editor integration, keep the Rust toolchain for build, check and clippy on
+stable. Only configure the formatter to use nightly. Formatting uses the
+existing `wallet_core/.rustfmt.toml`.
+
+VS Code (`rust-analyzer`) user or workspace settings:
+
+```json
+{
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true
+  },
+  "rust-analyzer.rustfmt.overrideCommand": [
+    "rustup",
+    "run",
+    "nightly",
+    "rustfmt"
+  ]
+}
+```
+
+RustRover:
+
+- Keep the project Rust toolchain on stable.
+- Go to `Settings | Languages & Frameworks | Rust | Rustfmt`.
+- Set the Rustfmt channel to `nightly`.
+- Do not switch the project toolchain itself to nightly.
 
 You can format Dart code as follows (note that formatting output is different
 when `flutter pub get` never ran before):
