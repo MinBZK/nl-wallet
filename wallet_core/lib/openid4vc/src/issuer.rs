@@ -906,7 +906,7 @@ fn utc_now_truncated_to_days() -> DateTime<Utc> {
 
 impl Session<Created> {
     #[expect(clippy::too_many_arguments, reason = "Indirect constructor of a session")]
-    pub async fn process_token_request(
+    async fn process_token_request(
         self,
         token_request: TokenRequest,
         accepted_wallet_client_ids: &[String],
