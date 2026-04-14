@@ -11,6 +11,11 @@ workspace = true
 [lib]
 doctest = false
 
+[[test]]
+name = "issuance"
+path = "tests/issuance.rs"
+required-features = ["issuance"]
+
 [features]
 # Enable issuance
 issuance = ["axum-extra/typed-header"]
@@ -28,7 +33,7 @@ tracing.workspace = true
 axum-extra = { workspace = true, optional = true }
 ring = { workspace = true, optional = true }
 
-attestation_data.path = "../attestation_data"
+attestation_data = { path = "../attestation_data" }
 crypto.path = "../crypto"
 dcql.path = "../dcql"
 http_utils = { path = "../http_utils", features = ["server"] }
@@ -36,3 +41,22 @@ jwt.path = "../jwt"
 openid4vc = { path = "../openid4vc", features = ["axum"] }
 token_status_list = { path = "../token_status_list" }
 utils = { path = "../utils" }
+
+[dev-dependencies]
+assert_matches.workspace = true
+chrono = { workspace = true, features = ["now"] }
+indexmap.workspace = true
+p256.workspace = true
+rand_core.workspace = true
+rstest.workspace = true
+serde_urlencoded.workspace = true
+tokio = { workspace = true, features = ["test-util", "macros", "net"] }
+url = { workspace = true, features = ["serde"] }
+
+attestation_types = { path = "../attestation_types", features = ["test_pid_constants"] }
+crypto = { path = "../crypto", features = ["examples"] }
+http_utils = { path = "../http_utils", features = ["client", "allow_insecure_url"] }
+openid4vc = { path = "../openid4vc", features = ["integration"] }
+sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
+token_status_list = { path = "../token_status_list", features = ["mock"] }
+wscd = { path = "../wscd", features = ["mock"] }

@@ -1591,14 +1591,60 @@ impl CredentialRequestProof {
 
 #[cfg(test)]
 mod tests {
+    use std::num::NonZeroUsize;
+    use std::sync::Arc;
+
+    use assert_matches::assert_matches;
+    use chrono::Days;
     use chrono::Timelike;
     use derive_more::Debug;
+    use indexmap::IndexMap;
+    use p256::ecdsa::SigningKey;
+    use rustls_pki_types::TrustAnchor;
     use thiserror::Error;
     use tracing_test::traced_test;
+    use url::Url;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::issuable_document::IssuableDocument;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
+    use attestation_types::qualification::AttestationQualification;
+    use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
+    use jwt::JsonJwt;
+    use jwt::UnverifiedJwt;
+    use sd_jwt_vc_metadata::TypeMetadataDocuments;
+    use wscd::Poa;
+    use wscd::PoaPayload;
+    use wscd::mock_remote::MockRemoteWscd;
+
+    use crate::CredentialErrorCode;
+    use crate::Format;
+    use crate::credential::CredentialRequest;
+    use crate::credential::CredentialRequestProof;
+    use crate::credential::CredentialRequests;
+    use crate::credential::CredentialResponse;
+    use crate::credential::CredentialResponses;
+    use crate::dpop::Dpop;
+    use crate::issuer_identifier::IssuerIdentifier;
+    use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
+    use crate::nonce::response::NonceResponse;
+    use crate::preview::CredentialPreviewRequest;
+    use crate::preview::CredentialPreviewResponse;
+    use crate::server_state::MemorySessionStore;
+    use crate::server_state::test::memory_session_store_with_mock_time;
+    use crate::server_state::test::test_memory_store_with_cleanup_task;
+    use crate::test::MockAttrService;
+    use crate::test::MockIssuer;
+    use crate::test::mock_issuable_documents;
+    use crate::test::setup_mock_issuer;
+    use crate::token::AccessToken;
+    use crate::token::TokenRequest;
+    use crate::token::TokenResponse;
+    use crate::wallet_issuance::IssuanceSession;
+    use crate::wallet_issuance::WalletIssuanceError;
+    use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
+    use crate::wallet_issuance::issuance_session::VcMessageClient;
 
     use super::*;
 
@@ -1660,5 +1706,349 @@ mod tests {
         let result = logged_issuance_result(input.clone());
         assert_eq!(result, input);
         assert!(logs_contain("Issuance error: MyError"));
+    }
+
+    // Error injection tests
+
+    fn setup_simple_mock_issuer() -> (MockIssuer, TrustAnchor<'static>, IssuerIdentifier, SigningKey) {
+        let issuer_identifier: IssuerIdentifier = "https://example.com/".parse().unwrap();
+        let (issuer, trust_anchor, wua_issuer_privkey) = setup_mock_issuer(
+            issuer_identifier.clone(),
+            MockAttrService {
+                documents: mock_issuable_documents(NonZeroUsize::MIN),
+            },
+            NonZeroUsize::MIN,
+            Arc::new(MemorySessionStore::default()),
+            None,
+        );
+        (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey)
+    }
+
+    /// An implementation of [`VcMessageClient`] that dispatches messages directly to the contained
+    /// issuer by function invocation, optionally allowing the caller to mess with the input to trigger
+    /// certain error cases.
+    ///
+    /// NOTE: This bypasses HTTP transport, so the transport part of the OpenID4VCI implementation is
+    /// not tested here. See `openid4vc_server/tests/issuance.rs` for full-stack integration tests.
+    struct VcMessageClientStub {
+        issuer: MockIssuer,
+
+        wrong_access_token: bool,
+        invalidate_dpop: bool,
+        invalidate_pop: bool,
+        invalidate_poa: bool,
+        strip_poa: bool,
+        strip_wua: bool,
+    }
+
+    impl VcMessageClientStub {
+        fn new(issuer: MockIssuer) -> Self {
+            Self {
+                issuer,
+                wrong_access_token: false,
+                invalidate_dpop: false,
+                invalidate_pop: false,
+                invalidate_poa: false,
+                strip_poa: false,
+                strip_wua: false,
+            }
+        }
+
+        fn access_token(&self, access_token_header: &str) -> AccessToken {
+            if self.wrong_access_token {
+                let code = &access_token_header[32 + 5..]; // Strip "DPoP "
+                AccessToken::from("0".repeat(32) + code)
+            } else {
+                AccessToken::from(access_token_header[5..].to_string())
+            }
+        }
+
+        fn dpop_header(&self, dpop_header: &str) -> Dpop {
+            if self.invalidate_dpop {
+                invalidate_jwt_str(dpop_header).as_str().parse().unwrap()
+            } else {
+                dpop_header.parse().unwrap()
+            }
+        }
+
+        fn tamper_credential_request(&self, mut credential_request: CredentialRequest) -> CredentialRequest {
+            if self.invalidate_pop {
+                let invalidated_proof = match credential_request.proof.as_ref().unwrap() {
+                    CredentialRequestProof::Jwt { jwt } => CredentialRequestProof::Jwt {
+                        jwt: invalidate_jwt_str(jwt.serialization()).parse().unwrap(),
+                    },
+                };
+                credential_request.proof = Some(invalidated_proof);
+            }
+
+            if self.invalidate_poa {
+                credential_request.poa = Some(Self::tamper_poa(credential_request.poa.unwrap()));
+            }
+
+            if self.strip_poa {
+                credential_request.poa.take();
+            }
+
+            if self.strip_wua {
+                credential_request.attestations.take();
+            }
+
+            credential_request
+        }
+
+        fn tamper_credential_requests(&self, mut credential_requests: CredentialRequests) -> CredentialRequests {
+            if self.invalidate_pop {
+                let invalidated_request =
+                    self.tamper_credential_request(credential_requests.credential_requests.first().clone());
+
+                let mut requests = credential_requests.credential_requests.into_inner();
+                requests[0] = invalidated_request;
+                credential_requests.credential_requests = requests.try_into().unwrap();
+            }
+
+            if self.invalidate_poa {
+                credential_requests.poa = Some(Self::tamper_poa(credential_requests.poa.unwrap()));
+            }
+
+            if self.strip_poa {
+                credential_requests.poa.take();
+            }
+
+            if self.strip_wua {
+                credential_requests.attestations.take();
+            }
+
+            credential_requests
+        }
+
+        fn tamper_poa(poa: Poa) -> Poa {
+            let mut jwts: Vec<UnverifiedJwt<PoaPayload>> = poa.into();
+            jwts.pop();
+            let jwts: VecNonEmpty<_> = jwts.try_into().unwrap();
+            let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();
+            poa.into()
+        }
+    }
+
+    fn invalidate_jwt_str(jwt: &str) -> String {
+        let new_char = if !jwt.ends_with('A') { 'A' } else { 'B' };
+        jwt[..jwt.len() - 1].to_string() + &new_char.to_string()
+    }
+
+    impl VcMessageClient for VcMessageClientStub {
+        async fn request_token(
+            &self,
+            _url: &Url,
+            token_request: &TokenRequest,
+            dpop_header: &Dpop,
+        ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError> {
+            let (token_response, dpop_nonce) = self
+                .issuer
+                .process_token_request(token_request.clone(), dpop_header.clone())
+                .await
+                .map_err(|err| WalletIssuanceError::TokenRequest(Box::new(err.into())))?;
+            Ok((token_response, Some(dpop_nonce)))
+        }
+
+        async fn request_credential_preview(
+            &self,
+            _url: &Url,
+            preview_request: &CredentialPreviewRequest,
+            access_token: &AccessToken,
+        ) -> Result<CredentialPreviewResponse, WalletIssuanceError> {
+            self.issuer
+                .process_credential_preview(access_token.clone(), preview_request.clone())
+                .await
+                .map_err(|err| WalletIssuanceError::CredentialPreviewRequest(Box::new(err.into())))
+        }
+
+        async fn request_nonce(&self, _url: Url) -> Result<(NonceResponse, Option<String>), WalletIssuanceError> {
+            let c_nonce = self.issuer.generate_proof_nonce().await.unwrap();
+            Ok((NonceResponse { c_nonce }, None))
+        }
+
+        async fn request_credential(
+            &self,
+            _url: &Url,
+            credential_request: &CredentialRequest,
+            dpop_header: &str,
+            access_token_header: &str,
+        ) -> Result<CredentialResponse, WalletIssuanceError> {
+            self.issuer
+                .process_credential(
+                    self.access_token(access_token_header),
+                    self.dpop_header(dpop_header),
+                    self.tamper_credential_request(credential_request.clone()),
+                )
+                .await
+                .map_err(|err| WalletIssuanceError::CredentialRequest(Box::new(err.into())))
+        }
+
+        async fn request_credentials(
+            &self,
+            _url: &Url,
+            credential_requests: &CredentialRequests,
+            dpop_header: &str,
+            access_token_header: &str,
+        ) -> Result<CredentialResponses, WalletIssuanceError> {
+            self.issuer
+                .process_batch_credential(
+                    self.access_token(access_token_header),
+                    self.dpop_header(dpop_header),
+                    self.tamper_credential_requests(credential_requests.clone()),
+                )
+                .await
+                .map_err(|err| WalletIssuanceError::CredentialRequest(Box::new(err.into())))
+        }
+
+        async fn reject(
+            &self,
+            _url: &Url,
+            dpop_header: &str,
+            access_token_header: &str,
+        ) -> Result<(), WalletIssuanceError> {
+            self.issuer
+                .process_reject_issuance(
+                    self.access_token(access_token_header),
+                    self.dpop_header(dpop_header),
+                    "batch_credential",
+                )
+                .await
+                .map_err(|err| WalletIssuanceError::CredentialRequest(Box::new(err.into())))
+        }
+    }
+
+    async fn start_and_accept_err(
+        message_client: VcMessageClientStub,
+        issuer_identifier: IssuerIdentifier,
+        trust_anchor: TrustAnchor<'static>,
+        wua_issuer_privkey: SigningKey,
+    ) -> WalletIssuanceError {
+        let trust_anchors = &[trust_anchor];
+        let issuer_metadata = message_client.issuer.metadata().clone();
+        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
+        let mut session = HttpIssuanceSession::create(
+            message_client,
+            issuer_metadata,
+            oauth_metadata,
+            TokenRequest::new_mock(),
+            trust_anchors,
+        )
+        .await
+        .unwrap();
+
+        let wscd = MockRemoteWscd::new_with_wua_signing_key(wua_issuer_privkey);
+        session.accept_issuance(trust_anchors, &wscd, true).await.unwrap_err()
+    }
+
+    #[tokio::test]
+    async fn wrong_access_token() {
+        let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_simple_mock_issuer();
+        let message_client = VcMessageClientStub {
+            wrong_access_token: true,
+            ..VcMessageClientStub::new(issuer)
+        };
+
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
+        assert_matches!(
+            result,
+            WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidToken)
+        );
+    }
+
+    #[tokio::test]
+    async fn invalid_dpop() {
+        let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_simple_mock_issuer();
+        let message_client = VcMessageClientStub {
+            invalidate_dpop: true,
+            ..VcMessageClientStub::new(issuer)
+        };
+
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
+        assert_matches!(
+            result,
+            WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
+        );
+    }
+
+    #[tokio::test]
+    async fn invalid_pop() {
+        let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_simple_mock_issuer();
+        let message_client = VcMessageClientStub {
+            invalidate_pop: true,
+            ..VcMessageClientStub::new(issuer)
+        };
+
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
+        assert_matches!(
+            result,
+            WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
+        );
+    }
+
+    #[tokio::test]
+    async fn invalid_poa() {
+        let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_simple_mock_issuer();
+        let message_client = VcMessageClientStub {
+            invalidate_poa: true,
+            ..VcMessageClientStub::new(issuer)
+        };
+
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
+        assert_matches!(
+            result,
+            WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
+        );
+    }
+
+    #[tokio::test]
+    async fn no_poa() {
+        let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_simple_mock_issuer();
+        let message_client = VcMessageClientStub {
+            strip_poa: true,
+            ..VcMessageClientStub::new(issuer)
+        };
+
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
+        assert_matches!(
+            result,
+            WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
+        );
+    }
+
+    #[tokio::test]
+    async fn no_wua() {
+        let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_simple_mock_issuer();
+        let message_client = VcMessageClientStub {
+            strip_wua: true,
+            ..VcMessageClientStub::new(issuer)
+        };
+
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
+        assert_matches!(
+            result,
+            WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
+        );
+    }
+
+    #[tokio::test]
+    async fn cleanup_task() {
+        let documents = mock_issuable_documents(NonZeroUsize::MIN);
+
+        let (sessions, mock_time) = memory_session_store_with_mock_time();
+        let sessions = Arc::new(sessions);
+
+        let (issuer, _, _) = setup_mock_issuer(
+            "https://example.com/".parse().unwrap(),
+            MockAttrService {
+                documents: documents.clone(),
+            },
+            NonZeroUsize::MIN,
+            sessions.clone(),
+            None,
+        );
+
+        let token = issuer.new_session(documents).await.unwrap();
+        test_memory_store_with_cleanup_task(sessions, token, &mock_time).await;
     }
 }

@@ -36,6 +36,9 @@ pub mod server_state;
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;
 
+#[cfg(any(test, feature = "mock"))]
+pub mod test;
+
 #[derive(
     Debug,
     Clone,

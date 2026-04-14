@@ -4,16 +4,11 @@ use url::Url;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 
 use crate::issuer_identifier::IssuerIdentifier;
-use crate::metadata::issuer_metadata::IssuerMetadata;
-use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
-use crate::token::TokenRequest;
 use crate::wallet_issuance::AuthorizationSession;
 use crate::wallet_issuance::IssuanceDiscovery;
 use crate::wallet_issuance::IssuanceSession;
 use crate::wallet_issuance::WalletIssuanceError;
 use crate::wallet_issuance::credential::CredentialWithMetadata;
-use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
-use crate::wallet_issuance::issuance_session::VcMessageClient;
 use crate::wallet_issuance::preview::NormalizedCredentialPreview;
 
 mockall::mock! {
@@ -106,24 +101,5 @@ impl IssuanceSession for MockIssuanceSession {
 
     fn issuer_registration(&self) -> &IssuerRegistration {
         self.issuer()
-    }
-}
-
-impl<H: VcMessageClient> HttpIssuanceSession<H> {
-    pub async fn new_mock(
-        message_client: H,
-        issuer_metadata: IssuerMetadata,
-        oauth_metadata: AuthorizationServerMetadata,
-        token_request: TokenRequest,
-        trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<Self, WalletIssuanceError> {
-        Self::create(
-            message_client,
-            issuer_metadata,
-            oauth_metadata,
-            token_request,
-            trust_anchors,
-        )
-        .await
     }
 }

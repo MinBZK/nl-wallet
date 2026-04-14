@@ -5084,22 +5084,34 @@ dependencies = [
 name = "openid4vc_server"
 version = "0.6.0-dev"
 dependencies = [
+ "assert_matches",
  "attestation_data",
+ "attestation_types",
  "axum",
  "axum-extra",
+ "chrono",
  "crypto",
  "dcql",
  "http",
  "http_utils",
+ "indexmap 2.12.1",
  "jwt",
  "openid4vc",
+ "p256",
+ "rand_core 0.6.4",
  "ring",
+ "rstest",
  "rustls-pki-types",
+ "sd_jwt_vc_metadata",
  "serde",
+ "serde_urlencoded",
  "token_status_list",
+ "tokio",
  "tower-http",
  "tracing",
+ "url",
  "utils",
+ "wscd",
 ]
 
 [[package]]
