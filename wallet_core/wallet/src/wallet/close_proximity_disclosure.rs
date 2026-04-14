@@ -35,7 +35,6 @@ use mdoc::utils::serialization::CborError;
 use mdoc::utils::serialization::cbor_serialize;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::oidc::OidcClient;
 use openid4vc::openid4vp::ClientId;
 use openid4vc::verifier::SessionType;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -58,8 +57,10 @@ use crate::account_provider::AccountProviderClient;
 use crate::errors::InstructionError;
 use crate::errors::RemoteEcdsaKeyError;
 use crate::errors::UpdatePolicyError;
+use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
+use crate::storage::DisclosableAttestation;
 use crate::storage::PartialAttestation;
 use crate::storage::Storage;
 use crate::wallet::DisclosureError;
@@ -240,7 +241,9 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         | CloseProximityDisclosureError::InvalidDocRequest(_)
         | CloseProximityDisclosureError::MissingReaderRegistration
         | CloseProximityDisclosureError::InvalidCertificateType(_)
-        | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_) => Some(DeviceResponseStatus::GeneralError),
+        | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_)
+        | CloseProximityDisclosureError::InvalidCertificate(_)
+        | CloseProximityDisclosureError::MissingSanDnsName => Some(DeviceResponseStatus::GeneralError),
         // These are either internal wallet errors or failures already handled by platform support,
         // so we do not expect to send a protocol-level error DeviceResponse for them.
         CloseProximityDisclosureError::ErrorDeviceResponseEncoding(_)
@@ -349,8 +352,6 @@ where
             return Err(DisclosureError::SessionState);
         };
 
-        let wallet_config = self.config_repository.get();
-
         let device_request = match parse_device_request(&device_request) {
             Ok(device_request) => device_request,
             Err(error) => {
@@ -361,6 +362,7 @@ where
         // the session transcript is made by our own native code, so deserialization errors are programmer errors
         let session_transcript = SessionTranscript::try_from_bytes(&session_transcript).unwrap();
 
+        let wallet_config = self.config_repository.get();
         let verifier_certificate = match verify_device_request(
             &device_request,
             &session_transcript,
@@ -517,58 +519,16 @@ where
             return Err(DisclosureError::IncrementUsageCount(error));
         }
 
-        // Gather all partial mdocs presentations by cloning the attestations held in the session, as disclosing
-        // attestations needs to be retryable.
-        let partial_mdocs = attestations
-            .values()
-            .map(|attestation| {
-                let PartialAttestation::MsoMdoc { partial_mdoc } = attestation.partial_attestation() else {
-                    panic!("SD-JWT attestations are not supported in close proximity disclosure")
-                };
-
-                *partial_mdoc.clone()
-            })
-            .collect_vec()
-            .try_into()
-            .unwrap();
-
-        // if this fails, there's a bug in the code
-        let nonce = Nonce::from(hex::encode(cbor_serialize(session_transcript.as_ref()).unwrap()));
-        // use the same aud as for SD-JWT
-        let aud = ClientId::x509_san_dns(
-            verifier_certificate
-                .certificate()
-                .san_dns_name()
-                .map_err(CloseProximityDisclosureError::InvalidCertificate)?
-                .ok_or(CloseProximityDisclosureError::MissingSanDnsName)?,
+        let device_response = match Self::create_close_proximity_device_response(
+            attestations.values().copied(),
+            session_transcript.as_ref(),
+            verifier_certificate.as_ref(),
+            &remote_wscd,
         )
-        .to_string();
-        let poa_input = JwtPoaInput::new(Some(nonce), aud);
-
-        // Create the device response, casting any `InstructionError` that occurs during signing
-        // to `RemoteEcdsaKeyError::Instruction`.
-        let result =
-            DeviceResponse::sign_from_partial_mdocs(partial_mdocs, &session_transcript, &remote_wscd, poa_input).await;
-
-        let device_response = match result {
+        .await
+        {
             Ok(device_response) => device_response,
-            Err(error) => {
-                let disclosure_error = match error {
-                    // Upgrade any signing errors that are caused by an instruction error to
-                    // `DisclosureError::Instruction`.
-                    mdoc::Error::Cose(CoseError::Signing(signing_error))
-                        if matches!(
-                            signing_error.downcast_ref::<RemoteEcdsaKeyError>(),
-                            Some(RemoteEcdsaKeyError::Instruction(_))
-                        ) =>
-                    {
-                        DisclosureError::Instruction(instruction_error_from_signing_error(signing_error))
-                    }
-                    other => DisclosureError::CloseProximityDisclosureSessionError(
-                        CloseProximityDisclosureError::DeviceResponse(other),
-                    ),
-                };
-
+            Err(disclosure_error) => {
                 // IncorrectPin is a functional error and does not need to be recorded.
                 //
                 // If storing the event results in an error, log it but do nothing else.
@@ -683,6 +643,62 @@ where
         }
 
         Ok(())
+    }
+
+    async fn create_close_proximity_device_response<'a>(
+        attestations: impl IntoIterator<Item = &'a DisclosableAttestation>,
+        session_transcript: &SessionTranscript,
+        verifier_certificate: &VerifierCertificate,
+        remote_wscd: &RemoteEcdsaWscd<S, AKH::AppleKey, AKH::GoogleKey, APC>,
+    ) -> Result<DeviceResponse, DisclosureError>
+    where
+        APC: AccountProviderClient,
+    {
+        // Gather all partial mdocs presentations by cloning the attestations held in the session, as disclosing
+        // attestations needs to be retryable.
+        let partial_mdocs = attestations
+            .into_iter()
+            .map(|attestation| {
+                let PartialAttestation::MsoMdoc { partial_mdoc } = attestation.partial_attestation() else {
+                    panic!("SD-JWT attestations are not supported in close proximity disclosure")
+                };
+
+                *partial_mdoc.clone()
+            })
+            .collect_vec()
+            .try_into()
+            .unwrap();
+
+        // if this fails, there's a bug in the code
+        let nonce = Nonce::from(hex::encode(cbor_serialize(session_transcript).unwrap()));
+        // use the same aud as for SD-JWT
+        let aud = ClientId::x509_san_dns(
+            verifier_certificate
+                .certificate()
+                .san_dns_name()
+                .map_err(CloseProximityDisclosureError::InvalidCertificate)?
+                .ok_or(CloseProximityDisclosureError::MissingSanDnsName)?,
+        )
+        .to_string();
+        let poa_input = JwtPoaInput::new(Some(nonce), aud);
+
+        // Create the device response, casting any `InstructionError` that occurs during signing
+        // to `RemoteEcdsaKeyError::Instruction`.
+        DeviceResponse::sign_from_partial_mdocs(partial_mdocs, session_transcript, remote_wscd, poa_input)
+            .await
+            .map_err(|error| match error {
+                mdoc::Error::Cose(CoseError::Signing(signing_error))
+                    if matches!(
+                        signing_error.downcast_ref::<RemoteEcdsaKeyError>(),
+                        Some(RemoteEcdsaKeyError::Instruction(_))
+                    ) =>
+                {
+                    DisclosureError::Instruction(instruction_error_from_signing_error(signing_error))
+                }
+                other => DisclosureError::CloseProximityDisclosureSessionError(
+                    CloseProximityDisclosureError::DeviceResponse(other),
+                ),
+            })
     }
 }
 
