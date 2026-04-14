@@ -1,10 +1,13 @@
 use std::string::FromUtf8Error;
 
+use itertools::Itertools;
 use josekit::JoseError;
 use jwk_simple::Algorithm;
 use jwk_simple::EcCurve;
 use jwk_simple::KeyType;
 use jwk_simple::KeyUse;
+
+use crate::algorithm::EncryptionAlgorithm;
 
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(test, derive(strum::EnumDiscriminants))]
@@ -74,6 +77,12 @@ pub enum JweDecryptionError {
 
     #[error("kid does not match \"{}\": \"{}\"", .0, .1.as_deref().unwrap_or("<NONE>"))]
     IdMismatch(String, Option<String>),
+
+    #[error("received encryption algorithm \"{}\", expected (one of) \"{}\"", received, expected.iter().join(", "))]
+    UnexpectedEncryptionAlgorithm {
+        received: String,
+        expected: Vec<EncryptionAlgorithm>,
+    },
 }
 
 #[derive(Debug, thiserror::Error)]

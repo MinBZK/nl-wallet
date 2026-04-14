@@ -26,6 +26,7 @@ serde_json.workspace = true
 serde_with.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
+itertools.workspace = true
 josekit.workspace = true
 jwk-simple.workspace = true
 

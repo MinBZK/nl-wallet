@@ -1,6 +1,7 @@
 use assert_matches::assert_matches;
 use jwe::algorithm::EcdhAlgorithm;
 use jwe::algorithm::EncryptionAlgorithm;
+use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweEcdhSecretKey;
 use jwe::encryption::JweCompression;
@@ -45,7 +46,10 @@ where
 }
 
 #[rstest]
-fn test_encrypt_decrypt_ok(#[values(None, Some("key_id"))] kid: Option<&str>) {
+fn test_encrypt_decrypt_ok(
+    #[values(None, Some("key_id"))] kid: Option<&str>,
+    #[values(false, true)] expect_encryption_algorithm: bool,
+) {
     let payload = TestPayload {
         message: "This is a plaintext message.".to_string(),
         count: 321,
@@ -59,8 +63,13 @@ fn test_encrypt_decrypt_ok(#[values(None, Some("key_id"))] kid: Option<&str>) {
     let jwe = encrypt_jwe(&jwk, &payload);
 
     // Receiving side again.
+    let expected_algorithm = if expect_encryption_algorithm {
+        ExpectedEncryptionAlgorithm::Algorithms(&[EncryptionAlgorithm::A192Gcm, EncryptionAlgorithm::A256Gcm])
+    } else {
+        ExpectedEncryptionAlgorithm::Any
+    };
     let decrypted_payload = JweDecrypter::from_ecdh_secret_key(&secret_key)
-        .decrypt_json::<TestPayload>(&jwe)
+        .decrypt_json::<TestPayload>(&jwe, expected_algorithm)
         .expect("decrypting payload from JWE should succeed");
 
     assert_eq!(decrypted_payload, payload);
@@ -74,7 +83,7 @@ fn test_encrypt_decrypt_id_mismatch() {
     let jwk_wrong_kid = jwk.clone().with_kid("wrong_key_id".to_string());
     let jwe = encrypt_jwe(&jwk_wrong_kid, &());
     let error = JweDecrypter::from_ecdh_secret_key(&secret_key)
-        .decrypt_json::<()>(&jwe)
+        .decrypt_json::<()>(&jwe, ExpectedEncryptionAlgorithm::Any)
         .expect_err("decrypting payload from JWE should fail");
 
     assert_matches!(
@@ -89,12 +98,43 @@ fn test_encrypt_decrypt_id_mismatch() {
         .with_use(jwk.key_use().cloned().unwrap());
     let jwe = encrypt_jwe(&jwk_no_kid, &());
     let error = JweDecrypter::from_ecdh_secret_key(&secret_key)
-        .decrypt_json::<()>(&jwe)
+        .decrypt_json::<()>(&jwe, ExpectedEncryptionAlgorithm::Any)
         .expect_err("decrypting payload from JWE should fail");
 
     assert_matches!(
         error,
         JweJsonDecryptionError::JweDecryption(JweDecryptionError::IdMismatch(expected_kid, None))
             if &expected_kid == "key_id"
+    );
+}
+
+#[test]
+fn test_encrypt_decrypt_unexpected_encryption_algorithm() {
+    let (secret_key, jwk) = setup_receiver(None);
+
+    // Decryption should fail if A128GCM is not used.
+    let jwe = encrypt_jwe(&jwk, &());
+    let error = JweDecrypter::from_ecdh_secret_key(&secret_key)
+        .decrypt_json::<()>(
+            &jwe,
+            ExpectedEncryptionAlgorithm::Algorithms(&[EncryptionAlgorithm::A128Gcm]),
+        )
+        .expect_err("decrypting payload from JWE should fail");
+
+    assert_matches!(
+        error,
+        JweJsonDecryptionError::JweDecryption(JweDecryptionError::UnexpectedEncryptionAlgorithm { received, expected })
+            if received == "A256GCM" && expected == vec![EncryptionAlgorithm::A128Gcm]
+    );
+
+    // Decryption should always fail if no encryption algorithm is expected.
+    let error = JweDecrypter::from_ecdh_secret_key(&secret_key)
+        .decrypt_json::<()>(&jwe, ExpectedEncryptionAlgorithm::Algorithms(&[]))
+        .expect_err("decrypting payload from JWE should fail");
+
+    assert_matches!(
+        error,
+        JweJsonDecryptionError::JweDecryption(JweDecryptionError::UnexpectedEncryptionAlgorithm { received, expected })
+            if received == "A256GCM" && expected == vec![]
     );
 }

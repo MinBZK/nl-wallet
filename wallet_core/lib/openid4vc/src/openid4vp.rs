@@ -43,6 +43,7 @@ use dcql::unique_id_vec::UniqueIdVec;
 use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
 use jwe::algorithm::EncryptionAlgorithm;
+use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweEcdhSecretKey;
 use jwe::encryption::JweCompression;
@@ -894,7 +895,11 @@ impl VpAuthorizationResponse {
     fn decrypt(jwe: &str, secret_key: &JweEcdhSecretKey) -> Result<VpAuthorizationResponse, JweJsonDecryptionError> {
         let decrypter = JweDecrypter::from_ecdh_secret_key(secret_key);
 
-        decrypter.decrypt_json(jwe)
+        // Accept only the encryption algorithms anounced in the client metadata.
+        decrypter.decrypt_json(
+            jwe,
+            ExpectedEncryptionAlgorithm::Algorithms(&[EncryptionAlgorithm::A128Gcm, EncryptionAlgorithm::A256Gcm]),
+        )
     }
 
     #[expect(clippy::too_many_arguments)]

@@ -3,6 +3,7 @@ use derive_more::Debug;
 use derive_more::Display;
 use derive_more::From;
 use derive_more::FromStr;
+use itertools::Itertools;
 use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
 use p256::SecretKey;
 use p256::pkcs8::EncodePrivateKey;
@@ -14,6 +15,7 @@ use serde_with::DisplayFromStr;
 use serde_with::serde_as;
 
 use crate::algorithm::EcdhAlgorithm;
+use crate::algorithm::EncryptionAlgorithm;
 use crate::encryption::JwePublicKey;
 use crate::error::JweDecryptionError;
 use crate::error::JweJsonDecryptionError;
@@ -86,6 +88,12 @@ pub struct JweDecrypter {
     decrypter: Box<dyn josekit::jwe::JweDecrypter>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum ExpectedEncryptionAlgorithm<'a> {
+    Any,
+    Algorithms(&'a [EncryptionAlgorithm]),
+}
+
 impl JweDecrypter {
     fn new_ecdh(id: Option<String>, secret_key: &SecretKey, algorithm: EcdhAlgorithm) -> Self {
         let der = secret_key
@@ -110,7 +118,11 @@ impl JweDecrypter {
         self.id.as_deref()
     }
 
-    pub fn decrypt(&self, jwe: &str) -> Result<Vec<u8>, JweDecryptionError> {
+    pub fn decrypt(
+        &self,
+        jwe: &str,
+        expected_algorithm: ExpectedEncryptionAlgorithm,
+    ) -> Result<Vec<u8>, JweDecryptionError> {
         let (payload, header) =
             josekit::jwe::deserialize_compact(jwe, self.decrypter.as_ref()).map_err(JweDecryptionError::Decryption)?;
 
@@ -125,22 +137,43 @@ impl JweDecrypter {
             }
         }
 
+        if let ExpectedEncryptionAlgorithm::Algorithms(algorithms) = expected_algorithm {
+            let enc = header
+                .content_encryption()
+                .expect("decryption should have failed without \"enc\" header claim");
+
+            if !algorithms.iter().map(ToString::to_string).contains(enc) {
+                return Err(JweDecryptionError::UnexpectedEncryptionAlgorithm {
+                    received: enc.to_string(),
+                    expected: algorithms.to_vec(),
+                });
+            }
+        }
+
         Ok(payload)
     }
 
-    pub fn decrypt_json<T>(&self, jwe: &str) -> Result<T, JweJsonDecryptionError>
+    pub fn decrypt_json<T>(
+        &self,
+        jwe: &str,
+        expected_algorithm: ExpectedEncryptionAlgorithm,
+    ) -> Result<T, JweJsonDecryptionError>
     where
         T: DeserializeOwned,
     {
-        let payload = self.decrypt(jwe)?;
+        let payload = self.decrypt(jwe, expected_algorithm)?;
 
         let data = serde_json::from_slice(&payload).map_err(JweJsonDecryptionError::Deserialization)?;
 
         Ok(data)
     }
 
-    pub fn decrypt_string(&self, jwe: &str) -> Result<String, JweStringDecryptionError> {
-        let payload = self.decrypt(jwe)?;
+    pub fn decrypt_string(
+        &self,
+        jwe: &str,
+        expected_algorithm: ExpectedEncryptionAlgorithm,
+    ) -> Result<String, JweStringDecryptionError> {
+        let payload = self.decrypt(jwe, expected_algorithm)?;
 
         let data = String::from_utf8(payload).map_err(JweStringDecryptionError::InvalidUtf8)?;
 
@@ -324,6 +357,7 @@ mod tests {
 
     use crate::algorithm::EcdhAlgorithm;
 
+    use super::ExpectedEncryptionAlgorithm;
     use super::JweDecrypter;
     use super::JweEcdhSecretKey;
 
@@ -379,13 +413,13 @@ mod tests {
         let decrypter = JweDecrypter::from_ecdh_secret_key(&key);
 
         let data = decrypter
-            .decrypt_json::<serde_json::Value>(EXAMPLE_JWE)
+            .decrypt_json::<serde_json::Value>(EXAMPLE_JWE, ExpectedEncryptionAlgorithm::Any)
             .expect("decrypting example JWE as JSON should succeed");
 
         assert_eq!(data, example_jwe_contents());
 
         let _ = decrypter
-            .decrypt_string(EXAMPLE_JWE)
+            .decrypt_string(EXAMPLE_JWE, ExpectedEncryptionAlgorithm::Any)
             .expect("decrypting example JWE as string should succeed");
     }
 }

@@ -10,6 +10,8 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use http_utils::reqwest::HttpJsonClient;
+use jwe::algorithm::EncryptionAlgorithm;
+use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::error::JweStringDecryptionError;
 use openid4vc::AuthBearerErrorCode;
@@ -137,7 +139,12 @@ where
         })
     )?;
 
-    let jws = decrypter.decrypt_string(&jwe).map_err(UserInfoError::JweDecryption)?;
+    let jws = decrypter
+        .decrypt_string(
+            &jwe,
+            ExpectedEncryptionAlgorithm::Algorithms(&[EncryptionAlgorithm::A128CbcHs256]),
+        )
+        .map_err(UserInfoError::JweDecryption)?;
 
     verify_against_keys(&jws, &jwks, client_id, expected_sig_alg)
 }
