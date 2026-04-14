@@ -102,10 +102,7 @@ async fn oauth_metadata<K, A, S, N, L>(
     State(state): State<ApplicationState<K, A, S, N, L>>,
 ) -> Result<Json<oidc::Config>, ErrorResponse<MetadataError>>
 where
-    K: EcdsaKeySend,
     A: AttributeService,
-    S: SessionStore<IssuanceData>,
-    L: StatusListServices,
 {
     let metadata = state.issuer.oauth_metadata().await.map_err(|error| {
         warn!("retrieving OAuth metadata failed: {}", error);
@@ -133,7 +130,6 @@ where
     K: EcdsaKeySend,
     A: AttributeService,
     S: SessionStore<IssuanceData>,
-    L: StatusListServices,
 {
     let (response, dpop_nonce) = state
         .issuer
@@ -156,10 +152,7 @@ async fn credential_preview<K, A, S, N, L>(
     Json(preview_request): Json<CredentialPreviewRequest>,
 ) -> Result<Json<CredentialPreviewResponse>, ErrorResponse<CredentialPreviewErrorCode>>
 where
-    K: EcdsaKeySend,
-    A: AttributeService,
     S: SessionStore<IssuanceData>,
-    L: StatusListServices,
 {
     let access_token = AccessToken::from(authorization_header.token().to_string());
     let response = state
@@ -202,6 +195,7 @@ where
     K: EcdsaKeySend,
     A: AttributeService,
     S: SessionStore<IssuanceData>,
+    N: NonceStore,
     L: StatusListServices,
 {
     let access_token = authorization_header.into();
@@ -224,6 +218,7 @@ where
     K: EcdsaKeySend,
     A: AttributeService,
     S: SessionStore<IssuanceData>,
+    N: NonceStore,
     L: StatusListServices,
 {
     let access_token = authorization_header.into();
@@ -243,10 +238,7 @@ async fn reject_issuance<K, A, S, N, L>(
     uri: Uri,
 ) -> Result<StatusCode, ErrorResponse<CredentialErrorCode>>
 where
-    K: EcdsaKeySend,
-    A: AttributeService,
     S: SessionStore<IssuanceData>,
-    L: StatusListServices,
 {
     let uri_path = &uri.path()[1..]; // strip off leading slash
 

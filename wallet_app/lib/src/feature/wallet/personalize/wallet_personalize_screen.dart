@@ -343,8 +343,8 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
   }
 
   Widget _buildNetworkError(BuildContext context, WalletPersonalizeNetworkError state) {
-    if (state.hasInternet) {
-      return ErrorPage.network(
+    if (state.error.hasInternet) {
+      return ErrorPage.server(
         context,
         style: ErrorCtaStyle.retry,
         onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
@@ -407,7 +407,9 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
       case WalletPersonalizeAddingCards():
         title = context.l10n.walletPersonalizeScreenLoadingTitle;
       case WalletPersonalizeNetworkError():
-        title = state.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline;
+        title = state.error.hasInternet
+            ? context.l10n.errorScreenServerHeadline
+            : context.l10n.errorScreenNoInternetHeadline;
       case WalletPersonalizeGenericError():
         title = context.l10n.errorScreenGenericHeadline;
       case WalletPersonalizeSessionExpired():

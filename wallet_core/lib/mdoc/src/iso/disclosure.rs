@@ -2,14 +2,18 @@
 //!
 //! The main citizens of this module are [`DeviceResponse`], which is what the holder sends to the verifier during
 //! verification, and [`IssuerSigned`], which contains the entire issuer-signed mdoc and the disclosed attributes.
+use std::fmt::Debug;
 
 use coset::CoseMac0;
 use coset::CoseSign1;
 use indexmap::IndexMap;
+use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
-use std::fmt::Debug;
+
+use utils::vec_at_least::VecNonEmpty;
+use wscd::Poa;
 
 use crate::iso::mdocs::*;
 use crate::utils::cose::MdocCose;
@@ -18,16 +22,36 @@ use crate::utils::serialization::RequiredValue;
 use crate::utils::serialization::TaggedBytes;
 
 /// A disclosure of a holder, containing multiple [`Document`]s, containing some or all of their attributes.
+///
+/// ```cddl
+/// DeviceResponse = {
+///     "version" : tstr,
+///     ? "documents" : [+Document],
+///     ? "documentErrors": [+DocumentError],
+///     "status" : uint
+/// }
+/// ```
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceResponse {
+    /// Version of the DeviceResponse structure
     pub version: DeviceResponseVersion,
-    pub documents: Option<Vec<Document>>,
-    pub document_errors: Option<Vec<DocumentError>>,
+
+    /// Returned documents
+    pub documents: Option<VecNonEmpty<Document>>,
+
+    /// For unreturned documents, optional error codes
+    pub document_errors: Option<VecNonEmpty<DocumentError>>,
+
+    /// Status code
     pub status: u64,
+
+    /// Optional because it is not in the spec.
+    pub poa: Option<Poa>,
 }
 
+/// Version of the [`DeviceResponse`] structure
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub enum DeviceResponseVersion {
     #[default]
@@ -35,6 +59,13 @@ pub enum DeviceResponseVersion {
     V1_0,
 }
 
+/// Error codes for unreturned documents
+///
+/// ```cddl
+/// DocumentError = {
+///     DocType => ErrorCode
+/// }
+/// ```
 pub type DocumentError = IndexMap<DocType, ErrorCode>;
 
 /// A disclosed mdoc, containing:
@@ -43,12 +74,24 @@ pub type DocumentError = IndexMap<DocType, ErrorCode>;
 /// - the holder signature (over the session transcript so far, which is not included here; see
 ///   [`DeviceAuthentication`](super::DeviceAuthentication)), using the private key corresponding to the public key
 ///   contained in the mdoc; this acts as challenge-response mechanism.
+///
+/// ```cddl
+/// Document = {
+///     "docType" : DocType,
+///     "issuerSigned" : IssuerSigned,
+///     "deviceSigned" : DeviceSigned,
+///     ? "errors" : Errors
+/// }
+/// ```
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Document {
+    /// Document type returned
     pub doc_type: DocType,
+    /// Returned data elements signed by the issuer
     pub issuer_signed: IssuerSigned,
+    /// Returned data elements signed by the mdoc
     pub device_signed: DeviceSigned,
     pub errors: Option<Errors>,
 }
@@ -60,13 +103,30 @@ pub struct Document {
 /// This data structure is used as part of mdocs (in which case `name_spaces` necessarily contains all attributes
 /// of the mdoc), and also as part of a disclosure of the mdoc in the [`Document`] struct (in which some
 /// attributes may be absent, i.e., not disclosed).
+///
+/// ```cddl
+/// IssuerSigned = {
+///     ? "nameSpaces" : IssuerNameSpaces,
+///     "issuerAuth" : IssuerAuth
+/// }
+/// ```
 #[skip_serializing_none]
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IssuerSigned {
+    /// Returned data elements
     pub name_spaces: Option<IssuerNameSpaces>,
-    pub issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>>,
+
+    /// Contains the mobile security object (MSO) for issuer data authentication
+    pub issuer_auth: IssuerAuth,
 }
+
+/// Contains the mobile security object (MSO) for issuer data authentication
+///
+/// ```cddl
+/// IssuerAuth = COSE_Sign1
+/// ```
+pub type IssuerAuth = MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>>;
 
 impl IssuerSigned {
     /// Get a list of attributes ([`Entry`] instances) contained in the mdoc, mapped per [`NameSpace`].
@@ -85,33 +145,102 @@ impl IssuerSigned {
 
 /// The holder signature as during disclosure of an mdoc (see [`Document`]) computed with the mdoc private key, as well
 /// as any self-asserted attributes.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+///
+/// ```cddl
+/// DeviceSigned = {
+///     "nameSpaces" : DeviceNameSpacesBytes,
+///     "deviceAuth" : DeviceAuth
+/// }
+/// ```
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceSigned {
+    /// Returned data elements
     pub name_spaces: DeviceNameSpacesBytes,
+
+    /// Contains the device authentication for mdoc authentication
     pub device_auth: DeviceAuth,
 }
 
+/// Returned data elements for each namespace
+///
 /// Attributes included in a holder disclosure that have not been signed by the issuer, but only
 /// by the holder: self-asserted attributes. See also [`DeviceSigned`] and
 /// [`DeviceAuthentication`](super::DeviceAuthentication).
+///
+/// ```cddl
+/// DeviceNameSpaces = {
+///     * NameSpace => DeviceSignedItems
+/// }
+/// ```
 pub type DeviceNameSpaces = IndexMap<NameSpace, DeviceSignedItems>;
 
 /// See [`DeviceNameSpaces`].
+///
+/// ```cddl
+/// DeviceNameSpacesBytes = #6.24(bstr .cbor DeviceNameSpaces)
+/// ```
 pub type DeviceNameSpacesBytes = TaggedBytes<DeviceNameSpaces>;
 
-/// Self-asserted attributes as part of an mdoc disclosure.
-pub type DeviceSignedItems = IndexMap<DataElementIdentifier, DataElementValue>;
+/// Returned data element identifier and value. Self-asserted attributes as part of an mdoc disclosure.
+///
+/// ```cddl
+/// DeviceSignedItems = {
+///     + DataElementIdentifier => DataElementValue
+/// }
+/// ```
+#[nutype(
+    derive(Debug, Clone, Serialize, Deserialize),
+    validate(predicate = |items| !items.is_empty()),
+)]
+pub struct DeviceSignedItems(IndexMap<DataElementIdentifier, DataElementValue>);
 
 /// The signature or MAC created by the holder during disclosure of an mdoc, with the private key of the mdoc
 /// (whose public key is included in its MSO).
-#[derive(Serialize, Deserialize, Debug, Clone)]
+///
+/// Either signature or MAC for mdoc authentication
+/// ```cddl
+/// DeviceAuth = {
+///     "deviceSignature" : DeviceSignature //
+///     "deviceMac" : DeviceMac
+/// }
+/// ```
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum DeviceAuth {
     DeviceSignature(MdocCose<CoseSign1, RequiredValue<NullCborValue>>),
     DeviceMac(MdocCose<CoseMac0, RequiredValue<NullCborValue>>),
 }
 
-pub type Errors = IndexMap<NameSpace, ErrorItems>;
-pub type ErrorItems = IndexMap<DataElementIdentifier, ErrorCode>;
+/// Error codes for each namespace
+///
+/// ```cddl
+/// Errors = {
+///     + NameSpace => ErrorItems
+/// }
+/// ```
+#[nutype(
+    derive(Debug, Clone, Serialize, Deserialize),
+    validate(predicate = |errors| !errors.is_empty()),
+)]
+pub struct Errors(IndexMap<NameSpace, ErrorItems>);
+
+/// Error code per data element
+///
+/// ```cddl
+/// ErrorItems = {
+///     + DataElementIdentifier => ErrorCode
+/// }
+/// ```
+#[nutype(
+    derive(Debug, Clone, Serialize, Deserialize),
+    validate(predicate = |items| !items.is_empty()),
+)]
+pub struct ErrorItems(IndexMap<DataElementIdentifier, ErrorCode>);
+
+/// Error code
+///
+/// ```cddl
+/// ErrorCode = int
+/// ```
 pub type ErrorCode = i32;

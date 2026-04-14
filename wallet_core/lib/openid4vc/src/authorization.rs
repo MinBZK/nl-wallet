@@ -9,6 +9,8 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
 
+use jwt::nonce::Nonce;
+
 /// See
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-authorization-request>
 /// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.1>.
@@ -37,7 +39,7 @@ pub struct AuthorizationRequest {
     #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, String>>")]
     pub scope: Option<IndexSet<String>>,
 
-    pub nonce: Option<String>,
+    pub nonce: Option<Nonce>,
     pub response_mode: Option<ResponseMode>,
 }
 

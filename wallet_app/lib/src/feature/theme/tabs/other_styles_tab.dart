@@ -65,7 +65,6 @@ import '../../disclosure/widget/disclosure_stop_sheet.dart';
 import '../../error/error_screen.dart';
 import '../../history/detail/widget/wallet_event_status_header.dart';
 import '../../revocation/widget/revocation_code_text.dart';
-import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import '../theme_screen.dart';
 
 const _kMockPurpose = 'Kaart uitgifte';
@@ -211,7 +210,7 @@ class OtherStylesTab extends StatelessWidget {
         const SizedBox(height: 12),
         const ThemeSectionSubHeader(title: 'Request permission'),
         TextButton(
-          onPressed: () => context.read<RequestPermissionUseCase>().invoke(.notification),
+          onPressed: () => context.read<RequestPermissionUseCase>().invoke([.notification]),
           child: const Text('Request'),
         ),
         const ThemeSectionSubHeader(title: 'Show sample notification'),
@@ -338,17 +337,17 @@ class OtherStylesTab extends StatelessWidget {
         TextButton(
           onPressed: () {
             // Simulate a network error from the personalize flow
-            const networkError = WalletPersonalizeNetworkError(
-              hasInternet: false,
-              error: NetworkError(hasInternet: false, sourceError: 'sourceError'),
-            );
-            ErrorScreen.showNetwork(context, networkError: networkError);
+            const networkError = NetworkError(hasInternet: false, sourceError: 'sourceError');
+            ErrorScreen.showNetwork(context, error: networkError);
           },
           child: const Text('Network Error Screen'),
         ),
         const ThemeSectionSubHeader(title: 'No Internet Error Screen'),
         TextButton(
-          onPressed: () => ErrorScreen.showNetwork(context),
+          onPressed: () => ErrorScreen.showNetwork(
+            context,
+            error: const NetworkError(hasInternet: true, sourceError: 'test'),
+          ),
           child: const Text('No Internet Error Screen'),
         ),
         const ThemeSectionSubHeader(title: 'Device Incompatible Screen'),

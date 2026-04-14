@@ -130,16 +130,10 @@ class SetupSecurityDeviceIncompatibleError extends SetupSecurityState implements
 
 class SetupSecurityNetworkError extends SetupSecurityState implements NetworkErrorState {
   @override
-  final ApplicationError error;
+  final NetworkError error;
+
+  const SetupSecurityNetworkError({required this.error});
 
   @override
-  final bool hasInternet;
-
-  @override
-  final int? statusCode;
-
-  const SetupSecurityNetworkError({required this.error, required this.hasInternet, this.statusCode});
-
-  @override
-  List<Object?> get props => [error, hasInternet, statusCode, ...super.props];
+  List<Object?> get props => [error, ...super.props];
 }

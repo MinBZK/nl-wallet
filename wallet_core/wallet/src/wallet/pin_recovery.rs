@@ -321,7 +321,7 @@ where
                     pid_attestation_type: offered_pid,
                     issuance_session,
                 },
-        }) = &self.session.take()
+        }) = &mut self.session.take()
         else {
             unreachable!("session contained no PIN recovery issuance session"); // we just checked this above
         };
@@ -491,6 +491,7 @@ mod tests {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use jwt::UnverifiedJwt;
+    use jwt::nonce::Nonce;
     use openid4vc::Format;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
@@ -1034,7 +1035,7 @@ mod tests {
             &self,
             _count: NonZeroUsize,
             _aud: String,
-            _nonce: Option<String>,
+            _nonce: Option<Nonce>,
             _include_wua: bool,
         ) -> Result<wscd::wscd::IssuanceResult<Self::Poa>, Self::Error> {
             unimplemented!()

@@ -109,7 +109,7 @@ class ChangePinBloc extends Bloc<ChangePinEvent, ChangePinState> {
       onError: (error) async {
         switch (error) {
           case NetworkError():
-            emit(ChangePinNetworkError(error: error, hasInternet: error.hasInternet));
+            emit(ChangePinNetworkError(error: error));
           default:
             emit(ChangePinGenericError(error: error));
         }

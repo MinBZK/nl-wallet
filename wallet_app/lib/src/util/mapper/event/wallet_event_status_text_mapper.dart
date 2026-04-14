@@ -11,6 +11,7 @@ class WalletEventStatusTextMapper extends ContextMapper<WalletEvent, String> {
   @override
   String map(BuildContext context, WalletEvent input) {
     return switch (input) {
+      DeletionEvent() => context.l10n.cardHistoryDeletionSuccess,
       DisclosureEvent() => _mapDisclosureEvent(context, input),
       IssuanceEvent() => _mapIssuanceEvent(context, input),
       SignEvent() => _mapSignEvent(context, input),

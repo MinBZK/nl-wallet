@@ -101,7 +101,7 @@ void main() {
       when(mockCheckNavigationPrerequisitesUseCase.invoke(any)).thenAnswer((_) async => true);
 
       final navigationRequest = NavigationRequest.disclosure(
-        argument: const DisclosureScreenArgument(uri: '/mock', isQrCode: false),
+        argument: const DisclosureScreenArgument(type: .remote('/mock', isQrCode: false)),
       );
       await service.handleNavigationRequest(navigationRequest);
 

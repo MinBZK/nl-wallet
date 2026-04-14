@@ -43,6 +43,7 @@ class WalletAssets {
   static const svg_biometrics_face = 'assets/non-free/svg/NL_WALLET_biometrics_face.svg';
   static const svg_biometrics_finger = 'assets/non-free/svg/NL_WALLET_biometrics_finger.svg';
   static const svg_blocked_final = 'assets/non-free/svg/NL_WALLET_blocked_final.svg';
+  static const svg_delete_card_success = 'assets/non-free/svg/NL_WALLET_delete_card_success.svg';
   static const svg_blocked_temporary = 'assets/non-free/svg/NL_WALLET_blocked_temporary.svg';
   static const svg_digid = 'assets/non-free/svg/NL_WALLET_DigiD.svg';
   static const svg_error_card_blocked = 'assets/non-free/svg/NL_WALLET_card_blocked.svg';

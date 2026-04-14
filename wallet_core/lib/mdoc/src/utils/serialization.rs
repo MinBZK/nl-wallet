@@ -53,6 +53,7 @@ pub fn cbor_serialize<T: Serialize>(o: &T) -> Result<Vec<u8>, CborError> {
 /// is the CBOR-serialization of `T`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TaggedBytes<T>(pub T);
+
 impl<T> From<T> for TaggedBytes<T> {
     fn from(val: T) -> Self {
         TaggedBytes(val)
@@ -77,6 +78,7 @@ where
         tag::Required::<ByteBuf, CBOR_TAG_ENC_CBOR>(ByteBuf::from(buf)).serialize(serializer)
     }
 }
+
 impl<'de, T> Deserialize<'de> for TaggedBytes<T>
 where
     T: DeserializeOwned,
@@ -104,6 +106,7 @@ impl Serialize for CoseKey {
         serialize_as_cbor_value(&self.0, serializer)
     }
 }
+
 impl<'de> Deserialize<'de> for CoseKey {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let key = deserialize_as_cbor_value::<coset::CoseKey, _>(deserializer)?.into();
@@ -120,6 +123,7 @@ where
         serialize_as_cbor_value(&self.0, serializer)
     }
 }
+
 impl<'de, C, T> Deserialize<'de> for MdocCose<C, T>
 where
     T: Deserialize<'de>,
@@ -131,23 +135,93 @@ where
     }
 }
 
-/// Wrapper for structs that serializes from/to CBOR sequences (i.e., not including field names).
-/// Used to be able to refer by name instead of by an integer to refer to the contents of the
-/// data structure.
+/// Wrapper that serializes a named-field struct to/from a CBOR array (sequence), dropping all
+/// field names from the wire format.
+///
+/// Normally `serde` serializes struct fields as a map of `{ field_name: value, ... }`. `CborSeq`
+/// instead emits only the values in field declaration order, producing a compact CBOR array as
+/// required by ISO 18013-5 for some of the structs.
+///
+/// The idiomatic pattern in this codebase is to define a `...Keyed` struct with named fields for
+/// use in Rust code, then expose a type alias wrapping it in `CborSeq` as the canonical
+/// (wire-format) type. This keeps field names available for readability while ensuring the
+/// correct on-wire encoding.
+///
+/// - **Serialization**: the struct is encoded as a CBOR array of values in declaration order.
+/// - **Deserialization**: the array elements are zipped with the field names (via `serde_introspect`) and deserialized
+///   back into `T`.
+///
+/// # Example
+///
+/// `SessionTranscript` is a type alias for `CborSeq<SessionTranscriptKeyed>`:
+///
+/// ```ignore
+/// pub struct SessionTranscriptKeyed {       // <-- named fields, used in Rust code
+///     pub device_engagement_bytes: Option<DeviceEngagementBytes>,  // position 0
+///     pub ereader_key_bytes: Option<ESenderKeyBytes>,              // position 1
+///     pub handover: Handover,                                      // position 2
+/// }
+///
+/// pub type SessionTranscript = CborSeq<SessionTranscriptKeyed>;    // <-- wire type
+/// ```
+///
+/// `SessionTranscript` serializes as a CBOR array `[<device_engagement_bytes>, <ereader_key_bytes>, <handover>]`
+/// rather than a map `{"device_engagement_bytes": ..., "ereader_key_bytes": ..., "handover": ...}`.
+///
+/// ```ignore
+/// let transcript: SessionTranscript = SessionTranscriptKeyed { .. }.into();
+/// let bytes = cbor_serialize(&transcript)?; // encodes as [<val0>, <val1>, <val2>]
+/// ```
 #[derive(Debug, Clone)]
 pub struct CborSeq<T>(pub T);
+
 impl<T> From<T> for CborSeq<T> {
     fn from(val: T) -> Self {
         CborSeq(val)
     }
 }
 
-/// Wrapper for structs that serializes from/to CBOR maps that have
-/// integers as keys instead of field names.
-/// Used to be able to refer by name instead of by an integer to refer to the contents of the
-/// data structure.
+/// Trait that provides a mapping from struct field names to their CBOR integer map keys.
+///
+/// Implement via `#[derive(CborIndexedFields)]` from `mdoc_derive`. Fields are numbered
+/// sequentially starting at 0 by default; `#[cbor_index = N]` on a field resets the counter
+/// to `N` and subsequent fields continue from `N + 1`.
+pub trait CborIndexedFields {
+    fn field_indices() -> &'static [(&'static str, u64)];
+}
+
+/// Wrapper that serializes a named-field struct to/from a CBOR map with integer keys.
+///
+/// Normally `serde` serializes struct fields using their string names as map keys.
+/// `CborIntMap` replaces those string keys with each field's zero-based positional index,
+/// producing the compact integer-keyed maps required by ISO 18013-5 for some of the structs.
+///
+/// - **Serialization**: field names are replaced by their declaration-order index (0, 1, 2, ...); fields whose value
+///   serializes as CBOR null are omitted.
+/// - **Deserialization**: integer keys are mapped back to field names by position before delegating to `T`'s own
+///   deserializer.
+///
+/// # Example
+///
+/// `DeviceEngagement` is a type alias for `CborIntMap<Engagement>`, where `Engagement` is:
+///
+/// ```ignore
+/// pub struct Engagement {
+///     pub version: EngagementVersion,  // serialized as key 0
+///     pub security: Option<Security>,  // serialized as key 1
+/// }
+/// ```
+///
+/// Wrapping it in `CborIntMap` encodes it as `{0: "1.0", 1: <security>}` on the wire
+/// instead of `{"version": "1.0", "security": <security>}`.
+///
+/// ```ignore
+/// let engagement = DeviceEngagement(Engagement { version: EngagementVersion::V1_0, security: None });
+/// let bytes = cbor_serialize(&engagement)?; // encodes as {0: "1.0"}
+/// ```
 #[derive(Debug, Clone)]
 pub struct CborIntMap<T>(pub T);
+
 impl<T> From<T> for CborIntMap<T> {
     fn from(val: T) -> Self {
         CborIntMap(val)
@@ -165,10 +239,11 @@ where
                 .map(|entry| &entry.1)
                 .collect::<Vec<&Value>>()
                 .serialize(serializer),
-            _ => panic!("struct serialization failed"),
+            e => panic!("struct serialization failed: {e:?}"),
         }
     }
 }
+
 impl<'de, T> Deserialize<'de> for CborSeq<T>
 where
     T: Deserialize<'de>,
@@ -191,13 +266,12 @@ where
 
 impl<'de, T> Serialize for CborIntMap<T>
 where
-    T: Serialize + Deserialize<'de>,
+    T: Serialize + Deserialize<'de> + CborIndexedFields,
 {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let field_name_indices: IndexMap<String, Value> = serde_introspect::<T>()
+        let field_name_indices: IndexMap<String, Value> = T::field_indices()
             .iter()
-            .enumerate()
-            .map(|(index, field_name)| (field_name.to_string(), Value::Integer(index.into())))
+            .map(|(field_name, index)| (field_name.to_string(), Value::Integer((*index).into())))
             .collect();
 
         match Value::serialized(&self.0).map_err(ser::Error::custom)? {
@@ -213,13 +287,14 @@ where
                     .collect(),
             )
             .serialize(serializer),
-            _ => panic!("struct serialization failed"),
+            e => panic!("struct serialization failed: {e:?}"),
         }
     }
 }
+
 impl<'de, T> Deserialize<'de> for CborIntMap<T>
 where
-    T: Deserialize<'de>,
+    T: Deserialize<'de> + CborIndexedFields,
 {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let ordered_map = match Value::deserialize(deserializer)? {
@@ -227,20 +302,24 @@ where
             _ => Err(de::Error::custom("CborIntMap::deserialize failed: not a map")),
         }?;
 
-        let fieldnames = serde_introspect::<T>();
+        let index_to_field: IndexMap<u64, &str> = T::field_indices()
+            .iter()
+            .map(|(field_name, index)| (*index, *field_name))
+            .collect();
+
         let with_fieldnames: Vec<(Value, Value)> = ordered_map
             .into_iter()
             .map(|(index, val)| {
-                let index: usize = index
+                let index: u64 = index
                     .as_integer()
                     .ok_or(de::Error::custom(
                         "CborIntMap::deserialize failed: key was not an integer",
                     ))?
                     .try_into()
                     .map_err(|e| de::Error::custom(format!("CborIntMap::deserialize failed: {e}")))?;
-                let fieldname = fieldnames
-                    .get(index)
-                    .ok_or(de::Error::custom("CborIntMap::deserialize failed: index out of bounds"))?;
+                let fieldname = index_to_field.get(&index).ok_or(de::Error::custom(format!(
+                    "CborIntMap::deserialize failed: unknown index {index}"
+                )))?;
                 Ok((Value::Text(fieldname.to_string()), val))
             })
             .collect::<Result<_, _>>()?;
@@ -286,6 +365,7 @@ where
         }
     }
 }
+
 impl<T: RequiredValueTrait> Serialize for RequiredValue<T>
 where
     T: RequiredValueTrait,
@@ -298,6 +378,7 @@ where
 
 #[derive(Debug, Clone)]
 pub struct NullCborValue;
+
 impl RequiredValueTrait for NullCborValue {
     type Type = Value;
     const REQUIRED_VALUE: Value = Value::Null;
@@ -305,6 +386,7 @@ impl RequiredValueTrait for NullCborValue {
 
 #[derive(Debug, Clone)]
 pub struct DeviceAuthenticationString;
+
 impl RequiredValueTrait for DeviceAuthenticationString {
     // We can't use &'static str directly here, because then the deserialization implementation of
     // RequiredValue<DeviceAuthenticationString> would have to be able to deserialize into &'static str which is
@@ -316,6 +398,7 @@ impl RequiredValueTrait for DeviceAuthenticationString {
 
 #[derive(Debug, Clone)]
 pub struct ReaderAuthenticationString;
+
 impl RequiredValueTrait for ReaderAuthenticationString {
     type Type = Cow<'static, str>;
     const REQUIRED_VALUE: Cow<'static, str> = Cow::Borrowed("ReaderAuthentication");
@@ -323,6 +406,7 @@ impl RequiredValueTrait for ReaderAuthenticationString {
 
 #[derive(Debug, Clone)]
 pub struct OpenID4VPHandoverString;
+
 impl RequiredValueTrait for OpenID4VPHandoverString {
     type Type = Cow<'static, str>;
     const REQUIRED_VALUE: Cow<'static, str> = Cow::Borrowed("OpenID4VPHandover");
@@ -338,6 +422,7 @@ impl Serialize for Tdate {
         }
     }
 }
+
 impl<'de> Deserialize<'de> for Tdate {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         if deserializer.is_human_readable() {

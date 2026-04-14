@@ -58,7 +58,7 @@ pub struct IssuerSignedVerificationResult {
 #[derive(thiserror::Error, Debug)]
 pub enum VerificationError {
     #[error("errors in device response: {0:#?}")]
-    DeviceResponseErrors(Vec<DocumentError>),
+    DeviceResponseErrors(VecNonEmpty<DocumentError>),
     #[error("unexpected status: {0}")]
     UnexpectedStatus(u64),
     #[error("no documents found in device response")]
@@ -296,10 +296,10 @@ impl MobileSecurityObject {
         let digest_id = item.0.digest_id;
         let digest = self
             .value_digests
-            .0
+            .as_ref()
             .get(namespace)
             .ok_or_else(|| VerificationError::MissingNamespace(namespace.clone()))?
-            .0
+            .as_ref()
             .get(&digest_id)
             .ok_or_else(|| VerificationError::MissingDigestID(digest_id))?;
         if *digest != cbor_digest(item)? {

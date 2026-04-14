@@ -8,4 +8,6 @@ abstract class WalletCardRepository {
   Future<List<WalletCard>> readAll();
 
   Future<WalletCard> read(String attestationId);
+
+  Future<void> delete(String pin, String attestationId);
 }

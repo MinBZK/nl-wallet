@@ -137,6 +137,7 @@ class DisclosureScreen extends StatelessWidget {
           DisclosureExternalScannerError() => _buildGenericErrorPage(context),
           DisclosureSessionCancelled() => _buildCancelledSessionPage(context, state),
           DisclosureRelyingPartyError() => _buildRelyingPartyErrorPage(context, state),
+          DisclosureCloseProximityDisconnected() => _buildCloseProximityDisconnected(context, state),
         };
 
         final skipAnim = !state.didGoBack && state is DisclosureCheckUrl;
@@ -290,7 +291,7 @@ class DisclosureScreen extends StatelessWidget {
 
   Widget _buildNetworkErrorPage(BuildContext context, DisclosureNetworkError state) {
     return NetworkErrorPage(
-      hasInternet: state.hasInternet,
+      hasInternet: state.error.hasInternet,
       onStopPressed: () {
         context.bloc.add(const DisclosureCancelRequested());
         Navigator.pop(context);
@@ -375,8 +376,8 @@ class DisclosureScreen extends StatelessWidget {
       DisclosureRelyingPartyError() => context.l10n.disclosureRelyingPartyErrorTitle,
       DisclosureSessionExpired() => context.l10n.errorScreenSessionExpiredHeadline,
       DisclosureSessionCancelled() => context.l10n.errorScreenCancelledSessionHeadline,
-      DisclosureNetworkError() =>
-        state.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline,
+      DisclosureNetworkError(:final error) =>
+        error.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline,
       DisclosureCheckUrl() => context.l10n.fraudCheckPageTitle(state.originUrl),
       DisclosureCheckOrganizationForLogin() => OrganizationApprovePage.resolveTitle(
         context,
@@ -393,6 +394,7 @@ class DisclosureScreen extends StatelessWidget {
       DisclosureLoadInProgress() => null,
       DisclosureExternalScannerError() => null,
       DisclosureConfirmPin() => null,
+      DisclosureCloseProximityDisconnected() => context.l10n.disclosureDisconnectedPageTitle,
     };
   }
 
@@ -450,6 +452,17 @@ class DisclosureScreen extends StatelessWidget {
     if (selectedOption != null) {
       bloc.add(DisclosureReportPressed(option: selectedOption));
     }
+  }
+
+  Widget _buildCloseProximityDisconnected(BuildContext context, DisclosureCloseProximityDisconnected state) {
+    final actionText = state.isLoginFlow
+        ? context.l10n.disclosureDisconnectedPageLoginAction
+        : context.l10n.disclosureDisconnectedPageSharingAction;
+    return ErrorPage.closeProximityDisconnected(
+      context,
+      actionText: actionText,
+      onPrimaryActionPressed: () => _stopDisclosure(context),
+    );
   }
 }
 

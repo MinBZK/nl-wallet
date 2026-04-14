@@ -158,7 +158,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const RenewPidScreen().withState<RenewPidBloc, RenewPidState>(
           MockRenewPidBloc(),
-          const RenewPidNetworkError(error: NetworkError(hasInternet: false, sourceError: 'test'), hasInternet: false),
+          const RenewPidNetworkError(error: NetworkError(hasInternet: false, sourceError: 'test')),
         ),
       );
       await screenMatchesGolden('network_error.no_internet.light');
@@ -168,7 +168,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const RenewPidScreen().withState<RenewPidBloc, RenewPidState>(
           MockRenewPidBloc(),
-          const RenewPidNetworkError(error: NetworkError(hasInternet: true, sourceError: 'test'), hasInternet: true),
+          const RenewPidNetworkError(error: NetworkError(hasInternet: true, sourceError: 'test')),
         ),
       );
       await screenMatchesGolden('network_error.with_internet.light');

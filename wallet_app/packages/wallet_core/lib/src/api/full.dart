@@ -20,7 +20,7 @@ import '../models/wallet_event.dart';
 import '../models/wallet_state.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `create_wallet`, `wallet`
+// These functions are ignored because they are not marked as `pub`: `create_wallet`, `set_env_if_unset`, `wallet`
 
 Future<bool> isInitialized() => WalletCore.instance.api.crateApiFullIsInitialized();
 
@@ -113,7 +113,7 @@ Future<StartDisclosureResult> startDisclosure({required String uri, required boo
     WalletCore.instance.api.crateApiFullStartDisclosure(uri: uri, isQrCode: isQrCode);
 
 Future<String> startCloseProximityDisclosure({
-  required FutureOr<void> Function(CloseProximityDisclosureUpdate) callback,
+  required FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) callback,
 }) => WalletCore.instance.api.crateApiFullStartCloseProximityDisclosure(callback: callback);
 
 Future<StartDisclosureResult> continueCloseProximityDisclosure() =>
@@ -172,6 +172,3 @@ Future<WalletInstructionResult> deleteAttestation({required String pin, required
 Future<void> resetWallet() => WalletCore.instance.api.crateApiFullResetWallet();
 
 Future<String> getVersionString() => WalletCore.instance.api.crateApiFullGetVersionString();
-
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<CloseProximityDisclosureUpdate>>
-abstract class CloseProximityDisclosureUpdate implements RustOpaqueInterface {}

@@ -1,3 +1,5 @@
+import 'package:wallet_core/core.dart' as core;
+
 import '../../../../domain/model/card/wallet_card.dart';
 import '../../../source/wallet_datasource.dart';
 import '../wallet_card_repository.dart';
@@ -18,4 +20,15 @@ class WalletCardRepositoryImpl implements WalletCardRepository {
 
   @override
   Future<WalletCard> read(String attestationId) async => (await _dataSource.read(attestationId))!;
+
+  @override
+  Future<void> delete(String pin, String attestationId) async {
+    final result = await _dataSource.delete(pin, attestationId);
+    switch (result) {
+      case core.WalletInstructionResult_Ok():
+        return;
+      case core.WalletInstructionResult_InstructionError():
+        throw result.error;
+    }
+  }
 }

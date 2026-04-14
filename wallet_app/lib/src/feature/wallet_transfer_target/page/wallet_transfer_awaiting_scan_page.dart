@@ -5,12 +5,12 @@ import '../../../theme/light_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
+import '../../common/dialog/qr_code_dialog.dart';
 import '../../common/widget/button/button_content.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/text/body_text.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_scrollbar.dart';
-import '../dialog/qr_code_dialog.dart';
 
 class WalletTransferAwaitingScanPage extends StatelessWidget {
   final VoidCallback onBackPressed;
@@ -44,7 +44,7 @@ class WalletTransferAwaitingScanPage extends StatelessWidget {
                     ),
                   ),
                   ListButton(
-                    onPressed: () => QrCodeDialog.show(context, data: data),
+                    onPressed: () => QrCodeDialog.show(context, title: context.l10n.qrCodeCodeDialogTitle, data: data),
                     icon: const Icon(Icons.arrow_forward_ios_outlined),
                     text: Text.rich(context.l10n.walletTransferAwaitingScanPageCenterQrCta.toTextSpan(context)),
                   ),

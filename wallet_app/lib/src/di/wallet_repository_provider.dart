@@ -64,7 +64,9 @@ class WalletRepositoryProvider extends StatelessWidget {
       providers: [
         RepositoryProvider<WalletRepository>(create: (context) => CoreWalletRepository(context.read(), context.read())),
         RepositoryProvider<PinRepository>(create: (context) => CorePinRepository(context.read(), context.read())),
-        RepositoryProvider<WalletCardRepository>(create: (context) => WalletCardRepositoryImpl(context.read())),
+        RepositoryProvider<WalletCardRepository>(
+          create: (context) => WalletCardRepositoryImpl(context.read()),
+        ),
         RepositoryProvider<DataAttributeRepository>(create: (context) => DataAttributeRepositoryImpl(context.read())),
         RepositoryProvider<DisclosureRepository>(
           create: (context) => CoreDisclosureRepository(
@@ -158,7 +160,7 @@ class WalletRepositoryProvider extends StatelessWidget {
           },
         ),
         RepositoryProvider<CloseProximityRepository>(
-          create: (context) => CloseProximityRepositoryImpl(context.read()),
+          create: (context) => CloseProximityRepositoryImpl(context.read(), context.read()),
         ),
       ],
       child: child,

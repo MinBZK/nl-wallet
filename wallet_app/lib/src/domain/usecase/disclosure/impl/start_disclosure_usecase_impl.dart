@@ -1,3 +1,4 @@
+import '../../../model/disclosure/start_disclosure_request.dart';
 import '../../../model/result/result.dart';
 import '../start_disclosure_usecase.dart';
 
@@ -7,10 +8,16 @@ class StartDisclosureUseCaseImpl extends StartDisclosureUseCase {
   StartDisclosureUseCaseImpl(this._disclosureRepository);
 
   @override
-  Future<Result<StartDisclosureResult>> invoke(String disclosureUri, {bool isQrCode = false}) async {
-    return tryCatch(
-      () async => _disclosureRepository.startDisclosure(disclosureUri, isQrCode: isQrCode),
-      'Failed to start disclosure',
-    );
+  Future<Result<StartDisclosureResult>> invoke(StartDisclosureRequest request) async {
+    return tryCatch(() async {
+      switch (request) {
+        case DeeplinkStartDisclosureRequest(:final uri):
+          return _disclosureRepository.startDisclosure(uri, isQrCode: false);
+        case QrScanStartDisclosureRequest(:final uri):
+          return _disclosureRepository.startDisclosure(uri, isQrCode: true);
+        case CloseProximityStartDisclosureRequest():
+          return _disclosureRepository.continueCloseProximityDisclosure();
+      }
+    }, 'Failed to start disclosure');
   }
 }

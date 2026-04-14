@@ -124,18 +124,12 @@ class RenewPidDigidLoginCancelled extends RenewPidState {
 
 class RenewPidNetworkError extends RenewPidState implements NetworkErrorState {
   @override
-  final ApplicationError error;
+  final NetworkError error;
+
+  const RenewPidNetworkError({required this.error});
 
   @override
-  final bool hasInternet;
-
-  @override
-  final int? statusCode;
-
-  const RenewPidNetworkError({required this.error, required this.hasInternet, this.statusCode});
-
-  @override
-  List<Object?> get props => [error, hasInternet, statusCode, ...super.props];
+  List<Object?> get props => [error, ...super.props];
 }
 
 class RenewPidGenericError extends RenewPidState implements ErrorState {

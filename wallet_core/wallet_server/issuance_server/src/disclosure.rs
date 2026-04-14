@@ -290,7 +290,7 @@ mod tests {
             None,
             TrivialAttributeService,
             sessions,
-            MemoryNonceStore::default(),
+            MemoryNonceStore::new(),
             Arc::new(MockStatusListServices::default()),
         )
     }

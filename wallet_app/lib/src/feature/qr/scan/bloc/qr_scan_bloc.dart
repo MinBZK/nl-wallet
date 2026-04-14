@@ -20,10 +20,10 @@ final kProcessingDelay = Duration(milliseconds: Environment.isTest ? 25 : 500);
 
 class QrScanBloc extends Bloc<QrScanEvent, QrScanState> {
   final DecodeQrUseCase _decodeQrUseCase;
-  final RequestPermissionUseCase _checkHasPermissionUseCase;
+  final RequestPermissionUseCase _requestPermissionUseCase;
   final MoveToReadyStateUseCase _moveToReadyStateUseCase;
 
-  QrScanBloc(this._decodeQrUseCase, this._checkHasPermissionUseCase, this._moveToReadyStateUseCase)
+  QrScanBloc(this._decodeQrUseCase, this._requestPermissionUseCase, this._moveToReadyStateUseCase)
     : super(QrScanInitial()) {
     on<QrScanCheckPermission>(_onCheckPermission);
     on<QrScanCodeDetected>(_onCodeDetected);
@@ -31,7 +31,7 @@ class QrScanBloc extends Bloc<QrScanEvent, QrScanState> {
   }
 
   Future<void> _onCheckPermission(QrScanCheckPermission event, emit) async {
-    final result = await _checkHasPermissionUseCase.invoke(Permission.camera);
+    final result = await _requestPermissionUseCase.invoke([Permission.camera]);
     if (result.isGranted) {
       emit(QrScanScanning());
     } else {

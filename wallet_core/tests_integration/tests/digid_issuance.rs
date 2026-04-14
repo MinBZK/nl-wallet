@@ -88,7 +88,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let token_request = digid_session.into_token_request(&redirect_url).unwrap();
 
     // Start issuance by exchanging the authorization code for the attestation previews
-    let issuance_session = HttpIssuanceSession::start_issuance(
+    let mut issuance_session = HttpIssuanceSession::start_issuance(
         HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), reqwest::Client::new()),
         issuer_url.public.clone(),
         token_request,

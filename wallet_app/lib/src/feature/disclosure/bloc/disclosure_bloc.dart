@@ -7,32 +7,43 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
+import '../../../domain/model/close_proximity/ble_connection_event.dart';
 import '../../../domain/model/disclosure/disclose_card_request.dart';
 import '../../../domain/model/disclosure/disclosure_session_type.dart';
+import '../../../domain/model/disclosure/start_disclosure_request.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/result/application_error.dart';
+import '../../../domain/usecase/close_proximity/observe_close_proximity_connection_usecase.dart';
 import '../../../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../../../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import '../../../domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
 import '../../../util/cast_util.dart';
+import '../../../util/extension/core_error_extension.dart';
 import '../../../util/extension/list_extension.dart';
 import '../../report_issue/reporting_option.dart';
 
 part 'disclosure_event.dart';
+
 part 'disclosure_state.dart';
 
 class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   /// Use case responsible for initiating a disclosure session.
   final StartDisclosureUseCase _startDisclosureUseCase;
 
+  /// Use case responsible for observing the close proximity connection events.
+  final ObserveCloseProximityConnectionUseCase _observeCloseProximityConnectionUseCase;
+
   /// Use case responsible for canceling an ongoing disclosure session.
   final CancelDisclosureUseCase _cancelDisclosureUseCase;
 
   /// Use case to retrieve the most recent wallet event after disclosure completion.
   final GetMostRecentWalletEventUseCase _getMostRecentWalletEventUseCase;
+
+  /// Subscription to proximity events (e.g., BLE connection updates) during a close proximity disclosure.
+  StreamSubscription? _closeProximityEventSubscription;
 
   /// Stores the result of a successful [StartDisclosureUseCase] invocation.
   /// Used to track session state and relay data between bloc methods.
@@ -72,6 +83,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     this._startDisclosureUseCase,
     this._cancelDisclosureUseCase,
     this._getMostRecentWalletEventUseCase,
+    this._observeCloseProximityConnectionUseCase,
   ) : super(const DisclosureInitial()) {
     on<DisclosureSessionStarted>(_onSessionStarted);
     on<DisclosureStopRequested>(_onStopRequested);
@@ -83,14 +95,13 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     on<DisclosurePinConfirmed>(_onPinConfirmed);
     on<DisclosureReportPressed>(_onReportPressed);
     on<DisclosureConfirmPinFailed>(_onConfirmPinFailed);
+    on<DisclosureCloseProximityEventReceived>(_onCloseProximityEventReceived);
   }
 
   Future<void> _onSessionStarted(DisclosureSessionStarted event, Emitter<DisclosureState> emit) async {
-    // Cancel any potential ongoing disclosure, this can happen when a second disclosure
-    // deeplink is pressed while the disclosure flow is currently open. This opens a second
-    // disclosure bloc before the original one is closed, thus we need to cancel it here.
-    await _cancelDisclosureUseCase.invoke();
-    final startDisclosureResult = await _startDisclosureUseCase.invoke(event.uri, isQrCode: event.isQrCode);
+    unawaited(_closeProximityEventSubscription?.cancel());
+
+    final startDisclosureResult = await _startDisclosureUseCase.invoke(event.request);
 
     /// Handle the 4 init cases:
     /// 1. Initiation errors
@@ -102,12 +113,13 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       onSuccess: (result) {
         _startDisclosureResult = result; // Cache the result;
         switch (result) {
-          case StartDisclosureReadyToDisclose():
-            if (isCrossDeviceFlow) {
-              emit(DisclosureCheckUrl(originUrl: result.originUrl));
-            } else {
-              _handleReadyToDisclose(result, emit);
-            }
+          case StartDisclosureReadyToDisclose(sessionType: .crossDevice):
+            emit(DisclosureCheckUrl(originUrl: result.originUrl));
+          case StartDisclosureReadyToDisclose(sessionType: .sameDevice):
+            _handleReadyToDisclose(result, emit);
+          case StartDisclosureReadyToDisclose(sessionType: .closeProximity):
+            _startObservingCloseProximityEvents();
+            _handleReadyToDisclose(result, emit);
           case StartDisclosureMissingAttributes():
             emit(
               DisclosureMissingAttributes(
@@ -119,6 +131,32 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
         }
       },
     );
+  }
+
+  Future<void> _startObservingCloseProximityEvents() async {
+    await _closeProximityEventSubscription?.cancel();
+    _closeProximityEventSubscription = _observeCloseProximityConnectionUseCase
+        .invoke()
+        .map(DisclosureCloseProximityEventReceived.new)
+        .listen(add);
+  }
+
+  FutureOr<void> _onCloseProximityEventReceived(
+    DisclosureCloseProximityEventReceived event,
+    Emitter<DisclosureState> emit,
+  ) async {
+    switch (event.event) {
+      case BleAdvertising():
+      case BleConnecting():
+      case BleConnected():
+      case BleDeviceRequestReceived():
+        Fimber.i('Ignored ble event: ${event.event}');
+      case BleDisconnected():
+        unawaited(_cancelDisclosureUseCase.invoke());
+        emit(DisclosureCloseProximityDisconnected(isLoginFlow: isLoginFlow));
+      case BleError(:final error):
+        await _handleApplicationError(await error.asApplicationError(), emit);
+    }
   }
 
   void _handleReadyToDisclose(
@@ -314,12 +352,15 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   Future<void> _handleApplicationError(ApplicationError error, Emitter<DisclosureState> emit) async {
     emit(DisclosureLoadInProgress(state.stepperProgress));
+
+    // Call cancelSession to avoid stale session and to potentially provide more context (e.g. returnUrl).
+    final cancelResult = await _cancelDisclosureUseCase.invoke();
+
     switch (error) {
       case GenericError():
         emit(DisclosureGenericError(error: error, returnUrl: error.redirectUrl));
       case NetworkError():
-        await _cancelDisclosureUseCase.invoke(); // Attempt to cancel the session, but propagate original error
-        emit(DisclosureNetworkError(hasInternet: error.hasInternet, error: error));
+        emit(DisclosureNetworkError(error: error));
       case SessionError():
         _handleSessionError(emit, error);
       case RelyingPartyError():
@@ -327,8 +368,6 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       case ExternalScannerError():
         emit(DisclosureExternalScannerError(error: error));
       default:
-        // Call cancelSession to avoid stale session and to try and provide more context (e.g. returnUrl).
-        final cancelResult = await _cancelDisclosureUseCase.invoke();
         await cancelResult.process(
           onSuccess: (returnUrl) => emit(DisclosureGenericError(error: error, returnUrl: returnUrl)),
           onError: (_) => emit(DisclosureGenericError(error: error)),
@@ -361,6 +400,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   @override
   Future<void> close() async {
+    unawaited(_closeProximityEventSubscription?.cancel());
     _startDisclosureResult = null;
     _cardRequestsSelectionCache = null;
     // Note: We explicitly do not cancel the session here. This fixes PVW-5430

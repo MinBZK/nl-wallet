@@ -76,6 +76,20 @@ class Wallet {
     _attestationsSubject.add(result.toList());
   }
 
+  /// Removes the attestation with the given [attestationId] from the wallet.
+  ///
+  /// Returns the removed attestation, or `null` if no matching attestation was found.
+  AttestationPresentation? remove(String attestationId) {
+    final removed = _attestations.firstWhereOrNull(
+      (it) =>
+          it.identity is AttestationIdentity_Fixed && (it.identity as AttestationIdentity_Fixed).id == attestationId,
+    );
+    if (removed == null) return null;
+    final updated = List.of(_attestations)..remove(removed);
+    _attestationsSubject.add(updated);
+    return removed;
+  }
+
   /// Checks if the wallet already contains an attestation with the provided type.
   bool containsAttestationType(String attestationType) =>
       _attestations.any((it) => it.attestationType == attestationType);

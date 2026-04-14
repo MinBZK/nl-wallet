@@ -1,6 +1,5 @@
 use chrono::DateTime;
 use chrono::Utc;
-use itertools::Itertools;
 use rustls_pki_types::TrustAnchor;
 
 use attestation_types::claim_path::ClaimPath;
@@ -22,11 +21,14 @@ use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
 
 impl DeviceRequest {
-    pub fn into_items_requests(self) -> Vec<ItemsRequest> {
+    pub fn items_requests(&self) -> impl Iterator<Item = &ItemsRequest> {
+        self.doc_requests.iter().map(|doc_request| &doc_request.items_request.0)
+    }
+
+    pub fn into_items_requests(self) -> impl Iterator<Item = ItemsRequest> {
         self.doc_requests
             .into_iter()
             .map(|doc_request| doc_request.items_request.0)
-            .collect_vec()
     }
 }
 
@@ -63,7 +65,7 @@ impl From<ItemsRequest> for Vec<VecNonEmpty<ClaimPath>> {
             .name_spaces
             .into_iter()
             .flat_map(|(name_space, attributes)| {
-                let attribute_count = attributes.len();
+                let attribute_count = attributes.as_ref().len();
 
                 itertools::repeat_n(name_space, attribute_count).zip(attributes).map(
                     |(name_space, (attribute, _intent_to_retain))| {
@@ -75,15 +77,10 @@ impl From<ItemsRequest> for Vec<VecNonEmpty<ClaimPath>> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use assert_matches::assert_matches;
-
+#[cfg(any(test, feature = "test"))]
+pub mod test {
     use crypto::server_keys::KeyPair;
-    use crypto::server_keys::generate::Ca;
-    use utils::generator::TimeGenerator;
 
-    use crate::errors::Error;
     use crate::iso::device_retrieval::ReaderAuthenticationBytes;
     use crate::utils::cose;
     use crate::utils::cose::MdocCose;
@@ -117,6 +114,20 @@ mod tests {
             reader_auth,
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use assert_matches::assert_matches;
+
+    use crypto::server_keys::generate::Ca;
+    use utils::generator::TimeGenerator;
+
+    use crate::errors::Error;
+    use crate::holder::disclosure::device_retrieval::test::create_doc_request;
+
+    use super::*;
+
     #[tokio::test]
     async fn test_doc_request_verify() {
         // Create a CA, certificate and private key and trust anchors.
@@ -126,7 +137,7 @@ mod tests {
 
         // Create a basic session transcript, item request and a `DocRequest`.
         let session_transcript = SessionTranscript::new_mock();
-        let items_request = ItemsRequest::new_example_empty();
+        let items_request = ItemsRequest::new_example();
         let doc_request = create_doc_request(items_request.clone(), &session_transcript, &private_key).await;
 
         // Verification of the `DocRequest` should succeed and return the certificate contained within it.

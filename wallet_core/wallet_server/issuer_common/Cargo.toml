@@ -17,7 +17,7 @@ required-features = ["db_test"]
 
 [features]
 # Include and run integration tests that depend on an external PostgreSQL database
-db_test = ["dep:db_test", "openid4vc/test", "tokio/macros", "tokio/rt-multi-thread"]
+db_test = ["dep:db_test", "openid4vc/test", "tokio/macros", "tokio/rt-multi-thread", "utils/mock_time"]
 
 [dependencies]
 chrono.workspace = true
@@ -45,6 +45,7 @@ attestation_types.path = "../../lib/attestation_types"
 crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
 http_utils.path = "../../lib/http_utils"
+jwt.path = "../../lib/jwt"
 openid4vc.path = "../../lib/openid4vc"
 sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
 utils.path = "../../lib/utils"

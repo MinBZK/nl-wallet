@@ -157,7 +157,7 @@ where
                     .into_iter()
                     .map(|(id, count)| {
                         // Note that:
-                        // * The `drain()`` is guaranteed not to panic as the returned `DeviceRespones` should have
+                        // * The `drain()` is guaranteed not to panic as the returned `DeviceRespones` should have
                         //   exactly the same count as the amount of partial mdocs that we submitted for signing.
                         // * The .`unwrap()` is guaranteed to succeed, as the count is non-zero.
                         let responses = received_device_responses
@@ -289,6 +289,7 @@ mod tests {
     use serde::de::Error;
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::verifier_certificate::VerifierCertificate;
     use attestation_types::claim_path::ClaimPath;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
@@ -321,7 +322,6 @@ mod tests {
     use super::super::message_client::mock::MockVerifierSession;
     use super::super::message_client::mock::MockVerifierVpMessageClient;
     use super::super::message_client::mock::WalletMessage;
-    use super::super::verifier_certificate::VerifierCertificate;
     use super::VpDisclosureSession;
 
     static VERIFIER_URL: LazyLock<BaseUrl> = LazyLock::new(|| "http://cert.rp.example.com/disclosure".parse().unwrap());

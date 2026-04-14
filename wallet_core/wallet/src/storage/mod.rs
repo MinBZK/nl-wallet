@@ -193,9 +193,9 @@ pub trait Storage: Send {
 
     /// Returns a single attestation copy of each stored attestation for which the attestation type is equal to one of
     /// types requested. The format of the copy returned is undetermined.
-    async fn fetch_unique_attestations_by_types<'a>(
+    async fn fetch_unique_attestations_by_types(
         &self,
-        attestation_types: &HashSet<&'a str>,
+        attestation_types: &HashSet<String>,
     ) -> StorageResult<Vec<StoredAttestationCopy>>;
 
     /// Returns a single attestation copy of each stored attestation for which the attestation type is equal to
@@ -204,9 +204,9 @@ pub trait Storage: Send {
     ///
     /// Additionally, if `CredentialFormat::SdJwt` is requested, the returned attestation copies will also include those
     /// that extend at least one of the requested attestation types.
-    async fn fetch_unique_attestations_by_types_and_format<'a>(
+    async fn fetch_unique_attestations_by_types_and_format(
         &self,
-        attestation_types: &HashSet<&'a str>,
+        attestation_types: &HashSet<String>,
         format: CredentialFormat,
     ) -> StorageResult<Vec<StoredAttestationCopy>>;
 
@@ -219,7 +219,7 @@ pub trait Storage: Send {
     #[cfg_attr(test, mockall::concretize)]
     async fn fetch_valid_unique_attestations_by_types_and_format<T>(
         &self,
-        attestation_types: &HashSet<&str>,
+        attestation_types: &HashSet<String>,
         format: CredentialFormat,
         time_generator: T,
     ) -> StorageResult<Vec<StoredAttestationCopy>>

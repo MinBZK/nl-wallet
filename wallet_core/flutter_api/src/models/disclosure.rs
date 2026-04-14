@@ -2,11 +2,14 @@ use itertools::Itertools;
 use url::Url;
 
 use wallet::AttributesNotAvailable;
+use wallet::CloseProximityDisclosureUpdate;
 use wallet::DisclosureAttestationOptions;
 use wallet::DisclosureProposalPresentation;
 use wallet::attestation_data::ReaderRegistration;
 use wallet::errors::DisclosureError;
 use wallet::openid4vc::SessionType;
+
+use crate::errors::FlutterApiError;
 
 use super::attestation::AttestationPresentation;
 use super::image::Image;
@@ -46,6 +49,30 @@ pub enum DisclosureType {
 pub enum DisclosureSessionType {
     SameDevice,
     CrossDevice,
+    CloseProximity,
+}
+
+pub enum CloseProximityDisclosureFlutterUpdate {
+    Connecting,
+    Connected,
+    DeviceRequestReceived,
+    Disconnected,
+    // the error is serialized as JSON
+    Errored { error: String },
+}
+
+impl From<CloseProximityDisclosureUpdate> for CloseProximityDisclosureFlutterUpdate {
+    fn from(source: CloseProximityDisclosureUpdate) -> Self {
+        match source {
+            CloseProximityDisclosureUpdate::Connecting => Self::Connecting,
+            CloseProximityDisclosureUpdate::Connected => Self::Connected,
+            CloseProximityDisclosureUpdate::DeviceRequestReceived => Self::DeviceRequestReceived,
+            CloseProximityDisclosureUpdate::Disconnected => Self::Disconnected,
+            CloseProximityDisclosureUpdate::Errored(error) => Self::Errored {
+                error: FlutterApiError::from(error).to_json(),
+            },
+        }
+    }
 }
 
 impl From<SessionType> for DisclosureSessionType {

@@ -11,6 +11,7 @@ use http_utils::error::HttpJsonError;
 use http_utils::error::HttpJsonErrorType;
 use http_utils::urls::BaseUrl;
 use jwt::wua::WuaError;
+use wscd::PoaVerificationError;
 
 use crate::issuer::CredentialPreviewError;
 use crate::issuer::CredentialRequestError;
@@ -118,18 +119,18 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                     CredentialErrorCode::UnknownCredentialConfiguration
                 }
 
+                CredentialRequestError::MissingProofNonce
+                | CredentialRequestError::PoaVerification(PoaVerificationError::MissingNonce)
+                | CredentialRequestError::Wua(WuaError::MissingNonce)
+                | CredentialRequestError::InvalidNonce => CredentialErrorCode::InvalidNonce,
+
                 // TODO (PVW-5541): Return `CredentialErrorCode::UnknownCredentialIdentifier` when appropriate.
-                CredentialRequestError::UnsupportedJwt(_)
+                CredentialRequestError::InvalidProofJwt(_)
                 | CredentialRequestError::Jwt(_)
-                | CredentialRequestError::JwkConversion(_)
+                | CredentialRequestError::InvalidProofPublicKey(_)
                 | CredentialRequestError::MissingCredentialRequestPoP
                 | CredentialRequestError::PoaVerification(_)
-                | CredentialRequestError::Wua(WuaError::JwkConversion(_))
-                | CredentialRequestError::Wua(WuaError::Jwt(_)) => CredentialErrorCode::InvalidProof,
-
-                CredentialRequestError::IncorrectNonce | CredentialRequestError::Wua(WuaError::IncorrectNonce) => {
-                    CredentialErrorCode::InvalidNonce
-                }
+                | CredentialRequestError::Wua(_) => CredentialErrorCode::InvalidProof,
 
                 // TODO (PVW-5538): Return `CredentialErrorCode::InvalidEncryptionParameters` when appropriate.
                 CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {
@@ -142,7 +143,8 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::MdocConversion(_)
                 | CredentialRequestError::SdJwtConversion(_)
                 | CredentialRequestError::IncorrectNumberOfStatusClaims(_)
-                | CredentialRequestError::ObtainStatusClaim(_) => CredentialErrorCode::ServerError,
+                | CredentialRequestError::ObtainStatusClaim(_)
+                | CredentialRequestError::ProofNonceStore(_) => CredentialErrorCode::ServerError,
             },
             error_description: Some(description),
             error_uri: None,
@@ -551,14 +553,15 @@ pub enum AuthBearerErrorCode {
 }
 
 /// Error codes that the wallet sends to the verifier when it encounters an error or rejects the session.
+/// See: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.5
 #[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum VpAuthorizationErrorCode {
+    InvalidClient,
     VpFormatsNotSupported,
-    InvalidPresentationDefinitionUri,
-    InvalidPresentationDefinitionReference,
     InvalidRequestUriMethod,
-
+    InvalidTransactionData,
+    WalletUnavailable,
     #[strum(default)]
     AuthorizationError(AuthorizationErrorCode),
 }

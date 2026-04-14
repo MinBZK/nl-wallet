@@ -9,12 +9,13 @@ import io.appium.java_client.ios.options.XCUITestOptions
 import org.openqa.selenium.Capabilities
 import org.openqa.selenium.WebDriver
 import service.AppiumServiceProvider
+import util.EnvironmentUtil
 import util.TestInfoHandler
 
 class LocalMobileDriver : WebDriverProvider {
 
-    private val apkPath = "../nl.ictu.edi.wallet.latest-0.5.0-release.apk"
-    private val ipaPath = "../nl.ictu.edi.wallet.latest-0.5.0.ipa"
+    private val apkPath = "../nl.ictu.edi.wallet.latest-0.6.0-release.apk"
+    private val ipaPath = "../nl.ictu.edi.wallet.latest-0.6.0.ipa"
 
     override fun createDriver(capabilities: Capabilities): WebDriver {
         // Set Android or iOS specific capabilities
@@ -46,17 +47,20 @@ class LocalMobileDriver : WebDriverProvider {
         // Initialise the local WebDriver with desired capabilities defined above
         return when (testConfig.platformName) {
             "android" -> {
-                options.setCapability("appium:autoGrantPermissions", true)
+                val autoGrant = EnvironmentUtil.getVar("AUTO_GRANT_PERMISSIONS").toBooleanStrictOrNull() ?: true
+                options.setCapability("appium:autoGrantPermissions", autoGrant)
                 options.setCapability("appium:fullReset", true)
                 AndroidDriver(AppiumServiceProvider.service?.url, options)
             }
             "ios" -> {
-                options.setCapability("appium:autoAcceptAlerts", true)
+                val acceptAlerts = EnvironmentUtil.getVar("IOS_ACCEPT_ALERTS").toBooleanStrictOrNull() ?: true
+                options.setCapability("appium:autoAcceptAlerts", acceptAlerts)
+                options.setCapability("appium:showXcodeLog", true)
                 options.setCapability("includeSafariInWebviews", true)
                 options.setCapability("udid", "00008140-001A0D1A0A38801C");
                 options.setCapability("xcodeOrgId", "XGL6UKBPLP");
                 options.setCapability("xcodeSigningId", "iPhone Developer");
-                options.setCapability("updatedWDABundleId", "nl.ictu.edi.wallet.web-driver-agent-runner.xctrunner");
+                options.setCapability("updatedWDABundleId", "nl.ictu.edi.wallet.web-driver-agent-runner");
                 options.setCapability("wdaLaunchTimeout", 60000);
                 options.setCapability("wdaConnectionTimeout", 60000);
                 options.setCapability("nativeWebTap", true)

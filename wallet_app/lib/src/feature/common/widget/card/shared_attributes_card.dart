@@ -38,13 +38,22 @@ class SharedAttributesCard extends StatefulWidget {
   /// trigger card selection workflow.
   final VoidCallback? onChangeCardPressed;
 
+  /// Whether to render the "View" call-to-action button below the attributes.
+  /// When false, the card is rendered as a non-interactive container so it can
+  /// be used in read-only contexts (e.g. the deletion event detail screen).
+  final bool showCta;
+
   const SharedAttributesCard({
     required this.card,
     this.attributes,
     this.onPressed,
     this.onChangeCardPressed,
+    this.showCta = true,
     super.key,
-  });
+  }) : assert(
+         showCta || onPressed == null,
+         'onPressed is ignored when showCta is false; the card is rendered as a non-interactive container.',
+       );
 
   @override
   State<SharedAttributesCard> createState() => _SharedAttributesCardState();
@@ -73,28 +82,48 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
 
   @override
   Widget build(BuildContext context) {
+    final cardContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildHeaderStrip(context),
+        _buildCardContent(context),
+      ],
+    );
     return CardShadowContainer(
       child: Column(
         children: [
-          TextButton(
-            onPressed: widget.onPressed,
-            statesController: _statesController,
-            style: context.theme.textButtonTheme.style?.copyWith(
-              padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-              shape: WidgetStatePropertyAll(_buildMainShape(context)),
-              side: _resolveBorderSide(context),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeaderStrip(context),
-                _buildCardContent(context),
-              ],
-            ),
-          ),
+          _buildCardWrapper(context, cardContent),
           showChangeCardButton ? _buildChangeCardCta(context) : const SizedBox.shrink(),
         ],
       ),
+    );
+  }
+
+  /// Wraps the card body in either an interactive [TextButton] (the default) or a
+  /// non-interactive [DecoratedBox] when [SharedAttributesCard.showCta] is false.
+  /// Both branches apply the same border styling so the card looks identical
+  /// regardless of interactivity.
+  Widget _buildCardWrapper(BuildContext context, Widget child) {
+    if (!widget.showCta) {
+      return DecoratedBox(
+        decoration: ShapeDecoration(
+          shape: RoundedRectangleBorder(
+            side: _buildBorderSide(context),
+            borderRadius: const BorderRadius.all(_kCornerRadius),
+          ),
+        ),
+        child: child,
+      );
+    }
+    return TextButton(
+      onPressed: widget.onPressed,
+      statesController: _statesController,
+      style: context.theme.textButtonTheme.style?.copyWith(
+        padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+        shape: WidgetStatePropertyAll(_buildMainShape(context)),
+        side: _resolveBorderSide(context),
+      ),
+      child: child,
     );
   }
 
@@ -152,34 +181,36 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
               children: _buildAttributeList(context),
             ),
           ),
-          const SizedBox(height: 16),
-          Focus(
-            // Prevents the button from being focused to avoid duplicate focus handling with the parent TextButton
-            canRequestFocus: false,
-            descendantsAreFocusable: false,
-            child: TextButton.icon(
-              onPressed: widget.onPressed,
-              statesController: _statesController,
-              icon: const Icon(Icons.arrow_forward),
-              iconAlignment: IconAlignment.end,
-              label: Semantics(
-                button: true,
-                attributedLabel: context.l10n
-                    .sharedAttributesCardCtaSemanticsLabel(card.title.l10nValue(context))
-                    .toAttributedString(context),
-                excludeSemantics: true /* exclude semantics from child text */,
-                child: Text.rich(context.l10n.sharedAttributesCardCta.toTextSpan(context)),
-              ),
-              style: context.theme.textButtonTheme.style?.copyWith(
-                backgroundColor: WidgetStateProperty.all(Colors.transparent),
-                minimumSize: const WidgetStatePropertyAll(Size.zero),
-                padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-                side: WidgetStateBorderSide.resolveWith((states) => BorderSide.none),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          if (widget.showCta) ...[
+            const SizedBox(height: 16),
+            Focus(
+              // Prevents the button from being focused to avoid duplicate focus handling with the parent TextButton
+              canRequestFocus: false,
+              descendantsAreFocusable: false,
+              child: TextButton.icon(
+                onPressed: widget.onPressed,
+                statesController: _statesController,
+                icon: const Icon(Icons.arrow_forward),
+                iconAlignment: IconAlignment.end,
+                label: Semantics(
+                  button: true,
+                  attributedLabel: context.l10n
+                      .sharedAttributesCardCtaSemanticsLabel(card.title.l10nValue(context))
+                      .toAttributedString(context),
+                  excludeSemantics: true /* exclude semantics from child text */,
+                  child: Text.rich(context.l10n.sharedAttributesCardCta.toTextSpan(context)),
+                ),
+                style: context.theme.textButtonTheme.style?.copyWith(
+                  backgroundColor: WidgetStateProperty.all(Colors.transparent),
+                  minimumSize: const WidgetStatePropertyAll(Size.zero),
+                  padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+                  side: WidgetStateBorderSide.resolveWith((states) => BorderSide.none),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 4),
+            const SizedBox(height: 4),
+          ],
         ],
       ),
     );

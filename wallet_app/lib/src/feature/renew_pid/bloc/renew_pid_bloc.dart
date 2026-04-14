@@ -17,6 +17,7 @@ import '../../../domain/usecase/pid/get_pid_renewal_url_usecase.dart';
 import '../../../wallet_core/error/core_error.dart';
 
 part 'renew_pid_event.dart';
+
 part 'renew_pid_state.dart';
 
 class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
@@ -71,7 +72,7 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
       case DeniedDigidError():
         emit(const RenewPidDigidLoginCancelled());
       case NetworkError():
-        emit(RenewPidNetworkError(hasInternet: error.hasInternet, error: error));
+        emit(RenewPidNetworkError(error: error));
       case RedirectUriError():
         if ([RedirectError.accessDenied, RedirectError.loginRequired].contains(error.redirectError)) {
           emit(const RenewPidDigidLoginCancelled());

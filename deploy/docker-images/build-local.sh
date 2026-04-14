@@ -3,6 +3,9 @@ set -euo pipefail
 
 CONTEXT_BASE="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
 
+# Use amd64 platform
+export DOCKER_DEFAULT_PLATFORM=linux/amd64
+
 if [[ $# -eq 0 ]]; then
     >&2 echo "ERROR: Specify the images to build"
     exit 1

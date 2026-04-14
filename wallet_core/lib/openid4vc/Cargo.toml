@@ -58,7 +58,7 @@ futures = { workspace = true, features = ["async-await"] }
 hex.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
-josekit = { workspace = true, features = ["vendored"] }
+josekit.workspace = true
 jsonwebtoken.workspace = true
 jwk-simple.workspace = true
 mime.workspace = true
@@ -101,6 +101,12 @@ sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
 token_status_list = { path = "../token_status_list", features = ["verification"] }
 utils.path = "../utils"
 wscd.path = "../wscd"
+
+[target.'cfg(any(target_env = "musl", target_os = "android", target_os = "ios"))'.dependencies]
+# When compiling for "musl", Android or iOS, make sure that the "vendored" feature of "josekit" is enabled, which in
+# turn enables the "vendored" feature on "openssl-sys".
+# This compiles and statically links OpenSSL, so that a dynamic library does not need to be present on the system.
+josekit = { workspace = true, features = ["vendored"] }
 
 [dev-dependencies]
 assert_matches.workspace = true

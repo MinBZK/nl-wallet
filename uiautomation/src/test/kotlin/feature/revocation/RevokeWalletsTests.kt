@@ -28,6 +28,7 @@ import screen.web.digid.DigidLoginMockWebPage
 import screen.web.digid.DigidLoginStartWebPage
 import screen.web.revocation_portal.RevocationPortalWebPage
 import util.EnvironmentUtil
+import util.MobileActions
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.DisplayName::class)
@@ -148,6 +149,7 @@ class RevokeWalletsTests : TestBase() {
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.Dashboard)
         dashboardScreen.closeApp()
         revocationHelper.revokeWalletSolution()
+        Thread.sleep(MobileActions.DEFAULT_RESET_SLEEP)
 
         pinScreen.openApp()
         pinScreen.switchToNativeContext()
@@ -158,6 +160,7 @@ class RevokeWalletsTests : TestBase() {
 
     @AfterAll
     fun afterAll() {
+        Thread.sleep(MobileActions.DEFAULT_RESET_SLEEP)
         revocationHelper.restoreWalletSolution()
         revocationHelper.deleteFromDenyList(DEFAULT_RECOVERY_CODE)
     }

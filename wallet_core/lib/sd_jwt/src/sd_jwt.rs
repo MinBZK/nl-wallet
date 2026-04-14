@@ -771,7 +771,7 @@ where
         self,
         issuer_pubkey: &EcdsaDecodingKey,
         kb_expected_aud: &str,
-        kb_expected_nonce: &str,
+        kb_expected_nonce: &jwt::nonce::Nonce,
         kb_iat_acceptance_window: std::time::Duration,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VerifiedSdJwtPresentation<C, H>, DecoderError> {
@@ -899,6 +899,7 @@ mod test {
     use jwt::Header;
     use jwt::confirmation::ConfirmationClaim;
     use jwt::error::JwtError;
+    use jwt::nonce::Nonce;
     use utils::date_time_seconds::DateTimeSeconds;
     use utils::generator::mock::MockTimeGenerator;
 
@@ -958,7 +959,7 @@ mod test {
             .into_verified(
                 &examples_sd_jwt_decoding_key(),
                 WITH_KB_SD_JWT_AUD,
-                WITH_KB_SD_JWT_NONCE,
+                &Nonce::from(WITH_KB_SD_JWT_NONCE.to_string()),
                 Duration::from_secs(10 * 60),
                 &KeyBindingExampleTimeGenerator,
             )
@@ -1078,7 +1079,7 @@ mod test {
             })
             .finish()
             .sign(
-                KeyBindingJwtBuilder::new("aud".to_string(), "nonce".to_string()),
+                KeyBindingJwtBuilder::new("aud".to_string(), Nonce::from("nonce".to_string())),
                 &holder_key,
                 &MockTimeGenerator::default(),
             )

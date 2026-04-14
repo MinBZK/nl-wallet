@@ -36,6 +36,7 @@ cfg-if.workspace = true
 ciborium.workspace = true
 derive_more = { workspace = true, features = ["constructor", "debug", "display", "is_variant"] }
 futures = { workspace = true, features = ["async-await"] }
+hex.workspace = true
 http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
@@ -95,10 +96,9 @@ wscd.path = "../lib/wscd"
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true }
 
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
-# When compiling for either Android or iOS, make sure that the "vendored" feature of "openssl-sys" is enabled.
+# When compiling for either Android or iOS, make sure that the "vendored" feature of "openssl-sys" is enabled by
+# enabling the "bundled-sqlcipher-vendored-openssl" feature on "libsqlite3-sys".
 # This compiles and statically links OpenSSL, so that a dynamic library does not need to be present on the system.
-# Note that "openssl-sys" is used both by "libsqlite3-sys" and "josekit".
-openssl-sys = { workspace = true, features = ["vendored"] }
 libsqlite3-sys = { workspace = true, features = ["bundled-sqlcipher-vendored-openssl"] }
 
 [dev-dependencies]
@@ -113,7 +113,7 @@ tokio = { workspace = true, features = ["macros", "test-util"] }
 wiremock.workspace = true
 
 apple_app_attest = { path = "../lib/apple_app_attest", features = ["mock"] }
-attestation_types = { path = "../lib/attestation_types" }
+attestation_types.path = "../lib/attestation_types"
 attestation_data = { path = "../lib/attestation_data", features = ["example_credential_payloads", "generate", "mock"] }
 crypto = { path = "../lib/crypto", features = ["mock", "mock_secure_keys"] }
 dcql = { path = "../lib/dcql", features = ["mock"] }
@@ -125,6 +125,7 @@ openid4vc = { path = "../lib/openid4vc", features = [
     "example_credential_payloads",
     "example_constructors",
 ] }
+mdoc = { path = "../lib/mdoc", features = ["examples", "test"] }
 # enable the "mock" feature for platform_support when running tests
 platform_support = { path = "platform_support", features = ["mock"] }
 sd_jwt = { path = "../lib/sd_jwt", features = ["examples", "mock"] }

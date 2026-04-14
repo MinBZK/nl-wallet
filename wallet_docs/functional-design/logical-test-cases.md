@@ -981,3 +981,14 @@ Cases:
 **When** user submits the revocation code<br>
 **And** user opens the app<br>
 **Then** a wallet solution is revoked message is displayed<br>
+
+---
+
+### LTC79
+
+#### Revoke wallet solution
+
+**Given** wallet contains an eaa card<br>
+**When** user deletes the card<br>
+**Then** wallet does not contain the deleted card<br>
+**And** a delete event is added to the history<br>

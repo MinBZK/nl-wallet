@@ -6,6 +6,7 @@ import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/feature/history/detail/bloc/history_detail_bloc.dart';
 import 'package:wallet/src/feature/history/detail/history_detail_screen.dart';
+import 'package:wallet/src/feature/history/detail/widget/page/history_detail_deletion_page.dart';
 import 'package:wallet/src/feature/history/detail/widget/page/history_detail_disclose_page.dart';
 import 'package:wallet/src/feature/history/detail/widget/page/history_detail_issue_page.dart';
 import 'package:wallet/src/feature/history/detail/widget/page/history_detail_login_page.dart';
@@ -127,6 +128,37 @@ void main() {
         ],
       );
       await screenMatchesGolden('success.card.status.corrupted');
+    });
+
+    testGoldens('ltc22 HistoryDetailLoadSuccess deletion - light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.deletionEvent),
+        ),
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
+      );
+      await screenMatchesGolden('success.card.deleted');
+    });
+
+    testGoldens('ltc22 HistoryDetailLoadSuccess deletion - dark', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.deletionEvent),
+        ),
+        brightness: Brightness.dark,
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
+      );
+      await screenMatchesGolden('success.card.deleted.dark');
     });
 
     testGoldens('ltc22 HistoryDetailLoadSuccess dark', (tester) async {
@@ -330,6 +362,25 @@ void main() {
       final count = WalletMockData.issuanceEvent.sharedAttributes.length;
       expect(find.text('$count from ${WalletMockData.card.title.testValue}'), findsOneWidget);
       expect(find.text('1 December 2023, 00:00'), findsOneWidget);
+      expect(find.textContaining(l10n.disclosureStopSheetReportIssueCta), findsOneWidget);
+      expect(find.text(l10n.generalBottomBackCta), findsOneWidget);
+    });
+
+    testWidgets('ltc22 Deletion event is rendered with DeletionPage', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.deletionEvent),
+        ),
+      );
+      final l10n = await TestUtils.englishLocalizations;
+      expect(find.byType(HistoryDetailDeletionPage), findsOneWidget);
+      expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsOneWidget);
+      final count = WalletMockData.deletionEvent.sharedAttributes.length;
+      expect(find.text('$count from ${WalletMockData.card.title.testValue}'), findsOneWidget);
+      expect(find.text('1 May 2024, 00:00'), findsOneWidget);
+      // The View CTA must NOT appear on the deletion detail screen.
+      expect(find.text(l10n.sharedAttributesCardCta), findsNothing);
       expect(find.textContaining(l10n.disclosureStopSheetReportIssueCta), findsOneWidget);
       expect(find.text(l10n.generalBottomBackCta), findsOneWidget);
     });

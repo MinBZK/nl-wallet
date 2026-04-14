@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../domain/model/attribute/attribute.dart';
 import '../domain/model/consumable.dart';
+import '../domain/model/disclosure/start_disclosure_request.dart';
 import '../domain/model/result/application_error.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../domain/usecase/transfer/confirm_wallet_transfer_usecase.dart';
@@ -14,6 +15,9 @@ import '../feature/blocked/bloc/app_blocked_bloc.dart';
 import '../feature/card/data/argument/card_data_screen_argument.dart';
 import '../feature/card/data/bloc/card_data_bloc.dart';
 import '../feature/card/data/card_data_screen.dart';
+import '../feature/card/delete/argument/delete_card_screen_argument.dart';
+import '../feature/card/delete/bloc/delete_card_bloc.dart';
+import '../feature/card/delete/delete_card_screen.dart';
 import '../feature/card/detail/argument/card_detail_screen_argument.dart';
 import '../feature/card/detail/bloc/card_detail_bloc.dart';
 import '../feature/card/detail/card_detail_screen.dart';
@@ -27,6 +31,7 @@ import '../feature/dashboard/argument/dashboard_screen_argument.dart';
 import '../feature/dashboard/bloc/dashboard_bloc.dart';
 import '../feature/dashboard/dashboard_screen.dart';
 import '../feature/demo/demo_screen.dart';
+import '../feature/disclosure/argument/disclosure_screen_argument.dart';
 import '../feature/disclosure/bloc/disclosure_bloc.dart';
 import '../feature/disclosure/disclosure_screen.dart';
 import '../feature/forgot_pin/forgot_pin_screen.dart';
@@ -119,6 +124,7 @@ class WalletRoutes {
   static const aboutRoute = '/about';
   static const biometricsSettingsRoute = '/settings/biometrics';
   static const cardDataRoute = '/card/data';
+  static const cardDeleteRoute = '/card/delete';
   static const cardDetailRoute = '/card/detail';
   static const cardHistoryRoute = '/card/history';
   static const changeLanguageRoute = '/language';
@@ -175,6 +181,7 @@ class WalletRoutes {
     WalletRoutes.dashboardRoute: _createDashboardScreenBuilder,
     WalletRoutes.cardDetailRoute: _createCardDetailScreenBuilder,
     WalletRoutes.cardDataRoute: _createCardDataScreenBuilder,
+    WalletRoutes.cardDeleteRoute: _createDeleteCardScreenBuilder,
     WalletRoutes.cardHistoryRoute: _createCardHistoryScreenBuilder,
     WalletRoutes.demoRoute: (_) => _createDemoScreenBuilder,
     WalletRoutes.contactRoute: (_) => _createContactScreenBuilder,
@@ -316,6 +323,18 @@ WidgetBuilder _createCardDataScreenBuilder(RouteSettings settings) {
   };
 }
 
+WidgetBuilder _createDeleteCardScreenBuilder(RouteSettings settings) {
+  return (context) {
+    final DeleteCardScreenArgument argument = DeleteCardScreen.getArgument(settings);
+    return BlocProvider<DeleteCardBloc>(
+      create: (context) =>
+          DeleteCardBloc()
+            ..add(DeleteCardLoadTriggered(attestationId: argument.attestationId, cardTitle: argument.cardTitle)),
+      child: const DeleteCardScreen(),
+    );
+  };
+}
+
 WidgetBuilder _createCardHistoryScreenBuilder(RouteSettings settings) {
   return (context) {
     final String attestationId = CardHistoryScreen.getArguments(settings);
@@ -333,17 +352,23 @@ WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
   final args = DisclosureScreen.getArgument(settings);
   return (context) {
     return BlocProvider<DisclosureBloc>(
-      create: (BuildContext context) =>
-          DisclosureBloc(
-            context.read(),
-            context.read(),
-            context.read(),
-          )..add(
-            DisclosureSessionStarted(
-              args.uri,
-              isQrCode: args.isQrCode,
-            ),
-          ),
+      create: (BuildContext context) {
+        final bloc = DisclosureBloc(
+          context.read(),
+          context.read(),
+          context.read(),
+          context.read(),
+        );
+        switch (args.type) {
+          case RemoteDisclosure(:final uri, isQrCode: false):
+            bloc.add(DisclosureSessionStarted(StartDisclosureRequest.deeplink(uri)));
+          case RemoteDisclosure(:final uri, isQrCode: true):
+            bloc.add(DisclosureSessionStarted(StartDisclosureRequest.qrScan(uri)));
+          case CloseProximityDisclosure():
+            bloc.add(const DisclosureSessionStarted(StartDisclosureRequest.closeProximity()));
+        }
+        return bloc;
+      },
       child: const DisclosureScreen(),
     );
   };
@@ -660,7 +685,11 @@ WidgetBuilder _createAppBlockedScreenBuilder(RouteSettings settings) {
 WidgetBuilder _createQrPresentScreenBuilder(RouteSettings settings) {
   return (context) {
     return BlocProvider<QrPresentBloc>(
-      create: (BuildContext context) => QrPresentBloc(context.read())..add(const QrPresentStartRequested()),
+      create: (BuildContext context) => QrPresentBloc(
+        context.read(),
+        context.read(),
+        context.read(),
+      )..add(const QrPresentStartRequested()),
       child: const QrPresentScreen(),
     );
   };

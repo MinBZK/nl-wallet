@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/wallet_card_detail.dart';
+import '../../../navigation/secured_page_route.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/cast_util.dart';
 import '../../../util/extension/animation_extension.dart';
@@ -16,6 +17,7 @@ import '../../../util/mapper/card/status/card_status_metadata_mapper.dart';
 import '../../../util/mapper/card/status/card_status_render_type.dart';
 import '../../../util/mapper/event/wallet_event_status_text_mapper.dart';
 import '../../../wallet_constants.dart';
+import '../../common/dialog/delete_card_dialog.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/animated_fade_in.dart';
 import '../../common/widget/button/button_content.dart';
@@ -34,6 +36,7 @@ import '../../common/widget/wallet_app_bar.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 import '../../organization/detail/organization_detail_screen.dart';
 import '../data/argument/card_data_screen_argument.dart';
+import '../delete/argument/delete_card_screen_argument.dart';
 import 'argument/card_detail_screen_argument.dart';
 import 'bloc/card_detail_bloc.dart';
 
@@ -211,7 +214,7 @@ class CardDetailScreen extends StatelessWidget {
         const SliverDivider(),
         SliverToBoxAdapter(
           child: AnimatedFadeIn(
-            child: _buildDetailContent(context, detail),
+            child: _buildDetailContent(context, detail, isPidCard: state.isPidCard),
           ),
         ),
         const SliverDivider(),
@@ -220,7 +223,7 @@ class CardDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailContent(BuildContext context, WalletCardDetail detail) {
+  Widget _buildDetailContent(BuildContext context, WalletCardDetail detail, {required bool isPidCard}) {
     final card = detail.card;
     final rows = [
       MenuItem(
@@ -246,6 +249,14 @@ class CardDetailScreen extends StatelessWidget {
           onReportIssuePressed: () => PlaceholderScreen.showGeneric(context),
         ),
       ),
+      if (!isPidCard)
+        MenuItem(
+          leftIcon: Icon(Icons.delete_outline, color: context.colorScheme.error),
+          label: Text.rich(context.l10n.cardDetailScreenCardDeleteCta.toTextSpan(context)),
+          labelColor: context.colorScheme.error,
+          subtitle: Text.rich(context.l10n.cardDetailScreenCardDeleteWarning.toTextSpan(context)),
+          onPressed: () => _onCardDeletePressed(context, card),
+        ),
     ];
     return ListView.separated(
       shrinkWrap: true,
@@ -300,6 +311,23 @@ class CardDetailScreen extends StatelessWidget {
       WalletRoutes.cardDataRoute,
       arguments: CardDataScreenArgument(
         cardId: card.attestationId ?? '',
+        cardTitle: card.title.l10nValue(context),
+      ).toMap(),
+    );
+  }
+
+  Future<void> _onCardDeletePressed(BuildContext context, WalletCard card) async {
+    final confirmed = await DeleteCardDialog.show(context, cardTitle: card.title.l10nValue(context));
+    if (!confirmed || !context.mounted) return;
+
+    final attestationId = card.attestationId;
+    if (attestationId == null) return;
+
+    await Navigator.pushNamed(
+      context,
+      WalletRoutes.cardDeleteRoute,
+      arguments: DeleteCardScreenArgument(
+        attestationId: attestationId,
         cardTitle: card.title.l10nValue(context),
       ).toMap(),
     );

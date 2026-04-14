@@ -1474,6 +1474,7 @@ mod tests {
     use jwt::UnverifiedJwt;
     use jwt::Validation;
     use jwt::headers::HeaderWithJwk;
+    use jwt::nonce::Nonce;
     use jwt::pop::JwtPopClaims;
     use jwt::wua::WuaDisclosure;
     use token_status_list::status_list_service::mock::MockStatusListService;
@@ -1605,7 +1606,7 @@ mod tests {
     async fn should_handle_sign() {
         let wallet_user = wallet_user::mock::wallet_user_1();
         let wrapping_key_identifier = "my-wrapping-key-identifier";
-        let poa_nonce = Some("nonce".to_string());
+        let poa_nonce = Some(Nonce::from("nonce".to_string()));
         let poa_aud = "aud".to_string();
 
         let random_msg_1 = random_bytes(32);
@@ -2188,7 +2189,7 @@ mod tests {
 
         let instruction = Sign {
             messages_with_identifiers: vec![(mock_jwt_payload(r#"{"typ":"poa+jwt"}"#), vec!["key".to_string()])],
-            poa_nonce: Some("nonce".to_string()),
+            poa_nonce: Some(Nonce::from("nonce".to_string())),
             poa_aud: "aud".to_string(),
         };
 
@@ -2261,7 +2262,12 @@ mod tests {
         let keys = keys.into_iter().chain(wua_key).collect_vec();
         if keys.len() > 1 {
             poa.unwrap()
-                .verify(&keys, POP_AUD, &[NL_WALLET_CLIENT_ID.to_string()], POP_NONCE)
+                .verify(
+                    &keys,
+                    POP_AUD,
+                    &[NL_WALLET_CLIENT_ID.to_string()],
+                    &Nonce::from(POP_NONCE.to_string()),
+                )
                 .unwrap();
         }
     }
@@ -2277,7 +2283,7 @@ mod tests {
         let result = perform_issuance(PerformIssuance {
             key_count: key_count.try_into().unwrap(),
             aud: POP_AUD.to_string(),
-            nonce: Some(POP_NONCE.to_string()),
+            nonce: Some(Nonce::from(POP_NONCE.to_string())),
         })
         .await;
 
@@ -2290,7 +2296,7 @@ mod tests {
             issuance_instruction: PerformIssuance {
                 key_count: NonZeroUsize::MIN,
                 aud: POP_AUD.to_string(),
-                nonce: Some(POP_NONCE.to_string()),
+                nonce: Some(Nonce::from(POP_NONCE.to_string())),
             },
         })
         .await;

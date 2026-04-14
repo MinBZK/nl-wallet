@@ -32,23 +32,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     required super.portManager,
   });
 
-  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_CloseProximityDisclosureUpdatePtr => wire
-      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdatePtr;
-
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw);
 
   @protected
-  CloseProximityDisclosureUpdate
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
-    dynamic raw,
-  );
-
-  @protected
-  FutureOr<void> Function(CloseProximityDisclosureUpdate)
-  dco_decode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate_Output_unit_AnyhowException(
-    dynamic raw,
-  );
+  FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate)
+  dco_decode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(dynamic raw);
 
   @protected
   FutureOr<void> Function(List<(int, NotificationType)>)
@@ -56,10 +45,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   Object dco_decode_DartOpaque(dynamic raw);
-
-  @protected
-  CloseProximityDisclosureUpdate
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(dynamic raw);
 
   @protected
   RustStreamSink<bool> dco_decode_StreamSink_bool_Dco(dynamic raw);
@@ -141,6 +126,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   ClaimDisplayMetadata dco_decode_claim_display_metadata(dynamic raw);
+
+  @protected
+  CloseProximityDisclosureFlutterUpdate dco_decode_close_proximity_disclosure_flutter_update(dynamic raw);
 
   @protected
   DisclosureBasedIssuanceResult dco_decode_disclosure_based_issuance_result(dynamic raw);
@@ -341,19 +329,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
-  CloseProximityDisclosureUpdate
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   Object sse_decode_DartOpaque(SseDeserializer deserializer);
-
-  @protected
-  CloseProximityDisclosureUpdate
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
-    SseDeserializer deserializer,
-  );
 
   @protected
   RustStreamSink<bool> sse_decode_StreamSink_bool_Dco(SseDeserializer deserializer);
@@ -437,6 +413,11 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   ClaimDisplayMetadata sse_decode_claim_display_metadata(SseDeserializer deserializer);
+
+  @protected
+  CloseProximityDisclosureFlutterUpdate sse_decode_close_proximity_disclosure_flutter_update(
+    SseDeserializer deserializer,
+  );
 
   @protected
   DisclosureBasedIssuanceResult sse_decode_disclosure_based_issuance_result(SseDeserializer deserializer);
@@ -1237,6 +1218,35 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_close_proximity_disclosure_flutter_update(
+    CloseProximityDisclosureFlutterUpdate apiObj,
+    wire_cst_close_proximity_disclosure_flutter_update wireObj,
+  ) {
+    if (apiObj is CloseProximityDisclosureFlutterUpdate_Connecting) {
+      wireObj.tag = 0;
+      return;
+    }
+    if (apiObj is CloseProximityDisclosureFlutterUpdate_Connected) {
+      wireObj.tag = 1;
+      return;
+    }
+    if (apiObj is CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived) {
+      wireObj.tag = 2;
+      return;
+    }
+    if (apiObj is CloseProximityDisclosureFlutterUpdate_Disconnected) {
+      wireObj.tag = 3;
+      return;
+    }
+    if (apiObj is CloseProximityDisclosureFlutterUpdate_Errored) {
+      var pre_error = cst_encode_String(apiObj.error);
+      wireObj.tag = 4;
+      wireObj.kind.Errored.error = pre_error;
+      return;
+    }
+  }
+
+  @protected
   void cst_api_fill_to_wire_disclosure_based_issuance_result(
     DisclosureBasedIssuanceResult apiObj,
     wire_cst_disclosure_based_issuance_result wireObj,
@@ -1698,15 +1708,8 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  int
-  cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
-    CloseProximityDisclosureUpdate raw,
-  );
-
-  @protected
-  PlatformPointer
-  cst_encode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate_Output_unit_AnyhowException(
-    FutureOr<void> Function(CloseProximityDisclosureUpdate) raw,
+  PlatformPointer cst_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
+    FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) raw,
   );
 
   @protected
@@ -1716,11 +1719,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   PlatformPointer cst_encode_DartOpaque(Object raw);
-
-  @protected
-  int cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
-    CloseProximityDisclosureUpdate raw,
-  );
 
   @protected
   int cst_encode_blocked_reason(BlockedReason raw);
@@ -1768,16 +1766,8 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer);
 
   @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
-    CloseProximityDisclosureUpdate self,
-    SseSerializer serializer,
-  );
-
-  @protected
-  void
-  sse_encode_DartFn_Inputs_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate_Output_unit_AnyhowException(
-    FutureOr<void> Function(CloseProximityDisclosureUpdate) self,
+  void sse_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
+    FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) self,
     SseSerializer serializer,
   );
 
@@ -1789,12 +1779,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_DartOpaque(Object self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
-    CloseProximityDisclosureUpdate self,
-    SseSerializer serializer,
-  );
 
   @protected
   void sse_encode_StreamSink_bool_Dco(RustStreamSink<bool> self, SseSerializer serializer);
@@ -1888,6 +1872,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_claim_display_metadata(ClaimDisplayMetadata self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_close_proximity_disclosure_flutter_update(
+    CloseProximityDisclosureFlutterUpdate self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_disclosure_based_issuance_result(DisclosureBasedIssuanceResult self, SseSerializer serializer);
@@ -3126,40 +3116,6 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__unlock_wallet_with_biometrics =
       _wire__crate__api__full__unlock_wallet_with_biometricsPtr.asFunction<void Function(int)>();
 
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
-    ffi.Pointer<ffi.Void> ptr,
-  ) {
-    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
-      ptr,
-    );
-  }
-
-  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdatePtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'frbgen_wallet_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate',
-      );
-  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate =
-      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdatePtr
-          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
-    ffi.Pointer<ffi.Void> ptr,
-  ) {
-    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate(
-      ptr,
-    );
-  }
-
-  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdatePtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'frbgen_wallet_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate',
-      );
-  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdate =
-      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCloseProximityDisclosureUpdatePtr
-          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
-
   ffi.Pointer<wire_cst_attestation_presentation> cst_new_box_autoadd_attestation_presentation() {
     return _cst_new_box_autoadd_attestation_presentation();
   }
@@ -4094,6 +4050,21 @@ final class wire_cst_accept_disclosure_result extends ffi.Struct {
   external int tag;
 
   external AcceptDisclosureResultKind kind;
+}
+
+final class wire_cst_CloseProximityDisclosureFlutterUpdate_Errored extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> error;
+}
+
+final class CloseProximityDisclosureFlutterUpdateKind extends ffi.Union {
+  external wire_cst_CloseProximityDisclosureFlutterUpdate_Errored Errored;
+}
+
+final class wire_cst_close_proximity_disclosure_flutter_update extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external CloseProximityDisclosureFlutterUpdateKind kind;
 }
 
 final class wire_cst_DisclosureBasedIssuanceResult_Ok extends ffi.Struct {

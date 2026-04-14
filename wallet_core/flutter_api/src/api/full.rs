@@ -2,14 +2,12 @@ use std::sync::Arc;
 
 use flutter_rust_bridge::DartFnFuture;
 use flutter_rust_bridge::frb;
-use flutter_rust_bridge::setup_default_user_utils;
 use itertools::Itertools;
 use tokio::sync::OnceCell;
 use tokio::sync::RwLock;
 use url::Url;
 
 use flutter_api_macros::flutter_api_error;
-pub use wallet::CloseProximityDisclosureUpdate;
 use wallet::DisclosureUriSource;
 use wallet::PidIssuancePurpose;
 use wallet::UnlockMethod;
@@ -22,6 +20,8 @@ use crate::logging::init_logging;
 use crate::models::attestation::AttestationPresentation;
 use crate::models::config::FlutterConfiguration;
 use crate::models::disclosure::AcceptDisclosureResult;
+use crate::models::disclosure::CloseProximityDisclosureFlutterUpdate;
+use crate::models::disclosure::DisclosureSessionType;
 use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::DisclosureBasedIssuanceResult;
 use crate::models::instruction::PidIssuanceResult;
@@ -45,6 +45,17 @@ fn wallet() -> &'static RwLock<Wallet> {
         .expect("Wallet must be initialized. Please execute `init()` first.")
 }
 
+fn set_env_if_unset(name: &str, value: &str) {
+    match std::env::var(name) {
+        Err(std::env::VarError::NotPresent) => unsafe { std::env::set_var(name, value) },
+        Ok(value) => tracing::info!("Skip setting env var `{name}` because it is already set to: {value}"),
+        Err(std::env::VarError::NotUnicode(value)) => tracing::info!(
+            "Skip setting env var `{name}` because it is already set to: {}",
+            value.to_string_lossy()
+        ),
+    }
+}
+
 #[frb(init)]
 #[flutter_api_error]
 pub async fn init() -> anyhow::Result<()> {
@@ -55,13 +66,10 @@ pub async fn init() -> anyhow::Result<()> {
         init_logging();
 
         // Setup logging to console and enable RUST_BACKTRACE to be caught on panics (but not errors) for Sentry.
-        setup_default_user_utils();
-        unsafe {
-            std::env::set_var("RUST_LIB_BACKTRACE", "0");
-        }
+        set_env_if_unset("RUST_BACKTRACE", "1");
+        set_env_if_unset("RUST_LIB_BACKTRACE", "0");
 
         // Initialize Sentry for Rust panics.
-        // This MUST be called before initializing the async runtime.
         init_sentry();
 
         create_wallet().await?;
@@ -386,10 +394,12 @@ pub async fn start_disclosure(uri: String, is_qr_code: bool) -> anyhow::Result<S
 
 #[flutter_api_error]
 pub async fn start_close_proximity_disclosure(
-    callback: impl Fn(CloseProximityDisclosureUpdate) -> DartFnFuture<()> + Send + Sync + 'static,
+    callback: impl Fn(CloseProximityDisclosureFlutterUpdate) -> DartFnFuture<()> + Send + Sync + 'static,
 ) -> anyhow::Result<String> {
     let mut wallet = wallet().write().await;
-    let result = wallet.start_close_proximity_disclosure(Box::new(callback)).await?;
+    let result = wallet
+        .start_close_proximity_disclosure(Box::new(move |update| callback(update.into())))
+        .await?;
 
     Ok(result.into())
 }
@@ -398,7 +408,43 @@ pub async fn start_close_proximity_disclosure(
 pub async fn continue_close_proximity_disclosure() -> anyhow::Result<StartDisclosureResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.continue_close_proximity_disclosure().try_into()?;
+    let mut result: StartDisclosureResult = wallet.continue_close_proximity_disclosure().await.try_into()?;
+    result = match result {
+        StartDisclosureResult::Request {
+            relying_party,
+            policy,
+            disclosure_options,
+            shared_data_with_relying_party_before,
+            request_purpose,
+            request_origin_base_url,
+            request_type,
+            session_type: _,
+        } => StartDisclosureResult::Request {
+            relying_party,
+            policy,
+            disclosure_options,
+            shared_data_with_relying_party_before,
+            session_type: DisclosureSessionType::CloseProximity,
+            request_purpose,
+            request_origin_base_url,
+            request_type,
+        },
+        StartDisclosureResult::RequestAttributesMissing {
+            relying_party,
+            missing_attributes,
+            shared_data_with_relying_party_before,
+            request_purpose,
+            request_origin_base_url,
+            session_type: _,
+        } => StartDisclosureResult::RequestAttributesMissing {
+            relying_party,
+            missing_attributes,
+            shared_data_with_relying_party_before,
+            session_type: DisclosureSessionType::CloseProximity,
+            request_purpose,
+            request_origin_base_url,
+        },
+    };
 
     Ok(result)
 }

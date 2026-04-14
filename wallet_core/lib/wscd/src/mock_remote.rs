@@ -19,6 +19,7 @@ use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use jwt::SignedJwt;
+use jwt::nonce::Nonce;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaClaims;
 use jwt::wua::WuaDisclosure;
@@ -135,7 +136,7 @@ impl IssuanceWscd for MockRemoteWscd {
         &self,
         count: NonZeroUsize,
         aud: String,
-        nonce: Option<String>,
+        nonce: Option<Nonce>,
         include_wua: bool,
     ) -> Result<IssuanceResult<Poa>, Self::Error> {
         let claims = JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud);

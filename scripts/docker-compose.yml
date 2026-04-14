@@ -27,7 +27,7 @@ services:
       - "${BRP_SERVER_PORT}:5000"
     network_mode: bridge
     extra_hosts:
-      - "docker-host:host-gateway"
+      - "docker-host:${DOCKER_HOST_GATEWAY:-host-gateway}"
 
   gbamock:
     container_name: gbamock

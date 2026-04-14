@@ -141,7 +141,7 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildNetworkErrorPage(BuildContext context, IssuanceNetworkError state) {
     return NetworkErrorPage(
-      hasInternet: state.hasInternet,
+      hasInternet: state.error.hasInternet,
       onStopPressed: () => Navigator.pop(context),
     );
   }
@@ -389,8 +389,8 @@ class IssuanceScreen extends StatelessWidget {
       IssuanceGenericError() => context.l10n.issuanceGenericErrorPageTitle,
       IssuanceNoCardsRetrieved() => context.l10n.issuanceNoCardsPageTitle,
       IssuanceExternalScannerError() => context.l10n.issuanceGenericErrorPageTitle,
-      IssuanceNetworkError() =>
-        state.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline,
+      IssuanceNetworkError(:final error) =>
+        error.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline,
       IssuanceSessionExpired() => context.l10n.errorScreenSessionExpiredHeadline,
       IssuanceSessionCancelled() => context.l10n.errorScreenCancelledSessionHeadline,
       IssuanceRelyingPartyError() => context.l10n.issuanceRelyingPartyErrorTitle,

@@ -57,6 +57,12 @@ impl IssuerUrl {
         base_url
     }
 
+    pub fn as_url(&self) -> &Url {
+        let Self(base_url) = self;
+
+        base_url.as_ref()
+    }
+
     pub fn into_url(self) -> Url {
         let Self(base_url) = self;
 

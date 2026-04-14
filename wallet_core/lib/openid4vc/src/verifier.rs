@@ -44,6 +44,7 @@ use jwe::decryption::JweSecretKey;
 use jwt::SignedJwt;
 use jwt::error::JwtError;
 use jwt::headers::HeaderWithX5c;
+use jwt::nonce::Nonce;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::Generator;
@@ -1329,7 +1330,7 @@ impl Session<Created> {
         )?;
 
         // Construct the Authorization Request.
-        let nonce = random_string(32);
+        let nonce = Nonce::new_random();
 
         // Use the session token as the `kid` value of the JWK. HAIP mandates `ECDH-ES` as JWE algorithm.
         // See: https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5-2.5

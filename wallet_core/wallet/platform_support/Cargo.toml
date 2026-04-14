@@ -103,9 +103,9 @@ rustls-pki-types = { workspace = true, optional = true }
 tokio = { workspace = true, features = ["sync"] }
 uuid = { workspace = true, optional = true }
 
-crypto = { path = "../../lib/crypto" }
+crypto.path = "../../lib/crypto"
 error_category.path = "../../lib/error_category"
-utils = { path = "../../lib/utils" }
+utils.path = "../../lib/utils"
 
 rand_core = { workspace = true, optional = true }
 

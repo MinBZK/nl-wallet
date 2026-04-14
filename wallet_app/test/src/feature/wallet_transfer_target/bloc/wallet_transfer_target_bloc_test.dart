@@ -92,7 +92,7 @@ void main() {
       act: (bloc) => bloc.add(const WalletTransferOptInEvent()),
       expect: () => [
         const WalletTransferLoadingQrData(),
-        isA<WalletTransferNetworkError>().having((e) => e.hasInternet, 'error', isFalse),
+        isA<WalletTransferNetworkError>().having((e) => e.error.hasInternet, 'error', isFalse),
       ],
     );
 

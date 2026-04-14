@@ -68,8 +68,10 @@
 //! # use crypto::server_keys::generate::Ca;
 //! # use jwt::confirmation::ConfirmationClaim;
 //! # use jwt::headers::HeaderWithX5c;
+//! # use jwt::nonce::Nonce;
 //! # use jwt::jwk::jwk_from_p256;
-//! # use p256::ecdsa::{SigningKey, VerifyingKey};
+//! # use p256::ecdsa::SigningKey;
+//! # use p256::ecdsa::VerifyingKey;
 //! # use rand::rngs::OsRng;
 //! # use rustls_pki_types::TrustAnchor;
 //! # use sd_jwt::builder::SdJwtBuilder;
@@ -78,7 +80,8 @@
 //! # use sd_jwt::disclosure::Disclosure;
 //! # use sd_jwt::key_binding_jwt::KbVerificationOptions;
 //! # use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
-//! # use sd_jwt::sd_jwt::{SdJwtVcClaims, VerifiedSdJwt};
+//! # use sd_jwt::sd_jwt::SdJwtVcClaims;
+//! # use sd_jwt::sd_jwt::VerifiedSdJwt;
 //! # use std::sync::Arc;
 //! # use std::time::Duration;
 //! # use token_status_list::verification::client::mock::StatusListClientStub;
@@ -134,7 +137,7 @@
 //!     .into_presentation_builder()
 //!     .disclose(&vec_nonempty![ClaimPath::SelectByKey("name".into())])?
 //!     .finish();
-//! let kb = KeyBindingJwtBuilder::new("https://verifier.example.com".into(), "nonce-123".into());
+//! let kb = KeyBindingJwtBuilder::new("https://verifier.example.com".into(), Nonce::from("nonce-123".to_string()));
 //! let signed_presentation = presentation.sign(kb, &holder_privkey, &TimeGenerator::default()).await?;
 //!
 //! // 6) Verifier verifies the presentation (SD-JWT via trust anchors + KB-JWT via cnf JWK) and decodes claims.
@@ -142,7 +145,7 @@
 //!     &trust_anchors,
 //!     &KbVerificationOptions {
 //!         expected_aud: "https://verifier.example.com",
-//!         expected_nonce: "nonce-123",
+//!         expected_nonce: &Nonce::from("nonce-123".to_string()),
 //!         iat_leeway: Duration::ZERO,
 //!         iat_acceptance_window: Duration::from_secs(300),
 //!     },

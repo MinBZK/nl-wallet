@@ -489,6 +489,16 @@ void main() {
       );
       await screenMatchesGolden('relying_party_error.light');
     });
+
+    testGoldens('DisclosureCloseProximityDisconnected Error Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          const DisclosureCloseProximityDisconnected(isLoginFlow: false),
+        ),
+      );
+      await screenMatchesGolden('close_proximity_disconnect_error.light');
+    });
   });
 
   group('widgets', () {
@@ -515,7 +525,6 @@ void main() {
           MockDisclosureBloc(),
           const DisclosureNetworkError(
             error: NetworkError(hasInternet: false, sourceError: 'no internet'),
-            hasInternet: false,
           ),
         ),
       );
@@ -548,7 +557,6 @@ void main() {
           MockDisclosureBloc(),
           const DisclosureNetworkError(
             error: NetworkError(hasInternet: true, sourceError: 'server'),
-            hasInternet: true,
           ),
         ),
       );

@@ -57,6 +57,7 @@ use jwt::UnverifiedJwt;
 use jwt::Validation;
 use jwt::error::JwtX5cError;
 use jwt::headers::HeaderWithX5c;
+use jwt::nonce::Nonce;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::utils::serialization::CborBase64;
@@ -506,7 +507,7 @@ impl VpAuthorizationRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NormalizedVpAuthorizationRequest {
     pub client_id: ClientId,
-    pub nonce: String,
+    pub nonce: Nonce,
     pub encryption_pubkey: JwePublicKey,
     pub response_uri: BaseUrl,
     pub credential_requests: NormalizedCredentialRequests,
@@ -520,7 +521,7 @@ impl NormalizedVpAuthorizationRequest {
     pub fn new_for_verifier(
         credential_requests: NormalizedCredentialRequests,
         client_id: ClientId,
-        nonce: String,
+        nonce: Nonce,
         encryption_pubkey: JwePublicKey,
         response_uri: BaseUrl,
         wallet_nonce: Option<String>,
@@ -684,7 +685,7 @@ impl NormalizedVpAuthorizationRequest {
     pub fn session_transcript(&self) -> SessionTranscript {
         SessionTranscript::new_oid4vp(
             &self.client_id.to_string(),
-            &self.nonce,
+            self.nonce.as_ref(),
             Some(&Self::sha256_thumbprint_bytes(&Key::from(
                 self.encryption_pubkey.clone(),
             ))),
@@ -855,7 +856,7 @@ impl VpAuthorizationResponse {
             self,
             encryption_algorithm,
             Some(encryption_nonce.as_bytes()),
-            Some(auth_request.nonce.as_bytes()),
+            Some(auth_request.nonce.as_ref().as_bytes()),
             JweCompression::None,
         )
     }
@@ -1131,7 +1132,7 @@ pub mod test {
         pub fn new_from_certificate(
             credential_requests: NormalizedCredentialRequests,
             rp_certificate: &BorrowingCertificate,
-            nonce: String,
+            nonce: Nonce,
             encryption_pubkey: JwePublicKey,
             response_uri: BaseUrl,
             wallet_nonce: Option<String>,
@@ -1192,6 +1193,7 @@ mod tests {
     use jwe::algorithm::EncryptionAlgorithm;
     use jwe::decryption::JweSecretKey;
     use jwt::SignedJwt;
+    use jwt::nonce::Nonce;
     use jwt::pop::JwtPopClaims;
     use mdoc::DeviceResponse;
     use mdoc::examples::Example;
@@ -1352,7 +1354,7 @@ mod tests {
         let auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
             credential_requests,
             rp_keypair.certificate(),
-            "nonce".to_string(),
+            Nonce::from("nonce".to_string()),
             encryption_public_key,
             response_uri,
             None,
@@ -1399,18 +1401,11 @@ mod tests {
 
         let decrypted_device_response = decrypted_device_responses.into_first();
 
-        assert_eq!(
-            decrypted_device_response
-                .documents
-                .as_ref()
-                .map(|documents| documents.len())
-                .unwrap_or_default(),
-            1
-        );
+        let decrypted_documents = decrypted_device_response.documents.unwrap();
+        assert_eq!(decrypted_documents.len().get(), 1);
 
-        let encrypted_document = encrypted_device_response.documents.unwrap().into_iter().next().unwrap();
-        let decrypted_document = decrypted_device_response.documents.unwrap().into_iter().next().unwrap();
-
+        let encrypted_document = encrypted_device_response.documents.unwrap().into_first();
+        let decrypted_document = decrypted_documents.into_first();
         assert_eq!(decrypted_document.doc_type, encrypted_document.doc_type);
         assert_eq!(decrypted_document.issuer_signed, encrypted_document.issuer_signed);
     }
@@ -2262,17 +2257,10 @@ mod tests {
 
         let decrypted_device_response = device_responses.into_first();
 
-        assert_eq!(
-            decrypted_device_response
-                .documents
-                .as_ref()
-                .map(|documents| documents.len())
-                .unwrap_or_default(),
-            1
-        );
+        let decrypted_documents = decrypted_device_response.documents.unwrap();
+        assert_eq!(decrypted_documents.len().get(), 1);
 
-        let decrypted_document = decrypted_device_response.documents.unwrap().into_iter().next().unwrap();
-
+        let decrypted_document = decrypted_documents.into_first();
         assert_eq!(decrypted_document.doc_type, "org.iso.18013.5.1.mDL".to_string());
     }
 
