@@ -537,7 +537,7 @@ impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
             | CloseProximityDisclosureError::MalformedDeviceRequest(_)
             | CloseProximityDisclosureError::InvalidDeviceRequest(_)
             | CloseProximityDisclosureError::InvalidCertificate(_)
-            | CloseProximityDisclosureError::MissingSanDnsName => FlutterApiErrorType::Verifier,
+            | CloseProximityDisclosureError::MissingCommonName => FlutterApiErrorType::Verifier,
             CloseProximityDisclosureError::ErrorDeviceResponseEncoding(_)
             | CloseProximityDisclosureError::PlatformError(_)
             | CloseProximityDisclosureError::DeviceResponse(_) => FlutterApiErrorType::Generic,

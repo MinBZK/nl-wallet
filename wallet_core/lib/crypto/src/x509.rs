@@ -308,6 +308,11 @@ impl BorrowingCertificate {
         x509_common_names(&self.x509_certificate().subject)
     }
 
+    /// Returns the first CN, if any, from the certificate.
+    pub fn common_name(&self) -> Result<Option<&str>, CertificateError> {
+        Ok(self.common_names()?.into_iter().next())
+    }
+
     pub fn distinguished_name(&self) -> Result<String, CertificateError> {
         let dn = self
             .x509_certificate()

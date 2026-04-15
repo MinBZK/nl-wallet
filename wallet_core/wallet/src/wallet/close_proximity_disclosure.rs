@@ -35,7 +35,6 @@ use mdoc::utils::serialization::CborError;
 use mdoc::utils::serialization::cbor_serialize;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::openid4vp::ClientId;
 use openid4vc::verifier::SessionType;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -216,13 +215,13 @@ pub enum CloseProximityDisclosureError {
     #[category(pd)]
     DeviceResponse(#[source] mdoc::Error),
 
-    #[error("Could not extract SAN DNS name from certificate: {0}")]
+    #[error("Could not extract Common Name from certificate: {0}")]
     #[category(critical)]
     InvalidCertificate(#[source] CertificateError),
 
-    #[error("No SAN DNS name found in certificate")]
+    #[error("No Common Name found in certificate")]
     #[category(critical)]
-    MissingSanDnsName,
+    MissingCommonName,
 }
 
 fn parse_device_request(bytes: &[u8]) -> Result<DeviceRequest, CloseProximityDisclosureError> {
@@ -243,7 +242,7 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         | CloseProximityDisclosureError::InvalidCertificateType(_)
         | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_)
         | CloseProximityDisclosureError::InvalidCertificate(_)
-        | CloseProximityDisclosureError::MissingSanDnsName => Some(DeviceResponseStatus::GeneralError),
+        | CloseProximityDisclosureError::MissingCommonName => Some(DeviceResponseStatus::GeneralError),
         // These are either internal wallet errors or failures already handled by platform support,
         // so we do not expect to send a protocol-level error DeviceResponse for them.
         CloseProximityDisclosureError::ErrorDeviceResponseEncoding(_)
@@ -672,14 +671,12 @@ where
         // if this fails, there's a bug in the code
         let nonce = Nonce::from(hex::encode(cbor_serialize(session_transcript).unwrap()));
         // use the same aud as for SD-JWT
-        let aud = ClientId::x509_san_dns(
-            verifier_certificate
-                .certificate()
-                .san_dns_name()
-                .map_err(CloseProximityDisclosureError::InvalidCertificate)?
-                .ok_or(CloseProximityDisclosureError::MissingSanDnsName)?,
-        )
-        .to_string();
+        let aud = verifier_certificate
+            .certificate()
+            .common_name()
+            .map_err(CloseProximityDisclosureError::InvalidCertificate)?
+            .ok_or(CloseProximityDisclosureError::MissingCommonName)?
+            .to_string();
         let poa_input = JwtPoaInput::new(Some(nonce), aud);
 
         // Create the device response, casting any `InstructionError` that occurs during signing
