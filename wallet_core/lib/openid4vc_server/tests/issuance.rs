@@ -4,14 +4,18 @@ use std::slice::Iter;
 use std::sync::Arc;
 
 use p256::ecdsa::SigningKey;
+use p256::pkcs8::EncodePrivateKey;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use tokio::net::TcpListener;
 use url::Url;
 
 use attestation_data::credential_payload::CredentialPayload;
+use crypto::server_keys::generate::Ca;
 use http_utils::reqwest::HttpJsonClient;
-use http_utils::reqwest::default_reqwest_client_builder;
+use http_utils::reqwest::ReqwestTrustAnchor;
+use http_utils::reqwest::trusted_reqwest_client_builder;
+use http_utils::server::TlsServerConfig;
 use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::GrantPreAuthorizedCode;
@@ -36,13 +40,34 @@ use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
 use openid4vc_server::issuer::create_issuance_router;
 use wscd::mock_remote::MockRemoteWscd;
 
+fn generate_localhost_tls() -> (TlsServerConfig, ReqwestTrustAnchor) {
+    let ca = Ca::generate("localhost", Default::default()).unwrap();
+    let keypair = ca.generate_tls_mock("localhost").unwrap();
+
+    let tls_config = TlsServerConfig {
+        cert: keypair.certificate().as_ref().to_vec(),
+        key: keypair.private_key().to_pkcs8_der().unwrap().as_bytes().to_vec(),
+    };
+    let trust_anchor = ReqwestTrustAnchor::try_from(ca.certificate().as_ref().to_vec()).unwrap();
+
+    (tls_config, trust_anchor)
+}
+
 async fn start_server(
     attestation_count: NonZeroUsize,
     upstream_oauth_identifier: Option<IssuerIdentifier>,
-) -> (Arc<MockIssuer>, TrustAnchor<'static>, IssuerIdentifier, SigningKey) {
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let addr = listener.local_addr().unwrap();
-    let issuer_identifier: IssuerIdentifier = format!("http://{addr}").parse().unwrap();
+) -> (
+    Arc<MockIssuer>,
+    TrustAnchor<'static>,
+    IssuerIdentifier,
+    SigningKey,
+    ReqwestTrustAnchor,
+) {
+    let (tls_server_config, tls_trust_anchor) = generate_localhost_tls();
+
+    let listener = TcpListener::bind("localhost:0").await.unwrap().into_std().unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let issuer_identifier: IssuerIdentifier = format!("https://localhost:{port}").parse().unwrap();
 
     let sessions = Arc::new(MemorySessionStore::default());
     let (issuer, trust_anchor, wua_issuer_privkey) = setup_mock_issuer(
@@ -57,9 +82,21 @@ async fn start_server(
     let issuer = Arc::new(issuer);
 
     let router = create_issuance_router(Arc::clone(&issuer));
-    tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    tokio::spawn(async move {
+        axum_server::from_tcp_rustls(listener, tls_server_config.into_rustls_config().unwrap())
+            .unwrap()
+            .serve(router.into_make_service())
+            .await
+            .unwrap()
+    });
 
-    (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey)
+    (
+        issuer,
+        trust_anchor,
+        issuer_identifier,
+        wua_issuer_privkey,
+        tls_trust_anchor,
+    )
 }
 
 fn make_credential_offer_url(
@@ -121,11 +158,13 @@ async fn authorization_code_flow(
     #[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
 ) {
     let upstream_oauth_id: IssuerIdentifier = "https://auth.example.com/".parse().unwrap();
-    let (_, trust_anchor, issuer_identifier, wua_issuer_privkey) =
+    let (_, trust_anchor, issuer_identifier, wua_issuer_privkey, tls_trust_anchor) =
         start_server(attestation_count, Some(upstream_oauth_id)).await;
 
     let redirect_uri: Url = "https://wallet.example.com/callback".parse().unwrap();
-    let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap());
+    let discovery = HttpIssuanceDiscovery::new(
+        HttpJsonClient::try_new(trusted_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
+    );
 
     // Start authorization code flow — fetches metadata and creates an auth session.
     let auth_session = discovery
@@ -184,14 +223,17 @@ async fn authorization_code_flow(
 async fn pre_authorized_code_flow(
     #[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
 ) {
-    let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = start_server(attestation_count, None).await;
+    let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey, tls_trust_anchor) =
+        start_server(attestation_count, None).await;
 
     let documents = mock_issuable_documents(attestation_count);
     let session_token = issuer.new_session(documents).await.unwrap();
 
     let credential_offer_url = make_credential_offer_url(issuer_identifier, session_token, attestation_count);
 
-    let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap());
+    let discovery = HttpIssuanceDiscovery::new(
+        HttpJsonClient::try_new(trusted_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
+    );
 
     let trust_anchors = &[trust_anchor];
     let mut session = discovery
@@ -214,14 +256,16 @@ async fn pre_authorized_code_flow(
 #[tokio::test]
 async fn reject_issuance() {
     let attestation_count = NonZeroUsize::MIN;
-    let (issuer, trust_anchor, issuer_identifier, _) = start_server(attestation_count, None).await;
+    let (issuer, trust_anchor, issuer_identifier, _, tls_trust_anchor) = start_server(attestation_count, None).await;
 
     let documents = mock_issuable_documents(attestation_count);
     let session_token = issuer.new_session(documents).await.unwrap();
 
     let offer_url = make_credential_offer_url(issuer_identifier, session_token, attestation_count);
 
-    let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap());
+    let discovery = HttpIssuanceDiscovery::new(
+        HttpJsonClient::try_new(trusted_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
+    );
 
     let trust_anchors = &[trust_anchor];
     let session = discovery

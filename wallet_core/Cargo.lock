@@ -5086,6 +5086,7 @@ dependencies = [
  "attestation_data",
  "axum",
  "axum-extra",
+ "axum-server",
  "crypto",
  "dcql",
  "http",

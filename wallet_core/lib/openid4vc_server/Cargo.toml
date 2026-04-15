@@ -43,12 +43,13 @@ token_status_list = { path = "../token_status_list" }
 utils.path = "../utils"
 
 [dev-dependencies]
+axum-server.workspace = true
 p256.workspace = true
 rstest.workspace = true
 serde_urlencoded.workspace = true
 tokio = { workspace = true, features = ["test-util", "macros", "net"] }
 url = { workspace = true, features = ["serde"] }
 
-http_utils = { path = "../http_utils", features = ["client", "allow_insecure_url"] } # TODO: Remove allow_insecure_url in PVW-5836
+http_utils = { path = "../http_utils", features = ["client"] }
 openid4vc = { path = "../openid4vc", features = ["integration"] }
 wscd = { path = "../wscd", features = ["mock"] }
