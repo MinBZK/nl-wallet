@@ -177,11 +177,20 @@ extension CloseProximityDisclosure {
             return currentContext
         }
 
-        let newContext = createReaderSessionContext(
-            eDeviceKey: session.eDeviceKey,
-            encodedDeviceEngagement: session.encodedDeviceEngagement,
-            message: message
-        )
+        let newContext: CloseProximityDisclosureReaderSessionContext
+        do {
+            newContext = createReaderSessionContext(
+                eDeviceKey: session.eDeviceKey,
+                encodedDeviceEngagement: session.encodedDeviceEngagement,
+                message: message
+            )
+        } catch {
+            if let status = sessionEstablishmentFailureStatus(for: error) {
+                await failSessionWithStatus(session, transport: transport, status: status, error: error)
+                return nil
+            }
+            throw error
+        }
         session.setSessionEncryption(
             newContext.sessionEncryption,
             encodedSessionTranscript: newContext.encodedSessionTranscript
@@ -200,9 +209,19 @@ extension CloseProximityDisclosure {
         message: KotlinByteArray,
         readerSessionContext: CloseProximityDisclosureReaderSessionContext
     ) async throws -> Bool {
-        let decryptedMessage = readerSessionContext.sessionEncryption.decryptMessage(messageData: message)
-        let deviceRequest = decryptedMessage.first
-        let status = decryptedMessage.second
+        let deviceRequest: KotlinByteArray?
+        let status: NSNumber?
+        do {
+            let decryptedMessage = readerSessionContext.sessionEncryption.decryptMessage(messageData: message)
+            deviceRequest = decryptedMessage.first
+            status = decryptedMessage.second
+        } catch {
+            if let status = sessionMessageFailureStatus(for: error) {
+                await failSessionWithStatus(session, transport: transport, status: status, error: error)
+                return true
+            }
+            throw error
+        }
 
         try requireReaderMessageContent(deviceRequest: deviceRequest, status: status)
         if let deviceRequest {
