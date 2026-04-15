@@ -82,9 +82,9 @@ spec:
                   key: bsn_privkey
             - name: PID_ISSUER__DIGID__CLIENT_ID
               value: {{ .Values.digidClientId | quote }}
-            - name: PID_ISSUER__DIGID__HTTP_CONFIG__BASE_URL
+            - name: PID_ISSUER__DIGID__CLIENT_SETTINGS__OIDC_IDENTIFIER
               value: {{ .Values.digidBaseUrl | quote }}
-            - name: PID_ISSUER__DIGID__HTTP_CONFIG__TRUST_ANCHORS
+            - name: PID_ISSUER__DIGID__CLIENT_SETTINGS__TRUST_ANCHORS
               valueFrom:
                 configMapKeyRef:
                   name: nl-wallet-pid-issuer-digid-http-trust-anchors
