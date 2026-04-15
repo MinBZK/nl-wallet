@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
+use std::slice::Iter;
 use std::sync::Arc;
 
 use p256::ecdsa::SigningKey;
@@ -28,8 +29,10 @@ use openid4vc::token::AuthorizationCode;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::IssuanceSession;
+use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredential;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
+use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
 use openid4vc_server::issuer::create_issuance_router;
 use wscd::mock_remote::MockRemoteWscd;
 
@@ -78,6 +81,38 @@ fn make_credential_offer_url(
     let container = CredentialOfferContainer { credential_offer };
     let query = serde_urlencoded::to_string(&container).unwrap();
     format!("openid-credential-offer://?{query}").parse().unwrap()
+}
+
+fn verify_issued_credentials(
+    issued_creds: Vec<CredentialWithMetadata>,
+    normalized_credential_previews: Iter<NormalizedCredentialPreview>,
+    expected_attestations: usize,
+    expected_copies: usize,
+) {
+    assert_eq!(issued_creds.len(), expected_attestations);
+    assert_eq!(
+        issued_creds.first().unwrap().copies.as_ref().len().get(),
+        expected_copies
+    );
+
+    issued_creds
+        .into_iter()
+        .zip(normalized_credential_previews)
+        .for_each(|(credential, preview_data)| {
+            credential
+                .copies
+                .into_inner()
+                .into_iter()
+                .for_each(|issued_credential| match issued_credential {
+                    IssuedCredential::MsoMdoc { mdoc } => {
+                        let payload = CredentialPayload::from_mdoc(mdoc, &preview_data.normalized_metadata).unwrap();
+                        assert_eq!(payload.previewable_payload, preview_data.content.credential_payload);
+                    }
+                    IssuedCredential::SdJwt { .. } => {
+                        panic!("SdJwt should not be issued");
+                    }
+                })
+        });
 }
 
 #[rstest]
@@ -135,7 +170,13 @@ async fn authorization_code_flow(
     let wscd = MockRemoteWscd::new_with_wua_signing_key(wua_issuer_privkey);
     let issued_creds = session.accept_issuance(trust_anchors, &wscd, true).await.unwrap();
 
-    assert_eq!(issued_creds.len(), attestation_count.get());
+    let copy_count = 4;
+    verify_issued_credentials(
+        issued_creds,
+        session.normalized_credential_preview().iter(),
+        attestation_count.get(),
+        copy_count,
+    );
 }
 
 #[rstest]
@@ -162,27 +203,12 @@ async fn pre_authorized_code_flow(
     let wscd = MockRemoteWscd::new_with_wua_signing_key(wua_issuer_privkey);
     let issued_creds = session.accept_issuance(trust_anchors, &wscd, true).await.unwrap();
 
-    assert_eq!(issued_creds.len(), attestation_count.get());
-    assert_eq!(issued_creds.first().unwrap().copies.as_ref().len().get(), copy_count);
-
-    issued_creds
-        .into_iter()
-        .zip(session.normalized_credential_preview().iter())
-        .for_each(|(credential, preview_data)| {
-            credential
-                .copies
-                .into_inner()
-                .into_iter()
-                .for_each(|issued_credential| match issued_credential {
-                    IssuedCredential::MsoMdoc { mdoc } => {
-                        let payload = CredentialPayload::from_mdoc(mdoc, &preview_data.normalized_metadata).unwrap();
-                        assert_eq!(payload.previewable_payload, preview_data.content.credential_payload);
-                    }
-                    IssuedCredential::SdJwt { .. } => {
-                        panic!("SdJwt should not be issued");
-                    }
-                })
-        });
+    verify_issued_credentials(
+        issued_creds,
+        session.normalized_credential_preview().iter(),
+        attestation_count.get(),
+        copy_count,
+    );
 }
 
 #[tokio::test]
