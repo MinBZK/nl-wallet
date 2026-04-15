@@ -30,6 +30,16 @@ impl DeviceResponse {
         }
     }
 
+    pub fn error(status: u64) -> Self {
+        Self {
+            version: DeviceResponseVersion::default(),
+            documents: None,
+            document_errors: None,
+            status,
+            poa: None,
+        }
+    }
+
     async fn sign_from_partial_mdocs_inner<K, W, P>(
         partial_mdocs: &VecNonEmpty<PartialMdoc>,
         session_transcript: &SessionTranscript,
@@ -136,6 +146,16 @@ mod tests {
     use crate::utils::cose::ClonePayload;
 
     use super::super::mdoc::PartialMdoc;
+
+    #[test]
+    fn test_error_device_response_constructor() {
+        let device_response = DeviceResponse::error(10);
+
+        assert!(device_response.documents.is_none());
+        assert!(device_response.document_errors.is_none());
+        assert_eq!(device_response.status, 10);
+        assert!(device_response.poa.is_none());
+    }
 
     #[test]
     fn test_device_response_sign_from_mdocs() {
