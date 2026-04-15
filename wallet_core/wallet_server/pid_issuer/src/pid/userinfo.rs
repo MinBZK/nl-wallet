@@ -116,8 +116,8 @@ pub async fn request_userinfo<C>(
     oidc_identifier: &IssuerIdentifier,
     token_request: TokenRequest,
     client_id: &str,
-    expected_sig_alg: Algorithm,
     decrypter: &JweDecrypter,
+    (expected_jws_alg, expected_enc_alg): (Algorithm, EncryptionAlgorithm),
 ) -> Result<C, UserInfoError>
 where
     C: DeserializeOwned,
@@ -140,13 +140,10 @@ where
     )?;
 
     let jws = decrypter
-        .decrypt_string(
-            &jwe,
-            ExpectedEncryptionAlgorithm::Algorithms(&[EncryptionAlgorithm::A128CbcHs256]),
-        )
+        .decrypt_string(&jwe, ExpectedEncryptionAlgorithm::Algorithms(&[expected_enc_alg]))
         .map_err(UserInfoError::JweDecryption)?;
 
-    verify_against_keys(&jws, &jwks, client_id, expected_sig_alg)
+    verify_against_keys(&jws, &jwks, client_id, expected_jws_alg)
 }
 
 // We can't use our own `Jwt` types here because they only support ECDSA/P256.

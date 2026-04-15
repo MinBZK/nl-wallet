@@ -3,6 +3,7 @@ use jwk_simple::Key;
 
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::tls_pinned_client_builder;
+use jwe::algorithm::EncryptionAlgorithm;
 use jwe::algorithm::RsaAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweRsaPrivateKey;
@@ -14,6 +15,10 @@ use crate::pid::userinfo;
 use crate::pid::userinfo::UserInfo;
 use crate::pid::userinfo::UserInfoError;
 use crate::settings::DigidClientSettings;
+
+const EXPECTED_JWE_RSA_ALGORITHM: RsaAlgorithm = RsaAlgorithm::RsaOaep;
+const EXPECTED_JWE_ENC_ALGORITHM: EncryptionAlgorithm = EncryptionAlgorithm::A128CbcHs256;
+const EXPECTED_JWS_ALGORITHM: Algorithm = Algorithm::RS256;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -43,7 +48,7 @@ impl OpenIdClient {
         client_id: impl Into<String>,
         digid_client_settings: DigidClientSettings,
     ) -> Result<Self> {
-        let jwe_private_key = JweRsaPrivateKey::try_from_jwk(bsn_privkey, RsaAlgorithm::RsaOaep)?;
+        let jwe_private_key = JweRsaPrivateKey::try_from_jwk(bsn_privkey, EXPECTED_JWE_RSA_ALGORITHM)?;
         let certs = digid_client_settings
             .trust_anchors
             .into_iter()
@@ -65,8 +70,8 @@ impl OpenIdClient {
             &self.oidc_identifier,
             token_request,
             &self.client_id,
-            Algorithm::RS256,
             &self.decrypter,
+            (EXPECTED_JWS_ALGORITHM, EXPECTED_JWE_ENC_ALGORITHM),
         )
         .await?;
 
