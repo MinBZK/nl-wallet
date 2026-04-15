@@ -25,10 +25,7 @@ extension CloseProximityDisclosure: CloseProximityDisclosureBridge {
             establishedSessionContext: establishedSessionContext,
             deviceResponse: deviceResponse
         )
-
-        if isActiveSession(session) {
-            await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
-        }
+        await closeSessionAfterDeviceResponse(session)
     }
 
     func sendSessionTermination() async throws {
@@ -41,10 +38,7 @@ extension CloseProximityDisclosure: CloseProximityDisclosureBridge {
             session: session,
             transport: establishedSessionContext.transport
         )
-
-        if isActiveSession(session) {
-            await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
-        }
+        await closeSessionAfterDeviceResponse(session)
     }
 
     func stopBleServer() async throws {
@@ -244,10 +238,9 @@ extension CloseProximityDisclosure {
                 )
             )
         } catch {
-            guard isActiveSession(session) else {
-                throw error.asCloseProximityDisclosureError
+            if isActiveSession(session) {
+                await failSession(session, error: error)
             }
-            await failSession(session, error: error)
             throw error.asCloseProximityDisclosureError
         }
     }
@@ -263,11 +256,16 @@ extension CloseProximityDisclosure {
                 )
             )
         } catch {
-            guard isActiveSession(session) else {
-                throw error.asCloseProximityDisclosureError
+            if isActiveSession(session) {
+                await failSession(session, error: error)
             }
-            await failSession(session, error: error)
             throw error.asCloseProximityDisclosureError
+        }
+    }
+
+    func closeSessionAfterDeviceResponse(_ session: CloseProximityDisclosureActiveSession) async {
+        if isActiveSession(session) {
+            await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
         }
     }
 
