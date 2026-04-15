@@ -6,12 +6,8 @@ use attestation_data::issuable_document::IssuableDocument;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
 use hsm::service::HsmError;
-use http_utils::client::TlsPinningConfig;
 use openid4vc::issuer::AttributeService;
-use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
-use openid4vc::token::TokenRequestGrantType;
 use server_utils::keys::SecretKeyVariant;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -22,6 +18,7 @@ use crate::pid::brp::client::HttpBrpClient;
 use crate::pid::constants::PID_ATTESTATION_TYPE;
 use crate::pid::constants::PID_BSN;
 use crate::pid::constants::PID_RECOVERY_CODE;
+use crate::settings::DigidClientSettings;
 
 use super::digid;
 use super::digid::OpenIdClient;
@@ -54,7 +51,6 @@ pub struct BrpPidAttributeService {
     brp_client: HttpBrpClient,
     openid_client: OpenIdClient,
     recovery_code_secret_key: SecretKeyVariant,
-    issuer_identifier: IssuerIdentifier,
 }
 
 impl BrpPidAttributeService {
@@ -62,15 +58,13 @@ impl BrpPidAttributeService {
         brp_client: HttpBrpClient,
         bsn_privkey: &str,
         client_id: impl Into<String>,
-        http_config: TlsPinningConfig,
+        digid_client_settings: DigidClientSettings,
         recovery_code_secret_key: SecretKeyVariant,
-        issuer_identifier: IssuerIdentifier,
     ) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
-            openid_client: OpenIdClient::try_new(bsn_privkey, client_id, http_config)?,
+            openid_client: OpenIdClient::try_new(bsn_privkey, client_id, digid_client_settings)?,
             recovery_code_secret_key,
-            issuer_identifier,
         })
     }
 }
@@ -79,14 +73,7 @@ impl AttributeService for BrpPidAttributeService {
     type Error = Error;
 
     async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Error> {
-        let openid_token_request = TokenRequest {
-            grant_type: TokenRequestGrantType::AuthorizationCode {
-                code: token_request.code().clone(),
-            },
-            ..token_request
-        };
-
-        let bsn = self.openid_client.bsn(openid_token_request).await?;
+        let bsn = self.openid_client.bsn(token_request).await?;
         let mut persons = self.brp_client.get_person_by_bsn(&bsn).await?;
 
         if persons.persons.len() != 1 {
@@ -101,15 +88,6 @@ impl AttributeService for BrpPidAttributeService {
             .map_err(|_| Error::InvalidIssuableDocuments)?;
 
         Ok(vec_nonempty![issuable_document])
-    }
-
-    async fn oauth_metadata(&self, issuer_identifier: &IssuerIdentifier) -> Result<oidc::Config, Error> {
-        let mut metadata = self.openid_client.discover_metadata().await?;
-
-        metadata.issuer = self.issuer_identifier.clone();
-        metadata.token_endpoint = issuer_identifier.as_base_url().join("/issuance/token");
-
-        Ok(metadata)
     }
 }
 

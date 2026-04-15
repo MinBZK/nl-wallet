@@ -1,4 +1,4 @@
-//! OpenID discovery, loosely based on https://crates.io/crates/openid.
+//! OAuth 2.0 Authorization Server Metadata, loosely based on https://crates.io/crates/openid.
 
 use indexmap::IndexSet;
 use serde::Deserialize;
@@ -6,25 +6,23 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use http_utils::reqwest::ReqwestClientUrl;
-
 use crate::issuer_identifier::IssuerIdentifier;
 
-use super::JwkSet;
-use super::OidcError;
-use super::OidcReqwestClient;
+use super::well_known::WellKnownMetadata;
 
-/// OpenID metadata as defind by https://openid.net/specs/openid-connect-discovery-1_0.html,
-/// to be published at `.well-known/openid-configuration`.
+/// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414), to be
+/// published at `.well-known/oauth-authorization-server`.
 #[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Config {
+pub struct AuthorizationServerMetadata {
     pub issuer: IssuerIdentifier,
-    pub authorization_endpoint: Url,
+    #[serde(default)]
+    pub authorization_endpoint: Option<Url>,
     pub token_endpoint: Url,
     #[serde(default)]
     pub userinfo_endpoint: Option<Url>,
-    pub jwks_uri: Url,
+    #[serde(default)]
+    pub jwks_uri: Option<Url>,
     #[serde(default)]
     pub registration_endpoint: Option<Url>,
     #[serde(default)]
@@ -100,15 +98,15 @@ pub struct Config {
     pub code_challenge_methods_supported: Option<IndexSet<String>>,
 }
 
-impl Config {
+impl AuthorizationServerMetadata {
     /// Returns a new instance with the specified URLs, and all other parameters set to none/empty/false.
-    pub fn new(issuer: IssuerIdentifier, authorization_endpoint: Url, token_endpoint: Url, jwks_uri: Url) -> Self {
+    pub fn new(issuer: IssuerIdentifier, token_endpoint: Url) -> Self {
         Self {
             issuer,
-            authorization_endpoint,
+            authorization_endpoint: None,
             token_endpoint,
             userinfo_endpoint: None,
-            jwks_uri,
+            jwks_uri: None,
             registration_endpoint: None,
             scopes_supported: None,
             response_types_supported: IndexSet::new(),
@@ -142,33 +140,11 @@ impl Config {
             code_challenge_methods_supported: None,
         }
     }
+}
 
-    pub async fn discover(http_client: &OidcReqwestClient) -> Result<Self, OidcError> {
-        // If the Issuer value contains a path component, any terminating / MUST be removed before
-        // appending /.well-known/openid-configuration.
-        let config = http_client
-            .as_ref()
-            .send_get(ReqwestClientUrl::Relative(".well-known/openid-configuration"))
-            .await?
-            .error_for_status()?
-            .json()
-            .await?;
-
-        Ok(config)
-    }
-
-    /// Get the JWK set from the given Url. Errors are either a reqwest error or an Insecure error if
-    /// the url isn't https.
-    pub(super) async fn jwks(&self, http_client: &OidcReqwestClient) -> Result<JwkSet, OidcError> {
-        let jwks = http_client
-            .as_ref()
-            .send_get(ReqwestClientUrl::Absolute(self.jwks_uri.clone()))
-            .await?
-            .error_for_status()?
-            .json()
-            .await?;
-
-        Ok(jwks)
+impl WellKnownMetadata for AuthorizationServerMetadata {
+    fn issuer_identifier(&self) -> &IssuerIdentifier {
+        &self.issuer
     }
 }
 
@@ -185,11 +161,15 @@ pub mod tests {
     use wiremock::matchers::method;
     use wiremock::matchers::path;
 
-    use http_utils::client::InternalHttpConfig;
+    use http_utils::reqwest::HttpJsonClient;
+    use http_utils::reqwest::default_reqwest_client_builder;
     use http_utils::urls::BaseUrl;
 
-    use super::super::OidcReqwestClient;
-    use super::Config;
+    use crate::issuer_identifier::IssuerIdentifier;
+    use crate::metadata::well_known::WellKnownPath;
+    use crate::metadata::well_known::fetch_well_known;
+
+    use super::AuthorizationServerMetadata;
 
     pub async fn start_discovery_server() -> (MockServer, BaseUrl) {
         let server = MockServer::start().await;
@@ -199,7 +179,7 @@ pub mod tests {
         Mock::given(method("GET"))
             .and(path("/.well-known/openid-configuration"))
             .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "issuer": "https://example.com/",
+                "issuer": server_url.as_ref().as_str(),
                 "authorization_endpoint": server_url.join("/oauth2/authorize"),
                 "token_endpoint": server_url.join("/oauth2/token"),
                 "jwks_uri": server_url.join("/.well-known/jwks.json"),
@@ -210,29 +190,20 @@ pub mod tests {
             .mount(&server)
             .await;
 
-        // Mock JWKS endpoint
-        Mock::given(method("GET"))
-            .and(path("/.well-known/jwks.json"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "keys": []
-            })))
-            .expect(1)
-            .mount(&server)
-            .await;
-
         (server, server_url)
     }
 
+    #[cfg_attr(not(feature = "allow_insecure_url"), ignore = "requires allow_insecure_url feature")]
     #[tokio::test]
     async fn test_discovery() {
         let (_server, server_url) = start_discovery_server().await;
-        let client = OidcReqwestClient::try_new(InternalHttpConfig::try_new(server_url.clone()).unwrap()).unwrap();
+        let issuer_identifier: IssuerIdentifier = server_url.as_ref().as_str().parse().unwrap();
+        let client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
+        let metadata: AuthorizationServerMetadata =
+            fetch_well_known(&client, &issuer_identifier, WellKnownPath::OpenidConfiguration)
+                .await
+                .unwrap();
 
-        let discovered = Config::discover(&client).await.unwrap();
-
-        assert_eq!(discovered.issuer.as_ref(), "https://example.com/");
-
-        let jwks = discovered.jwks(&client).await.unwrap();
-        assert!(jwks.keys.is_empty());
+        assert_eq!(metadata.issuer, issuer_identifier);
     }
 }

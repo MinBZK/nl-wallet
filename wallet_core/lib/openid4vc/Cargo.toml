@@ -15,28 +15,31 @@ name = "disclosure"
 path = "tests/disclosure.rs"
 required-features = ["integration"]
 
-[[test]]
-name = "issuance"
-path = "tests/issuance.rs"
-required-features = ["integration"]
-
 [features]
 # Include implementations of the axum IntoResponse trait.
 axum = ["axum/json"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["http_utils/allow_insecure_url"]
 # Include mock implementations for testing
-mock = ["crypto/generate", "dep:mockall", "token_status_list/mock", "wscd/mock"]
+mock = [
+    "attestation_data/generate",
+    "attestation_data/mock",
+    "crypto/generate",
+    "dep:mockall",
+    "token_status_list/mock",
+    "wscd/mock",
+    "sd_jwt_vc_metadata/example_constructors",
+]
 # Include miscellaneous test utilities
 test = ["dep:assert_matches", "dep:parking_lot", "jwt/test", "tokio/test-util", "utils/mock_time", "wscd/mock"]
 # All features needed to run the integration test
-integration = ["example_constructors", "mock", "test"]
+integration = ["mock", "test"]
 # Credential payload examples
 example_credential_payloads = []
 # Offers example constructors
 example_constructors = []
 # Generate typescript bindings for wallet_web
-ts_rs = []
+ts_rs = ["dep:ts-rs"]
 
 [dependencies]
 async-trait.workspace = true
@@ -58,8 +61,6 @@ futures = { workspace = true, features = ["async-await"] }
 hex.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
-josekit.workspace = true
-jsonwebtoken.workspace = true
 jwk-simple.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
@@ -86,6 +87,7 @@ assert_matches = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
+ts-rs = { workspace = true, optional = true }
 
 attestation_data.path = "../attestation_data"
 attestation_types.path = "../attestation_types"
@@ -102,12 +104,6 @@ token_status_list = { path = "../token_status_list", features = ["verification"]
 utils.path = "../utils"
 wscd.path = "../wscd"
 
-[target.'cfg(any(target_env = "musl", target_os = "android", target_os = "ios"))'.dependencies]
-# When compiling for "musl", Android or iOS, make sure that the "vendored" feature of "josekit" is enabled, which in
-# turn enables the "vendored" feature on "openssl-sys".
-# This compiles and statically links OpenSSL, so that a dynamic library does not need to be present on the system.
-josekit = { workspace = true, features = ["vendored"] }
-
 [dev-dependencies]
 assert_matches.workspace = true
 mockall.workspace = true
@@ -118,7 +114,7 @@ serde_json = { workspace = true, features = ["preserve_order"] }
 serial_test.workspace = true
 tokio = { workspace = true, features = ["test-util"] }
 tracing-test.workspace = true
-ts-rs.workspace = true
+
 wiremock.workspace = true
 
 attestation_data = { path = "../attestation_data", features = [

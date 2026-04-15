@@ -32,8 +32,8 @@ use mdoc::utils::serialization::CborError;
 use mdoc::utils::serialization::cbor_serialize;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::oidc::OidcClient;
 use openid4vc::verifier::SessionType;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureError as PlatformError;
@@ -200,12 +200,12 @@ pub enum CloseProximityDisclosureError {
     DeviceResponse(#[source] mdoc::Error),
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
     CPC: CloseProximityDisclosureClient,
     S: Storage,

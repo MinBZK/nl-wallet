@@ -37,6 +37,8 @@ config = { workspace = true, features = ["toml", "preserve_order"] }
 derive_more = { workspace = true, features = ["debug"] }
 futures.workspace = true
 hex.workspace = true
+josekit.workspace = true
+jsonwebtoken.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 p256 = { workspace = true, features = ["pkcs8"] }
@@ -65,7 +67,14 @@ server_utils = { path = "../server_utils", features = ["postgres"] }
 status_lists = { path = "../../lib/status_lists", features = ["axum"] }
 token_status_list.path = "../../lib/token_status_list"
 
+[target.'cfg(any(target_env = "musl", target_os = "android", target_os = "ios"))'.dependencies]
+# When compiling for "musl", Android or iOS, make sure that the "vendored" feature of "josekit" is enabled, which in
+# turn enables the "vendored" feature on "openssl-sys".
+# This compiles and statically links OpenSSL, so that a dynamic library does not need to be present on the system.
+josekit = { workspace = true, features = ["vendored"] }
+
 [dev-dependencies]
+assert_matches.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 

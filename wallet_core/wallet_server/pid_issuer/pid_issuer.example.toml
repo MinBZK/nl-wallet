@@ -39,9 +39,9 @@ secret_key_type = "software"                                                    
 bsn_privkey = ""
 client_id = ""
 
-[digid.http_config]
+[digid.client_settings]
 # This is the base URL for the DigiD OIDC discovery host.
-base_url = "https://localhost:8006"
+oidc_identifier = "https://localhost:8006"
 # The TLS pinning trust anchors used for any OIDC HTTP request made, including
 # those sent to URLs that are the result of discovery. Note that these could be
 # on a different host than the base_url above, although this is likely to be

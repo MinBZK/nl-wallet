@@ -1,7 +1,6 @@
 mod account_provider;
 mod attestation;
 mod config;
-mod digid;
 mod instruction;
 mod lock;
 mod notification;
@@ -41,6 +40,7 @@ pub use crate::wallet::UnlockMethod;
 pub use crate::wallet::UriType;
 pub use crate::wallet::Wallet;
 pub use crate::wallet::WalletClients;
+pub use crate::wallet::WalletRepositories;
 pub use crate::wallet::WalletState;
 
 pub use token_status_list::verification::verifier::RevocationStatus;
@@ -100,7 +100,6 @@ pub mod test {
     pub use crate::config::WalletConfigurationRepository;
     pub use crate::config::default_config_server_config;
     pub use crate::config::default_wallet_config;
-    pub use crate::digid::start_digid_session;
     pub use crate::repository::BackgroundUpdateableRepository;
     pub use crate::repository::Repository;
     pub use crate::repository::RepositoryUpdateState;

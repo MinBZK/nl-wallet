@@ -26,6 +26,7 @@ pub trait PkcePair {
 }
 
 // The tuple contains the code verifier and code challenge, in order.
+#[derive(Debug)]
 pub struct S256PkcePair(String, String);
 
 impl PkcePair for S256PkcePair {

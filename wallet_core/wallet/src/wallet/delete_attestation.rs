@@ -9,7 +9,7 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::oidc::OidcClient;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use utils::vec_at_least::VecNonEmpty;
@@ -70,14 +70,14 @@ pub enum DeleteAttestationError {
     AttestationIdParsing(#[from] uuid::Error),
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
     S: Storage,
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
-    OC: OidcClient,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
 {
     #[instrument(skip_all)]

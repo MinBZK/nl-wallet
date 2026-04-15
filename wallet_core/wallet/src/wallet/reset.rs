@@ -7,7 +7,8 @@ use tracing::warn;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::oidc::OidcClient;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
+
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::GoogleAttestedKey;
@@ -34,12 +35,12 @@ pub enum ResetError {
 
 type ResetResult<T> = Result<T, ResetError>;
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
 {
     pub(super) async fn reset_to_initial_state(&mut self) -> bool {
@@ -138,7 +139,7 @@ where
 mod tests {
     use assert_matches::assert_matches;
 
-    use openid4vc::mock::MockIssuanceSession;
+    use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use utils::vec_nonempty;
 
     use crate::PidIssuancePurpose;
@@ -201,11 +202,11 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_reset_full() {
         let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
-            Some(PidIssuancePurpose::Enrollment),
-            vec_nonempty![AttestationPresentation::new_mock()],
-            MockIssuanceSession::default(),
-        )));
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
+            pid_purpose: Some(PidIssuancePurpose::Enrollment),
+            preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
+            protocol_state: MockIssuanceSession::default(),
+        }));
 
         wallet
             .reset()

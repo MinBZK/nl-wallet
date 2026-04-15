@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
+use std::convert::identity;
 
-use derive_more::AsRef;
 use derive_more::Debug;
 use futures::TryFutureExt;
 use futures::future::try_join_all;
@@ -19,33 +19,21 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use url::Url;
 
-use attestation_data::attributes::AttributesError;
 use attestation_data::attributes::AttributesTraversalBehaviour;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
-use attestation_data::credential_payload::MdocCredentialPayloadError;
-use attestation_data::credential_payload::PreviewableCredentialPayload;
-use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificate;
-use error_category::ErrorCategory;
-use jwt::error::JwkConversionError;
-use jwt::error::JwtError;
+use http_utils::reqwest::HttpJsonClient;
 use jwt::wua::WuaDisclosure;
 use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
-use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::TaggedBytes;
 use sd_jwt::error::DecoderError;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
-use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
-use sd_jwt_vc_metadata::TypeMetadataChainError;
-use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
-use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::TimeGenerator;
-use utils::single_unique::MultipleItemsFound;
 use utils::single_unique::SingleUnique;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
@@ -54,7 +42,6 @@ use wscd::wscd::IssuanceWscd;
 use crate::CredentialErrorCode;
 use crate::CredentialPreviewErrorCode;
 use crate::ErrorResponse;
-use crate::Format;
 use crate::TokenErrorCode;
 use crate::credential::Credential;
 use crate::credential::CredentialRequest;
@@ -66,283 +53,21 @@ use crate::credential::CredentialResponses;
 use crate::dpop::DPOP_HEADER_NAME;
 use crate::dpop::DPOP_NONCE_HEADER_NAME;
 use crate::dpop::Dpop;
-use crate::dpop::DpopError;
-use crate::issuer_identifier::IssuerIdentifier;
-use crate::issuer_metadata::IssuerMetadata;
-use crate::issuer_metadata::IssuerMetadataDiscoveryError;
+use crate::metadata::issuer_metadata::IssuerMetadata;
+use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::nonce::response::NonceResponse;
-use crate::oidc;
 use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
 use crate::token::AccessToken;
 use crate::token::CredentialPreview;
-use crate::token::CredentialPreviewContent;
-use crate::token::CredentialPreviewError;
 use crate::token::TokenRequest;
 use crate::token::TokenResponse;
-
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-#[category(defer)]
-pub enum IssuanceSessionError {
-    #[error("failed to get public key: {0}")]
-    #[category(pd)]
-    VerifyingKeyFromPrivateKey(#[source] Box<dyn std::error::Error + Send + Sync>),
-
-    #[error("DPoP error: {0}")]
-    Dpop(#[from] DpopError),
-
-    #[error("failed to convert key from/to JWK format: {0}")]
-    JwkConversion(#[from] JwkConversionError),
-
-    #[error("JWT error: {0}")]
-    Jwt(#[from] JwtError),
-
-    #[error("http request failed: {0}")]
-    #[category(expected)]
-    Network(#[from] reqwest::Error),
-
-    #[error("mismatch between issued and previewed credential, issued: {actual:?} , previewed: {expected:?}")]
-    #[category(pd)]
-    IssuedCredentialMismatch {
-        actual: Box<PreviewableCredentialPayload>,
-        expected: Box<PreviewableCredentialPayload>,
-    },
-
-    #[error("mdoc verification failed: {0}")]
-    MdocVerification(#[source] mdoc::Error),
-
-    #[error("SD-JWT verification failed: {0}")]
-    #[category(pd)]
-    SdJwtVerification(#[from] DecoderError),
-
-    #[error("type metadata verification failed: {0}")]
-    #[category(critical)]
-    TypeMetadataVerification(#[from] TypeMetadataChainError),
-
-    #[error("attributes do not match type metadata: {0}")]
-    #[category(pd)]
-    AttributesVerification(#[from] AttributesError),
-
-    #[error("error requesting access token: {0:?}")]
-    #[category(pd)]
-    TokenRequest(Box<ErrorResponse<TokenErrorCode>>),
-
-    #[error("error requesting credentials: {0:?}")]
-    #[category(pd)]
-    CredentialRequest(Box<ErrorResponse<CredentialErrorCode>>),
-
-    #[error("generating credential private keys failed: {0}")]
-    #[category(pd)]
-    PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-
-    #[error("public key contained in mdoc not equal to expected value")]
-    #[category(critical)]
-    PublicKeyMismatch,
-
-    #[error("received {found} responses, expected {expected}")]
-    #[category(critical)]
-    UnexpectedCredentialResponseCount { found: usize, expected: usize },
-
-    #[error("deferred issuance is not supported")]
-    #[category(expected)]
-    DeferredIssuanceUnsupported,
-
-    #[error("received credential response: {actual:?}, expected type {expected}")]
-    #[category(pd)]
-    UnexpectedCredentialResponseType { expected: String, actual: Credential },
-
-    #[error("error reading HTTP error: {0}")]
-    #[category(pd)]
-    HeaderToStr(#[from] ToStrError),
-
-    #[error("error verifying credential preview: {0}")]
-    CredentialPreview(#[from] CredentialPreviewError),
-
-    #[error("error retrieving issuer certificate from issued mdoc: {0}")]
-    IssuerCertificate(#[source] CoseError),
-
-    #[error("issuer contained in credential not equal to expected value")]
-    #[category(critical)]
-    IssuerMismatch,
-
-    #[error("error retrieving metadata from issued mdoc: {0}")]
-    Metadata(#[source] mdoc::Error),
-
-    #[error("metadata integrity digest contained is not consistent across credential copies")]
-    #[category(critical)]
-    MetadataIntegrityInconsistent,
-
-    #[error("missing metadata integrity digest")]
-    #[category(critical)]
-    MetadataIntegrityMissing,
-
-    #[error("error discovering Oauth metadata: {0}")]
-    #[category(expected)]
-    OauthDiscovery(#[source] OauthDiscoveryError),
-
-    #[error("error discovering OpenID4VCI Credential Issuer metadata: {0}")]
-    #[category(expected)]
-    OpenId4vciDiscovery(#[source] IssuerMetadataDiscoveryError),
-
-    #[error("issuer has no batch credential endpoint")]
-    #[category(critical)]
-    NoBatchCredentialEndpoint,
-
-    #[error("issuer has no credential preview endpoint")]
-    #[category(critical)]
-    NoCredentialPreviewEndpoint, // TODO (PVW-5559): skip preview when no credential preview endpoint
-
-    #[error("issuer has no credential configurations supported")]
-    #[category(critical)]
-    NoCredentialConfigurationsSupported,
-
-    #[error("issuer has no nonce endpoint, yet one of the credential configurations require cryptographic binding")]
-    #[category(critical)]
-    NoNonceEndpoint,
-
-    #[error("error requesting credential preview: {0:?}")]
-    #[category(pd)]
-    CredentialPreviewRequest(Box<ErrorResponse<CredentialPreviewErrorCode>>),
-
-    #[error("malformed attribute: random too short (was {0}; minimum {1}")]
-    #[category(critical)]
-    AttributeRandomLength(usize, usize),
-
-    #[error("error constructing PoA: {0}")]
-    #[category(pd)]
-    Poa(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-
-    #[error("error converting mdoc to a CredentialPayload: {0}")]
-    MdocCredentialPayload(#[from] MdocCredentialPayloadError),
-
-    #[error("error converting SD-JWT to a CredentialPayload: {0}")]
-    SdJwtCredentialPayloadError(#[from] SdJwtCredentialPayloadError),
-
-    #[error("unsupported credential format(s) proposed for credential \"{}\": {}", .0, .1.iter().join(", "))]
-    #[category(pd)]
-    UnsupportedCredentialFormat(String, HashSet<Format>),
-
-    #[error("different issuer registrations found in credential previews")]
-    #[category(critical)]
-    DifferentIssuerRegistrations(#[source] MultipleItemsFound),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum OauthDiscoveryError {
-    #[error("could not fetch or deserialize credential OAuth Server Metadata: {0}")]
-    Http(#[from] reqwest::Error),
-
-    #[error("issuer identifier in OAuth Server Metadata does not match, expected: {expected}, received: {received}")]
-    IssuerIdentifierMismatch {
-        expected: Box<IssuerIdentifier>,
-        received: Box<IssuerIdentifier>,
-    },
-}
-
-#[derive(Clone, Debug)]
-#[expect(
-    clippy::large_enum_variant,
-    reason = "in practice, variants are less different in size"
-)]
-pub enum IssuedCredential {
-    MsoMdoc {
-        mdoc: Mdoc,
-    },
-    SdJwt {
-        // This uniquely identifies the holder private key used for this credential, as managed by the WSCD.
-        key_identifier: String,
-        sd_jwt: VerifiedSdJwt,
-    },
-}
-
-#[derive(Clone, Debug)]
-pub struct CredentialWithMetadata {
-    pub copies: IssuedCredentialCopies,
-    pub attestation_type: String,
-    pub expiration: Option<DateTimeSeconds>,
-    pub not_before: Option<DateTimeSeconds>,
-    pub extended_attestation_types: Vec<String>,
-    pub metadata_documents: VerifiedTypeMetadataDocuments,
-}
-
-impl CredentialWithMetadata {
-    pub fn new(
-        copies: IssuedCredentialCopies,
-        attestation_type: String,
-        expiration: Option<DateTimeSeconds>,
-        not_before: Option<DateTimeSeconds>,
-        extended_attestation_types: impl IntoIterator<Item = impl Into<String>>,
-        metadata_documents: VerifiedTypeMetadataDocuments,
-    ) -> Self {
-        Self {
-            copies,
-            attestation_type,
-            expiration,
-            not_before,
-            extended_attestation_types: extended_attestation_types.into_iter().map(Into::into).collect(),
-            metadata_documents,
-        }
-    }
-}
-
-#[derive(Clone, Debug, AsRef)]
-pub struct IssuedCredentialCopies(VecNonEmpty<IssuedCredential>);
-
-impl IssuedCredentialCopies {
-    pub fn into_inner(self) -> VecNonEmpty<IssuedCredential> {
-        self.0
-    }
-}
-
-#[cfg(feature = "example_constructors")]
-mod example_constructors {
-    use std::mem;
-
-    use utils::vec_at_least::VecNonEmpty;
-
-    use crate::issuance_session::IssuedCredential;
-    use crate::issuance_session::IssuedCredentialCopies;
-
-    impl IssuedCredentialCopies {
-        pub fn new_or_panic(copies: VecNonEmpty<IssuedCredential>) -> Self {
-            let first = copies.first();
-            if copies
-                .iter()
-                .any(|credential| mem::discriminant(credential) != mem::discriminant(first))
-            {
-                panic!("different credential format encountered in issued copies");
-            }
-
-            Self(copies)
-        }
-    }
-}
-
-pub trait IssuanceSession<H = HttpVcMessageClient> {
-    async fn start_issuance(
-        message_client: H,
-        issuer_identifier: IssuerIdentifier,
-        token_request: TokenRequest,
-        trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<Self, IssuanceSessionError>
-    where
-        Self: Sized;
-
-    async fn accept_issuance<W>(
-        &mut self,
-        trust_anchors: &[TrustAnchor<'_>],
-        wscd: &W,
-        include_wua: bool,
-    ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
-    where
-        W: IssuanceWscd<Poa = Poa>;
-
-    async fn reject_issuance(self) -> Result<(), IssuanceSessionError>;
-
-    fn normalized_credential_preview(&self) -> &[NormalizedCredentialPreview];
-
-    fn issuer_registration(&self) -> &IssuerRegistration;
-}
+use crate::wallet_issuance::IssuanceSession;
+use crate::wallet_issuance::WalletIssuanceError;
+use crate::wallet_issuance::credential::CredentialWithMetadata;
+use crate::wallet_issuance::credential::IssuedCredential;
+use crate::wallet_issuance::credential::IssuedCredentialCopies;
+use crate::wallet_issuance::preview::NormalizedCredentialPreview;
 
 #[derive(Debug)]
 pub struct HttpIssuanceSession<H = HttpVcMessageClient> {
@@ -353,31 +78,21 @@ pub struct HttpIssuanceSession<H = HttpVcMessageClient> {
 /// Contract for sending OpenID4VCI protocol messages.
 #[cfg_attr(test, mockall::automock)]
 pub trait VcMessageClient {
-    fn client_id(&self) -> &str;
-    async fn discover_metadata(
-        &self,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<IssuerMetadata, IssuanceSessionError>;
-    async fn discover_oauth_metadata(
-        &self,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<oidc::Config, IssuanceSessionError>;
-
     async fn request_token(
         &self,
         url: &Url,
         token_request: &TokenRequest,
         dpop_header: &Dpop,
-    ) -> Result<(TokenResponse, Option<String>), IssuanceSessionError>;
+    ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError>;
 
     async fn request_credential_preview(
         &self,
         url: &Url,
         preview_request: &CredentialPreviewRequest,
         access_token: &AccessToken,
-    ) -> Result<CredentialPreviewResponse, IssuanceSessionError>;
+    ) -> Result<CredentialPreviewResponse, WalletIssuanceError>;
 
-    async fn request_nonce(&self, url: Url) -> Result<(NonceResponse, Option<String>), IssuanceSessionError>;
+    async fn request_nonce(&self, url: Url) -> Result<(NonceResponse, Option<String>), WalletIssuanceError>;
 
     async fn request_credential(
         &self,
@@ -385,7 +100,7 @@ pub trait VcMessageClient {
         credential_request: &CredentialRequest,
         dpop_header: &str,
         access_token_header: &str,
-    ) -> Result<CredentialResponse, IssuanceSessionError>;
+    ) -> Result<CredentialResponse, WalletIssuanceError>;
 
     async fn request_credentials(
         &self,
@@ -393,20 +108,19 @@ pub trait VcMessageClient {
         credential_requests: &CredentialRequests,
         dpop_header: &str,
         access_token_header: &str,
-    ) -> Result<CredentialResponses, IssuanceSessionError>;
+    ) -> Result<CredentialResponses, WalletIssuanceError>;
 
-    async fn reject(&self, url: &Url, dpop_header: &str, access_token_header: &str)
-    -> Result<(), IssuanceSessionError>;
+    async fn reject(&self, url: &Url, dpop_header: &str, access_token_header: &str) -> Result<(), WalletIssuanceError>;
 }
 
+#[derive(Debug)]
 pub struct HttpVcMessageClient {
-    client_id: String,
-    http_client: reqwest::Client,
+    http_client: HttpJsonClient,
 }
 
 impl HttpVcMessageClient {
-    pub fn new(client_id: String, http_client: reqwest::Client) -> Self {
-        Self { client_id, http_client }
+    pub fn new(http_client: HttpJsonClient) -> Self {
+        Self { http_client }
     }
 
     fn dpop_nonce(response: &Response) -> Result<Option<String>, ToStrError> {
@@ -422,70 +136,25 @@ impl HttpVcMessageClient {
 }
 
 impl VcMessageClient for HttpVcMessageClient {
-    fn client_id(&self) -> &str {
-        &self.client_id
-    }
-
-    async fn discover_metadata(
-        &self,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<IssuerMetadata, IssuanceSessionError> {
-        let metadata = IssuerMetadata::discover(&self.http_client, issuer_identifier)
-            .await
-            .map_err(IssuanceSessionError::OpenId4vciDiscovery)?;
-        Ok(metadata)
-    }
-
-    async fn discover_oauth_metadata(
-        &self,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<oidc::Config, IssuanceSessionError> {
-        // TODO (PVW-5527): Implement some sort of unified processing for fetching well-known metadata.
-        let metadata = self
-            .http_client
-            .get(
-                issuer_identifier
-                    .as_base_url()
-                    .join("/.well-known/oauth-authorization-server"),
-            )
-            .send()
-            .await?
-            .error_for_status()?
-            .json::<oidc::Config>()
-            .await
-            .map_err(|error| IssuanceSessionError::OauthDiscovery(OauthDiscoveryError::Http(error)))?;
-
-        // According to <https://www.rfc-editor.org/rfc/rfc8414.html#section-3.3> these values should be identifical.
-        if metadata.issuer != *issuer_identifier {
-            return Err(IssuanceSessionError::OauthDiscovery(
-                OauthDiscoveryError::IssuerIdentifierMismatch {
-                    expected: Box::new(issuer_identifier.clone()),
-                    received: Box::new(metadata.issuer),
-                },
-            ));
-        }
-
-        Ok(metadata)
-    }
-
     async fn request_token(
         &self,
         url: &Url,
         token_request: &TokenRequest,
         dpop_header: &Dpop,
-    ) -> Result<(TokenResponse, Option<String>), IssuanceSessionError> {
+    ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError> {
         self.http_client
-            .post(url.as_ref())
-            .header(DPOP_HEADER_NAME, dpop_header.to_string())
-            .form(token_request)
-            .send()
-            .map_err(IssuanceSessionError::from)
+            .post(url.as_ref(), |builder| {
+                builder
+                    .header(DPOP_HEADER_NAME, dpop_header.to_string())
+                    .form(token_request)
+            })
+            .map_err(WalletIssuanceError::from)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<TokenErrorCode>>().await?;
-                    Err(IssuanceSessionError::TokenRequest(Box::new(error)))
+                    Err(WalletIssuanceError::TokenRequest(Box::new(error)))
                 } else {
                     let dpop_nonce = Self::dpop_nonce(&response)?;
                     let deserialized = response.json::<TokenResponse>().await?;
@@ -500,19 +169,18 @@ impl VcMessageClient for HttpVcMessageClient {
         url: &Url,
         preview_request: &CredentialPreviewRequest,
         access_token: &AccessToken,
-    ) -> Result<CredentialPreviewResponse, IssuanceSessionError> {
+    ) -> Result<CredentialPreviewResponse, WalletIssuanceError> {
         self.http_client
-            .post(url.as_ref())
-            .bearer_auth(access_token.as_ref())
-            .json(preview_request)
-            .send()
-            .map_err(IssuanceSessionError::from)
+            .post(url.as_ref(), |builder| {
+                builder.bearer_auth(access_token.as_ref()).json(preview_request)
+            })
+            .map_err(WalletIssuanceError::from)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<CredentialPreviewErrorCode>>().await?;
-                    Err(IssuanceSessionError::CredentialPreviewRequest(Box::new(error)))
+                    Err(WalletIssuanceError::CredentialPreviewRequest(Box::new(error)))
                 } else {
                     let response = response.json().await?;
                     Ok(response)
@@ -521,8 +189,8 @@ impl VcMessageClient for HttpVcMessageClient {
             .await
     }
 
-    async fn request_nonce(&self, url: Url) -> Result<(NonceResponse, Option<String>), IssuanceSessionError> {
-        let response = self.http_client.post(url).send().await?.error_for_status()?;
+    async fn request_nonce(&self, url: Url) -> Result<(NonceResponse, Option<String>), WalletIssuanceError> {
+        let response = self.http_client.post(url, identity).await?.error_for_status()?;
 
         let dpop_nonce = Self::dpop_nonce(&response)?;
         let nonce_response = response.json().await?;
@@ -536,7 +204,7 @@ impl VcMessageClient for HttpVcMessageClient {
         credential_request: &CredentialRequest,
         dpop_header: &str,
         access_token_header: &str,
-    ) -> Result<CredentialResponse, IssuanceSessionError> {
+    ) -> Result<CredentialResponse, WalletIssuanceError> {
         self.request(url, credential_request, dpop_header, access_token_header)
             .await
     }
@@ -547,29 +215,25 @@ impl VcMessageClient for HttpVcMessageClient {
         credential_requests: &CredentialRequests,
         dpop_header: &str,
         access_token_header: &str,
-    ) -> Result<CredentialResponses, IssuanceSessionError> {
+    ) -> Result<CredentialResponses, WalletIssuanceError> {
         self.request(url, credential_requests, dpop_header, access_token_header)
             .await
     }
 
-    async fn reject(
-        &self,
-        url: &Url,
-        dpop_header: &str,
-        access_token_header: &str,
-    ) -> Result<(), IssuanceSessionError> {
+    async fn reject(&self, url: &Url, dpop_header: &str, access_token_header: &str) -> Result<(), WalletIssuanceError> {
         self.http_client
-            .delete(url.as_ref())
-            .header(DPOP_HEADER_NAME, dpop_header)
-            .header(AUTHORIZATION, access_token_header)
-            .send()
-            .map_err(IssuanceSessionError::from)
+            .delete(url.as_ref(), |builder| {
+                builder
+                    .header(DPOP_HEADER_NAME, dpop_header)
+                    .header(AUTHORIZATION, access_token_header)
+            })
+            .map_err(WalletIssuanceError::from)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<CredentialErrorCode>>().await?;
-                    Err(IssuanceSessionError::CredentialRequest(Box::new(error)))
+                    Err(WalletIssuanceError::CredentialRequest(Box::new(error)))
                 } else {
                     Ok(())
                 }
@@ -586,54 +250,27 @@ impl HttpVcMessageClient {
         request: &T,
         dpop_header: &str,
         access_token_header: &str,
-    ) -> Result<S, IssuanceSessionError> {
+    ) -> Result<S, WalletIssuanceError> {
         self.http_client
-            .post(url.as_ref())
-            .header(DPOP_HEADER_NAME, dpop_header)
-            .header(AUTHORIZATION, access_token_header)
-            .json(request)
-            .send()
-            .map_err(IssuanceSessionError::from)
+            .post(url.as_ref(), |builder| {
+                builder
+                    .header(DPOP_HEADER_NAME, dpop_header)
+                    .header(AUTHORIZATION, access_token_header)
+                    .json(request)
+            })
+            .map_err(WalletIssuanceError::from)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
                 if status.is_client_error() || status.is_server_error() {
                     let error = response.json::<ErrorResponse<CredentialErrorCode>>().await?;
-                    Err(IssuanceSessionError::CredentialRequest(Box::new(error)))
+                    Err(WalletIssuanceError::CredentialRequest(Box::new(error)))
                 } else {
                     let response = response.json().await?;
                     Ok(response)
                 }
             })
             .await
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct NormalizedCredentialPreview {
-    pub content: CredentialPreviewContent,
-
-    pub normalized_metadata: NormalizedTypeMetadata,
-
-    pub raw_metadata: SortedTypeMetadataDocuments,
-}
-
-impl NormalizedCredentialPreview {
-    pub fn try_new(preview: CredentialPreview) -> Result<Self, IssuanceSessionError> {
-        let (normalized_metadata, raw_metadata) = preview
-            .type_metadata
-            .into_normalized(&preview.content.credential_payload.attestation_type)?;
-        preview
-            .content
-            .credential_payload
-            .attributes
-            .validate(&normalized_metadata)?;
-
-        Ok(Self {
-            content: preview.content,
-            normalized_metadata,
-            raw_metadata,
-        })
     }
 }
 
@@ -652,7 +289,7 @@ struct IssuanceState {
 
 fn credential_request_types_from_preview(
     normalized_credential_previews: &VecNonEmpty<NormalizedCredentialPreview>,
-) -> Result<VecNonEmpty<CredentialRequestType>, IssuanceSessionError> {
+) -> Result<VecNonEmpty<CredentialRequestType>, WalletIssuanceError> {
     // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
     // has no support (yet) for issuance of multiple copies of multiple attestations.
     // We implement this below by simply flattening the relevant nested iterators when communicating with the
@@ -694,7 +331,7 @@ fn credential_request_types_from_preview(
 
             // If we do not support one of the proposed formats this constitutes an error, as described above.
             if !unsupported_formats.is_empty() {
-                return Err(IssuanceSessionError::UnsupportedCredentialFormat(
+                return Err(WalletIssuanceError::UnsupportedCredentialFormat(
                     preview.content.credential_payload.attestation_type.clone(),
                     unsupported_formats,
                 ));
@@ -709,22 +346,19 @@ fn credential_request_types_from_preview(
     Ok(credential_request_types)
 }
 
-impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
-    async fn start_issuance(
+impl<H: VcMessageClient> HttpIssuanceSession<H> {
+    pub(crate) async fn create(
         message_client: H,
-        issuer_identifier: IssuerIdentifier,
+        issuer_metadata: IssuerMetadata,
+        oauth_metadata: AuthorizationServerMetadata,
         token_request: TokenRequest,
         trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<Self, IssuanceSessionError> {
-        // Discover the issuer metadata first to get the token endpoint, credential preview endpoint
-        // and the credential configuration IDs.
-        let issuer_metadata = message_client.discover_metadata(&issuer_identifier).await?;
-
+    ) -> Result<Self, WalletIssuanceError> {
         let credential_preview_endpoint = issuer_metadata
             .credential_preview_endpoint
             .as_ref()
             .map(|url| url.clone().into_url())
-            .ok_or(IssuanceSessionError::NoCredentialPreviewEndpoint)?; // TODO (PVW-5559): skip preview when no credential preview endpoint
+            .ok_or(WalletIssuanceError::NoCredentialPreviewEndpoint)?; // TODO (PVW-5559): skip preview when no credential preview endpoint
 
         // TODO: Get the credential configuration ids from the `CredentialOffer` instead.
         let credential_configuration_ids: VecNonEmpty<String> = issuer_metadata
@@ -733,7 +367,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .cloned()
             .collect_vec()
             .try_into()
-            .map_err(|_| IssuanceSessionError::NoCredentialConfigurationsSupported)?;
+            .map_err(|_| WalletIssuanceError::NoCredentialConfigurationsSupported)?;
 
         // According to HAIP, if the issuer requires key binding for any of its credential configurations, it MUST also
         // offer a nonce endpoint. As the wallet, we interpret this a bit more loosely and reject issuance whenever any
@@ -751,15 +385,12 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     .is_some()
             })
         {
-            return Err(IssuanceSessionError::NoNonceEndpoint);
+            return Err(WalletIssuanceError::NoNonceEndpoint);
         }
 
-        let oauth_server = issuer_metadata.authorization_servers().into_first();
-        let oauth_metadata = message_client.discover_oauth_metadata(oauth_server).await?;
-        let token_endpoint = oauth_metadata.token_endpoint.clone();
-
-        let dpop_private_key = SigningKey::random(&mut OsRng);
-        let dpop_header = Dpop::new(&dpop_private_key, token_endpoint.clone(), &Method::POST, None, None)?;
+        let token_endpoint = oauth_metadata.token_endpoint;
+        let dpop_signing_key = SigningKey::random(&mut OsRng);
+        let dpop_header = Dpop::new(&dpop_signing_key, token_endpoint.clone(), &Method::POST, None, None)?;
 
         let (token_response, dpop_nonce) = message_client
             .request_token(&token_endpoint, &token_request, &dpop_header)
@@ -785,7 +416,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .collect::<Result<Vec<_>, _>>()?
             .iter()
             .single_unique()
-            .map_err(IssuanceSessionError::DifferentIssuerRegistrations)?
+            .map_err(WalletIssuanceError::DifferentIssuerRegistrations)?
             .expect("there are always credential_previews in the preview response")
             .clone();
 
@@ -795,7 +426,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                 // Verify the issuer certificate against the trust anchors.
                 preview.verify(trust_anchors)?;
                 let state = NormalizedCredentialPreview::try_new(preview)?;
-                Ok::<_, IssuanceSessionError>(state)
+                Ok::<_, WalletIssuanceError>(state)
             })
             .collect::<Result<Vec<_>, _>>()?
             .try_into()
@@ -809,7 +440,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             credential_request_types,
             issuer_registration,
             issuer_metadata,
-            dpop_signing_key: dpop_private_key,
+            dpop_signing_key,
             dpop_nonce,
         };
 
@@ -820,13 +451,15 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
         Ok(issuance_client)
     }
+}
 
+impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
     async fn accept_issuance<W>(
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
         wscd: &W,
         include_wua: bool,
-    ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
+    ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
     where
         W: IssuanceWscd<Poa = Poa>,
     {
@@ -840,7 +473,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             issuer_metadata
                 .batch_credential_endpoint
                 .as_ref()
-                .ok_or(IssuanceSessionError::NoBatchCredentialEndpoint)?
+                .ok_or(WalletIssuanceError::NoBatchCredentialEndpoint)?
         }
         .as_url();
 
@@ -865,12 +498,16 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let mut issuance_data = wscd
             .perform_issuance(
                 key_count,
-                issuer_metadata.credential_issuer.as_ref().to_string(),
+                self.session_state
+                    .issuer_metadata
+                    .credential_issuer
+                    .as_ref()
+                    .to_string(),
                 c_nonce,
                 include_wua,
             )
             .await
-            .map_err(|e| IssuanceSessionError::PrivateKeyGeneration(e.into()))?;
+            .map_err(|e| WalletIssuanceError::PrivateKeyGeneration(e.into()))?;
 
         let proofs = issuance_data
             .pops
@@ -892,7 +529,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
                     let pubkey = header
                         .verifying_key()
-                        .map_err(|e| IssuanceSessionError::VerifyingKeyFromPrivateKey(e.into()))?;
+                        .map_err(|e| WalletIssuanceError::VerifyingKeyFromPrivateKey(e.into()))?;
                     let cred_request = CredentialRequest {
                         credential_type: credential_request_type.into(),
                         proof: Some(proof),
@@ -900,7 +537,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                         poa: None,          // We set this field below if necessary
                     };
 
-                    Ok::<_, IssuanceSessionError>(((pubkey, id), cred_request))
+                    Ok::<_, WalletIssuanceError>(((pubkey, id), cred_request))
                 }),
         )
         .await?
@@ -950,10 +587,10 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                                 .map(|(cred_response, (pubkey, key_id))| {
                                     let credential = cred_response
                                         .into_immediate_credential()
-                                        .ok_or(IssuanceSessionError::DeferredIssuanceUnsupported)?;
+                                        .ok_or(WalletIssuanceError::DeferredIssuanceUnsupported)?;
 
                                     if credential.format() != *format {
-                                        return Err(IssuanceSessionError::UnexpectedCredentialResponseType {
+                                        return Err(WalletIssuanceError::UnexpectedCredentialResponseType {
                                             expected: format.to_string(),
                                             actual: credential.clone(),
                                         });
@@ -967,7 +604,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
                             acc.append(&mut cred_copies);
 
-                            Ok::<_, IssuanceSessionError>(acc)
+                            Ok::<_, WalletIssuanceError>(acc)
                         })?;
 
                 // Verify that each of the resulting mdocs contain exactly the same metadata integrity digest.
@@ -975,26 +612,26 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                     .iter()
                     .map(|cred_copy| match cred_copy {
                         IssuedCredential::MsoMdoc { mdoc } => {
-                            mdoc.type_metadata_integrity().map_err(IssuanceSessionError::Metadata)
+                            mdoc.type_metadata_integrity().map_err(WalletIssuanceError::Metadata)
                         }
                         IssuedCredential::SdJwt { sd_jwt, .. } => sd_jwt
                             .claims()
                             .vct_integrity
                             .as_ref()
-                            .ok_or(IssuanceSessionError::MetadataIntegrityMissing),
+                            .ok_or(WalletIssuanceError::MetadataIntegrityMissing),
                     })
                     .process_results(|iter| {
                         iter.unique()
                             .exactly_one()
-                            .map_err(|_| IssuanceSessionError::MetadataIntegrityInconsistent)
+                            .map_err(|_| WalletIssuanceError::MetadataIntegrityInconsistent)
                     })??;
 
                 // Check that the integrity hash received in the credential matches
                 // that of encoded JSON of the first metadata document.
                 let verified_metadata = preview.raw_metadata.clone().into_verified(integrity.clone())?;
 
-                Ok::<_, IssuanceSessionError>(CredentialWithMetadata::new(
-                    IssuedCredentialCopies(
+                Ok::<_, WalletIssuanceError>(CredentialWithMetadata::new(
+                    IssuedCredentialCopies::new(
                         copies
                             .try_into()
                             .expect("the resulting vector is never empty since 'copies' is nonzero"),
@@ -1011,13 +648,13 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         Ok(docs)
     }
 
-    async fn reject_issuance(self) -> Result<(), IssuanceSessionError> {
+    async fn reject_issuance(self) -> Result<(), WalletIssuanceError> {
         let url = self
             .session_state
             .issuer_metadata
             .batch_credential_endpoint
             .as_ref()
-            .ok_or(IssuanceSessionError::NoBatchCredentialEndpoint)?
+            .ok_or(WalletIssuanceError::NoBatchCredentialEndpoint)?
             .as_url();
 
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), &Method::DELETE)?;
@@ -1043,7 +680,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         &self,
         url: &Url,
         credential_request: &CredentialRequest,
-    ) -> Result<CredentialResponse, IssuanceSessionError> {
+    ) -> Result<CredentialResponse, WalletIssuanceError> {
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), &Method::POST)?;
 
         let response = self
@@ -1060,7 +697,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         credential_requests: VecNonEmpty<CredentialRequest>,
         wua_disclosure: Option<WuaDisclosure>,
         poa: Option<Poa>,
-    ) -> Result<Vec<CredentialResponse>, IssuanceSessionError> {
+    ) -> Result<Vec<CredentialResponse>, WalletIssuanceError> {
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), &Method::POST)?;
 
         let expected_response_count = credential_requests.len().get();
@@ -1081,7 +718,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         // The server must have responded with enough credential responses, N, so that the caller has exactly enough
         // responses for all copies of all credentials constructed.
         if responses.credential_responses.len() != expected_response_count {
-            return Err(IssuanceSessionError::UnexpectedCredentialResponseCount {
+            return Err(WalletIssuanceError::UnexpectedCredentialResponseCount {
                 found: responses.credential_responses.len(),
                 expected: expected_response_count,
             });
@@ -1099,7 +736,7 @@ impl Credential {
         verifying_key: &VerifyingKey,
         preview: &NormalizedCredentialPreview,
         trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<IssuedCredential, IssuanceSessionError> {
+    ) -> Result<IssuedCredential, WalletIssuanceError> {
         match self {
             Self::MsoMdoc {
                 credential: issuer_signed,
@@ -1115,17 +752,17 @@ impl Credential {
                         .min()
                 }) && min < ATTR_RANDOM_LENGTH
                 {
-                    return Err(IssuanceSessionError::AttributeRandomLength(min, ATTR_RANDOM_LENGTH));
+                    return Err(WalletIssuanceError::AttributeRandomLength(min, ATTR_RANDOM_LENGTH));
                 }
 
                 let credential_issuer_certificate = &issuer_signed
                     .issuer_auth
                     .signing_cert()
-                    .map_err(IssuanceSessionError::IssuerCertificate)?;
+                    .map_err(WalletIssuanceError::IssuerCertificate)?;
 
                 // Construct the new mdoc; this also verifies it against the trust anchors.
                 let mdoc = Mdoc::new(key_identifier, *issuer_signed, &TimeGenerator, trust_anchors)
-                    .map_err(IssuanceSessionError::MdocVerification)?;
+                    .map_err(WalletIssuanceError::MdocVerification)?;
 
                 let issued_credential_payload =
                     CredentialPayload::from_mdoc(mdoc.clone(), &preview.normalized_metadata)?;
@@ -1174,24 +811,24 @@ impl Credential {
         holder_pubkey: &VerifyingKey,
         credential_payload: CredentialPayload,
         credential_issuer_certificate: &BorrowingCertificate,
-    ) -> Result<(), IssuanceSessionError> {
+    ) -> Result<(), WalletIssuanceError> {
         let NormalizedCredentialPreview { content, .. } = preview;
 
         if credential_payload.confirmation_key.verifying_key()? != *holder_pubkey {
-            return Err(IssuanceSessionError::PublicKeyMismatch);
+            return Err(WalletIssuanceError::PublicKeyMismatch);
         }
 
         // The issuer certificate inside the mdoc has to equal the one that the issuer previously announced
         // in the credential preview.
         if credential_issuer_certificate != &content.issuer_certificate {
-            return Err(IssuanceSessionError::IssuerMismatch);
+            return Err(WalletIssuanceError::IssuerMismatch);
         }
 
         // Check that our mdoc contains exactly the attributes the issuer said it would have.
         // Note that this also means that the mdoc's attributes must match the received metadata,
         // as both the metadata and attributes are the same as when we checked this for the preview.
         if credential_payload.previewable_payload != content.credential_payload {
-            return Err(IssuanceSessionError::IssuedCredentialMismatch {
+            return Err(WalletIssuanceError::IssuedCredentialMismatch {
                 actual: Box::new(credential_payload.previewable_payload),
                 expected: Box::new(content.credential_payload.clone()),
             });
@@ -1204,7 +841,7 @@ impl Credential {
         sd_jwt: &VerifiedSdJwt,
         issued_claims: Vec<VecNonEmpty<ClaimPath>>,
         metadata: NormalizedTypeMetadata,
-    ) -> Result<(), IssuanceSessionError> {
+    ) -> Result<(), WalletIssuanceError> {
         let sd_metadata = metadata
             .into_presentation_components()
             .2
@@ -1227,7 +864,7 @@ impl Credential {
         sd_jwt: &VerifiedSdJwt,
         claim_to_verify: &[ClaimPath],
         sd_metadata: &HashMap<Vec<ClaimPath>, ClaimSelectiveDisclosureMetadata>,
-    ) -> Result<(), IssuanceSessionError> {
+    ) -> Result<(), WalletIssuanceError> {
         sd_jwt
             .verify_selective_disclosability(claim_to_verify, sd_metadata)
             .map_err(DecoderError::ClaimStructure)?;
@@ -1237,7 +874,7 @@ impl Credential {
 }
 
 impl IssuanceState {
-    fn auth_headers(&self, url: Url, method: &Method) -> Result<(String, String), IssuanceSessionError> {
+    fn auth_headers(&self, url: Url, method: &Method) -> Result<(String, String), WalletIssuanceError> {
         let dpop_header = Dpop::new(
             &self.dpop_signing_key,
             url,
@@ -1274,6 +911,7 @@ mod tests {
     use attestation_data::attributes::Attributes;
     use attestation_data::auth::LocalizedStrings;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::qualification::AttestationQualification;
@@ -1296,25 +934,18 @@ mod tests {
     use wscd::mock_remote::MockRemoteWscd;
 
     use crate::Format;
+    use crate::issuer_identifier::IssuerIdentifier;
+    use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
+    use crate::metadata::well_known::WellKnownMetadata;
     use crate::preview::CredentialPreviewResponse;
     use crate::token::CredentialPreview;
+    use crate::token::CredentialPreviewContent;
+    use crate::token::CredentialPreviewError;
     use crate::token::TokenResponse;
+    use crate::wallet_issuance::TypeMetadataChainError;
+    use crate::wallet_issuance::WalletIssuanceError;
 
     use super::*;
-
-    fn mock_openid_message_client_metadata(issuer_metadata: IssuerMetadata) -> MockVcMessageClient {
-        let mut mock_msg_client = MockVcMessageClient::new();
-
-        mock_msg_client
-            .expect_discover_metadata()
-            .times(1)
-            .return_once(|_| Ok(issuer_metadata));
-        mock_msg_client
-            .expect_discover_oauth_metadata()
-            .return_once(|issuer_identifier| Ok(oidc::Config::new_mock(issuer_identifier.clone())));
-
-        mock_msg_client
-    }
 
     fn test_start_issuance(
         ca: &Ca,
@@ -1323,10 +954,10 @@ mod tests {
         preview_payloads: Vec<PreviewableCredentialPayload>,
         type_metadata: TypeMetadata,
         formats: Vec<Format>,
-    ) -> Result<HttpIssuanceSession<MockVcMessageClient>, IssuanceSessionError> {
+    ) -> Result<HttpIssuanceSession<MockVcMessageClient>, WalletIssuanceError> {
         let issuance_key = generate_pid_issuer_mock_with_registration(ca, IssuerRegistration::new_mock()).unwrap();
 
-        let mut mock_msg_client = mock_openid_message_client_metadata(issuer_metadata);
+        let mut mock_msg_client = MockVcMessageClient::new();
         mock_msg_client
             .expect_request_token()
             .return_once(move |_url, _token_request, _dpop_header| {
@@ -1357,9 +988,12 @@ mod tests {
                 })
             });
 
-        HttpIssuanceSession::start_issuance(
+        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_metadata.issuer_identifier().clone());
+
+        HttpIssuanceSession::create(
             mock_msg_client,
-            "https://example.com".parse().unwrap(),
+            issuer_metadata,
+            oauth_metadata,
             TokenRequest::new_mock(),
             &[trust_anchor],
         )
@@ -1425,7 +1059,7 @@ mod tests {
         )
         .expect_err("starting issuance session should not succeed");
 
-        assert_matches!(error, IssuanceSessionError::NoNonceEndpoint);
+        assert_matches!(error, WalletIssuanceError::NoNonceEndpoint);
 
         // When key binding is not mandatory however, the nonce endpoint can be absent.
         for config in issuer_metadata.credential_configurations_supported.values_mut() {
@@ -1464,7 +1098,7 @@ mod tests {
 
         assert_matches!(
             error,
-            IssuanceSessionError::CredentialPreview(CredentialPreviewError::Certificate(
+            WalletIssuanceError::CredentialPreview(CredentialPreviewError::Certificate(
                 CertificateError::Verification(_)
             ))
         );
@@ -1487,7 +1121,7 @@ mod tests {
         )
         .expect_err("starting issuance session should not succeed");
 
-        assert_matches!(error, IssuanceSessionError::TypeMetadataVerification(_));
+        assert_matches!(error, WalletIssuanceError::TypeMetadataVerification(_));
     }
 
     #[test]
@@ -1509,7 +1143,7 @@ mod tests {
 
         assert_matches!(
             error,
-            IssuanceSessionError::UnsupportedCredentialFormat(attestation_type, formats)
+            WalletIssuanceError::UnsupportedCredentialFormat(attestation_type, formats)
                 if attestation_type == PID_ATTESTATION_TYPE && formats == HashSet::from([Format::JwtVc, Format::AcVc])
         );
     }
@@ -1528,10 +1162,7 @@ mod tests {
         let copies_per_format: IndexMap<Format, NonZeroU8> =
             IndexMap::from_iter([(Format::MsoMdoc, NonZeroU8::MIN), (Format::SdJwt, NonZeroU8::MIN)]);
 
-        let mut mock_msg_client = mock_openid_message_client_metadata(IssuerMetadata::new_mock(
-            "https://example.com".parse().unwrap(),
-            PID_ATTESTATION_TYPE,
-        ));
+        let mut mock_msg_client = MockVcMessageClient::new();
         mock_msg_client
             .expect_request_token()
             .return_once(move |_url, _token_request, _dpop_header| {
@@ -1567,9 +1198,14 @@ mod tests {
                 })
             });
 
-        let error = HttpIssuanceSession::start_issuance(
+        let issuer_identifier: IssuerIdentifier = "https://issuer.example.com".parse().unwrap();
+        let issuer_metadata = IssuerMetadata::new_mock(issuer_identifier.clone(), PID_ATTESTATION_TYPE);
+        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
+
+        let error = HttpIssuanceSession::create(
             mock_msg_client,
-            "https://example.com".parse().unwrap(),
+            issuer_metadata,
+            oauth_metadata,
             TokenRequest::new_mock(),
             &[ca.to_trust_anchor()],
         )
@@ -1577,7 +1213,7 @@ mod tests {
         .unwrap()
         .expect_err("starting issuance session should not succeed");
 
-        assert_matches!(error, IssuanceSessionError::DifferentIssuerRegistrations(_));
+        assert_matches!(error, WalletIssuanceError::DifferentIssuerRegistrations(_));
     }
 
     /// Return a new session ready for `accept_issuance()`.
@@ -1845,6 +1481,7 @@ mod tests {
         let trust_anchor = signer.trust_anchor.clone();
 
         let mut mock_msg_client = mock_openid_message_client_nonce(false);
+        // let mut mock_msg_client = MockVcMessageClient::new();
 
         mock_msg_client.expect_request_credentials().return_once(
             |_url, credential_requests, _dpop_header, _access_token_header| {
@@ -1869,7 +1506,7 @@ mod tests {
 
         assert_matches!(
             error,
-            IssuanceSessionError::UnexpectedCredentialResponseCount { found: 1, expected: 2 }
+            WalletIssuanceError::UnexpectedCredentialResponseCount { found: 1, expected: 2 }
         );
     }
 
@@ -1893,6 +1530,7 @@ mod tests {
         let session_state = new_session_state(vec_nonempty![preview_data], true);
 
         let mut mock_msg_client = mock_openid_message_client_nonce(false);
+        // let mut mock_msg_client = MockVcMessageClient::new();
 
         mock_msg_client.expect_request_credential().times(1).return_once({
             move |_url, credential_request, _dpop_header, _access_token_header| {
@@ -1911,7 +1549,7 @@ mod tests {
         .unwrap()
         .expect_err("accepting issuance should not succeed");
 
-        assert_matches!(error, IssuanceSessionError::MdocCredentialPayload(_));
+        assert_matches!(error, WalletIssuanceError::MdocCredentialPayload(_));
     }
 
     #[test]
@@ -1923,6 +1561,7 @@ mod tests {
         signer.metadata_integrity = Integrity::from(crypto::utils::random_bytes(32));
 
         let mut mock_msg_client = mock_openid_message_client_nonce(false);
+        // let mut mock_msg_client = MockVcMessageClient::new();
 
         mock_msg_client.expect_request_credential().return_once(
             |_url, credential_request, _dpop_header, _access_token_header| {
@@ -1943,7 +1582,7 @@ mod tests {
 
         assert_matches!(
             error,
-            IssuanceSessionError::TypeMetadataVerification(TypeMetadataChainError::ResourceIntegrity(_))
+            WalletIssuanceError::TypeMetadataVerification(TypeMetadataChainError::ResourceIntegrity(_))
         );
     }
 
@@ -1953,6 +1592,7 @@ mod tests {
         let trust_anchor = signer.trust_anchor.clone();
 
         let mut mock_msg_client = mock_openid_message_client_nonce(false);
+        // let mut mock_msg_client = MockVcMessageClient::new();
 
         let response = CredentialResponse::Deferred {
             transaction_id: "12345".to_string(),
@@ -1988,7 +1628,7 @@ mod tests {
         .unwrap()
         .expect_err("accepting issuance should not succeed");
 
-        assert_matches!(error, IssuanceSessionError::DeferredIssuanceUnsupported);
+        assert_matches!(error, WalletIssuanceError::DeferredIssuanceUnsupported);
     }
 
     fn mock_credential_response_credential() -> (
@@ -2028,7 +1668,7 @@ mod tests {
             .into_issued_credential("key_id".to_string(), &other_public_key, &preview_data, &[trust_anchor])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(error, IssuanceSessionError::PublicKeyMismatch);
+        assert_matches!(error, WalletIssuanceError::PublicKeyMismatch);
     }
 
     #[test]
@@ -2058,10 +1698,7 @@ mod tests {
             .into_issued_credential("key_id".to_string(), &holder_public_key, &preview_data, &[trust_anchor])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(
-            error,
-            IssuanceSessionError::AttributeRandomLength(5, ATTR_RANDOM_LENGTH)
-        );
+        assert_matches!(error, WalletIssuanceError::AttributeRandomLength(5, ATTR_RANDOM_LENGTH));
     }
 
     #[test]
@@ -2085,7 +1722,7 @@ mod tests {
             .into_issued_credential("key_id".to_string(), &holder_public_key, &preview_data, &[trust_anchor])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(error, IssuanceSessionError::IssuerMismatch);
+        assert_matches!(error, WalletIssuanceError::IssuerMismatch);
     }
 
     #[test]
@@ -2098,7 +1735,7 @@ mod tests {
             .into_issued_credential("key_id".to_string(), &holder_public_key, &normalized_preview, &[])
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(error, IssuanceSessionError::MdocVerification(_));
+        assert_matches!(error, WalletIssuanceError::MdocVerification(_));
     }
 
     #[test]
@@ -2128,7 +1765,7 @@ mod tests {
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(error, IssuanceSessionError::IssuedCredentialMismatch { .. });
+        assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
     }
 
     #[test]
@@ -2149,7 +1786,7 @@ mod tests {
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(error, IssuanceSessionError::IssuedCredentialMismatch { .. });
+        assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
     }
 
     #[test]
@@ -2170,7 +1807,7 @@ mod tests {
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(error, IssuanceSessionError::IssuedCredentialMismatch { .. });
+        assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
     }
 
     #[test]
@@ -2193,7 +1830,7 @@ mod tests {
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(error, IssuanceSessionError::IssuedCredentialMismatch { .. });
+        assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
     }
 
     #[test]
@@ -2214,7 +1851,7 @@ mod tests {
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
-        assert_matches!(error, IssuanceSessionError::IssuedCredentialMismatch { .. });
+        assert_matches!(error, WalletIssuanceError::IssuedCredentialMismatch { .. });
     }
 
     #[rstest]
@@ -2305,13 +1942,13 @@ mod tests {
             ExpectedResult::Ok => result.unwrap(),
             ExpectedResult::ObjectFieldNotFound(expected_claim_name) => {
                 let error = result.unwrap_err();
-                assert_matches!(error, IssuanceSessionError::SdJwtVerification(DecoderError::ClaimStructure(
+                assert_matches!(error, WalletIssuanceError::SdJwtVerification(DecoderError::ClaimStructure(
                     ClaimError::ObjectFieldNotFound(claim_name, _)
                 )) if claim_name == expected_claim_name);
             }
             ExpectedResult::SelectivelyDisclosability(expected_sd, expected_disclosability) => {
                 let error = result.unwrap_err();
-                assert_matches!(error, IssuanceSessionError::SdJwtVerification(DecoderError::ClaimStructure(
+                assert_matches!(error, WalletIssuanceError::SdJwtVerification(DecoderError::ClaimStructure(
                     ClaimError::SelectiveDisclosabilityMismatch(claim, sd, is_selective_disclosable)))
                                 if claim == claim_to_verify.into_inner()
                                 && expected_sd == sd

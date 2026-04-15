@@ -8,7 +8,8 @@ use tracing::info;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::oidc::OidcClient;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
+
 use platform_support::attested_key::AttestedKeyHolder;
 use utils::generator::TimeGenerator;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -34,12 +35,12 @@ type DirectNotificationFuture = Pin<Box<dyn Future<Output = ()> + Send + 'static
 pub type DirectNotificationsCallback =
     Arc<dyn Fn(Vec<(i32, NotificationType)>) -> DirectNotificationFuture + Send + Sync>;
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
 {
     pub async fn emit_notifications(&self) -> Result<(), NotificationsError> {

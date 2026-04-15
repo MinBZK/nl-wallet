@@ -11,10 +11,12 @@ use tokio::sync::RwLock;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
+use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
-use openid4vc::oidc::OidcClient;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use platform_support::utils::PlatformUtilities;
@@ -55,10 +57,13 @@ const REVOCATION_CHECK_FREQUENCY: Duration = Duration::from_secs(24 * 60 * 60);
 pub enum WalletInitError {
     #[error("wallet configuration error")]
     Configuration(#[from] ConfigurationError),
+
     #[error("platform utilities error: {0}")]
     Utilities(#[from] UtilitiesError),
+
     #[error("could not initialize database: {0}")]
     Database(#[from] StorageError),
+
     #[error("could not initialize HTTP client: {0}")]
     #[category(critical)]
     HttpClient(#[from] reqwest::Error),
@@ -97,20 +102,18 @@ async fn init_mock_key_holder() -> platform_support::attested_key::mock::Persist
     PersistentMockAttestedKeyHolder::new_mock_xcode(apple_attestation_environment)
 }
 
-impl<APC, OC, IS>
+impl<APC>
     Wallet<
         WalletConfigurationRepository,
         UpdatePolicyRepository,
         DatabaseStorage<HardwareEncryptionKey>,
         KeyHolderType,
         APC,
-        OC,
-        IS,
+        HttpIssuanceDiscovery,
         VpDisclosureClient,
     >
 where
     APC: Default,
-    OC: OidcClient,
 {
     #[sentry_capture_error]
     pub async fn init_all() -> Result<Self, WalletInitError> {
@@ -136,36 +139,44 @@ where
         )
         .await?;
 
-        let wallet_clients = WalletClients::new()?;
-
-        Self::init_registration(
+        let repositories = WalletRepositories {
             config_repository,
             update_policy_repository,
-            storage,
-            key_holder,
-            wallet_clients,
-        )
-        .await
+        };
+
+        let wallet_clients = WalletClients::new()?;
+
+        Self::init_registration(storage, key_holder, repositories, wallet_clients).await
     }
 }
 
+#[derive(Debug)]
+pub struct WalletRepositories<CR, UR> {
+    pub config_repository: CR,
+    pub update_policy_repository: UR,
+}
+
 #[derive(Debug, Default)]
-pub struct WalletClients<APC, DCC, SLC> {
+pub struct WalletClients<APC, CID, DCC, SLC> {
     pub account_provider_client: APC,
+    pub credential_issuer_discovery: CID,
     pub disclosure_client: DCC,
     pub status_list_client: SLC,
 }
 
-impl<APC> WalletClients<APC, VpDisclosureClient, HttpStatusListClient>
+impl<APC> WalletClients<APC, HttpIssuanceDiscovery, VpDisclosureClient, HttpStatusListClient>
 where
     APC: Default,
 {
     pub fn new() -> Result<Self, reqwest::Error> {
         let disclosure_client = VpDisclosureClient::new_with_client(default_reqwest_client_builder())?;
         let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
+        let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder())?;
+        let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_json_client);
 
         let clients = Self {
             account_provider_client: APC::default(),
+            credential_issuer_discovery,
             disclosure_client,
             status_list_client,
         };
@@ -174,19 +185,18 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
     SLC: StatusListClient,
 {
     pub(super) fn new(
-        config_repository: CR,
-        update_policy_repository: UR,
         storage: S,
         key_holder: AKH,
-        wallet_clients: WalletClients<APC, DCC, SLC>,
+        repositories: WalletRepositories<CR, UR>,
+        wallet_clients: WalletClients<APC, CID, DCC, SLC>,
         registration_status: RegistrationStatus,
     ) -> Self {
         let registration = match registration_status {
@@ -211,12 +221,13 @@ where
         };
 
         Wallet {
-            config_repository: Arc::new(config_repository),
-            update_policy_repository,
+            config_repository: Arc::new(repositories.config_repository),
+            update_policy_repository: repositories.update_policy_repository,
             storage: Arc::new(RwLock::new(storage)),
             key_holder,
             registration,
             account_provider_client: Arc::new(wallet_clients.account_provider_client),
+            issuance_discovery: wallet_clients.credential_issuer_discovery,
             disclosure_client: wallet_clients.disclosure_client,
             close_proximity_disclosure: PhantomData,
             status_list_client: Arc::new(wallet_clients.status_list_client),
@@ -232,11 +243,10 @@ where
 
     /// Initialize the wallet by loading initial state.
     pub async fn init_registration(
-        config_repository: CR,
-        update_policy_repository: UR,
         mut storage: S,
         key_holder: AKH,
-        wallet_clients: WalletClients<APC, DCC, SLC>,
+        repositories: WalletRepositories<CR, UR>,
+        wallet_clients: WalletClients<APC, CID, DCC, SLC>,
     ) -> Result<Self, WalletInitError>
     where
         CR: Repository<Arc<WalletConfiguration>> + Send + Sync + 'static,
@@ -244,19 +254,17 @@ where
         SLC: Sync + 'static,
         S: Storage + Sync + 'static,
     {
-        let http_config = config_repository.get().update_policy_server.http_config.clone();
-        update_policy_repository.fetch_in_background(http_config);
+        let http_config = repositories
+            .config_repository
+            .get()
+            .update_policy_server
+            .http_config
+            .clone();
+        repositories.update_policy_repository.fetch_in_background(http_config);
 
         let registration_status = Self::fetch_registration_status(&mut storage).await?;
 
-        let mut wallet = Self::new(
-            config_repository,
-            update_policy_repository,
-            storage,
-            key_holder,
-            wallet_clients,
-            registration_status,
-        );
+        let mut wallet = Self::new(storage, key_holder, repositories, wallet_clients, registration_status);
 
         wallet.start_background_revocation_checks(REVOCATION_CHECK_FREQUENCY);
 
@@ -264,11 +272,11 @@ where
     }
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
     SLC: StatusListClient,
 {
