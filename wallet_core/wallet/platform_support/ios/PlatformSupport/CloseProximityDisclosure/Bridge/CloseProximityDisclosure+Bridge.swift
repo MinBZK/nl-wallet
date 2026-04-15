@@ -18,6 +18,7 @@ extension CloseProximityDisclosure: CloseProximityDisclosureBridge {
         let session = try requireActiveSession()
         try requireSessionIsActive(session)
         await session.cancelReadMessagesTaskAndWait()
+        try requireSessionIsActive(session)
         let establishedSessionContext = try establishedSessionContextOrRestartReadTask(session)
         try await sendDeviceResponse(
             session: session,
@@ -34,6 +35,7 @@ extension CloseProximityDisclosure: CloseProximityDisclosureBridge {
         let session = try requireActiveSession()
         try requireSessionIsActive(session)
         await session.cancelReadMessagesTaskAndWait()
+        try requireSessionIsActive(session)
         let establishedSessionContext = try establishedSessionContextOrRestartReadTask(session)
         try await sendSessionTermination(
             session: session,

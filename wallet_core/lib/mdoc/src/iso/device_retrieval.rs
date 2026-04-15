@@ -280,9 +280,8 @@ mod tests {
 
     use super::DeviceRequest;
     use super::DeviceRequestParseError;
-    use super::ItemsRequest;
+    use crate::examples::Example;
     use crate::utils::serialization::cbor_serialize;
-    use utils::vec_nonempty;
 
     #[test]
     fn test_device_request_try_from_bytes_reports_malformed_cbor() {
@@ -312,7 +311,7 @@ mod tests {
 
     #[test]
     fn test_device_request_try_from_bytes_parses_valid_request() {
-        let device_request = DeviceRequest::from_items_requests(vec_nonempty![ItemsRequest::new_example()]);
+        let device_request = DeviceRequest::example();
         let bytes = cbor_serialize(&device_request).unwrap();
 
         assert_eq!(DeviceRequest::try_from_bytes(&bytes).unwrap(), device_request);
