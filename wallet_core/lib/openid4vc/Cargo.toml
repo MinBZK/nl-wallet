@@ -31,15 +31,7 @@ mock = [
     "sd_jwt_vc_metadata/example_constructors",
 ]
 # Include miscellaneous test utilities
-test = [
-    "dep:assert_matches",
-    "dep:parking_lot",
-    "jwt/test",
-    "tokio/test-util",
-    "utils/mock_time",
-    "wscd/mock",
-    "sd_jwt_vc_metadata/example_constructors",
-]
+test = ["dep:assert_matches", "dep:parking_lot", "jwt/test", "tokio/test-util", "utils/mock_time", "wscd/mock"]
 # All features needed to run the integration test
 integration = ["mock", "test"]
 # Credential payload examples
