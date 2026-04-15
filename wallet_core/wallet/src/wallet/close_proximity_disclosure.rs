@@ -27,6 +27,7 @@ use jwt::nonce::Nonce;
 use mdoc::DeviceRequest;
 use mdoc::DeviceRequestParseError;
 use mdoc::DeviceResponse;
+use mdoc::DeviceResponseStatus;
 use mdoc::SessionTranscript;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborError;
@@ -109,12 +110,6 @@ pub struct CloseProximityDisclosureSession {
     listener: JoinHandle<()>,
     session_state: Arc<Mutex<CloseProximityDisclosureSessionState>>,
 }
-
-// close proximity request failures need to be translated to ISO 18013-5
-// DeviceResponse status codes before the BLE session is torn down.
-const DEVICE_RESPONSE_STATUS_GENERAL_ERROR: u64 = 10;
-const DEVICE_RESPONSE_STATUS_CBOR_DECODING_ERROR: u64 = 11;
-const DEVICE_RESPONSE_STATUS_INVALID_REQUEST: u64 = 12;
 
 fn spawn_listener(
     mut receiver: mpsc::Receiver<PlatformUpdate>,
@@ -225,18 +220,16 @@ fn parse_device_request(bytes: &[u8]) -> Result<DeviceRequest, CloseProximityDis
     })
 }
 
-fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option<u64> {
+fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option<DeviceResponseStatus> {
     match error {
-        CloseProximityDisclosureError::MalformedDeviceRequest(_) => Some(DEVICE_RESPONSE_STATUS_CBOR_DECODING_ERROR),
-        CloseProximityDisclosureError::InvalidDeviceRequest(_) => Some(DEVICE_RESPONSE_STATUS_INVALID_REQUEST),
+        CloseProximityDisclosureError::MalformedDeviceRequest(_) => Some(DeviceResponseStatus::CborDecodingError),
+        CloseProximityDisclosureError::InvalidDeviceRequest(_) => Some(DeviceResponseStatus::InvalidRequest),
         CloseProximityDisclosureError::MissingReaderAuth
         | CloseProximityDisclosureError::InconsistentReaderAuths
         | CloseProximityDisclosureError::InvalidDocRequest(_)
         | CloseProximityDisclosureError::MissingReaderRegistration
         | CloseProximityDisclosureError::InvalidCertificateType(_)
-        | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_) => {
-            Some(DEVICE_RESPONSE_STATUS_GENERAL_ERROR)
-        }
+        | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_) => Some(DeviceResponseStatus::GeneralError),
         // These are either internal wallet errors or failures already handled by platform support,
         // so we do not expect to send a protocol-level error DeviceResponse for them.
         CloseProximityDisclosureError::ErrorDeviceResponseEncoding(_)
@@ -245,7 +238,7 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
     }
 }
 
-fn encode_error_device_response(status: u64) -> Result<Vec<u8>, CloseProximityDisclosureError> {
+fn encode_error_device_response(status: DeviceResponseStatus) -> Result<Vec<u8>, CloseProximityDisclosureError> {
     // Defensive: with the current fixed DeviceResponse shape we do not expect CBOR serialization to fail in practice.
     cbor_serialize(&DeviceResponse::error(status)).map_err(CloseProximityDisclosureError::ErrorDeviceResponseEncoding)
 }
@@ -800,9 +793,7 @@ mod tests {
     use super::CloseProximityDisclosureSession;
     use super::CloseProximityDisclosureSessionState;
     use super::CloseProximityDisclosureUpdate;
-    use super::DEVICE_RESPONSE_STATUS_CBOR_DECODING_ERROR;
-    use super::DEVICE_RESPONSE_STATUS_GENERAL_ERROR;
-    use super::DEVICE_RESPONSE_STATUS_INVALID_REQUEST;
+    use super::DeviceResponseStatus;
     use super::PlatformError;
     use super::verify_device_request;
 
@@ -1193,7 +1184,7 @@ mod tests {
                 let device_response: DeviceResponse = cbor_deserialize(response.as_slice()).unwrap();
                 device_response.documents.is_none()
                     && device_response.document_errors.is_none()
-                    && device_response.status == DEVICE_RESPONSE_STATUS_CBOR_DECODING_ERROR
+                    && device_response.status == DeviceResponseStatus::CborDecodingError
             })
             .returning(|_| Ok(()));
 
@@ -1229,7 +1220,7 @@ mod tests {
                 let device_response: DeviceResponse = cbor_deserialize(response.as_slice()).unwrap();
                 device_response.documents.is_none()
                     && device_response.document_errors.is_none()
-                    && device_response.status == DEVICE_RESPONSE_STATUS_INVALID_REQUEST
+                    && device_response.status == DeviceResponseStatus::InvalidRequest
             })
             .returning(|_| Ok(()));
 
@@ -1265,7 +1256,7 @@ mod tests {
                 let device_response: DeviceResponse = cbor_deserialize(response.as_slice()).unwrap();
                 device_response.documents.is_none()
                     && device_response.document_errors.is_none()
-                    && device_response.status == DEVICE_RESPONSE_STATUS_GENERAL_ERROR
+                    && device_response.status == DeviceResponseStatus::GeneralError
             })
             .returning(|_| Ok(()));
 
@@ -1581,8 +1572,8 @@ mod tests {
             .once()
             .withf(|device_response| {
                 let device_response: DeviceResponse = cbor_deserialize(device_response.as_slice()).unwrap();
-                // device response has documents and status is 0 (success)
-                device_response.documents.is_some() && device_response.status == 0
+                // device response has documents and success status
+                device_response.documents.is_some() && device_response.status == DeviceResponseStatus::Ok
             })
             .returning(|_| Ok(()));
 
@@ -1676,8 +1667,8 @@ mod tests {
             .once()
             .withf(|device_response| {
                 let device_response: DeviceResponse = cbor_deserialize(device_response.as_slice()).unwrap();
-                // device response has documents and status is 0 (success)
-                device_response.documents.is_some() && device_response.status == 0
+                // device response has documents and success status
+                device_response.documents.is_some() && device_response.status == DeviceResponseStatus::Ok
             })
             .returning(|_| Ok(()));
 

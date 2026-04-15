@@ -11,6 +11,7 @@ use wscd::wscd::JwtPoaInput;
 use crate::errors::Error;
 use crate::errors::Result;
 use crate::iso::disclosure::DeviceResponse;
+use crate::iso::disclosure::DeviceResponseStatus;
 use crate::iso::disclosure::DeviceResponseVersion;
 use crate::iso::disclosure::DeviceSigned;
 use crate::iso::disclosure::Document;
@@ -25,12 +26,12 @@ impl DeviceResponse {
             version: DeviceResponseVersion::default(),
             documents: Some(documents),
             document_errors: None,
-            status: 0,
+            status: DeviceResponseStatus::Ok,
             poa,
         }
     }
 
-    pub fn error(status: u64) -> Self {
+    pub fn error(status: DeviceResponseStatus) -> Self {
         Self {
             version: DeviceResponseVersion::default(),
             documents: None,
@@ -141,6 +142,7 @@ mod tests {
 
     use crate::iso::disclosure::DeviceAuth;
     use crate::iso::disclosure::DeviceResponse;
+    use crate::iso::disclosure::DeviceResponseStatus;
     use crate::iso::engagement::DeviceAuthenticationKeyed;
     use crate::iso::engagement::SessionTranscript;
     use crate::utils::cose::ClonePayload;
@@ -149,11 +151,11 @@ mod tests {
 
     #[test]
     fn test_error_device_response_constructor() {
-        let device_response = DeviceResponse::error(10);
+        let device_response = DeviceResponse::error(DeviceResponseStatus::GeneralError);
 
         assert!(device_response.documents.is_none());
         assert!(device_response.document_errors.is_none());
-        assert_eq!(device_response.status, 10);
+        assert_eq!(device_response.status, DeviceResponseStatus::GeneralError);
         assert!(device_response.poa.is_none());
     }
 
