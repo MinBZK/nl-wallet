@@ -72,7 +72,7 @@ x509-cert = { workspace = true, optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
+httpmock.workspace = true
 rand.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
-wiremock.workspace = true
