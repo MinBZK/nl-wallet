@@ -8,6 +8,7 @@ chmod +x ./rustup-init
 ./rustup-init -y --default-toolchain 1.94.0 --profile minimal --component clippy,rustfmt
 rm ./rustup-init
 
+rustup toolchain install nightly --profile minimal --component rustfmt
 rustup target add x86_64-unknown-linux-musl x86_64-unknown-linux-gnu
 rustup component add llvm-tools-preview # needed by cargo-llvm-cov
 

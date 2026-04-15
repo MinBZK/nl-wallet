@@ -62,12 +62,12 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         let CredentialOfferContainer { credential_offer } =
             serde_urlencoded::from_str(query).map_err(WalletIssuanceError::CredentialOfferDeserialization)?;
 
-        let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer.credential_issuer).await?;
-
         let pre_authorized_code = credential_offer
             .pre_authorized_code()
             .cloned()
             .ok_or(WalletIssuanceError::MissingPreAuthorizedCodeGrant)?;
+
+        let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer.credential_issuer).await?;
 
         let token_request = TokenRequest {
             grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
@@ -153,6 +153,7 @@ mod test {
     use crate::token::TokenType;
     use crate::wallet_issuance::AuthorizationSession;
     use crate::wallet_issuance::IssuanceSession;
+    use crate::wallet_issuance::WalletIssuanceError;
 
     use super::HttpIssuanceDiscovery;
     use super::IssuanceDiscovery;
@@ -265,6 +266,7 @@ mod test {
         (server, issuer_identifier, trust_anchor)
     }
 
+    #[cfg_attr(not(feature = "allow_insecure_url"), ignore = "requires allow_insecure_url feature")]
     #[tokio::test]
     async fn pre_authorized_code_flow() {
         let (_server, issuer_identifier, trust_anchor) = start_wiremock_issuer(None).await;
@@ -298,6 +300,7 @@ mod test {
         );
     }
 
+    #[cfg_attr(not(feature = "allow_insecure_url"), ignore = "requires allow_insecure_url feature")]
     #[tokio::test]
     async fn authorization_code_flow() {
         let authorization_endpoint = "https://auth.example.com/authorize";
@@ -346,5 +349,56 @@ mod test {
                 .attestation_type,
             PID_ATTESTATION_TYPE
         );
+    }
+
+    #[tokio::test]
+    async fn pre_authorized_code_flow_missing_query() {
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap());
+        let offer_url = Url::parse("openid-credential-offer://").unwrap();
+
+        let result = discovery
+            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[])
+            .await;
+
+        assert!(matches!(result, Err(WalletIssuanceError::MissingCredentialOfferQuery)));
+    }
+
+    #[tokio::test]
+    async fn pre_authorized_code_flow_deserialization_error() {
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap());
+        let offer_url = Url::parse("openid-credential-offer://?credential_offer=invalid_json").unwrap();
+
+        let result = discovery
+            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[])
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(WalletIssuanceError::CredentialOfferDeserialization(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn pre_authorized_code_flow_missing_grant() {
+        // Construct a credential offer URL WITHOUT any grants.
+        let credential_offer = CredentialOffer {
+            credential_issuer: "https://example.com".parse().unwrap(),
+            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string()],
+            grants: None,
+        };
+        let container = CredentialOfferContainer { credential_offer };
+        let query = serde_urlencoded::to_string(&container).unwrap();
+        let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
+
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap());
+
+        let result = discovery
+            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[])
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(WalletIssuanceError::MissingPreAuthorizedCodeGrant)
+        ));
     }
 }

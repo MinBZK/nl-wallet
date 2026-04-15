@@ -15,7 +15,7 @@ variable "vm_base_name" {
 
 variable "vm_name" {
   type = string
-  default = "tahoe-wallet:0.3.3"
+  default = "tahoe-wallet:0.3.4"
 }
 
 source "tart-cli" "tart" {
@@ -70,7 +70,7 @@ build {
       "source ~/.zprofile",
       "set -eux",
       "brew install rustup",
-      "rustup-init -y --default-toolchain 1.94.0 --profile minimal --component clippy,rustfmt",
+      "rustup-init -y --default-toolchain 1.94.0 --profile minimal --component clippy",
     ]
   }
 

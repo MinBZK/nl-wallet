@@ -33,7 +33,6 @@
 //! | Session IDs in TLS 1.2     | not allowed   | disabled below               |
 //! | Renegotiation              | best disabled | not implemented by rustls    |
 //! | 0-RTT in TLS 1.3           | not allowed   | off by default in rustls     |
-//!
 
 use std::io;
 use std::sync::Arc;

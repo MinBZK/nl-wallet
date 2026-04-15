@@ -136,8 +136,8 @@ where
                 match deleted_nonces.len() {
                     deleted_nonce_count if deleted_nonce_count > nonce_count => {
                         panic!(
-                            "database deleted more nonces than requested, \
-                             this should not happen as the nonce column is unique"
+                            "database deleted more nonces than requested, this should not happen as the nonce column \
+                             is unique"
                         )
                     }
                     deleted_nonce_count

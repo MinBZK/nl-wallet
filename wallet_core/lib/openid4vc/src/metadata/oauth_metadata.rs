@@ -193,6 +193,7 @@ pub mod tests {
         (server, server_url)
     }
 
+    #[cfg_attr(not(feature = "allow_insecure_url"), ignore = "requires allow_insecure_url feature")]
     #[tokio::test]
     async fn test_discovery() {
         let (_server, server_url) = start_discovery_server().await;
