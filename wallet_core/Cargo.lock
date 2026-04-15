@@ -9532,6 +9532,7 @@ dependencies = [
  "hex",
  "http",
  "http_utils",
+ "httpmock",
  "indexmap 2.12.1",
  "itertools 0.14.0",
  "jwe",
@@ -9577,7 +9578,6 @@ dependencies = [
  "wallet_account",
  "wallet_configuration",
  "wallet_migrations",
- "wiremock",
  "wscd",
  "zstd",
 ]

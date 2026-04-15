@@ -104,13 +104,13 @@ libsqlite3-sys = { workspace = true, features = ["bundled-sqlcipher-vendored-ope
 [dev-dependencies]
 aes-gcm.workspace = true
 assert_matches.workspace = true
+httpmock.workspace = true
 mockall.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 serial_test.workspace = true
 ssri.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
-wiremock.workspace = true
 
 apple_app_attest = { path = "../lib/apple_app_attest", features = ["mock"] }
 attestation_types.path = "../lib/attestation_types"
