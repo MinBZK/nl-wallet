@@ -116,15 +116,14 @@ mod test {
     use std::collections::HashMap;
     use std::num::NonZeroU8;
 
+    use http::header;
+    use httpmock::Method::GET;
+    use httpmock::Method::POST;
+    use httpmock::MockServer;
     use indexmap::IndexMap;
     use rustls_pki_types::TrustAnchor;
     use serde_json::json;
     use url::Url;
-    use wiremock::Mock;
-    use wiremock::MockServer;
-    use wiremock::ResponseTemplate;
-    use wiremock::matchers::method;
-    use wiremock::matchers::path;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
@@ -163,9 +162,8 @@ mod test {
     async fn start_wiremock_issuer(
         authorization_endpoint: Option<&str>,
     ) -> (MockServer, IssuerIdentifier, TrustAnchor<'static>) {
-        let server = MockServer::start().await;
-        let server_url = server.uri();
-        let issuer_identifier: IssuerIdentifier = format!("{server_url}/").parse().unwrap();
+        let server = MockServer::start_async().await;
+        let issuer_identifier = server.base_url().parse::<IssuerIdentifier>().unwrap();
 
         // Create CA and issuer certificate for the credential preview.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -208,10 +206,10 @@ mod test {
         // Construct issuer metadata JSON.
         let issuer_metadata_json = json!({
             "credential_issuer": issuer_identifier.to_string(),
-            "credential_endpoint": format!("{server_url}/issuance/credential"),
-            "batch_credential_endpoint": format!("{server_url}/issuance/batch_credential"),
-            "nonce_endpoint": format!("{server_url}/issuance/nonce"),
-            "credential_preview_endpoint": format!("{server_url}/issuance/credential_preview"),
+            "credential_endpoint": server.url("/issuance/credential"),
+            "batch_credential_endpoint": server.url("/issuance/batch_credential"),
+            "nonce_endpoint": server.url("/issuance/nonce"),
+            "credential_preview_endpoint": server.url("/issuance/credential_preview"),
             "credential_configurations_supported": {
                 PID_ATTESTATION_TYPE: {
                     "format": "mso_mdoc",
@@ -226,7 +224,7 @@ mod test {
         // Construct OAuth metadata JSON.
         let mut oauth_metadata_json = json!({
             "issuer": issuer_identifier.to_string(),
-            "token_endpoint": format!("{server_url}/issuance/token"),
+            "token_endpoint": server.url("/issuance/token"),
             "response_types_supported": ["code"],
             "subject_types_supported": [],
             "id_token_signing_alg_values_supported": [],
@@ -235,32 +233,46 @@ mod test {
             oauth_metadata_json["authorization_endpoint"] = json!(auth_endpoint);
         }
 
-        Mock::given(method("GET"))
-            .and(path("/.well-known/openid-credential-issuer"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(&issuer_metadata_json))
-            .mount(&server)
+        server
+            .mock_async(|when, then| {
+                when.method(GET).path("/.well-known/openid-credential-issuer");
+
+                then.status(200)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .json_body(issuer_metadata_json);
+            })
             .await;
 
-        Mock::given(method("GET"))
-            .and(path("/.well-known/oauth-authorization-server"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(&oauth_metadata_json))
-            .mount(&server)
+        server
+            .mock_async(|when, then| {
+                when.method(GET).path("/.well-known/oauth-authorization-server");
+
+                then.status(200)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .json_body(oauth_metadata_json);
+            })
             .await;
 
-        Mock::given(method("POST"))
-            .and(path("/issuance/token"))
-            .respond_with(
-                ResponseTemplate::new(200)
-                    .set_body_json(&token_response)
-                    .insert_header("DPoP-Nonce", "mock_dpop_nonce"),
-            )
-            .mount(&server)
+        server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/token");
+
+                then.status(200)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .header("DPoP-Nonce", "mock_dpop_nonce")
+                    .json_body(serde_json::to_value(token_response).unwrap());
+            })
             .await;
 
-        Mock::given(method("POST"))
-            .and(path("/issuance/credential_preview"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(&preview_response))
-            .mount(&server)
+        server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/credential_preview");
+
+                then.status(200)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .header("DPoP-Nonce", "mock_dpop_nonce")
+                    .json_body(serde_json::to_value(preview_response).unwrap());
+            })
             .await;
 
         (server, issuer_identifier, trust_anchor)

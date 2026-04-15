@@ -106,6 +106,7 @@ wscd.path = "../wscd"
 
 [dev-dependencies]
 assert_matches.workspace = true
+httpmock.workspace = true
 mockall.workspace = true
 parking_lot.workspace = true
 rstest.workspace = true
@@ -114,8 +115,6 @@ serde_json = { workspace = true, features = ["preserve_order"] }
 serial_test.workspace = true
 tokio = { workspace = true, features = ["test-util"] }
 tracing-test.workspace = true
-
-wiremock.workspace = true
 
 attestation_data = { path = "../attestation_data", features = [
     "generate",
