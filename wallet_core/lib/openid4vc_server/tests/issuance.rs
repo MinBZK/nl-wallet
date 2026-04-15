@@ -110,7 +110,7 @@ async fn authorization_code_flow(
             .starts_with("https://auth.example.com/authorize")
     );
 
-    // Extract the PKCE state from the auth URL so we can craft a valid redirect.
+    // Extract the state from the auth URL so we can craft a valid redirect.
     let auth_params: HashMap<String, String> = auth_session
         .auth_url()
         .query_pairs()
