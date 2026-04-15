@@ -14,6 +14,8 @@ use jwe::error::JweJsonEncryptionError;
 
 use crate::storage::DatabaseExport;
 
+const ENCRYPTION_ALGORITHM: EncryptionAlgorithm = EncryptionAlgorithm::A256Gcm;
+
 #[derive(Constructor, AsRef, Into, PartialEq, Eq)]
 pub struct WalletDatabasePayload(DatabaseExport);
 
@@ -22,13 +24,7 @@ impl WalletDatabasePayload {
         let Self(export) = self;
 
         let encryper = JweEncrypter::from(public_key);
-        let jwe = encryper.encrypt_json(
-            export,
-            EncryptionAlgorithm::A256Gcm,
-            None,
-            None,
-            JweCompression::Deflate,
-        )?;
+        let jwe = encryper.encrypt_json(export, ENCRYPTION_ALGORITHM, None, None, JweCompression::Deflate)?;
 
         Ok(jwe)
     }
@@ -36,10 +32,7 @@ impl WalletDatabasePayload {
     pub fn decrypt(jwe: &str, secret_key: &JweEcdhSecretKey) -> Result<Self, JweJsonDecryptionError> {
         let decrypter = JweDecrypter::from_ecdh_secret_key(secret_key);
 
-        let export = decrypter.decrypt_json(
-            jwe,
-            ExpectedEncryptionAlgorithm::Algorithms(&[EncryptionAlgorithm::A256Gcm]),
-        )?;
+        let export = decrypter.decrypt_json(jwe, ExpectedEncryptionAlgorithm::Algorithms(&[ENCRYPTION_ALGORITHM]))?;
 
         Ok(Self(export))
     }
