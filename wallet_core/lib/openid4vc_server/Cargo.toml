@@ -33,14 +33,14 @@ tracing.workspace = true
 axum-extra = { workspace = true, optional = true }
 ring = { workspace = true, optional = true }
 
-attestation_data = { path = "../attestation_data" }
+attestation_data.path = "../attestation_data"
 crypto.path = "../crypto"
 dcql.path = "../dcql"
 http_utils = { path = "../http_utils", features = ["server"] }
 jwt.path = "../jwt"
 openid4vc = { path = "../openid4vc", features = ["axum"] }
 token_status_list = { path = "../token_status_list" }
-utils = { path = "../utils" }
+utils.path = "../utils"
 
 [dev-dependencies]
 p256.workspace = true
