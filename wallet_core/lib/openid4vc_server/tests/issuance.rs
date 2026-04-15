@@ -60,13 +60,13 @@ async fn start_server(
 }
 
 fn make_credential_offer_url(
-    issuer_identifier: &IssuerIdentifier,
+    issuer_identifier: IssuerIdentifier,
     session_token: SessionToken,
     attestation_count: NonZeroUsize,
 ) -> Url {
     let auth_code: AuthorizationCode = session_token.into();
     let credential_offer = CredentialOffer {
-        credential_issuer: issuer_identifier.clone(),
+        credential_issuer: issuer_identifier,
         credential_configuration_ids: MOCK_ATTESTATION_TYPES[..attestation_count.get()]
             .iter()
             .map(ToString::to_string)
@@ -87,7 +87,7 @@ async fn authorization_code_flow(
 ) {
     let upstream_oauth_id: IssuerIdentifier = "https://auth.example.com/".parse().unwrap();
     let (_, trust_anchor, issuer_identifier, wua_issuer_privkey) =
-        start_server(attestation_count, Some(upstream_oauth_id.clone())).await;
+        start_server(attestation_count, Some(upstream_oauth_id)).await;
 
     let redirect_uri: Url = "https://wallet.example.com/callback".parse().unwrap();
     let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap());
@@ -148,7 +148,7 @@ async fn pre_authorized_code_flow(
     let documents = mock_issuable_documents(attestation_count);
     let session_token = issuer.new_session(documents).await.unwrap();
 
-    let credential_offer_url = make_credential_offer_url(&issuer_identifier, session_token, attestation_count);
+    let credential_offer_url = make_credential_offer_url(issuer_identifier, session_token, attestation_count);
 
     let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap());
 
@@ -193,7 +193,7 @@ async fn reject_issuance() {
     let documents = mock_issuable_documents(attestation_count);
     let session_token = issuer.new_session(documents).await.unwrap();
 
-    let offer_url = make_credential_offer_url(&issuer_identifier, session_token, attestation_count);
+    let offer_url = make_credential_offer_url(issuer_identifier, session_token, attestation_count);
 
     let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap());
 
