@@ -88,6 +88,9 @@ use crate::jwe::JweEncryptionAlgorithm;
 const SD_JWT_IAT_LEEWAY: Duration = Duration::from_secs(5);
 const SD_JWT_IAT_WINDOW: Duration = Duration::from_secs(15 * 60);
 
+const RESPONSE_ENCRYPTION_ALGORITHMS: &[EncryptionAlgorithm] =
+    &[EncryptionAlgorithm::A128Gcm, EncryptionAlgorithm::A256Gcm];
+
 /// OpenID4VP request uri.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct VpRequestUri {
@@ -554,10 +557,16 @@ impl NormalizedVpAuthorizationRequest {
                 // https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5
                 // The JWE enc (encryption algorithm) header parameter (see Section 4.1.2 of [RFC7516]) values A128GCM
                 // and A256GCM (as defined in Section 5.3 of [RFC7518]) MUST be supported by Verifiers.
-                encrypted_response_enc_values_supported: Some(vec_nonempty![
-                    EncryptionAlgorithm::A128Gcm.into(),
-                    EncryptionAlgorithm::A256Gcm.into(),
-                ]),
+                encrypted_response_enc_values_supported: Some(
+                    RESPONSE_ENCRYPTION_ALGORITHMS
+                        .iter()
+                        .copied()
+                        .map(JweEncryptionAlgorithm::from)
+                        .collect_vec()
+                        .try_into()
+                        // The RESPONSE_ENCRYPTION_ALGORITHMS constant is guaranteed to contain more than one algorithm.
+                        .unwrap(),
+                ),
             },
             state: None,
             wallet_nonce,
@@ -898,7 +907,7 @@ impl VpAuthorizationResponse {
         // Accept only the encryption algorithms anounced in the client metadata.
         decrypter.decrypt_json(
             jwe,
-            ExpectedEncryptionAlgorithm::Algorithms(&[EncryptionAlgorithm::A128Gcm, EncryptionAlgorithm::A256Gcm]),
+            ExpectedEncryptionAlgorithm::Algorithms(RESPONSE_ENCRYPTION_ALGORITHMS),
         )
     }
 
