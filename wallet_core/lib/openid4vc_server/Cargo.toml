@@ -43,20 +43,12 @@ token_status_list = { path = "../token_status_list" }
 utils = { path = "../utils" }
 
 [dev-dependencies]
-assert_matches.workspace = true
-chrono = { workspace = true, features = ["now"] }
-indexmap.workspace = true
 p256.workspace = true
-rand_core.workspace = true
 rstest.workspace = true
 serde_urlencoded.workspace = true
 tokio = { workspace = true, features = ["test-util", "macros", "net"] }
 url = { workspace = true, features = ["serde"] }
 
-attestation_types = { path = "../attestation_types", features = ["test_pid_constants"] }
-crypto = { path = "../crypto", features = ["examples"] }
-http_utils = { path = "../http_utils", features = ["client", "allow_insecure_url"] }
+http_utils = { path = "../http_utils", features = ["client", "allow_insecure_url"] } # TODO: Remove allow_insecure_url in PVW-5836
 openid4vc = { path = "../openid4vc", features = ["integration"] }
-sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
-token_status_list = { path = "../token_status_list", features = ["mock"] }
 wscd = { path = "../wscd", features = ["mock"] }

@@ -265,6 +265,7 @@ mod test {
         (server, issuer_identifier, trust_anchor)
     }
 
+    #[cfg_attr(not(feature = "allow_insecure_url"), ignore = "requires allow_insecure_url feature")]
     #[tokio::test]
     async fn pre_authorized_code_flow() {
         let (_server, issuer_identifier, trust_anchor) = start_wiremock_issuer(None).await;
@@ -298,6 +299,7 @@ mod test {
         );
     }
 
+    #[cfg_attr(not(feature = "allow_insecure_url"), ignore = "requires allow_insecure_url feature")]
     #[tokio::test]
     async fn authorization_code_flow() {
         let authorization_endpoint = "https://auth.example.com/authorize";

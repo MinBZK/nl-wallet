@@ -21,11 +21,26 @@ axum = ["axum/json"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["http_utils/allow_insecure_url"]
 # Include mock implementations for testing
-mock = ["attestation_data/generate", "attestation_data/mock", "crypto/generate", "dep:mockall", "token_status_list/mock", "wscd/mock"]
+mock = [
+    "attestation_data/generate",
+    "attestation_data/mock",
+    "crypto/generate",
+    "dep:mockall",
+    "token_status_list/mock",
+    "wscd/mock",
+]
 # Include miscellaneous test utilities
-test = ["dep:assert_matches", "dep:parking_lot", "jwt/test", "tokio/test-util", "utils/mock_time", "wscd/mock"]
+test = [
+    "dep:assert_matches",
+    "dep:parking_lot",
+    "jwt/test",
+    "tokio/test-util",
+    "utils/mock_time",
+    "wscd/mock",
+    "sd_jwt_vc_metadata/example_constructors",
+]
 # All features needed to run the integration test
-integration = ["allow_insecure_url", "example_constructors", "mock", "test"]
+integration = ["mock", "test"]
 # Credential payload examples
 example_credential_payloads = []
 # Offers example constructors
@@ -53,7 +68,6 @@ futures = { workspace = true, features = ["async-await"] }
 hex.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
-jsonwebtoken.workspace = true
 jwk-simple.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
