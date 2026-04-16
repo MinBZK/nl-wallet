@@ -97,10 +97,12 @@ async fn main() {
         .await
         .expect("Could not create pid issuance auth url");
 
+    // Strip everything from and include '/authorize' to get the base DigiD URL
     let digid_base_url = authorization_url
-        .origin()
-        .unicode_serialization()
         .as_str()
+        .split_once("/authorize")
+        .map(|(base, _)| base)
+        .unwrap_or(authorization_url.as_str())
         .parse()
         .unwrap();
 
