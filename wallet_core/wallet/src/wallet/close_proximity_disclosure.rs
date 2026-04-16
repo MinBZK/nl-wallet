@@ -53,6 +53,7 @@ use crate::DisclosureProposalPresentation;
 use crate::Wallet;
 use crate::account_provider::AccountProviderClient;
 use crate::errors::InstructionError;
+use crate::errors::RemoteEcdsaKeyError;
 use crate::errors::UpdatePolicyError;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
@@ -538,7 +539,12 @@ where
                 let disclosure_error = match error {
                     // Upgrade any signing errors that are caused by an instruction error to
                     // `DisclosureError::Instruction`.
-                    mdoc::Error::Cose(CoseError::Signing(signing_error)) => {
+                    mdoc::Error::Cose(CoseError::Signing(signing_error))
+                        if matches!(
+                            signing_error.downcast_ref::<RemoteEcdsaKeyError>(),
+                            Some(RemoteEcdsaKeyError::Instruction(_))
+                        ) =>
+                    {
                         DisclosureError::Instruction(instruction_error_from_signing_error(signing_error))
                     }
                     other => DisclosureError::CloseProximityDisclosureSessionError(
