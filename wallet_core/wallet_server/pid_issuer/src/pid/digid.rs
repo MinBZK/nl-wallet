@@ -1,11 +1,13 @@
-use josekit::JoseError;
-use josekit::jwe::alg::rsaes::RsaesJweAlgorithm;
-use josekit::jwe::alg::rsaes::RsaesJweDecrypter;
-use josekit::jwe::enc::aescbc_hmac::AescbcHmacJweEncryption;
 use jsonwebtoken::Algorithm;
+use jwk_simple::Key;
 
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::tls_pinned_client_builder;
+use jwe::algorithm::EncryptionAlgorithm;
+use jwe::algorithm::RsaAlgorithm;
+use jwe::decryption::JweDecrypter;
+use jwe::decryption::JweRsaPrivateKey;
+use jwe::error::RsaPrivateJwkError;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::token::TokenRequest;
 
@@ -14,6 +16,10 @@ use crate::pid::userinfo::UserInfo;
 use crate::pid::userinfo::UserInfoError;
 use crate::settings::DigidClientSettings;
 
+const EXPECTED_JWE_RSA_ALGORITHM: RsaAlgorithm = RsaAlgorithm::RsaOaep;
+const EXPECTED_JWE_ENC_ALGORITHM: EncryptionAlgorithm = EncryptionAlgorithm::A128CbcHs256;
+const EXPECTED_JWS_ALGORITHM: Algorithm = Algorithm::RS256;
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
@@ -21,11 +27,8 @@ pub enum Error {
     #[error("transport error: {0}")]
     Http(#[from] reqwest::Error),
 
-    #[error("JSON error: {0}")]
-    Serde(#[from] serde_json::Error),
-
-    #[error("JOSE error: {0}")]
-    JoseKit(#[from] JoseError),
+    #[error("RSA private key JWK error: {0}")]
+    RsaJwk(#[from] RsaPrivateJwkError),
 
     #[error("userinfo error: {0}")]
     UserInfo(#[from] UserInfoError),
@@ -33,7 +36,7 @@ pub enum Error {
 
 /// An OIDC client for exchanging an access token provided by the user for their BSN at the IdP.
 pub struct OpenIdClient {
-    decrypter_private_key: RsaesJweDecrypter,
+    decrypter: JweDecrypter,
     client_id: String,
     http_client: HttpJsonClient,
     oidc_identifier: IssuerIdentifier,
@@ -41,16 +44,18 @@ pub struct OpenIdClient {
 
 impl OpenIdClient {
     pub fn try_new(
-        bsn_privkey: &str,
+        bsn_privkey: &Key,
         client_id: impl Into<String>,
         digid_client_settings: DigidClientSettings,
     ) -> Result<Self> {
+        let jwe_private_key = JweRsaPrivateKey::try_from_jwk(bsn_privkey, EXPECTED_JWE_RSA_ALGORITHM)?;
         let certs = digid_client_settings
             .trust_anchors
             .into_iter()
             .map(|ta| ta.into_certificate());
+
         let userinfo_client = OpenIdClient {
-            decrypter_private_key: Self::decrypter(bsn_privkey)?,
+            decrypter: JweDecrypter::from_rsa_private_key(&jwe_private_key),
             client_id: client_id.into(),
             http_client: HttpJsonClient::try_new(tls_pinned_client_builder(certs))?,
             oidc_identifier: digid_client_settings.oidc_identifier,
@@ -65,18 +70,11 @@ impl OpenIdClient {
             &self.oidc_identifier,
             token_request,
             &self.client_id,
-            Algorithm::RS256,
-            Some((&self.decrypter_private_key, &AescbcHmacJweEncryption::A128cbcHs256)),
+            &self.decrypter,
+            (EXPECTED_JWS_ALGORITHM, EXPECTED_JWE_ENC_ALGORITHM),
         )
         .await?;
 
         Ok(userinfo_claims.bsn)
-    }
-
-    fn decrypter(jwk_json: &str) -> Result<RsaesJweDecrypter> {
-        let jwk = serde_json::from_str(jwk_json)?;
-        let decrypter = RsaesJweAlgorithm::RsaOaep.decrypter_from_jwk(&jwk)?;
-
-        Ok(decrypter)
     }
 }

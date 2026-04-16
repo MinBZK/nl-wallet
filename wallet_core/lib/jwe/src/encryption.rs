@@ -2,16 +2,13 @@ use derive_more::Display;
 use derive_more::From;
 use derive_more::FromStr;
 use derive_more::Into;
-use josekit::JoseError;
 use josekit::jwe::JweHeader;
 use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
 use josekit::jwe::alg::ecdh_es::EcdhEsJweEncrypter;
-use jwk_simple::Algorithm;
 use jwk_simple::EcCurve;
 use jwk_simple::EcParams;
 use jwk_simple::Key;
 use jwk_simple::KeyParams;
-use jwk_simple::KeyType;
 use jwk_simple::KeyUse;
 use p256::EncodedPoint;
 use p256::PublicKey;
@@ -25,28 +22,9 @@ use serde_with::serde_as;
 
 use crate::algorithm::EcdhAlgorithm;
 use crate::algorithm::EncryptionAlgorithm;
-
-#[derive(Debug, thiserror::Error)]
-#[cfg_attr(test, derive(strum::EnumDiscriminants))]
-pub enum JwePublicKeyError {
-    #[error("JWK is not valid: {0}")]
-    JwkInvalid(#[source] jwk_simple::Error),
-
-    #[error("JWK does not contain an algorithm")]
-    MissingJwkAlgorithm,
-
-    #[error("JWK specifies key use \"{0}\", not encryption")]
-    InvalidJwkKeyUse(KeyUse),
-
-    #[error("JWK algorithm \"{0}\" is not supported")]
-    UnsupportedJwkAlgorithm(Algorithm),
-
-    #[error("JWK key type \"{0}\" is not consistent with algorithm \"{1}\"")]
-    InconsistentJwkKeyType(KeyType, Algorithm),
-
-    #[error("JWK EC curve is \"{0}\", not P-256")]
-    UnsupportedJwkEcCurve(EcCurve),
-}
+use crate::error::EcdhPublicJwkError;
+use crate::error::JweJsonEncryptionError;
+use crate::error::JwkError;
 
 #[derive(Debug, Clone, Copy, From, Into, Display, FromStr)]
 #[display(
@@ -80,36 +58,33 @@ impl JwePublicKey {
         }
     }
 
-    pub fn try_from_jwk(jwk: &Key) -> Result<Self, JwePublicKeyError> {
-        jwk.validate().map_err(JwePublicKeyError::JwkInvalid)?;
+    pub fn try_from_jwk(jwk: &Key) -> Result<Self, EcdhPublicJwkError> {
+        jwk.validate().map_err(JwkError::Invalid)?;
 
-        let algorithm = jwk.alg().ok_or(JwePublicKeyError::MissingJwkAlgorithm)?;
+        let algorithm = jwk.alg().ok_or(EcdhPublicJwkError::MissingAlgorithm)?;
 
         if let Some(key_use) = jwk.key_use()
             && *key_use != KeyUse::Encryption
         {
-            return Err(JwePublicKeyError::InvalidJwkKeyUse(key_use.clone()));
+            return Err(JwkError::InvalidKeyUse(key_use.clone()).into());
         }
 
         let jwe_algorithm = EcdhAlgorithm::try_from_jwk_simple_algorithm(algorithm)
-            .ok_or(JwePublicKeyError::UnsupportedJwkAlgorithm(algorithm.clone()))?;
+            .ok_or(JwkError::UnsupportedAlgorithm(algorithm.clone()))?;
 
         if !jwk.is_algorithm_compatible(algorithm) {
-            return Err(JwePublicKeyError::InconsistentJwkKeyType(
-                jwk.params().key_type(),
-                algorithm.clone(),
-            ));
+            return Err(JwkError::InconsistentKeyType(jwk.params().key_type(), algorithm.clone()).into());
         }
 
         let KeyParams::Ec(ec_params) = jwk.params() else {
             unreachable!(
-                "Key::is_algorithm_compatible() in combination with Self::is_algorithm_supported() guarantees a \
-                 supported key type"
+                "Key::is_algorithm_compatible() in combination with EcdhAlgorithm::try_from_jwk_simple_algorithm() \
+                 guarantees a supported key type"
             );
         };
 
         if ec_params.crv != EcCurve::P256 {
-            return Err(JwePublicKeyError::UnsupportedJwkEcCurve(ec_params.crv));
+            return Err(EcdhPublicJwkError::UnsupportedJwkEcCurve(ec_params.crv));
         }
 
         let id = jwk.kid().map(str::to_string);
@@ -160,20 +135,11 @@ impl From<JwePublicKey> for Key {
 // Even though the conversion does not require an owned `Key`, this
 // trait implementation is useful for `serde_with::TryFrom_Into`.
 impl TryFrom<Key> for JwePublicKey {
-    type Error = JwePublicKeyError;
+    type Error = EcdhPublicJwkError;
 
     fn try_from(value: Key) -> Result<Self, Self::Error> {
         Self::try_from_jwk(&value)
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum JweEncrypterError {
-    #[error("could not serialize data: {0}")]
-    Serialization(#[source] serde_json::Error),
-
-    #[error("could not encrypt data: {0}")]
-    Encryption(#[source] JoseError),
 }
 
 /// Wraps JWE encryption using the key that is derived from an eliptic curve P-256 public key and optional `kid` value.
@@ -207,18 +173,18 @@ impl JweEncrypter {
         self.id.as_deref()
     }
 
-    pub fn encrypt<T>(
+    pub fn encrypt_json<T>(
         &self,
         data: &T,
         encryption_algorithm: EncryptionAlgorithm,
         apu: Option<&[u8]>,
         apv: Option<&[u8]>,
         use_compression: JweCompression,
-    ) -> Result<String, JweEncrypterError>
+    ) -> Result<String, JweJsonEncryptionError>
     where
         T: Serialize,
     {
-        let payload = serde_json::to_vec(data).map_err(JweEncrypterError::Serialization)?;
+        let payload = serde_json::to_vec(data).map_err(JweJsonEncryptionError::Serialization)?;
 
         let mut header = JweHeader::new();
 
@@ -240,7 +206,7 @@ impl JweEncrypter {
         }
 
         let jwe = josekit::jwe::serialize_compact(&payload, &header, &self.encrypter)
-            .map_err(JweEncrypterError::Encryption)?;
+            .map_err(JweJsonEncryptionError::Encryption)?;
 
         Ok(jwe)
     }
@@ -265,12 +231,14 @@ mod tests {
 
     use crate::algorithm::EcdhAlgorithm;
     use crate::algorithm::EncryptionAlgorithm;
+    use crate::error::EcdhPublicJwkError;
+    use crate::error::EcdhPublicJwkErrorDiscriminants;
+    use crate::error::JwkErrorDiscriminants;
 
     use super::JweCompression;
     use super::JweEncrypter;
-    use super::JweEncrypterError;
+    use super::JweJsonEncryptionError;
     use super::JwePublicKey;
-    use super::JwePublicKeyErrorDiscriminants;
 
     fn example_jwk() -> serde_json::Value {
         example_jwk_with_alg(EcdhAlgorithm::EcdhEs)
@@ -364,31 +332,49 @@ mod tests {
         })
     }
 
+    #[derive(Clone, Copy)]
+    enum ExpectedTryFromJwkError {
+        Jwk(JwkErrorDiscriminants),
+        EcdhPublicJwk(EcdhPublicJwkErrorDiscriminants),
+    }
+
     #[rstest]
-    #[case::valid(example_jwk(), Ok(()))]
-    #[case::valid_ecdh_es_a256kw(example_jwk_with_alg(EcdhAlgorithm::EcdhEsA256kw), Ok(()))]
-    #[case::valid_no_kid(example_jwk_no_kid(), Ok(()))]
-    #[case::invalid_key_length(example_jwk_invalid_key_length(), Err(JwePublicKeyErrorDiscriminants::JwkInvalid))]
-    #[case::invalid_no_alg(example_jwk_no_alg(), Err(JwePublicKeyErrorDiscriminants::MissingJwkAlgorithm))]
-    #[case::invalid_key_use(example_jwk_key_use_sig(), Err(JwePublicKeyErrorDiscriminants::InvalidJwkKeyUse))]
+    #[case::valid(example_jwk(), None)]
+    #[case::valid_ecdh_es_a256kw(example_jwk_with_alg(EcdhAlgorithm::EcdhEsA256kw), None)]
+    #[case::valid_no_kid(example_jwk_no_kid(), None)]
+    #[case::invalid_key_length(
+        example_jwk_invalid_key_length(),
+        Some(ExpectedTryFromJwkError::Jwk(JwkErrorDiscriminants::Invalid))
+    )]
+    #[case::invalid_no_alg(
+        example_jwk_no_alg(),
+        Some(ExpectedTryFromJwkError::EcdhPublicJwk(EcdhPublicJwkErrorDiscriminants::MissingAlgorithm))
+    )]
+    #[case::invalid_key_use(
+        example_jwk_key_use_sig(),
+        Some(ExpectedTryFromJwkError::Jwk(JwkErrorDiscriminants::InvalidKeyUse))
+    )]
     #[case::invalid_alg_es256(
         example_jwk_alg_es256(),
-        Err(JwePublicKeyErrorDiscriminants::UnsupportedJwkAlgorithm)
+        Some(ExpectedTryFromJwkError::Jwk(JwkErrorDiscriminants::UnsupportedAlgorithm))
     )]
     #[case::example_jwk_rsa_alg_ecdh_es(
         example_jwk_rsa_alg_ecdh_es(),
-        Err(JwePublicKeyErrorDiscriminants::InconsistentJwkKeyType)
+        Some(ExpectedTryFromJwkError::Jwk(JwkErrorDiscriminants::InconsistentKeyType))
     )]
-    #[case::invalid_curve(example_jwk_p521(), Err(JwePublicKeyErrorDiscriminants::UnsupportedJwkEcCurve))]
+    #[case::invalid_curve(
+        example_jwk_p521(),
+        Some(ExpectedTryFromJwkError::EcdhPublicJwk(EcdhPublicJwkErrorDiscriminants::UnsupportedJwkEcCurve))
+    )]
     fn test_jwe_encryption_key(
         #[case] json: serde_json::Value,
-        #[case] expected_result: Result<(), JwePublicKeyErrorDiscriminants>,
+        #[case] expected_error: Option<ExpectedTryFromJwkError>,
     ) {
         let jwk = serde_json::from_value(json).unwrap();
         let result = JwePublicKey::try_from_jwk(&jwk);
 
-        match expected_result {
-            Ok(()) => {
+        match expected_error {
+            None => {
                 let key = result.expect("converting from JWK to JweEncryptionKey should succeed");
 
                 assert_eq!(key.id(), jwk.kid());
@@ -400,10 +386,21 @@ mod tests {
                 assert_eq!(output_jwk.key_use(), Some(&KeyUse::Encryption));
                 assert_eq!(output_jwk.kid(), jwk.kid());
             }
-            Err(expected_error) => {
+            Some(expected_error) => {
                 let error = result.expect_err("converting from JWK to JweEncryptionKey should fail");
 
-                assert_eq!(JwePublicKeyErrorDiscriminants::from(&error), expected_error);
+                match expected_error {
+                    ExpectedTryFromJwkError::Jwk(expected_discriminant) => {
+                        assert_matches!(
+                            error,
+                            EcdhPublicJwkError::Jwk(error)
+                                if JwkErrorDiscriminants::from(&error) == expected_discriminant
+                        )
+                    }
+                    ExpectedTryFromJwkError::EcdhPublicJwk(expected_discriminant) => {
+                        assert_eq!(EcdhPublicJwkErrorDiscriminants::from(&error), expected_discriminant)
+                    }
+                }
             }
         }
     }
@@ -450,7 +447,7 @@ mod tests {
         let encrypter = JweEncrypter::from(key);
 
         let jws = encrypter
-            .encrypt(
+            .encrypt_json(
                 &data,
                 encryption_algorithm,
                 apu.map(str::as_bytes),
@@ -489,10 +486,10 @@ mod tests {
         let encrypter = JweEncrypter::from(key);
 
         let data = HashMap::from([(("one".to_string(), "two".to_string()), "three".to_string())]);
-        let result = encrypter.encrypt(&data, EncryptionAlgorithm::A256Gcm, None, None, JweCompression::None);
+        let result = encrypter.encrypt_json(&data, EncryptionAlgorithm::A256Gcm, None, None, JweCompression::None);
 
         let error = result.expect_err("encrypting data with JweEncrypter should fail");
 
-        assert_matches!(error, JweEncrypterError::Serialization(_));
+        assert_matches!(error, JweJsonEncryptionError::Serialization(_));
     }
 }

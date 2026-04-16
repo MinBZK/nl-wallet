@@ -158,7 +158,7 @@ mod tests {
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use jwe::algorithm::EcdhAlgorithm;
-    use jwe::decryption::JweSecretKey;
+    use jwe::decryption::JweEcdhSecretKey;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
     use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
@@ -520,7 +520,7 @@ mod tests {
         TransferData {
             transfer_session_id: Uuid::new_v4().into(),
             key_data: Some(TransferKeyData::Source {
-                public_key: JweSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw).to_jwe_public_key(),
+                public_key: JweEcdhSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw).to_jwe_public_key(),
             }),
         }
     }
@@ -529,7 +529,7 @@ mod tests {
         TransferData {
             transfer_session_id: Uuid::new_v4().into(),
             key_data: Some(TransferKeyData::Destination {
-                secret_key: JweSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw),
+                secret_key: JweEcdhSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw),
             }),
         }
     }

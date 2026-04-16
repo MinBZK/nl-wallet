@@ -53,7 +53,7 @@ use dcql::normalized::NormalizedCredentialRequests;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::urls::BaseUrl;
 use jwe::algorithm::EcdhAlgorithm;
-use jwe::decryption::JweSecretKey;
+use jwe::decryption::JweEcdhSecretKey;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
@@ -162,7 +162,7 @@ fn disclosure_direct() {
     // RP assembles the Authorization Request and signs it into a JWS.
     let nonce = Nonce::from("nonce".to_string());
     let response_uri: BaseUrl = format!("https://{RP_CERT_CN}/response_uri").parse().unwrap();
-    let encryption_secret_key = JweSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
+    let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
     let iso_auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
         NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
         auth_keypair.certificate(),
@@ -309,7 +309,7 @@ async fn disclosure_using_message_client(
 struct DirectMockVpMessageClient {
     test_credentials: TestCredentials,
     formats: Vec<CredentialFormat>,
-    encryption_secret_key: JweSecretKey,
+    encryption_secret_key: JweEcdhSecretKey,
     auth_keypair: KeyPair,
     auth_request: NormalizedVpAuthorizationRequest,
     request_uri: BaseUrl,
@@ -337,7 +337,7 @@ impl DirectMockVpMessageClient {
         let request_uri = (format!("https://{RP_CERT_CN}/request_uri?") + &query).parse().unwrap();
 
         let response_uri: BaseUrl = format!("https://{RP_CERT_CN}/response_uri").parse().unwrap();
-        let encryption_secret_key = JweSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
+        let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
 
         let auth_request = NormalizedVpAuthorizationRequest::new_from_certificate(
             test_credentials.to_normalized_credential_requests(formats.iter().copied()),
