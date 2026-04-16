@@ -389,8 +389,6 @@ build-performance-test:
   script:
     - cargo build --locked --release --package "tests_integration" --bin performance_test --features
       performance_test,allow_insecure_url
-  variables:
-    APPLE_ATTESTATION_ENVIRONMENT: "production"
   artifacts:
     name: performance-test
     paths:
