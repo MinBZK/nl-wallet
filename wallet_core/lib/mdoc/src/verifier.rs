@@ -57,8 +57,8 @@ pub struct IssuerSignedVerificationResult {
 pub enum VerificationError {
     #[error("errors in device response: {0:#?}")]
     DeviceResponseErrors(VecNonEmpty<DocumentError>),
-    #[error("unexpected status: {0}")]
-    UnexpectedStatus(u64),
+    #[error("unexpected status: {0:?}")]
+    UnexpectedStatus(DeviceResponseStatus),
     #[error("no documents found in device response")]
     NoDocuments,
     #[error("inconsistent doctypes: document contained {document}, mso contained {mso}")]
@@ -149,7 +149,7 @@ impl DeviceResponse {
             return Err(VerificationError::DeviceResponseErrors(errors.clone()).into());
         }
 
-        if self.status != 0 {
+        if self.status != DeviceResponseStatus::Ok {
             return Err(VerificationError::UnexpectedStatus(self.status).into());
         }
 

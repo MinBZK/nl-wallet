@@ -3,6 +3,7 @@
 use std::borrow::Cow;
 use std::fmt::Debug;
 
+use ciborium::de::Error as CiboriumError;
 use ciborium::value::Value;
 use coset::CoseSign1;
 use indexmap::IndexMap;
@@ -50,6 +51,14 @@ pub struct DeviceRequest {
 
     /// This is a custom and optional field. Other implementations should ignore it.
     pub return_url: Option<Url>,
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum DeviceRequestParseError {
+    #[error("malformed CBOR: {0}")]
+    MalformedCbor(#[source] CborError),
+    #[error("invalid DeviceRequest structure: {0}")]
+    InvalidStructure(#[source] CborError),
 }
 
 /// Version of [`DeviceRequest`] structure
@@ -193,8 +202,15 @@ impl ItemsRequest {
 }
 
 impl DeviceRequest {
-    pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, CborError> {
-        cbor_deserialize(bytes)
+    pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, DeviceRequestParseError> {
+        let value: Value = cbor_deserialize(bytes).map_err(DeviceRequestParseError::MalformedCbor)?;
+
+        value.deserialized().map_err(|error| {
+            DeviceRequestParseError::InvalidStructure(CborError::Deserialization(CiboriumError::Semantic(
+                None,
+                error.to_string(),
+            )))
+        })
     }
 
     pub fn from_doc_requests(doc_requests: VecNonEmpty<DocRequest>) -> Self {
@@ -257,6 +273,50 @@ pub struct DataElements(IndexMap<DataElementIdentifier, IntentToRetain>);
 /// IntentToRetain = bool
 /// ```
 pub type IntentToRetain = bool;
+
+#[cfg(test)]
+mod tests {
+    use assert_matches::assert_matches;
+
+    use super::DeviceRequest;
+    use super::DeviceRequestParseError;
+    use crate::examples::Example;
+    use crate::utils::serialization::cbor_serialize;
+
+    #[test]
+    fn test_device_request_try_from_bytes_reports_malformed_cbor() {
+        assert_matches!(
+            DeviceRequest::try_from_bytes(&[0xff]),
+            Err(DeviceRequestParseError::MalformedCbor(_))
+        );
+    }
+
+    #[test]
+    fn test_device_request_try_from_bytes_reports_truncated_cbor_encoding() {
+        assert_matches!(
+            DeviceRequest::try_from_bytes(&[0x81]),
+            Err(DeviceRequestParseError::MalformedCbor(_))
+        );
+    }
+
+    #[test]
+    fn test_device_request_try_from_bytes_reports_invalid_structure() {
+        let bytes = cbor_serialize(&42u8).unwrap();
+
+        assert_matches!(
+            DeviceRequest::try_from_bytes(&bytes),
+            Err(DeviceRequestParseError::InvalidStructure(_))
+        );
+    }
+
+    #[test]
+    fn test_device_request_try_from_bytes_parses_valid_request() {
+        let device_request = DeviceRequest::example();
+        let bytes = cbor_serialize(&device_request).unwrap();
+
+        assert_eq!(DeviceRequest::try_from_bytes(&bytes).unwrap(), device_request);
+    }
+}
 
 #[cfg(test)]
 mod examples {

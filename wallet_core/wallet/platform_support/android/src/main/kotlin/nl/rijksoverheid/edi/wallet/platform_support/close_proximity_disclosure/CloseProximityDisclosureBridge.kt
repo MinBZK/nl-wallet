@@ -39,6 +39,20 @@ import uniffi.platform_support.CloseProximityDisclosureException
 import uniffi.platform_support.CloseProximityDisclosureUpdate
 import uniffi.platform_support.CloseProximityDisclosureBridge as RustCloseProximityDisclosureBridge
 
+internal fun sessionEstablishmentFailureStatus(exception: Exception): Long? =
+    when (exception) {
+        is IllegalArgumentException,
+        is IllegalStateException -> Constants.SESSION_DATA_STATUS_ERROR_CBOR_DECODING
+        else -> null
+    }
+
+internal fun sessionMessageFailureStatus(exception: Exception): Long? =
+    when (exception) {
+        is IllegalArgumentException -> Constants.SESSION_DATA_STATUS_ERROR_CBOR_DECODING
+        is IllegalStateException -> Constants.SESSION_DATA_STATUS_ERROR_SESSION_ENCRYPTION
+        else -> null
+    }
+
 /**
  * This class is automatically initialized on app start through
  * the [PlatformSupportInitializer] class.
@@ -270,6 +284,16 @@ class CloseProximityDisclosureBridge(
         closeSessionAfterDeviceResponse(session)
     }
 
+    override suspend fun sendSessionTermination() {
+        val session = requireActiveSession()
+        requireSessionActive(session)
+        val establishedSessionContext = requireEstablishedSession(session)
+        session.cancelReadJobAndJoin()
+        requireSessionActive(session)
+        sendTerminationStatus(session, establishedSessionContext.transport)
+        closeSessionAfterDeviceResponse(session)
+    }
+
     private suspend fun requireActiveSession(): ActiveSession =
         activeSessionMutex.withLock { activeSession }
             ?: throw CloseProximityDisclosureException.PlatformException(
@@ -302,6 +326,20 @@ class CloseProximityDisclosureBridge(
                     deviceResponse = deviceResponse,
                 ),
             )
+        } catch (exception: Exception) {
+            if (isSessionActive(session)) {
+                failSession(session = session, exception = exception)
+            }
+            throw exception.asPlatformError()
+        }
+    }
+
+    private suspend fun sendTerminationStatus(
+        session: ActiveSession,
+        transport: MdocTransport,
+    ) {
+        try {
+            transport.sendMessage(SessionEncryption.encodeStatus(Constants.SESSION_DATA_STATUS_SESSION_TERMINATION))
         } catch (exception: Exception) {
             if (isSessionActive(session)) {
                 failSession(session = session, exception = exception)
@@ -453,7 +491,7 @@ class CloseProximityDisclosureBridge(
                 message = message,
                 currentContext = readerSessionContext,
             ) ?: return
-            if (handleReaderMessage(session, message, readerSessionContext)) {
+            if (handleReaderMessage(session, transport, message, readerSessionContext)) {
                 return
             }
         }
@@ -488,11 +526,21 @@ class CloseProximityDisclosureBridge(
             return currentContext
         }
 
-        val newContext = createReaderSessionContext(
-            eDeviceKey = session.eDeviceKey,
-            encodedDeviceEngagement = session.encodedDeviceEngagement,
-            message = message,
-        )
+        val newContext =
+            try {
+                createReaderSessionContext(
+                    eDeviceKey = session.eDeviceKey,
+                    encodedDeviceEngagement = session.encodedDeviceEngagement,
+                    message = message,
+                )
+            } catch (exception: Exception) {
+                val status = sessionEstablishmentFailureStatus(exception)
+                if (status != null) {
+                    failSessionWithStatus(session, transport, status, exception)
+                    return null
+                }
+                throw exception
+            }
         session.setSessionEncryption(
             sessionEncryption = newContext.sessionEncryption,
             encodedSessionTranscript = newContext.encodedSessionTranscript,
@@ -507,10 +555,21 @@ class CloseProximityDisclosureBridge(
 
     private suspend fun handleReaderMessage(
         session: ActiveSession,
+        transport: MdocTransport,
         message: ByteArray,
         readerSessionContext: ReaderSessionContext,
     ): Boolean {
-        val (deviceRequest, status) = readerSessionContext.sessionEncryption.decryptMessage(message)
+        val (deviceRequest, status) =
+            try {
+                readerSessionContext.sessionEncryption.decryptMessage(message)
+            } catch (exception: Exception) {
+                val errorStatus = sessionMessageFailureStatus(exception)
+                if (errorStatus != null) {
+                    failSessionWithStatus(session, transport, errorStatus, exception)
+                    return true
+                }
+                throw exception
+            }
         requireReaderMessageContent(deviceRequest = deviceRequest, status = status)
         if (deviceRequest != null) {
             sendSessionEstablishedUpdate(
@@ -594,6 +653,20 @@ class CloseProximityDisclosureBridge(
                 )
             }
         }
+    }
+
+    private suspend fun failSessionWithStatus(
+        session: ActiveSession,
+        transport: MdocTransport,
+        status: Long,
+        exception: Exception,
+    ) {
+        // PVW-5710: send the ISO 18013-5 status back to the reader before we tear the BLE
+        // transport down and surface the error to core.
+        if (isSessionActive(session)) {
+            runCatching { transport.sendMessage(SessionEncryption.encodeStatus(status)) }
+        }
+        failSession(session = session, exception = exception)
     }
 
     private suspend fun closeSessionTransports(session: ActiveSession) {
