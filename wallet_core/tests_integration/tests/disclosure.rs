@@ -27,11 +27,8 @@ use pid_issuer::pid::constants::EUDI_PID_ATTESTATION_TYPE;
 use pid_issuer::pid::constants::PID_GIVEN_NAME;
 use tests_integration::common::*;
 use tests_integration::test_credential::new_mock_mdoc_pid_example;
-use tests_integration::test_credential::nl_pid_credentials_family_name;
 use tests_integration::test_credential::nl_pid_credentials_full_name;
-use tests_integration::test_credential::nl_pid_credentials_given_name;
 use tests_integration::test_credential::nl_pid_credentials_given_name_for_query_id;
-use tests_integration::test_credential::nl_pid_full_name_and_minimal_address;
 use wallet::AttributesNotAvailable;
 use wallet::DisclosureUriSource;
 use wallet::errors::DisclosureError;
@@ -135,7 +132,6 @@ async fn assert_disclosure_ok(
 
     // Check if we received a return URL when we should have, based on the use case and session type.
     let should_have_return_url = match (usecase, session_type) {
-        (usecase, _) if usecase == "xyz_bank_no_return_url" || usecase == "multiple_cards" => false,
         (usecase, _) if usecase == "xyz_bank_all_return_url" => true,
         (_, SessionType::SameDevice) => true,
         (_, SessionType::CrossDevice) => false,
@@ -181,12 +177,6 @@ async fn assert_disclosure_ok(
 #[rstest]
 #[case(
     SessionType::SameDevice,
-    None,
-    "xyz_bank_no_return_url",
-    nl_pid_credentials_full_name()
-)]
-#[case(
-    SessionType::SameDevice,
     Some("http://localhost:3004/return".parse().unwrap()),
     // Note that this use case is exactly the same as "xyz_bank_mdoc" and only differs for the demo RP.
     "xyz_bank_sd_jwt",
@@ -216,18 +206,6 @@ async fn assert_disclosure_ok(
     Some("http://localhost:3004/return".parse().unwrap()),
     "xyz_bank_all_return_url",
     nl_pid_credentials_full_name(),
-)]
-#[case(
-    SessionType::SameDevice,
-    None,
-    "xyz_bank_no_return_url",
-    nl_pid_credentials_given_name() + nl_pid_credentials_family_name(),
-)]
-#[case(
-    SessionType::SameDevice,
-    None,
-    "xyz_bank_no_return_url",
-    nl_pid_full_name_and_minimal_address()
 )]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm, MockOidcClient)]
@@ -255,8 +233,8 @@ async fn ltc15_ltc16_test_disclosure_usecases_ok(
 #[serial(hsm, MockOidcClient)]
 async fn ltc15_test_disclosure_extended_vct_ok() {
     let session_type = SessionType::SameDevice;
-    let return_url_template = None;
-    let usecase = "xyz_bank_no_return_url".to_owned();
+    let return_url_template = Some("http://localhost:3004/return".parse().unwrap());
+    let usecase = "xyz_bank_sd_jwt".to_owned();
     let format = CredentialFormat::SdJwt;
 
     let query_id = "eudi_pid_given_name";
@@ -300,9 +278,9 @@ async fn ltc20_test_disclosure_without_pid() {
     let client = reqwest::Client::new();
 
     let start_request = StartDisclosureRequest {
-        usecase: "xyz_bank_no_return_url".to_owned(),
+        usecase: "xyz_bank_sd_jwt".to_owned(),
         dcql_query: Some(new_mock_mdoc_pid_example()),
-        return_url_template: None,
+        return_url_template: Some("http://localhost:3004/return/{session_token}".parse().unwrap()),
     };
     let response = client
         .post(urls.verifier_internal_url.join("disclosure/sessions"))
