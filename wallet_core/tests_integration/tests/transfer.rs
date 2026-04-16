@@ -94,7 +94,7 @@ async fn init_wallets(db_setup: &DbSetup) -> (WalletData, WalletData) {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn ltc62_test_wallet_transfer() {
     let db_setup = DbSetup::create_clean().await;
     let (
@@ -158,7 +158,7 @@ async fn ltc62_test_wallet_transfer() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn ltc63_test_wallet_transfer_canceled_from_source() {
     let db_setup = DbSetup::create_clean().await;
     let (mut source_data, mut destination_data) = init_wallets(&db_setup).await;
@@ -182,7 +182,7 @@ async fn ltc63_test_wallet_transfer_canceled_from_source() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn ltc64_test_wallet_transfer_canceled_from_destination() {
     let db_setup = DbSetup::create_clean().await;
     let (
@@ -220,7 +220,7 @@ async fn ltc64_test_wallet_transfer_canceled_from_destination() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn ltc63_test_retry_transfer_after_canceled() {
     let db_setup = DbSetup::create_clean().await;
     let (mut source_data, mut destination_data) = init_wallets(&db_setup).await;

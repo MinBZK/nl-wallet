@@ -40,13 +40,13 @@ use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
 use openid4vc::Format;
 use openid4vc::disclosure_session::mock::MockDisclosureClient;
-use openid4vc::issuance_session::CredentialWithMetadata;
-use openid4vc::issuance_session::IssuedCredential;
-use openid4vc::issuance_session::IssuedCredentialCopies;
-use openid4vc::issuance_session::NormalizedCredentialPreview;
-use openid4vc::mock::MockIssuanceSession;
-use openid4vc::oidc::MockOidcClient;
 use openid4vc::token::CredentialPreviewContent;
+use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
+use openid4vc::wallet_issuance::credential::IssuedCredential;
+use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
+use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
+use openid4vc::wallet_issuance::mock::MockIssuanceSession;
+use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
 use platform_support::attested_key::mock::MockGoogleAttestedKey;
@@ -94,12 +94,15 @@ use crate::storage::WalletEvent;
 use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
 use crate::wallet::init::WalletClients;
+use crate::wallet::init::WalletRepositories;
 
 use super::HistoryError;
 use super::Wallet;
 use super::WalletInitError;
 use super::WalletRegistration;
 use super::init::RegistrationStatus;
+
+pub const AUTH_URL: &str = "http://example.com/auth";
 
 /// This contains key material that is used to generate valid account server responses.
 pub struct AccountServerKeys {
@@ -133,8 +136,7 @@ pub type TestWallet<S, CR = UpdatingConfigurationRepository<LocalConfigurationRe
     S,
     MockHardwareAttestedKeyHolder,
     MockAccountProviderClient,
-    MockOidcClient,
-    MockIssuanceSession,
+    MockIssuanceDiscovery,
     MockDisclosureClient,
     MockCloseProximityDisclosureClient,
     MockStatusListClient,
@@ -393,10 +395,12 @@ where
         .await;
 
         Wallet::new(
-            config_repository,
-            MockUpdatePolicyRepository::default(),
             S::init().await,
             generate_key_holder(vendor),
+            WalletRepositories {
+                config_repository,
+                update_policy_repository: MockUpdatePolicyRepository::default(),
+            },
             WalletClients::default(),
             RegistrationStatus::Unregistered,
         )
@@ -408,10 +412,12 @@ where
             UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
 
         Wallet::init_registration(
-            config_repository,
-            MockUpdatePolicyRepository::default(),
             S::init().await,
             generate_key_holder(vendor),
+            WalletRepositories {
+                config_repository,
+                update_policy_repository: MockUpdatePolicyRepository::default(),
+            },
             WalletClients::default(),
         )
         .await
@@ -469,10 +475,12 @@ impl TestWalletMockStorage {
             UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
 
         Wallet::init_registration(
-            config_repository,
-            MockUpdatePolicyRepository::default(),
             storage,
             key_holder,
+            WalletRepositories {
+                config_repository,
+                update_policy_repository: MockUpdatePolicyRepository::default(),
+            },
             WalletClients::default(),
         )
         .await

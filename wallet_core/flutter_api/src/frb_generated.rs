@@ -1527,6 +1527,7 @@ impl CstDecode<crate::models::disclosure::DisclosureSessionType> for i32 {
         match self {
             0 => crate::models::disclosure::DisclosureSessionType::SameDevice,
             1 => crate::models::disclosure::DisclosureSessionType::CrossDevice,
+            2 => crate::models::disclosure::DisclosureSessionType::CloseProximity,
             _ => unreachable!("Invalid variant for DisclosureSessionType: {}", self),
         }
     }
@@ -1977,6 +1978,7 @@ impl SseDecode for crate::models::disclosure::DisclosureSessionType {
         return match inner {
             0 => crate::models::disclosure::DisclosureSessionType::SameDevice,
             1 => crate::models::disclosure::DisclosureSessionType::CrossDevice,
+            2 => crate::models::disclosure::DisclosureSessionType::CloseProximity,
             _ => unreachable!("Invalid variant for DisclosureSessionType: {}", inner),
         };
     }
@@ -3275,6 +3277,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::DisclosureSess
         match self {
             Self::SameDevice => 0.into_dart(),
             Self::CrossDevice => 1.into_dart(),
+            Self::CloseProximity => 2.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -4277,6 +4280,7 @@ impl SseEncode for crate::models::disclosure::DisclosureSessionType {
             match self {
                 crate::models::disclosure::DisclosureSessionType::SameDevice => 0,
                 crate::models::disclosure::DisclosureSessionType::CrossDevice => 1,
+                crate::models::disclosure::DisclosureSessionType::CloseProximity => 2,
                 _ => {
                     unimplemented!("");
                 }

@@ -31,12 +31,21 @@ class WalletEventLog {
   List<WalletEvent> logForAttestationId(String attestationId) => log
       .where(
         (event) => switch (event) {
+          WalletEvent_Deletion() => event.attestation.attestationType == attestationId,
           WalletEvent_Disclosure() => _eventContainsCardWithAttestationId(event, attestationId),
           WalletEvent_Issuance() => event.attestation.attestationType == attestationId,
-          WalletEvent_Deletion() => false, // PVW-5722
         },
       )
       .toList();
+
+  void logDeletion(AttestationPresentation attestation) {
+    final event = WalletEvent.deletion(
+      id: 'id123',
+      dateTime: clock.now().toIso8601String(),
+      attestation: attestation,
+    );
+    _logEvent(event);
+  }
 
   void logDisclosure(StartDisclosureResult disclosure, DisclosureStatus status) {
     final List<AttestationPresentation> sharedAttestations = switch (disclosure) {
@@ -107,9 +116,9 @@ class WalletEventLog {
   bool includesInteractionWith(Organization organization) {
     return _log.any(
       (event) => switch (event) {
+        WalletEvent_Deletion(:final attestation) => attestation.issuer == organization,
         WalletEvent_Disclosure(:final relyingParty) => relyingParty == organization,
         WalletEvent_Issuance(:final attestation) => attestation.issuer == organization,
-        WalletEvent_Deletion() => false, // PVW-5722
       },
     );
   }

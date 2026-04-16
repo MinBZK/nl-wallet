@@ -32,8 +32,8 @@ use mdoc::utils::serialization::CborError;
 use mdoc::utils::serialization::cbor_serialize;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::oidc::OidcClient;
 use openid4vc::verifier::SessionType;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureError as PlatformError;
@@ -165,14 +165,6 @@ fn spawn_listener(
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum CloseProximityDisclosureError {
-    #[error("Device Request does not have any doc requests")]
-    #[category(critical)]
-    EmptyRequest,
-
-    #[error("Device Request has no attributes")]
-    #[category(critical)]
-    NoAttributesRequested,
-
     #[error("Device Request has no ReaderAuth")]
     #[category(critical)]
     MissingReaderAuth,
@@ -208,12 +200,12 @@ pub enum CloseProximityDisclosureError {
     DeviceResponse(#[source] mdoc::Error),
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
     CPC: CloseProximityDisclosureClient,
     S: Storage,
@@ -596,11 +588,6 @@ pub fn verify_device_request(
     time: &impl Generator<DateTime<Utc>>,
     trust_anchors: &[TrustAnchor],
 ) -> Result<VerifierCertificate, CloseProximityDisclosureError> {
-    // A device request without any attributes is useless, so return an error.
-    if !device_request.has_attributes() {
-        return Err(CloseProximityDisclosureError::NoAttributesRequested);
-    }
-
     // Verify all `DocRequest` entries and make sure the resulting certificates are all exactly equal.
     let certificate = device_request
         .doc_requests
@@ -728,8 +715,12 @@ mod tests {
             doc_type: PID_ATTESTATION_TYPE.to_owned(),
             name_spaces: IndexMap::from_iter(vec![(
                 PID_ATTESTATION_TYPE.to_owned(),
-                IndexMap::from_iter(vec![(PID_GIVEN_NAME.to_owned(), true)]),
-            )]),
+                IndexMap::from_iter(vec![(PID_GIVEN_NAME.to_owned(), true)])
+                    .try_into()
+                    .unwrap(),
+            )])
+            .try_into()
+            .unwrap(),
             request_info: None,
         }
     }
@@ -1062,29 +1053,6 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    fn empty_items_request() -> ItemsRequest {
-        ItemsRequest {
-            doc_type: PID_ATTESTATION_TYPE.to_owned(),
-            name_spaces: IndexMap::new(),
-            request_info: None,
-        }
-    }
-
-    #[tokio::test]
-    async fn test_verify_device_request_no_attributes() {
-        let (device_request, session_transcript, trust_anchors) =
-            setup_device_request(vec![empty_items_request()], None).await;
-
-        let result = verify_device_request(
-            &device_request,
-            &session_transcript,
-            &MockTimeGenerator::default(),
-            &trust_anchors,
-        );
-
-        assert_matches!(result, Err(CloseProximityDisclosureError::NoAttributesRequested));
-    }
-
     #[tokio::test]
     async fn test_verify_device_request_missing_reader_auth() {
         let items_request = pid_given_name_items_request();
@@ -1114,8 +1082,12 @@ mod tests {
             doc_type: PID_ATTESTATION_TYPE.to_owned(),
             name_spaces: IndexMap::from_iter(vec![(
                 PID_ATTESTATION_TYPE.to_owned(),
-                IndexMap::from_iter(vec![(PID_FAMILY_NAME.to_owned(), true)]),
-            )]),
+                IndexMap::from_iter(vec![(PID_FAMILY_NAME.to_owned(), true)])
+                    .try_into()
+                    .unwrap(),
+            )])
+            .try_into()
+            .unwrap(),
             request_info: None,
         };
 

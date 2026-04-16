@@ -11,6 +11,11 @@ workspace = true
 [lib]
 doctest = false
 
+[[test]]
+name = "issuance"
+path = "tests/issuance.rs"
+required-features = ["issuance"]
+
 [features]
 # Enable issuance
 issuance = ["axum-extra/typed-header"]
@@ -35,4 +40,16 @@ http_utils = { path = "../http_utils", features = ["server"] }
 jwt.path = "../jwt"
 openid4vc = { path = "../openid4vc", features = ["axum"] }
 token_status_list = { path = "../token_status_list" }
-utils = { path = "../utils" }
+utils.path = "../utils"
+
+[dev-dependencies]
+axum-server.workspace = true
+p256.workspace = true
+rstest.workspace = true
+serde_urlencoded.workspace = true
+tokio = { workspace = true, features = ["test-util", "macros", "net"] }
+url = { workspace = true, features = ["serde"] }
+
+http_utils = { path = "../http_utils", features = ["client"] }
+openid4vc = { path = "../openid4vc", features = ["integration"] }
+wscd = { path = "../wscd", features = ["mock"] }

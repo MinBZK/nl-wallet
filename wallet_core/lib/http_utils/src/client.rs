@@ -63,9 +63,9 @@ impl IntoReqwestClient for InternalHttpConfig {
         F: FnOnce(ClientBuilder) -> ClientBuilder,
     {
         let client = builder_adapter(default_reqwest_client_builder()).build()?;
-        let pinned_client = ReqwestClient::new(client, self.base_url);
+        let reqwest_client = ReqwestClient::new(client, self.base_url);
 
-        Ok(pinned_client)
+        Ok(reqwest_client)
     }
 }
 

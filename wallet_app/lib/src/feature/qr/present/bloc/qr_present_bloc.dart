@@ -13,7 +13,6 @@ import '../../../../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../../../../util/extension/core_error_extension.dart';
 
 part 'qr_present_event.dart';
-
 part 'qr_present_state.dart';
 
 class QrPresentBloc extends Bloc<QrPresentEvent, QrPresentState> {
@@ -58,9 +57,10 @@ class QrPresentBloc extends Bloc<QrPresentEvent, QrPresentState> {
 
   void _startObservingConnection() {
     _connectionSubscription?.cancel();
-    _connectionSubscription = _observeCloseProximityConnectionUseCase.invoke().listen(
-      (event) => add(QrPresentEventReceived(event)),
-    );
+    _connectionSubscription = _observeCloseProximityConnectionUseCase
+        .invoke()
+        .map(QrPresentEventReceived.new)
+        .listen(add);
   }
 
   FutureOr<void> _onConnectionEvent(QrPresentEventReceived event, Emitter<QrPresentState> emit) async {
@@ -89,6 +89,7 @@ class QrPresentBloc extends Bloc<QrPresentEvent, QrPresentState> {
   @override
   Future<dynamic> close() async {
     unawaited(_connectionSubscription?.cancel());
+    Fimber.d('Closing QrPresentBLoC with state: $state');
     switch (state) {
       case QrPresentConnected(deviceRequestReceived: true):
         break; // Navigating to [DisclosureScreen], no need to cancel session.

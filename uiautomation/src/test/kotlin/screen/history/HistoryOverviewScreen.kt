@@ -9,6 +9,7 @@ class HistoryOverviewScreen : MobileActions() {
     private val cardHistoryIssuanceSuccess= l10n.getString("cardHistoryIssuanceSuccess")
     private val cardHistoryTimelineOperationRenewed = l10n.getString("cardHistoryTimelineOperationRenewed")
     private val bottomBackButton = l10n.getString("generalBottomBackCta")
+    private val cardHistoryDeletionSuccess = l10n.getString("cardHistoryDeletionSuccess")
 
     fun visible() = elementWithTextVisible(bottomBackButton)
 
@@ -27,4 +28,7 @@ class HistoryOverviewScreen : MobileActions() {
     fun issuanceSubtitleVisible() = elementContainingTextVisible(cardHistoryIssuanceSuccess)
 
     fun renewCardSubtitleVisible() = elementContainingTextVisible(cardHistoryTimelineOperationRenewed)
+
+    fun cardDeletedEventVisible() = elementContainingTextVisible(cardHistoryDeletionSuccess)
+
 }

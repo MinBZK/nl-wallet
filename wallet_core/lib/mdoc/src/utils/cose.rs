@@ -459,7 +459,7 @@ mod tests {
     use super::ClonePayload;
     use super::MdocCose;
 
-    #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
     struct ToyMessage {
         number: u8,
         string: String,

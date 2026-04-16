@@ -5040,8 +5040,6 @@ dependencies = [
  "http_utils",
  "indexmap 2.12.1",
  "itertools 0.14.0",
- "josekit",
- "jsonwebtoken",
  "jwe",
  "jwk-simple",
  "jwt",
@@ -5088,19 +5086,26 @@ dependencies = [
  "attestation_data",
  "axum",
  "axum-extra",
+ "axum-server",
  "crypto",
  "dcql",
  "http",
  "http_utils",
  "jwt",
  "openid4vc",
+ "p256",
  "ring",
+ "rstest",
  "rustls-pki-types",
  "serde",
+ "serde_urlencoded",
  "token_status_list",
+ "tokio",
  "tower-http",
  "tracing",
+ "url",
  "utils",
+ "wscd",
 ]
 
 [[package]]
@@ -5529,6 +5534,7 @@ name = "pid_issuer"
 version = "0.6.0-dev"
 dependencies = [
  "anyhow",
+ "assert_matches",
  "attestation_data",
  "attestation_types",
  "axum",
@@ -5544,6 +5550,8 @@ dependencies = [
  "indexmap 2.12.1",
  "issuer_common",
  "itertools 0.14.0",
+ "josekit",
+ "jsonwebtoken",
  "openid4vc",
  "openid4vc_server",
  "p256",
@@ -6652,9 +6660,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.103.10"
+version = "0.103.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df33b2b81ac578cabaf06b89b0631153a3f416b0a886e8a7a1707fb51abbd1ef"
+checksum = "8279bb85272c9f10811ae6a6c547ff594d6a7f3c6c6b02ee9726d1d0dcfcdd06"
 dependencies = [
  "ring",
  "rustls-pki-types",
@@ -9448,7 +9456,6 @@ dependencies = [
  "mockall",
  "nutype",
  "openid4vc",
- "openssl-sys",
  "p256",
  "parking_lot",
  "platform_support",

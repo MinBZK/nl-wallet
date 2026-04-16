@@ -9,6 +9,7 @@ class WalletEventStatusIconMapper extends Mapper<WalletEvent, IconData?> {
   @override
   IconData? map(WalletEvent input) {
     return switch (input) {
+      DeletionEvent() => null,
       DisclosureEvent() => _mapEventStatus(input.status),
       IssuanceEvent() => _mapIssuanceEventType(input.eventType),
       SignEvent() => _mapEventStatus(input.status),

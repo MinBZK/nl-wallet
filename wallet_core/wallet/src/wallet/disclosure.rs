@@ -4,15 +4,12 @@ use std::hash::Hash;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 
-use attestation_data::verifier_certificate::VerifierCertificate;
 use chrono::Utc;
 use futures::future::try_join_all;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Either;
 use itertools::Itertools;
-use platform_support::attested_key::AttestedKey;
-use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
 use tracing::error;
 use tracing::info;
 use tracing::instrument;
@@ -22,6 +19,7 @@ use attestation_data::auth::Organization;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::AttestationRequest;
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_data::verifier_certificate::VerifierCertificate;
 use attestation_types::claim_path::ClaimPath;
 use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
@@ -37,13 +35,14 @@ use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosableAttestations;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
-pub use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::disclosure_session::VpVerifierError;
-use openid4vc::oidc::OidcClient;
 use openid4vc::verifier::SessionType;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
+use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
+use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureError as PlatformCloseProximityDisclosureError;
 use sd_jwt::claims::NonSelectivelyDisclosableClaimsError;
 use sd_jwt::error::SigningError;
@@ -83,6 +82,8 @@ use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureError;
 use super::UriType;
 use super::Wallet;
 use super::uri::identify_uri;
+
+pub use openid4vc::disclosure_session::DisclosureUriSource;
 
 #[derive(Debug, Clone)]
 pub struct DisclosureProposalPresentation {
@@ -445,12 +446,12 @@ pub(super) fn requested_attribute_paths<'a, T: AttestationRequest + 'a>(
 pub(crate) type AttestedKeyAndRegistrationData<AKH: AttestedKeyHolder> =
     (Arc<AttestedKey<AKH::AppleKey, AKH::GoogleKey>>, RegistrationData);
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
     S: Storage,
 {
@@ -1148,9 +1149,9 @@ mod tests {
     use openid4vc::errors::DisclosureErrorResponse;
     use openid4vc::errors::ErrorResponse;
     use openid4vc::errors::GetRequestErrorCode;
-    use openid4vc::mock::MockIssuanceSession;
-    use openid4vc::oidc::MockOidcClient;
     use openid4vc::verifier::SessionType;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
+    use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
@@ -1261,7 +1262,7 @@ mod tests {
     fn setup_wallet_disclosure_session_missing_attributes(
         requested_format: CredentialFormat,
     ) -> (
-        Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession>,
+        Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
     ) {
         let (disclosure_session, verifier_certificate) =
@@ -1279,7 +1280,7 @@ mod tests {
     fn setup_wallet_disclosure_session(
         requested_format: CredentialFormat,
     ) -> (
-        Session<MockOidcClient, MockIssuanceSession, MockDisclosureSession>,
+        Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
     ) {
         let credential_requests = default_pid_credential_requests(requested_format);

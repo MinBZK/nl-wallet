@@ -96,10 +96,9 @@ wscd.path = "../lib/wscd"
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true }
 
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
-# When compiling for either Android or iOS, make sure that the "vendored" feature of "openssl-sys" is enabled.
+# When compiling for either Android or iOS, make sure that the "vendored" feature of "openssl-sys" is enabled by
+# enabling the "bundled-sqlcipher-vendored-openssl" feature on "libsqlite3-sys".
 # This compiles and statically links OpenSSL, so that a dynamic library does not need to be present on the system.
-# Note that "openssl-sys" is used both by "libsqlite3-sys" and "josekit".
-openssl-sys = { workspace = true, features = ["vendored"] }
 libsqlite3-sys = { workspace = true, features = ["bundled-sqlcipher-vendored-openssl"] }
 
 [dev-dependencies]

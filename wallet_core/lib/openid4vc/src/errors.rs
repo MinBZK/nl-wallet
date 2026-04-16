@@ -204,7 +204,7 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
                 | TokenRequestError::AttributeService(_)
                 | TokenRequestError::CredentialTypeNotOffered(_) => TokenErrorCode::ServerError,
                 TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
-                TokenRequestError::UnsupportedTokenRequestType => TokenErrorCode::UnsupportedGrantType,
+                TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
             },
             error_description: Some(description),
             error_uri: None,
@@ -553,14 +553,15 @@ pub enum AuthBearerErrorCode {
 }
 
 /// Error codes that the wallet sends to the verifier when it encounters an error or rejects the session.
+/// See: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.5
 #[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum VpAuthorizationErrorCode {
+    InvalidClient,
     VpFormatsNotSupported,
-    InvalidPresentationDefinitionUri,
-    InvalidPresentationDefinitionReference,
     InvalidRequestUriMethod,
-
+    InvalidTransactionData,
+    WalletUnavailable,
     #[strum(default)]
     AuthorizationError(AuthorizationErrorCode),
 }

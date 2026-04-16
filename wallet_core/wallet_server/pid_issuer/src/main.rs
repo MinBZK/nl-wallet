@@ -50,13 +50,14 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     ));
     let proof_nonce_store = ProofNonceStore::new(store_connection.clone());
 
+    let upstream_oauth_identifier = settings.digid.client_settings.oidc_identifier.clone();
+
     let pid_attr_service = BrpPidAttributeService::try_new(
         HttpBrpClient::new(settings.brp_server),
         &settings.digid.bsn_privkey,
         settings.digid.client_id,
-        settings.digid.http_config,
+        settings.digid.client_settings,
         SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?,
-        issuer_settings.public_url.clone(),
     )?;
 
     let (db_connection, status_list_checker) = match (store_connection, settings.status_lists.storage_url.as_ref()) {
@@ -112,6 +113,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     // This will block until the server shuts down.
     server::serve(
         pid_attr_service,
+        upstream_oauth_identifier,
         issuer_settings,
         hsm,
         sessions,

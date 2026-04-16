@@ -13,6 +13,8 @@ class CardDetailScreen : MobileActions() {
     private val cardHistoryButton = l10n.getString("cardDetailScreenCardHistoryCta")
     private val bottomBackButton = l10n.getString("generalBottomBackCta")
     private val renewPidCta = l10n.getString("cardDetailScreenRenewPidCta")
+    private val deleteCardButton = l10n.getString("cardDetailScreenCardDeleteCta")
+    private val deleteCardDialogDeleteButton = l10n.getString("deleteCardDialogConfirmCta")
 
     fun visible() = elementContainingTextVisible(cardDetailScreenCardDataCta)
 
@@ -27,4 +29,8 @@ class CardDetailScreen : MobileActions() {
     fun clickBottomBackButton() = clickElementWithText(bottomBackButton)
 
     fun renewPidCard() = clickElementWithText(renewPidCta)
+
+    fun clickDeleteCardButton() = clickElementContainingText(deleteCardButton)
+
+    fun clickConfirmDeleteCard() = clickElementContainingText(deleteCardDialogDeleteButton)
 }

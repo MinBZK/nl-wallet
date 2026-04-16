@@ -110,10 +110,10 @@
 
 ### DigiD parameters
 
-| Name            | Description                    | Value |
-| --------------- | ------------------------------ | ----- |
-| `digidBaseUrl`  | Base URL for the DigiD service | `nil` |
-| `digidClientId` | Base URL for the DigiD service | `nil` |
+| Name            | Description                                      | Value |
+| --------------- | ------------------------------------------------ | ----- |
+| `digidClientId` | Client ID for the DigiD service                  | `nil` |
+| `digidBaseUrl`  | Base URL (OIDC Identifier) for the DigiD service | `nil` |
 
 ### Migration parameters
 

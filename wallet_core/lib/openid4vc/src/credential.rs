@@ -220,6 +220,12 @@ pub struct CredentialOffer {
     pub grants: Option<Grants>,
 }
 
+impl CredentialOffer {
+    pub fn pre_authorized_code(&self) -> Option<&AuthorizationCode> {
+        self.grants.as_ref()?.pre_authorized_code()
+    }
+}
+
 /// OpenID4VCI protocol message containing the credential offer.
 /// The Credential Offer is passed as a single URI-encoded parameter containing a JSON-encoded value.
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-offer>
@@ -252,12 +258,12 @@ pub enum Grants {
 }
 
 impl Grants {
-    pub fn authorization_code(&self) -> Option<AuthorizationCode> {
+    pub fn pre_authorized_code(&self) -> Option<&AuthorizationCode> {
         match self {
             Grants::Both {
                 pre_authorized_code, ..
-            } => Some(pre_authorized_code.pre_authorized_code.clone()),
-            Grants::PreAuthorizedCode { pre_authorized_code } => Some(pre_authorized_code.pre_authorized_code.clone()),
+            } => Some(&pre_authorized_code.pre_authorized_code),
+            Grants::PreAuthorizedCode { pre_authorized_code } => Some(&pre_authorized_code.pre_authorized_code),
             Grants::AuthorizationCode { .. } => None,
         }
     }

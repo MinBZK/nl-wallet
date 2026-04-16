@@ -66,11 +66,11 @@ impl<S> From<KeyPair<S>> for BorrowingCertificate {
 impl<S: EcdsaKey> EcdsaKey for KeyPair<S> {
     type Error = S::Error;
 
-    async fn verifying_key(&self) -> std::result::Result<p256::ecdsa::VerifyingKey, Self::Error> {
+    async fn verifying_key(&self) -> Result<p256::ecdsa::VerifyingKey, Self::Error> {
         self.private_key.verifying_key().await
     }
 
-    async fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, Self::Error> {
+    async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
         self.private_key.try_sign(msg).await
     }
 }
@@ -355,6 +355,27 @@ pub mod generate {
 
             pub fn generate_status_list_mock_with_dn(&self, dn: &str) -> Result<KeyPair, CertificateError> {
                 self.generate_key_pair(dn, CertificateUsage::OAuthStatusSigning, Default::default())
+            }
+
+            /// Generate a TLS server key pair with the given hostname as the DNS SAN.
+            /// No custom extended key usage extensions are added, which allows webpki to accept
+            /// the certificate for TLS server authentication.
+            pub fn generate_tls_mock(&self, hostname: &str) -> Result<KeyPair, CertificateError> {
+                let key_pair = rcgen::KeyPair::generate()?;
+                let private_key = rcgen_cert_privkey(&key_pair)?;
+
+                let mut params = CertificateParams::default();
+                params.is_ca = IsCa::NoCa;
+                params.distinguished_name.push(DnType::CommonName, hostname);
+                params.subject_alt_names.push(SanType::DnsName(hostname.try_into()?));
+
+                let certificate = params.signed_by(&key_pair, &self.issuer)?;
+                let certificate = BorrowingCertificate::from_certificate_der(certificate.into())?;
+
+                Ok(KeyPair {
+                    private_key,
+                    certificate,
+                })
             }
         }
     }

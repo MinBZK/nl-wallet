@@ -16,5 +16,5 @@ cd "$BASE_DIR"
 
 # Create MR if on CI and main
 if [[ -n $CI && -n $(git status --porcelain) && $CI_COMMIT_BRANCH == "$CI_DEFAULT_BRANCH" ]]; then
-    exec "$BASE_DIR/deploy/audit-fix-pr.sh" npm-audit-fix "Run npm audit fix"
+    exec "$BASE_DIR/deploy/bin/audit-fix-pr.sh" npm-audit-fix "Run npm audit fix"
 fi

@@ -48,7 +48,6 @@ test-ios:
       - "wallet_app/ios/compile_rust_core.log"
       - "wallet_app/ios/*.xcactivitylog"
   variables:
-    APPLE_ATTESTATION_ENVIRONMENT: "production"
     APP_BUILD_MODE: "release"
     APP_MOCK: "false"
   script:

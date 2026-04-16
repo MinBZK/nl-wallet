@@ -5,6 +5,27 @@ import 'package:wallet/src/util/extension/string_extension.dart';
 import '../../../mocks/wallet_mock_data.dart';
 
 void main() {
+  test('DeletionEvent', () {
+    final event = WalletEvent.deletion(
+      dateTime: DateTime(2024),
+      status: EventStatus.success,
+      card: WalletMockData.card,
+    );
+    final identicalEvent = WalletEvent.deletion(
+      dateTime: DateTime(2024),
+      status: EventStatus.success,
+      card: WalletMockData.card,
+    );
+    final differentEvent = WalletEvent.deletion(
+      dateTime: DateTime(2025),
+      status: EventStatus.success,
+      card: WalletMockData.card,
+    );
+    expect(event, identicalEvent);
+    expect(event, isNot(equals(differentEvent)));
+    expect(event.sharedAttributes, WalletMockData.card.attributes);
+  });
+
   test('DisclosureEvent', () {
     final event = WalletEvent.disclosure(
       dateTime: DateTime(2024),

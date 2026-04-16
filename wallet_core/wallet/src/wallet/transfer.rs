@@ -13,8 +13,7 @@ use jwe::decryption::JweDecrypterError;
 use jwe::decryption::JweSecretKey;
 use jwe::encryption::JweEncrypterError;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::issuance_session::IssuanceSession;
-use openid4vc::oidc::OidcClient;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use utils::built_info::version;
@@ -116,14 +115,13 @@ pub enum TransferError {
     TempFileCreation(#[source] std::io::Error),
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
-    IS: IssuanceSession,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
     APC: AccountProviderClient,
 {
@@ -474,6 +472,7 @@ mod tests {
     use uuid::Uuid;
 
     use crypto::utils::random_bytes;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use wallet_account::messages::errors::AccountError;
     use wallet_account::messages::instructions::HwSignedInstruction;
     use wallet_account::messages::instructions::Instruction;
@@ -482,12 +481,12 @@ mod tests {
     use crate::PidIssuancePurpose;
     use crate::account_provider::AccountProviderError;
     use crate::account_provider::AccountProviderResponseError;
-    use crate::digid::mock::mock_digid_session_state;
     use crate::storage::ChangePinData;
     use crate::storage::DatabaseExport;
     use crate::storage::InstructionData;
     use crate::storage::test::SqlCipherKey;
     use crate::wallet::Session;
+    use crate::wallet::issuance::WalletIssuanceSession;
     use crate::wallet::test::create_wp_result;
 
     use super::super::test::TestWalletInMemoryStorage;
@@ -536,10 +535,10 @@ mod tests {
     #[tokio::test]
     async fn test_transfer_error_issuance_session_active() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        wallet.session = Some(Session::Digid {
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
-            session: mock_digid_session_state(),
-        });
+            authorization_session: MockAuthorizationSession::new(),
+        }));
 
         let error = wallet
             .validate_transfer_allowed()

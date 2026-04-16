@@ -393,7 +393,8 @@ class WalletCoreMock implements WalletCoreApi {
     final result = _pinManager.checkPin(pin);
     switch (result) {
       case WalletInstructionResult_Ok():
-        _wallet.remove(attestationId);
+        final attestation = _wallet.remove(attestationId);
+        if (attestation != null) _eventLog.logDeletion(attestation);
         return result;
       case WalletInstructionResult_InstructionError():
         return result;

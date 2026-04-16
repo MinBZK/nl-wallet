@@ -137,6 +137,7 @@ class DisclosureScreen extends StatelessWidget {
           DisclosureExternalScannerError() => _buildGenericErrorPage(context),
           DisclosureSessionCancelled() => _buildCancelledSessionPage(context, state),
           DisclosureRelyingPartyError() => _buildRelyingPartyErrorPage(context, state),
+          DisclosureCloseProximityDisconnected() => _buildCloseProximityDisconnected(context, state),
         };
 
         final skipAnim = !state.didGoBack && state is DisclosureCheckUrl;
@@ -393,6 +394,7 @@ class DisclosureScreen extends StatelessWidget {
       DisclosureLoadInProgress() => null,
       DisclosureExternalScannerError() => null,
       DisclosureConfirmPin() => null,
+      DisclosureCloseProximityDisconnected() => context.l10n.disclosureDisconnectedPageTitle,
     };
   }
 
@@ -450,6 +452,17 @@ class DisclosureScreen extends StatelessWidget {
     if (selectedOption != null) {
       bloc.add(DisclosureReportPressed(option: selectedOption));
     }
+  }
+
+  Widget _buildCloseProximityDisconnected(BuildContext context, DisclosureCloseProximityDisconnected state) {
+    final actionText = state.isLoginFlow
+        ? context.l10n.disclosureDisconnectedPageLoginAction
+        : context.l10n.disclosureDisconnectedPageSharingAction;
+    return ErrorPage.closeProximityDisconnected(
+      context,
+      actionText: actionText,
+      onPrimaryActionPressed: () => _stopDisclosure(context),
+    );
   }
 }
 
