@@ -212,7 +212,6 @@ pub enum CloseProximityDisclosureError {
     DeviceResponse(#[source] mdoc::Error),
 }
 
-impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 fn parse_device_request(bytes: &[u8]) -> Result<DeviceRequest, CloseProximityDisclosureError> {
     DeviceRequest::try_from_bytes(bytes).map_err(|error| match error {
         DeviceRequestParseError::MalformedCbor(error) => CloseProximityDisclosureError::MalformedDeviceRequest(error),
@@ -243,7 +242,7 @@ fn encode_error_device_response(status: DeviceResponseStatus) -> Result<Vec<u8>,
     cbor_serialize(&DeviceResponse::error(status)).map_err(CloseProximityDisclosureError::ErrorDeviceResponseEncoding)
 }
 
-impl<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, OC, IS, DCC, CPC, SLC>
+impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
