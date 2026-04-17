@@ -368,6 +368,29 @@ impl DisclosableAttestation {
 }
 
 #[cfg(test)]
+mod test {
+    use super::*;
+
+    impl StoredAttestationCopy {
+        pub fn private_key_id(&self) -> &str {
+            match &self.attestation {
+                StoredAttestation::MsoMdoc { mdoc } => mdoc.private_key_id(),
+                StoredAttestation::SdJwt { key_identifier, .. } => key_identifier.as_str(),
+            }
+        }
+    }
+
+    impl PartialAttestation {
+        pub fn private_key_id(&self) -> &str {
+            match &self {
+                PartialAttestation::MsoMdoc { partial_mdoc } => partial_mdoc.private_key_id(),
+                PartialAttestation::SdJwt { key_identifier, .. } => key_identifier.as_str(),
+            }
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use std::sync::LazyLock;
 
@@ -443,7 +466,7 @@ mod tests {
     }
 
     fn sd_jwt_stored_attestation_copy(issuer_keypair: &KeyPair) -> (StoredAttestationCopy, VecNonEmpty<ClaimPath>) {
-        let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+        let (credential_payload, _) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
         let sd_jwt = credential_payload
             .into_signed_sd_jwt(&NormalizedTypeMetadata::nl_pid_example(), issuer_keypair)
             .now_or_never()

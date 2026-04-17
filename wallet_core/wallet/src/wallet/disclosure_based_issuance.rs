@@ -334,7 +334,7 @@ mod tests {
             .expect_fetch_recent_wallet_events()
             .returning(move || Ok(vec![]));
 
-        let (mdoc, metadata) = create_example_pid_mdoc();
+        let (mdoc, metadata) = create_example_pid_mdoc(&SigningKey::random(&mut OsRng));
         let stored_attestation_copy = StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),

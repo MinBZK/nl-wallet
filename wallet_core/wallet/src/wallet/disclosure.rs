@@ -1182,7 +1182,7 @@ mod tests {
     use crate::storage::StoredAttestationCopy;
     use crate::wallet::test::ISSUER_KEY;
     use crate::wallet::test::example_pid_stored_attestation_copy;
-    use crate::wallet::test::example_pid_stored_attestation_copy_with_key;
+    use crate::wallet::test::example_pid_stored_attestation_copy_with_issuer_keypair;
     use crate::wallet::test::example_stored_attestation_copy;
     use crate::wallet::test::mock_verifier_certificate;
 
@@ -1295,7 +1295,7 @@ mod tests {
         let credential_requests = default_pid_credential_requests(requested_format);
 
         // Remove any of the attributes not requested from the attestation.
-        let stored_attestation = example_pid_stored_attestation_copy(requested_format);
+        let (stored_attestation, _) = example_pid_stored_attestation_copy(requested_format);
         let disclosable_attestation = DisclosableAttestation::try_new(
             stored_attestation,
             credential_requests.as_ref().first().unwrap().claim_paths(),
@@ -1382,7 +1382,7 @@ mod tests {
         let verifier_certificate = setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
 
         // Create three PID attestations.
-        let mut pid_credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+        let (mut pid_credential_payload, holder_key) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
         let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
         *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() =
             Attribute::Single(AttributeValue::Text("Andere Naam".to_string()));
@@ -1391,9 +1391,10 @@ mod tests {
             requested_format,
             pid_credential_payload.clone(),
             NormalizedTypeMetadata::nl_pid_example(),
+            &holder_key,
         );
 
-        let pid2 = example_pid_stored_attestation_copy(requested_format);
+        let (pid2, _) = example_pid_stored_attestation_copy(requested_format);
 
         let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
         *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() =
@@ -1403,6 +1404,7 @@ mod tests {
             requested_format,
             pid_credential_payload,
             NormalizedTypeMetadata::nl_pid_example(),
+            &holder_key,
         );
 
         // Create two address attestations.
@@ -1411,6 +1413,7 @@ mod tests {
             requested_format,
             address_credential_payload.clone(),
             NormalizedTypeMetadata::nl_address_example(),
+            &SigningKey::random(&mut OsRng),
         );
 
         let mut attributes_root = address_credential_payload.previewable_payload.attributes.into_inner();
@@ -1426,6 +1429,7 @@ mod tests {
             requested_format,
             address_credential_payload,
             NormalizedTypeMetadata::nl_address_example(),
+            &SigningKey::random(&mut OsRng),
         );
 
         // The wallet will query the database for both attestation types, mock returning them.
@@ -1930,7 +1934,7 @@ mod tests {
             default_pid_credential_requests(CredentialFormat::MsoMdoc),
         );
 
-        let stored_attestation_copy = example_pid_stored_attestation_copy(CredentialFormat::MsoMdoc);
+        let (stored_attestation_copy, _) = example_pid_stored_attestation_copy(CredentialFormat::MsoMdoc);
 
         let expectation_attestation_copy = stored_attestation_copy.clone();
         wallet
@@ -2040,7 +2044,7 @@ mod tests {
         // of namespace and attribute, which should lead to no candidates being available.
         let verifier_certificate = setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
 
-        let stored_attestation_copy = example_pid_stored_attestation_copy(requested_format);
+        let (stored_attestation_copy, _) = example_pid_stored_attestation_copy(requested_format);
 
         let expectation_attestation_copy = stored_attestation_copy.clone();
         wallet
@@ -2121,7 +2125,7 @@ mod tests {
 
         setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
 
-        wallet_expectations_for_aki_tests(&mut wallet, example_pid_stored_attestation_copy(requested_format));
+        wallet_expectations_for_aki_tests(&mut wallet, example_pid_stored_attestation_copy(requested_format).0);
 
         // The AKI matches, so a disclosure proposal should be returned.
         wallet
@@ -2150,7 +2154,7 @@ mod tests {
 
         setup_disclosure_client_start(&mut wallet.disclosure_client, credential_requests);
 
-        wallet_expectations_for_aki_tests(&mut wallet, example_pid_stored_attestation_copy(requested_format));
+        wallet_expectations_for_aki_tests(&mut wallet, example_pid_stored_attestation_copy(requested_format).0);
 
         // The AKI doesn't match the stored attestation's issuer, so no candidates are found.
         let error = wallet
@@ -2181,7 +2185,7 @@ mod tests {
 
         wallet_expectations_for_aki_tests(
             &mut wallet,
-            example_pid_stored_attestation_copy_with_key(requested_format, &issuance_key),
+            example_pid_stored_attestation_copy_with_issuer_keypair(requested_format, &issuance_key),
         );
 
         // No AKI constraint means the attestation is a candidate regardless of whether the cert has an AKI.
@@ -2214,7 +2218,7 @@ mod tests {
 
         wallet_expectations_for_aki_tests(
             &mut wallet,
-            example_pid_stored_attestation_copy_with_key(requested_format, &issuance_key),
+            example_pid_stored_attestation_copy_with_issuer_keypair(requested_format, &issuance_key),
         );
 
         // An AKI is requested but the cert has no AKI extension, so no match.
@@ -3178,6 +3182,7 @@ mod tests {
             NormalizedTypeMetadata::from_single_example(type_metadata_with_non_selectively_disclosable_claim);
 
         // Create a credential payload with an sd claim and 2 non-sd claims
+        let holder_key = SigningKey::random(&mut OsRng);
         let previewable_payload = CredentialPayload::example_with_attributes(
             my_attestation_type,
             Attributes::example([
@@ -3191,7 +3196,7 @@ mod tests {
                     AttributeValue::Text("Some Non Sd Claim".to_string()),
                 ),
             ]),
-            SigningKey::random(&mut OsRng).verifying_key(),
+            holder_key.verifying_key(),
             &MockTimeGenerator::epoch(),
         );
 
@@ -3200,6 +3205,7 @@ mod tests {
             CredentialFormat::SdJwt,
             previewable_payload,
             type_metadata_with_non_selectively_disclocable_claim,
+            &holder_key,
         );
 
         // Mock the wallet database to return the attestation for the requested attestation type

@@ -82,6 +82,8 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use uuid::Uuid;
 
     use attestation_data::validity::ValidityWindow;
@@ -131,7 +133,7 @@ mod tests {
 
         let (sd_jwt, sd_jwt_metadata) = create_example_pid_sd_jwt();
         let attestation_type = sd_jwt.claims().vct.clone();
-        let (mdoc, mdoc_metadata) = create_example_pid_mdoc();
+        let (mdoc, mdoc_metadata) = create_example_pid_mdoc(&SigningKey::random(&mut OsRng));
 
         let storage = wallet.mut_storage();
         storage.expect_fetch_unique_attestations().return_once(move || {

@@ -46,6 +46,10 @@ impl PartialMdoc {
         &self.issuer_signed
     }
 
+    pub fn private_key_id(&self) -> &str {
+        &self.private_key_id
+    }
+
     pub fn into_issuer_signed(self) -> IssuerSigned {
         self.issuer_signed
     }

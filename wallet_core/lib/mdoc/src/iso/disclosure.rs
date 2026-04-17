@@ -15,7 +15,6 @@ use serde_repr::Serialize_repr;
 use serde_with::skip_serializing_none;
 
 use utils::vec_at_least::VecNonEmpty;
-use wscd::Poa;
 
 use crate::iso::mdocs::*;
 use crate::utils::cose::MdocCose;
@@ -36,6 +35,7 @@ use crate::utils::serialization::TaggedBytes;
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct DeviceResponse {
     /// Version of the DeviceResponse structure
     pub version: DeviceResponseVersion,
@@ -48,9 +48,18 @@ pub struct DeviceResponse {
 
     /// Status code
     pub status: DeviceResponseStatus,
+}
+
+/// A [`DeviceResponse`] with a POA attached.
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceResponseWithPoa<P> {
+    #[serde(flatten)]
+    pub device_response: DeviceResponse,
 
     /// Optional because it is not in the spec.
-    pub poa: Option<Poa>,
+    pub poa: Option<P>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
@@ -63,7 +72,7 @@ pub enum DeviceResponseStatus {
 }
 
 /// Version of the [`DeviceResponse`] structure
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DeviceResponseVersion {
     #[default]
     #[serde(rename = "1.0")]
@@ -97,6 +106,7 @@ pub type DocumentError = IndexMap<DocType, ErrorCode>;
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct Document {
     /// Document type returned
     pub doc_type: DocType,
@@ -165,6 +175,7 @@ impl IssuerSigned {
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct DeviceSigned {
     /// Returned data elements
     pub name_spaces: DeviceNameSpacesBytes,
@@ -201,7 +212,7 @@ pub type DeviceNameSpacesBytes = TaggedBytes<DeviceNameSpaces>;
 /// }
 /// ```
 #[nutype(
-    derive(Debug, Clone, Serialize, Deserialize),
+    derive(Debug, Clone, PartialEq, Serialize, Deserialize),
     validate(predicate = |items| !items.is_empty()),
 )]
 pub struct DeviceSignedItems(IndexMap<DataElementIdentifier, DataElementValue>);
@@ -218,6 +229,7 @@ pub struct DeviceSignedItems(IndexMap<DataElementIdentifier, DataElementValue>);
 /// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[cfg_attr(test, derive(PartialEq))]
 pub enum DeviceAuth {
     DeviceSignature(MdocCose<CoseSign1, RequiredValue<NullCborValue>>),
     DeviceMac(MdocCose<CoseMac0, RequiredValue<NullCborValue>>),
@@ -231,7 +243,7 @@ pub enum DeviceAuth {
 /// }
 /// ```
 #[nutype(
-    derive(Debug, Clone, Serialize, Deserialize),
+    derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize),
     validate(predicate = |errors| !errors.is_empty()),
 )]
 pub struct Errors(IndexMap<NameSpace, ErrorItems>);
@@ -244,7 +256,7 @@ pub struct Errors(IndexMap<NameSpace, ErrorItems>);
 /// }
 /// ```
 #[nutype(
-    derive(Debug, Clone, Serialize, Deserialize),
+    derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize),
     validate(predicate = |items| !items.is_empty()),
 )]
 pub struct ErrorItems(IndexMap<DataElementIdentifier, ErrorCode>);

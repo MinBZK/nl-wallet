@@ -336,6 +336,7 @@ where
 /// * During serialization, always serializes to `T::required_value()`.
 /// * During deserialization, accepts only `T::required_value()`.
 #[derive(Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct RequiredValue<T: RequiredValueTrait>(pub T::Type);
 
 impl<T: RequiredValueTrait> Default for RequiredValue<T> {
@@ -376,7 +377,7 @@ where
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NullCborValue;
 
 impl RequiredValueTrait for NullCborValue {
