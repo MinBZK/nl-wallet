@@ -1,6 +1,5 @@
 use std::fmt::Display;
 
-use cfg_if::cfg_if;
 use http::HeaderValue;
 use http::header::InvalidHeaderValue;
 use itertools::Itertools;
@@ -9,13 +8,10 @@ use serde::Deserialize;
 use url::Url;
 
 // TODO (PVW-5612): Only allow HTTPS in local development environment and remove this feature flag.
-cfg_if! {
-    if #[cfg(feature = "allow_insecure_url")] {
-        pub const ALLOWED_HTTP_SCHEMES: [&str; 2] = ["https", "http"];
-    } else {
-        pub const ALLOWED_HTTP_SCHEMES: [&str; 1] = ["https"];
-    }
-}
+pub const ALLOWED_HTTP_SCHEMES: &[&str] = cfg_select! {
+    feature = "allow_insecure_url" => &["https", "http"],
+    _ => &["https"],
+};
 
 #[nutype(
     validate(predicate = |u| !u.cannot_be_a_base()),

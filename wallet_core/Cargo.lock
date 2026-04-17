@@ -3475,7 +3475,6 @@ dependencies = [
  "axum",
  "axum-server",
  "base64 0.22.1",
- "cfg-if",
  "data-url 0.3.2",
  "derive_more",
  "futures",
