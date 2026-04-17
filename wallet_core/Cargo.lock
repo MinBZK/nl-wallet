@@ -9593,7 +9593,6 @@ dependencies = [
  "audit_log",
  "axum",
  "axum-server",
- "cfg-if",
  "chrono",
  "config",
  "crypto",
