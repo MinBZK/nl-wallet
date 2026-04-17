@@ -4,7 +4,6 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
 
-use cfg_if::cfg_if;
 use futures::try_join;
 use tokio::sync::RwLock;
 
@@ -120,13 +119,10 @@ where
         init_universal_link_base_url();
 
         // When using fake attestations, initialize the key holder, but make sure this happens only once.
-        cfg_if! {
-            if #[cfg(feature = "fake_attestation")] {
-                let key_holder = init_mock_key_holder().await;
-            } else {
-                let key_holder = platform_support::attested_key::hardware::HardwareAttestedKeyHolder::default();
-            }
-        }
+        let key_holder = cfg_select! {
+            feature = "fake_attestation" => init_mock_key_holder().await,
+            _ => platform_support::attested_key::hardware::HardwareAttestedKeyHolder::default(),
+        };
 
         let update_policy_repository = UpdatePolicyRepository::init();
 

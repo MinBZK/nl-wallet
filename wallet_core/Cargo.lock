@@ -9433,7 +9433,6 @@ dependencies = [
  "attestation_data",
  "attestation_types",
  "base64 0.22.1",
- "cfg-if",
  "chrono",
  "ciborium",
  "crypto",
