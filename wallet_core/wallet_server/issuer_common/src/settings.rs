@@ -305,7 +305,7 @@ impl StatusListAttestationSettings {
         )
         .await?;
 
-        let map = types.into_iter().zip_eq(configs.into_iter()).collect::<HashMap<_, _>>();
+        let map = types.into_iter().zip_eq(configs).collect::<HashMap<_, _>>();
 
         Ok(map.into())
     }
