@@ -27,7 +27,6 @@ mod test;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use cfg_if::cfg_if;
 use parking_lot::Mutex;
 use tokio::sync::RwLock;
 use tokio::task::JoinHandle;
@@ -89,13 +88,10 @@ pub use self::transfer::TransferError;
 pub use self::uri::UriIdentificationError;
 pub use self::uri::UriType;
 
-cfg_if! {
-    if #[cfg(feature = "fake_attestation")] {
-        type KeyHolderType = platform_support::attested_key::mock::PersistentMockAttestedKeyHolder;
-    } else {
-        type KeyHolderType = platform_support::attested_key::hardware::HardwareAttestedKeyHolder;
-    }
-}
+type KeyHolderType = cfg_select! {
+    feature = "fake_attestation" => platform_support::attested_key::mock::PersistentMockAttestedKeyHolder,
+    _ => platform_support::attested_key::hardware::HardwareAttestedKeyHolder,
+};
 
 #[derive(Debug, Default)]
 enum WalletRegistration<A, G> {
