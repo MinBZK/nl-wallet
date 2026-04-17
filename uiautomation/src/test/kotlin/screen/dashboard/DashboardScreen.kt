@@ -13,6 +13,7 @@ class DashboardScreen : MobileActions() {
     private val cardRevocationBannerTitle = l10n.getString("cardRevocationBannerTitle")
     private val actionDrawerScanQrButton = l10n.getString("qrActionSheetScanQrTitle")
     private val actionDrawerShowQrButton = l10n.getString("qrActionSheetShowQrTitle")
+    private val activitiesButtonTitle = l10n.getString("activitySummaryToday")
 
     fun visible() = elementContainingTextVisible(menuButton) && elementContainingTextVisible(actionButton)
 
@@ -21,7 +22,9 @@ class DashboardScreen : MobileActions() {
 
     fun clickMenuButton() = clickElementContainingText(menuButton)
 
-    fun clickCard(displayName: String) = clickElementContainingText(displayName)
+    // Sometimes the display name of a card is present in the activities button there for it is needed to
+    // click an element that does not contain the activities button title
+    fun clickCard(displayName: String) = findElementByPartialTextExcludingText(displayName, activitiesButtonTitle).click()
 
     fun appTourBannerVisible() = elementContainingTextVisible(appTourBannerTitle.substringBefore("'"))
 
@@ -41,7 +44,9 @@ class DashboardScreen : MobileActions() {
         clickElementContainingText(actionDrawerShowQrButton)
     }
 
-    fun cardVisible(cardDisplayContent: String) = elementContainingTextVisible(cardDisplayContent)
+    // Sometimes the display name of a card is present in the activities button there for it is needed to
+    // click an element that does not contain the activities button title
+    fun cardVisible(cardDisplayContent: String) = elementContainingTextExcludingTextVisible(cardDisplayContent, activitiesButtonTitle)
 
     fun cardRevocationVisible(cardDisplayContent: String): Boolean {
         scrollToElementContainingTexts(listOf(cardDisplayContent, revokedLabel))
