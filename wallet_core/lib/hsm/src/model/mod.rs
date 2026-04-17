@@ -2,15 +2,13 @@ pub mod encrypted;
 pub mod encrypter;
 pub mod wrapped_key;
 
-use std::error::Error;
-
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
 use crate::model::encrypted::Encrypted;
 
 pub trait Hsm {
-    type Error: Error + Send + Sync;
+    type Error: std::error::Error + Send + Sync;
 
     async fn generate_generic_secret_key(&self, identifier: &str) -> Result<(), Self::Error>;
     async fn generate_aes_encryption_key(&self, identifier: &str) -> Result<(), Self::Error>;
@@ -234,10 +232,6 @@ pub mod mock {
             _data: &[u8],
             _signature: Vec<u8>,
         ) -> Result<(), HsmError> {
-            todo!()
-        }
-
-        async fn random_bytes(&self, _length: u32) -> Result<Vec<u8>, HsmError> {
             todo!()
         }
 
