@@ -986,7 +986,7 @@ Cases:
 
 ### LTC79
 
-#### Revoke wallet solution
+#### Delete EAA card
 
 **Given** wallet contains an eaa card<br>
 **When** user deletes the card<br>
