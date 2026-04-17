@@ -207,13 +207,13 @@ extension CloseProximityDisclosure {
 
     func sendSessionTermination(
         session: CloseProximityDisclosureActiveSession,
-        transport: MdocTransport
+        transport: CloseProximityBleTransport
     ) async throws {
         do {
             try await transport.sendMessage(
                 message: SessionEncryption.companion.encodeStatus(
                     statusCode: Int64(Constants.shared.SESSION_DATA_STATUS_SESSION_TERMINATION)
-                )
+                ).uint8Array()
             )
         } catch {
             if isActiveSession(session) {
