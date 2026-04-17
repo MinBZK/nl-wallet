@@ -466,7 +466,7 @@ window.addEventListener("load", load);
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
-<li class="toctree-l2"><a class="reference internal" href="use-cases/UC7.4_DeleteEAACard.html">Use Case 3.3 Renew PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/UC7.4_DeleteEAACard.html">Use Case 7.4 Delete EAA card</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.11_ConfigureNotifications.html">Use Case 9.11 Configure Notifications</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC9.12_ViewRevocationCode.html">Use Case 9.12 View revocation code in Settings</a></li>
@@ -633,6 +633,7 @@ QR[&quot;&lt;a href='use-cases/UC9.9_ScanQR.html'&gt;9.9 Scan QR&lt;/a&gt;&quot;
 
 RECOVER_PIN[&quot;&lt;a href='use-cases/UC2.3.2_RecoverPIN.html'&gt;2.3.2 Recover PIN&lt;/a&gt;&quot;]
 RENEW_PID[&quot;&lt;a href='use-cases/UC3.2_RenewPid.html'&gt;3.3 Renew PID&lt;/a&gt;&quot;]
+DELETE_CARD[&quot;&lt;a href='use-cases/UC7.4_DeleteEAACard.html'&gt;7.4 Delete EAA card&lt;/a&gt;&quot;]
 
 START --&gt; ALL_CARDS
 
@@ -664,6 +665,7 @@ CARD_HISTORY --&gt; HISTORY_EVENT
 
 CARD --&gt; CARD_HISTORY
 CARD --&gt; RENEW_PID
+CARD --&gt; DELETE_CARD
 
 RENEW_PID --&gt; END
 RENEW_PID --&gt; RECOVER_PIN
