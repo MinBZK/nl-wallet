@@ -21,7 +21,6 @@ use gba_hc_converter::haal_centraal::PersonQuery;
 use gba_hc_converter::haal_centraal::PersonsResponse;
 use gba_hc_converter::server;
 use http_utils::reqwest::default_reqwest_client_builder;
-use http_utils::reqwest::trusted_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 
 use crate::common::read_file;
@@ -31,7 +30,7 @@ pub mod common;
 static LOGGING: Once = Once::new();
 
 pub async fn wait_for_server(base_url: BaseUrl) {
-    let client = trusted_reqwest_client_builder([])
+    let client = default_reqwest_client_builder()
         .connect_timeout(Duration::from_secs(1))
         .build()
         .unwrap();

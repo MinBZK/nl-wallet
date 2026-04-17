@@ -203,22 +203,21 @@ pub fn default_reqwest_client_builder() -> ClientBuilder {
         .tls_built_in_root_certs(true)
 }
 
-/// Create a [`ClientBuilder`] that validates certificates signed with the supplied trust anchors (root certificates) as
-/// well as the built-in root certificates.
-pub fn trusted_reqwest_client_builder(trust_anchors: impl IntoIterator<Item = Certificate>) -> ClientBuilder {
+/// Create a [`ClientBuilder`] that is TLS-only and validates certificates signed with the supplied trust anchors (root
+/// certificates) as well as the built-in root certificates.
+pub fn tls_reqwest_client_builder(trust_anchors: impl IntoIterator<Item = Certificate>) -> ClientBuilder {
     trust_anchors
         .into_iter()
         .fold(default_reqwest_client_builder(), |builder, root_ca| {
             builder.add_root_certificate(root_ca)
         })
+        .https_only(true)
 }
 
 /// Create a [`ClientBuilder`] that only validates certificates signed with the supplied trust anchors (root
 /// certificates). The built-in root certificates are therefore disabled and the client will only work over https.
 pub fn tls_pinned_client_builder(trust_anchors: impl IntoIterator<Item = Certificate>) -> ClientBuilder {
-    trusted_reqwest_client_builder(trust_anchors)
-        .https_only(true)
-        .tls_built_in_root_certs(false)
+    tls_reqwest_client_builder(trust_anchors).tls_built_in_root_certs(false)
 }
 
 pub fn client_builder_accept_json(builder: ClientBuilder) -> ClientBuilder {

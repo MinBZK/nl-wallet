@@ -14,7 +14,7 @@ use attestation_data::credential_payload::CredentialPayload;
 use crypto::server_keys::generate::Ca;
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
-use http_utils::reqwest::trusted_reqwest_client_builder;
+use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
 use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
@@ -163,7 +163,7 @@ async fn authorization_code_flow(
 
     let redirect_uri: Url = "https://wallet.example.com/callback".parse().unwrap();
     let discovery = HttpIssuanceDiscovery::new(
-        HttpJsonClient::try_new(trusted_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
+        HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
     );
 
     // Start authorization code flow — fetches metadata and creates an auth session.
@@ -232,7 +232,7 @@ async fn pre_authorized_code_flow(
     let credential_offer_url = make_credential_offer_url(issuer_identifier, session_token, attestation_count);
 
     let discovery = HttpIssuanceDiscovery::new(
-        HttpJsonClient::try_new(trusted_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
+        HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
     );
 
     let trust_anchors = &[trust_anchor];
@@ -264,7 +264,7 @@ async fn reject_issuance() {
     let offer_url = make_credential_offer_url(issuer_identifier, session_token, attestation_count);
 
     let discovery = HttpIssuanceDiscovery::new(
-        HttpJsonClient::try_new(trusted_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
+        HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
     );
 
     let trust_anchors = &[trust_anchor];
