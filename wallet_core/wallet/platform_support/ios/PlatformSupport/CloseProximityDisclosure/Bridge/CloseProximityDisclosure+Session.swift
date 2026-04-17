@@ -90,44 +90,9 @@ extension CloseProximityDisclosure {
         )
     }
 
-    func observeTransportState(
-        session: CloseProximityDisclosureActiveSession,
-        transport: MdocTransport
-    ) async {
-        do {
-            for await state in transport.state {
-                guard isActiveSession(session) else { return }
-                try await handleTransportStateUpdate(session: session, state: state)
-            }
-        } catch is CancellationError {
-            // Expected when the session is replaced or stopped and the observer task is canceled.
-        } catch {
-            guard isActiveSession(session) else { return }
-            await failSession(session, error: error)
-        }
-    }
-
-    func handleTransportStateUpdate(
-        session: CloseProximityDisclosureActiveSession,
-        state: MdocTransport.State
-    ) async throws {
-        switch state {
-        case .connected:
-            try await session.channel.sendUpdate(update: CloseProximityDisclosureUpdate.connected)
-        case .closed:
-            await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
-        case .failed:
-            // Transport failures are expected to surface through the active connect/read/write
-            // operation as well, and that path is responsible for failSession().
-            return
-        default:
-            return
-        }
-    }
-
     func receiveMessages(
         session: CloseProximityDisclosureActiveSession,
-        transport: MdocTransport
+        transport: CloseProximityBleTransport
     ) async throws {
         while isActiveSession(session) {
             guard let message = try await waitForSessionMessage(session: session, transport: transport) else {
@@ -155,9 +120,9 @@ extension CloseProximityDisclosure {
 
     func waitForSessionMessage(
         session: CloseProximityDisclosureActiveSession,
-        transport: MdocTransport
+        transport: CloseProximityBleTransport
     ) async throws -> KotlinByteArray? {
-        let message = try await transport.waitForMessage()
+        let message = try await transport.waitForMessage().kotlinByteArray()
         guard isActiveSession(session) else { return nil }
 
         if message.isEmpty {
@@ -169,7 +134,7 @@ extension CloseProximityDisclosure {
 
     func ensureReaderSessionContext(
         session: CloseProximityDisclosureActiveSession,
-        transport: MdocTransport,
+        transport: CloseProximityBleTransport,
         message: KotlinByteArray,
         currentContext: CloseProximityDisclosureReaderSessionContext?
     ) async throws -> CloseProximityDisclosureReaderSessionContext? {
@@ -316,18 +281,16 @@ extension CloseProximityDisclosure {
     }
 
     func startReadMessagesTask(_ session: CloseProximityDisclosureActiveSession) {
-        guard let transport = session.connectedTransport() else { return }
-
         let readMessagesTask = Task { [weak self] in
             guard let self else { return }
-            await self.runReadMessagesTask(session: session, transport: transport)
+            await self.runReadMessagesTask(session: session, transport: session.transport)
         }
         session.setReadMessagesTask(readMessagesTask)
     }
 
     func runReadMessagesTask(
         session: CloseProximityDisclosureActiveSession,
-        transport: MdocTransport
+        transport: CloseProximityBleTransport
     ) async {
         do {
             try await receiveMessages(
@@ -344,9 +307,7 @@ extension CloseProximityDisclosure {
     }
 
     func closeSessionTransports(_ session: CloseProximityDisclosureActiveSession) async {
-        for transport in session.transports {
-            try? await transport.close()
-        }
+        try? await session.transport.close()
     }
 }
 

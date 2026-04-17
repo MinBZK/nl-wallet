@@ -1,3 +1,4 @@
+import CoreBluetooth
 import Foundation
 @preconcurrency import Multipaz
 
@@ -67,17 +68,20 @@ extension CloseProximityDisclosure {
         channel: CloseProximityDisclosureChannel
     ) async throws -> CloseProximityDisclosureActiveSession {
         let eDeviceKey = Crypto.shared.createEcPrivateKey(curve: .p256)
-        let advertisedTransports = try await advertiseTransports(buildConnectionMethod())
+        let connectionMethod = buildConnectionMethod()
+        let transport = CloseProximityBleTransport(
+            serviceUuid: CBUUID(string: String(describing: connectionMethod.peripheralServerModeUuid!))
+        )
+        try await transport.advertise()
         let encodedDeviceEngagement = createEncodedDeviceEngagement(
             eDeviceKey: eDeviceKey,
-            advertisedTransports: advertisedTransports
+            connectionMethod: connectionMethod
         )
         return CloseProximityDisclosureActiveSession(
             channel: channel,
-            transports: advertisedTransports,
+            transport: transport,
             eDeviceKey: eDeviceKey,
-            encodedDeviceEngagement: encodedDeviceEngagement,
-            connectionScope: MainScope()
+            encodedDeviceEngagement: encodedDeviceEngagement
         )
     }
 
@@ -94,31 +98,15 @@ extension CloseProximityDisclosure {
         )
     }
 
-    func advertiseTransports(
-        _ connectionMethod: MdocConnectionMethodBle
-    ) async throws -> [MdocTransport] {
-        try await ConnectionHelperKt.advertise(
-            [connectionMethod],
-            role: .mdoc,
-            transportFactory: MdocTransportFactoryDefault(),
-            options: MdocTransportOptions(
-                bleUseL2CAP: false,
-                bleUseL2CAPInEngagement: false
-            )
-        )
-    }
-
     func createEncodedDeviceEngagement(
         eDeviceKey: EcPrivateKey,
-        advertisedTransports: [MdocTransport]
+        connectionMethod: MdocConnectionMethodBle
     ) -> KotlinByteArray {
         let deviceEngagement = buildDeviceEngagement(
             eDeviceKey: eDeviceKey.publicKey,
             version: "1.0"
         ) { builder in
-            advertisedTransports.forEach {
-                builder.addConnectionMethod(connectionMethod: $0.connectionMethod)
-            }
+            builder.addConnectionMethod(connectionMethod: connectionMethod)
         }
         return Cbor.shared.encode(item: deviceEngagement.toDataItem())
     }
@@ -135,12 +123,8 @@ extension CloseProximityDisclosure {
         do {
             guard isActiveSession(session) else { return }
 
-            let transport = try await ConnectionHelperKt.waitForConnection(
-                session.transports,
-                eSenderKey: session.eDeviceKey.publicKey,
-                coroutineScope: session.connectionScope
-            )
-            await handleConnectedTransport(session: session, transport: transport)
+            try await session.transport.waitForConnection()
+            await handleConnectedTransport(session: session)
         } catch is CancellationError {
             // The connection task is canceled when the session is replaced or stopped.
         } catch {
@@ -149,40 +133,16 @@ extension CloseProximityDisclosure {
         }
     }
 
-    func handleConnectedTransport(
-        session: CloseProximityDisclosureActiveSession,
-        transport: MdocTransport
-    ) async {
-        guard isActiveSession(session) else {
-            await closeStaleTransport(transport)
-            return
-        }
+    func handleConnectedTransport(session: CloseProximityDisclosureActiveSession) async {
+        guard isActiveSession(session) else { return }
         do {
             try await session.channel.sendUpdate(update: CloseProximityDisclosureUpdate.connecting)
-            session.setTransport(transport)
-            startTransportStateObserver(session: session, transport: transport)
+            try await session.channel.sendUpdate(update: CloseProximityDisclosureUpdate.connected)
             startReadMessagesTask(session)
         } catch {
             guard isActiveSession(session) else { return }
             await failSession(session, error: error)
         }
-    }
-
-    func startTransportStateObserver(
-        session: CloseProximityDisclosureActiveSession,
-        transport: MdocTransport
-    ) {
-        let transportStateObserverTask = Task { [weak self] in
-            guard let self else { return }
-            await self.observeTransportState(session: session, transport: transport)
-        }
-        session.setTransportStateObserverTask(transportStateObserverTask)
-    }
-
-    func closeStaleTransport(_ transport: MdocTransport) async {
-        // A newer start/stop may already have replaced this session while the connection
-        // attempt was in flight. In that case, close the transport we obtained and exit.
-        try? await transport.close()
     }
 
     func reportStartQrHandoverFailure(
@@ -235,7 +195,7 @@ extension CloseProximityDisclosure {
                 message: buildEncryptedDeviceResponse(
                     sessionEncryption: establishedSessionContext.sessionEncryption,
                     deviceResponse: deviceResponse
-                )
+                ).uint8Array()
             )
         } catch {
             if isActiveSession(session) {
