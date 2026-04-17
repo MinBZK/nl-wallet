@@ -41,14 +41,17 @@ pub enum UriIdentificationError {
     Unknown(Url),
 }
 
-pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
-    let uri = uri.as_str();
+/// Custom URL schemes for disclosure flows.
+const DISCLOSURE_URL_SCHEMES: &[&str] = &["eu-eaap", "openid4vp", "haip-vp"];
 
-    if uri.starts_with(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str()) {
+pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
+    let uri_str = uri.as_str();
+
+    if uri_str.starts_with(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str()) {
         return Some(UriType::PidIssuance);
     }
 
-    if uri.starts_with(
+    if uri_str.starts_with(
         urls::disclosure_based_issuance_base_uri(&UNIVERSAL_LINK_BASE_URL)
             .as_ref()
             .as_str(),
@@ -56,12 +59,16 @@ pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
         return Some(UriType::DisclosureBasedIssuance);
     }
 
-    if uri.starts_with(urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str()) {
+    if uri_str.starts_with(urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str()) {
         return Some(UriType::Disclosure);
     }
 
-    if uri.starts_with(urls::transfer_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str()) {
+    if uri_str.starts_with(urls::transfer_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str()) {
         return Some(UriType::Transfer);
+    }
+
+    if DISCLOSURE_URL_SCHEMES.contains(&uri.scheme()) {
+        return Some(UriType::Disclosure);
     }
 
     None
@@ -128,6 +135,7 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use rstest::rstest;
 
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
 
@@ -209,5 +217,17 @@ mod tests {
 
         // The transfer URI should be recognised.
         assert_matches!(wallet.identify_uri(transfer_uri.as_str()).unwrap(), UriType::Transfer);
+    }
+
+    #[rstest]
+    #[case("eu-eaap://")]
+    #[case("openid4vp://")]
+    #[case("haip-vp://")]
+    #[case("haip-vp://request?client_id=verifier&request_uri=https%3A%2F%2Fexample.com")]
+    #[tokio::test]
+    async fn test_wallet_identify_disclosure_scheme(#[case] uri: &str) {
+        let wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
+        let actual = wallet.identify_uri(uri).expect("uri is identifiable");
+        assert_matches!(actual, UriType::Disclosure);
     }
 }
