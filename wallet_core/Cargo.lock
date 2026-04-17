@@ -5657,7 +5657,6 @@ dependencies = [
  "assert_matches",
  "async-trait",
  "base64 0.22.1",
- "cfg-if",
  "cfg_eval",
  "crypto",
  "derive_more",

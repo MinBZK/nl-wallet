@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::AtomicU32;
 
-use cfg_if::cfg_if;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -367,12 +366,9 @@ impl AppleAttestedKey for MockAppleAttestedKey {
             return Err(MockAttestedKeyError {});
         }
 
-        cfg_if! {
-            if #[cfg(feature = "mock_attested_key_apple")] {
-                Ok(self.sign_mock(&payload))
-            } else {
-                Err(MockAttestedKeyError {})
-            }
+        cfg_select! {
+            feature = "mock_attested_key_apple" => Ok(self.sign_mock(&payload)),
+            _ => Err(MockAttestedKeyError {}),
         }
     }
 }
