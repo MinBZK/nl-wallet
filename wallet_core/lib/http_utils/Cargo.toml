@@ -16,7 +16,16 @@ allow_insecure_url = []
 # Include implementations for http clients
 client = ["reqwest/gzip", "serde_with/base64"]
 # Include implementations of the axum IntoResponse trait.
-server = ["axum/json", "dep:axum-server", "dep:rustls", "dep:rustls-pki-types", "dep:tracing", "dep:futures", "serde_with/base64", "tower-http/cors"]
+server = [
+    "axum/json",
+    "dep:axum-server",
+    "dep:rustls",
+    "dep:rustls-pki-types",
+    "dep:tracing",
+    "dep:futures",
+    "serde_with/base64",
+    "tower-http/cors",
+]
 # Include code to use for testing purposes
 test = []
 
