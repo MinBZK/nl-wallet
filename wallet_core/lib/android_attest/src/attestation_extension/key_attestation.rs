@@ -24,15 +24,6 @@ use rasn::types::Integer;
 use rasn::types::OctetString;
 use rasn::types::SetOf;
 
-cfg_if::cfg_if! {
-    if #[cfg(feature = "serialize_key_attestation")] {
-        use serde::Serialize;
-        use serde::ser::SerializeSeq;
-        use serde_repr::Serialize_repr;
-        use serde_with::DisplayFromStr;
-    }
-}
-
 use super::key_description;
 use super::key_description::KeyDescription;
 use super::key_description::RootOfTrust;
@@ -74,8 +65,45 @@ macro_rules! integer_int_enum_conversion_with_set {
     };
 }
 
+#[cfg(feature = "serialize_key_attestation")]
+mod serialize {
+    use std::hash::Hash;
+
+    use rasn::types::OctetString;
+    use rasn::types::SetOf;
+    use serde::Serialize;
+    use serde::Serializer;
+    use serde::ser::SerializeSeq;
+
+    pub fn serialize_set_of<S, T>(set: &SetOf<T>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: Serialize,
+        T: Eq + Hash,
+    {
+        let mut seq = serializer.serialize_seq(Some(set.len()))?;
+        for element in set.to_vec() {
+            seq.serialize_element(element)?;
+        }
+        seq.end()
+    }
+
+    pub fn serialize_octet_string_as_utf8_with_fallback<S>(
+        value: &OctetString,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match String::from_utf8(value.to_vec()) {
+            Ok(string_value) => serializer.serialize_str(&string_value),
+            Err(_error) => serializer.serialize_bytes(value),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, IntEnum)]
-#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize_repr))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(serde_repr::Serialize_repr))]
 #[repr(i32)]
 pub enum AttestationVersion {
     V1 = 1,
@@ -96,7 +124,7 @@ integer_int_enum_conversion!(
 );
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, IntEnum)]
-#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize_repr))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(serde_repr::Serialize_repr))]
 #[repr(i32)]
 pub enum KeyMintVersion {
     V2 = 2,
@@ -112,7 +140,7 @@ pub enum KeyMintVersion {
 integer_int_enum_conversion!(KeyMintVersion, i32, KeyMintVersionError, InvalidKeyMintVersion);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, IntEnum)]
-#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(serde::Serialize))]
 #[repr(u32)]
 pub enum KeyPurpose {
     Encrypt = 0,
@@ -128,7 +156,7 @@ pub enum KeyPurpose {
 integer_int_enum_conversion_with_set!(KeyPurpose, u32, KeyPurposeError, InvalidKeyPurpose);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, IntEnum)]
-#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(serde::Serialize))]
 #[repr(u32)]
 pub enum Algorithm {
     Rsa = 1,
@@ -141,7 +169,7 @@ pub enum Algorithm {
 integer_int_enum_conversion!(Algorithm, u32, AlgorithmError, InvalidAlgorithm);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, IntEnum)]
-#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(serde::Serialize))]
 #[repr(u32)]
 pub enum Digest {
     None = 0,
@@ -157,7 +185,7 @@ integer_int_enum_conversion_with_set!(Digest, u32, DigestError, InvalidDigest);
 
 #[expect(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, IntEnum)]
-#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(serde::Serialize))]
 #[repr(u32)]
 pub enum Padding {
     None = 1,
@@ -171,7 +199,7 @@ pub enum Padding {
 integer_int_enum_conversion_with_set!(Padding, u32, PaddingError, InvalidPadding);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, IntEnum)]
-#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(serde::Serialize))]
 #[repr(u32)]
 pub enum EcCurve {
     P224 = 0,
@@ -184,7 +212,7 @@ pub enum EcCurve {
 integer_int_enum_conversion!(EcCurve, u32, EcCurveError, InvalidEcCurve);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(serde::Serialize))]
 pub struct HardwareAuthenticatorType(u32);
 
 impl TryFrom<Integer> for HardwareAuthenticatorType {
@@ -206,7 +234,7 @@ bitflags! {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, IntEnum)]
-#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(serde::Serialize))]
 #[repr(u32)]
 pub enum KeyOrigin {
     Generated = 0,
@@ -219,7 +247,7 @@ pub enum KeyOrigin {
 integer_int_enum_conversion!(KeyOrigin, u32, KeyOriginError, InvalidKeyOrigin);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Constructor)]
-#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(serde::Serialize))]
 pub struct OsVersion {
     pub major: u8,
     pub minor: u8,
@@ -318,7 +346,7 @@ pub struct PatchLevelParsingError(pub u32);
 /// Decoded patch_level.
 /// Supports only YYYYMM notation, including values 0 or 00 for MM.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Constructor)]
-#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(serde::Serialize))]
 pub struct PatchLevel {
     pub year: u16,
     pub month: u8,
@@ -381,7 +409,7 @@ impl From<PatchLevel> for Integer {
 /// - Sometimes DD is set to `00`, which is not a valid date
 /// - Sometimes the whole `PatchLevel` was set to `0`
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Constructor)]
-#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(serde::Serialize))]
 pub struct PatchLevelWithDay {
     pub year: u16,
     pub month: u8,
@@ -459,37 +487,18 @@ impl From<PatchLevelWithDay> for Integer {
 // }
 #[derive(Debug, Clone, PartialEq, Eq, AsnType, Decode)]
 #[cfg_attr(feature = "encode", derive(rasn::Encode))]
-#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(serde::Serialize))]
 pub struct AttestationApplicationId {
-    #[cfg_attr(feature = "serialize_key_attestation", serde(serialize_with = "serialize_set_of"))]
+    #[cfg_attr(
+        feature = "serialize_key_attestation",
+        serde(serialize_with = "serialize::serialize_set_of")
+    )]
     pub package_infos: SetOf<AttestationPackageInfo>,
-    #[cfg_attr(feature = "serialize_key_attestation", serde(serialize_with = "serialize_set_of"))]
+    #[cfg_attr(
+        feature = "serialize_key_attestation",
+        serde(serialize_with = "serialize::serialize_set_of")
+    )]
     pub signature_digests: SetOf<OctetString>,
-}
-
-#[cfg(feature = "serialize_key_attestation")]
-fn serialize_set_of<S, T>(set: &SetOf<T>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-    T: serde::Serialize,
-    T: Eq + Hash,
-{
-    let mut seq = serializer.serialize_seq(Some(set.len()))?;
-    for element in set.to_vec() {
-        seq.serialize_element(element)?;
-    }
-    seq.end()
-}
-
-#[cfg(feature = "serialize_key_attestation")]
-fn serialize_octet_string_as_utf8_with_fallback<S>(value: &OctetString, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    match String::from_utf8(value.to_vec()) {
-        Ok(string_value) => serializer.serialize_str(&string_value),
-        Err(_error) => serializer.serialize_bytes(value),
-    }
 }
 
 // AttestationPackageInfo ::= SEQUENCE {
@@ -499,19 +508,19 @@ where
 #[cfg_attr(feature = "serialize_key_attestation", cfg_eval::cfg_eval, serde_with::serde_as)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AsnType, Decode)]
 #[cfg_attr(feature = "encode", derive(rasn::Encode))]
-#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(serde::Serialize))]
 pub struct AttestationPackageInfo {
     #[cfg_attr(
         feature = "serialize_key_attestation",
-        serde(serialize_with = "serialize_octet_string_as_utf8_with_fallback")
+        serde(serialize_with = "serialize::serialize_octet_string_as_utf8_with_fallback")
     )]
     pub package_name: OctetString,
-    #[cfg_attr(feature = "serialize_key_attestation", serde_as(as = "DisplayFromStr"))]
+    #[cfg_attr(feature = "serialize_key_attestation", serde_as(as = "serde_with::DisplayFromStr"))]
     pub version: Integer,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(serde::Serialize))]
 pub struct KeyAttestation {
     pub attestation_version: AttestationVersion,
     pub attestation_security_level: SecurityLevel,
@@ -552,11 +561,12 @@ impl KeyAttestation {
 
 impl SecurityLevel {
     pub fn verify(&self) -> Result<(), SecurityLevel> {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "allow_emulator_keys")] {
+        cfg_select! {
+            feature = "allow_emulator_keys" => {
                 // Allow any security level on the emulator.
                 tracing::warn!("Allowing all security levels on Android emulator");
-            } else {
+            }
+            _ => {
                 if !match self {
                     SecurityLevel::Software => false,
                     SecurityLevel::TrustedEnvironment | SecurityLevel::StrongBox => true,
@@ -608,7 +618,7 @@ impl TryFrom<KeyDescription> for KeyAttestation {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(serde::Serialize))]
 pub struct AuthorizationList {
     pub purpose: Option<HashSet<KeyPurpose>>,
     pub algorithm: Option<Algorithm>,

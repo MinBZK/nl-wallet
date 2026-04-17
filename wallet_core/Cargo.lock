@@ -122,7 +122,6 @@ dependencies = [
  "assert_matches",
  "bitflags 2.10.0",
  "bytes",
- "cfg-if",
  "cfg_eval",
  "chrono",
  "const-decoder",
