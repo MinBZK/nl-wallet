@@ -112,7 +112,7 @@ async fn create_status_list_service(
         revoke_all.clone(),
     )
     .await?;
-    try_join_all(service.initialize_lists().await?.into_iter()).await?;
+    try_join_all(service.initialize_lists().await?).await?;
 
     Ok((attestation_type, config, revoke_all, service))
 }
@@ -124,7 +124,7 @@ async fn recreate_status_list_service(
     revoke_all: RevokeAllBool,
 ) -> anyhow::Result<PostgresStatusListService<SigningKey, RevokeAllBool>> {
     let service = PostgresStatusListService::try_new(connection.clone(), attestation_type, config, revoke_all).await?;
-    try_join_all(service.initialize_lists().await?.into_iter()).await?;
+    try_join_all(service.initialize_lists().await?).await?;
 
     Ok(service)
 }
@@ -261,10 +261,7 @@ where
     F: FnOnce() -> Vec<AbortHandle>,
     P: AsRef<Path> + Eq + Hash,
 {
-    let befores = modified_timestamps(paths.into_iter())
-        .await
-        .into_iter()
-        .collect::<HashMap<_, _>>();
+    let befores = modified_timestamps(paths).await.into_iter().collect::<HashMap<_, _>>();
     let handles = start_refresh_job();
 
     let result = tokio::time::timeout(Duration::from_secs(3), async {
