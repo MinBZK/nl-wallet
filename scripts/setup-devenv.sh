@@ -383,9 +383,8 @@ export DEMO_RELYING_PARTY_KEY_HOUSING
 DEMO_RELYING_PARTY_CRT_HOUSING=$(< "${TARGET_DIR}/demo_relying_party/housing.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_HOUSING
 
-# Grab and export the AKI field of one of the issuer certificates.
-# NB: This value is the digest of the public key of the issuer CA, so will be the same for all issuer certificates.
-ISSUER_CA_AKI=$(openssl x509 -in ${TARGET_DIR}/demo_issuer/insurance.issuer.crt.pem -noout -ext authorityKeyIdentifier | sed -n '2p' | sed 's/\s//' | tr -d ':' | xxd -p -r | ${BASE64} | tr '+/' '-_' | tr -d '=')
+# Compute the AKI of the issuer CA from the public key in its self-signed certificate.
+ISSUER_CA_AKI=$(openssl x509 -in ${TARGET_DIR}/ca.issuer.crt.pem -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | dd bs=1 count=20 2>/dev/null | openssl enc -base64 -A | tr '+/' '-_' | tr -d '=')
 export ISSUER_CA_AKI
 
 render_template "${DEVENV}/demo_relying_party.toml.template" "${DEMO_RELYING_PARTY_DIR}/demo_relying_party.toml"
