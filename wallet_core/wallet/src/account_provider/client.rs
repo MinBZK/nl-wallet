@@ -269,7 +269,6 @@ mod tests {
     use serde_json::Value;
     use serde_json::json;
 
-    use http_utils::client::InternalHttpConfig;
     use http_utils::reqwest::IntoReqwestClient;
 
     use super::*;
@@ -313,9 +312,13 @@ mod tests {
             .await;
 
         let client = HttpAccountProviderClient::new();
-        let body = post_example_request(&client, "foobar", &InternalHttpConfig::try_new(base_url).unwrap())
-            .await
-            .expect("Could not get succesful response from server");
+        let body = post_example_request(
+            &client,
+            "foobar",
+            &TlsPinningConfig::try_new_httpmock(base_url).unwrap(),
+        )
+        .await
+        .expect("Could not get succesful response from server");
 
         assert_eq!(body.foo, "blah");
         assert_eq!(body.bar, 1234);
@@ -336,9 +339,13 @@ mod tests {
             .await;
 
         let client = HttpAccountProviderClient::new();
-        let error = post_example_request(&client, "foobar_404", &InternalHttpConfig::try_new(base_url).unwrap())
-            .await
-            .expect_err("No error received from server");
+        let error = post_example_request(
+            &client,
+            "foobar_404",
+            &TlsPinningConfig::try_new_httpmock(base_url).unwrap(),
+        )
+        .await
+        .expect_err("No error received from server");
 
         assert_matches!(
             error,
@@ -363,9 +370,13 @@ mod tests {
             .await;
 
         let client = HttpAccountProviderClient::new();
-        let error = post_example_request(&client, "foobar_502", &InternalHttpConfig::try_new(base_url).unwrap())
-            .await
-            .expect_err("No error received from server");
+        let error = post_example_request(
+            &client,
+            "foobar_502",
+            &TlsPinningConfig::try_new_httpmock(base_url).unwrap(),
+        )
+        .await
+        .expect_err("No error received from server");
 
         assert_matches!(
             error,
@@ -395,9 +406,13 @@ mod tests {
             .await;
 
         let client = HttpAccountProviderClient::new();
-        let error = post_example_request(&client, "foobar_400", &InternalHttpConfig::try_new(base_url).unwrap())
-            .await
-            .expect_err("No error received from server");
+        let error = post_example_request(
+            &client,
+            "foobar_400",
+            &TlsPinningConfig::try_new_httpmock(base_url).unwrap(),
+        )
+        .await
+        .expect_err("No error received from server");
 
         assert_matches!(
             error,
@@ -427,9 +442,13 @@ mod tests {
             .await;
 
         let client = HttpAccountProviderClient::new();
-        let error = post_example_request(&client, "foobar_503", &InternalHttpConfig::try_new(base_url).unwrap())
-            .await
-            .expect_err("No error received from server");
+        let error = post_example_request(
+            &client,
+            "foobar_503",
+            &TlsPinningConfig::try_new_httpmock(base_url).unwrap(),
+        )
+        .await
+        .expect_err("No error received from server");
 
         let expected_json = json!({
             "status": "503",

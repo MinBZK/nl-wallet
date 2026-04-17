@@ -190,7 +190,6 @@ mod tests {
     use http::header::CONTENT_TYPE;
     use httpmock::Method::POST;
     use httpmock::MockServer;
-    use reqwest::ClientBuilder;
     use reqwest::StatusCode;
     use serde_json::Value;
     use serde_json::json;
@@ -249,10 +248,18 @@ mod tests {
         (client, server)
     }
 
+    fn reqwest_client() -> Client {
+        Client::builder()
+            .danger_accept_invalid_certs(true)
+            .https_only(true)
+            .build()
+            .unwrap()
+    }
+
     #[tokio::test]
     async fn test_play_integrity_client() {
         let client = PlayIntegrityClient::new(
-            ClientBuilder::default().build().unwrap(),
+            reqwest_client(),
             MockPlayIntegrityAuthProvider::default(),
             "com.package.name",
         )
@@ -277,7 +284,7 @@ mod tests {
     #[tokio::test]
     async fn test_play_integrity_http_response_error() {
         let client = PlayIntegrityClient::new(
-            ClientBuilder::default().build().unwrap(),
+            reqwest_client(),
             MockPlayIntegrityAuthProvider::default(),
             "com.package.name",
         )

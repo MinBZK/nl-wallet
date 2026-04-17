@@ -142,7 +142,7 @@ mod test {
     use httpmock::Method::GET;
     use httpmock::MockServer;
 
-    use http_utils::client::InternalHttpConfig;
+    use http_utils::client::TlsPinningConfig;
 
     use crate::repository::HttpClient;
     use crate::repository::HttpClientError;
@@ -185,12 +185,12 @@ mod test {
             })
             .await;
 
-        let client: EtagHttpClient<Stub, InternalHttpConfig, HttpClientError> =
+        let client: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
             EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().keep())
                 .await
                 .unwrap();
 
-        let client_builder = InternalHttpConfig::try_new(base_url).unwrap();
+        let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
 
         let response = client.fetch(&client_builder).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
@@ -226,8 +226,8 @@ mod test {
             })
             .await;
 
-        let client_builder = InternalHttpConfig::try_new(base_url).unwrap();
-        let client: EtagHttpClient<Stub, InternalHttpConfig, HttpClientError> =
+        let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
+        let client: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
             EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().keep())
                 .await
                 .unwrap();

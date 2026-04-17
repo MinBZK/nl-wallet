@@ -155,12 +155,12 @@ const fn bool_value<const B: bool>() -> bool {
 #[cfg(test)]
 pub mod tests {
     use http::header;
+    use http_utils::httpmock::httpmock_reqwest_client_builder;
     use httpmock::Method::GET;
     use httpmock::MockServer;
     use serde_json::json;
 
     use http_utils::reqwest::HttpJsonClient;
-    use http_utils::reqwest::default_reqwest_client_builder;
 
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::well_known::WellKnownPath;
@@ -168,7 +168,6 @@ pub mod tests {
 
     use super::AuthorizationServerMetadata;
 
-    #[cfg_attr(not(feature = "allow_insecure_url"), ignore = "requires allow_insecure_url feature")]
     #[tokio::test]
     async fn test_discovery() {
         let server = MockServer::start_async().await;
@@ -191,7 +190,7 @@ pub mod tests {
             })
             .await;
 
-        let client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
+        let client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let metadata = fetch_well_known::<AuthorizationServerMetadata>(
             &client,
             &issuer_identifier,

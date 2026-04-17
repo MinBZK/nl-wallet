@@ -28,6 +28,8 @@ server = [
 ]
 # Include code to use for testing purposes
 test = []
+# Include HTTPS client code for testing using the httpmock crate.
+httpmock = ["client", "dep:const-decoder"]
 
 [dependencies]
 async-trait.workspace = true
@@ -52,6 +54,7 @@ utils.path = "../utils"
 
 axum = { workspace = true, optional = true }
 axum-server = { workspace = true, optional = true }
+const-decoder = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }

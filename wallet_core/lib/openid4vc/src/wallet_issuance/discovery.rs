@@ -130,6 +130,7 @@ mod test {
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::server_keys::generate::Ca;
+    use http_utils::httpmock::httpmock_reqwest_client_builder;
     use http_utils::reqwest::HttpJsonClient;
     use http_utils::reqwest::default_reqwest_client_builder;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
@@ -278,7 +279,6 @@ mod test {
         (server, issuer_identifier, trust_anchor)
     }
 
-    #[cfg_attr(not(feature = "allow_insecure_url"), ignore = "requires allow_insecure_url feature")]
     #[tokio::test]
     async fn pre_authorized_code_flow() {
         let (_server, issuer_identifier, trust_anchor) = start_wiremock_issuer(None).await;
@@ -295,7 +295,7 @@ mod test {
         let query = serde_urlencoded::to_string(&container).unwrap();
         let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
 
-        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap());
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let session = discovery
             .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[trust_anchor])
@@ -312,7 +312,6 @@ mod test {
         );
     }
 
-    #[cfg_attr(not(feature = "allow_insecure_url"), ignore = "requires allow_insecure_url feature")]
     #[tokio::test]
     async fn authorization_code_flow() {
         let authorization_endpoint = "https://auth.example.com/authorize";
@@ -320,7 +319,7 @@ mod test {
 
         let redirect_uri: Url = "https://wallet.example.com/callback".parse().unwrap();
 
-        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap());
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         // Start the authorization code flow — fetches metadata and creates an auth session.
         let auth_session = discovery

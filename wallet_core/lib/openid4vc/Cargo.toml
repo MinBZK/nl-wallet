@@ -126,7 +126,7 @@ attestation_types = { path = "../attestation_types", features = ["test_pid_const
 crypto = { path = "../crypto", features = ["examples"] }
 dcql = { path = "../dcql", features = ["mock"] }
 http.workspace = true
-http_utils = { path = "../http_utils", features = ["client"] }
+http_utils = { path = "../http_utils", features = ["httpmock"] }
 jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["mock_example_constructors"] }
 sd_jwt = { path = "../sd_jwt", features = ["examples", "test"] }
