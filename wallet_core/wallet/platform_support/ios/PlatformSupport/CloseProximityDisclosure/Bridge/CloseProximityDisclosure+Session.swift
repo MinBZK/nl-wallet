@@ -170,7 +170,7 @@ extension CloseProximityDisclosure {
 
     func handleReaderMessage(
         session: CloseProximityDisclosureActiveSession,
-        transport: MdocTransport,
+        transport: CloseProximityBleTransport,
         message: KotlinByteArray,
         readerSessionContext: CloseProximityDisclosureReaderSessionContext
     ) async throws -> Bool {
@@ -255,7 +255,7 @@ extension CloseProximityDisclosure {
 
     func failSessionWithStatus(
         _ session: CloseProximityDisclosureActiveSession,
-        transport: MdocTransport,
+        transport: CloseProximityBleTransport,
         status: Int64,
         error: Error
     ) async {
@@ -263,7 +263,7 @@ extension CloseProximityDisclosure {
         // wallet core both observe a deterministic close proximity failure.
         if isActiveSession(session) {
             try? await transport.sendMessage(
-                message: SessionEncryption.companion.encodeStatus(statusCode: status)
+                message: SessionEncryption.companion.encodeStatus(statusCode: status).uint8Array()
             )
         }
         await failSession(session, error: error)
