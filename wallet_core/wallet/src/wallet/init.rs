@@ -184,6 +184,7 @@ where
         let credential_issuer_discovery =
             HttpIssuanceDiscovery::new(HttpJsonClient::try_new(reqwest_client_builder())?);
         let disclosure_client = VpDisclosureClient::new_with_client(reqwest_client_builder())?;
+        // Note that HTTP is explicitly allowed for the retrieval of status lists.
         let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
 
         let clients = Self {
