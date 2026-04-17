@@ -8,7 +8,7 @@ private struct Configuration {
     let serviceUuid: CBUUID
     let timeout: TimeInterval
     let sessionMessage: Data?
-    let expectedDeviceResponse: DeviceResponseExpectation?
+    let deviceResponseHandling: DeviceResponseHandling?
 
     static let defaultServiceUuidString = "08c5f8e7-3078-4cc3-b6f4-1f861a7f67e9"
     static let defaultTimeout: TimeInterval = 30
@@ -17,6 +17,7 @@ private struct Configuration {
     static let sessionEstablishedDeviceRequest = Data([0x01, 0x02, 0x03])
     static let sessionTerminationStatusCode: Int64 = 20
     static let bleEndByte: UInt8 = 0x02
+    static let deviceResponseHexMarker = "CLOSE_PROXIMITY_DEVICE_RESPONSE_HEX="
 }
 
 private struct EngagementData {
@@ -30,8 +31,9 @@ private struct SessionEstablishedData {
     let encodedSessionTranscript: Data
 }
 
-private struct DeviceResponseExpectation {
-    let expectedPlaintext: Data
+private struct DeviceResponseHandling {
+    let expectedPlaintext: Data?
+    let shouldPrintPlaintextHex: Bool
     let encodedSessionTranscript: Data
     let eDeviceKey: P256.KeyAgreement.PublicKey
 }
@@ -44,6 +46,7 @@ private enum ArgumentError: LocalizedError {
     case invalidConfiguration(String)
     case invalidDeterministicKey
     case unsupportedCurve(String)
+    case externalToolFailure(String)
     case unexpectedArgument(String)
 
     var errorDescription: String? {
@@ -62,6 +65,8 @@ private enum ArgumentError: LocalizedError {
             return "Invalid deterministic reader private key"
         case .unsupportedCurve(let reason):
             return "Unsupported curve: \(reason)"
+        case .externalToolFailure(let reason):
+            return "External tool failed: \(reason)"
         case .unexpectedArgument(let argument):
             return "Unexpected argument: \(argument)"
         }
@@ -277,7 +282,12 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
     var serviceUuidString = Configuration.defaultServiceUuidString
     var timeout = Configuration.defaultTimeout
     var qrCode: String?
+    var deviceRequestHex: String?
     var expectedDeviceResponseHex: String?
+    var readerCaCrtFile: String?
+    var readerCaKeyFile: String?
+    var readerAuthFile: String?
+    var printDeviceResponseHex = false
     var index = 0
 
     while index < arguments.count {
@@ -297,12 +307,30 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
             index += 1
             guard index < arguments.count else { throw ArgumentError.missingValue("--qr-code") }
             qrCode = arguments[index]
+        case "--device-request-hex":
+            index += 1
+            guard index < arguments.count else { throw ArgumentError.missingValue("--device-request-hex") }
+            deviceRequestHex = arguments[index]
         case "--expect-device-response-hex":
             index += 1
             guard index < arguments.count else {
                 throw ArgumentError.missingValue("--expect-device-response-hex")
             }
             expectedDeviceResponseHex = arguments[index]
+        case "--reader-ca-crt-file":
+            index += 1
+            guard index < arguments.count else { throw ArgumentError.missingValue("--reader-ca-crt-file") }
+            readerCaCrtFile = arguments[index]
+        case "--reader-ca-key-file":
+            index += 1
+            guard index < arguments.count else { throw ArgumentError.missingValue("--reader-ca-key-file") }
+            readerCaKeyFile = arguments[index]
+        case "--reader-auth-file":
+            index += 1
+            guard index < arguments.count else { throw ArgumentError.missingValue("--reader-auth-file") }
+            readerAuthFile = arguments[index]
+        case "--print-device-response-hex":
+            printDeviceResponseHex = true
         case "--help":
             print(
                 """
@@ -311,12 +339,23 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
                   --service-uuid <uuid>  BLE service UUID to scan for in connect-only mode.
                                          Default: \(Configuration.defaultServiceUuidString)
                   --qr-code <base64url>  Device-engagement QR payload. When set, the helper
-                                         writes the deterministic first reader message that
-                                         triggers SessionEstablished.
+                                         writes a reader session-establishment message.
+                  --device-request-hex <hex>
+                                         Override the plaintext DeviceRequest that will be
+                                         encrypted into the first reader message.
+                  --reader-ca-crt-file <path>
+                  --reader-ca-key-file <path>
+                  --reader-auth-file <path>
+                                         Generate a real signed DeviceRequest via
+                                         `wallet_ca reader-device-request` using the provided
+                                         reader CA material and reader_auth.json.
                   --expect-device-response-hex <hex>
                                          After SessionEstablished, wait for the holder to send
                                          an encrypted DeviceResponse with status 20, validate the
                                          decrypted plaintext, then send BLE end.
+                  --print-device-response-hex
+                                         Print the decrypted DeviceResponse plaintext as
+                                         \(Configuration.deviceResponseHexMarker)<hex>.
                   --timeout <seconds>    How long to wait before giving up.
                                          Default: \(Int(Configuration.defaultTimeout))
                 """
@@ -329,28 +368,72 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
         index += 1
     }
 
-    if expectedDeviceResponseHex != nil && qrCode == nil {
-        throw ArgumentError.invalidConfiguration("--expect-device-response-hex requires --qr-code")
+    if (expectedDeviceResponseHex != nil || deviceRequestHex != nil || printDeviceResponseHex) && qrCode == nil {
+        throw ArgumentError.invalidConfiguration(
+            "--device-request-hex, --expect-device-response-hex, and --print-device-response-hex require --qr-code"
+        )
+    }
+
+    let usesReaderMaterial = readerCaCrtFile != nil || readerCaKeyFile != nil || readerAuthFile != nil
+    if usesReaderMaterial && qrCode == nil {
+        throw ArgumentError.invalidConfiguration(
+            "--reader-ca-crt-file, --reader-ca-key-file, and --reader-auth-file require --qr-code"
+        )
+    }
+    if usesReaderMaterial && (readerCaCrtFile == nil || readerCaKeyFile == nil || readerAuthFile == nil) {
+        throw ArgumentError.invalidConfiguration(
+            "--reader-ca-crt-file, --reader-ca-key-file, and --reader-auth-file must be provided together"
+        )
+    }
+    if usesReaderMaterial && deviceRequestHex != nil {
+        throw ArgumentError.invalidConfiguration(
+            "--device-request-hex cannot be combined with --reader-ca-crt-file/--reader-ca-key-file/--reader-auth-file"
+        )
     }
 
     if let qrCode {
         let engagement = try parseDeviceEngagement(fromBase64Url: qrCode)
-        let sessionEstablishedData = try buildSessionEstablishedMessage(engagement: engagement)
-        let expectedDeviceResponse: DeviceResponseExpectation?
-        if let expectedDeviceResponseHex {
-            expectedDeviceResponse = DeviceResponseExpectation(
-                expectedPlaintext: try hexDecodedData(expectedDeviceResponseHex),
+        let encodedSessionTranscript = try buildEncodedSessionTranscript(engagement: engagement)
+        let deviceRequest: Data
+        if let deviceRequestHex {
+            deviceRequest = try hexDecodedData(deviceRequestHex)
+        } else if let readerCaCrtFile, let readerCaKeyFile, let readerAuthFile {
+            deviceRequest = try generateReaderDeviceRequest(
+                encodedSessionTranscript: encodedSessionTranscript,
+                readerCaCrtFile: readerCaCrtFile,
+                readerCaKeyFile: readerCaKeyFile,
+                readerAuthFile: readerAuthFile
+            )
+        } else {
+            deviceRequest = Configuration.sessionEstablishedDeviceRequest
+        }
+        let sessionEstablishedData = try buildSessionEstablishedMessage(
+            engagement: engagement,
+            deviceRequest: deviceRequest
+        )
+
+        let deviceResponseHandling: DeviceResponseHandling?
+        if expectedDeviceResponseHex != nil || printDeviceResponseHex {
+            let expectedPlaintext: Data?
+            if let expectedDeviceResponseHex {
+                expectedPlaintext = try hexDecodedData(expectedDeviceResponseHex)
+            } else {
+                expectedPlaintext = nil
+            }
+            deviceResponseHandling = DeviceResponseHandling(
+                expectedPlaintext: expectedPlaintext,
+                shouldPrintPlaintextHex: printDeviceResponseHex,
                 encodedSessionTranscript: sessionEstablishedData.encodedSessionTranscript,
                 eDeviceKey: engagement.eDeviceKey
             )
         } else {
-            expectedDeviceResponse = nil
+            deviceResponseHandling = nil
         }
         return Configuration(
             serviceUuid: engagement.serviceUuid,
             timeout: timeout,
             sessionMessage: sessionEstablishedData.message,
-            expectedDeviceResponse: expectedDeviceResponse
+            deviceResponseHandling: deviceResponseHandling
         )
     }
 
@@ -358,7 +441,7 @@ private func parseConfiguration(arguments: [String]) throws -> Configuration {
         serviceUuid: CBUUID(string: serviceUuidString),
         timeout: timeout,
         sessionMessage: nil,
-        expectedDeviceResponse: nil
+        deviceResponseHandling: nil
     )
 }
 
@@ -400,16 +483,25 @@ private func parseDeviceEngagement(fromBase64Url qrCode: String) throws -> Engag
     )
 }
 
-private func buildSessionEstablishedMessage(engagement: EngagementData) throws -> SessionEstablishedData {
+private func buildEncodedSessionTranscript(engagement: EngagementData) throws -> Data {
     let readerPrivateKey = try deterministicReaderPrivateKey()
     let encodedReaderCoseKey = encodeP256PublicKeyAsCoseKey(readerPrivateKey.publicKey)
-    let encodedSessionTranscript = cborEncode(
+    return cborEncode(
         .array([
             .tagged(24, .bytes(engagement.encodedDeviceEngagement)),
             .tagged(24, .bytes(encodedReaderCoseKey)),
             .null,
         ])
     )
+}
+
+private func buildSessionEstablishedMessage(
+    engagement: EngagementData,
+    deviceRequest: Data
+) throws -> SessionEstablishedData {
+    let readerPrivateKey = try deterministicReaderPrivateKey()
+    let encodedReaderCoseKey = encodeP256PublicKeyAsCoseKey(readerPrivateKey.publicKey)
+    let encodedSessionTranscript = try buildEncodedSessionTranscript(engagement: engagement)
 
     let skReader = try deriveSessionKey(
         eDeviceKey: engagement.eDeviceKey,
@@ -422,7 +514,7 @@ private func buildSessionEstablishedMessage(engagement: EngagementData) throws -
         0x00, 0x00, 0x00, 0x01,
     ]))
     let sealedBox = try AES.GCM.seal(
-        Configuration.sessionEstablishedDeviceRequest,
+        deviceRequest,
         using: skReader,
         nonce: nonce
     )
@@ -575,22 +667,89 @@ private func hexDecodedData(_ hex: String) throws -> Data {
     return Data(bytes)
 }
 
-private func validateDeviceResponseMessage(
+private func hexEncodedData(_ data: Data) -> String {
+    data.map { String(format: "%02x", $0) }.joined()
+}
+
+private func generateReaderDeviceRequest(
+    encodedSessionTranscript: Data,
+    readerCaCrtFile: String,
+    readerCaKeyFile: String,
+    readerAuthFile: String
+) throws -> Data {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+    process.arguments = [
+        "cargo",
+        "run",
+        "--quiet",
+        "--manifest-path",
+        "wallet_core/Cargo.toml",
+        "--bin",
+        "wallet_ca",
+        "--",
+        "reader-device-request",
+        "--ca-crt-file",
+        readerCaCrtFile,
+        "--ca-key-file",
+        readerCaKeyFile,
+        "--reader-auth-file",
+        readerAuthFile,
+        "--session-transcript-hex",
+        hexEncodedData(encodedSessionTranscript),
+    ]
+    process.currentDirectoryURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+
+    let stdout = Pipe()
+    let stderr = Pipe()
+    process.standardOutput = stdout
+    process.standardError = stderr
+
+    do {
+        try process.run()
+    } catch {
+        throw ArgumentError.externalToolFailure(error.localizedDescription)
+    }
+
+    process.waitUntilExit()
+
+    let stdoutData = stdout.fileHandleForReading.readDataToEndOfFile()
+    let stderrData = stderr.fileHandleForReading.readDataToEndOfFile()
+    let stdoutText = String(decoding: stdoutData, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+    let stderrText = String(decoding: stderrData, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+
+    guard process.terminationStatus == 0 else {
+        throw ArgumentError.externalToolFailure(stderrText.isEmpty ? "wallet_ca exited with code \(process.terminationStatus)" : stderrText)
+    }
+    guard !stdoutText.isEmpty else {
+        throw ArgumentError.externalToolFailure("wallet_ca did not return a DeviceRequest hex payload")
+    }
+
+    return try hexDecodedData(stdoutText)
+}
+
+private func decryptedDeviceResponsePlaintext(
     _ message: Data,
-    expectation: DeviceResponseExpectation
-) throws {
+    handling: DeviceResponseHandling
+) throws -> Data {
     var parser = CborParser(data: message)
     let root = try parser.decode()
 
     guard let entries = root.map else {
         throw ValidationError.invalidDeviceResponse("Reader received a device response that is not a CBOR map")
     }
+    let status = lookup(entries, textKey: "status")?.int
     guard let encryptedPayload = lookup(entries, textKey: "data")?.bytes else {
+        if let status {
+            throw ValidationError.invalidDeviceResponse(
+                "Reader received status \(status) instead of an encrypted DeviceResponse"
+            )
+        }
         throw ValidationError.invalidDeviceResponse("Reader received a device response without a data field")
     }
-    guard lookup(entries, textKey: "status")?.int == Configuration.sessionTerminationStatusCode else {
+    guard status == Configuration.sessionTerminationStatusCode else {
         throw ValidationError.invalidDeviceResponse(
-            "reader received a device response without status \(Configuration.sessionTerminationStatusCode)"
+            "reader received status \(status ?? -1) instead of \(Configuration.sessionTerminationStatusCode)"
         )
     }
     guard encryptedPayload.count >= 16 else {
@@ -598,8 +757,8 @@ private func validateDeviceResponseMessage(
     }
 
     let skDevice = try deriveSessionKey(
-        eDeviceKey: expectation.eDeviceKey,
-        encodedSessionTranscript: expectation.encodedSessionTranscript,
+        eDeviceKey: handling.eDeviceKey,
+        encodedSessionTranscript: handling.encodedSessionTranscript,
         sharedInfo: "SKDevice"
     )
     let nonce = try AES.GCM.Nonce(data: Data([
@@ -614,18 +773,14 @@ private func validateDeviceResponseMessage(
         ciphertext: Data(ciphertext),
         tag: Data(tag)
     )
-    let plaintext = try AES.GCM.open(sealedBox, using: skDevice)
-
-    guard plaintext == expectation.expectedPlaintext else {
-        throw ValidationError.invalidDeviceResponse("Reader received an unexpected device response payload")
-    }
+    return try AES.GCM.open(sealedBox, using: skDevice)
 }
 
 private final class CloseProximityReader: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate {
     private let serviceUuid: CBUUID
     private let timeout: TimeInterval
     private let sessionMessage: Data?
-    private let expectedDeviceResponse: DeviceResponseExpectation?
+    private let deviceResponseHandling: DeviceResponseHandling?
     private let stateCharacteristicUuid = CBUUID(string: "00000001-a123-48ce-896b-4c76973373e6")
     private let clientToServerCharacteristicUuid = CBUUID(string: "00000002-a123-48ce-896b-4c76973373e6")
     private let serverToClientCharacteristicUuid = CBUUID(string: "00000003-a123-48ce-896b-4c76973373e6")
@@ -636,27 +791,38 @@ private final class CloseProximityReader: NSObject, CBCentralManagerDelegate, CB
     private var hasTriggeredStart = false
     private var hasCompletedDeviceResponseFlow = false
     private var deviceResponseBuffer = Data()
+    private var serverToClientChunkCount = 0
+    private var serverToClientBufferedByteCount = 0
     private var timeoutTimer: Timer?
 
     init(configuration: Configuration) {
         serviceUuid = configuration.serviceUuid
         timeout = configuration.timeout
         sessionMessage = configuration.sessionMessage
-        expectedDeviceResponse = configuration.expectedDeviceResponse
+        deviceResponseHandling = configuration.deviceResponseHandling
         super.init()
     }
 
     func run() -> Never {
         if sessionMessage == nil {
             log("Waiting for service \(serviceUuid.uuidString)")
-        } else if expectedDeviceResponse == nil {
-            log("Waiting for service \(serviceUuid.uuidString) to send SessionEstablished test message")
+        } else if let deviceResponseHandling {
+            if deviceResponseHandling.expectedPlaintext == nil {
+                log("Waiting for service \(serviceUuid.uuidString) to capture a decrypted DeviceResponse")
+            } else {
+                log("Waiting for service \(serviceUuid.uuidString) to validate DeviceResponse test message")
+            }
         } else {
-            log("Waiting for service \(serviceUuid.uuidString) to validate DeviceResponse test message")
+            log("Waiting for service \(serviceUuid.uuidString) to send SessionEstablished test message")
         }
 
         timeoutTimer = Timer.scheduledTimer(withTimeInterval: timeout, repeats: false) { [weak self] _ in
-            self?.fail("Timed out after \(Int(self?.timeout ?? 0)) seconds")
+            guard let self else { return }
+            self.fail(
+                "Timed out after \(Int(self.timeout)) seconds "
+                    + "(serverToClientChunkCount=\(self.serverToClientChunkCount), "
+                    + "bufferedBytes=\(self.serverToClientBufferedByteCount))"
+            )
         }
 
         centralManager = CBCentralManager(delegate: self, queue: nil)
@@ -739,7 +905,7 @@ private final class CloseProximityReader: NSObject, CBCentralManagerDelegate, CB
         if sessionMessage != nil {
             characteristicUuids.append(clientToServerCharacteristicUuid)
         }
-        if expectedDeviceResponse != nil {
+        if deviceResponseHandling != nil {
             characteristicUuids.append(serverToClientCharacteristicUuid)
         }
         peripheral.discoverCharacteristics(characteristicUuids, for: service)
@@ -763,7 +929,7 @@ private final class CloseProximityReader: NSObject, CBCentralManagerDelegate, CB
         }
         self.stateCharacteristic = stateCharacteristic
 
-        if expectedDeviceResponse != nil {
+        if deviceResponseHandling != nil {
             guard let serverToClientCharacteristic = service.characteristics?.first(
                 where: { $0.uuid == serverToClientCharacteristicUuid }
             ) else {
@@ -800,7 +966,7 @@ private final class CloseProximityReader: NSObject, CBCentralManagerDelegate, CB
             self.writeMessage(sessionMessage, to: clientToServerCharacteristic, peripheral: peripheral)
             self.log("Session establishment message written")
 
-            if self.expectedDeviceResponse == nil {
+            if self.deviceResponseHandling == nil {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
                     self?.succeed("Session establishment message written successfully")
                 }
@@ -839,12 +1005,19 @@ private final class CloseProximityReader: NSObject, CBCentralManagerDelegate, CB
             return
         }
 
+        serverToClientChunkCount += 1
+        let prefix = chunk.first.map { String(format: "0x%02x", $0) } ?? "<missing>"
+        log(
+            "Received server-to-client chunk #\(serverToClientChunkCount) "
+                + "length \(chunk.count) prefix \(prefix)"
+        )
+
         handleDeviceResponseChunk(chunk, peripheral: peripheral)
     }
 
     private func handleDeviceResponseChunk(_ chunk: Data, peripheral: CBPeripheral) {
         guard !hasCompletedDeviceResponseFlow else { return }
-        guard let expectedDeviceResponse else {
+        guard let deviceResponseHandling else {
             fail("Received an unexpected holder message")
             return
         }
@@ -854,14 +1027,23 @@ private final class CloseProximityReader: NSObject, CBCentralManagerDelegate, CB
         }
 
         deviceResponseBuffer.append(chunk.dropFirst())
+        serverToClientBufferedByteCount = deviceResponseBuffer.count
 
         switch chunk[0] {
         case 0x00:
             let completeMessage = deviceResponseBuffer
             deviceResponseBuffer.removeAll(keepingCapacity: true)
+            serverToClientBufferedByteCount = 0
+            log("Received final server-to-client chunk, complete encrypted message length \(completeMessage.count)")
 
             do {
-                try validateDeviceResponseMessage(completeMessage, expectation: expectedDeviceResponse)
+                let plaintext = try decryptedDeviceResponsePlaintext(completeMessage, handling: deviceResponseHandling)
+                if let expectedPlaintext = deviceResponseHandling.expectedPlaintext, plaintext != expectedPlaintext {
+                    throw ValidationError.invalidDeviceResponse("Reader received an unexpected device response payload")
+                }
+                if deviceResponseHandling.shouldPrintPlaintextHex {
+                    print("\(Configuration.deviceResponseHexMarker)\(hexEncodedData(plaintext))")
+                }
             } catch {
                 fail("DeviceResponse validation failed: \(error.localizedDescription)")
                 return
@@ -885,6 +1067,7 @@ private final class CloseProximityReader: NSObject, CBCentralManagerDelegate, CB
                 self?.succeed("Device response validated and BLE end sent successfully")
             }
         case 0x01:
+            log("Buffered intermediate server-to-client chunk, encrypted message length so far \(deviceResponseBuffer.count)")
             break
         default:
             fail("Invalid first byte \(chunk[0]) in server-to-client data chunk")
