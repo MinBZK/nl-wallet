@@ -318,11 +318,13 @@ impl Example for crate::ReaderAuthenticationBytes<'_> {
 #[cfg(test)]
 impl Example for crate::utils::serialization::CborSeq<crate::OID4VPHandoverInfo<'_>> {
     fn example_hex() -> &'static str {
+        // Derived from the referenced OpenID4VP example, updated for x509_hash client IDs.
         // Source: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.2.6.1-9
-        "847818783530395f73616e5f646e733a6578616d706c652e636f6d782b6578633767\
-         426b786a7831726463397564527276654b7653734a4971383061766c58654c486847\
-         7771744158204283ec927ae0f208daaa2d026a814f2b22dca52cf85ffa8f3f8626c6\
-         bd669047781c68747470733a2f2f6578616d706c652e636f6d2f726573706f6e7365"
+        "847835783530395f686173683a5238636c587851436f6d6537307772596c374b786b\
+         5f584a37654e426e426b4b474b685f4e61335a344251782b6578633767426b786a7831\
+         726463397564527276654b7653734a4971383061766c58654c48684777717441582042\
+         83ec927ae0f208daaa2d026a814f2b22dca52cf85ffa8f3f8626c6bd669047781c6874\
+         7470733a2f2f6578616d706c652e636f6d2f726573706f6e7365"
     }
 }
 

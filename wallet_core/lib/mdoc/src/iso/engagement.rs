@@ -521,7 +521,7 @@ mod tests {
 
         use super::*;
 
-        const EXAMPLE_CLIENT_ID: &str = "x509_san_dns:example.com";
+        const EXAMPLE_CLIENT_ID: &str = "x509_hash:R8clXxQCome70wrYl7Kxk_XJ7eNBnBkKGKh_Na3Z4BQ";
         const EXAMPLE_NONCE: &str = "exc7gBkxjx1rdc9udRrveKvSsJIq80avlXeLHhGwqtA";
         const EXAMPLE_RESPONSE_URI: &str = "https://example.com/response";
 
@@ -543,10 +543,11 @@ mod tests {
                 .unwrap()
         });
 
+        // Derived from the referenced OpenID4VP example, updated for x509_hash client IDs.
         // Source: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.2.6.1-13
         const EXAMPLE_SESSION_TRANSCRIPT_BYTES: [u8; 56] = hex!(
-            "83f6f682714f70656e494434565048616e646f7665725820048bc053c00442af9b8e\
-             ed494cefdd9d95240d254b046b11b68013722aad38ac"
+            "83f6f682714f70656e494434565048616e646f76657258209ffa00144999d054bfd6\
+             2d305c1a81ce99b72d1c779d437b16625c0d3988429f"
         );
 
         #[test]
