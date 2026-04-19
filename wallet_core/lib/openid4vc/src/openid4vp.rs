@@ -315,13 +315,6 @@ impl FromStr for ClientId {
 }
 
 impl ClientId {
-    pub fn x509_san_dns(id: impl Into<String>) -> Self {
-        Self {
-            id: id.into(),
-            scheme: Some(ClientIdScheme::X509SanDns),
-        }
-    }
-
     pub fn x509_hash(id: impl Into<String>) -> Self {
         Self {
             id: id.into(),
@@ -1500,8 +1493,8 @@ mod tests {
     fn test_authorization_request_validate_unsupported_client_id_scheme() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
         let mut auth_request = VpAuthorizationRequest::from(auth_request);
-        let dns_san = rp_keypair.certificate().san_dns_name().unwrap().unwrap();
-        auth_request.oauth_request.client_id = format!("redirect_uri:{dns_san}");
+        let certificate_hash = ClientId::x509_hash_from_certificate(rp_keypair.certificate()).id;
+        auth_request.oauth_request.client_id = format!("redirect_uri:{certificate_hash}");
 
         let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
         assert_matches!(
@@ -1516,8 +1509,7 @@ mod tests {
     fn test_authorization_request_validate_unsupported_client_id_without_scheme() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
         let mut auth_request = VpAuthorizationRequest::from(auth_request);
-        let dns_san = rp_keypair.certificate().san_dns_name().unwrap().unwrap();
-        auth_request.oauth_request.client_id = dns_san.to_string();
+        auth_request.oauth_request.client_id = ClientId::x509_hash_from_certificate(rp_keypair.certificate()).id;
 
         let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
         assert_matches!(err, AuthRequestValidationError::UnsupportedClientIdWithoutScheme);
