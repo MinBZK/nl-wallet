@@ -1182,12 +1182,7 @@ pub mod test {
             response_uri: BaseUrl,
             wallet_nonce: Option<String>,
         ) -> Self {
-            let client_id = ClientId::x509_san_dns(
-                rp_certificate
-                    .san_dns_name()
-                    .expect("certificate SAN DNSName should be parseable")
-                    .expect("certificate should contain SAN DNSName"),
-            );
+            let client_id = ClientId::x509_hash_from_certificate(rp_certificate);
 
             Self::new_for_verifier(
                 credential_requests,
@@ -1417,6 +1412,16 @@ mod tests {
         );
 
         (trust_anchor, rp_keypair, encryption_secret_key, auth_request)
+    }
+
+    #[test]
+    fn test_new_from_certificate_uses_x509_hash_client_id() {
+        let (_, rp_keypair, _, auth_request) = setup_mdoc();
+
+        assert_eq!(
+            auth_request.client_id,
+            ClientId::x509_hash_from_certificate(rp_keypair.certificate())
+        );
     }
 
     #[test]
