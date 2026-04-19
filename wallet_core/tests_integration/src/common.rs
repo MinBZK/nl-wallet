@@ -1133,15 +1133,25 @@ pub fn universal_link(issuance_server_url: &BaseUrl, format: CredentialFormat) -
     })
     .unwrap();
 
-    let issuance_path = match format {
-        CredentialFormat::MsoMdoc => "/disclosure/university_mdoc/request_uri",
-        CredentialFormat::SdJwt => "/disclosure/university_sd_jwt/request_uri",
+    let settings = IssuanceServerSettings::new("issuance_server.toml", "issuance_server")
+        .expect("Could not read issuance server settings");
+    let (issuance_path, client_id) = match format {
+        CredentialFormat::MsoMdoc => (
+            "/disclosure/university_mdoc/request_uri",
+            ClientId::x509_hash_from_certificate(&settings.disclosure_settings["university_mdoc"].key_pair.certificate),
+        ),
+        CredentialFormat::SdJwt => (
+            "/disclosure/university_sd_jwt/request_uri",
+            ClientId::x509_hash_from_certificate(
+                &settings.disclosure_settings["university_sd_jwt"].key_pair.certificate,
+            ),
+        ),
     };
     let mut issuance_server_url = issuance_server_url.join_base_url(issuance_path).into_inner();
     issuance_server_url.set_query(Some(&params));
 
     let query = serde_urlencoded::to_string(VpRequestUri {
-        client_id: ClientId::x509_san_dns("localhost"),
+        client_id,
         object: VpRequestUriObject::AsReference {
             request_uri: issuance_server_url.try_into().unwrap(),
             request_uri_method: Some(VpRequestUriMethod::POST),
