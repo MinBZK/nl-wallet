@@ -63,6 +63,43 @@ use serde_with::SerializeAs;
 use serde_with::SerializeDisplay;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
+
+use attestation_data::disclosure::DisclosedAttestation;
+use attestation_data::disclosure::DisclosedAttestationError;
+use attestation_data::disclosure::DisclosedAttestations;
+use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateUsage;
+use dcql::CredentialQueryIdentifier;
+use dcql::Query;
+use dcql::disclosure::CredentialValidationError;
+use dcql::disclosure::ExtendingVctRetriever;
+use dcql::normalized::NormalizedCredentialRequests;
+use dcql::normalized::UnsupportedDcqlFeatures;
+use dcql::unique_id_vec::UniqueIdVec;
+use error_category::ErrorCategory;
+use http_utils::urls::BaseUrl;
+use jwe::algorithm::EncryptionAlgorithm;
+use jwe::decryption::ExpectedEncryptionAlgorithm;
+use jwe::decryption::JweDecrypter;
+use jwe::decryption::JweEcdhSecretKey;
+use jwe::encryption::JweCompression;
+use jwe::encryption::JweEncrypter;
+use jwe::encryption::JwePublicKey;
+use jwe::error::EcdhPublicJwkError;
+use jwe::error::JweJsonDecryptionError;
+use jwe::error::JweJsonEncryptionError;
+use jwt::Algorithm;
+use jwt::JwtTyp;
+use jwt::UnverifiedJwt;
+use jwt::Validation;
+use jwt::error::JwtX5cError;
+use jwt::headers::HeaderWithX5c;
+use jwt::nonce::Nonce;
+use mdoc::DeviceResponse;
+use mdoc::SessionTranscript;
+use mdoc::utils::serialization::CborBase64;
+use sd_jwt::key_binding_jwt::KbVerificationOptions;
+use sd_jwt::sd_jwt::UnverifiedSdJwtPresentation;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
@@ -390,25 +427,14 @@ pub enum AuthRequestValidationError {
     )]
     #[category(critical)]
     NoSupportedEncryptedResponseEnc(VecNonEmpty<JweEncryptionAlgorithm>),
-    #[error("unsupported client_id scheme: {scheme}. Only x509_san_dns and x509_hash are currently supported")]
+    #[error("unsupported client_id scheme: {scheme}. Only x509_hash is currently supported")]
     #[category(critical)]
     UnsupportedClientIdScheme { scheme: ClientIdScheme },
-    #[error(
-        "unsupported client_id without a scheme (pre-registered). Only x509_san_dns and x509_hash are currently supported"
-    )]
+    #[error("unsupported client_id without a scheme (pre-registered). Only x509_hash is currently supported")]
     #[category(critical)]
     UnsupportedClientIdWithoutScheme,
-    #[error("response_uri fqdn {fqdn} does not match client_id {id}.")]
-    #[category(critical)]
-    UnmatchedResponseFqdn { fqdn: String, id: String },
     #[error("unsupported DCQL query: {0}")]
     UnsupportedDcqlQuery(#[from] UnsupportedDcqlFeatures),
-    #[error(
-        "client_id from Authorization Request was {client_id}, should have been x509_san_dns:{dns_san} to match the \
-         SAN DNSName from the X.509 certificate"
-    )]
-    #[category(critical)]
-    UnauthorizedClientId { client_id: String, dns_san: String },
     #[error(
         "client_id from Authorization Request was {client_id}, should have been x509_hash:{certificate_hash} to match the \
          leaf X.509 certificate from the x5c JOSE header"
@@ -418,11 +444,6 @@ pub enum AuthRequestValidationError {
         client_id: String,
         certificate_hash: String,
     },
-    #[error("Subject Alternative Name missing from X.509 certificate")]
-    #[category(critical)]
-    MissingSAN,
-    #[error("error parsing X.509 certificate: {0}")]
-    CertificateParsing(#[from] CertificateError),
     #[error("failed to verify Authorization Request JWT: {0}")]
     JwtVerification(#[from] JwtX5cError),
     #[error("mismatch in wallet nonce: did not receive nonce when one was expected, or vice versa")]
@@ -458,7 +479,7 @@ impl VpAuthorizationRequest {
 
     /// Validate that an Authorization Request satisfies the following:
     /// - the request contents are compliant with the OpenID4VP specification.
-    /// - the `client_id` uses either the `x509_san_dns` or `x509_hash` scheme and matches the X.509 certificate.
+    /// - the `client_id` uses the `x509_hash` scheme and matches the leaf X.509 certificate.
     ///
     /// This method consumes `self` and turns it into an [`NormalizedVpAuthorizationRequest`], which
     /// contains only the fields we need and use.
@@ -478,39 +499,10 @@ impl VpAuthorizationRequest {
         let selected_encryption_algorithm =
             NormalizedVpAuthorizationRequest::select_encryption_algorithm(&validated_auth_request.client_metadata)?;
         let client_id = &validated_auth_request.client_id;
+        let certificate_client_id = ClientId::x509_hash_from_certificate(rp_cert);
 
         match &client_id.scheme {
-            Some(ClientIdScheme::X509SanDns) => {
-                let dns_sans = rp_cert.san_dns_names()?;
-                if dns_sans.is_empty() {
-                    return Err(AuthRequestValidationError::MissingSAN);
-                }
-
-                if !dns_sans.contains(&client_id.id.as_str()) {
-                    return Err(AuthRequestValidationError::UnauthorizedClientId {
-                        client_id: client_id.to_string(),
-                        dns_san: dns_sans.join(", "),
-                    });
-                }
-
-                // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.2
-                // This checks the fqdn of the response uri against the x509_san_dns client id.
-                if let Some(response_uri_fqdn) = validated_auth_request.response_uri.fqdn() {
-                    if response_uri_fqdn != client_id.id {
-                        return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
-                            fqdn: response_uri_fqdn.to_string(),
-                            id: client_id.id.clone(),
-                        });
-                    }
-                } else {
-                    return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
-                        fqdn: validated_auth_request.response_uri.to_string(),
-                        id: client_id.id.clone(),
-                    });
-                }
-            }
             Some(ClientIdScheme::X509Hash) => {
-                let certificate_client_id = ClientId::x509_hash_from_certificate(rp_cert);
                 if client_id != &certificate_client_id {
                     return Err(AuthRequestValidationError::UnauthorizedClientIdHash {
                         client_id: client_id.to_string(),
@@ -1220,9 +1212,6 @@ mod tests {
     use dcql::CredentialQueryIdentifier;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
-    use futures::FutureExt;
-    use http_utils::urls::BaseUrl;
-    use itertools::Itertools;
     use jwe::algorithm::EcdhAlgorithm;
     use jwe::algorithm::EncryptionAlgorithm;
     use jwe::decryption::JweEcdhSecretKey;
@@ -1488,20 +1477,19 @@ mod tests {
     }
 
     #[test]
-    fn test_authorization_request_validate_unauthorized_client_id() {
+    fn test_authorization_request_validate_x509_san_dns_client_id_is_unsupported() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
         let mut auth_request = VpAuthorizationRequest::from(auth_request);
-        let wrong_dns_san = "wrong.example.com";
-        let cert_dns_san = rp_keypair.certificate().san_dns_name().unwrap().unwrap();
+        let dns_san = rp_keypair.certificate().san_dns_name().unwrap().unwrap();
 
-        auth_request.oauth_request.client_id = format!("x509_san_dns:{wrong_dns_san}");
-        auth_request.response_uri = Some(format!("https://{wrong_dns_san}/response_uri").parse().unwrap());
+        auth_request.oauth_request.client_id = format!("x509_san_dns:{dns_san}");
 
         let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
         assert_matches!(
             err,
-            AuthRequestValidationError::UnauthorizedClientId { client_id, dns_san }
-            if client_id == format!("x509_san_dns:{wrong_dns_san}") && dns_san.contains(cert_dns_san)
+            AuthRequestValidationError::UnsupportedClientIdScheme {
+                scheme: ClientIdScheme::X509SanDns
+            }
         );
     }
 
@@ -1557,41 +1545,6 @@ mod tests {
 
         let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
         assert_matches!(err, AuthRequestValidationError::UnsupportedClientIdWithoutScheme);
-    }
-
-    #[test]
-    fn test_authorization_request_validate_unmatched_response_fqdn() {
-        let (_, rp_keypair, _, auth_request) = setup_mdoc();
-        let mut auth_request = VpAuthorizationRequest::from(auth_request);
-        let wrong_fqdn = "wrong.example.com";
-        let expected_client_id = rp_keypair.certificate().san_dns_name().unwrap().unwrap().to_string();
-
-        auth_request.response_uri = Some(format!("https://{wrong_fqdn}/response_uri").parse().unwrap());
-
-        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
-        assert_matches!(
-            err,
-            AuthRequestValidationError::UnmatchedResponseFqdn { fqdn, id }
-            if fqdn == wrong_fqdn && id == expected_client_id
-        );
-    }
-
-    #[test]
-    fn test_authorization_request_validate_unmatched_response_fqdn_without_fqdn() {
-        let (_, rp_keypair, _, auth_request) = setup_mdoc();
-        let mut auth_request = VpAuthorizationRequest::from(auth_request);
-        let response_uri: BaseUrl = "file:///response_uri".parse().unwrap();
-        let expected_response_uri = response_uri.to_string();
-        let expected_client_id = rp_keypair.certificate().san_dns_name().unwrap().unwrap().to_string();
-
-        auth_request.response_uri = Some(response_uri);
-
-        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
-        assert_matches!(
-            err,
-            AuthRequestValidationError::UnmatchedResponseFqdn { fqdn, id }
-            if fqdn == expected_response_uri && id == expected_client_id
-        );
     }
 
     #[test]
