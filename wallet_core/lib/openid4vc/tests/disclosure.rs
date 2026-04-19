@@ -1076,15 +1076,12 @@ where
     let test_credentials = nl_pid_credentials_full_name();
     let dcql_query = test_credentials.to_dcql_query([CredentialFormat::SdJwt]);
     let reader_registration = ReaderRegistration::mock_from_dcql_query(&dcql_query);
-    let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
-    let use_case = WalletInitiatedUseCase::try_new(
+    let use_case = WalletInitiatedUseCase::new(
         generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
-        &public_url,
         SessionTypeReturnUrl::SameDevice,
         dcql_query.try_into().unwrap(),
         "https://example.com/redirect_uri".parse().unwrap(),
-    )
-    .unwrap();
+    );
     let client_id = use_case.data().client_id.clone();
     let usecases = HashMap::from([(WALLET_INITIATED_RETURN_URL_USE_CASE.to_string(), use_case)]);
 
@@ -1122,32 +1119,37 @@ fn setup_verifier(
         .unwrap();
 
     // Initialize the verifier
-    let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
     let reader_registration = ReaderRegistration::mock_from_dcql_query(dcql_query);
     let usecases = HashMap::from([
         (
-            DEFAULT_RETURN_URL_USE_CASE.to_string(),
-            RpInitiatedUseCase::try_new(
+            NO_RETURN_URL_USE_CASE.to_string(),
+            RpInitiatedUseCase::new(
                 generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
-                &public_url,
+                SessionTypeReturnUrl::Neither,
+                None,
+                None,
+                false,
+            ),
+        ),
+        (
+            DEFAULT_RETURN_URL_USE_CASE.to_string(),
+            RpInitiatedUseCase::new(
+                generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
                 SessionTypeReturnUrl::SameDevice,
                 None,
                 None,
                 false,
-            )
-            .unwrap(),
+            ),
         ),
         (
             ALL_RETURN_URL_USE_CASE.to_string(),
-            RpInitiatedUseCase::try_new(
+            RpInitiatedUseCase::new(
                 generate_reader_mock_with_registration(&rp_ca, reader_registration).unwrap(),
-                &public_url,
                 SessionTypeReturnUrl::Both,
                 None,
                 None,
                 false,
-            )
-            .unwrap(),
+            ),
         ),
     ]);
 

@@ -105,16 +105,15 @@ impl UseCasesSettings {
     pub async fn parse<S>(
         self,
         hsm: Option<Pkcs11Hsm>,
-        public_url: &BaseUrl,
         ephemeral_id_secret: hmac::Key,
         sessions: Arc<S>,
     ) -> Result<RpInitiatedUseCases<PrivateKeyVariant, S>, anyhow::Error>
     where
         S: SessionStore<DisclosureData>,
     {
-        let iter = self.into_iter().map(|(id, use_case)| async {
-            Ok::<_, anyhow::Error>((id, use_case.parse(hsm.clone(), public_url).await?))
-        });
+        let iter = self
+            .into_iter()
+            .map(|(id, use_case)| async { Ok::<_, anyhow::Error>((id, use_case.parse(hsm.clone()).await?)) });
 
         let use_cases = try_join_all(iter)
             .await?
@@ -126,19 +125,14 @@ impl UseCasesSettings {
 }
 
 impl UseCaseSettings {
-    pub async fn parse(
-        self,
-        hsm: Option<Pkcs11Hsm>,
-        public_url: &BaseUrl,
-    ) -> Result<RpInitiatedUseCase<PrivateKeyVariant>, anyhow::Error> {
-        let use_case = RpInitiatedUseCase::try_new(
+    pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<RpInitiatedUseCase<PrivateKeyVariant>, anyhow::Error> {
+        let use_case = RpInitiatedUseCase::new(
             self.key_pair.parse(hsm).await?,
-            public_url,
             self.session_type_return_url,
             self.dcql_query.map(TryInto::try_into).transpose()?,
             self.return_url_template,
             self.accept_undetermined_revocation_status,
-        )?;
+        );
 
         Ok(use_case)
     }

@@ -15,7 +15,6 @@ use crypto::EcdsaKeySend;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
-use crypto::x509::CertificateError;
 use dcql::Query;
 use dcql::disclosure::ExtendingVctRetriever;
 use dcql::normalized::NormalizedCredentialRequests;
@@ -159,19 +158,6 @@ pub enum PostAuthResponseError {
     HandlingDisclosureResult(#[from] DisclosureResultHandlerError),
     #[error("failed serializing response: {0}")]
     ResponseEncoding(#[from] serde_urlencoded::ser::Error),
-}
-
-/// Errors that can occur when creating a [`UseCase`] instance.
-#[derive(Debug, thiserror::Error)]
-pub enum UseCaseCertificateError {
-    #[error("missing DNS SAN from RP certificate")]
-    MissingSAN,
-    #[error("missing host in verifier public URL: {0}")]
-    MissingPublicUrlHost(BaseUrl),
-    #[error("verifier public URL host {host} not present in RP certificate SAN DNS entries: {dns_sans}")]
-    PublicUrlHostNotInCertificate { host: String, dns_sans: String },
-    #[error("RP certificate error: {0}")]
-    Certificate(#[from] CertificateError),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -540,27 +526,17 @@ pub struct RpInitiatedUseCases<K, S> {
     sessions: Arc<S>,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum NewDisclosureUseCaseError {
-    #[error(transparent)]
-    UseCaseCertificate(#[from] UseCaseCertificateError),
-
-    #[error("additional accepted attestation types can only be configured for the SD-JWT format")]
-    WrongFormatForAdditionalAcceptedAttestationTypes,
-}
-
 impl<K> RpInitiatedUseCase<K> {
-    pub fn try_new(
+    pub fn new(
         key_pair: KeyPair<K>,
-        _public_url: &BaseUrl,
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: Option<NormalizedCredentialRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
         accept_undetermined_revocation_status: bool,
-    ) -> Result<Self, NewDisclosureUseCaseError> {
+    ) -> Self {
         let client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
 
-        let use_case = Self {
+        Self {
             data: UseCaseData {
                 key_pair,
                 client_id,
@@ -569,9 +545,7 @@ impl<K> RpInitiatedUseCase<K> {
             credential_requests,
             return_url_template,
             accept_undetermined_revocation_status,
-        };
-
-        Ok(use_case)
+        }
     }
 }
 
@@ -710,7 +684,7 @@ impl<K, S> RpInitiatedUseCases<K, S> {
 }
 
 /// A use case which is started not by an RP but by the wallet invoking the `request_uri` endpoint.
-#[derive(Debug, Constructor)]
+#[derive(Debug)]
 pub struct WalletInitiatedUseCase<K> {
     data: UseCaseData<K>,
     credential_requests: NormalizedCredentialRequests,
@@ -723,16 +697,15 @@ pub struct WalletInitiatedUseCases<K> {
 }
 
 impl<K> WalletInitiatedUseCase<K> {
-    pub fn try_new(
+    pub fn new(
         key_pair: KeyPair<K>,
-        _public_url: &BaseUrl,
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: NormalizedCredentialRequests,
         return_url_template: ReturnUrlTemplate,
-    ) -> Result<Self, NewDisclosureUseCaseError> {
+    ) -> Self {
         let client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
 
-        let use_case = Self {
+        Self {
             data: UseCaseData {
                 key_pair,
                 client_id,
@@ -740,9 +713,7 @@ impl<K> WalletInitiatedUseCase<K> {
             },
             credential_requests,
             return_url_template,
-        };
-
-        Ok(use_case)
+        }
     }
 }
 
@@ -1528,7 +1499,6 @@ mod tests {
     use chrono::Duration;
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
-    use crypto::server_keys::generate::mock::RP_CERT_CN;
     use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequests;
     use dcql::unique_id_vec::UniqueIdVec;
@@ -1607,34 +1577,39 @@ mod tests {
     fn create_verifier() -> TestVerifier {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
-        let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
         let reader_registration = ReaderRegistration::new_mock();
 
         let use_cases = HashMap::from([
             (
-                DISCLOSURE_USECASE.to_string(),
-                RpInitiatedUseCase::try_new(
+                DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
+                RpInitiatedUseCase::new(
                     generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
-                    &public_url,
+                    SessionTypeReturnUrl::Neither,
+                    None,
+                    None,
+                    false,
+                ),
+            ),
+            (
+                DISCLOSURE_USECASE.to_string(),
+                RpInitiatedUseCase::new(
+                    generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
                     SessionTypeReturnUrl::SameDevice,
                     None,
                     None,
                     false,
-                )
-                .unwrap(),
+                ),
             ),
             (
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
-                RpInitiatedUseCase::try_new(
+                RpInitiatedUseCase::new(
                     generate_reader_mock_with_registration(&ca, reader_registration).unwrap(),
-                    &public_url,
                     SessionTypeReturnUrl::Both,
                     None,
                     None,
                     false,
-                )
-                .unwrap(),
+                ),
             ),
         ]);
 
@@ -2086,20 +2061,11 @@ mod tests {
     #[test]
     fn test_rp_initiated_usecase_client_id_uses_x509_hash() {
         let ca = Ca::generate_reader_mock_ca().unwrap();
-        let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
         let key_pair = generate_reader_mock_with_registration(&ca, reader_registration).unwrap();
         let expected_client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
 
-        let use_case = RpInitiatedUseCase::try_new(
-            key_pair,
-            &public_url,
-            SessionTypeReturnUrl::SameDevice,
-            None,
-            None,
-            false,
-        )
-        .unwrap();
+        let use_case = RpInitiatedUseCase::new(key_pair, SessionTypeReturnUrl::SameDevice, None, None, false);
 
         assert_eq!(use_case.data.client_id, expected_client_id);
     }
@@ -2107,19 +2073,16 @@ mod tests {
     #[test]
     fn test_wallet_initiated_usecase_client_id_uses_x509_hash() {
         let ca = Ca::generate_reader_mock_ca().unwrap();
-        let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
         let key_pair = generate_reader_mock_with_registration(&ca, reader_registration).unwrap();
         let expected_client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
 
-        let use_case = WalletInitiatedUseCase::try_new(
+        let use_case = WalletInitiatedUseCase::new(
             key_pair,
-            &public_url,
             SessionTypeReturnUrl::SameDevice,
             NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
             "https://example.com/redirect_uri".parse().unwrap(),
-        )
-        .unwrap();
+        );
 
         assert_eq!(use_case.data.client_id, expected_client_id);
     }
