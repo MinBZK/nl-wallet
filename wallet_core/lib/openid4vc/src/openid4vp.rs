@@ -1270,6 +1270,8 @@ mod tests {
         #[serde_as(as = "Vec<JsonBase64>")] VecNonEmpty<serde_json::Map<String, serde_json::Value>>,
     );
 
+    const EXAMPLE_X509_HASH_CLIENT_ID: &str = "x509_hash:ZXhhbXBsZS1jbGllbnQtaWQtaGFzaA";
+
     #[test]
     fn test_normalized_vp_authorization_request_sha256_thumbprint_bytes() {
         // Source (edited): https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.2.6.1-7
@@ -1304,15 +1306,6 @@ mod tests {
             serde_json::from_str::<VpAuthorizationErrorCode>(r#""vp_formats_not_supported""#).unwrap(),
             VpAuthorizationErrorCode::VpFormatsNotSupported,
         );
-    }
-
-    #[test]
-    fn test_client_id_parse_and_display_x509_san_dns() {
-        let client_id: ClientId = "x509_san_dns:example.com".into();
-
-        assert_eq!(client_id.to_string(), "x509_san_dns:example.com");
-        assert_matches!(client_id.scheme, Some(ClientIdScheme::X509SanDns));
-        assert_eq!(client_id.id, "example.com");
     }
 
     #[test]
@@ -1477,23 +1470,6 @@ mod tests {
     }
 
     #[test]
-    fn test_authorization_request_validate_x509_san_dns_client_id_is_unsupported() {
-        let (_, rp_keypair, _, auth_request) = setup_mdoc();
-        let mut auth_request = VpAuthorizationRequest::from(auth_request);
-        let dns_san = rp_keypair.certificate().san_dns_name().unwrap().unwrap();
-
-        auth_request.oauth_request.client_id = format!("x509_san_dns:{dns_san}");
-
-        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
-        assert_matches!(
-            err,
-            AuthRequestValidationError::UnsupportedClientIdScheme {
-                scheme: ClientIdScheme::X509SanDns
-            }
-        );
-    }
-
-    #[test]
     fn test_authorization_request_validate_x509_hash_client_id() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
         let mut auth_request = VpAuthorizationRequest::from(auth_request);
@@ -1554,7 +1530,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -1606,7 +1582,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -1662,7 +1638,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -1777,7 +1753,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -1856,7 +1832,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -1906,7 +1882,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -1966,7 +1942,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -2026,7 +2002,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -2071,7 +2047,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -2113,7 +2089,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
