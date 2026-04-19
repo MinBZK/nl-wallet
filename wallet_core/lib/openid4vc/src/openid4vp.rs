@@ -390,10 +390,12 @@ pub enum AuthRequestValidationError {
     )]
     #[category(critical)]
     NoSupportedEncryptedResponseEnc(VecNonEmpty<JweEncryptionAlgorithm>),
-    #[error("unsupported client_id scheme: {scheme}. Only x509_san_dns is currently supported")]
+    #[error("unsupported client_id scheme: {scheme}. Only x509_san_dns and x509_hash are currently supported")]
     #[category(critical)]
     UnsupportedClientIdScheme { scheme: ClientIdScheme },
-    #[error("unsupported client_id without a scheme (pre-registered). Only x509_san_dns is currently supported")]
+    #[error(
+        "unsupported client_id without a scheme (pre-registered). Only x509_san_dns and x509_hash are currently supported"
+    )]
     #[category(critical)]
     UnsupportedClientIdWithoutScheme,
     #[error("response_uri fqdn {fqdn} does not match client_id {id}.")]
@@ -407,6 +409,15 @@ pub enum AuthRequestValidationError {
     )]
     #[category(critical)]
     UnauthorizedClientId { client_id: String, dns_san: String },
+    #[error(
+        "client_id from Authorization Request was {client_id}, should have been x509_hash:{certificate_hash} to match the \
+         leaf X.509 certificate from the x5c JOSE header"
+    )]
+    #[category(critical)]
+    UnauthorizedClientIdHash {
+        client_id: String,
+        certificate_hash: String,
+    },
     #[error("Subject Alternative Name missing from X.509 certificate")]
     #[category(critical)]
     MissingSAN,
@@ -447,7 +458,7 @@ impl VpAuthorizationRequest {
 
     /// Validate that an Authorization Request satisfies the following:
     /// - the request contents are compliant with the OpenID4VP specification.
-    /// - the `client_id` uses the `x509_san_dns` scheme and equals one of the DNS SAN names in the X.509 certificate.
+    /// - the `client_id` uses either the `x509_san_dns` or `x509_hash` scheme and matches the X.509 certificate.
     ///
     /// This method consumes `self` and turns it into an [`NormalizedVpAuthorizationRequest`], which
     /// contains only the fields we need and use.
@@ -456,10 +467,6 @@ impl VpAuthorizationRequest {
         rp_cert: &BorrowingCertificate,
         wallet_nonce: Option<&str>,
     ) -> Result<(NormalizedVpAuthorizationRequest, EncryptionAlgorithm), AuthRequestValidationError> {
-        let dns_sans = rp_cert.san_dns_names()?;
-        if dns_sans.is_empty() {
-            return Err(AuthRequestValidationError::MissingSAN);
-        }
         let validated_auth_request = NormalizedVpAuthorizationRequest::try_from(self)?;
 
         // Validate that the verifier advertised at least one encryption algorithm that the wallet supports,
@@ -473,38 +480,52 @@ impl VpAuthorizationRequest {
         let client_id = &validated_auth_request.client_id;
 
         match &client_id.scheme {
-            Some(ClientIdScheme::X509SanDns) => {}
+            Some(ClientIdScheme::X509SanDns) => {
+                let dns_sans = rp_cert.san_dns_names()?;
+                if dns_sans.is_empty() {
+                    return Err(AuthRequestValidationError::MissingSAN);
+                }
+
+                if !dns_sans.contains(&client_id.id.as_str()) {
+                    return Err(AuthRequestValidationError::UnauthorizedClientId {
+                        client_id: client_id.to_string(),
+                        dns_san: dns_sans.join(", "),
+                    });
+                }
+
+                // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.2
+                // This checks the fqdn of the response uri against the x509_san_dns client id.
+                if let Some(response_uri_fqdn) = validated_auth_request.response_uri.fqdn() {
+                    if response_uri_fqdn != client_id.id {
+                        return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
+                            fqdn: response_uri_fqdn.to_string(),
+                            id: client_id.id.clone(),
+                        });
+                    }
+                } else {
+                    return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
+                        fqdn: validated_auth_request.response_uri.to_string(),
+                        id: client_id.id.clone(),
+                    });
+                }
+            }
+            Some(ClientIdScheme::X509Hash) => {
+                let certificate_client_id = ClientId::x509_hash_from_certificate(rp_cert);
+                if client_id != &certificate_client_id {
+                    return Err(AuthRequestValidationError::UnauthorizedClientIdHash {
+                        client_id: client_id.to_string(),
+                        certificate_hash: certificate_client_id.id,
+                    });
+                }
+            }
             Some(scheme) => {
                 return Err(AuthRequestValidationError::UnsupportedClientIdScheme { scheme: scheme.clone() });
             }
             None => return Err(AuthRequestValidationError::UnsupportedClientIdWithoutScheme),
         }
 
-        if !dns_sans.contains(&client_id.id.as_str()) {
-            return Err(AuthRequestValidationError::UnauthorizedClientId {
-                client_id: client_id.to_string(),
-                dns_san: dns_sans.join(", "),
-            });
-        }
-
         if wallet_nonce != validated_auth_request.wallet_nonce.as_deref() {
             return Err(AuthRequestValidationError::WalletNonceMismatch);
-        }
-
-        // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.2
-        // This checks the fqdn of the response uri against the x509_san_dns client id
-        if let Some(response_uri_fqdn) = validated_auth_request.response_uri.fqdn() {
-            if response_uri_fqdn != client_id.id {
-                return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
-                    fqdn: response_uri_fqdn.to_string(),
-                    id: client_id.id.clone(),
-                });
-            }
-        } else {
-            return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
-                fqdn: validated_auth_request.response_uri.to_string(),
-                id: client_id.id.clone(),
-            });
         }
 
         Ok((validated_auth_request, selected_encryption_algorithm))
@@ -1476,6 +1497,33 @@ mod tests {
             err,
             AuthRequestValidationError::UnauthorizedClientId { client_id, dns_san }
             if client_id == format!("x509_san_dns:{wrong_dns_san}") && dns_san.contains(cert_dns_san)
+        );
+    }
+
+    #[test]
+    fn test_authorization_request_validate_x509_hash_client_id() {
+        let (_, rp_keypair, _, auth_request) = setup_mdoc();
+        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+
+        auth_request.oauth_request.client_id =
+            ClientId::x509_hash_from_certificate(rp_keypair.certificate()).to_string();
+
+        auth_request.validate(rp_keypair.certificate(), None).unwrap();
+    }
+
+    #[test]
+    fn test_authorization_request_validate_unauthorized_x509_hash_client_id() {
+        let (_, rp_keypair, _, auth_request) = setup_mdoc();
+        let mut auth_request = VpAuthorizationRequest::from(auth_request);
+        let expected_hash = ClientId::x509_hash_from_certificate(rp_keypair.certificate()).id;
+
+        auth_request.oauth_request.client_id = "x509_hash:wrong-hash".to_string();
+
+        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
+        assert_matches!(
+            err,
+            AuthRequestValidationError::UnauthorizedClientIdHash { client_id, certificate_hash }
+            if client_id == "x509_hash:wrong-hash" && certificate_hash == expected_hash
         );
     }
 
