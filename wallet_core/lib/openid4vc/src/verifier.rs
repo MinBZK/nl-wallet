@@ -552,13 +552,13 @@ pub enum NewDisclosureUseCaseError {
 impl<K> RpInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
-        public_url: &BaseUrl,
+        _public_url: &BaseUrl,
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: Option<NormalizedCredentialRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
         accept_undetermined_revocation_status: bool,
     ) -> Result<Self, NewDisclosureUseCaseError> {
-        let client_id = client_id_from_public_url(&key_pair, public_url)?;
+        let client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
 
         let use_case = Self {
             data: UseCaseData {
@@ -725,12 +725,12 @@ pub struct WalletInitiatedUseCases<K> {
 impl<K> WalletInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
-        public_url: &BaseUrl,
+        _public_url: &BaseUrl,
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: NormalizedCredentialRequests,
         return_url_template: ReturnUrlTemplate,
     ) -> Result<Self, NewDisclosureUseCaseError> {
-        let client_id = client_id_from_public_url(&key_pair, public_url)?;
+        let client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
 
         let use_case = Self {
             data: UseCaseData {
@@ -804,30 +804,6 @@ where
     ) -> Option<EphemeralIdParameters> {
         None
     }
-}
-
-fn client_id_from_public_url<K>(
-    key_pair: &KeyPair<K>,
-    public_url: &BaseUrl,
-) -> Result<ClientId, UseCaseCertificateError> {
-    let host = public_url
-        .fqdn()
-        .ok_or_else(|| UseCaseCertificateError::MissingPublicUrlHost(public_url.clone()))?
-        .to_string();
-
-    let dns_sans = key_pair.certificate().san_dns_names()?;
-    if dns_sans.is_empty() {
-        return Err(UseCaseCertificateError::MissingSAN);
-    }
-
-    if !dns_sans.iter().any(|dns_san| *dns_san == host) {
-        return Err(UseCaseCertificateError::PublicUrlHostNotInCertificate {
-            host,
-            dns_sans: dns_sans.join(", "),
-        });
-    }
-
-    Ok(ClientId::x509_san_dns(host))
 }
 
 pub trait ToPostAuthResponseErrorCode: Error {
@@ -2105,6 +2081,47 @@ mod tests {
             )
             .await
             .unwrap();
+    }
+
+    #[test]
+    fn test_rp_initiated_usecase_client_id_uses_x509_hash() {
+        let ca = Ca::generate_reader_mock_ca().unwrap();
+        let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
+        let reader_registration = ReaderRegistration::new_mock();
+        let key_pair = generate_reader_mock_with_registration(&ca, reader_registration).unwrap();
+        let expected_client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
+
+        let use_case = RpInitiatedUseCase::try_new(
+            key_pair,
+            &public_url,
+            SessionTypeReturnUrl::SameDevice,
+            None,
+            None,
+            false,
+        )
+        .unwrap();
+
+        assert_eq!(use_case.data.client_id, expected_client_id);
+    }
+
+    #[test]
+    fn test_wallet_initiated_usecase_client_id_uses_x509_hash() {
+        let ca = Ca::generate_reader_mock_ca().unwrap();
+        let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
+        let reader_registration = ReaderRegistration::new_mock();
+        let key_pair = generate_reader_mock_with_registration(&ca, reader_registration).unwrap();
+        let expected_client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
+
+        let use_case = WalletInitiatedUseCase::try_new(
+            key_pair,
+            &public_url,
+            SessionTypeReturnUrl::SameDevice,
+            NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
+            "https://example.com/redirect_uri".parse().unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(use_case.data.client_id, expected_client_id);
     }
 
     #[test]
