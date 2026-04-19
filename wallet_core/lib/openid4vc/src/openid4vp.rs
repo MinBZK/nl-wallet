@@ -284,6 +284,17 @@ impl ClientId {
             scheme: Some(ClientIdScheme::X509SanDns),
         }
     }
+
+    pub fn x509_hash(id: impl Into<String>) -> Self {
+        Self {
+            id: id.into(),
+            scheme: Some(ClientIdScheme::X509Hash),
+        }
+    }
+
+    pub fn x509_hash_from_certificate(certificate: &BorrowingCertificate) -> Self {
+        Self::x509_hash(BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::sha256(certificate.as_ref())))
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1333,6 +1344,19 @@ mod tests {
         assert_eq!(client_id.to_string(), "x509_hash:abcdef");
         assert_matches!(client_id.scheme, Some(ClientIdScheme::X509Hash));
         assert_eq!(client_id.id, "abcdef");
+    }
+
+    #[test]
+    fn test_client_id_x509_hash_from_certificate() {
+        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let key_pair = ca.generate_reader_mock().unwrap();
+        let expected_hash = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::sha256(key_pair.certificate().as_ref()));
+
+        let client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
+
+        assert_eq!(client_id.to_string(), format!("x509_hash:{expected_hash}"));
+        assert_matches!(client_id.scheme, Some(ClientIdScheme::X509Hash));
+        assert_eq!(client_id.id, expected_hash);
     }
 
     fn setup_mdoc() -> (
