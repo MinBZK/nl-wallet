@@ -484,6 +484,7 @@ where
 /// Returned from [`BorrowingCertificate::authority_key_id`].
 #[derive(Debug, Clone, PartialEq, Eq, From, Display, SerializeDisplay, DeserializeFromStr)]
 #[display("{}", BASE64_URL_SAFE_NO_PAD.encode(&self.0))]
+#[debug("{}", self)]
 pub struct KeyIdentifier(Vec<u8>);
 
 impl FromStr for KeyIdentifier {
