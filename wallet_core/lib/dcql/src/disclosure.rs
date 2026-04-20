@@ -41,10 +41,15 @@ pub enum CredentialValidationError {
         }).join(", "))
     }).join(" / "))]
     MissingAttributes(HashMap<CredentialQueryIdentifier, HashSet<VecNonEmpty<ClaimPath>>>),
-    #[error("requested AKIs did not match any of the returned credential(s): {}", .0.iter().map(|(id, akis)| {
-        format!("({}): {}", id, akis.iter().map(KeyIdentifier::to_string).join(", "))
+    #[error("requested AKIs did not match any of the returned credential(s): {}", .0.iter().map(|(id, (expected, received))| {
+        format!(
+            "({}): requested {}, received {}",
+            id,
+            expected.iter().map(KeyIdentifier::to_string).join(", "),
+            received.iter().map(KeyIdentifier::to_string).join(", ")
+        )
     }).join(" / "))]
-    UnmatchedAkis(HashMap<CredentialQueryIdentifier, Vec<KeyIdentifier>>),
+    UnmatchedAkis(HashMap<CredentialQueryIdentifier, (Vec<KeyIdentifier>, Vec<KeyIdentifier>)>),
 }
 
 /// This should be implemented on a credential that a verifier receives from the holder.
@@ -164,7 +169,7 @@ impl NormalizedCredentialRequests {
             .filter(|&(_, (request, credential))| {
                 !(request.aki().is_empty() || request.aki().iter().any(|aki| credential.aki().contains(aki)))
             })
-            .map(|(id, (request, _))| ((*id).clone(), request.aki().to_vec()))
+            .map(|(id, (request, credential))| ((*id).clone(), (request.aki().to_vec(), credential.aki().to_vec())))
             .collect::<HashMap<_, _>>();
 
         if !unmatched_akis.is_empty() {
