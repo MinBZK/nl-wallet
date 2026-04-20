@@ -37,7 +37,7 @@ class QrScannerNoPermission extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           CheckPermissionsOnResume(
-            permissions: [Permission.camera],
+            permissions: const [Permission.camera],
             onPermissionGranted: () => context.read<QrScanBloc>().add(const QrScanCheckPermission()),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
