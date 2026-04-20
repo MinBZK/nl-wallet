@@ -2032,7 +2032,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn cleanup_task() {
+    async fn test_cleanup_task() {
         let documents = mock_issuable_documents(NonZeroUsize::MIN);
 
         let (sessions, mock_time) = memory_session_store_with_mock_time();

@@ -87,8 +87,6 @@ use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionToken;
-use openid4vc::server_state::test::memory_session_store_with_mock_time;
-use openid4vc::server_state::test::test_memory_store_with_cleanup_task;
 use openid4vc::verifier::DisclosedAttributesError;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::DisclosureResultHandler;
@@ -1049,19 +1047,6 @@ async fn test_rp_initiated_usecase_verifier_disclose_extending_credential() {
         .await
         .unwrap()
         .unwrap();
-}
-
-#[tokio::test]
-async fn test_cleanup_task() {
-    let (sessions, mock_time) = memory_session_store_with_mock_time();
-    let sessions = Arc::new(sessions);
-    let (verifier, _, _, _) = setup_wallet_initiated_usecase_verifier(sessions.clone());
-
-    let token = verifier
-        .new_session(WALLET_INITIATED_RETURN_URL_USE_CASE.to_string(), None, None)
-        .await
-        .unwrap();
-    test_memory_store_with_cleanup_task(sessions, token, &mock_time).await;
 }
 
 fn setup_wallet_initiated_usecase_verifier<G>(

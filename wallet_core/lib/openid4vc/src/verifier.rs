@@ -1594,6 +1594,8 @@ mod tests {
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionStore;
     use crate::server_state::SessionToken;
+    use crate::server_state::test::memory_session_store_with_mock_time;
+    use crate::server_state::test::test_memory_store_with_cleanup_task;
 
     use super::AuthorizationErrorCode;
     use super::AuthorizationErrorResponse;
@@ -1631,9 +1633,9 @@ mod tests {
     const DISCLOSURE_USECASE: &str = "example_usecase";
     const DISCLOSURE_USECASE_ALL_REDIRECT_URI: &str = "example_usecase_all_redirect_uri";
 
-    type TestVerifier = Verifier<
-        MemorySessionStore<DisclosureData>,
-        RpInitiatedUseCases<SigningKey, MemorySessionStore<DisclosureData>>,
+    type TestVerifier<G> = Verifier<
+        MemorySessionStore<DisclosureData, G>,
+        RpInitiatedUseCases<SigningKey, MemorySessionStore<DisclosureData, G>>,
         StatusListClientStub<SigningKey>,
     >;
 
@@ -1650,7 +1652,10 @@ mod tests {
         }
     }
 
-    fn create_verifier() -> TestVerifier {
+    fn create_verifier<G>(sessions: Arc<MemorySessionStore<DisclosureData, G>>) -> TestVerifier<G>
+    where
+        G: Generator<DateTime<Utc>> + Send + Sync + 'static,
+    {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
@@ -1696,15 +1701,13 @@ mod tests {
             ),
         ]);
 
-        let session_store = Arc::new(MemorySessionStore::default());
-
         Verifier::new(
             RpInitiatedUseCases::new(
                 use_cases,
                 hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
-                Arc::clone(&session_store),
+                Arc::clone(&sessions),
             ),
-            session_store,
+            sessions,
             trust_anchors,
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
@@ -1731,7 +1734,7 @@ mod tests {
         #[case] has_return_url: bool,
         #[case] should_succeed: bool,
     ) {
-        let verifier = create_verifier();
+        let verifier = create_verifier(Default::default());
         let return_url_template = has_return_url.then(|| "https://example.com/{session_token}".parse().unwrap());
 
         let result = verifier
@@ -1750,8 +1753,10 @@ mod tests {
         }
     }
 
-    async fn init_and_start_disclosure(time: &impl Generator<DateTime<Utc>>) -> (TestVerifier, SessionToken, BaseUrl) {
-        let verifier = create_verifier();
+    async fn init_and_start_disclosure(
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> (TestVerifier<TimeGenerator>, SessionToken, BaseUrl) {
+        let verifier = create_verifier(Default::default());
 
         // Start session
         let session_token = verifier
@@ -1911,7 +1916,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_verifier_disclosed_attributes() {
-        let verifier = create_verifier();
+        let verifier = create_verifier(Default::default());
 
         // Add three sessions to the store:
         // * One with disclosed attributes and a return URL
@@ -2187,5 +2192,22 @@ mod tests {
 
         let response: WalletAuthResponse = serde_urlencoded::from_str(&body).unwrap();
         assert_eq!(response, expected);
+    }
+
+    #[tokio::test]
+    async fn test_cleanup_task() {
+        let (sessions, mock_time) = memory_session_store_with_mock_time();
+        let sessions = Arc::new(sessions);
+        let verifier = create_verifier(Arc::clone(&sessions));
+
+        let token = verifier
+            .new_session(
+                DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
+                Some(Query::new_mock_mdoc_pid_example()),
+                None,
+            )
+            .await
+            .unwrap();
+        test_memory_store_with_cleanup_task(sessions, token, &mock_time).await;
     }
 }
