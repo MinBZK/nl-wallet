@@ -14,11 +14,6 @@ name = "wallet_provider"
 doctest = false
 
 [[test]]
-name = "hsm"
-path = "tests/hsm.rs"
-required-features = ["hsm_test"]
-
-[[test]]
 name = "settings"
 path = "tests/settings.rs"
 required-features = ["hsm_test"]
