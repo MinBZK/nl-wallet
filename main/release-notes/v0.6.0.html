@@ -217,6 +217,10 @@ now started when this screen is displayed and a remote verifier can connect
 to trigger navigation to the disclosure flow.</p></li>
 <li><p>Parse the ISO 18013-5 “close proximity” DeviceRequest and present it in the
 disclosure screen so the user can share the specified credentials.</p></li>
+<li><p>If the RP’s DCQL request contains a Trusted Authorities Query of type
+Authority Key Identifier, both the verification_server and the wallet will
+now respect this, allowing the RP to request attestations signed by specific
+issuer keys.</p></li>
 </ul>
 </section>
 <section id="interoperability-improvements">
