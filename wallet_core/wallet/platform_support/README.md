@@ -131,6 +131,94 @@ Note that the attested key integration tests for iOS can only be run on a real d
 
 The close proximity handover starts a BLE peripheral server on the phone and returns a QR code containing the device engagement. The host-side Mac helper then acts as the reader: it scans for the advertised service UUID, connects, writes `0x01` to the state characteristic to start the handover, derives the first reader message from the QR code, and can validate the encrypted `DeviceResponse` in the full-flow test.
 
+### iOS close proximity
+
+The iOS implementation does four things:
+
+1. Starts BLE advertising and returns a QR code with the device engagement.
+2. Waits in the background for a reader to connect.
+3. Reads the first reader message, derives the session transcript and session encryption, and emits `SessionEstablished`.
+4. Either sends an encrypted `DeviceResponse` or a session termination status and then closes the BLE session.
+
+The implementation currently keeps the long-running work off the `startQrHandover()` call path:
+
+- A background connection task waits for BLE connection and emits the connected updates.
+- A background read task waits for reader messages and drives session establishment and reader status handling.
+- Lifecycle helpers start and stop those tasks.
+- Session helpers manage active-session ownership and teardown.
+- Exchange helpers handle inbound reader messages and outbound device messages.
+- The active session stores task handles and session state, but does not itself execute the connection or read loops.
+
+This split exists so `startQrHandover()` can return the QR code immediately, while later calls such as `sendDeviceResponse()` can explicitly stop the read loop before writing the final response.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Caller as Wallet Core / App
+    participant CPD as CloseProximityDisclosure runtime
+    participant Session as ActiveSession
+    participant ConnTask as Background connection task
+    participant ReadTask as Background read task
+    participant BLE as CloseProximityBleTransport
+    participant Channel as CloseProximityDisclosureChannel
+    actor Reader as Reader / Mac helper
+
+    Caller->>CPD: startQrHandover(channel)
+    CPD->>CPD: stop existing session if present
+    CPD->>BLE: advertise()
+    BLE-->>CPD: advertising started
+    CPD->>Session: create active session
+    CPD->>CPD: store active session
+    CPD->>ConnTask: spawn
+    ConnTask->>Session: store task handle
+    CPD-->>Caller: QR code (device engagement)
+
+    ConnTask->>Channel: sendUpdate(.connecting)
+    Reader->>BLE: connect to advertised service
+    Reader->>BLE: write 0x01 to state characteristic
+    BLE-->>ConnTask: waitForConnection() returns
+    ConnTask->>Channel: sendUpdate(.connected)
+    ConnTask->>ReadTask: spawn
+    ReadTask->>Session: store task handle
+
+    Reader->>BLE: write first reader message
+    BLE-->>ReadTask: waitForMessage()
+    ReadTask->>CPD: process reader message
+    CPD->>CPD: derive reader key + session transcript
+    CPD->>Session: store session encryption
+    CPD->>Channel: sendUpdate(.sessionEstablished)
+
+    alt App sends DeviceResponse
+        Caller->>CPD: sendDeviceResponse(deviceResponse)
+        CPD->>Session: cancel read task
+        CPD->>BLE: send encrypted DeviceResponse
+        CPD->>CPD: finishSession(.closed)
+        CPD->>BLE: close()
+        CPD->>Channel: sendUpdate(.closed)
+    else App sends SessionTermination
+        Caller->>CPD: sendSessionTermination()
+        CPD->>Session: cancel read task
+        CPD->>BLE: send termination status
+        CPD->>CPD: finishSession(.closed)
+        CPD->>BLE: close()
+        CPD->>Channel: sendUpdate(.closed)
+    else Reader closes or sends status
+        Reader->>BLE: send empty message or status
+        BLE-->>ReadTask: waitForMessage()
+        ReadTask->>CPD: process close / status
+        CPD->>CPD: finishSession(.closed / .error)
+        CPD->>BLE: close()
+        CPD->>Channel: sendUpdate(...)
+    end
+```
+
+Notes:
+
+- `startQrHandover()` must return before a reader connects, so waiting for connection cannot happen inline on that call path.
+- The active session stores both the transport and the session-encryption state derived from the first reader message.
+- `sendDeviceResponse()` and `sendSessionTermination()` cancel the read task first so the app does not race its own background message loop while sending the final message.
+- Reader-side protocol failures are mapped to ISO 18013-5 status codes before the BLE transport is closed.
+
 The basic manual helper is:
 
 ```bash
