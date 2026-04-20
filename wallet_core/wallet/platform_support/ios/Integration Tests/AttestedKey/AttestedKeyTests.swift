@@ -17,12 +17,8 @@ final class AttestedKeyTests: XCTestCase {
         self.platformSupport = PlatformSupport.shared
     }
 
-    // Since AppAttest is only available on real devices,
-    // running this test on the Simulator will always fail.
-    #if !targetEnvironment(simulator)
-        func testHardwareSignature() {
-            // The Rust code will panic if this test fails.
-            ios_attested_key_test()
-        }
-    #endif
+    func testHardwareSignature() {
+        // The Rust code will panic if this test fails.
+        ios_attested_key_test()
+    }
 }

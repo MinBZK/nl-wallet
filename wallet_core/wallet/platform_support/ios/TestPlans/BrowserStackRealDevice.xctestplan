@@ -1,0 +1,37 @@
+{
+  "configurations" : [
+    {
+      "id" : "6133A001-29A8-E350-004D-9CC700000001",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "skippedTests" : [
+        "AttestedKeyTests",
+        "AttestedKeyTests\/testHardwareSignature()",
+        "CloseProximityDisclosureTests",
+        "CloseProximityDisclosureTests\/testAllCloseProximityDisclosures()",
+        "CloseProximityDisclosureTests\/testCloseProximityDisclosureFullFlowWithMacReader()",
+        "CloseProximityDisclosureTests\/testStartQrHandoverFromTwoTasksReplacesPreviousSession()",
+        "CloseProximityDisclosureTests\/testStartQrHandoverStartsAndStopsBleServer()",
+        "PlatformUtilityTests",
+        "PlatformUtilityTests\/testUrlForAppSupportDirectory()",
+        "UtilsTests",
+        "UtilsTests\/testAllUtilities()"
+      ],
+      "target" : {
+        "containerPath" : "container:PlatformSupport.xcodeproj",
+        "identifier" : "6133004129A8E350004D9CC7",
+        "name" : "Integration Tests"
+      }
+    }
+  ],
+  "version" : 1
+}
