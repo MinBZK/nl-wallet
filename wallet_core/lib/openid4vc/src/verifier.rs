@@ -590,7 +590,7 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError> {
         // If the caller passes a `return_url_template` then we use that,
-        // if not then we use the one configured in `self` (if any).
+        // if not then we use the one configured in `self` (if neither is available, this returns an error).
         let redirect_uri_template = return_url_template
             .or_else(|| self.return_url_template.clone())
             .map(|template| RedirectUriTemplate {
