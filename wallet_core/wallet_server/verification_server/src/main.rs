@@ -30,6 +30,7 @@ async fn main_impl(settings: VerifierSettings) -> Result<()> {
         storage_settings.into(),
     ));
 
+    // Note that HTTP is explicitly allowed for the retrieval of status lists.
     let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
 
     // This will block until the server shuts down.

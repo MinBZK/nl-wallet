@@ -17,6 +17,7 @@ use reqwest::ClientBuilder;
 use reqwest::IntoUrl;
 use reqwest::RequestBuilder;
 use reqwest::Response;
+use reqwest::tls::Version;
 use serde::de::DeserializeOwned;
 use x509_parser::error::X509Error;
 use x509_parser::prelude::FromDer;
@@ -190,6 +191,7 @@ pub fn is_problem_json_response(response: &Response) -> bool {
     parse_content_type(response).as_ref() == Some(LazyLock::force(&APPLICATION_PROBLEM_JSON))
 }
 
+/// Create a [`ClientBuilder`] with sensible defaults that should be applied project-wide.
 pub fn default_reqwest_client_builder() -> ClientBuilder {
     // Enable gzip compression by default, but explicitly disable any other compression algorithm,
     // to prevent these from being automatically enabled by `reqwest` feature flags.
@@ -203,15 +205,21 @@ pub fn default_reqwest_client_builder() -> ClientBuilder {
         .tls_built_in_root_certs(true)
 }
 
+/// Create a [`ClientBuilder`] with sensible defaults that is TLS-only.
+pub fn default_tls_reqwest_client_builder() -> ClientBuilder {
+    default_reqwest_client_builder()
+        .https_only(true)
+        .min_tls_version(Version::TLS_1_2)
+}
+
 /// Create a [`ClientBuilder`] that is TLS-only and validates certificates signed with the supplied trust anchors (root
 /// certificates) as well as the built-in root certificates.
 pub fn tls_reqwest_client_builder(trust_anchors: impl IntoIterator<Item = Certificate>) -> ClientBuilder {
     trust_anchors
         .into_iter()
-        .fold(default_reqwest_client_builder(), |builder, root_ca| {
+        .fold(default_tls_reqwest_client_builder(), |builder, root_ca| {
             builder.add_root_certificate(root_ca)
         })
-        .https_only(true)
 }
 
 /// Create a [`ClientBuilder`] that only validates certificates signed with the supplied trust anchors (root
