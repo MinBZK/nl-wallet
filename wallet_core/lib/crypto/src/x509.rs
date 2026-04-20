@@ -514,22 +514,11 @@ impl AsRef<str> for DistinguishedName {
 }
 
 #[cfg(any(test, feature = "generate"))]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct CertificateConfiguration {
     pub not_before: Option<DateTime<Utc>>,
     pub not_after: Option<DateTime<Utc>>,
-    pub include_aki: bool,
-}
-
-#[cfg(any(test, feature = "generate"))]
-impl Default for CertificateConfiguration {
-    fn default() -> Self {
-        Self {
-            not_before: Default::default(),
-            not_after: Default::default(),
-            include_aki: true,
-        }
-    }
+    pub exclude_aki: bool,
 }
 
 #[cfg(test)]

@@ -293,7 +293,7 @@ pub mod generate {
             if let Some(not_after) = source.not_after.and_then(|ts| ts.timestamp_nanos_opt()) {
                 result.not_after = OffsetDateTime::from_unix_timestamp_nanos(i128::from(not_after)).unwrap();
             }
-            result.use_authority_key_identifier_extension = source.include_aki;
+            result.use_authority_key_identifier_extension = !source.exclude_aki;
             result
         }
     }
@@ -334,7 +334,7 @@ pub mod generate {
                 Self::generate(
                     ISSUANCE_CA_CN,
                     CertificateConfiguration {
-                        include_aki: false,
+                        exclude_aki: true,
                         ..Default::default()
                     },
                 )
