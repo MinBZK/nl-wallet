@@ -6,8 +6,6 @@ use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
-use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -55,12 +53,6 @@ impl AttributeService for MockAttributeService {
             .collect();
 
         Ok(documents)
-    }
-
-    async fn oauth_metadata(&self, issuer_identifier: &IssuerIdentifier) -> Result<oidc::Config, Self::Error> {
-        let config = oidc::Config::new_mock(issuer_identifier.clone());
-
-        Ok(config)
     }
 }
 

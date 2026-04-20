@@ -486,6 +486,46 @@ open class MobileActions {
         }
     }
 
+    fun findElementByPartialTextExcludingText(
+        includeText: String,
+        excludeText: String,
+        timeoutInSeconds: Long = 5
+    ): WebElement {
+        val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
+        return when (val platform = platformName()) {
+            "ANDROID" -> {
+                val escapedInclude = Regex.escape(includeText)
+                val escapedExclude = Regex.escape(excludeText)
+                val regexPattern = "(?s)^(?!.*$escapedExclude).*$escapedInclude.*$"
+                val quotedPattern = "\"${regexPattern.replace("\"", "\\\"")}\""
+                wait.until(
+                    ExpectedConditions.presenceOfElementLocated(
+                        AppiumBy.androidUIAutomator("new UiSelector().descriptionMatches($quotedPattern)")
+                    )
+                )
+            }
+            "IOS" -> {
+                val quotedInclude = quoteForIos(includeText)
+                val quotedExclude = quoteForIos(excludeText)
+                wait.until(
+                    ExpectedConditions.presenceOfElementLocated(
+                        By.xpath("//*[contains(@name, $quotedInclude) and not(contains(@name, $quotedExclude))]")
+                    )
+                )
+            }
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+    }
+
+    fun elementContainingTextExcludingTextVisible(includeText: String, excludeText: String): Boolean {
+        return try {
+            findElementByPartialTextExcludingText(includeText, excludeText).isDisplayed
+        } catch (e: Exception) {
+            println("Element not found or error occurred: ${e.message}")
+            false
+        }
+    }
+
     private fun findElementByText(text: String, timeoutInSeconds: Long = 5): WebElement {
         val wait = WebDriverWait(driver, Duration.ofSeconds(timeoutInSeconds))
         return when (val platform = platformName()) {

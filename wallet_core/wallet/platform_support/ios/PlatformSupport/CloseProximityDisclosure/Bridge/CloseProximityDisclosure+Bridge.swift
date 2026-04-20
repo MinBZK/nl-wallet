@@ -18,16 +18,27 @@ extension CloseProximityDisclosure: CloseProximityDisclosureBridge {
         let session = try requireActiveSession()
         try requireSessionIsActive(session)
         await session.cancelReadMessagesTaskAndWait()
+        try requireSessionIsActive(session)
         let establishedSessionContext = try establishedSessionContextOrRestartReadTask(session)
         try await sendDeviceResponse(
             session: session,
             establishedSessionContext: establishedSessionContext,
             deviceResponse: deviceResponse
         )
+        await closeSessionAfterDeviceResponse(session)
+    }
 
-        if isActiveSession(session) {
-            startReadMessagesTask(session)
-        }
+    func sendSessionTermination() async throws {
+        let session = try requireActiveSession()
+        try requireSessionIsActive(session)
+        await session.cancelReadMessagesTaskAndWait()
+        try requireSessionIsActive(session)
+        let establishedSessionContext = try establishedSessionContextOrRestartReadTask(session)
+        try await sendSessionTermination(
+            session: session,
+            transport: establishedSessionContext.transport
+        )
+        await closeSessionAfterDeviceResponse(session)
     }
 
     func stopBleServer() async throws {
@@ -227,11 +238,34 @@ extension CloseProximityDisclosure {
                 )
             )
         } catch {
-            guard isActiveSession(session) else {
-                throw error.asCloseProximityDisclosureError
+            if isActiveSession(session) {
+                await failSession(session, error: error)
             }
-            await failSession(session, error: error)
             throw error.asCloseProximityDisclosureError
+        }
+    }
+
+    func sendSessionTermination(
+        session: CloseProximityDisclosureActiveSession,
+        transport: MdocTransport
+    ) async throws {
+        do {
+            try await transport.sendMessage(
+                message: SessionEncryption.companion.encodeStatus(
+                    statusCode: Int64(Constants.shared.SESSION_DATA_STATUS_SESSION_TERMINATION)
+                )
+            )
+        } catch {
+            if isActiveSession(session) {
+                await failSession(session, error: error)
+            }
+            throw error.asCloseProximityDisclosureError
+        }
+    }
+
+    func closeSessionAfterDeviceResponse(_ session: CloseProximityDisclosureActiveSession) async {
+        if isActiveSession(session) {
+            await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
         }
     }
 

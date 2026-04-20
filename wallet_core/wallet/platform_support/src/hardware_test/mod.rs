@@ -9,12 +9,9 @@ use std::process;
 
 macro_rules! log_panic {
     ($($arg:tt)*) => {
-        cfg_if::cfg_if!  {
-            if #[cfg(target_os = "android")] {
-                log::error!($($arg)*);
-            } else {
-                eprintln!($($arg)*)
-            }
+        cfg_select! {
+            target_os = "android" => log::error!($($arg)*),
+            _ => eprintln!($($arg)*),
         }
     }
 }

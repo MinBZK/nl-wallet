@@ -33,6 +33,22 @@ upload-browserstack-ios-app:
       bundle exec fastlane ios ci_browserstack \
         application_id:"${INTERNAL_APP_IDENTIFIER}.latest"
 
+build-ios-platform-support-browserstack:
+  extends: [.env-macos-runner, .ruby-cache-macos]
+  rules:
+  - !reference [.on-schedule-automation, rules]
+  - !reference [.merge-request-manual, rules]
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+  artifacts:
+    name: ios-platform-support-test-artifacts
+    paths:
+      - wallet_core/wallet/platform_support/ios/build/IntegrationTestsRunner.zip
+  script:
+    - bundle install
+    - bundle exec fastlane ios build_platform_support_tests
+
 build-android-platform-support-browserstack:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-android-emulator:${BUILD_TAG}"
   extends: [.ruby-cache]

@@ -201,7 +201,6 @@ mod tests {
     use openid4vc::issuer::AttestationTypeConfig;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;
-    use openid4vc::issuer::TrivialAttributeService;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
     use openid4vc::server_state::MemorySessionStore;
     use openid4vc::server_state::SessionStore;
@@ -274,13 +273,8 @@ mod tests {
         }
     }
 
-    type MockIssuer = Issuer<
-        SigningKey,
-        TrivialAttributeService,
-        MemorySessionStore<IssuanceData>,
-        MemoryNonceStore,
-        MockStatusListServices,
-    >;
+    type MockIssuer =
+        Issuer<SigningKey, (), MemorySessionStore<IssuanceData>, MemoryNonceStore, MockStatusListServices>;
 
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
         Issuer::new(
@@ -288,7 +282,8 @@ mod tests {
             vec![],
             HashMap::<String, AttestationTypeConfig<SigningKey>>::new().into(),
             None,
-            TrivialAttributeService,
+            None,
+            (),
             sessions,
             MemoryNonceStore::new(),
             Arc::new(MockStatusListServices::default()),
@@ -315,7 +310,7 @@ mod tests {
             .unwrap();
         let credential_offer: CredentialOffer = serde_json::from_str(&query_params["credential_offer"]).unwrap();
 
-        let code = credential_offer.grants.as_ref().unwrap().authorization_code().unwrap();
+        let code = credential_offer.grants.as_ref().unwrap().pre_authorized_code().unwrap();
 
         // The session handler should have inserted a new issuance session in the session store.
         let IssuanceData::Created(session) = sessions

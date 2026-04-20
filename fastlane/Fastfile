@@ -79,7 +79,7 @@ lane :upload_to_play_store_internal_track do |options|
   )
 end
 
-private_lane :upload_to_browserstack do |options|
+private_lane :upload_app_to_browserstack do |options|
   Dir.chdir("..") do
     sh(
       "curl",
@@ -93,11 +93,11 @@ private_lane :upload_to_browserstack do |options|
   end
 end
 
-# Uploads a file to a BrowserStack Espresso endpoint and returns the resulting URL.
+# Uploads a file to a BrowserStack endpoint and returns the resulting URL.
 # options: user, key, endpoint, file, url_field, label, custom_id (optional)
-private_lane :upload_to_browserstack_espresso do |options|
+private_lane :upload_test_to_browserstack do |options|
   args = [
-    "curl", "-s", "-w", "\n%{http_code}",
+    "curl", "-fsS",
     "-u", "#{options[:user]}:#{options[:key]}",
     "-X", "POST",
     options[:endpoint],
@@ -106,7 +106,7 @@ private_lane :upload_to_browserstack_espresso do |options|
   args += ["-F", "custom_id=#{options[:custom_id]}"] unless options[:custom_id].blank?
 
   response = sh(*args, log: false)
-  url = JSON.parse(response.lines[0..-2].join)[options[:url_field]]
+  url = JSON.parse(response)[options[:url_field]]
   UI.user_error!("Failed to upload #{options[:label]} to BrowserStack (response: #{response})") if url.blank?
   UI.message("Uploaded #{options[:label]}: #{url}")
   url
@@ -251,7 +251,7 @@ platform :android do
     UI.user_error!("App APK not found: #{app_apk}") unless File.exist?(app_apk)
     UI.user_error!("Test APK not found: #{test_apk}") unless File.exist?(test_apk)
 
-    app_url = upload_to_browserstack_espresso(
+    app_url = upload_test_to_browserstack(
       user: browserstack_user, key: browserstack_key,
       endpoint:  "https://api-cloud.browserstack.com/app-automate/espresso/v2/app",
       file:      app_apk,
@@ -260,7 +260,7 @@ platform :android do
       custom_id: "PlatformSupportApp_#{commit_sha}",
     )
 
-    test_url = upload_to_browserstack_espresso(
+    test_url = upload_test_to_browserstack(
       user: browserstack_user, key: browserstack_key,
       endpoint:  "https://api-cloud.browserstack.com/app-automate/espresso/v2/test-suite",
       file:      test_apk,
@@ -276,7 +276,7 @@ platform :android do
     ]
 
     build_response = sh(
-      "curl", "-s", "-w", "\n%{http_code}",
+      "curl", "-fsS",
       "-u", "#{browserstack_user}:#{browserstack_key}",
       "-X", "POST",
       "https://api-cloud.browserstack.com/app-automate/espresso/v2/build",
@@ -299,14 +299,14 @@ platform :android do
       loop do
         sleep(30)
         final_build_resp = JSON.parse(sh(
-          "curl", "-s",
+          "curl", "-fsS",
           "-u", "#{browserstack_user}:#{browserstack_key}",
           "https://api-cloud.browserstack.com/app-automate/espresso/v2/builds/#{build_id}",
           log: false
         ))
         final_status = final_build_resp["status"]
         UI.message("Build #{build_id} status: #{final_status}")
-        break if ["passed", "failed", "error", "timeout"].include?(final_status)
+        break if ["passed", "failed", "error", "timeout", "timedout"].include?(final_status)
       end
     end
 
@@ -323,7 +323,7 @@ platform :android do
     application_id = options[:application_id]
     commit_sha = options[:commit_sha]
 
-    upload_to_browserstack(file: file, user: user, key: key, custom_id: "NLWalletAndroid_#{application_id}_#{commit_sha}")
+    upload_app_to_browserstack(file: file, user: user, key: key, custom_id: "NLWalletAndroid_#{application_id}_#{commit_sha}")
   end
 end
 
@@ -585,7 +585,7 @@ platform :ios do
     user = options[:user]
     key = options[:key]
 
-    upload_to_browserstack(file: ipa_file, user: user, key: key, custom_id: "NLWalletIos")
+    upload_app_to_browserstack(file: ipa_file, user: user, key: key, custom_id: "NLWalletIos")
   end
 
   desc "Upload iOS app to BrowserStack from GitLab CI"
@@ -616,11 +616,110 @@ platform :ios do
       UI.user_error!("IPA not found at #{ipa_path_from_repo_root}. Make sure build_app produced #{ipa_basename} in fastlane/.")
     end
 
-    upload_to_browserstack(
+    upload_app_to_browserstack(
       file: ipa_path_from_repo_root,
       user: browserstack_user,
       key:  browserstack_key,
       custom_id: custom_id
     )
+  end
+
+  desc "Build iOS platform_support test artifacts for BrowserStack (host app + unit test bundle)"
+  lane :build_platform_support_tests do
+    Dir.chdir("../wallet_core/wallet/platform_support/ios") do
+      ios_dir   = Dir.pwd
+      build_dir = File.join(ios_dir, "build")
+
+      sh("xcodebuild", "build-for-testing",
+         "-project", "PlatformSupport.xcodeproj",
+         "-scheme", "PlatformSupport",
+         "-testPlan", "RealDevice",
+         "-destination", "generic/platform=iOS",
+         "-derivedDataPath", "build",
+         "CODE_SIGN_IDENTITY=-",
+         "CODE_SIGNING_REQUIRED=NO",
+         "CODE_SIGNING_ALLOWED=NO"
+      )
+
+      products_dir = File.join(build_dir, "Build/Products")
+      app_bundle   = File.join(products_dir, "Debug-iphoneos/Integration Tests Host App.app")
+      xctestrun    = Dir.glob(File.join(products_dir, "*RealDevice*.xctestrun")).first
+      output_zip   = File.join(build_dir, "IntegrationTestsRunner.zip")
+
+      UI.user_error!("Could not find RealDevice .xctestrun file in #{products_dir}") if xctestrun.nil?
+      UI.user_error!("Host app not found at #{app_bundle}") unless File.exist?(app_bundle)
+
+      FileUtils.rm_f(output_zip)
+
+      # BrowserStack unit tests require a zip containing the host app and the .xctestrun file.
+      # The .xctestrun file already encodes which tests to run (from the BrowserStack test plan).
+      Dir.mktmpdir("nl-wallet-browserstack") do |tmp|
+        Dir.chdir(tmp) do
+          FileUtils.cp_r(app_bundle, ".")
+          FileUtils.cp(xctestrun, ".")
+          sh("zip", "-rq", output_zip, ".")
+        end
+      end
+    end
+  end
+
+  desc "Upload iOS platform_support test artifacts to BrowserStack and run unit tests from GitLab CI"
+  lane :ci_test_platform_support_browserstack do
+    browserstack_user = ENV["BROWSERSTACK_USER"]
+    browserstack_key  = ENV["BROWSERSTACK_KEY"]
+    commit_sha        = ENV["CI_COMMIT_SHA"]
+
+    UI.user_error!("No BROWSERSTACK_USER set") if browserstack_user.blank?
+    UI.user_error!("No BROWSERSTACK_KEY set") if browserstack_key.blank?
+
+    runner_zip = "../wallet_core/wallet/platform_support/ios/build/IntegrationTestsRunner.zip"
+    UI.user_error!("Runner zip not found: #{runner_zip}") unless File.exist?(runner_zip)
+
+    # Upload the zip (host app + .xctestrun) as the test suite
+    test_suite_url = upload_test_to_browserstack(
+      user: browserstack_user, key: browserstack_key,
+      endpoint: "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/test-suite",
+      file: runner_zip,
+      url_field: "test_suite_url",
+      label: "unit test zip",
+      custom_id: "PlatformSupportIosTests_#{commit_sha}",
+    )
+
+    # Start the xctestrun build (unit test mode — no separate app upload needed)
+    build_response = sh(
+      "curl", "-fsS",
+      "-u", "#{browserstack_user}:#{browserstack_key}",
+      "-X", "POST",
+      "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/xctestrun-build",
+      "-H", "Content-Type: application/json",
+      "-d", JSON.generate({
+        "testSuite" => test_suite_url,
+        "devices"   => ["iPhone 16-18"],
+      }),
+      log: false
+    )
+    build_id = JSON.parse(build_response)["build_id"]
+    UI.user_error!("Failed to start BrowserStack xctestrun build (response: #{build_response})") if build_id.blank?
+    UI.message("BrowserStack xctestrun build started: #{build_id}")
+
+    final_status = nil
+    Timeout.timeout(3600) do
+      loop do
+        sleep(30)
+        status_resp = JSON.parse(sh(
+          "curl", "-fsS",
+          "-u", "#{browserstack_user}:#{browserstack_key}",
+          "https://api-cloud.browserstack.com/app-automate/xcuitest/v2/builds/#{build_id}",
+          log: false
+        ))
+        final_status = status_resp["status"]
+        UI.message("Build #{build_id} status: #{final_status}")
+        break if ["passed", "failed", "error", "timeout", "timedout"].include?(final_status)
+      end
+    end
+
+    UI.message("BrowserStack build result: #{final_status}")
+    UI.message("BrowserStack build URL (credentials in nl-wallet-browserstack secret): https://app-automate.browserstack.com/dashboard/v2/builds/#{build_id}")
+    UI.user_error!("BrowserStack xctestrun tests #{final_status}") if final_status != "passed"
   end
 end

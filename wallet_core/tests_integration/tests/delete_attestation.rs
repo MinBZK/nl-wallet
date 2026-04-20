@@ -14,7 +14,7 @@ use wallet_provider_persistence::entity::wallet_user_key;
 use tests_integration::common::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn test_delete_attestation_ok() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";

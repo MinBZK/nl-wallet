@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use cfg_if::cfg_if;
 use chrono::DateTime;
 use chrono::Utc;
 use futures::try_join;
@@ -61,9 +60,9 @@ use entity::keyed_data;
 use entity::revocation_info;
 use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
-use openid4vc::issuance_session::CredentialWithMetadata;
-use openid4vc::issuance_session::IssuedCredential;
-use openid4vc::issuance_session::IssuedCredentialCopies;
+use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
+use openid4vc::wallet_issuance::credential::IssuedCredential;
+use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use token_status_list::verification::verifier::RevocationStatus;
@@ -150,11 +149,11 @@ impl<K> DatabaseStorage<K> {
         let name = &self.database_name;
 
         // Get path to database as "<storage_path>/<name>.db"
-        cfg_if! {
-            if #[cfg(debug_assertions)] {
+        cfg_select! {
+            debug_assertions => {
                 self.storage_path.join(format!("{name}.{DATABASE_FILE_EXT}"))
             }
-            else {
+            _ => {
                 // Temporarily hack to prevent backwards compatibility problems by including
                 // full version identifier. Should be removed when doing PVW-4707.
                 let version = version_identifier().expect("Version expected for release build");
@@ -1441,7 +1440,7 @@ pub(crate) mod tests {
     use crypto::utils::random_bytes;
     use crypto::utils::random_string;
     use mdoc::holder::Mdoc;
-    use openid4vc::issuance_session::IssuedCredentialCopies;
+    use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
     use platform_support::utils::PlatformUtilities;
     use platform_support::utils::mock::MockHardwareUtilities;

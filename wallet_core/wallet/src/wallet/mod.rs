@@ -27,26 +27,22 @@ mod test;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use cfg_if::cfg_if;
 use parking_lot::Mutex;
 use tokio::sync::RwLock;
 use tokio::task::JoinHandle;
 
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
-use openid4vc::issuance_session::HttpIssuanceSession;
-use openid4vc::oidc::HttpOidcClient;
-use openid4vc::oidc::OidcClient;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::hardware::HardwareCloseProximityDisclosureClient;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use token_status_list::verification::reqwest::HttpStatusListClient;
-use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
 use crate::account_provider::HttpAccountProviderClient;
 use crate::config::WalletConfigurationRepository;
-use crate::digid::DigidSessionState;
 use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
@@ -72,6 +68,7 @@ pub use self::history::HistoryError;
 pub use self::history::RecentHistoryCallback;
 pub use self::init::WalletClients;
 pub use self::init::WalletInitError;
+pub use self::init::WalletRepositories;
 pub use self::issuance::IssuanceError;
 pub use self::issuance::IssuanceResult;
 pub use self::issuance::PidIssuancePurpose;
@@ -91,13 +88,10 @@ pub use self::transfer::TransferError;
 pub use self::uri::UriIdentificationError;
 pub use self::uri::UriType;
 
-cfg_if! {
-    if #[cfg(feature = "fake_attestation")] {
-        type KeyHolderType = platform_support::attested_key::mock::PersistentMockAttestedKeyHolder;
-    } else {
-        type KeyHolderType = platform_support::attested_key::hardware::HardwareAttestedKeyHolder;
-    }
-}
+type KeyHolderType = cfg_select! {
+    feature = "fake_attestation" => platform_support::attested_key::mock::PersistentMockAttestedKeyHolder,
+    _ => platform_support::attested_key::hardware::HardwareAttestedKeyHolder,
+};
 
 #[derive(Debug, Default)]
 enum WalletRegistration<A, G> {
@@ -127,18 +121,11 @@ impl<A, G> WalletRegistration<A, G> {
 }
 
 #[derive(Debug)]
-enum Session<OC: OidcClient, IS, DCS> {
-    Digid {
-        purpose: PidIssuancePurpose,
-        session: DigidSessionState<OC>,
-    },
-    Issuance(WalletIssuanceSession<IS>),
+enum Session<AS, IS, DCS> {
+    Issuance(WalletIssuanceSession<AS, IS>),
     Disclosure(WalletDisclosureSession<DCS>),
     CloseProximityDisclosure(CloseProximityDisclosureSession),
-    PinRecovery {
-        pid_config: PidAttributesConfiguration,
-        session: PinRecoverySession<OC, IS>,
-    },
+    PinRecovery(PinRecoverySession<AS, IS>),
 }
 
 pub struct Wallet<
@@ -147,14 +134,13 @@ pub struct Wallet<
     S = DatabaseStorage<HardwareEncryptionKey>,   // Storage
     AKH = KeyHolderType,                          // AttestedKeyHolder
     APC = HttpAccountProviderClient,              // AccountProviderClient
-    OC = HttpOidcClient,                          // OidcClient for DigiD
-    IS = HttpIssuanceSession,                     // IssuanceSession
+    CID = HttpIssuanceDiscovery,                  // IssuanceDiscovery
     DCC = VpDisclosureClient,                     // DisclosureClient
     CPC = HardwareCloseProximityDisclosureClient, // CloseProximityDisclosureClient
     SLC = HttpStatusListClient,                   // StatusListClient,
 > where
     AKH: AttestedKeyHolder,
-    OC: OidcClient,
+    CID: IssuanceDiscovery,
     DCC: DisclosureClient,
 {
     config_repository: Arc<CR>,
@@ -163,10 +149,11 @@ pub struct Wallet<
     key_holder: AKH,
     registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,
     account_provider_client: Arc<APC>,
+    issuance_discovery: CID,
     disclosure_client: DCC,
     close_proximity_disclosure: PhantomData<CPC>,
     status_list_client: Arc<SLC>,
-    session: Option<Session<OC, IS, DCC::Session>>,
+    session: Option<Session<CID::Authorization, CID::Issuance, DCC::Session>>,
     lock: WalletLock,
     attestations_callback: Arc<Mutex<Option<AttestationsCallback>>>,
     recent_history_callback: Option<RecentHistoryCallback>,

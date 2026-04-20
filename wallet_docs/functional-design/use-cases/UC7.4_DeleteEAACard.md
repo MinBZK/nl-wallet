@@ -1,4 +1,4 @@
-# Use Case 3.3 Renew PID
+# Use Case 7.4 Delete EAA card
 
 ## Overview
 

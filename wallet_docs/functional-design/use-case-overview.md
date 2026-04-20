@@ -82,6 +82,7 @@ QR["<a href='use-cases/UC9.9_ScanQR.html'>9.9 Scan QR</a>"]
 
 RECOVER_PIN["<a href='use-cases/UC2.3.2_RecoverPIN.html'>2.3.2 Recover PIN</a>"]
 RENEW_PID["<a href='use-cases/UC3.2_RenewPid.html'>3.3 Renew PID</a>"]
+DELETE_CARD["<a href='use-cases/UC7.4_DeleteEAACard.html'>7.4 Delete EAA card</a>"]
 
 START --> ALL_CARDS
 
@@ -113,6 +114,7 @@ CARD_HISTORY --> HISTORY_EVENT
 
 CARD --> CARD_HISTORY
 CARD --> RENEW_PID
+CARD --> DELETE_CARD
 
 RENEW_PID --> END
 RENEW_PID --> RECOVER_PIN

@@ -13,7 +13,7 @@ if [[ -z $crate || $crate == 'server_utils' ]]; then
     sea-orm-cli generate entity \
         --database-url "postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/verification_server" \
         --output-dir "$BASE_DIR/wallet_core/wallet_server/server_utils/src/entity"
-    cargo fmt --manifest-path "$BASE_DIR/wallet_core/wallet_server/server_utils/Cargo.toml"
+    cargo +nightly fmt --manifest-path "$BASE_DIR/wallet_core/wallet_server/server_utils/Cargo.toml"
 fi
 
 if [[ -z $crate || $crate == 'status_lists' ]]; then
@@ -22,7 +22,7 @@ if [[ -z $crate || $crate == 'status_lists' ]]; then
         --database-url "postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/issuance_server" \
         --ignore-tables "seaql_migrations,session_state,proof_nonce" \
         --output-dir "$BASE_DIR/wallet_core/lib/status_lists/src/entity"
-    cargo fmt --manifest-path "$BASE_DIR/wallet_core/lib/status_lists/Cargo.toml"
+    cargo +nightly fmt --manifest-path "$BASE_DIR/wallet_core/lib/status_lists/Cargo.toml"
 fi
 
 if [[ -z $crate || $crate == 'issuer_common' ]]; then
@@ -31,7 +31,7 @@ if [[ -z $crate || $crate == 'issuer_common' ]]; then
         --database-url "postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/issuance_server" \
         --ignore-tables "seaql_migrations,attestation_batch,attestation_batch_list_indices,attestation_type,session_state,status_list,status_list_item" \
         --output-dir "$BASE_DIR/wallet_core/wallet_server/issuer_common/src/entity"
-    cargo fmt --manifest-path "$BASE_DIR/wallet_core/wallet_server/issuer_common/Cargo.toml"
+    cargo +nightly fmt --manifest-path "$BASE_DIR/wallet_core/wallet_server/issuer_common/Cargo.toml"
 fi
 
 if [[ -z $crate || $crate == 'wallet_provider' ]]; then
@@ -40,7 +40,7 @@ if [[ -z $crate || $crate == 'wallet_provider' ]]; then
         --database-url "postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/wallet_provider" \
         --ignore-tables "seaql_migrations,attestation_batch,attestation_batch_list_indices,attestation_type,status_list,status_list_flag,status_list_item" \
         --output-dir "$BASE_DIR/wallet_core/wallet_provider/persistence/src/entity"
-    cargo fmt --manifest-path "$BASE_DIR/wallet_core/wallet_provider/persistence/Cargo.toml"
+    cargo +nightly fmt --manifest-path "$BASE_DIR/wallet_core/wallet_provider/persistence/Cargo.toml"
 fi
 
 if [[ -z $crate || $crate == 'audit_log' ]]; then
@@ -49,5 +49,5 @@ if [[ -z $crate || $crate == 'audit_log' ]]; then
         --database-url "postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/wallet_provider_audit_log" \
         --ignore-tables "seaql_migrations,attestation_batch,attestation_batch_list_indices,attestation_type,status_list,status_list_item" \
         --output-dir "$BASE_DIR/wallet_core/wallet_provider/audit_log/src/entity"
-    cargo fmt --manifest-path "$BASE_DIR/wallet_core/wallet_provider/audit_log/Cargo.toml"
+    cargo +nightly fmt --manifest-path "$BASE_DIR/wallet_core/wallet_provider/audit_log/Cargo.toml"
 fi

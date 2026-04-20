@@ -74,9 +74,7 @@ async fn setup_revocation_test(
     let service = PostgresStatusListService::try_new(connection.clone(), &random_string(20), config, NoRevokeAll)
         .await
         .unwrap();
-    try_join_all(service.initialize_lists().await.unwrap().into_iter())
-        .await
-        .unwrap();
+    try_join_all(service.initialize_lists().await.unwrap()).await.unwrap();
 
     let service = Arc::new(service);
     let revoke_endpoint = setup_revocation_server(Arc::clone(&service)).await.unwrap();

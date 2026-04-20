@@ -37,14 +37,16 @@ config = { workspace = true, features = ["toml", "preserve_order"] }
 derive_more = { workspace = true, features = ["debug"] }
 futures.workspace = true
 hex.workspace = true
+jsonwebtoken.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
+jwk-simple.workspace = true
 p256 = { workspace = true, features = ["pkcs8"] }
 reqwest.workspace = true
 ring.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
-serde_with = { workspace = true, features = ["base64"] }
+serde_with = { workspace = true, features = ["base64", "json"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 url = { workspace = true, features = ["serde"] }
@@ -58,6 +60,7 @@ issuer_common.path = "../issuer_common"
 health_checkers.path = "../../lib/health_checkers"
 hsm.path = "../../lib/hsm"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
+jwe = { path = "../../lib/jwe", features = ["rsa"] }
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["issuance"] }
 utils.path = "../../lib/utils"
@@ -66,6 +69,7 @@ status_lists = { path = "../../lib/status_lists", features = ["axum"] }
 token_status_list.path = "../../lib/token_status_list"
 
 [dev-dependencies]
+assert_matches.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 

@@ -233,7 +233,7 @@ async fn assert_disclosure_ok(
     nl_pid_full_name_and_minimal_address()
 )]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn ltc15_ltc16_test_disclosure_usecases_ok(
     #[case] session_type: SessionType,
     #[case] return_url_template: Option<ReturnUrlTemplate>,
@@ -255,7 +255,7 @@ async fn ltc15_ltc16_test_disclosure_usecases_ok(
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn ltc15_test_disclosure_extended_vct_ok() {
     let session_type = SessionType::SameDevice;
     let return_url_template = None;

@@ -10,14 +10,13 @@ pub mod openid4vc {
     pub use openid4vc::disclosure_session::VpVerifierError;
     pub use openid4vc::errors::AuthorizationErrorCode;
     pub use openid4vc::errors::ErrorResponse;
-    pub use openid4vc::issuance_session::IssuanceSessionError;
-    pub use openid4vc::oidc::OidcError;
+    pub use openid4vc::wallet_issuance::WalletIssuanceError;
+    pub use openid4vc::wallet_issuance::authorization::OAuthError;
 }
 
 pub use crate::account_provider::AccountProviderError;
 pub use crate::account_provider::AccountProviderResponseError;
 pub use crate::config::ConfigurationError;
-pub use crate::digid::DigidError;
 pub use crate::instruction::InstructionError;
 pub use crate::instruction::RemoteEcdsaKeyError;
 pub use crate::pin::change::ChangePinError;

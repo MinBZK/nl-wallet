@@ -137,11 +137,11 @@ database:
 
 ## @section DigiD parameters
 ## Parameters for the DigiD configuration
+## @param digidClientId Client ID for the DigiD service
 ## @param digidBaseUrl Base URL for the DigiD service
-## @param digidClientId Base URL for the DigiD service
 ##
-digidBaseUrl:
 digidClientId:
+digidBaseUrl:
 
 ## @section Migration parameters
 ## Parameters for the migration configuration

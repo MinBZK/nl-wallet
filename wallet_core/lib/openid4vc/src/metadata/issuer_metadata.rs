@@ -30,6 +30,7 @@ use crate::issuer_identifier::IssuerUrl;
 use crate::jose::JwsAlgorithm;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
+use crate::metadata::well_known::WellKnownMetadata;
 
 /// Credential issuer metadata, as per
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4>.
@@ -106,52 +107,13 @@ pub struct IssuerMetadata {
     pub credential_preview_endpoint: Option<IssuerUrl>,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum IssuerMetadataDiscoveryError {
-    #[error("could not fetch or deserialize credential issuer metadata: {0}")]
-    Http(#[from] reqwest::Error),
-
-    #[error("credential issuer identifier in metadata does not match, expected: {expected}, received: {received}")]
-    IssuerIdentifierMismatch {
-        expected: Box<IssuerIdentifier>,
-        received: Box<IssuerIdentifier>,
-    },
+impl WellKnownMetadata for IssuerMetadata {
+    fn issuer_identifier(&self) -> &IssuerIdentifier {
+        &self.credential_issuer
+    }
 }
 
 impl IssuerMetadata {
-    /// Discover the Credential Issuer metadata by GETting it from .well-known and parsing it.
-    pub(crate) async fn discover(
-        client: &reqwest::Client,
-        issuer_identifier: &IssuerIdentifier,
-    ) -> Result<Self, IssuerMetadataDiscoveryError> {
-        // TODO (PVW-5527): Composing of the `.well-known` path below is not compliant
-        //                  with the OpenID4VCI specification and should be fixed.
-        let metadata = client
-            .get(
-                issuer_identifier
-                    .as_base_url()
-                    .join("/.well-known/openid-credential-issuer"),
-            )
-            .send()
-            .await?
-            .error_for_status()?
-            .json::<Self>()
-            .await?;
-
-        // As per specification, "The [credential issuer] MUST be identical to the Credential Issuer's identifier value
-        // into which the well-known URI string was inserted to create the URL used to retrieve the metadata. If these
-        // values are not identical (when compared using a simple string comparison with no normalization), the data
-        // contained in the response MUST NOT be used."
-        if metadata.credential_issuer != *issuer_identifier {
-            return Err(IssuerMetadataDiscoveryError::IssuerIdentifierMismatch {
-                expected: Box::new(issuer_identifier.clone()),
-                received: Box::new(metadata.credential_issuer),
-            });
-        }
-
-        Ok(metadata)
-    }
-
     /// Returns a non-empty slice of authorization servers.
     pub fn authorization_servers(&self) -> VecNonEmpty<&IssuerIdentifier> {
         self.authorization_servers

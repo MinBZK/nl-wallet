@@ -193,11 +193,12 @@ fn verify_google_attestation_certificate_chain<'a>(
 
     // Verify that the root public certificate is trustworthy.
     let root_public_key_is_trusted = root_public_keys.iter().any(|public_key| root_public_key == *public_key);
-    cfg_if::cfg_if! {
-        if #[cfg(feature = "skip_root_key_check")] {
+    cfg_select! {
+        feature = "skip_root_key_check" => {
             // Allow any security level on the emulator.
             tracing::warn!("Assume root key of chain is trusted [actual: {}]", root_public_key_is_trusted);
-        } else {
+        }
+        _ => {
             if !root_public_key_is_trusted {
                 return Err(GoogleKeyAttestationError::RootPublicKeyMismatch);
             }

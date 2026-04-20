@@ -10,6 +10,7 @@ use issuer_common::settings::IssuerSettings;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WuaConfig;
+use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::nonce::store::NonceStore;
 use openid4vc::server_state::SessionStore;
 use openid4vc_server::issuer::create_issuance_router;
@@ -25,6 +26,7 @@ use token_status_list::status_list_service::StatusListServices;
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
 pub async fn serve<A, IS, N, L>(
     attr_service: A,
+    upstream_oauth_identifier: IssuerIdentifier,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
@@ -44,6 +46,7 @@ where
         create_wallet_listener(&settings.server_settings.wallet_server).await?,
         create_internal_listener(&settings.server_settings.internal_server).await?,
         attr_service,
+        upstream_oauth_identifier,
         settings,
         hsm,
         issuance_sessions,
@@ -61,6 +64,7 @@ pub async fn serve_with_listeners<A, IS, N, L>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
     attr_service: A,
+    upstream_oauth_identifier: IssuerIdentifier,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
@@ -88,6 +92,7 @@ where
         Some(WuaConfig {
             wua_issuer_pubkey: (&wua_issuer_pubkey).into(),
         }),
+        Some(upstream_oauth_identifier),
         attr_service,
         issuance_sessions,
         proof_nonce_store,

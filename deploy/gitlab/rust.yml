@@ -10,8 +10,8 @@ lint-rust:
     - set -euxo pipefail
   script:
     # Check Rust formatting
-    - find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 -I {} cargo fmt --manifest-path {} --
-      --check
+    - find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 -I {} cargo +nightly fmt
+      --manifest-path {} -- --check
     # Check clippy
     - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
     - grep '^exclude' wallet_core/Cargo.toml | grep -oe '\[.*\]' | jq -r '.[]' | xargs -I "{}" cargo clippy
@@ -389,8 +389,6 @@ build-performance-test:
   script:
     - cargo build --locked --release --package "tests_integration" --bin performance_test --features
       performance_test,allow_insecure_url
-  variables:
-    APPLE_ATTESTATION_ENVIRONMENT: "production"
   artifacts:
     name: performance-test
     paths:

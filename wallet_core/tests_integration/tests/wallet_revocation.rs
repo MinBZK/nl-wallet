@@ -12,8 +12,7 @@ use tempfile::TempDir;
 use audit_log::entity;
 use db_test::DbSetup;
 use http_utils::reqwest::ReqwestTrustAnchor;
-use http_utils::reqwest::trusted_reqwest_client_builder;
-use openid4vc::oidc::MockOidcClient;
+use http_utils::reqwest::tls_reqwest_client_builder;
 use wallet::AccountRevokedData;
 use wallet::BlockedReason;
 use wallet::PidIssuancePurpose;
@@ -32,7 +31,7 @@ use tests_integration::common::*;
 /// Revoke a wallet via the wallet provider's internal endpoint and assert
 /// that the wallet wipes itself (UserRequest revocation).
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn test_revoke_wallet_by_revocation_code() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
@@ -87,7 +86,7 @@ async fn test_revoke_wallet_by_revocation_code() {
 /// Revoke a wallet via the wallet provider's internal endpoint and assert that
 /// the wallet is blocked (AdminRequest revocation), not wiped.
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn test_revoke_wallets_by_id() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
@@ -139,7 +138,7 @@ async fn test_revoke_wallets_by_id() {
 /// and assert that the wallet is blocked (AdminRequest revocation) and cannot register
 /// a new account.
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn test_revoke_wallets_by_recovery_code() {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
@@ -204,16 +203,12 @@ async fn test_revoke_wallets_by_recovery_code() {
     .await;
     wallet = do_wallet_registration(wallet, pin).await;
 
-    // TODO: remove `start_context` and `#[serial(MockOidcClient)]` when implementing ACF (PVW-5575)
-    let ctx = MockOidcClient::start_context();
-    ctx.expect().return_once(|_, _, _| Ok(mock_oidc_start_result()));
-
-    let redirect_url = wallet
+    let auth_url = wallet
         .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
         .await
         .expect("Could not create pid issuance auth url");
     let _attestations = wallet
-        .continue_pid_issuance(redirect_url)
+        .continue_pid_issuance(fake_oidc_redirect(&auth_url))
         .await
         .expect("Could not continue pid issuance");
     let err = wallet
@@ -384,7 +379,7 @@ async fn call_wp_revocation_endpoint(
     path: &str,
     body: impl serde::Serialize,
 ) {
-    let client = trusted_reqwest_client_builder(iter::once(wp_root_ca.into_certificate()))
+    let client = tls_reqwest_client_builder(iter::once(wp_root_ca.into_certificate()))
         .build()
         .unwrap();
     let response = client
@@ -400,7 +395,7 @@ async fn call_wp_revocation_endpoint(
 ///
 /// Separate revoke solution endpoint to ensure both tests call the same.
 async fn call_revoke_solution_endpoint(wp_root_ca: ReqwestTrustAnchor, wp_port: u16, status_code: StatusCode) {
-    let client = trusted_reqwest_client_builder(iter::once(wp_root_ca.into_certificate()))
+    let client = tls_reqwest_client_builder(iter::once(wp_root_ca.into_certificate()))
         .build()
         .unwrap();
     let response = client

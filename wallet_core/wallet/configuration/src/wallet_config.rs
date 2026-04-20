@@ -163,13 +163,7 @@ pub struct PidAttributePaths {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PidIssuanceConfiguration {
-    pub pid_issuer_url: IssuerIdentifier,
-    pub digid: DigidConfiguration,
-    pub digid_http_config: TlsPinningConfig,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct DigidConfiguration {
+    pub url: IssuerIdentifier,
     pub client_id: String,
 }
 

@@ -5,10 +5,9 @@ use url::Url;
 
 use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::VpDisclosureClient;
-use openid4vc::issuance_session::HttpIssuanceSession;
-use openid4vc::oidc::HttpOidcClient;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
+use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
@@ -21,10 +20,10 @@ use wallet::DisclosureUriSource;
 use wallet::PidIssuancePurpose;
 use wallet::Wallet;
 use wallet::WalletClients;
+use wallet::WalletRepositories;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
 use wallet::test::MockHardwareDatabaseStorage;
-use wallet::test::Repository;
 use wallet::test::UpdatePolicyRepository;
 use wallet::test::UpdateableRepository;
 use wallet::test::default_config_server_config;
@@ -41,8 +40,7 @@ type PerformanceTestWallet = Wallet<
     MockHardwareDatabaseStorage,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
-    HttpOidcClient,
-    HttpIssuanceSession,
+    HttpIssuanceDiscovery,
     VpDisclosureClient,
 >;
 
@@ -67,21 +65,24 @@ async fn main() {
     )
     .await
     .unwrap();
+
     config_repository
         .fetch(&config_server_config.http_config)
         .await
         .unwrap();
-    let pid_issuance_config = &config_repository.get().pid_issuance;
+
     let update_policy_repository = UpdatePolicyRepository::init();
     let wallet_clients = WalletClients::new().unwrap();
 
     let storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
     let mut wallet: PerformanceTestWallet = Wallet::init_registration(
-        config_repository,
-        update_policy_repository,
         storage,
         MockHardwareAttestedKeyHolder::new_apple_mock(default::attestation_environment(), default::app_identifier()),
+        WalletRepositories {
+            config_repository,
+            update_policy_repository,
+        },
         wallet_clients,
     )
     .await
@@ -96,12 +97,16 @@ async fn main() {
         .await
         .expect("Could not create pid issuance auth url");
 
-    let redirect_url = fake_digid_auth(
-        authorization_url,
-        pid_issuance_config.digid_http_config.clone(),
-        "999991772",
-    )
-    .await;
+    // Strip everything from and include '/authorize' to get the base DigiD URL
+    let digid_base_url = authorization_url
+        .as_str()
+        .split_once("/authorize")
+        .map(|(base, _)| base)
+        .unwrap_or(authorization_url.as_str())
+        .parse()
+        .unwrap();
+
+    let redirect_url = fake_digid_auth(authorization_url, digid_base_url, "999991772").await;
 
     let _attestations = wallet
         .continue_pid_issuance(redirect_url)

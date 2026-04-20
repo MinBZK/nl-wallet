@@ -14,9 +14,11 @@ use mime::Mime;
 use reqwest::Certificate;
 use reqwest::Client;
 use reqwest::ClientBuilder;
+use reqwest::IntoUrl;
 use reqwest::RequestBuilder;
 use reqwest::Response;
-use url::Url;
+use reqwest::tls::Version;
+use serde::de::DeserializeOwned;
 use x509_parser::error::X509Error;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::X509Certificate;
@@ -108,7 +110,6 @@ pub trait IntoReqwestClient {
 #[derive(Debug, Clone)]
 pub enum ReqwestClientUrl<'a> {
     Base,
-    Absolute(Url),
     Relative(&'a str),
 }
 
@@ -134,7 +135,6 @@ impl ReqwestClient {
     {
         let url = match url {
             ReqwestClientUrl::Base => self.base_url.as_ref().clone(),
-            ReqwestClientUrl::Absolute(url) => url,
             ReqwestClientUrl::Relative(path) => self.base_url.clone().join(path),
         };
 
@@ -191,6 +191,7 @@ pub fn is_problem_json_response(response: &Response) -> bool {
     parse_content_type(response).as_ref() == Some(LazyLock::force(&APPLICATION_PROBLEM_JSON))
 }
 
+/// Create a [`ClientBuilder`] with sensible defaults that should be applied project-wide.
 pub fn default_reqwest_client_builder() -> ClientBuilder {
     // Enable gzip compression by default, but explicitly disable any other compression algorithm,
     // to prevent these from being automatically enabled by `reqwest` feature flags.
@@ -204,12 +205,19 @@ pub fn default_reqwest_client_builder() -> ClientBuilder {
         .tls_built_in_root_certs(true)
 }
 
-/// Create a [`ClientBuilder`] that validates certificates signed with the supplied trust anchors (root certificates) as
-/// well as the built-in root certificates.
-pub fn trusted_reqwest_client_builder(trust_anchors: impl IntoIterator<Item = Certificate>) -> ClientBuilder {
+/// Create a [`ClientBuilder`] with sensible defaults that is TLS-only.
+pub fn default_tls_reqwest_client_builder() -> ClientBuilder {
+    default_reqwest_client_builder()
+        .https_only(true)
+        .min_tls_version(Version::TLS_1_2)
+}
+
+/// Create a [`ClientBuilder`] that is TLS-only and validates certificates signed with the supplied trust anchors (root
+/// certificates) as well as the built-in root certificates.
+pub fn tls_reqwest_client_builder(trust_anchors: impl IntoIterator<Item = Certificate>) -> ClientBuilder {
     trust_anchors
         .into_iter()
-        .fold(default_reqwest_client_builder(), |builder, root_ca| {
+        .fold(default_tls_reqwest_client_builder(), |builder, root_ca| {
             builder.add_root_certificate(root_ca)
         })
 }
@@ -217,9 +225,7 @@ pub fn trusted_reqwest_client_builder(trust_anchors: impl IntoIterator<Item = Ce
 /// Create a [`ClientBuilder`] that only validates certificates signed with the supplied trust anchors (root
 /// certificates). The built-in root certificates are therefore disabled and the client will only work over https.
 pub fn tls_pinned_client_builder(trust_anchors: impl IntoIterator<Item = Certificate>) -> ClientBuilder {
-    trusted_reqwest_client_builder(trust_anchors)
-        .https_only(true)
-        .tls_built_in_root_certs(false)
+    tls_reqwest_client_builder(trust_anchors).tls_built_in_root_certs(false)
 }
 
 pub fn client_builder_accept_json(builder: ClientBuilder) -> ClientBuilder {
@@ -227,6 +233,41 @@ pub fn client_builder_accept_json(builder: ClientBuilder) -> ClientBuilder {
         header::ACCEPT,
         HeaderValue::from_static(APPLICATION_JSON.as_ref()),
     )]))
+}
+
+#[derive(Debug, Clone)]
+pub struct HttpJsonClient(reqwest::Client);
+
+impl HttpJsonClient {
+    pub fn try_new(client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
+        let client = client_builder_accept_json(client_builder).build()?;
+
+        Ok(HttpJsonClient(client))
+    }
+
+    pub async fn get<U, T>(&self, url: U) -> Result<T, reqwest::Error>
+    where
+        U: IntoUrl,
+        T: DeserializeOwned,
+    {
+        self.0.get(url).send().await?.error_for_status()?.json().await
+    }
+
+    pub async fn post<U, F>(&self, url: U, adapter: F) -> Result<Response, reqwest::Error>
+    where
+        U: IntoUrl,
+        F: FnOnce(RequestBuilder) -> RequestBuilder,
+    {
+        adapter(self.0.post(url)).send().await
+    }
+
+    pub async fn delete<U, F>(&self, url: U, adapter: F) -> Result<Response, reqwest::Error>
+    where
+        U: IntoUrl,
+        F: FnOnce(RequestBuilder) -> RequestBuilder,
+    {
+        adapter(self.0.delete(url)).send().await
+    }
 }
 
 #[cfg(any(test, feature = "test"))]

@@ -221,6 +221,10 @@ else
 
     DIGID_CA_CRT=$(< "${TARGET_DIR}/digid/ca.crt.der" ${BASE64})
     export DIGID_CA_CRT
+
+    # Set a fake RSA private key so that parsing the settings succeeds.
+    BSN_PRIVKEY='{"kty":"RSA","n":"","e":"","d":"","p":"","q":"","dp":"","dq":"","qi":""}'
+    export BSN_PRIVKEY
 fi
 
 ########################################################################

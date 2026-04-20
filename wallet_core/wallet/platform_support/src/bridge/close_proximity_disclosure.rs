@@ -25,6 +25,8 @@ pub trait CloseProximityDisclosureBridge: Send + Sync + Debug {
 
     async fn send_device_response(&self, response: Vec<u8>) -> Result<(), CloseProximityDisclosureError>;
 
+    async fn send_session_termination(&self) -> Result<(), CloseProximityDisclosureError>;
+
     async fn stop_ble_server(&self) -> Result<(), CloseProximityDisclosureError>;
 }
 

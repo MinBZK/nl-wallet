@@ -139,15 +139,10 @@ mod test {
     use std::str::FromStr;
 
     use http::header;
-    use wiremock::Mock;
-    use wiremock::MockServer;
-    use wiremock::ResponseTemplate;
-    use wiremock::matchers::header;
-    use wiremock::matchers::header_exists;
-    use wiremock::matchers::method;
-    use wiremock::matchers::path;
+    use httpmock::Method::GET;
+    use httpmock::MockServer;
 
-    use http_utils::client::InternalHttpConfig;
+    use http_utils::client::TlsPinningConfig;
 
     use crate::repository::HttpClient;
     use crate::repository::HttpClientError;
@@ -167,66 +162,82 @@ mod test {
 
     #[tokio::test]
     async fn test_etag_http_client() {
-        let mock_server = MockServer::start().await;
+        let server = MockServer::start_async().await;
+        let base_url = server.base_url().parse().unwrap();
 
-        Mock::given(method("GET"))
-            .and(path("/config"))
-            .respond_with(ResponseTemplate::new(200).append_header(header::ETAG, "etag"))
-            .up_to_n_times(1)
-            .mount(&mock_server)
+        let mock_ok = server
+            .mock_async(|when, then| {
+                when.method(GET)
+                    .header_missing(header::IF_NONE_MATCH.as_str())
+                    .path("/config");
+
+                then.status(200).header(header::ETAG.as_str(), "etag");
+            })
             .await;
 
-        Mock::given(method("GET"))
-            .and(path("/config"))
-            .and(header(header::IF_NONE_MATCH, "etag"))
-            .respond_with(ResponseTemplate::new(304))
-            .expect(1)
-            .mount(&mock_server)
+        let mock_not_modified = server
+            .mock_async(|when, then| {
+                when.method(GET)
+                    .header(header::IF_NONE_MATCH.as_str(), "etag")
+                    .path("/config");
+
+                then.status(304);
+            })
             .await;
 
-        let client: EtagHttpClient<Stub, InternalHttpConfig, HttpClientError> =
+        let client: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
             EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().keep())
                 .await
                 .unwrap();
 
-        let client_builder = InternalHttpConfig::try_new(mock_server.uri().parse().unwrap()).unwrap();
+        let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
 
         let response = client.fetch(&client_builder).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
+        mock_ok.assert_async().await;
 
         let response = client.fetch(&client_builder).await.unwrap();
         assert!(matches!(response, HttpResponse::NotModified));
+        mock_not_modified.assert_async().await;
     }
 
     #[tokio::test]
     async fn test_etag_http_client_mismatch() {
-        let mock_server = MockServer::start().await;
+        let server = MockServer::start_async().await;
+        let base_url = server.base_url().parse().unwrap();
 
-        Mock::given(method("GET"))
-            .and(path("/config"))
-            .respond_with(ResponseTemplate::new(200).append_header(header::ETAG, "etag"))
-            .up_to_n_times(1)
-            .mount(&mock_server)
+        let mock_ok1 = server
+            .mock_async(|when, then| {
+                when.method(GET)
+                    .header_missing(header::IF_NONE_MATCH.as_str())
+                    .path("/config");
+
+                then.status(200).header(header::ETAG.as_str(), "etag");
+            })
             .await;
 
-        Mock::given(method("GET"))
-            .and(path("/config"))
-            .and(header_exists(header::IF_NONE_MATCH))
-            .respond_with(ResponseTemplate::new(200).append_header(header::ETAG, "other etag"))
-            .expect(1)
-            .mount(&mock_server)
+        let mock_ok2 = server
+            .mock_async(|when, then| {
+                when.method(GET)
+                    .header(header::IF_NONE_MATCH.as_str(), "etag")
+                    .path("/config");
+
+                then.status(200).header(header::ETAG.as_str(), "other etag");
+            })
             .await;
 
-        let client_builder = InternalHttpConfig::try_new(mock_server.uri().parse().unwrap()).unwrap();
-        let client: EtagHttpClient<Stub, InternalHttpConfig, HttpClientError> =
+        let client_builder = TlsPinningConfig::try_new_httpmock(base_url).unwrap();
+        let client: EtagHttpClient<Stub, TlsPinningConfig, HttpClientError> =
             EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().keep())
                 .await
                 .unwrap();
 
         let response = client.fetch(&client_builder).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
+        mock_ok1.assert_async().await;
 
         let response = client.fetch(&client_builder).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
+        mock_ok2.assert_async().await;
     }
 }

@@ -25,7 +25,7 @@ use tests_integration::common::*;
 
 #[rstest]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn ltc5_test_disclosure_based_issuance_and_disclosure(
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] pid_format: CredentialFormat,
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] degree_format: CredentialFormat,
@@ -34,7 +34,8 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
     let pin = "112233";
 
     // Start with a wallet that contains the PID.
-    let (mut wallet, urls, issuance_urls) = setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
+    let (mut wallet, disclosure_urls, issuance_urls) =
+        setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
 
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
@@ -97,7 +98,7 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
     let client = reqwest::Client::new();
 
     let StartDisclosureResponse { session_token } = client
-        .post(urls.verifier_internal_url.join("disclosure/sessions"))
+        .post(disclosure_urls.verifier_internal_url.join("disclosure/sessions"))
         .json(&start_request)
         .send()
         .await
@@ -109,7 +110,9 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
         .unwrap();
 
     // The universal link the wallet can use for disclosure.
-    let mut status_url = urls.verifier_url.join(&format!("disclosure/sessions/{session_token}"));
+    let mut status_url = disclosure_urls
+        .verifier_url
+        .join(&format!("disclosure/sessions/{session_token}"));
     let status_query = serde_urlencoded::to_string(StatusParams {
         session_type: Some(SessionType::SameDevice),
     })
@@ -169,7 +172,7 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
         .find_map(|(key, value)| (key == "nonce").then(|| value.into_owned()))
         .unwrap();
 
-    let mut disclosed_attributes_url = urls
+    let mut disclosed_attributes_url = disclosure_urls
         .verifier_internal_url
         .join(&format!("disclosure/sessions/{session_token}/disclosed_attributes"));
     let query = serde_urlencoded::to_string(DisclosedAttributesParams { nonce: Some(nonce) }).unwrap();
@@ -221,7 +224,7 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
 
 #[rstest]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-#[serial(hsm, MockOidcClient)]
+#[serial(hsm)]
 async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
 ) {

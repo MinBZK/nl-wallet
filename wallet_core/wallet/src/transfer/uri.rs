@@ -70,14 +70,14 @@ mod tests {
     use uuid::Uuid;
 
     use jwe::algorithm::EcdhAlgorithm;
-    use jwe::decryption::JweSecretKey;
+    use jwe::decryption::JweEcdhSecretKey;
 
     use crate::transfer::uri::TransferQuery;
 
     #[test]
     fn test_transfer_query() {
         let transfer_session_id = Uuid::new_v4();
-        let secret_key = JweSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw);
+        let secret_key = JweEcdhSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw);
 
         let transfer_query = TransferQuery {
             session_id: transfer_session_id.into(),
