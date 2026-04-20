@@ -12,10 +12,7 @@ use jwe::error::JweStringDecryptionError;
 use openid4vc::AuthBearerErrorCode;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
-use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
-use openid4vc::metadata::well_known;
-use openid4vc::metadata::well_known::WellKnownError;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponse;
 use reqwest::header;
@@ -32,9 +29,6 @@ const APPLICATION_JWT: &str = "application/jwt";
 pub enum UserInfoError {
     #[error("transport error: {0}")]
     Http(#[from] reqwest::Error),
-
-    #[error("error fetching well-known metadata: {0}")]
-    WellKnown(#[from] WellKnownError),
 
     #[error("config has no JWKS URI")]
     NoJwksUri,
@@ -112,7 +106,7 @@ async fn request_userinfo_jwt(
 
 pub async fn request_userinfo<C>(
     http_client: &HttpJsonClient,
-    oidc_identifier: &IssuerIdentifier,
+    config: &AuthorizationServerMetadata,
     token_request: TokenRequest,
     client_id: &str,
     decrypter: &JweDecrypter,
@@ -121,18 +115,11 @@ pub async fn request_userinfo<C>(
 where
     C: DeserializeOwned,
 {
-    let config: AuthorizationServerMetadata = well_known::fetch_well_known(
-        http_client,
-        oidc_identifier,
-        well_known::WellKnownPath::OpenidConfiguration,
-    )
-    .await?;
-
     let jwks_client = HttpJwksClient::new(http_client.clone());
     let jwks_uri = config.jwks_uri.clone().ok_or(UserInfoError::NoJwksUri)?;
 
     let (jwe, jwks) = try_join!(
-        request_userinfo_jwt(http_client, &config, token_request),
+        request_userinfo_jwt(http_client, config, token_request),
         jwks_client.jwks(jwks_uri).map_err(|e| match e {
             JwksError::Http(e) => UserInfoError::Http(e),
         })

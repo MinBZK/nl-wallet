@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use db_test::DbSetup;
@@ -19,6 +21,7 @@ use pid_issuer::pid::constants::PID_BSN;
 use pid_issuer::pid::constants::PID_FAMILY_NAME;
 use pid_issuer::pid::constants::PID_GIVEN_NAME;
 use pid_issuer::pid::constants::PID_RESIDENT_COUNTRY;
+use pid_issuer::pid::digid::DigidMetadataCache;
 use serial_test::serial;
 use server_utils::keys::SecretKeyVariant;
 use server_utils::settings::SecretKey;
@@ -65,7 +68,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             HttpBrpClient::new(settings.brp_server.clone()),
             &settings.digid.bsn_privkey,
             settings.digid.client_id.clone(),
-            settings.digid.client_settings.clone(),
+            Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings.clone()).unwrap()),
             SecretKeyVariant::from_settings(
                 SecretKey::Software {
                     secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),

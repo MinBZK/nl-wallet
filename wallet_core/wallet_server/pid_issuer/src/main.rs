@@ -12,6 +12,7 @@ use issuer_common::settings::StatusListAttestationSettings;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
 use pid_issuer::pid::digid::DigidAuthorizationEndpointResolver;
+use pid_issuer::pid::digid::DigidMetadataCache;
 use pid_issuer::server;
 use pid_issuer::settings::PidIssuerSettings;
 use server_utils::keys::SecretKeyVariant;
@@ -50,16 +51,17 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     ));
     let proof_nonce_store = ProofNonceStore::new(store_connection.clone());
 
-    let upstream_authorization_resolver = Arc::new(
-        DigidAuthorizationEndpointResolver::try_new(settings.digid.client_settings.clone())
-            .map_err(anyhow::Error::from)?,
-    );
+    let digid_metadata_cache =
+        Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings).map_err(anyhow::Error::from)?);
+    let upstream_authorization_resolver = Arc::new(DigidAuthorizationEndpointResolver::new(Arc::clone(
+        &digid_metadata_cache,
+    )));
 
     let pid_attr_service = BrpPidAttributeService::try_new(
         HttpBrpClient::new(settings.brp_server),
         &settings.digid.bsn_privkey,
         settings.digid.client_id,
-        settings.digid.client_settings,
+        digid_metadata_cache,
         SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?,
     )?;
 

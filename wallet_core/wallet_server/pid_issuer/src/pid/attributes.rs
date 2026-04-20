@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
@@ -14,6 +16,7 @@ use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
 use super::digid;
+use super::digid::DigidMetadataCache;
 use super::digid::OpenIdClient;
 use crate::pid::brp::client::BrpClient;
 use crate::pid::brp::client::BrpError;
@@ -21,7 +24,6 @@ use crate::pid::brp::client::HttpBrpClient;
 use crate::pid::constants::PID_ATTESTATION_TYPE;
 use crate::pid::constants::PID_BSN;
 use crate::pid::constants::PID_RECOVERY_CODE;
-use crate::settings::DigidClientSettings;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -58,12 +60,12 @@ impl BrpPidAttributeService {
         brp_client: HttpBrpClient,
         bsn_privkey: &Key,
         client_id: impl Into<String>,
-        digid_client_settings: DigidClientSettings,
+        digid_metadata_cache: Arc<DigidMetadataCache>,
         recovery_code_secret_key: SecretKeyVariant,
     ) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
-            openid_client: OpenIdClient::try_new(bsn_privkey, client_id, digid_client_settings)?,
+            openid_client: OpenIdClient::try_new(bsn_privkey, client_id, digid_metadata_cache)?,
             recovery_code_secret_key,
         })
     }
