@@ -22,7 +22,7 @@ use serde_with::SerializeDisplay;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
-use tokio::task::JoinHandle;
+use tokio::task::AbortHandle;
 use tracing::debug;
 use tracing::info;
 use tracing::warn;
@@ -63,8 +63,8 @@ use crate::openid4vp::VpRequestUri;
 use crate::openid4vp::VpRequestUriMethod;
 use crate::openid4vp::VpRequestUriObject;
 use crate::openid4vp::VpResponse;
+use crate::recurring_task::start_recurring_task;
 use crate::return_url::ReturnUrlTemplate;
-use crate::server_state::CLEANUP_INTERVAL_SECONDS;
 use crate::server_state::Expirable;
 use crate::server_state::HasProgress;
 use crate::server_state::Progress;
@@ -73,6 +73,9 @@ use crate::server_state::SessionState;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
 use crate::server_state::SessionToken;
+
+/// The cleanup task that removes stale sessions runs every so often.
+const CLEANUP_INTERVAL: Duration = Duration::from_secs(120);
 
 pub const EPHEMERAL_ID_VALIDITY_SECONDS: Duration = Duration::from_secs(10);
 
@@ -867,7 +870,7 @@ pub trait DisclosureResultHandler {
 pub struct Verifier<S, US, C> {
     use_cases: US,
     sessions: Arc<S>,
-    cleanup_task: JoinHandle<()>,
+    cleanup_task: AbortHandle,
     trust_anchors: Vec<TrustAnchor<'static>>,
     #[debug(skip)]
     result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
@@ -913,9 +916,20 @@ where
     where
         S: Sync + 'static,
     {
+        let task_sessions = Arc::clone(&sessions);
+        let cleanup_task = start_recurring_task(CLEANUP_INTERVAL, move || {
+            let task_sessions = Arc::clone(&task_sessions);
+
+            async move {
+                if let Err(error) = task_sessions.cleanup().await {
+                    warn!("error during session cleanup: {error}");
+                }
+            }
+        });
+
         Self {
             use_cases,
-            cleanup_task: sessions.clone().start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
+            cleanup_task,
             sessions,
             trust_anchors,
             result_handler,
@@ -1599,6 +1613,7 @@ mod tests {
 
     use super::AuthorizationErrorCode;
     use super::AuthorizationErrorResponse;
+    use super::CLEANUP_INTERVAL;
     use super::ClientId;
     use super::DisclosedAttributesError;
     use super::DisclosureData;
@@ -2208,6 +2223,6 @@ mod tests {
             )
             .await
             .unwrap();
-        test_memory_store_with_cleanup_task(sessions, token, &mock_time).await;
+        test_memory_store_with_cleanup_task(sessions, token, &mock_time, CLEANUP_INTERVAL).await;
     }
 }
