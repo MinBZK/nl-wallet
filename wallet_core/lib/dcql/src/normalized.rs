@@ -277,14 +277,23 @@ impl From<NormalizedCredentialRequest> for CredentialQuery {
             ),
         };
 
+        // The reverse mapping, in `TryFrom<CredentialQuery> for NormalizedCredentialRequest` above, flattens multiple
+        // AKI values in the `trusted_authorities` array of the `CredentialQuery`, resulting in a `Vec<KeyIdentifier>`
+        // as opposed to what otherwise might be a `Vec<Vec<KeyIdentifier>>`.
+        // As a result, this conversion here will always yield a single AKI value in the `trusted_authorities` array.
+        // Therefore, converting a CredentialQuery to a NormalizedCredentialRequest and then back again would not
+        // yield an identical result if the `trusted_authorities` array contained multiple AKI values, although
+        // semantically the difference has no effect.
+        let trusted_authorities = VecNonEmpty::try_from(aki)
+            .into_iter()
+            .map(TrustedAuthoritiesQuery::Aki)
+            .collect();
+
         Self {
             id,
             format,
             multiple: false,
-            trusted_authorities: VecNonEmpty::try_from(aki)
-                .into_iter()
-                .map(TrustedAuthoritiesQuery::Aki)
-                .collect(),
+            trusted_authorities,
             require_cryptographic_holder_binding: true,
             claims_selection: ClaimsSelection::All {
                 claims: claims
