@@ -13,7 +13,9 @@ use chrono::Utc;
 use derive_more::AsRef;
 use derive_more::Debug;
 use derive_more::From;
+use futures::TryFutureExt;
 use futures::future::try_join_all;
+use futures::join;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
@@ -409,7 +411,7 @@ pub struct Issuer<K, A, S, N, L> {
     attr_service: A,
     issuer_data: IssuerData<K>,
     sessions: Arc<S>,
-    proof_nonce_store: N,
+    proof_nonce_store: Arc<N>,
     status_list_services: Arc<L>,
     cleanup_task: AbortHandle,
 }
@@ -452,6 +454,7 @@ impl<K, A, S, N, L> Issuer<K, A, S, N, L> {
 impl<K, A, S, N, L> Issuer<K, A, S, N, L>
 where
     S: SessionStore<IssuanceData> + Sync + 'static,
+    N: NonceStore + Sync + 'static,
 {
     #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn new(
@@ -538,14 +541,23 @@ where
             metadata,
         };
 
+        let proof_nonce_store = Arc::new(proof_nonce_store);
+
         let task_sessions = Arc::clone(&sessions);
+        let task_nonce_store = Arc::clone(&proof_nonce_store);
         let cleanup_task = start_recurring_task(CLEANUP_INTERVAL, move || {
             let task_sessions = Arc::clone(&task_sessions);
+            let task_nonce_store = Arc::clone(&task_nonce_store);
 
             async move {
-                if let Err(error) = task_sessions.cleanup().await {
-                    warn!("error during session cleanup: {error}");
-                }
+                let _ = join!(
+                    task_sessions.cleanup().inspect_err(|error| {
+                        warn!("error during session cleanup: {error}");
+                    }),
+                    task_nonce_store.remove_expired_nonces().inspect_err(|error| {
+                        warn!("error during proof nonce cleanup: {error}");
+                    })
+                );
             }
         });
 
@@ -789,7 +801,7 @@ where
                 dpop,
                 &self.issuer_data,
                 IssuerServices {
-                    proof_nonce_store: &self.proof_nonce_store,
+                    proof_nonce_store: self.proof_nonce_store.as_ref(),
                     status_list_services: self.status_list_services.as_ref(),
                 },
             )
@@ -819,7 +831,7 @@ where
                 dpop,
                 &self.issuer_data,
                 IssuerServices {
-                    proof_nonce_store: &self.proof_nonce_store,
+                    proof_nonce_store: self.proof_nonce_store.as_ref(),
                     status_list_services: self.status_list_services.as_ref(),
                 },
             )
