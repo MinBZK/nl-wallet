@@ -101,11 +101,10 @@ impl ParStore for () {
 mod tests {
     use chrono::Duration;
 
-    use crate::authorization::AuthorizationRequest;
-    use crate::authorization::ResponseType;
-
     use super::MemoryParStore;
     use super::ParStore;
+    use crate::authorization::AuthorizationRequest;
+    use crate::authorization::ResponseType;
 
     fn example_request() -> AuthorizationRequest {
         AuthorizationRequest {

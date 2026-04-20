@@ -7,10 +7,10 @@ use issuer_common::settings::IssuerSettings;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WiaConfig;
-use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::nonce::store::NonceStore;
 use openid4vc::par::MemoryParStore;
 use openid4vc::server_state::SessionStore;
+use openid4vc_server::issuer::UpstreamAuthorizationEndpointResolver;
 use openid4vc_server::issuer::create_issuance_router;
 use p256::ecdsa::VerifyingKey;
 use server_utils::server::add_cache_control_no_store_layer;
@@ -26,7 +26,7 @@ use tokio::net::TcpListener;
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
 pub async fn serve<A, IS, N, L>(
     attr_service: A,
-    upstream_oauth_identifier: IssuerIdentifier,
+    upstream_authorization_resolver: Arc<dyn UpstreamAuthorizationEndpointResolver>,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
@@ -46,7 +46,7 @@ where
         create_wallet_listener(&settings.server_settings.wallet_server).await?,
         create_internal_listener(&settings.server_settings.internal_server).await?,
         attr_service,
-        upstream_oauth_identifier,
+        upstream_authorization_resolver,
         settings,
         hsm,
         issuance_sessions,
@@ -64,7 +64,7 @@ pub async fn serve_with_listeners<A, IS, N, L>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
     attr_service: A,
-    upstream_oauth_identifier: IssuerIdentifier,
+    upstream_authorization_resolver: Arc<dyn UpstreamAuthorizationEndpointResolver>,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
@@ -100,7 +100,7 @@ where
             Arc::clone(&status_list_services),
         )),
         Arc::clone(&par_store),
-        Some(upstream_oauth_identifier),
+        Some(upstream_authorization_resolver),
     );
 
     let mut router = add_cache_control_no_store_layer(wallet_issuance_router);

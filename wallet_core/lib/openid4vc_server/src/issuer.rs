@@ -1,6 +1,7 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use axum::Form;
 use axum::Json;
 use axum::Router;
@@ -44,7 +45,6 @@ use openid4vc::dpop::Dpop;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
-use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::issuer_metadata::IssuerMetadata;
 use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
 use openid4vc::nonce::response::NonceResponse;
@@ -61,11 +61,28 @@ use openid4vc::token::TokenResponse;
 use serde::Serialize;
 use token_status_list::status_list_service::StatusListServices;
 use tracing::warn;
+use url::Url;
+
+/// Error returned by [`UpstreamAuthorizationEndpointResolver::resolve`].
+#[derive(Debug, thiserror::Error)]
+pub enum UpstreamResolveError {
+    #[error("upstream metadata discovery failed: {0}")]
+    Discovery(Box<dyn std::error::Error + Send + Sync>),
+
+    #[error("upstream metadata has no authorization_endpoint")]
+    NoAuthorizationEndpoint,
+}
+
+/// Resolves the upstream authorization endpoint URL, e.g. by performing OIDC discovery.
+#[async_trait]
+pub trait UpstreamAuthorizationEndpointResolver: Send + Sync {
+    async fn resolve(&self) -> Result<Url, UpstreamResolveError>;
+}
 
 struct ApplicationState<K, A, S, N, L, P> {
     issuer: Arc<Issuer<K, A, S, N, L>>,
     par_store: Arc<P>,
-    upstream_oauth_identifier: Option<IssuerIdentifier>,
+    upstream_authorization_resolver: Option<Arc<dyn UpstreamAuthorizationEndpointResolver>>,
 }
 
 // Implement `Clone` manually, because `#[derive(Clone)]` unnecessarily adds `Clone` bounds on its type parameters,
@@ -75,7 +92,7 @@ impl<K, A, S, N, L, P> Clone for ApplicationState<K, A, S, N, L, P> {
         Self {
             issuer: self.issuer.clone(),
             par_store: self.par_store.clone(),
-            upstream_oauth_identifier: self.upstream_oauth_identifier.clone(),
+            upstream_authorization_resolver: self.upstream_authorization_resolver.clone(),
         }
     }
 }
@@ -83,7 +100,7 @@ impl<K, A, S, N, L, P> Clone for ApplicationState<K, A, S, N, L, P> {
 pub fn create_issuance_router<K, A, S, N, L, P>(
     issuer: Arc<Issuer<K, A, S, N, L>>,
     par_store: Arc<P>,
-    upstream_oauth_identifier: Option<IssuerIdentifier>,
+    upstream_authorization_resolver: Option<Arc<dyn UpstreamAuthorizationEndpointResolver>>,
 ) -> Router
 where
     K: EcdsaKeySend + Sync + 'static,
@@ -96,7 +113,7 @@ where
     let application_state = ApplicationState {
         issuer,
         par_store,
-        upstream_oauth_identifier,
+        upstream_authorization_resolver,
     };
 
     Router::new()
@@ -375,14 +392,24 @@ where
     L: StatusListServices,
     P: ParStore,
 {
-    let upstream_oauth_identifier = state.upstream_oauth_identifier.clone().ok_or_else(|| ErrorResponse {
-        error: AuthorizeError::ServerError,
-        error_description: Some("no upstream authorization endpoint configured".to_string()),
-        error_uri: None,
-    })?;
+    let upstream_authorization_resolver =
+        state
+            .upstream_authorization_resolver
+            .clone()
+            .ok_or_else(|| ErrorResponse {
+                error: AuthorizeError::ServerError,
+                error_description: Some("no upstream authorization endpoint configured".to_string()),
+                error_uri: None,
+            })?;
 
-    // TODO (PVW-5746): decouple from upstream OAuth
-    let upstream_authorization_endpoint = upstream_oauth_identifier.as_base_url().join("authorize");
+    let upstream_authorization_endpoint = upstream_authorization_resolver.resolve().await.map_err(|error| {
+        warn!("resolving upstream authorization endpoint failed: {}", error);
+        ErrorResponse {
+            error: AuthorizeError::ServerError,
+            error_description: Some(error.to_string()),
+            error_uri: None,
+        }
+    })?;
 
     let authorization_request = state
         .par_store

@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::tls_pinned_client_builder;
 use jsonwebtoken::Algorithm;
@@ -8,7 +9,14 @@ use jwe::decryption::JweRsaPrivateKey;
 use jwe::error::RsaPrivateJwkError;
 use jwk_simple::Key;
 use openid4vc::issuer_identifier::IssuerIdentifier;
+use openid4vc::metadata::oauth_metadata::OidcProviderMetadata;
+use openid4vc::metadata::well_known;
+use openid4vc::metadata::well_known::WellKnownPath;
 use openid4vc::token::TokenRequest;
+use openid4vc_server::issuer::UpstreamAuthorizationEndpointResolver;
+use openid4vc_server::issuer::UpstreamResolveError;
+use tokio::sync::OnceCell;
+use url::Url;
 
 use crate::pid::userinfo;
 use crate::pid::userinfo::UserInfo;
@@ -31,6 +39,48 @@ pub enum Error {
 
     #[error("userinfo error: {0}")]
     UserInfo(#[from] UserInfoError),
+}
+
+/// Implements [`UpstreamAuthorizationEndpointResolver`] by performing OIDC discovery against the configured
+/// upstream issuer on the first call and caching the result for the lifetime of the process.
+pub struct DigidAuthorizationEndpointResolver {
+    http_client: HttpJsonClient,
+    oidc_identifier: IssuerIdentifier,
+    cached_endpoint: OnceCell<Url>,
+}
+
+impl DigidAuthorizationEndpointResolver {
+    pub fn try_new(settings: DigidClientSettings) -> std::result::Result<Self, reqwest::Error> {
+        let certs = settings.trust_anchors.into_iter().map(|ta| ta.into_certificate());
+        let http_client = HttpJsonClient::try_new(tls_pinned_client_builder(certs))?;
+        Ok(Self {
+            http_client,
+            oidc_identifier: settings.oidc_identifier,
+            cached_endpoint: OnceCell::new(),
+        })
+    }
+}
+
+#[async_trait]
+impl UpstreamAuthorizationEndpointResolver for DigidAuthorizationEndpointResolver {
+    async fn resolve(&self) -> std::result::Result<Url, UpstreamResolveError> {
+        self.cached_endpoint
+            .get_or_try_init(|| async {
+                let metadata: OidcProviderMetadata = well_known::fetch_well_known(
+                    &self.http_client,
+                    &self.oidc_identifier,
+                    WellKnownPath::OpenidConfiguration,
+                )
+                .await
+                .map_err(|e| UpstreamResolveError::Discovery(Box::new(e)))?;
+
+                metadata
+                    .authorization_endpoint
+                    .ok_or(UpstreamResolveError::NoAuthorizationEndpoint)
+            })
+            .await
+            .cloned()
+    }
 }
 
 /// An OIDC client for exchanging an access token provided by the user for their BSN at the IdP.

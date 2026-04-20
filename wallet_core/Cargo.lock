@@ -5184,6 +5184,7 @@ dependencies = [
 name = "openid4vc_server"
 version = "0.6.0-dev"
 dependencies = [
+ "async-trait",
  "attestation_data",
  "axum",
  "axum-extra",
@@ -5201,6 +5202,7 @@ dependencies = [
  "rustls-pki-types",
  "serde",
  "serde_urlencoded",
+ "thiserror 2.0.17",
  "token_status_list",
  "tokio",
  "tower-http",
@@ -5646,6 +5648,7 @@ version = "0.6.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
+ "async-trait",
  "attestation_data",
  "attestation_types",
  "axum",

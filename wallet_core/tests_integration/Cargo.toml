@@ -319,6 +319,7 @@ android_attest = { path = "../lib/android_attest", features = ["serialize_key_at
 hsm = { path = "../lib/hsm", features = ["test"] }
 issuance_server = { path = "../wallet_server/issuance_server" }
 openid4vc = { path = "../lib/openid4vc", features = ["integration"] }
+openid4vc_server = { path = "../lib/openid4vc_server", features = ["issuance"] }
 pid_issuer.path = "../wallet_server/pid_issuer"
 platform_support = { path = "../wallet/platform_support", features = ["persistent_mock_attested_key"] }
 server_utils = { path = "../wallet_server/server_utils", features = ["parsed_key_pair_conversion"] }

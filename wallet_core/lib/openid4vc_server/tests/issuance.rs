@@ -31,6 +31,8 @@ use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredential;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
+use openid4vc_server::issuer::UpstreamAuthorizationEndpointResolver;
+use openid4vc_server::issuer::UpstreamResolveError;
 use openid4vc_server::issuer::create_issuance_router;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePrivateKey;
@@ -39,6 +41,15 @@ use rustls_pki_types::TrustAnchor;
 use tokio::net::TcpListener;
 use url::Url;
 use wscd::mock_remote::MockRemoteWscd;
+
+struct StaticAuthorizationEndpointResolver(Url);
+
+#[async_trait::async_trait]
+impl UpstreamAuthorizationEndpointResolver for StaticAuthorizationEndpointResolver {
+    async fn resolve(&self) -> Result<Url, UpstreamResolveError> {
+        Ok(self.0.clone())
+    }
+}
 
 fn generate_localhost_tls() -> (TlsServerConfig, ReqwestTrustAnchor) {
     let ca = Ca::generate("localhost", Default::default()).unwrap();
@@ -55,7 +66,7 @@ fn generate_localhost_tls() -> (TlsServerConfig, ReqwestTrustAnchor) {
 
 async fn start_server(
     attestation_count: NonZeroUsize,
-    upstream_oauth_identifier: Option<IssuerIdentifier>,
+    upstream_authorization_endpoint: Option<Url>,
 ) -> (
     Arc<MockIssuer>,
     TrustAnchor<'static>,
@@ -82,7 +93,10 @@ async fn start_server(
     );
     let issuer = Arc::new(issuer);
 
-    let router = create_issuance_router(Arc::clone(&issuer), par_store, upstream_oauth_identifier);
+    let resolver = upstream_authorization_endpoint.map(|url| {
+        Arc::new(StaticAuthorizationEndpointResolver(url)) as Arc<dyn UpstreamAuthorizationEndpointResolver>
+    });
+    let router = create_issuance_router(Arc::clone(&issuer), par_store, resolver);
     tokio::spawn(async move {
         axum_server::from_tcp_rustls(listener, tls_server_config.into_rustls_config().unwrap())
             .unwrap()
@@ -158,7 +172,7 @@ fn verify_issued_credentials(
 async fn authorization_code_flow(
     #[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
 ) {
-    let upstream_oauth_id: IssuerIdentifier = "https://auth.example.com/".parse().unwrap();
+    let upstream_oauth_id: Url = "https://auth.example.com/".parse().unwrap();
     let (_, trust_anchor, issuer_identifier, wia_issuer_privkey, tls_trust_anchor) =
         start_server(attestation_count, Some(upstream_oauth_id)).await;
 

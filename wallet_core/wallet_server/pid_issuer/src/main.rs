@@ -11,6 +11,7 @@ use issuer_common::nonce_store::ProofNonceStore;
 use issuer_common::settings::StatusListAttestationSettings;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
+use pid_issuer::pid::digid::DigidAuthorizationEndpointResolver;
 use pid_issuer::server;
 use pid_issuer::settings::PidIssuerSettings;
 use server_utils::keys::SecretKeyVariant;
@@ -49,7 +50,10 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     ));
     let proof_nonce_store = ProofNonceStore::new(store_connection.clone());
 
-    let upstream_oauth_identifier = settings.digid.client_settings.oidc_identifier.clone();
+    let upstream_authorization_resolver = Arc::new(
+        DigidAuthorizationEndpointResolver::try_new(settings.digid.client_settings.clone())
+            .map_err(anyhow::Error::from)?,
+    );
 
     let pid_attr_service = BrpPidAttributeService::try_new(
         HttpBrpClient::new(settings.brp_server),
@@ -112,7 +116,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     // This will block until the server shuts down.
     server::serve(
         pid_attr_service,
-        upstream_oauth_identifier,
+        upstream_authorization_resolver,
         issuer_settings,
         hsm,
         sessions,

@@ -150,17 +150,18 @@ pub struct AuthorizationResponse {
 
 #[cfg(test)]
 mod tests {
+    use indexmap::IndexSet;
+    use jwt::nonce::Nonce;
+    use serde_json::json;
+    use serde_urlencoded;
+    use url::Url;
+
     use crate::authorization::AuthorizationDetails;
     use crate::authorization::AuthorizationDetailsFormatData;
     use crate::authorization::AuthorizationRequest;
     use crate::authorization::PkceCodeChallenge;
     use crate::authorization::ResponseMode;
     use crate::authorization::ResponseType;
-    use indexmap::IndexSet;
-    use jwt::nonce::Nonce;
-    use serde_json::json;
-    use serde_urlencoded;
-    use url::Url;
 
     #[test]
     fn authorization_request_serialization_roundtrip() {

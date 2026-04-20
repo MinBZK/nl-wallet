@@ -11,6 +11,12 @@ use crate::issuer_identifier::IssuerIdentifier;
 
 /// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414), to be
 /// published at `.well-known/oauth-authorization-server`.
+///
+/// This struct also serves as a lenient representation of
+/// [OpenID Connect Discovery 1.0](https://openid.net/specs/openid-connect-discovery-1_0.html) Provider Metadata
+/// (see [`OidcProviderMetadata`]), since OIDC Discovery is a superset of RFC 8414. Key differences: OIDC requires
+/// `jwks_uri`, `subject_types_supported`, and `id_token_signing_alg_values_supported` to be non-empty; RFC 8414 does
+/// not define those fields. This struct accepts both by treating them as optional/defaulting to empty.
 #[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AuthorizationServerMetadata {
@@ -152,6 +158,10 @@ impl AuthorizationServerMetadata {
         }
     }
 }
+
+/// Alias for [`AuthorizationServerMetadata`] when obtained from an OpenID Provider's
+/// `/.well-known/openid-configuration` endpoint (OpenID Connect Discovery 1.0).
+pub type OidcProviderMetadata = AuthorizationServerMetadata;
 
 impl WellKnownMetadata for AuthorizationServerMetadata {
     fn issuer_identifier(&self) -> &IssuerIdentifier {
