@@ -351,7 +351,11 @@ impl Pkcs11Client for Pkcs11Hsm {
                 .encode_to_vec(&mut oid)
                 .map_err(|error| HsmError::Sec1(Box::new(error)))?;
 
-            let pub_key_template = &[Attribute::EcParams(oid)];
+            let pub_key_template = &[
+                Attribute::EcParams(oid),
+                Attribute::Token(false),
+                Attribute::Private(false),
+            ];
             let priv_key_template = &[
                 Attribute::Token(false),
                 Attribute::Private(true),
@@ -381,7 +385,12 @@ impl Pkcs11Client for Pkcs11Hsm {
                 .encode_to_vec(&mut oid)
                 .map_err(|error| HsmError::Sec1(Box::new(error)))?;
 
-            let pub_key_template = &[Attribute::EcParams(oid), Attribute::Label(identifier.clone().into())];
+            let pub_key_template = &[
+                Attribute::EcParams(oid),
+                Attribute::Token(true),
+                Attribute::Private(false),
+                Attribute::Label(identifier.clone().into()),
+            ];
             let priv_key_template = &[
                 Attribute::Token(true),
                 Attribute::Private(true),
