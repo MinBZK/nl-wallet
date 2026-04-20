@@ -546,7 +546,10 @@ mod test {
 
     use utils::generator::TimeGenerator;
 
+    use p256::pkcs8::EncodePublicKey;
+
     use crate::server_keys::generate::Ca;
+    use crate::utils::sha256;
 
     use super::*;
 
@@ -582,6 +585,31 @@ mod test {
         let x509_cert = certificate.x509_certificate();
         assert_certificate_common_name(x509_cert, &["myca"]);
         assert_certificate_default_validity(x509_cert);
+    }
+
+    #[test]
+    fn parse_aki() {
+        let config = CertificateConfiguration {
+            not_after: Some(Utc::now() + Duration::days(42)),
+            ..Default::default()
+        };
+
+        let ca = Ca::generate("myca", config).unwrap();
+        let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
+            .expect("self signed CA should contain a valid X.509 certificate");
+
+        // `rcgen` computes the AKI as the first 20 bytes of the SHA256 of the DER encoding of the public key,
+        // as per RFC 7093.
+        let pubkey_der = ca
+            .to_signing_key()
+            .unwrap()
+            .verifying_key()
+            .to_public_key_der()
+            .unwrap();
+        let hash = sha256(pubkey_der.as_bytes());
+        let hash = &hash[0..20];
+
+        assert_eq!(hash, &certificate.authority_key_id().unwrap().0);
     }
 
     #[test]
