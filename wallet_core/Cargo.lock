@@ -131,6 +131,7 @@ dependencies = [
  "gcloud-auth",
  "http",
  "http-cache-reqwest",
+ "http_utils",
  "httpmock",
  "int-enum",
  "num-bigint",

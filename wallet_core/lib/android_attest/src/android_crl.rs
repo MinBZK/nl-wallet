@@ -175,6 +175,8 @@ mod tests {
     use x509_parser::prelude::FromDer;
     use x509_parser::prelude::X509Certificate;
 
+    use http_utils::httpmock::httpmock_reqwest_client_builder;
+
     use super::*;
 
     // status.json is taken from repo: https://github.com/google/android-key-attestation.git
@@ -230,14 +232,6 @@ mod tests {
         }
     }
 
-    fn reqwest_client() -> Client {
-        Client::builder()
-            .danger_accept_invalid_certs(true)
-            .https_only(true)
-            .build()
-            .unwrap()
-    }
-
     /// This test just exists to check `GoogleRevocationList` against the official google URL.
     /// Since this requires network, it is disabled by default, enable with feature "network_test".
     #[cfg(feature = "network_test")]
@@ -254,8 +248,11 @@ mod tests {
         let status_mock = crl_server.status_mock().await;
 
         // create caching CRL provider, and verify entries are read
-        let crl_provider = GoogleRevocationListClient::new_decorated(&crl_server.status_url(), reqwest_client())
-            .expect("url is valid");
+        let crl_provider = GoogleRevocationListClient::new_decorated(
+            &crl_server.status_url(),
+            httpmock_reqwest_client_builder().build().unwrap(),
+        )
+        .expect("url is valid");
         let crl = crl_provider.get().await?;
         assert_eq!(crl.entries.len(), 5);
         status_mock.assert_async().await;
@@ -282,8 +279,11 @@ mod tests {
         let status_mock = crl_server.status_fail_mock().await;
 
         // create caching CRL provider, and verify entries are read
-        let crl_provider = GoogleRevocationListClient::new_decorated(&crl_server.status_url(), reqwest_client())
-            .expect("url is valid");
+        let crl_provider = GoogleRevocationListClient::new_decorated(
+            &crl_server.status_url(),
+            httpmock_reqwest_client_builder().build().unwrap(),
+        )
+        .expect("url is valid");
         let error = crl_provider.get().await.expect_err("request should fail");
         assert_matches!(error, Error::HttpFailure(status, message) if status == 500 && message == "some test error");
         status_mock.assert_async().await;

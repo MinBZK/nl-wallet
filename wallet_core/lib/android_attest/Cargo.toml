@@ -75,3 +75,5 @@ httpmock.workspace = true
 rand.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
+
+http_utils = { path = "../http_utils", features = ["httpmock"] }

@@ -194,6 +194,8 @@ mod tests {
     use serde_json::Value;
     use serde_json::json;
 
+    use http_utils::httpmock::httpmock_reqwest_client_builder;
+
     use super::super::tests::EXAMPLE_VERDICT;
     use super::super::tests::EXAMPLE_VERDICT_JSON;
     use super::*;
@@ -248,18 +250,10 @@ mod tests {
         (client, server)
     }
 
-    fn reqwest_client() -> Client {
-        Client::builder()
-            .danger_accept_invalid_certs(true)
-            .https_only(true)
-            .build()
-            .unwrap()
-    }
-
     #[tokio::test]
     async fn test_play_integrity_client() {
         let client = PlayIntegrityClient::new(
-            reqwest_client(),
+            httpmock_reqwest_client_builder().build().unwrap(),
             MockPlayIntegrityAuthProvider::default(),
             "com.package.name",
         )
@@ -284,7 +278,7 @@ mod tests {
     #[tokio::test]
     async fn test_play_integrity_http_response_error() {
         let client = PlayIntegrityClient::new(
-            reqwest_client(),
+            httpmock_reqwest_client_builder().build().unwrap(),
             MockPlayIntegrityAuthProvider::default(),
             "com.package.name",
         )
