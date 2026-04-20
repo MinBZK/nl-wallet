@@ -275,9 +275,9 @@ impl Hsm for Pkcs11Hsm {
     async fn encrypt<T>(&self, identifier: &str, data: Vec<u8>) -> Result<Encrypted<T>> {
         let iv = random_bytes(32);
         let handle = self.get_private_key_handle(identifier).await?;
-        let (encrypted_data, initializiation_vector) =
+        let (encrypted_data, initialization_vector) =
             Pkcs11Client::encrypt(self, handle, InitializationVector(iv), data).await?;
-        Ok(Encrypted::new(encrypted_data, initializiation_vector))
+        Ok(Encrypted::new(encrypted_data, initialization_vector))
     }
 
     async fn decrypt<T>(&self, identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>> {
@@ -351,7 +351,11 @@ impl Pkcs11Client for Pkcs11Hsm {
                 .encode_to_vec(&mut oid)
                 .map_err(|error| HsmError::Sec1(Box::new(error)))?;
 
-            let pub_key_template = &[Attribute::EcParams(oid)];
+            let pub_key_template = &[
+                Attribute::EcParams(oid),
+                Attribute::Token(false),
+                Attribute::Private(false),
+            ];
             let priv_key_template = &[
                 Attribute::Token(false),
                 Attribute::Private(true),
@@ -381,7 +385,12 @@ impl Pkcs11Client for Pkcs11Hsm {
                 .encode_to_vec(&mut oid)
                 .map_err(|error| HsmError::Sec1(Box::new(error)))?;
 
-            let pub_key_template = &[Attribute::EcParams(oid), Attribute::Label(identifier.clone().into())];
+            let pub_key_template = &[
+                Attribute::EcParams(oid),
+                Attribute::Token(true),
+                Attribute::Private(false),
+                Attribute::Label(identifier.clone().into()),
+            ];
             let priv_key_template = &[
                 Attribute::Token(true),
                 Attribute::Private(true),
