@@ -275,9 +275,9 @@ impl Hsm for Pkcs11Hsm {
     async fn encrypt<T>(&self, identifier: &str, data: Vec<u8>) -> Result<Encrypted<T>> {
         let iv = random_bytes(32);
         let handle = self.get_private_key_handle(identifier).await?;
-        let (encrypted_data, initializiation_vector) =
+        let (encrypted_data, initialization_vector) =
             Pkcs11Client::encrypt(self, handle, InitializationVector(iv), data).await?;
-        Ok(Encrypted::new(encrypted_data, initializiation_vector))
+        Ok(Encrypted::new(encrypted_data, initialization_vector))
     }
 
     async fn decrypt<T>(&self, identifier: &str, encrypted: Encrypted<T>) -> Result<Vec<u8>> {
