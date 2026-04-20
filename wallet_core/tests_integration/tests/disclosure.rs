@@ -131,9 +131,8 @@ async fn assert_disclosure_ok(
     assert_matches!(get_verifier_status(&client, status_url).await, StatusResponse::Done);
 
     // Check if we received a return URL when we should have, based on the use case and session type.
-    let should_have_return_url = match (usecase, session_type) {
-        (usecase, _) if usecase == "xyz_bank_all_return_url" => true,
-        (_, SessionType::SameDevice) => true,
+    let should_have_return_url = match (usecase.as_str(), session_type) {
+        ("xyz_bank_all_return_url", _) | (_, SessionType::SameDevice) => true,
         (_, SessionType::CrossDevice) => false,
     };
     assert_eq!(return_url.is_some(), should_have_return_url);
