@@ -62,6 +62,10 @@ pub fn new_nl_pid_given_name_for_query_id(query_id: &str) -> TestCredential {
     new_nl_pid(query_id, [[PID_GIVEN_NAME]])
 }
 
+pub fn new_nl_pid_family_name() -> TestCredential {
+    new_nl_pid("nl_pid_family_name", [[PID_FAMILY_NAME]])
+}
+
 pub fn new_nl_pid_address_all() -> TestCredential {
     new_nl_pid(
         "nl_pid_address_all",
@@ -94,8 +98,16 @@ pub fn nl_pid_credentials_full_name() -> TestCredentials {
     TestCredentials::new(vec_nonempty![new_nl_pid_full_name()])
 }
 
+pub fn nl_pid_credentials_given_name() -> TestCredentials {
+    TestCredentials::new(vec_nonempty![new_nl_pid_given_name()])
+}
+
 pub fn nl_pid_credentials_given_name_for_query_id(query_id: &str) -> TestCredentials {
     TestCredentials::new(vec_nonempty![new_nl_pid_given_name_for_query_id(query_id)])
+}
+
+pub fn nl_pid_credentials_family_name() -> TestCredentials {
+    TestCredentials::new(vec_nonempty![new_nl_pid_family_name()])
 }
 
 pub fn nl_pid_address_credentials_all() -> TestCredentials {

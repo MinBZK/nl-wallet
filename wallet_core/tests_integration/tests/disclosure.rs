@@ -27,7 +27,9 @@ use pid_issuer::pid::constants::EUDI_PID_ATTESTATION_TYPE;
 use pid_issuer::pid::constants::PID_GIVEN_NAME;
 use tests_integration::common::*;
 use tests_integration::test_credential::new_mock_mdoc_pid_example;
+use tests_integration::test_credential::nl_pid_credentials_family_name;
 use tests_integration::test_credential::nl_pid_credentials_full_name;
+use tests_integration::test_credential::nl_pid_credentials_given_name;
 use tests_integration::test_credential::nl_pid_credentials_given_name_for_query_id;
 use wallet::AttributesNotAvailable;
 use wallet::DisclosureUriSource;
@@ -205,6 +207,12 @@ async fn assert_disclosure_ok(
     Some("http://localhost:3004/return".parse().unwrap()),
     "xyz_bank_all_return_url",
     nl_pid_credentials_full_name(),
+)]
+#[case(
+    SessionType::SameDevice,
+    Some("http://localhost:3004/return".parse().unwrap()),
+    "xyz_bank_no_return_url",
+    nl_pid_credentials_given_name() + nl_pid_credentials_family_name(),
 )]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
