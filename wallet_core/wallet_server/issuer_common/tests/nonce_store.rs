@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
 use chrono::DateTime;
+use sea_orm::ConnectionTrait;
+use sea_orm::DbBackend;
+use sea_orm::Statement;
 
 use db_test::DbSetup;
 use db_test::connection_from_url;
@@ -16,7 +19,21 @@ async fn test_proof_nonce_store() {
     let time_generator = MockTimeGenerator::new(DateTime::from_timestamp_secs(1_000_000_000).unwrap());
     let mock_time = Arc::clone(&time_generator.time);
 
-    let store = ProofNonceStore::new_postgres_with_time_generator(database_connection, time_generator);
+    let store = ProofNonceStore::new_postgres_with_time_generator(database_connection.clone(), time_generator);
 
-    test_nonce_store(store, mock_time).await
+    test_nonce_store(store, mock_time, async |_store| {
+        database_connection
+            .query_one(Statement::from_string(
+                DbBackend::Postgres,
+                r#"SELECT COUNT(*) FROM "proof_nonce""#,
+            ))
+            .await
+            .unwrap()
+            .unwrap()
+            .try_get_by_index::<i64>(0)
+            .unwrap()
+            .try_into()
+            .unwrap()
+    })
+    .await
 }

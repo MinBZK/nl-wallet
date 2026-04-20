@@ -134,6 +134,8 @@ mod tests {
             time_generator,
         };
 
-        test_nonce_store(store, mock_time).now_or_never().unwrap()
+        test_nonce_store(store, mock_time, async |store| store.nonces.lock().unwrap().len())
+            .now_or_never()
+            .unwrap();
     }
 }

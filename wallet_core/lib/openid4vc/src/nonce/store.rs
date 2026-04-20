@@ -47,9 +47,10 @@ pub mod test {
     use super::NonceStore;
     use super::NonceStoreError;
 
-    pub async fn test_nonce_store<N>(store: N, mock_time: Arc<RwLock<DateTime<Utc>>>)
+    pub async fn test_nonce_store<N, F>(store: N, mock_time: Arc<RwLock<DateTime<Utc>>>, mut count_nonces: F)
     where
         N: NonceStore,
+        F: AsyncFnMut(&N) -> usize,
     {
         // Storing distinct nonces should succeed.
         store
@@ -77,6 +78,8 @@ pub mod test {
 
         // Retrieving a nonce once should be valid, after that the nonce should be absent.
         // If multiple nonces are checked and at least one of them is absent, this counts as a failure.
+        assert_eq!(count_nonces(&store).await, 3);
+
         let status = store
             .check_nonce_status_and_remove(&[
                 Nonce::from("foo".to_string()),
@@ -87,6 +90,7 @@ pub mod test {
             .expect("checking nonce status should succeed");
 
         assert_matches!(status, NonceStatus::AllValid);
+        assert_eq!(count_nonces(&store).await, 1);
 
         let status = store
             .check_nonce_status_and_remove(&[Nonce::from("foo".to_string()), Nonce::from("barfoo".to_string())])
@@ -94,6 +98,7 @@ pub mod test {
             .expect("checking nonce status should succeed");
 
         assert_matches!(status, NonceStatus::AtLeastOneAbsentOrExpired);
+        assert_eq!(count_nonces(&store).await, 0);
 
         let status = store
             .check_nonce_status_and_remove(&[Nonce::from("foo".to_string())])
@@ -101,6 +106,7 @@ pub mod test {
             .expect("checking nonce status should succeed");
 
         assert_matches!(status, NonceStatus::AtLeastOneAbsentOrExpired);
+        assert_eq!(count_nonces(&store).await, 0);
 
         let status = store
             .check_nonce_status_and_remove(&[Nonce::from("barfoo".to_string())])
@@ -108,12 +114,15 @@ pub mod test {
             .expect("checking nonce status should succeed");
 
         assert_matches!(status, NonceStatus::AtLeastOneAbsentOrExpired);
+        assert_eq!(count_nonces(&store).await, 0);
 
-        // Retrieving the nonce after the validity period should cause it to be expired.
+        // Retrieving the nonce after the validity period should cause it to be expired and removed.
         store
             .store_nonce(Nonce::from("foobar".to_string()))
             .await
             .expect("storing nonce should succeed");
+
+        assert_eq!(count_nonces(&store).await, 1);
 
         *mock_time.write() += C_NONCE_VALIDITY + Duration::from_millis(1);
 
@@ -123,5 +132,6 @@ pub mod test {
             .expect("checking nonce status should succeed");
 
         assert_matches!(status, NonceStatus::AtLeastOneAbsentOrExpired);
+        assert_eq!(count_nonces(&store).await, 0);
     }
 }
