@@ -599,9 +599,9 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
             });
 
         // Check if we have received a return URL template.
-        if redirect_uri_template.is_none() {
+        let Some(redirect_uri_template) = redirect_uri_template else {
             return Err(NewSessionError::ReturnUrlConfigurationMismatch);
-        }
+        };
 
         // We use either the specified dcql_query, or if not specified, the one configured in the usecase.
         let credential_requests = dcql_query
@@ -765,10 +765,10 @@ impl<K: EcdsaKeySend> UseCase for WalletInitiatedUseCase<K> {
             self.credential_requests.clone(),
             id,
             self.data.client_id.clone(),
-            Some(RedirectUriTemplate {
+            RedirectUriTemplate {
                 template: self.return_url_template.clone(),
                 share_on_error: false,
-            }),
+            },
             false,
         );
 
@@ -1219,7 +1219,7 @@ impl Session<Created> {
         credential_requests: NormalizedCredentialRequests,
         usecase_id: String,
         client_id: ClientId,
-        redirect_uri_template: Option<RedirectUriTemplate>,
+        redirect_uri_template: RedirectUriTemplate,
         accept_undetermined_revocation_status: bool,
     ) -> Session<Created> {
         Session::<Created> {
@@ -1229,7 +1229,7 @@ impl Session<Created> {
                     credential_requests,
                     usecase_id,
                     client_id,
-                    redirect_uri_template,
+                    redirect_uri_template: Some(redirect_uri_template),
                     accept_undetermined_revocation_status,
                 },
             ),
