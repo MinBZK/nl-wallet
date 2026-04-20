@@ -154,12 +154,6 @@ final class CloseProximityDisclosureTests: XCTestCase {
     }
 
     func testAllCloseProximityDisclosures() async throws {
-        #if targetEnvironment(simulator)
-            throw XCTSkip(
-                "Close proximity disclosure relies on BLE peripheral advertising, which is unavailable on the iOS Simulator"
-            )
-        #endif
-
         // The Rust code will panic if this test fails.
         await Task.detached {
             close_proximity_disclosure_test_start_qr_handover()
@@ -167,12 +161,6 @@ final class CloseProximityDisclosureTests: XCTestCase {
     }
 
     func testStartQrHandoverStartsAndStopsBleServer() async throws {
-        #if targetEnvironment(simulator)
-            throw XCTSkip(
-                "Close proximity disclosure relies on BLE peripheral advertising, which is unavailable on the iOS Simulator"
-            )
-        #endif
-
         let closeProximityDisclosure = CloseProximityDisclosure()
         let channel = TestChannel()
 
@@ -194,12 +182,6 @@ final class CloseProximityDisclosureTests: XCTestCase {
     }
 
     func testCloseProximityDisclosureFullFlowWithMacReader() async throws {
-        #if targetEnvironment(simulator)
-            throw XCTSkip(
-                "Close proximity disclosure relies on BLE peripheral advertising, which is unavailable on the iOS Simulator"
-            )
-        #endif
-
         guard Self.runMacBleReaderFullFlowTest else {
             throw XCTSkip(
                 """
@@ -297,12 +279,6 @@ final class CloseProximityDisclosureTests: XCTestCase {
     }
 
     func testStartQrHandoverFromTwoTasksReplacesPreviousSession() async throws {
-        #if targetEnvironment(simulator)
-            throw XCTSkip(
-                "Close proximity disclosure relies on BLE peripheral advertising, which is unavailable on the iOS Simulator"
-            )
-        #endif
-
         let closeProximityDisclosure = CloseProximityDisclosure()
         let firstChannel = TestChannel()
         let secondChannel = TestChannel()
