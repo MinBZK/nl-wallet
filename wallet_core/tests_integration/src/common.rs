@@ -211,6 +211,7 @@ pub struct DisclosureUrls {
     pub verifier_internal_url: BaseUrl,
 }
 
+#[derive(Debug)]
 pub struct IssuerUrl {
     pub internal: BaseUrl,
     pub public: IssuerIdentifier,

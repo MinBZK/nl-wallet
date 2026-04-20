@@ -8408,6 +8408,7 @@ dependencies = [
  "audit_log",
  "axum",
  "axum-server",
+ "base64 0.22.1",
  "crypto",
  "ctor",
  "db_test",

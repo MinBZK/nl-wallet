@@ -6,6 +6,7 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use itertools::Itertools;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::IssuanceSession;
@@ -122,7 +123,15 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     // Do fake DigiD authentication and parse the access token out of the redirect URL
     let redirect_url = fake_digid_auth(
         authorization_session.auth_url().clone(),
-        settings.digid.client_settings.oidc_identifier.as_base_url().clone(),
+        &issuer_url.public,
+        settings.digid.client_settings.oidc_identifier.as_ref(),
+        settings
+            .digid
+            .client_settings
+            .trust_anchors
+            .into_iter()
+            .map(|ta| ta.into_certificate())
+            .collect_vec(),
         "999991772",
     )
     .await;

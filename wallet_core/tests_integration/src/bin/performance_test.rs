@@ -1,3 +1,5 @@
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use ctor::ctor;
 use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -8,6 +10,7 @@ use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
+use reqwest::Certificate;
 use reqwest::StatusCode;
 use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
@@ -23,6 +26,7 @@ use wallet::WalletRepositories;
 use wallet::test::HttpAccountProviderClient;
 use wallet::test::HttpConfigurationRepository;
 use wallet::test::MockHardwareDatabaseStorage;
+use wallet::test::Repository;
 use wallet::test::UpdatePolicyRepository;
 use wallet::test::UpdateableRepository;
 use wallet::test::default_config_server_config;
@@ -53,6 +57,8 @@ async fn main() {
     let verification_server_url = option_env!("VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3005/");
     let internal_verification_server_url =
         option_env!("INTERNAL_VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3006/");
+    let digid_url = option_env!("DIGID_URL").unwrap_or("https://localhost:8006");
+    let digid_trust_anchor = option_env!("DIGID_TRUST_ANCHOR").unwrap_or_default();
 
     let config_server_config = default_config_server_config();
     let wallet_config = default_wallet_config();
@@ -69,6 +75,8 @@ async fn main() {
         .fetch(&config_server_config.http_config)
         .await
         .unwrap();
+
+    let wallet_config = config_repository.get();
 
     let update_policy_repository = UpdatePolicyRepository::init();
     let wallet_clients = WalletClients::new().unwrap();
@@ -96,16 +104,21 @@ async fn main() {
         .await
         .expect("Could not create pid issuance auth url");
 
-    // Strip everything from and include '/authorize' to get the base DigiD URL
-    let digid_base_url = authorization_url
-        .as_str()
-        .split_once("/authorize")
-        .map(|(base, _)| base)
-        .unwrap_or(authorization_url.as_str())
-        .parse()
-        .unwrap();
-
-    let redirect_url = fake_digid_auth(authorization_url, digid_base_url, "999991772").await;
+    let redirect_url = fake_digid_auth(
+        authorization_url,
+        &wallet_config.pid_issuance.url,
+        digid_url,
+        if digid_trust_anchor.is_empty() {
+            vec![]
+        } else {
+            vec![
+                Certificate::from_der(BASE64_STANDARD.decode(digid_trust_anchor).unwrap().as_slice())
+                    .expect("Could not parse trust anchor"),
+            ]
+        },
+        "999991772",
+    )
+    .await;
 
     let _attestations = wallet
         .continue_pid_issuance(redirect_url)

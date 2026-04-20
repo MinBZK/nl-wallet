@@ -217,6 +217,7 @@ digid_test = [
 performance_test = [
     "apple_app_attest/mock",
     "dcql/mock",
+    "dep:base64",
     "dep:ctor",
     "dep:dotenvy",
     "dep:indexmap",
@@ -246,6 +247,7 @@ performance_test = [
 assert_matches = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
 axum-server = { workspace = true, optional = true }
+base64 = { workspace = true, optional = true }
 ctor = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 http = { workspace = true, optional = true }
