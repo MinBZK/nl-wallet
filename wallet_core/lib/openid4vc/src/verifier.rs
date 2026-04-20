@@ -218,7 +218,7 @@ pub struct Created {
     credential_requests: NormalizedCredentialRequests,
     usecase_id: String,
     client_id: ClientId,
-    redirect_uri_template: Option<RedirectUriTemplate>,
+    redirect_uri_template: RedirectUriTemplate,
     accept_undetermined_revocation_status: bool,
 }
 
@@ -1229,7 +1229,7 @@ impl Session<Created> {
                     credential_requests,
                     usecase_id,
                     client_id,
-                    redirect_uri_template: Some(redirect_uri_template),
+                    redirect_uri_template,
                     accept_undetermined_revocation_status,
                 },
             ),
@@ -1322,7 +1322,7 @@ impl Session<Created> {
             usecase.session_type_return_url,
             session_type,
             self.state().redirect_uri_template.clone(),
-        )?;
+        );
 
         // Construct the Authorization Request.
         let nonce = Nonce::new_random();
@@ -1353,31 +1353,21 @@ impl Session<Created> {
         session_token: &SessionToken,
         session_type_return_url: SessionTypeReturnUrl,
         session_type: SessionType,
-        return_url: Option<RedirectUriTemplate>,
-    ) -> Result<Option<RedirectUri>, GetAuthRequestError> {
+        return_url: RedirectUriTemplate,
+    ) -> Option<RedirectUri> {
         match (session_type_return_url, session_type, return_url) {
-            (SessionTypeReturnUrl::Both, _, Some(return_url_config))
-            | (SessionTypeReturnUrl::SameDevice, SessionType::SameDevice, Some(return_url_config)) => {
+            (SessionTypeReturnUrl::Both, _, return_url_config)
+            | (SessionTypeReturnUrl::SameDevice, SessionType::SameDevice, return_url_config) => {
                 let nonce = random_string(32);
                 let mut redirect_uri = return_url_config.template.into_url(session_token);
                 redirect_uri.query_pairs_mut().append_pair("nonce", &nonce);
-                Ok(Some(RedirectUri {
+                Some(RedirectUri {
                     uri: redirect_uri.try_into().unwrap(),
                     nonce,
                     share_on_error: return_url_config.share_on_error,
-                }))
+                })
             }
-            (SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, _) => Ok(None),
-            (_, _, template) => {
-                // We checked for this case when the session was created, so this should not happen
-                // except when the configuration has changed during this session.
-                warn!(
-                    "configuration inconsistency: return URL configuration mismatch type {0:?}, session type {1:?}, \
-                     redirect URI template {2:?}",
-                    session_type_return_url, session_type, template
-                );
-                Err(GetAuthRequestError::ReturnUrlConfigurationMismatch)
-            }
+            (SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, _) => None,
         }
     }
 }
