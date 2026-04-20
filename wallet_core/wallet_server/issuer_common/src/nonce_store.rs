@@ -29,8 +29,8 @@ pub enum ProofNonceStoreError {
     #[error("could not store nonce in database: {0}")]
     DbInsertNonce(#[source] DbErr),
 
-    #[error("could not find and delete nonce from database: {0}")]
-    DbDeleteNonce(#[source] DbErr),
+    #[error("could not check nonce status and delete them from database: {0}")]
+    DbCheckAndDeleteNonces(#[source] DbErr),
 }
 
 #[derive(Debug)]
@@ -131,7 +131,7 @@ where
                     .filter(proof_nonce::Column::Nonce.is_in(nonces))
                     .exec_with_returning(connection)
                     .await
-                    .map_err(ProofNonceStoreError::DbDeleteNonce)?;
+                    .map_err(ProofNonceStoreError::DbCheckAndDeleteNonces)?;
 
                 match deleted_nonces.len() {
                     deleted_nonce_count if deleted_nonce_count > nonce_count => {
