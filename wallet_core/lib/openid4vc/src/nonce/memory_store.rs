@@ -45,6 +45,10 @@ impl<T> MemoryNonceStore<T>
 where
     T: Generator<DateTime<Utc>>,
 {
+    fn is_valid(created_date_time: DateTime<Utc>, now: DateTime<Utc>) -> bool {
+        created_date_time + C_NONCE_VALIDITY >= now
+    }
+
     fn now(&self) -> DateTime<Utc> {
         self.time_generator.generate()
     }
@@ -77,13 +81,25 @@ where
             .map(|nonce| stored_nonces.remove(nonce))
             .collect_vec();
 
-        if removed_nonce_datetimes.into_iter().all(|date_time| {
-            date_time.is_some_and(|created_date_time| created_date_time + C_NONCE_VALIDITY >= self.now())
-        }) {
+        let now = self.now();
+        if removed_nonce_datetimes
+            .into_iter()
+            .all(|date_time| date_time.is_some_and(|created_date_time| Self::is_valid(created_date_time, now)))
+        {
             NonceStatus::AllValid
         } else {
             NonceStatus::AtLeastOneAbsentOrExpired
         }
+    }
+
+    pub fn remove_expired(&self) {
+        let mut nonces = self
+            .nonces
+            .lock()
+            .expect("there should be no panic while the lock is held");
+
+        let now = self.now();
+        nonces.retain(|_nonce, created_date_time| Self::is_valid(*created_date_time, now));
     }
 }
 
@@ -107,6 +123,12 @@ where
         let presence = self.remove_and_check(nonces);
 
         Ok(presence)
+    }
+
+    async fn remove_expired_nonces(&self) -> Result<(), NonceStoreError<Self::Error>> {
+        self.remove_expired();
+
+        Ok(())
     }
 }
 

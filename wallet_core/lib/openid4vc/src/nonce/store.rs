@@ -27,7 +27,7 @@ pub trait NonceStore {
         nonces: impl IntoIterator<Item = &'a Nonce> + Send,
     ) -> Result<NonceStatus, Self::Error>;
 
-    // TODO (PVW-5678): Add method for cleaning up nonces that are older than a certain date and time.
+    async fn remove_expired_nonces(&self) -> Result<(), NonceStoreError<Self::Error>>;
 }
 
 #[cfg(any(test, feature = "test"))]
@@ -133,5 +133,27 @@ pub mod test {
 
         assert_matches!(status, NonceStatus::AtLeastOneAbsentOrExpired);
         assert_eq!(count_nonces(&store).await, 0);
+
+        // Nonces that are expired should be removed from storage, when requested.
+        store
+            .store_nonce(Nonce::from("foobar".to_string()))
+            .await
+            .expect("storing nonce should succeed");
+
+        *mock_time.write() += C_NONCE_VALIDITY + Duration::from_millis(1);
+
+        store
+            .store_nonce(Nonce::from("barfoo".to_string()))
+            .await
+            .expect("storing nonce should succeed");
+
+        assert_eq!(count_nonces(&store).await, 2);
+
+        store
+            .remove_expired_nonces()
+            .await
+            .expect("removing expired nonces should succeed");
+
+        assert_eq!(count_nonces(&store).await, 1);
     }
 }

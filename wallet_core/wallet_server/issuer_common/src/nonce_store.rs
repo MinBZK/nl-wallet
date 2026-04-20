@@ -31,6 +31,9 @@ pub enum ProofNonceStoreError {
 
     #[error("could not check nonce status and delete them from database: {0}")]
     DbCheckAndDeleteNonces(#[source] DbErr),
+
+    #[error("could not delete expired nonces from database: {0}")]
+    DbDeleteExpiredNonces(#[source] DbErr),
 }
 
 #[derive(Debug)]
@@ -156,5 +159,22 @@ where
         };
 
         Ok(status)
+    }
+
+    async fn remove_expired_nonces(&self) -> Result<(), NonceStoreError<Self::Error>> {
+        match &self.backend {
+            NonceStoreBackend::Postgres(connection) => {
+                let expiration_date_time = self.now() - C_NONCE_VALIDITY;
+
+                ProofNonce::delete_many()
+                    .filter(proof_nonce::Column::CreatedDateTime.lt(expiration_date_time))
+                    .exec(connection)
+                    .await
+                    .map_err(ProofNonceStoreError::DbDeleteExpiredNonces)?;
+            }
+            NonceStoreBackend::Memory(memory_store) => memory_store.remove_expired(),
+        }
+
+        Ok(())
     }
 }
