@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures::try_join;
+use reqwest::ClientBuilder;
 use tokio::sync::RwLock;
 
 use error_category::ErrorCategory;
@@ -160,15 +161,27 @@ pub struct WalletClients<APC, CID, DCC, SLC> {
     pub status_list_client: SLC,
 }
 
+fn reqwest_client_builder() -> ClientBuilder {
+    cfg_select! {
+        feature = "allow_insecure_url" => {
+            default_reqwest_client_builder()
+        }
+        _ => {
+            http_utils::reqwest::default_tls_reqwest_client_builder()
+        }
+    }
+}
+
 impl<APC> WalletClients<APC, HttpIssuanceDiscovery, VpDisclosureClient, HttpStatusListClient>
 where
     APC: Default,
 {
     pub fn new() -> Result<Self, reqwest::Error> {
-        let disclosure_client = VpDisclosureClient::new_with_client(default_reqwest_client_builder())?;
+        let credential_issuer_discovery =
+            HttpIssuanceDiscovery::new(HttpJsonClient::try_new(reqwest_client_builder())?);
+        let disclosure_client = VpDisclosureClient::new_with_client(reqwest_client_builder())?;
+        // Note that HTTP is explicitly allowed for the retrieval of status lists.
         let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
-        let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder())?;
-        let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_json_client);
 
         let clients = Self {
             account_provider_client: APC::default(),

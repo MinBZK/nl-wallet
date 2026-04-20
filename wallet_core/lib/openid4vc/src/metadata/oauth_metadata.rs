@@ -154,16 +154,13 @@ const fn bool_value<const B: bool>() -> bool {
 
 #[cfg(test)]
 pub mod tests {
+    use http::header;
+    use http_utils::httpmock::httpmock_reqwest_client_builder;
+    use httpmock::Method::GET;
+    use httpmock::MockServer;
     use serde_json::json;
-    use wiremock::Mock;
-    use wiremock::MockServer;
-    use wiremock::ResponseTemplate;
-    use wiremock::matchers::method;
-    use wiremock::matchers::path;
 
     use http_utils::reqwest::HttpJsonClient;
-    use http_utils::reqwest::default_reqwest_client_builder;
-    use http_utils::urls::BaseUrl;
 
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::well_known::WellKnownPath;
@@ -171,39 +168,38 @@ pub mod tests {
 
     use super::AuthorizationServerMetadata;
 
-    pub async fn start_discovery_server() -> (MockServer, BaseUrl) {
-        let server = MockServer::start().await;
-        let server_url: BaseUrl = server.uri().parse().unwrap();
-
-        // Mock OpenID configuration endpoint
-        Mock::given(method("GET"))
-            .and(path("/.well-known/openid-configuration"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!({
-                "issuer": server_url.as_ref().as_str(),
-                "authorization_endpoint": server_url.join("/oauth2/authorize"),
-                "token_endpoint": server_url.join("/oauth2/token"),
-                "jwks_uri": server_url.join("/.well-known/jwks.json"),
-                "response_types_supported": ["code", "id_token", "token id_token"],
-                "scopes_supported": ["openid"],
-            })))
-            .expect(1)
-            .mount(&server)
-            .await;
-
-        (server, server_url)
-    }
-
-    #[cfg_attr(not(feature = "allow_insecure_url"), ignore = "requires allow_insecure_url feature")]
     #[tokio::test]
     async fn test_discovery() {
-        let (_server, server_url) = start_discovery_server().await;
-        let issuer_identifier: IssuerIdentifier = server_url.as_ref().as_str().parse().unwrap();
-        let client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
-        let metadata: AuthorizationServerMetadata =
-            fetch_well_known(&client, &issuer_identifier, WellKnownPath::OpenidConfiguration)
-                .await
-                .unwrap();
+        let server = MockServer::start_async().await;
+        let issuer_identifier = server.base_url().parse::<IssuerIdentifier>().unwrap();
+
+        let mock = server
+            .mock_async(|when, then| {
+                when.method(GET).path("/.well-known/openid-configuration");
+
+                then.status(200)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .json_body(json!({
+                        "issuer": server.base_url(),
+                        "authorization_endpoint": server.url("/oauth2/authorize"),
+                        "token_endpoint": server.url("/oauth2/token"),
+                        "jwks_uri": server.url("/.well-known/jwks.json"),
+                        "response_types_supported": ["code", "id_token", "token id_token"],
+                        "scopes_supported": ["openid"],
+                    }));
+            })
+            .await;
+
+        let client = HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let metadata = fetch_well_known::<AuthorizationServerMetadata>(
+            &client,
+            &issuer_identifier,
+            WellKnownPath::OpenidConfiguration,
+        )
+        .await
+        .unwrap();
 
         assert_eq!(metadata.issuer, issuer_identifier);
+        mock.assert_async().await;
     }
 }

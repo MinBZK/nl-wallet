@@ -40,7 +40,7 @@ use http_utils::client::TlsPinningConfig;
 use http_utils::health::create_health_router;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::default_reqwest_client_builder;
-use http_utils::reqwest::trusted_reqwest_client_builder;
+use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
@@ -561,7 +561,11 @@ pub async fn start_static_server(settings: StaticSettings, trust_anchor: Reqwest
     });
 
     let base_url = local_config_base_url(port);
-    wait_for_server(remove_path(&base_url), [trust_anchor.into_certificate()]).await;
+    wait_for_server(
+        remove_path(&base_url),
+        Some(vec_nonempty![trust_anchor.into_certificate()]),
+    )
+    .await;
     port
 }
 
@@ -577,7 +581,11 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
     });
 
     let base_url = local_ups_base_url(port);
-    wait_for_server(remove_path(&base_url), [trust_anchor.into_certificate()]).await;
+    wait_for_server(
+        remove_path(&base_url),
+        Some(vec_nonempty![trust_anchor.into_certificate()]),
+    )
+    .await;
     port
 }
 
@@ -607,7 +615,11 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
     });
 
     let base_url = local_wp_base_url(port);
-    wait_for_server(remove_path(&base_url), [trust_anchor.into_certificate()]).await;
+    wait_for_server(
+        remove_path(&base_url),
+        Some(vec_nonempty![trust_anchor.into_certificate()]),
+    )
+    .await;
     port
 }
 
@@ -754,7 +766,7 @@ async fn start_mock_attestation_server(
     });
 
     let url = local_https_base_url(port);
-    wait_for_server(url.clone(), [trust_anchor.into_certificate()]).await;
+    wait_for_server(url.clone(), Some(vec_nonempty![trust_anchor.into_certificate()])).await;
     url
 }
 
@@ -823,7 +835,7 @@ pub async fn start_issuance_server(
         .instrument(info_span!("service", name = "issuance_server")),
     );
 
-    wait_for_server(public_url.as_base_url().clone(), []).await;
+    wait_for_server(public_url.as_base_url().clone(), None).await;
     IssuerUrl {
         internal: internal_url,
         public: public_url,
@@ -889,7 +901,7 @@ pub async fn start_pid_issuer_server(
         .instrument(info_span!("service", name = "pid_issuer")),
     );
 
-    wait_for_server(public_url.as_base_url().clone(), []).await;
+    wait_for_server(public_url.as_base_url().clone(), None).await;
     IssuerUrl {
         internal: internal_url,
         public: public_url,
@@ -938,18 +950,21 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
         .instrument(info_span!("service", name = "verification_server")),
     );
 
-    wait_for_server(public_url.clone(), []).await;
+    wait_for_server(public_url.clone(), None).await;
     DisclosureUrls {
         verifier_url: public_url,
         verifier_internal_url: internal_url,
     }
 }
 
-pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: impl IntoIterator<Item = Certificate>) {
-    let client = trusted_reqwest_client_builder(trust_anchors)
-        .connect_timeout(Duration::from_secs(1))
-        .build()
-        .unwrap();
+pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: Option<VecNonEmpty<Certificate>>) {
+    let client = match trust_anchors {
+        None => default_reqwest_client_builder(),
+        Some(anchors) => tls_reqwest_client_builder(anchors),
+    }
+    .connect_timeout(Duration::from_secs(1))
+    .build()
+    .unwrap();
 
     time::timeout(Duration::from_secs(3), async {
         let mut interval = time::interval(Duration::from_millis(100));
@@ -996,7 +1011,7 @@ pub async fn start_gba_hc_converter(settings: GbaSettings) {
         }
     });
 
-    wait_for_server(base_url, []).await;
+    wait_for_server(base_url, None).await;
 }
 
 pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: &str) -> WalletWithStorage {
