@@ -25,7 +25,7 @@ INFO=${PURPLE}
 
 # Is this macOS?
 function is_macos() {
-  uname -a | grep -i darwin >/dev/null
+  uname | grep -q Darwin
 }
 
 # Print to stderr.
