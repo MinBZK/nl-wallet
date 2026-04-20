@@ -25,6 +25,7 @@ strum.workspace = true
 thiserror.workspace = true
 
 attestation_types.path = "../attestation_types"
+crypto.path = "../crypto"
 error_category.path = "../error_category"
 utils.path = "../utils"
 

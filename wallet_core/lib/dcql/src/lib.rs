@@ -4,13 +4,10 @@ pub mod unique_id_vec;
 
 use std::ops::Not;
 
+use crypto::x509::KeyIdentifier;
 use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::base64::Base64;
-use serde_with::base64::UrlSafe;
-use serde_with::formats::Unpadded;
-use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use strum::EnumDiscriminants;
 
@@ -175,16 +172,21 @@ pub struct CredentialSetQuery {
 /// in one of the provided types.
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#dcql_trusted_authorities>
-#[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type", content = "values", rename_all = "snake_case")]
 pub enum TrustedAuthoritiesQuery {
-    /// Contains the KeyIdentifier of the AuthorityKeyIdentifier as defined in Section 4.2.1.1 of [RFC5280],
+    /// "Contains the KeyIdentifier of the AuthorityKeyIdentifier as defined in Section 4.2.1.1 of [RFC5280],
     /// encoded as base64url. The raw byte representation of this element MUST match with the AuthorityKeyIdentifier
     /// element of an X.509 certificate in the certificate chain present in the credential (e.g., in the header of an
     /// mdoc or SD-JWT). Note that the chain can consist of a single certificate and the credential can include the
-    /// entire X.509 chain or parts of it.
-    Aki(#[serde_as(as = "Vec<Base64<UrlSafe, Unpadded>>")] VecNonEmpty<Vec<u8>>),
+    /// entire X.509 chain or parts of it."
+    ///
+    /// Note that the above text from the spec says that the KeyIdentifier (a SHA1-hash) MUST match with an
+    /// AuthorityKeyIdentifier (an ASN.1 structure that contains a hash). The latter seems to be short for
+    /// "the KeyIdentifier of an AuthorityKeyIdentifier", a hypothesis that is supported by the example value below
+    /// this text in the spec, which is a base64 string of 27 characters, which would be 20 bytes when decoded:
+    /// precisely the length of a SHA1 hash. Conversely, a full AuthorityKeyIdentifier would necessarily be larger.
+    Aki(VecNonEmpty<KeyIdentifier>),
 
     // Allow parsing of methods not supported by this implementation.
     #[serde(untagged)]

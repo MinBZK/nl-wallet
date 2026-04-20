@@ -1,3 +1,4 @@
+use crypto::x509::KeyIdentifier;
 use uuid::Uuid;
 
 use attestation_data::attributes::Attributes;
@@ -151,6 +152,25 @@ impl StoredAttestationCopy {
 
     pub fn attestation_copy_id(&self) -> Uuid {
         self.attestation_copy_id
+    }
+
+    /// Returns true if `aki` is empty, and otherwise returns whether any of the attestation's issuer certificates
+    /// match any of the specified AKIs.
+    ///
+    /// (Note that if an AKI is checked against a certificate that has no AKI, this is not a match.)
+    pub fn matches_any_aki(&self, aki: &[KeyIdentifier]) -> bool {
+        aki.is_empty()
+            || aki.iter().any(|key_id| match &self.attestation {
+                StoredAttestation::MsoMdoc { mdoc } => mdoc
+                    .issuer_certificate()
+                    .expect("stored mdoc should have a valid certificate")
+                    .authority_key_id()
+                    .is_some_and(|cert_key_id| cert_key_id == *key_id),
+                StoredAttestation::SdJwt { sd_jwt, .. } => sd_jwt.issuer_certificate_chain().iter().any(|cert| {
+                    cert.authority_key_id()
+                        .is_some_and(|cert_key_id| cert_key_id == *key_id)
+                }),
+            })
     }
 
     /// Checks if the stored attestation matches a list of claim paths.
