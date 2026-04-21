@@ -482,8 +482,8 @@ run-digid-bridge-test-ont:
     - export DIGID_TEST_CLIENT_ID="${PID_ISSUER__DIGID__CLIENT_ID}"
     # Construct the wallet's redirect_uri from UL_HOSTNAME (provided by build-env-ont) so it
     # matches what ont's rdo-max has registered for this client.
-    - if [[ -n "${UL_HOSTNAME:-}" ]]; then export
-      DIGID_TEST_REDIRECT_URI="https://${UL_HOSTNAME}/deeplink/return-from-digid/"; fi
+    - DIGID_TEST_REDIRECT_URI="https://${UL_HOSTNAME}/deeplink/return-from-digid/"
+    - export DIGID_TEST_REDIRECT_URI
     # Port-forward brpproxy (internal-only in the cluster) to localhost for the in-process pid_issuer.
     - kubectl port-forward service/brpproxy 5001:80 &
     - export PID_ISSUER__BRP_SERVER="http://localhost:5001/"
