@@ -55,9 +55,8 @@ scheduled-automation-tests-trigger:
   extends: .run-automation-tests-common-setup
   script:
     - mv browserstack-config/browserstack-oneplus12r-14-NL.yml ./browserstack.yml
-    - ./gradlew --no-daemon --info --stacktrace test --tests $TESTS
-      -Dtest.config.remote=true
-      -Dfile.encoding=UTF-8 || true
+    - ./gradlew --no-daemon --info --stacktrace test --tests $TESTS -Dtest.config.remote=true -Dfile.encoding=UTF-8 ||
+      true
     # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
     - compgen -G "build/test-results/test/*.xml"
   rules:
@@ -136,9 +135,7 @@ run-automation-english-tests:
   extends: .run-automation-tests-common-setup
   script:
     - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
-    - ./gradlew --no-daemon --info --stacktrace testEnglish
-      -Dtest.config.remote=true
-      -Dfile.encoding=UTF-8 || true
+    - ./gradlew --no-daemon --info --stacktrace testEnglish -Dtest.config.remote=true -Dfile.encoding=UTF-8 || true
     # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
     - compgen -G "build/test-results/testEnglish/*.xml"
   rules:
@@ -149,8 +146,7 @@ run-automation-english-tests:
   resource_group: null
   script:
     - mv browserstack-config/browserstack-oneplus12r-14-EN.yml ./browserstack.yml
-    - ./gradlew --no-daemon --info --stacktrace testA11yBatch${BATCH_NUMBER}
-      -Dtest.config.remote=true
+    - ./gradlew --no-daemon --info --stacktrace testA11yBatch${BATCH_NUMBER} -Dtest.config.remote=true
       -Dfile.encoding=UTF-8 || true
   rules:
     - !reference [.on-schedule-trigger-scan, rules]
@@ -190,7 +186,8 @@ browserstack-a11y-merge:
   script:
     - set +x
     - BUILD_NAME=$(mc cat qt/quality-time/a11y-results/a11y-build-name.txt)
-    - BROWSERSTACK_PROJECT_ID=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.project_id}' | base64 --decode)
+    - BROWSERSTACK_PROJECT_ID=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.project_id}' | base64
+      --decode)
     # Get the last 2 builds for this project whose name == CI_PIPELINE_ID
     - |
       curl -sfS "${BROWSERSTACK_API_BASE}/project/${BROWSERSTACK_PROJECT_ID}/build?page_size=50&page=1" \
@@ -311,9 +308,7 @@ run-automation-smoke-test-ont:
       artifacts: false
   script:
     - mv browserstack-config/browserstack-oneplus12r-14-NL.yml ./browserstack.yml
-    - ./gradlew --no-daemon --info --stacktrace smokeTest
-      -Dtest.config.remote=true
-      -Dfile.encoding=UTF-8
+    - ./gradlew --no-daemon --info --stacktrace smokeTest -Dtest.config.remote=true -Dfile.encoding=UTF-8
 
 run-automation-smoke-test-ios-ont:
   extends: .run-automation-tests-common-setup
@@ -325,9 +320,7 @@ run-automation-smoke-test-ios-ont:
       artifacts: false
   script:
     - mv browserstack-config/browserstack-Iphone16Pro-18-NL.yml ./browserstack.yml
-    - ./gradlew --no-daemon --info --stacktrace smokeTestIOS
-      -Dtest.config.remote=true
-      -Dfile.encoding=UTF-8
+    - ./gradlew --no-daemon --info --stacktrace smokeTestIOS -Dtest.config.remote=true -Dfile.encoding=UTF-8
 
 browsertests-format-lint:
   rules: !reference [.default-or-merge-request, rules]
@@ -360,8 +353,10 @@ run-wallet-web-browsertest-test-ont:
     npx playwright install chromium webkit
     npm run test:ci
   after_script:
-    - deploy/bin/store-artifact.sh browsertests/packages/wallet-web/test-results/results.xml qt/quality-time/junit-results/browsertest-wallet-web.xml
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-wallet-web.zip browsertests/packages/wallet-web/allure-results/*
+    - deploy/bin/store-artifact.sh browsertests/packages/wallet-web/test-results/results.xml
+      qt/quality-time/junit-results/browsertest-wallet-web.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-wallet-web.zip
+      browsertests/packages/wallet-web/allure-results/*
   artifacts:
     name: browsertest-wallet-web
     when: always
@@ -386,8 +381,10 @@ run-fallback-pages-browsertest-test-ont:
     npx playwright install chromium webkit
     npm run test:ci
   after_script:
-    - deploy/bin/store-artifact.sh browsertests/packages/fallback-pages/test-results/results.xml qt/quality-time/junit-results/browsertest-fallback-pages.xml
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-fallback-pages.zip browsertests/packages/fallback-pages/allure-results/*
+    - deploy/bin/store-artifact.sh browsertests/packages/fallback-pages/test-results/results.xml
+      qt/quality-time/junit-results/browsertest-fallback-pages.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-fallback-pages.zip
+      browsertests/packages/fallback-pages/allure-results/*
   artifacts:
     name: browsertest-fallback-page
     when: always
@@ -412,8 +409,10 @@ run-revocation-portal-browsertest-test-ont:
     npx playwright install chromium webkit
     npm run test:ci
   after_script:
-    - deploy/bin/store-artifact.sh browsertests/packages/revocation-portal/test-results/results.xml qt/quality-time/junit-results/browsertest-revocation-portal.xml
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-revocation-portal.zip browsertests/packages/revocation-portal/allure-results/*
+    - deploy/bin/store-artifact.sh browsertests/packages/revocation-portal/test-results/results.xml
+      qt/quality-time/junit-results/browsertest-revocation-portal.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-revocation-portal.zip
+      browsertests/packages/revocation-portal/allure-results/*
   artifacts:
     name: browsertest-revocation-portal
     when: always
@@ -422,6 +421,77 @@ run-revocation-portal-browsertest-test-ont:
       - browsertests/packages/revocation-portal/allure-results/
     reports:
       junit: browsertests/packages/revocation-portal/test-results/*.xml
+
+run-digid-bridge-test-ont:
+  extends:
+    - .test-rust
+    - .env-k8s
+  rules: !reference [.default-or-merge-request-manual, rules]
+  needs:
+    - job: deploy-apps-ont
+      artifacts: false
+      optional: true
+    - job: build-env-ont
+      artifacts: true
+  variables:
+    SKIP_DIGID_CONNECTOR: "true"
+    SKIP_WALLET_WEB: "true"
+    DB_HOST: "postgres"
+  services:
+    - name: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"
+      alias: postgres
+      command: [
+          "postgres",
+          # Allow for more connections with larger shared buffers
+          "-N",
+          "200",
+          "-c",
+          "shared_buffers=128MB",
+          # Use non-durable settings: https://www.postgresql.org/docs/current/non-durability.html
+          "-c",
+          "fsync=off",
+          "-c",
+          "synchronous_commit=off",
+          "-c",
+          "full_page_writes=off",
+          # Minimal WAL
+          "-c",
+          "wal_level=minimal",
+          "-c",
+          "max_wal_senders=0",
+        ]
+      variables:
+        POSTGRES_USER: "postgres"
+        POSTGRES_PASSWORD: "postgres"
+  before_script:
+    - set -euo pipefail
+    # Pull DigiD secrets/configmap from the ont cluster and expose as PID_ISSUER__* env vars so the
+    # config crate overrides the TOML-rendered defaults at runtime (same mechanism as the deployment).
+    - PID_ISSUER__DIGID__BSN_PRIVKEY="$(kubectl get secret nl-wallet-pid-issuer-digid-bsn-privkey
+      --output=jsonpath='{.data.bsn_privkey}' | base64 --decode)"
+    - export PID_ISSUER__DIGID__BSN_PRIVKEY
+    - PID_ISSUER__DIGID__CLIENT_SETTINGS__TRUST_ANCHORS="$(kubectl get configmap
+      nl-wallet-pid-issuer-digid-http-trust-anchors --output=jsonpath='{.data.trust_anchors}')"
+    - export PID_ISSUER__DIGID__CLIENT_SETTINGS__TRUST_ANCHORS
+    - PID_ISSUER__DIGID__CLIENT_ID="$DIGID_CLIENT_ID"
+    - export PID_ISSUER__DIGID__CLIENT_ID
+    - PID_ISSUER__DIGID__CLIENT_SETTINGS__OIDC_IDENTIFIER="$DIGID_BASE_URL"
+    - export PID_ISSUER__DIGID__CLIENT_SETTINGS__OIDC_IDENTIFIER
+    # Feed the same ont-registered client_id to the test's wallet side; rdo-max sees the wallet's
+    # client_id verbatim (the pid_issuer's OIDC proxy does not rewrite it).
+    - export DIGID_TEST_CLIENT_ID="${PID_ISSUER__DIGID__CLIENT_ID}"
+    # Construct the wallet's redirect_uri from UL_HOSTNAME (provided by build-env-ont) so it
+    # matches what ont's rdo-max has registered for this client.
+    - DIGID_TEST_REDIRECT_URI="https://${UL_HOSTNAME}/deeplink/return-from-digid/"
+    - export DIGID_TEST_REDIRECT_URI
+    # Port-forward brpproxy (internal-only in the cluster) to localhost for the in-process pid_issuer.
+    - kubectl port-forward service/brpproxy 5001:80 &
+    - export PID_ISSUER__BRP_SERVER="http://localhost:5001/"
+  script:
+    - ./scripts/setup-devenv.sh
+    - cd wallet_core
+    - RUST_BACKTRACE=1 CONFIG_ENV=dev cargo nextest run --package tests_integration --test digid_issuance --features
+      digid_test --locked
 
 run-performance-test-ont:
   extends: .env-k8s
