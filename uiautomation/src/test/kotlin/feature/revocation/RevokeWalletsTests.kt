@@ -160,8 +160,8 @@ class RevokeWalletsTests : TestBase() {
 
     @AfterAll
     fun afterAll() {
-        Thread.sleep(MobileActions.DEFAULT_RESET_SLEEP)
         revocationHelper.restoreWalletSolution()
         revocationHelper.deleteFromDenyList(DEFAULT_RECOVERY_CODE)
+        Thread.sleep(MobileActions.DEFAULT_RESET_SLEEP)
     }
 }

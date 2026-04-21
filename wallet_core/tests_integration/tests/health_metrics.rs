@@ -5,7 +5,7 @@ use serial_test::serial;
 
 use db_test::DbSetup;
 use hsm::service::Pkcs11Hsm;
-use http_utils::reqwest::trusted_reqwest_client_builder;
+use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use tests_integration::common::start_wallet_provider;
 use tests_integration::common::wallet_provider_settings;
@@ -15,7 +15,7 @@ async fn setup_wallet_provider(db_setup: &DbSetup) -> (Client, BaseUrl) {
     let hsm = Pkcs11Hsm::from_settings(settings.hsm.clone()).expect("Could not initialize HSM");
     let port = start_wallet_provider(settings, hsm, root_ca.clone()).await;
 
-    let client = trusted_reqwest_client_builder([root_ca.into_certificate()])
+    let client = tls_reqwest_client_builder([root_ca.into_certificate()])
         .build()
         .unwrap();
     let url = format!("https://localhost:{}", port).parse().unwrap();

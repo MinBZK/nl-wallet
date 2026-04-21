@@ -145,6 +145,9 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     DisclosureCloseProximityEventReceived event,
     Emitter<DisclosureState> emit,
   ) async {
+    // Avoid updating UI on event when already showing success or error state.
+    if (state is DisclosureSuccess || state is ErrorState) return;
+
     switch (event.event) {
       case BleAdvertising():
       case BleConnecting():

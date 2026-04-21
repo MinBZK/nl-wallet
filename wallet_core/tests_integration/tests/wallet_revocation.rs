@@ -12,7 +12,7 @@ use tempfile::TempDir;
 use audit_log::entity;
 use db_test::DbSetup;
 use http_utils::reqwest::ReqwestTrustAnchor;
-use http_utils::reqwest::trusted_reqwest_client_builder;
+use http_utils::reqwest::tls_reqwest_client_builder;
 use wallet::AccountRevokedData;
 use wallet::BlockedReason;
 use wallet::PidIssuancePurpose;
@@ -379,7 +379,7 @@ async fn call_wp_revocation_endpoint(
     path: &str,
     body: impl serde::Serialize,
 ) {
-    let client = trusted_reqwest_client_builder(iter::once(wp_root_ca.into_certificate()))
+    let client = tls_reqwest_client_builder(iter::once(wp_root_ca.into_certificate()))
         .build()
         .unwrap();
     let response = client
@@ -395,7 +395,7 @@ async fn call_wp_revocation_endpoint(
 ///
 /// Separate revoke solution endpoint to ensure both tests call the same.
 async fn call_revoke_solution_endpoint(wp_root_ca: ReqwestTrustAnchor, wp_port: u16, status_code: StatusCode) {
-    let client = trusted_reqwest_client_builder(iter::once(wp_root_ca.into_certificate()))
+    let client = tls_reqwest_client_builder(iter::once(wp_root_ca.into_certificate()))
         .build()
         .unwrap();
     let response = client

@@ -865,6 +865,24 @@ void main() {
         isA<DisclosureGenericError>(),
       ],
     );
+
+    blocTest(
+      'proximity events are ignored when state is DisclosureSuccess',
+      build: create,
+      seed: () => DisclosureSuccess(relyingParty: WalletMockData.organization, isCrossDevice: false),
+      act: (bloc) => bloc.add(const DisclosureCloseProximityEventReceived(BleDisconnected())),
+      expect: () => [],
+      verify: (bloc) => verifyNever(cancelDisclosureUseCase.invoke()),
+    );
+
+    blocTest(
+      'proximity events are ignored when state is an ErrorState',
+      build: create,
+      seed: () => const DisclosureGenericError(error: GenericError('test', sourceError: 'test')),
+      act: (bloc) => bloc.add(const DisclosureCloseProximityEventReceived(BleDisconnected())),
+      expect: () => [],
+      verify: (bloc) => verifyNever(cancelDisclosureUseCase.invoke()),
+    );
   });
 }
 

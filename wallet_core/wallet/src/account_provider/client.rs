@@ -260,22 +260,16 @@ fn compress_bytes(bytes: &[u8]) -> Result<Vec<u8>, io::Error> {
 /// of `RemoteAccountServerClient` and `AccountServerResponseError`.
 mod tests {
     use assert_matches::assert_matches;
-    use http::HeaderValue;
     use http::header;
+    use httpmock::Method::POST;
+    use httpmock::MockServer;
     use reqwest::StatusCode;
     use serde::Deserialize;
     use serde::Serialize;
     use serde_json::Value;
     use serde_json::json;
-    use wiremock::Mock;
-    use wiremock::MockServer;
-    use wiremock::ResponseTemplate;
-    use wiremock::matchers::method;
-    use wiremock::matchers::path;
 
-    use http_utils::client::InternalHttpConfig;
     use http_utils::reqwest::IntoReqwestClient;
-    use http_utils::urls::BaseUrl;
 
     use super::*;
 
@@ -283,13 +277,6 @@ mod tests {
     struct ExampleBody {
         pub foo: String,
         pub bar: u64,
-    }
-
-    async fn create_mock_server() -> (MockServer, BaseUrl) {
-        let server = MockServer::start().await;
-        let base_url = server.uri().parse().unwrap();
-
-        (server, base_url)
     }
 
     async fn post_example_request<C>(
@@ -305,64 +292,91 @@ mod tests {
 
     #[tokio::test]
     async fn test_http_account_server_client_send_json_request_ok() {
-        let (server, base_url) = create_mock_server().await;
+        let server = MockServer::start_async().await;
+        let base_url = server.base_url().parse().unwrap();
 
-        Mock::given(method("POST"))
-            .and(path("/foobar"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(ExampleBody {
-                foo: "blah".to_string(),
-                bar: 1234,
-            }))
-            .expect(1)
-            .mount(&server)
+        let mock = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/foobar");
+
+                then.status(200)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .json_body(
+                        serde_json::to_value(ExampleBody {
+                            foo: "blah".to_string(),
+                            bar: 1234,
+                        })
+                        .unwrap(),
+                    );
+            })
             .await;
 
         let client = HttpAccountProviderClient::new();
-        let body = post_example_request(&client, "foobar", &InternalHttpConfig::try_new(base_url).unwrap())
-            .await
-            .expect("Could not get succesful response from server");
+        let body = post_example_request(
+            &client,
+            "foobar",
+            &TlsPinningConfig::try_new_httpmock(base_url).unwrap(),
+        )
+        .await
+        .expect("Could not get succesful response from server");
 
         assert_eq!(body.foo, "blah");
         assert_eq!(body.bar, 1234);
+        mock.assert_async().await;
     }
 
     #[tokio::test]
     async fn test_http_account_server_client_send_json_request_error_status() {
-        let (server, base_url) = create_mock_server().await;
+        let server = MockServer::start_async().await;
+        let base_url = server.base_url().parse().unwrap();
 
-        Mock::given(method("POST"))
-            .and(path("/foobar_404"))
-            .respond_with(ResponseTemplate::new(404))
-            .expect(1)
-            .mount(&server)
+        let mock = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/foobar_404");
+
+                then.status(404);
+            })
             .await;
 
         let client = HttpAccountProviderClient::new();
-        let error = post_example_request(&client, "foobar_404", &InternalHttpConfig::try_new(base_url).unwrap())
-            .await
-            .expect_err("No error received from server");
+        let error = post_example_request(
+            &client,
+            "foobar_404",
+            &TlsPinningConfig::try_new_httpmock(base_url).unwrap(),
+        )
+        .await
+        .expect_err("No error received from server");
 
         assert_matches!(
             error,
             AccountProviderError::Response(AccountProviderResponseError::Status(StatusCode::NOT_FOUND))
         );
+        mock.assert_async().await;
     }
 
     #[tokio::test]
     async fn test_http_account_server_client_send_json_request_error_text() {
-        let (server, base_url) = create_mock_server().await;
+        let server = MockServer::start_async().await;
+        let base_url = server.base_url().parse().unwrap();
 
-        Mock::given(method("POST"))
-            .and(path("/foobar_502"))
-            .respond_with(ResponseTemplate::new(502).set_body_string("Your gateway is bad and you should feel bad!"))
-            .expect(1)
-            .mount(&server)
+        let mock = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/foobar_502");
+
+                then.status(502)
+                    .header(header::CONTENT_TYPE.as_str(), mime::TEXT_PLAIN.as_ref())
+                    .body("Your gateway is bad and you should feel bad!");
+            })
             .await;
 
         let client = HttpAccountProviderClient::new();
-        let error = post_example_request(&client, "foobar_502", &InternalHttpConfig::try_new(base_url).unwrap())
-            .await
-            .expect_err("No error received from server");
+        let error = post_example_request(
+            &client,
+            "foobar_502",
+            &TlsPinningConfig::try_new_httpmock(base_url).unwrap(),
+        )
+        .await
+        .expect_err("No error received from server");
 
         assert_matches!(
             error,
@@ -370,36 +384,35 @@ mod tests {
                 AccountProviderResponseError::Text(StatusCode::BAD_GATEWAY, body)
             ) if body == "Your gateway is bad and you should feel bad!"
         );
+        mock.assert_async().await;
     }
 
     #[tokio::test]
     async fn test_http_account_server_client_send_json_request_error_type() {
-        let (server, base_url) = create_mock_server().await;
+        let server = MockServer::start_async().await;
+        let base_url = server.base_url().parse().unwrap();
 
-        Mock::given(method("POST"))
-            .and(path("/foobar_400"))
-            .respond_with(
-                ResponseTemplate::new(400)
-                    .insert_header(
-                        header::CONTENT_TYPE,
-                        HeaderValue::from_str("application/problem+json").unwrap(),
-                    )
-                    .set_body_bytes(
-                        serde_json::to_vec(&json!({
-                            "type": "challenge_validation",
-                            "detail": "Error description.",
-                        }))
-                        .unwrap(),
-                    ),
-            )
-            .expect(1)
-            .mount(&server)
+        let mock = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/foobar_400");
+
+                then.status(400)
+                    .header(header::CONTENT_TYPE.as_str(), "application/problem+json")
+                    .json_body(json!({
+                        "type": "challenge_validation",
+                        "detail": "Error description.",
+                    }));
+            })
             .await;
 
         let client = HttpAccountProviderClient::new();
-        let error = post_example_request(&client, "foobar_400", &InternalHttpConfig::try_new(base_url).unwrap())
-            .await
-            .expect_err("No error received from server");
+        let error = post_example_request(
+            &client,
+            "foobar_400",
+            &TlsPinningConfig::try_new_httpmock(base_url).unwrap(),
+        )
+        .await
+        .expect_err("No error received from server");
 
         assert_matches!(
             error,
@@ -407,26 +420,35 @@ mod tests {
                 AccountProviderResponseError::Account(AccountError::ChallengeValidation, detail)
             ) if detail == Some("Error description.".to_string())
         );
+        mock.assert_async().await;
     }
 
     #[tokio::test]
     async fn test_http_account_server_client_send_json_request_other_json() {
-        let (server, base_url) = create_mock_server().await;
+        let server = MockServer::start_async().await;
+        let base_url = server.base_url().parse().unwrap();
 
-        Mock::given(method("POST"))
-            .and(path("/foobar_503"))
-            .respond_with(ResponseTemplate::new(503).set_body_json(json!({
-                "status": "503",
-                "text": "Service Unavailable",
-            })))
-            .expect(1)
-            .mount(&server)
+        let mock = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/foobar_503");
+
+                then.status(503)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .json_body(json!({
+                        "status": "503",
+                        "text": "Service Unavailable",
+                    }));
+            })
             .await;
 
         let client = HttpAccountProviderClient::new();
-        let error = post_example_request(&client, "foobar_503", &InternalHttpConfig::try_new(base_url).unwrap())
-            .await
-            .expect_err("No error received from server");
+        let error = post_example_request(
+            &client,
+            "foobar_503",
+            &TlsPinningConfig::try_new_httpmock(base_url).unwrap(),
+        )
+        .await
+        .expect_err("No error received from server");
 
         let expected_json = json!({
             "status": "503",
@@ -442,5 +464,6 @@ mod tests {
             }
             _ => panic!("should have received expected error"),
         }
+        mock.assert_async().await;
     }
 }

@@ -423,7 +423,7 @@ where
 {
     let mut builder = QueryBuilder::new("SELECT datname FROM pg_catalog.pg_database WHERE datname IN");
     let query = builder
-        .push_tuples(databases.into_iter(), |mut b, name| {
+        .push_tuples(databases, |mut b, name| {
             b.push_bind(name);
         })
         .build();

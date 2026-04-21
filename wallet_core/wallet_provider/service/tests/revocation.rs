@@ -95,9 +95,7 @@ async fn setup_state(
     let service = PostgresStatusListService::try_new(db.to_connection(), &random_string(20), config, flags.clone())
         .await
         .unwrap();
-    try_join_all(service.initialize_lists().await.unwrap().into_iter())
-        .await
-        .unwrap();
+    try_join_all(service.initialize_lists().await.unwrap()).await.unwrap();
 
     let hsm = setup_hsm().await;
 

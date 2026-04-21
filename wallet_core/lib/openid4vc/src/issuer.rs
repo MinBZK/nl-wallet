@@ -1439,7 +1439,7 @@ impl Session<WaitingForResponse> {
             previews_and_holder_pubkeys
                 .iter()
                 // The claims size is explicitly checked to be equal to the number of copies
-                .zip_eq(status_claims.into_iter())
+                .zip_eq(status_claims)
                 .flat_map(|((preview, config, format_pubkeys), claims)| {
                     format_pubkeys
                         .into_iter()

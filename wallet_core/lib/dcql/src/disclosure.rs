@@ -6,6 +6,7 @@ use itertools::Either;
 use itertools::Itertools;
 
 use attestation_types::claim_path::ClaimPath;
+use crypto::x509::KeyIdentifier;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::CredentialFormat;
@@ -40,12 +41,22 @@ pub enum CredentialValidationError {
         }).join(", "))
     }).join(" / "))]
     MissingAttributes(HashMap<CredentialQueryIdentifier, HashSet<VecNonEmpty<ClaimPath>>>),
+    #[error("requested AKIs did not match any of the returned credential(s): {}", .0.iter().map(|(id, (expected, received))| {
+        format!(
+            "({}): requested {}, received {}",
+            id,
+            expected.iter().map(KeyIdentifier::to_string).join(", "),
+            received.iter().map(KeyIdentifier::to_string).join(", ")
+        )
+    }).join(" / "))]
+    UnmatchedAkis(HashMap<CredentialQueryIdentifier, (Vec<KeyIdentifier>, Vec<KeyIdentifier>)>),
 }
 
 /// This should be implemented on a credential that a verifier receives from the holder.
 pub trait DisclosedCredential {
     fn format(&self) -> CredentialFormat;
     fn credential_type(&self) -> &str;
+    fn aki(&self) -> &[KeyIdentifier];
     fn missing_claim_paths<'a, 'b>(
         &'a self,
         request_claim_paths: impl IntoIterator<Item = &'b VecNonEmpty<ClaimPath>>,
@@ -151,6 +162,20 @@ impl NormalizedCredentialRequests {
             ));
         }
 
+        // For each of the requested credentials, any one of the specified AKIs (if present) should be present in any
+        // of the certificates of the received credential.
+        let unmatched_akis = requests_and_credentials
+            .iter()
+            .filter(|&(_, (request, credential))| {
+                !(request.aki().is_empty() || request.aki().iter().any(|aki| credential.aki().contains(aki)))
+            })
+            .map(|(id, (request, credential))| ((*id).clone(), (request.aki().to_vec(), credential.aki().to_vec())))
+            .collect::<HashMap<_, _>>();
+
+        if !unmatched_akis.is_empty() {
+            return Err(CredentialValidationError::UnmatchedAkis(unmatched_akis));
+        }
+
         // Finally, each received credential should contain all of the requested attributes,
         // as optional attributes are not supported.
         let missing_attribute_credentials = requests_and_credentials
@@ -180,6 +205,7 @@ mod tests {
     use rstest::rstest;
 
     use attestation_types::claim_path::ClaimPath;
+    use crypto::x509::KeyIdentifier;
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
     use mdoc::examples::EXAMPLE_NAMESPACE;
@@ -202,6 +228,7 @@ mod tests {
         format: CredentialFormat,
         credential_type: String,
         claim_paths: HashSet<VecNonEmpty<ClaimPath>>,
+        aki: Vec<KeyIdentifier>,
     }
 
     impl MockDisclosedCredential {
@@ -218,6 +245,7 @@ mod tests {
                         ]
                     })
                     .collect(),
+                aki: vec![],
             }
         }
 
@@ -229,6 +257,7 @@ mod tests {
                     .iter()
                     .map(|attribute| vec_nonempty![ClaimPath::SelectByKey(attribute.to_string())])
                     .collect(),
+                aki: vec![],
             }
         }
     }
@@ -240,6 +269,10 @@ mod tests {
 
         fn credential_type(&self) -> &str {
             &self.credential_type
+        }
+
+        fn aki(&self) -> &[KeyIdentifier] {
+            &self.aki
         }
 
         fn missing_claim_paths<'a, 'b>(

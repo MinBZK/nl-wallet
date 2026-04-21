@@ -1,13 +1,16 @@
+use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD_NO_PAD;
+use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Constructor;
 use derive_more::Debug;
 use derive_more::Display;
+use derive_more::From;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
@@ -22,6 +25,8 @@ use rustls_pki_types::pem::PemObject;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 use webpki::EndEntityCert;
 use webpki::ring::ECDSA_P256_SHA256;
 use x509_parser::asn1_rs::SerializeError;
@@ -34,6 +39,7 @@ use x509_parser::objects::oid_registry;
 use x509_parser::prelude::ExtendedKeyUsage;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::PEMError;
+use x509_parser::prelude::ParsedExtension;
 use x509_parser::prelude::X509Certificate;
 use x509_parser::prelude::X509Error;
 use x509_parser::x509::X509Name;
@@ -355,6 +361,17 @@ impl BorrowingCertificate {
         Ok(self.san_dns_names()?.into_iter().next())
     }
 
+    /// From the AuthorityKeyIdentifier in the certificate, if present, return the key identifier field:
+    /// the hash over the public key that signed this certificate.
+    pub fn authority_key_id(&self) -> Option<KeyIdentifier> {
+        self.x509_certificate().extensions().iter().find_map(|ext| {
+            let ParsedExtension::AuthorityKeyIdentifier(aki) = ext.parsed_extension() else {
+                return None;
+            };
+            aki.key_identifier.as_ref().map(|ki| ki.0.to_vec().into())
+        })
+    }
+
     /// Returns all DNS SAN entries from the certificate.
     pub fn san_dns_names(&self) -> Result<Vec<&str>, CertificateError> {
         let dns_names = self
@@ -462,6 +479,21 @@ where
     }
 }
 
+/// The KeyIdentifier of a public key from a certificate, being its SHA1 hash.
+///
+/// Returned from [`BorrowingCertificate::authority_key_id`].
+#[derive(Debug, Clone, PartialEq, Eq, From, Display, SerializeDisplay, DeserializeFromStr)]
+#[display("{}", BASE64_URL_SAFE_NO_PAD.encode(&self.0))]
+#[debug("{}", self)]
+pub struct KeyIdentifier(Vec<u8>);
+
+impl FromStr for KeyIdentifier {
+    type Err = base64::DecodeError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(KeyIdentifier(BASE64_URL_SAFE_NO_PAD.decode(s)?))
+    }
+}
+
 /// A distinguished name encoded in a canonical, OID-registry-independent format.
 /// This type is specifically designed for database persistence and comparison.
 /// Format: "OID1=base64(DER1),OID2=base64(DER2),..."
@@ -486,6 +518,7 @@ impl AsRef<str> for DistinguishedName {
 pub struct CertificateConfiguration {
     pub not_before: Option<DateTime<Utc>>,
     pub not_after: Option<DateTime<Utc>>,
+    pub exclude_aki: bool,
 }
 
 #[cfg(test)]
@@ -502,7 +535,10 @@ mod test {
 
     use utils::generator::TimeGenerator;
 
+    use p256::pkcs8::EncodePublicKey;
+
     use crate::server_keys::generate::Ca;
+    use crate::utils::sha256;
 
     use super::*;
 
@@ -541,6 +577,31 @@ mod test {
     }
 
     #[test]
+    fn parse_aki() {
+        let config = CertificateConfiguration {
+            not_after: Some(Utc::now() + Duration::days(42)),
+            ..Default::default()
+        };
+
+        let ca = Ca::generate("myca", config).unwrap();
+        let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
+            .expect("self signed CA should contain a valid X.509 certificate");
+
+        // `rcgen` computes the AKI as the first 20 bytes of the SHA256 of the DER encoding of the public key,
+        // as per RFC 7093.
+        let pubkey_der = ca
+            .to_signing_key()
+            .unwrap()
+            .verifying_key()
+            .to_public_key_der()
+            .unwrap();
+        let hash = sha256(pubkey_der.as_bytes());
+        let hash = &hash[0..20];
+
+        assert_eq!(hash, &certificate.authority_key_id().unwrap().0);
+    }
+
+    #[test]
     fn generate_ca_with_configuration() {
         let now = Utc::now();
         let later = now + Duration::days(42);
@@ -548,6 +609,7 @@ mod test {
         let config = CertificateConfiguration {
             not_before: Some(now),
             not_after: Some(later),
+            ..Default::default()
         };
         let ca = Ca::generate("myca", config).unwrap();
         let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
@@ -570,7 +632,11 @@ mod test {
     ) -> CertificateError {
         let ca = generate_ca_for_validity_test();
 
-        let config = CertificateConfiguration { not_before, not_after };
+        let config = CertificateConfiguration {
+            not_before,
+            not_after,
+            ..Default::default()
+        };
         let mdl = MdlExtension;
 
         let issuer_key_pair = ca.generate_key_pair("mycert", mdl, config).unwrap();
@@ -646,6 +712,7 @@ mod test {
         let config = CertificateConfiguration {
             not_before: Some(start),
             not_after: Some(end),
+            ..Default::default()
         };
 
         Ca::generate("myca", config).unwrap()

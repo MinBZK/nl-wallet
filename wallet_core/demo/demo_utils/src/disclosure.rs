@@ -77,6 +77,7 @@ mod test {
                     Some(DateTime::UNIX_EPOCH),
                 ),
                 revocation_status: Some(RevocationStatus::Valid),
+                aki: vec![],
             },
             DisclosedAttestation {
                 attestation_type: ADDRESS_ATTESTATION_TYPE.to_string(),
@@ -109,6 +110,7 @@ mod test {
                     Some(DateTime::UNIX_EPOCH),
                 ),
                 revocation_status: Some(RevocationStatus::Valid),
+                aki: vec![],
             },
         ];
 

@@ -67,7 +67,8 @@ private_key_type = "software"
 
 # Integration test cases
 [usecases.xyz_bank_no_return_url]
-session_type_return_url = "neither"
+session_type_return_url = "same_device"
+return_url_template = "http://${SERVICES_HOST}:${VERIFICATION_SERVER_PORT}/disclosure/sessions/{session_token}"
 certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
 private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
 private_key_type = "software"

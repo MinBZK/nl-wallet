@@ -2,11 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../domain/model/result/application_error.dart';
 import '../../../navigation/wallet_routes.dart';
-import '../../../theme/light_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/helper/dialog_helper.dart';
 import '../../../wallet_assets.dart';
@@ -22,6 +20,7 @@ import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/utility/check_permissions_on_resume.dart';
 import '../../common/widget/utility/scroll_offset_provider.dart';
 import '../../common/widget/wallet_app_bar.dart';
+import '../../common/widget/wallet_qr_view.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 import '../../disclosure/argument/disclosure_screen_argument.dart';
 import '../../error/error_button_builder.dart';
@@ -141,19 +140,7 @@ class QrPresentScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                        child: QrImageView(
-                          padding: EdgeInsets.zero,
-                          backgroundColor: LightWalletTheme.colorScheme.surface,
-                          dataModuleStyle: const QrDataModuleStyle(
-                            color: Colors.black,
-                            dataModuleShape: QrDataModuleShape.square,
-                          ),
-                          data: qrContents,
-                          embeddedImage: const AssetImage(WalletAssets.logo_wallet_qr),
-                          embeddedImageEmitsError: true,
-                          errorCorrectionLevel: QrErrorCorrectLevel.Q,
-                          embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(64, 64)),
-                        ),
+                        child: WalletQrView(data: qrContents),
                       ),
                       const SizedBox(height: 16),
                       ListButton(

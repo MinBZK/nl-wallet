@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
-import '../../../theme/light_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
-import '../../../wallet_assets.dart';
 import '../../common/dialog/qr_code_dialog.dart';
 import '../../common/widget/button/button_content.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/text/body_text.dart';
 import '../../common/widget/text/title_text.dart';
+import '../../common/widget/wallet_qr_view.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 
 class WalletTransferAwaitingScanPage extends StatelessWidget {
@@ -50,18 +48,7 @@ class WalletTransferAwaitingScanPage extends StatelessWidget {
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    child: QrImageView(
-                      padding: EdgeInsets.zero,
-                      backgroundColor: LightWalletTheme.colorScheme.surface,
-                      dataModuleStyle: const QrDataModuleStyle(
-                        color: Colors.black,
-                        dataModuleShape: QrDataModuleShape.square,
-                      ),
-                      data: data,
-                      embeddedImage: const AssetImage(WalletAssets.logo_wallet_qr),
-                      embeddedImageEmitsError: true,
-                      embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(32, 32)),
-                    ),
+                    child: Center(child: WalletQrView(data: data)),
                   ),
                 ],
               ),

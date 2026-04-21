@@ -34,6 +34,7 @@
 		D4F100012F8A000100000001 /* CloseProximityDisclosure+Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F100012F8A000100000002 /* CloseProximityDisclosure+Bridge.swift */; };
 		D4F100012F8A000100000003 /* CloseProximityDisclosure+Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F100012F8A000100000004 /* CloseProximityDisclosure+Session.swift */; };
 		D4F100012F8A000100000005 /* CloseProximityDisclosure+Types.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F100012F8A000100000006 /* CloseProximityDisclosure+Types.swift */; };
+		D9BCD5252F92515100C0D5D1 /* Multipaz in Frameworks */ = {isa = PBXBuildFile; productRef = 611A82892F62DE7B00DDB6B5 /* Multipaz */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -121,6 +122,9 @@
 		D4F100012F8A000100000002 /* CloseProximityDisclosure+Bridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CloseProximityDisclosure+Bridge.swift"; sourceTree = "<group>"; };
 		D4F100012F8A000100000004 /* CloseProximityDisclosure+Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CloseProximityDisclosure+Session.swift"; sourceTree = "<group>"; };
 		D4F100012F8A000100000006 /* CloseProximityDisclosure+Types.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CloseProximityDisclosure+Types.swift"; sourceTree = "<group>"; };
+		D9BCD5282F925E9D00C0D5D1 /* LocalRealDevice.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; name = LocalRealDevice.xctestplan; path = TestPlans/LocalRealDevice.xctestplan; sourceTree = "<group>"; };
+		D9BCD5292F925EA600C0D5D1 /* Simulator.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; name = Simulator.xctestplan; path = TestPlans/Simulator.xctestplan; sourceTree = "<group>"; };
+		D9BCD52A2F925EB000C0D5D1 /* BrowserStackRealDevice.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; name = BrowserStackRealDevice.xctestplan; path = TestPlans/BrowserStackRealDevice.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -128,7 +132,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				611A829A2F62DE7B00DDB6B5 /* Multipaz in Frameworks */,
+				D9BCD5252F92515100C0D5D1 /* Multipaz in Frameworks */,
 				6133004629A8E350004D9CC7 /* libPlatformSupport.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -293,6 +297,9 @@
 		61F5335529A8AB4100624E46 = {
 			isa = PBXGroup;
 			children = (
+				D9BCD52A2F925EB000C0D5D1 /* BrowserStackRealDevice.xctestplan */,
+				D9BCD5292F925EA600C0D5D1 /* Simulator.xctestplan */,
+				D9BCD5282F925E9D00C0D5D1 /* LocalRealDevice.xctestplan */,
 				61F5336029A8AB4100624E46 /* PlatformSupport */,
 				6133004329A8E350004D9CC7 /* Integration Tests */,
 				61D577B829A8FD7C00030578 /* Integration Tests Host App */,

@@ -110,6 +110,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         })
         .transpose()?;
 
+    // Note that HTTP is explicitly allowed for the retrieval of status lists.
     let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
 
     let db_checkers = [store_checker, status_list_checker].into_iter().flat_map(boxed);
