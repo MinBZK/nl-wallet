@@ -591,15 +591,14 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
     ) -> Result<Session<Created>, NewSessionError> {
         // If the caller passes a `return_url_template` then we use that,
         // if not then we use the one configured in `self` (if neither is available, this returns an error).
-        let redirect_uri_template = return_url_template
-            .or_else(|| self.return_url_template.clone())
-            .map(|template| RedirectUriTemplate {
-                template,
-                share_on_error: true,
-            });
-
-        // Check if we have received a return URL template.
-        let Some(redirect_uri_template) = redirect_uri_template else {
+        let Some(redirect_uri_template) =
+            return_url_template
+                .or_else(|| self.return_url_template.clone())
+                .map(|template| RedirectUriTemplate {
+                    template,
+                    share_on_error: true,
+                })
+        else {
             return Err(NewSessionError::ReturnUrlConfigurationMismatch);
         };
 
