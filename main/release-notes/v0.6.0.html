@@ -190,6 +190,9 @@
 <section id="upgrading">
 <h2>Upgrading<a class="headerlink" href="#upgrading" title="Link to this heading"></a></h2>
 <ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">neither</span></code> value for <code class="docutils literal notranslate"><span class="pre">session_type_return_url</span></code> in the verification server
+configuration is no longer supported; use <code class="docutils literal notranslate"><span class="pre">same_device</span></code> (the default) with
+a <code class="docutils literal notranslate"><span class="pre">return_url_template</span></code> instead.</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuance</span></code> section of the Wallet configuration has been paired down
 as follows:</p>
 <ul>
@@ -226,6 +229,9 @@ issuer keys.</p></li>
 <section id="interoperability-improvements">
 <h2>Interoperability improvements<a class="headerlink" href="#interoperability-improvements" title="Link to this heading"></a></h2>
 <ul class="simple">
+<li><p>The verification server now enforces HAIP 1.0 compliance for same-device
+flows: a <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> is always returned to the wallet after a successful
+disclosure. See the Upgrading section for the required configuration change.</p></li>
 <li><p>Sections of both the wallet and issuer code have been updated to be compliant
 with OpenID4VCI 1.0:</p>
 <ul>
