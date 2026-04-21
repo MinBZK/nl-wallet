@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::future::Future;
 
 use anyhow::Context;
@@ -485,6 +486,7 @@ fn items_requests_from_reader_registration(reader_registration: &ReaderRegistrat
         if reader_registration
             .verify_requested_attributes([items_request.clone()])
             .is_ok()
+            || authorized_paths_round_trip_as_mdoc(doc_type, authorized_paths, &items_request)?
         {
             items_requests.push(items_request);
         }
@@ -510,6 +512,51 @@ fn claim_path_segments(doc_type: &str, authorized_path: &VecNonEmpty<ClaimPath>)
             )),
         })
         .collect()
+}
+
+fn authorized_paths_round_trip_as_mdoc(
+    doc_type: &str,
+    authorized_paths: &[VecNonEmpty<ClaimPath>],
+    items_request: &ItemsRequest,
+) -> Result<bool> {
+    let mut normalized_claim_paths = HashSet::with_capacity(authorized_paths.len());
+
+    for authorized_path in authorized_paths {
+        let key_segments = claim_path_segments(doc_type, authorized_path)?;
+        let claim_path: VecNonEmpty<ClaimPath> = match key_segments.as_slice() {
+            [attribute] => vec![
+                ClaimPath::SelectByKey(doc_type.to_string()),
+                ClaimPath::SelectByKey(attribute.clone()),
+            ]
+            .try_into()
+            .unwrap(),
+            [namespace, attribute] if is_mdoc_namespace_for_doc_type(doc_type, namespace) => vec![
+                ClaimPath::SelectByKey(namespace.clone()),
+                ClaimPath::SelectByKey(attribute.clone()),
+            ]
+            .try_into()
+            .unwrap(),
+            [_, _] => return Ok(false),
+            _ => {
+                return Err(anyhow!(
+                    "reader_auth.json contains unsupported authorized attribute path for credential type \
+                     '{doc_type}': expected 1 or 2 key segments, got {}",
+                    key_segments.len()
+                ));
+            }
+        };
+
+        normalized_claim_paths.insert(claim_path);
+    }
+
+    Ok(items_request.claims().collect::<HashSet<_>>() == normalized_claim_paths)
+}
+
+fn is_mdoc_namespace_for_doc_type(doc_type: &str, namespace: &str) -> bool {
+    namespace == doc_type
+        || namespace
+            .strip_prefix(doc_type)
+            .is_some_and(|suffix| suffix.starts_with('.'))
 }
 
 async fn create_doc_request(
