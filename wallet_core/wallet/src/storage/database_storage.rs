@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use cfg_if::cfg_if;
 use chrono::DateTime;
 use chrono::Utc;
 use futures::try_join;
@@ -150,11 +149,11 @@ impl<K> DatabaseStorage<K> {
         let name = &self.database_name;
 
         // Get path to database as "<storage_path>/<name>.db"
-        cfg_if! {
-            if #[cfg(debug_assertions)] {
+        cfg_select! {
+            debug_assertions => {
                 self.storage_path.join(format!("{name}.{DATABASE_FILE_EXT}"))
             }
-            else {
+            _ => {
                 // Temporarily hack to prevent backwards compatibility problems by including
                 // full version identifier. Should be removed when doing PVW-4707.
                 let version = version_identifier().expect("Version expected for release build");

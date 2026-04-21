@@ -4,8 +4,8 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
 
-use cfg_if::cfg_if;
 use futures::try_join;
+use reqwest::ClientBuilder;
 use tokio::sync::RwLock;
 
 use error_category::ErrorCategory;
@@ -120,13 +120,10 @@ where
         init_universal_link_base_url();
 
         // When using fake attestations, initialize the key holder, but make sure this happens only once.
-        cfg_if! {
-            if #[cfg(feature = "fake_attestation")] {
-                let key_holder = init_mock_key_holder().await;
-            } else {
-                let key_holder = platform_support::attested_key::hardware::HardwareAttestedKeyHolder::default();
-            }
-        }
+        let key_holder = cfg_select! {
+            feature = "fake_attestation" => init_mock_key_holder().await,
+            _ => platform_support::attested_key::hardware::HardwareAttestedKeyHolder::default(),
+        };
 
         let update_policy_repository = UpdatePolicyRepository::init();
 
@@ -164,15 +161,27 @@ pub struct WalletClients<APC, CID, DCC, SLC> {
     pub status_list_client: SLC,
 }
 
+fn reqwest_client_builder() -> ClientBuilder {
+    cfg_select! {
+        feature = "allow_insecure_url" => {
+            default_reqwest_client_builder()
+        }
+        _ => {
+            http_utils::reqwest::default_tls_reqwest_client_builder()
+        }
+    }
+}
+
 impl<APC> WalletClients<APC, HttpIssuanceDiscovery, VpDisclosureClient, HttpStatusListClient>
 where
     APC: Default,
 {
     pub fn new() -> Result<Self, reqwest::Error> {
-        let disclosure_client = VpDisclosureClient::new_with_client(default_reqwest_client_builder())?;
+        let credential_issuer_discovery =
+            HttpIssuanceDiscovery::new(HttpJsonClient::try_new(reqwest_client_builder())?);
+        let disclosure_client = VpDisclosureClient::new_with_client(reqwest_client_builder())?;
+        // Note that HTTP is explicitly allowed for the retrieval of status lists.
         let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder())?;
-        let http_json_client = HttpJsonClient::try_new(default_reqwest_client_builder())?;
-        let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_json_client);
 
         let clients = Self {
             account_provider_client: APC::default(),

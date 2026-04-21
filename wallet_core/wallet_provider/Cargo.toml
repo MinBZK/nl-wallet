@@ -14,11 +14,6 @@ name = "wallet_provider"
 doctest = false
 
 [[test]]
-name = "hsm"
-path = "tests/hsm.rs"
-required-features = ["hsm_test"]
-
-[[test]]
 name = "settings"
 path = "tests/settings.rs"
 required-features = ["hsm_test"]
@@ -48,7 +43,6 @@ hsm_test = ["dep:rand_core", "dep:serial_test", "hsm/test"]
 [dependencies]
 axum.workspace = true
 axum-server.workspace = true
-cfg-if.workspace = true
 chrono = { workspace = true, features = ["now"] }
 config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "display", "from", "into", "from_str"] }

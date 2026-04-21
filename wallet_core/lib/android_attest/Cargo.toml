@@ -29,7 +29,6 @@ test_root_keys = ["dep:const-decoder"]
 
 [dependencies]
 bitflags.workspace = true
-cfg-if.workspace = true
 chrono = { workspace = true, features = ["now"] }
 derive_more = { workspace = true, features = ["as_ref", "constructor", "debug"] }
 futures.workspace = true
@@ -72,7 +71,9 @@ x509-cert = { workspace = true, optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
+httpmock.workspace = true
 rand.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
-wiremock.workspace = true
+
+http_utils = { path = "../http_utils", features = ["httpmock"] }

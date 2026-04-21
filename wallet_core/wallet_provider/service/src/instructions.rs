@@ -19,6 +19,7 @@ use crypto::p256_der::DerSignature;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
+use hsm::service::Pkcs11Client;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
@@ -59,7 +60,6 @@ use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::transfer::TransferSessionState;
-use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -352,7 +352,7 @@ pub trait HandleInstruction {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>;
 }
 
@@ -369,7 +369,7 @@ impl HandleInstruction for CheckPin {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         Ok(())
@@ -389,7 +389,7 @@ impl HandleInstruction for ChangePinCommit {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let tx = user_state.repositories.begin_transaction().await?;
@@ -413,7 +413,7 @@ pub(super) async fn perform_issuance_with_wua<T, R, H>(
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-    H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+    H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
 {
     let (issuance_result, wua_disclosure, wrapped_keys, wua_key_and_id) =
         perform_issuance(instruction, Some(wallet_user), user_state).await?;
@@ -444,7 +444,7 @@ pub async fn perform_issuance<T, R, H>(
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-    H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+    H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
 {
     let (key_ids, wrapped_keys): (VecNonEmpty<_>, VecNonEmpty<_>) = user_state
         .wallet_user_hsm
@@ -524,7 +524,7 @@ async fn persist_keys<T, R, H>(
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-    H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+    H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
 {
     user_state
         .repositories
@@ -548,7 +548,7 @@ async fn wua<T, R, H>(
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-    H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+    H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
 {
     // generate WUA ID
     let wua_id = Uuid::new_v4();
@@ -591,7 +591,7 @@ async fn issuance_pops<H>(
     claims: &JwtPopClaims,
 ) -> Result<VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>, InstructionError>
 where
-    H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+    H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
 {
     let pops = future::try_join_all(attestation_keys.iter().map(|attestation_key| async {
         let jwt = SignedJwt::sign_with_jwk(claims, attestation_key)
@@ -615,7 +615,7 @@ fn attestation_key<'a, T, R, H>(
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-    H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+    H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
 {
     HsmCredentialSigningKey {
         hsm: &user_state.wallet_user_hsm,
@@ -637,7 +637,7 @@ impl HandleInstruction for PerformIssuance {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let (issuance_result, _, wrapped_keys, _) = perform_issuance(self, None, user_state).await?;
@@ -665,7 +665,7 @@ impl HandleInstruction for PerformIssuanceWithWua {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let (issuance_with_wua_result, wrapped_keys, wua_key_and_id) =
@@ -699,7 +699,7 @@ impl HandleInstruction for Sign {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let (data, identifiers): (Vec<_>, Vec<_>) = self.messages_with_identifiers.into_iter().unzip();
@@ -769,7 +769,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let verified_sd_jwt = self
@@ -865,7 +865,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let verified_sd_jwt = self
@@ -917,7 +917,7 @@ impl HandleInstruction for PairTransfer {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let tx = user_state.repositories.begin_transaction().await?;
@@ -966,7 +966,7 @@ impl HandleInstruction for CancelTransfer {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let tx = user_state.repositories.begin_transaction().await?;
@@ -1017,7 +1017,7 @@ impl HandleInstruction for ResetTransfer {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let tx = user_state.repositories.begin_transaction().await?;
@@ -1063,7 +1063,7 @@ impl HandleInstruction for GetTransferStatus {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let tx = user_state.repositories.begin_transaction().await?;
@@ -1097,7 +1097,7 @@ impl HandleInstruction for ConfirmTransfer {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let tx = user_state.repositories.begin_transaction().await?;
@@ -1143,7 +1143,7 @@ impl HandleInstruction for SendWalletPayload {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let tx = user_state.repositories.begin_transaction().await?;
@@ -1190,7 +1190,7 @@ impl HandleInstruction for ReceiveWalletPayload {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let tx = user_state.repositories.begin_transaction().await?;
@@ -1231,7 +1231,7 @@ impl HandleInstruction for CompleteTransfer {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let tx = user_state.repositories.begin_transaction().await?;
@@ -1288,7 +1288,7 @@ impl HandleInstruction for DeleteKeys {
     where
         T: Committable,
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
         let tx = user_state.repositories.begin_transaction().await?;
@@ -1383,7 +1383,7 @@ impl<H> Hash for HsmCredentialSigningKey<'_, H> {
 
 impl<H> EcdsaKey for HsmCredentialSigningKey<'_, H>
 where
-    H: WalletUserHsm<Error = HsmError>,
+    H: Pkcs11Client,
 {
     type Error = HsmError;
 

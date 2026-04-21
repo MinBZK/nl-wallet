@@ -12,6 +12,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.test.runTest
 import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupport
+import org.junit.Assert.assertNull
 import org.junit.After
 import org.junit.Assume.assumeTrue
 import org.junit.Assert.assertEquals
@@ -22,6 +23,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.multipaz.util.Constants
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.CyclicBarrier
@@ -161,6 +163,40 @@ class CloseProximityDisclosureBridgeInstrumentedTest {
 
         assertTrue(channel.hasReceivedClosedUpdate())
         assertFalse(closeProximityDisclosureBridge.isBleServerActiveForTesting())
+    }
+
+    @Test
+    fun test_session_establishment_failure_status_maps_cbor_errors_to_11() {
+        assertEquals(
+            Constants.SESSION_DATA_STATUS_ERROR_CBOR_DECODING,
+            sessionEstablishmentFailureStatus(IllegalArgumentException("bad cbor")),
+        )
+        assertEquals(
+            Constants.SESSION_DATA_STATUS_ERROR_CBOR_DECODING,
+            sessionEstablishmentFailureStatus(IllegalStateException("missing eReaderKey")),
+        )
+    }
+
+    @Test
+    fun test_session_establishment_failure_status_ignores_other_errors() {
+        assertNull(sessionEstablishmentFailureStatus(RuntimeException("boom")))
+    }
+
+    @Test
+    fun test_session_message_failure_status_maps_cbor_and_decryption_errors() {
+        assertEquals(
+            Constants.SESSION_DATA_STATUS_ERROR_CBOR_DECODING,
+            sessionMessageFailureStatus(IllegalArgumentException("bad session data")),
+        )
+        assertEquals(
+            Constants.SESSION_DATA_STATUS_ERROR_SESSION_ENCRYPTION,
+            sessionMessageFailureStatus(IllegalStateException("decryption failed")),
+        )
+    }
+
+    @Test
+    fun test_session_message_failure_status_ignores_other_errors() {
+        assertNull(sessionMessageFailureStatus(RuntimeException("boom")))
     }
 
     @Test

@@ -221,6 +221,10 @@ else
 
     DIGID_CA_CRT=$(< "${TARGET_DIR}/digid/ca.crt.der" ${BASE64})
     export DIGID_CA_CRT
+
+    # Set a fake RSA private key so that parsing the settings succeeds.
+    BSN_PRIVKEY='{"kty":"RSA","n":"","e":"","d":"","p":"","q":"","dp":"","dq":"","qi":""}'
+    export BSN_PRIVKEY
 fi
 
 ########################################################################
@@ -382,6 +386,10 @@ DEMO_RELYING_PARTY_KEY_HOUSING=$(< "${TARGET_DIR}/demo_relying_party/housing.key
 export DEMO_RELYING_PARTY_KEY_HOUSING
 DEMO_RELYING_PARTY_CRT_HOUSING=$(< "${TARGET_DIR}/demo_relying_party/housing.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_HOUSING
+
+# Compute the AKI of the issuer CA from the public key in its self-signed certificate.
+ISSUER_CA_AKI=$(openssl x509 -in ${TARGET_DIR}/ca.issuer.crt.pem -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | head -c 20 | openssl enc -base64 -A | tr '+/' '-_' | tr -d '=')
+export ISSUER_CA_AKI
 
 render_template "${DEVENV}/demo_relying_party.toml.template" "${DEMO_RELYING_PARTY_DIR}/demo_relying_party.toml"
 

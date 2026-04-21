@@ -106,6 +106,7 @@ wscd.path = "../wscd"
 
 [dev-dependencies]
 assert_matches.workspace = true
+httpmock.workspace = true
 mockall.workspace = true
 parking_lot.workspace = true
 rstest.workspace = true
@@ -114,8 +115,6 @@ serde_json = { workspace = true, features = ["preserve_order"] }
 serial_test.workspace = true
 tokio = { workspace = true, features = ["test-util"] }
 tracing-test.workspace = true
-
-wiremock.workspace = true
 
 attestation_data = { path = "../attestation_data", features = [
     "generate",
@@ -127,7 +126,7 @@ attestation_types = { path = "../attestation_types", features = ["test_pid_const
 crypto = { path = "../crypto", features = ["examples"] }
 dcql = { path = "../dcql", features = ["mock"] }
 http.workspace = true
-http_utils = { path = "../http_utils", features = ["client"] }
+http_utils = { path = "../http_utils", features = ["httpmock"] }
 jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["mock_example_constructors"] }
 sd_jwt = { path = "../sd_jwt", features = ["examples", "test"] }

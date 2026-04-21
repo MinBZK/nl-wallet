@@ -97,6 +97,10 @@ claims = [
     { path = ["urn:eudi:pid:nl:1.address", "locality"], intent_to_retain = true }
 ]
 
+[[usecases.job_finder.dcql_query.trusted_authorities]]
+type = "aki"
+values = ["$ISSUER_CA_AKI"]
+
 [[usecases.job_finder.dcql_query.credentials]]
 id = "my_pid"
 format = "mso_mdoc"

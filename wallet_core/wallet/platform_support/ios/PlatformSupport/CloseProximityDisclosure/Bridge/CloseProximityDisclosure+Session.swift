@@ -144,6 +144,7 @@ extension CloseProximityDisclosure {
             }
             if try await handleReaderMessage(
                 session: session,
+                transport: transport,
                 message: message,
                 readerSessionContext: readerSessionContext
             ) {
@@ -176,11 +177,20 @@ extension CloseProximityDisclosure {
             return currentContext
         }
 
-        let newContext = createReaderSessionContext(
-            eDeviceKey: session.eDeviceKey,
-            encodedDeviceEngagement: session.encodedDeviceEngagement,
-            message: message
-        )
+        let newContext: CloseProximityDisclosureReaderSessionContext
+        do {
+            newContext = createReaderSessionContext(
+                eDeviceKey: session.eDeviceKey,
+                encodedDeviceEngagement: session.encodedDeviceEngagement,
+                message: message
+            )
+        } catch {
+            if let status = sessionEstablishmentFailureStatus(for: error) {
+                await failSessionWithStatus(session, transport: transport, status: status, error: error)
+                return nil
+            }
+            throw error
+        }
         session.setSessionEncryption(
             newContext.sessionEncryption,
             encodedSessionTranscript: newContext.encodedSessionTranscript
@@ -195,12 +205,23 @@ extension CloseProximityDisclosure {
 
     func handleReaderMessage(
         session: CloseProximityDisclosureActiveSession,
+        transport: MdocTransport,
         message: KotlinByteArray,
         readerSessionContext: CloseProximityDisclosureReaderSessionContext
     ) async throws -> Bool {
-        let decryptedMessage = readerSessionContext.sessionEncryption.decryptMessage(messageData: message)
-        let deviceRequest = decryptedMessage.first
-        let status = decryptedMessage.second
+        let deviceRequest: KotlinByteArray?
+        let status: NSNumber?
+        do {
+            let decryptedMessage = readerSessionContext.sessionEncryption.decryptMessage(messageData: message)
+            deviceRequest = decryptedMessage.first
+            status = decryptedMessage.second
+        } catch {
+            if let status = sessionMessageFailureStatus(for: error) {
+                await failSessionWithStatus(session, transport: transport, status: status, error: error)
+                return true
+            }
+            throw error
+        }
 
         try requireReaderMessageContent(deviceRequest: deviceRequest, status: status)
         if let deviceRequest {
@@ -267,6 +288,22 @@ extension CloseProximityDisclosure {
         }
     }
 
+    func failSessionWithStatus(
+        _ session: CloseProximityDisclosureActiveSession,
+        transport: MdocTransport,
+        status: Int64,
+        error: Error
+    ) async {
+        // PVW-5710: return the ISO 18013-5 status before shutting BLE down so the reader and
+        // wallet core both observe a deterministic close proximity failure.
+        if isActiveSession(session) {
+            try? await transport.sendMessage(
+                message: SessionEncryption.companion.encodeStatus(statusCode: status)
+            )
+        }
+        await failSession(session, error: error)
+    }
+
     func stopBleServerLocked() async {
         guard let session = takeActiveSession() else { return }
 
@@ -319,6 +356,26 @@ extension Error {
             return error
         }
         return .from(self)
+    }
+}
+
+private func sessionEstablishmentFailureStatus(for error: Error) -> Int64? {
+    switch error {
+    case is KotlinIllegalArgumentException, is KotlinIllegalStateException:
+        return Int64(Constants.shared.SESSION_DATA_STATUS_ERROR_CBOR_DECODING)
+    default:
+        return nil
+    }
+}
+
+private func sessionMessageFailureStatus(for error: Error) -> Int64? {
+    switch error {
+    case is KotlinIllegalArgumentException:
+        return Int64(Constants.shared.SESSION_DATA_STATUS_ERROR_CBOR_DECODING)
+    case is KotlinIllegalStateException:
+        return Int64(Constants.shared.SESSION_DATA_STATUS_ERROR_SESSION_ENCRYPTION)
+    default:
+        return nil
     }
 }
 

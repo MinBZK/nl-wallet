@@ -34,7 +34,7 @@ der.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "constructor", "debug"] }
 futures.workspace = true
 metrics.workspace = true
-p256.workspace = true
+p256 = {workspace = true, features = ["pkcs8"]}
 r2d2-cryptoki.workspace = true
 sec1.workspace = true
 serde = { workspace = true, features = ["derive"] }

@@ -1,8 +1,5 @@
 use futures::TryFutureExt;
 use futures::try_join;
-use josekit::JoseError;
-use josekit::jwe::JweContentEncryption;
-use josekit::jwe::JweDecrypter;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::Validation;
@@ -13,6 +10,10 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use http_utils::reqwest::HttpJsonClient;
+use jwe::algorithm::EncryptionAlgorithm;
+use jwe::decryption::ExpectedEncryptionAlgorithm;
+use jwe::decryption::JweDecrypter;
+use jwe::error::JweStringDecryptionError;
 use openid4vc::AuthBearerErrorCode;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
@@ -46,16 +47,10 @@ pub enum UserInfoError {
     RequestingUserInfo(Box<ErrorResponse<AuthBearerErrorCode>>),
 
     #[error("JWE decryption error: {0}")]
-    JweDecryption(#[from] JoseError),
+    JweDecryption(#[source] JweStringDecryptionError),
 
     #[error("JWT error: {0}")]
     Jsonwebtoken(#[from] jsonwebtoken::errors::Error),
-
-    #[error("unexpected JWE content encryption algorithm")]
-    UnexpectedEncAlgorithm,
-
-    #[error("decrypted JWE payload is not valid UTF-8")]
-    JwePayloadNotUtf8,
 
     #[error("JWT header is missing key ID (kid)")]
     MissingKeyId,
@@ -116,28 +111,13 @@ async fn request_userinfo_jwt(
     Ok(jwt)
 }
 
-fn decrypt_jwe(
-    jwe_token: &str,
-    decrypter: &impl JweDecrypter,
-    expected_enc_alg: &impl JweContentEncryption,
-) -> Result<Vec<u8>, UserInfoError> {
-    let (jwe_payload, header) = josekit::jwe::deserialize_compact(jwe_token, decrypter)?;
-
-    // Check the "enc" header to confirm that that the content is encoded with the expected algorithm.
-    if header.content_encryption() == Some(expected_enc_alg.name()) {
-        Ok(jwe_payload)
-    } else {
-        Err(UserInfoError::UnexpectedEncAlgorithm)
-    }
-}
-
 pub async fn request_userinfo<C>(
     http_client: &HttpJsonClient,
     oidc_identifier: &IssuerIdentifier,
     token_request: TokenRequest,
     client_id: &str,
-    expected_sig_alg: Algorithm,
-    encryption: Option<(&impl JweDecrypter, &impl JweContentEncryption)>,
+    decrypter: &JweDecrypter,
+    (expected_jws_alg, expected_enc_alg): (Algorithm, EncryptionAlgorithm),
 ) -> Result<C, UserInfoError>
 where
     C: DeserializeOwned,
@@ -152,20 +132,18 @@ where
     let jwks_client = HttpJwksClient::new(http_client.clone());
     let jwks_uri = config.jwks_uri.clone().ok_or(UserInfoError::NoJwksUri)?;
 
-    let (jwt, jwks) = try_join!(
+    let (jwe, jwks) = try_join!(
         request_userinfo_jwt(http_client, &config, token_request),
         jwks_client.jwks(jwks_uri).map_err(|e| match e {
             JwksError::Http(e) => UserInfoError::Http(e),
         })
     )?;
 
-    let jws = match encryption {
-        Some((decrypter, expected_enc_alg)) => String::from_utf8(decrypt_jwe(&jwt, decrypter, expected_enc_alg)?)
-            .map_err(|_| UserInfoError::JwePayloadNotUtf8)?,
-        None => jwt,
-    };
+    let jws = decrypter
+        .decrypt_string(&jwe, ExpectedEncryptionAlgorithm::Algorithms(&[expected_enc_alg]))
+        .map_err(UserInfoError::JweDecryption)?;
 
-    verify_against_keys(&jws, &jwks, client_id, expected_sig_alg)
+    verify_against_keys(&jws, &jwks, client_id, expected_jws_alg)
 }
 
 // We can't use our own `Jwt` types here because they only support ECDSA/P256.
@@ -195,14 +173,6 @@ mod tests {
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
-    use josekit::jwe::ECDH_ES_A256KW;
-    use josekit::jwe::JweHeader;
-    use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
-    use josekit::jwe::enc::aescbc_hmac::AescbcHmacJweEncryption;
-    use josekit::jwk::Jwk;
-    use josekit::jwk::KeyPair;
-    use josekit::jwk::alg::ec::EcCurve;
-    use josekit::jwk::alg::ec::EcKeyPair;
     use jsonwebtoken::Algorithm;
     use jsonwebtoken::EncodingKey;
     use jsonwebtoken::Header;
@@ -311,55 +281,5 @@ mod tests {
             .expect_err("verifying JWS should fail");
 
         assert_matches!(error, UserInfoError::Jsonwebtoken(_));
-    }
-
-    const JWE_ENC: AescbcHmacJweEncryption = AescbcHmacJweEncryption::A128cbcHs256;
-    const JWE_ALG: EcdhEsJweAlgorithm = ECDH_ES_A256KW;
-
-    fn make_jwe(payload: &[u8]) -> (String, Jwk) {
-        let key_pair = EcKeyPair::generate(EcCurve::P256).unwrap();
-        let jwk = key_pair.to_jwk_key_pair();
-
-        let mut header = JweHeader::new();
-        header.set_content_encryption(JWE_ENC.name());
-
-        let encrypter = JWE_ALG.encrypter_from_jwk(&jwk).unwrap();
-        let jwe = josekit::jwe::serialize_compact(payload, &header, &encrypter).unwrap();
-
-        (jwe, jwk)
-    }
-
-    #[test]
-    fn test_decrypt_jwe_success() {
-        let payload = b"hello world";
-        let (jwe, jwk) = make_jwe(payload);
-        let decrypter = JWE_ALG.decrypter_from_jwk(&jwk).unwrap();
-
-        let result = decrypt_jwe(&jwe, &decrypter, &JWE_ENC).unwrap();
-
-        assert_eq!(result, payload);
-    }
-
-    #[test]
-    fn test_decrypt_jwe_wrong_enc_algorithm() {
-        let wrong_enc = AescbcHmacJweEncryption::A256cbcHs512;
-        let (jwe, jwk) = make_jwe(b"payload");
-        let decrypter = JWE_ALG.decrypter_from_jwk(&jwk).unwrap();
-
-        let result = decrypt_jwe(&jwe, &decrypter, &wrong_enc);
-
-        assert_matches!(result, Err(UserInfoError::UnexpectedEncAlgorithm));
-    }
-
-    #[test]
-    fn test_decrypt_jwe_wrong_key() {
-        let (jwe, _) = make_jwe(b"payload");
-
-        let other_jwk = EcKeyPair::generate(EcCurve::P256).unwrap().to_jwk_key_pair();
-        let decrypter = JWE_ALG.decrypter_from_jwk(&other_jwk).unwrap();
-
-        let result = decrypt_jwe(&jwe, &decrypter, &JWE_ENC);
-
-        assert_matches!(result, Err(UserInfoError::JweDecryption(_)));
     }
 }

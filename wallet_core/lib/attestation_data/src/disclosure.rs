@@ -1,12 +1,14 @@
 use std::collections::HashSet;
 
 use indexmap::IndexMap;
+use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
 use crypto::x509::CertificateError;
+use crypto::x509::KeyIdentifier;
 use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::disclosure::DisclosedCredential;
@@ -111,6 +113,9 @@ pub struct DisclosedAttestation {
     pub ca: String,
     pub issuance_validity: IssuanceValidity,
     pub revocation_status: Option<RevocationStatus>,
+
+    #[serde(default = "Vec::new", skip_serializing_if = "Vec::is_empty")]
+    pub aki: Vec<KeyIdentifier>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -139,6 +144,7 @@ impl TryFrom<DisclosedDocument> for DisclosedAttestation {
             ca: doc.ca,
             issuance_validity: (&doc.validity_info).try_into()?,
             revocation_status: doc.revocation_status,
+            aki: doc.aki,
         })
     }
 }
@@ -156,6 +162,13 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
             .to_string();
 
         let revocation_status = sd_jwt_presentation.revocation_status();
+
+        let aki = sd_jwt_presentation
+            .sd_jwt()
+            .issuer_certificate_chain()
+            .into_nonempty_iter()
+            .filter_map(|cert| cert.authority_key_id())
+            .collect_vec();
 
         let claims = sd_jwt_presentation.into_claims();
 
@@ -178,6 +191,7 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
             ca,
             issuance_validity,
             revocation_status,
+            aki,
         })
     }
 }
@@ -218,6 +232,10 @@ impl DisclosedCredential for DisclosedAttestation {
         &self.attestation_type
     }
 
+    fn aki(&self) -> &[KeyIdentifier] {
+        &self.aki
+    }
+
     fn missing_claim_paths<'a, 'b>(
         &'a self,
         request_claim_paths: impl IntoIterator<Item = &'b VecNonEmpty<ClaimPath>>,
@@ -233,6 +251,7 @@ pub trait AttestationRequest {
     fn format(&self) -> CredentialFormat;
     fn credential_types(&self) -> impl NonEmptyIterator<Item = String>;
     fn claim_paths(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>>;
+    fn aki(&self) -> &[KeyIdentifier];
 }
 
 impl AttestationRequest for NormalizedCredentialRequest {
@@ -250,6 +269,10 @@ impl AttestationRequest for NormalizedCredentialRequest {
     fn claim_paths(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>> {
         self.claim_paths().cloned()
     }
+
+    fn aki(&self) -> &[KeyIdentifier] {
+        self.aki()
+    }
 }
 
 impl AttestationRequest for ItemsRequest {
@@ -264,6 +287,10 @@ impl AttestationRequest for ItemsRequest {
     fn claim_paths(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>> {
         self.claims()
     }
+
+    fn aki(&self) -> &[KeyIdentifier] {
+        &[]
+    }
 }
 
 impl<T: AttestationRequest> AttestationRequest for &T {
@@ -277,6 +304,10 @@ impl<T: AttestationRequest> AttestationRequest for &T {
 
     fn claim_paths(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>> {
         (*self).claim_paths()
+    }
+
+    fn aki(&self) -> &[KeyIdentifier] {
+        (*self).aki()
     }
 }
 
@@ -323,6 +354,7 @@ mod test {
                 ca: "Example CA".to_string(),
                 issuance_validity: IssuanceValidity::new(Utc::now(), None, None),
                 revocation_status: Some(RevocationStatus::Valid),
+                aki: vec![],
             }
         }
 
@@ -347,6 +379,7 @@ mod test {
                 ca: "Example CA".to_string(),
                 issuance_validity: IssuanceValidity::new(Utc::now(), None, None),
                 revocation_status: Some(RevocationStatus::Valid),
+                aki: vec![],
             }
         }
     }

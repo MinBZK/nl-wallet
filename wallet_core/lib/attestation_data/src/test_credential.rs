@@ -266,6 +266,7 @@ impl TestCredential {
             id: self.query_id.clone(),
             doctype_value: self.payload_preview.attestation_type.clone(),
             claims,
+            aki: vec![],
         }
     }
 
@@ -283,6 +284,7 @@ impl TestCredential {
             id: self.query_id.clone(),
             vct_values: vec_nonempty![self.payload_preview.attestation_type.clone()],
             claims,
+            aki: vec![],
         }
     }
 

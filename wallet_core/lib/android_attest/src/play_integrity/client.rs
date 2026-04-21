@@ -187,17 +187,14 @@ impl<A> PlayIntegrityClient<A> {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use reqwest::ClientBuilder;
+    use http::header::CONTENT_TYPE;
+    use httpmock::Method::POST;
+    use httpmock::MockServer;
     use reqwest::StatusCode;
     use serde_json::Value;
     use serde_json::json;
-    use wiremock::Mock;
-    use wiremock::MockServer;
-    use wiremock::ResponseTemplate;
-    use wiremock::matchers::body_partial_json;
-    use wiremock::matchers::header;
-    use wiremock::matchers::method;
-    use wiremock::matchers::path;
+
+    use http_utils::httpmock::httpmock_reqwest_client_builder;
 
     use super::super::tests::EXAMPLE_VERDICT;
     use super::super::tests::EXAMPLE_VERDICT_JSON;
@@ -219,24 +216,29 @@ mod tests {
     async fn inject_play_integrity_server<A>(
         mut client: PlayIntegrityClient<A>,
     ) -> (PlayIntegrityClient<A>, MockServer) {
-        let server = MockServer::start().await;
+        let server = MockServer::start_async().await;
 
         // Set up a response for INTEGRITY_TOKEN, based on the parameters of the client.
-        Mock::given(method("POST"))
-            .and(path(client.url.path()))
-            .and(header(header::AUTHORIZATION, AUTH_HEADER))
-            .and(body_partial_json(json!({
-                "integrity_token": INTEGRITY_TOKEN
-            })))
-            .respond_with(
-                ResponseTemplate::new(200).set_body_json(json!({"tokenPayloadExternal": *EXAMPLE_VERDICT_JSON})),
-            )
-            .mount(&server)
+        server
+            .mock_async(|when, then| {
+                when.method(POST)
+                    .header(header::AUTHORIZATION.as_str(), AUTH_HEADER)
+                    .json_body_includes(
+                        json!({
+                            "integrity_token": INTEGRITY_TOKEN
+                        })
+                        .to_string(),
+                    );
+
+                then.status(200)
+                    .header(CONTENT_TYPE.as_str(), "application/json")
+                    .json_body(json!({"tokenPayloadExternal": *EXAMPLE_VERDICT_JSON}));
+            })
             .await;
 
         // Replace the host and port within the URL, while keeping any other components the same.
         client.url = [
-            &server.uri(),
+            &server.base_url(),
             client.url.path(),
             client.url.query().unwrap_or_default(),
             client.url.fragment().unwrap_or_default(),
@@ -251,7 +253,7 @@ mod tests {
     #[tokio::test]
     async fn test_play_integrity_client() {
         let client = PlayIntegrityClient::new(
-            ClientBuilder::default().build().unwrap(),
+            httpmock_reqwest_client_builder().build().unwrap(),
             MockPlayIntegrityAuthProvider::default(),
             "com.package.name",
         )
@@ -276,7 +278,7 @@ mod tests {
     #[tokio::test]
     async fn test_play_integrity_http_response_error() {
         let client = PlayIntegrityClient::new(
-            ClientBuilder::default().build().unwrap(),
+            httpmock_reqwest_client_builder().build().unwrap(),
             MockPlayIntegrityAuthProvider::default(),
             "com.package.name",
         )

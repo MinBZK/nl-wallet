@@ -647,13 +647,22 @@ pub fn example_stored_attestation_copy(
     credential_payload: CredentialPayload,
     metadata: NormalizedTypeMetadata,
 ) -> StoredAttestationCopy {
+    example_stored_attestation_copy_with_key(format, credential_payload, metadata, &ISSUER_KEY.issuance_key)
+}
+
+fn example_stored_attestation_copy_with_key(
+    format: CredentialFormat,
+    credential_payload: CredentialPayload,
+    metadata: NormalizedTypeMetadata,
+    issuer_keypair: &KeyPair,
+) -> StoredAttestationCopy {
     match format {
         CredentialFormat::MsoMdoc => StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),
             ValidityWindow::new_valid_mock(),
             StoredAttestation::MsoMdoc {
-                mdoc: mdoc_from_credential_payload(credential_payload.previewable_payload, &ISSUER_KEY.issuance_key),
+                mdoc: mdoc_from_credential_payload(credential_payload.previewable_payload, issuer_keypair),
             },
             metadata,
             None,
@@ -664,11 +673,7 @@ pub fn example_stored_attestation_copy(
             ValidityWindow::new_valid_mock(),
             StoredAttestation::SdJwt {
                 key_identifier: crypto::utils::random_string(16),
-                sd_jwt: verified_sd_jwt_from_credential_payload(
-                    credential_payload,
-                    &metadata,
-                    &ISSUER_KEY.issuance_key,
-                ),
+                sd_jwt: verified_sd_jwt_from_credential_payload(credential_payload, &metadata, issuer_keypair),
             },
             metadata,
             None,
@@ -681,5 +686,17 @@ pub fn example_pid_stored_attestation_copy(format: CredentialFormat) -> StoredAt
         format,
         CredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
         NormalizedTypeMetadata::nl_pid_example(),
+    )
+}
+
+pub fn example_pid_stored_attestation_copy_with_key(
+    format: CredentialFormat,
+    issuer_keypair: &KeyPair,
+) -> StoredAttestationCopy {
+    example_stored_attestation_copy_with_key(
+        format,
+        CredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+        NormalizedTypeMetadata::nl_pid_example(),
+        issuer_keypair,
     )
 }

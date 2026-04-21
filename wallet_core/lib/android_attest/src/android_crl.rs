@@ -166,15 +166,16 @@ mod tests {
     use assert_matches::assert_matches;
     use chrono::NaiveDate;
     use http::header::CACHE_CONTROL;
+    use http::header::CONTENT_TYPE;
+    use httpmock::Method::GET;
+    use httpmock::Mock;
+    use httpmock::MockServer;
     use rstest::rstest;
-    use wiremock::Mock;
-    use wiremock::MockServer;
-    use wiremock::ResponseTemplate;
-    use wiremock::matchers::method;
-    use wiremock::matchers::path;
     use x509_parser::pem;
     use x509_parser::prelude::FromDer;
     use x509_parser::prelude::X509Certificate;
+
+    use http_utils::httpmock::httpmock_reqwest_client_builder;
 
     use super::*;
 
@@ -188,34 +189,47 @@ mod tests {
     // this certificate is suspended according to status.json
     const TEST_ASSETS_SUSPENDED_CERT: &[u8] = include_bytes!("../test-assets/suspended-cert.pem");
 
-    async fn start_google_crl_server() -> MockServer {
-        let server = MockServer::start().await;
+    struct MockGoogleCrlServer(MockServer);
 
-        Mock::given(method("GET"))
-            .and(path("/status"))
-            .respond_with(
-                ResponseTemplate::new(200)
-                    .set_body_bytes(TEST_ASSETS_STATUS_BYTES)
-                    .append_header(CACHE_CONTROL, "max-age=3600"),
-            )
-            .expect(1)
-            .mount(&server)
-            .await;
+    impl MockGoogleCrlServer {
+        async fn start() -> Self {
+            Self(MockServer::start_async().await)
+        }
 
-        server
-    }
+        fn status_url(&self) -> String {
+            let Self(server) = self;
 
-    async fn start_failing_google_crl_server() -> MockServer {
-        let server = MockServer::start().await;
+            server.url("/status")
+        }
 
-        Mock::given(method("GET"))
-            .and(path("/status"))
-            .respond_with(ResponseTemplate::new(500).set_body_string("some test error"))
-            .expect(1)
-            .mount(&server)
-            .await;
+        async fn status_mock(&self) -> Mock<'_> {
+            let Self(server) = self;
 
-        server
+            server
+                .mock_async(|when, then| {
+                    when.method(GET).path("/status");
+
+                    then.status(200)
+                        .header(CACHE_CONTROL.as_str(), "max-age=3600")
+                        .header(CONTENT_TYPE.as_str(), "application/json")
+                        .body(TEST_ASSETS_STATUS_BYTES);
+                })
+                .await
+        }
+
+        async fn status_fail_mock(&self) -> Mock<'_> {
+            let Self(server) = self;
+
+            server
+                .mock_async(|when, then| {
+                    when.method(GET).path("/status");
+
+                    then.status(500)
+                        .header(CONTENT_TYPE.as_str(), "text/plain")
+                        .body("some test error");
+                })
+                .await
+        }
     }
 
     /// This test just exists to check `GoogleRevocationList` against the official google URL.
@@ -230,14 +244,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_revoked_certificates() -> Result<(), Box<dyn std::error::Error>> {
-        let crl_server = start_google_crl_server().await;
-        let base_url = crl_server.uri();
+        let crl_server = MockGoogleCrlServer::start().await;
+        let status_mock = crl_server.status_mock().await;
 
         // create caching CRL provider, and verify entries are read
-        let crl_provider = GoogleRevocationListClient::new_decorated(&format!("{base_url}/status"), Client::default())
-            .expect("url is valid");
+        let crl_provider = GoogleRevocationListClient::new_decorated(
+            &crl_server.status_url(),
+            httpmock_reqwest_client_builder().build().unwrap(),
+        )
+        .expect("url is valid");
         let crl = crl_provider.get().await?;
         assert_eq!(crl.entries.len(), 5);
+        status_mock.assert_async().await;
 
         // prepare test certificate list
         let (_, cert_pem) = pem::parse_x509_pem(TEST_ASSETS_SUSPENDED_CERT)?;
@@ -257,14 +275,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_check_revoked_certificates_error() {
-        let crl_server = start_failing_google_crl_server().await;
-        let base_url = crl_server.uri();
+        let crl_server = MockGoogleCrlServer::start().await;
+        let status_mock = crl_server.status_fail_mock().await;
 
         // create caching CRL provider, and verify entries are read
-        let crl_provider = GoogleRevocationListClient::new_decorated(&format!("{base_url}/status"), Client::default())
-            .expect("url is valid");
+        let crl_provider = GoogleRevocationListClient::new_decorated(
+            &crl_server.status_url(),
+            httpmock_reqwest_client_builder().build().unwrap(),
+        )
+        .expect("url is valid");
         let error = crl_provider.get().await.expect_err("request should fail");
         assert_matches!(error, Error::HttpFailure(status, message) if status == 500 && message == "some test error");
+        status_mock.assert_async().await;
     }
 
     // Deserialize example from: https://developer.android.com/privacy-and-security/security-key-attestation#certificate_status

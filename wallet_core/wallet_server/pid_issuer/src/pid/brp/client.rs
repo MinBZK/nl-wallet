@@ -34,6 +34,7 @@ pub struct HttpBrpClient {
 impl HttpBrpClient {
     pub fn new(base_url: BaseUrl) -> Self {
         Self {
+            // Note that this specifically allows HTTP, as this service is meant to be run on an internal network.
             http_client: default_reqwest_client_builder()
                 .build()
                 .expect("Could not build reqwest HTTP client"),

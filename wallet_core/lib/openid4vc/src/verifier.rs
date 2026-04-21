@@ -40,7 +40,7 @@ use dcql::normalized::UnsupportedDcqlFeatures;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::urls::BaseUrl;
 use jwe::algorithm::EcdhAlgorithm;
-use jwe::decryption::JweSecretKey;
+use jwe::decryption::JweEcdhSecretKey;
 use jwt::SignedJwt;
 use jwt::error::JwtError;
 use jwt::headers::HeaderWithX5c;
@@ -227,7 +227,7 @@ pub struct Created {
 pub struct WaitingForResponse {
     auth_request: NormalizedVpAuthorizationRequest,
     usecase_id: String,
-    encryption_secret_key: JweSecretKey,
+    encryption_secret_key: JweEcdhSecretKey,
     redirect_uri: Option<RedirectUri>,
     accept_undetermined_revocation_status: bool,
 }
@@ -1297,7 +1297,7 @@ impl Session<Created> {
             SignedJwt<VpAuthorizationRequest, HeaderWithX5c>,
             NormalizedVpAuthorizationRequest,
             Option<RedirectUri>,
-            JweSecretKey,
+            JweEcdhSecretKey,
         ),
         WithRedirectUri<GetAuthRequestError>,
     >
@@ -1328,7 +1328,8 @@ impl Session<Created> {
 
         // Use the session token as the `kid` value of the JWK. HAIP mandates `ECDH-ES` as JWE algorithm.
         // See: https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-5-2.5
-        let encryption_secret_key = JweSecretKey::new_random(Some(session_token.clone().into()), EcdhAlgorithm::EcdhEs);
+        let encryption_secret_key =
+            JweEcdhSecretKey::new_random(Some(session_token.clone().into()), EcdhAlgorithm::EcdhEs);
         let encryption_public_key = encryption_secret_key.to_jwe_public_key();
 
         let auth_request = NormalizedVpAuthorizationRequest::new_for_verifier(
@@ -1869,6 +1870,7 @@ mod tests {
                 ca: "ca".to_string(),
                 issuance_validity: IssuanceValidity::new(Utc::now(), Some(Utc::now()), Some(Utc::now())),
                 revocation_status: Some(RevocationStatus::Valid),
+                aki: vec![],
             }],
         }])
         .unwrap()

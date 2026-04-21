@@ -10,11 +10,11 @@ use crypto::keys::SecureEcdsaKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
+use hsm::service::Pkcs11Client;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
 use jwt::wua::WuaClaims;
-use wallet_provider_domain::model::hsm::WalletUserHsm;
 
 // used as the identifier for a WUA specific token status list
 pub const WUA_ATTESTATION_TYPE_IDENTIFIER: &str = "wua";
@@ -50,7 +50,7 @@ pub enum HsmWuaIssuerError {
 
 impl<H, K> WuaIssuer for HsmWuaIssuer<H, K>
 where
-    H: WalletUserHsm<Error = HsmError>,
+    H: Pkcs11Client,
     K: SecureEcdsaKey,
 {
     type Error = HsmWuaIssuerError;

@@ -10,6 +10,8 @@ use indexmap::IndexMap;
 use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_repr::Deserialize_repr;
+use serde_repr::Serialize_repr;
 use serde_with::skip_serializing_none;
 
 use utils::vec_at_least::VecNonEmpty;
@@ -45,10 +47,19 @@ pub struct DeviceResponse {
     pub document_errors: Option<VecNonEmpty<DocumentError>>,
 
     /// Status code
-    pub status: u64,
+    pub status: DeviceResponseStatus,
 
     /// Optional because it is not in the spec.
     pub poa: Option<Poa>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize_repr, Deserialize_repr)]
+#[repr(u64)]
+pub enum DeviceResponseStatus {
+    Ok = 0,
+    GeneralError = 10,
+    CborDecodingError = 11,
+    InvalidRequest = 12,
 }
 
 /// Version of the [`DeviceResponse`] structure
@@ -244,3 +255,18 @@ pub struct ErrorItems(IndexMap<DataElementIdentifier, ErrorCode>);
 /// ErrorCode = int
 /// ```
 pub type ErrorCode = i32;
+
+#[cfg(test)]
+mod tests {
+    use super::DeviceResponseStatus;
+    use crate::utils::serialization::cbor_deserialize;
+    use crate::utils::serialization::cbor_serialize;
+
+    #[test]
+    fn test_device_response_status_serializes_to_wire_values() {
+        let encoded = cbor_serialize(&DeviceResponseStatus::InvalidRequest).unwrap();
+        let decoded: u64 = cbor_deserialize(encoded.as_slice()).unwrap();
+
+        assert_eq!(decoded, 12);
+    }
+}

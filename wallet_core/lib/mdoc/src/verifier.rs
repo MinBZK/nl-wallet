@@ -15,6 +15,7 @@ use tracing::warn;
 
 use attestation_types::qualification::AttestationQualification;
 use crypto::x509::CertificateUsage;
+use crypto::x509::KeyIdentifier;
 use http_utils::urls::HttpsUri;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
@@ -44,6 +45,7 @@ pub struct DisclosedDocument {
     pub validity_info: ValidityInfo,
     pub revocation_status: Option<RevocationStatus>,
     pub device_key: VerifyingKey,
+    pub aki: Vec<KeyIdentifier>,
 }
 
 #[derive(Debug, Clone)]
@@ -57,8 +59,8 @@ pub struct IssuerSignedVerificationResult {
 pub enum VerificationError {
     #[error("errors in device response: {0:#?}")]
     DeviceResponseErrors(VecNonEmpty<DocumentError>),
-    #[error("unexpected status: {0}")]
-    UnexpectedStatus(u64),
+    #[error("unexpected status: {0:?}")]
+    UnexpectedStatus(DeviceResponseStatus),
     #[error("no documents found in device response")]
     NoDocuments,
     #[error("inconsistent doctypes: document contained {document}, mso contained {mso}")]
@@ -149,7 +151,7 @@ impl DeviceResponse {
             return Err(VerificationError::DeviceResponseErrors(errors.clone()).into());
         }
 
-        if self.status != 0 {
+        if self.status != DeviceResponseStatus::Ok {
             return Err(VerificationError::UnexpectedStatus(self.status).into());
         }
 
@@ -376,9 +378,10 @@ impl Document {
         }
         debug!("signature valid");
 
+        let issuer_certificate = &self.issuer_signed.issuer_auth.signing_cert()?;
+
         let revocation_status = match &mso.status {
             Some(status_claim) => {
-                let issuer_certificate = &self.issuer_signed.issuer_auth.signing_cert()?;
                 let revocation_status = revocation_verifier
                     .verify(
                         trust_anchors,
@@ -392,6 +395,8 @@ impl Document {
             _ => None,
         };
 
+        let aki = issuer_certificate.authority_key_id().into_iter().collect();
+
         let disclosed_document = DisclosedDocument {
             doc_type: mso.doc_type,
             attributes,
@@ -402,6 +407,7 @@ impl Document {
             validity_info: mso.validity_info,
             revocation_status,
             device_key,
+            aki,
         };
 
         Ok(disclosed_document)
