@@ -32,6 +32,7 @@ use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::RpInitiatedUseCase;
 use openid4vc::verifier::RpInitiatedUseCases;
 use openid4vc::verifier::SessionTypeReturnUrl;
+use openid4vc::verifier::UseCaseData;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
@@ -98,6 +99,9 @@ pub struct UseCaseSettings {
     pub dcql_query: Option<Query>,
     pub return_url_template: Option<ReturnUrlTemplate>,
 
+    // Override universal_link_base_url for this specific usecase.
+    pub universal_link_base_url: Option<BaseUrl>,
+
     #[serde(default)]
     pub accept_undetermined_revocation_status: bool,
 }
@@ -132,14 +136,17 @@ impl UseCaseSettings {
         hsm: Option<Pkcs11Hsm>,
         public_url: &BaseUrl,
     ) -> Result<RpInitiatedUseCase<PrivateKeyVariant>, anyhow::Error> {
-        let use_case = RpInitiatedUseCase::try_new(
-            self.key_pair.parse(hsm).await?,
-            public_url,
-            self.session_type_return_url,
+        let use_case = RpInitiatedUseCase::new(
+            UseCaseData::try_new(
+                self.key_pair.parse(hsm).await?,
+                public_url,
+                self.session_type_return_url,
+            )?,
             self.dcql_query.map(TryInto::try_into).transpose()?,
             self.return_url_template,
+            self.universal_link_base_url,
             self.accept_undetermined_revocation_status,
-        )?;
+        );
 
         Ok(use_case)
     }

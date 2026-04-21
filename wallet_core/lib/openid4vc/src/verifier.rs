@@ -492,6 +492,24 @@ pub struct UseCaseData<K> {
     pub session_type_return_url: SessionTypeReturnUrl,
 }
 
+impl<K> UseCaseData<K> {
+    pub fn try_new(
+        key_pair: KeyPair<K>,
+        public_url: &BaseUrl,
+        session_type_return_url: SessionTypeReturnUrl,
+    ) -> Result<Self, NewDisclosureUseCaseError> {
+        let client_id = client_id_from_public_url(&key_pair, public_url)?;
+
+        let data = Self {
+            key_pair,
+            client_id,
+            session_type_return_url,
+        };
+
+        Ok(data)
+    }
+}
+
 pub trait UseCase {
     type Key: EcdsaKeySend;
 
@@ -503,6 +521,10 @@ pub trait UseCase {
         dcql_query: Option<Query>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError>;
+
+    fn universal_link_base_url(&self) -> Option<&BaseUrl> {
+        None
+    }
 }
 
 #[trait_variant::make(Send)]
@@ -531,6 +553,7 @@ pub struct RpInitiatedUseCase<K> {
     data: UseCaseData<K>,
     credential_requests: Option<NormalizedCredentialRequests>,
     return_url_template: Option<ReturnUrlTemplate>,
+    universal_link_base_url: Option<BaseUrl>,
     accept_undetermined_revocation_status: bool,
 }
 
@@ -551,28 +574,20 @@ pub enum NewDisclosureUseCaseError {
 }
 
 impl<K> RpInitiatedUseCase<K> {
-    pub fn try_new(
-        key_pair: KeyPair<K>,
-        public_url: &BaseUrl,
-        session_type_return_url: SessionTypeReturnUrl,
+    pub fn new(
+        data: UseCaseData<K>,
         credential_requests: Option<NormalizedCredentialRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
+        universal_link_base_url: Option<BaseUrl>,
         accept_undetermined_revocation_status: bool,
-    ) -> Result<Self, NewDisclosureUseCaseError> {
-        let client_id = client_id_from_public_url(&key_pair, public_url)?;
-
-        let use_case = Self {
-            data: UseCaseData {
-                key_pair,
-                client_id,
-                session_type_return_url,
-            },
+    ) -> Self {
+        Self {
+            data,
             credential_requests,
             return_url_template,
+            universal_link_base_url,
             accept_undetermined_revocation_status,
-        };
-
-        Ok(use_case)
+        }
     }
 }
 
@@ -581,6 +596,10 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
 
     fn data(&self) -> &UseCaseData<Self::Key> {
         &self.data
+    }
+
+    fn universal_link_base_url(&self) -> Option<&BaseUrl> {
+        self.universal_link_base_url.as_ref()
     }
 
     fn new_session(
@@ -1108,6 +1127,17 @@ where
             },
             data => Err(SessionError::UnexpectedState(data.into()))?,
         }
+    }
+
+    /// Returns the per-use-case `universal_link_base_url` override for the session identified by
+    /// `session_token`, if the session exists, is in the `Created` state, and its use case has such
+    /// an override configured. Returns `None` otherwise.
+    pub async fn usecase_universal_link_base_url(&self, session_token: &SessionToken) -> Option<BaseUrl> {
+        let session_state = session_or_error(self.sessions.as_ref(), session_token).await.ok()?;
+        let DisclosureData::Created(Created { ref usecase_id, .. }) = session_state.data else {
+            return None;
+        };
+        self.use_cases.get(usecase_id)?.universal_link_base_url().cloned()
     }
 }
 
@@ -1641,27 +1671,33 @@ mod tests {
         let use_cases = HashMap::from([
             (
                 DISCLOSURE_USECASE.to_string(),
-                RpInitiatedUseCase::try_new(
-                    generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
-                    &public_url,
-                    SessionTypeReturnUrl::SameDevice,
+                RpInitiatedUseCase::new(
+                    UseCaseData::try_new(
+                        generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
+                        &public_url,
+                        SessionTypeReturnUrl::SameDevice,
+                    )
+                    .unwrap(),
+                    None,
                     None,
                     None,
                     false,
-                )
-                .unwrap(),
+                ),
             ),
             (
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
-                RpInitiatedUseCase::try_new(
-                    generate_reader_mock_with_registration(&ca, reader_registration).unwrap(),
-                    &public_url,
-                    SessionTypeReturnUrl::Both,
+                RpInitiatedUseCase::new(
+                    UseCaseData::try_new(
+                        generate_reader_mock_with_registration(&ca, reader_registration).unwrap(),
+                        &public_url,
+                        SessionTypeReturnUrl::Both,
+                    )
+                    .unwrap(),
+                    None,
                     None,
                     None,
                     false,
-                )
-                .unwrap(),
+                ),
             ),
         ]);
 

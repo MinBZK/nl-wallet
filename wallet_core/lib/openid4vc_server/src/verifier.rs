@@ -288,12 +288,17 @@ where
     K: EcdsaKeySend,
     C: StatusListClient,
 {
+    let universal_link_base_url = state
+        .verifier
+        .usecase_universal_link_base_url(&session_token)
+        .await
+        .unwrap_or_else(|| state.universal_link_base_url.clone());
     let response = state
         .verifier
         .status_response(
             &session_token,
             query.session_type,
-            &urls::disclosure_base_uri(&state.universal_link_base_url),
+            &urls::disclosure_base_uri(&universal_link_base_url),
             state.public_url.join_base_url(&format!("{session_token}/request_uri")),
             &TimeGenerator,
         )
