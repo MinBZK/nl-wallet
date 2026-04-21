@@ -42,7 +42,7 @@ class CoreDisclosureRepository implements DisclosureRepository {
   @override
   Future<StartDisclosureResult> continueCloseProximityDisclosure() async {
     final result = await _walletCore.continueCloseProximityDisclosure();
-    return _processDisclosureResult(result);
+    return _processDisclosureResult(result).copyWith(sessionType: .closeProximity);
   }
 
   StartDisclosureResult _processDisclosureResult(core.StartDisclosureResult result) {

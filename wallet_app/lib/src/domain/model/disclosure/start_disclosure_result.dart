@@ -19,6 +19,14 @@ sealed class StartDisclosureResult {
     required this.sessionType,
     required this.sharedDataWithOrganizationBefore,
   });
+
+  StartDisclosureResult copyWith({
+    Organization? relyingParty,
+    String? originUrl,
+    LocalizedText? requestPurpose,
+    DisclosureSessionType? sessionType,
+    bool? sharedDataWithOrganizationBefore,
+  });
 }
 
 class StartDisclosureReadyToDisclose extends StartDisclosureResult {
@@ -36,6 +44,29 @@ class StartDisclosureReadyToDisclose extends StartDisclosureResult {
     required this.policy,
     required super.sharedDataWithOrganizationBefore,
   });
+
+  @override
+  StartDisclosureReadyToDisclose copyWith({
+    Organization? relyingParty,
+    String? originUrl,
+    LocalizedText? requestPurpose,
+    DisclosureSessionType? sessionType,
+    bool? sharedDataWithOrganizationBefore,
+    DisclosureType? type,
+    List<DiscloseCardRequest>? cardRequests,
+    Policy? policy,
+  }) {
+    return StartDisclosureReadyToDisclose(
+      relyingParty: relyingParty ?? this.relyingParty,
+      originUrl: originUrl ?? this.originUrl,
+      requestPurpose: requestPurpose ?? this.requestPurpose,
+      sessionType: sessionType ?? this.sessionType,
+      sharedDataWithOrganizationBefore: sharedDataWithOrganizationBefore ?? this.sharedDataWithOrganizationBefore,
+      type: type ?? this.type,
+      cardRequests: cardRequests ?? this.cardRequests,
+      policy: policy ?? this.policy,
+    );
+  }
 }
 
 class StartDisclosureMissingAttributes extends StartDisclosureResult {
@@ -49,4 +80,23 @@ class StartDisclosureMissingAttributes extends StartDisclosureResult {
     required this.missingAttributes,
     required super.sharedDataWithOrganizationBefore,
   });
+
+  @override
+  StartDisclosureMissingAttributes copyWith({
+    Organization? relyingParty,
+    String? originUrl,
+    LocalizedText? requestPurpose,
+    DisclosureSessionType? sessionType,
+    bool? sharedDataWithOrganizationBefore,
+    List<MissingAttribute>? missingAttributes,
+  }) {
+    return StartDisclosureMissingAttributes(
+      relyingParty: relyingParty ?? this.relyingParty,
+      originUrl: originUrl ?? this.originUrl,
+      requestPurpose: requestPurpose ?? this.requestPurpose,
+      sessionType: sessionType ?? this.sessionType,
+      sharedDataWithOrganizationBefore: sharedDataWithOrganizationBefore ?? this.sharedDataWithOrganizationBefore,
+      missingAttributes: missingAttributes ?? this.missingAttributes,
+    );
+  }
 }
