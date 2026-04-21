@@ -9,6 +9,7 @@ use sea_orm::DbErr;
 use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use sea_orm::SqlErr;
+use tracing::info;
 
 use jwt::nonce::Nonce;
 use openid4vc::nonce::C_NONCE_VALIDITY;
@@ -166,11 +167,13 @@ where
             NonceStoreBackend::Postgres(connection) => {
                 let expiration_date_time = self.now() - C_NONCE_VALIDITY;
 
-                ProofNonce::delete_many()
+                let result = ProofNonce::delete_many()
                     .filter(proof_nonce::Column::CreatedDateTime.lt(expiration_date_time))
                     .exec(connection)
                     .await
                     .map_err(ProofNonceStoreError::DbDeleteExpiredNonces)?;
+
+                info!("Deleted {} expired nonce(s) from storage", result.rows_affected);
             }
             NonceStoreBackend::Memory(memory_store) => memory_store.remove_expired(),
         }
