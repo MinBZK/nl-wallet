@@ -245,7 +245,6 @@ class CloseProximityDisclosureBridge(
             closeStaleTransport(transport)
             return
         }
-        session.channel.sendUpdate(update = CloseProximityDisclosureUpdate.Connecting)
         session.setTransport(transport)
         bridgeScope.launch {
             observeTransportState(session = session, transport = transport)
