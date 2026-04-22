@@ -72,9 +72,6 @@ extension CloseProximityDisclosure {
             guard let self else { return }
             do {
                 guard await self.isActiveSession(session) else { return }
-                try await session.channel.sendUpdate(
-                    update: CloseProximityDisclosureUpdate.connecting
-                )
                 try await session.transport.waitForConnection()
                 guard await self.isActiveSession(session) else { return }
                 try await session.channel.sendUpdate(
