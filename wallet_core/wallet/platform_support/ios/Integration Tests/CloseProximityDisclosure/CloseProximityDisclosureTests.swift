@@ -184,6 +184,12 @@ final class CloseProximityDisclosureTests: XCTestCase {
         XCTAssertFalse(isBleServerActiveAfterStop)
     }
 
+    func testKotlinByteArrayBase64UrlEncodedStringUsesUnsignedBytesAndOmitsPadding() {
+        let bytes: [UInt8] = [0xFB, 0xFF, 0x00]
+
+        XCTAssertEqual(bytes.kotlinByteArray().base64UrlEncodedString(), "-_8A")
+    }
+
     func testCloseProximityDisclosureFullFlowWithMacReader() async throws {
         guard Self.runMacBleReaderFullFlowTest else {
             throw XCTSkip(

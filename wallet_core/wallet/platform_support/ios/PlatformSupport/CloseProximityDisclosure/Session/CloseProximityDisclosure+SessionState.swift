@@ -173,6 +173,14 @@ extension KotlinByteArray {
             UInt8(bitPattern: get(index: Int32(index)))
         }
     }
+
+    func base64UrlEncodedString() -> String {
+        Data(uint8Array())
+            .base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
 }
 
 extension Array where Element == UInt8 {

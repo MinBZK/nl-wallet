@@ -11,7 +11,7 @@ extension CloseProximityDisclosure {
             setActiveSession(session)
             // Wait for the reader in the background so core can consume the QR immediately.
             startConnectionTask(session)
-            return session.encodedDeviceEngagement.toBase64Url()
+            return session.encodedDeviceEngagement.base64UrlEncodedString()
         } catch {
             try? await reportStartQrHandoverFailure(channel: channel, error: error)
             throw error.asCloseProximityDisclosureError
