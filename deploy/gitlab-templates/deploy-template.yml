@@ -66,6 +66,9 @@ db-cluster-${DEPLOY_ENV}:
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
+  - script:
+    - !reference [.deploy-helm, script]
+    - kubectl wait --for condition="ready" --timeout=5m cluster/$RELEASE_NAME
   variables:
     CHART_NAME: database-cnpg
     RELEASE_NAME: db-cluster
