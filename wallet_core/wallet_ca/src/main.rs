@@ -430,7 +430,10 @@ fn items_requests_from_reader_registration(reader_registration: &ReaderRegistrat
             let key_segments = claim_path_segments(doc_type, authorized_path)?;
             let (namespace, attribute) = match key_segments.as_slice() {
                 [attribute] => (doc_type.clone(), attribute.clone()),
-                [namespace, attribute] => (namespace.clone(), attribute.clone()),
+                [namespace, attribute] if is_mdoc_namespace_for_doc_type(doc_type, namespace) => {
+                    (namespace.clone(), attribute.clone())
+                }
+                [_, _] => continue,
                 _ => {
                     return Err(anyhow!(
                         "reader_auth.json contains unsupported authorized attribute path for credential type \
@@ -444,6 +447,10 @@ fn items_requests_from_reader_registration(reader_registration: &ReaderRegistrat
                 .entry(namespace)
                 .or_default()
                 .insert(attribute, intent_to_retain);
+        }
+
+        if name_spaces.is_empty() {
+            continue;
         }
 
         let name_spaces = name_spaces
@@ -560,4 +567,43 @@ async fn create_reader_device_request(
         .map_err(|_| anyhow!("reader_auth.json did not produce any doc requests"))?;
 
     Ok(DeviceRequest::from_doc_requests(doc_requests))
+}
+
+#[cfg(test)]
+mod tests {
+    use attestation_data::auth::reader_auth::ReaderRegistration;
+    use mdoc::ItemsRequest;
+
+    use super::items_requests_from_reader_registration;
+
+    #[test]
+    fn test_items_requests_from_reader_registration_match_original_xyz_bank_registration() {
+        let reader_registration: ReaderRegistration =
+            serde_json::from_str(include_str!("../../../scripts/devenv/xyz_bank_reader_auth.json")).unwrap();
+        let expected_items_request: ItemsRequest = serde_json::from_str(
+            r#"
+            {
+                "docType": "urn:eudi:pid:nl:1",
+                "nameSpaces": {
+                    "urn:eudi:pid:nl:1": {
+                        "given_name": true,
+                        "family_name": true,
+                        "birthdate": true,
+                        "bsn": true
+                    },
+                    "urn:eudi:pid:nl:1.address": {
+                        "street_address": true,
+                        "house_number": true,
+                        "postal_code": true
+                    }
+                }
+            }
+            "#,
+        )
+        .unwrap();
+
+        let items_requests = items_requests_from_reader_registration(&reader_registration).unwrap();
+
+        assert_eq!(items_requests, vec![expected_items_request]);
+    }
 }
