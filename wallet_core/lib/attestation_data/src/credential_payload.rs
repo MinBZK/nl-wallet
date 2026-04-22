@@ -665,13 +665,12 @@ mod mock {
     use super::PreviewableCredentialPayload;
 
     impl CredentialPayload {
-        pub fn nl_pid_example(time_generator: &impl Generator<DateTime<Utc>>) -> Self {
+        pub fn nl_pid_example(time_generator: &impl Generator<DateTime<Utc>>) -> (Self, SigningKey) {
             let previewable_payload = PreviewableCredentialPayload::nl_pid_example(time_generator);
-
-            Self::example_with_preview(
-                previewable_payload,
-                SigningKey::random(&mut OsRng).verifying_key(),
-                time_generator,
+            let holder_key = SigningKey::random(&mut OsRng);
+            (
+                Self::example_with_preview(previewable_payload, holder_key.verifying_key(), time_generator),
+                holder_key,
             )
         }
 

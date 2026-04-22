@@ -19,6 +19,9 @@ use attestation_data::auth::reader_auth::ValidationError;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::verifier_certificate::VerifierCertificate;
 use attestation_data::x509::CertificateTypeError;
+use crypto::CredentialEcdsaKey;
+use crypto::wscd::DisclosureWscd;
+use crypto::x509::CertificateError;
 use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -28,6 +31,7 @@ use mdoc::DeviceRequest;
 use mdoc::DeviceRequestParseError;
 use mdoc::DeviceResponse;
 use mdoc::DeviceResponseStatus;
+use mdoc::DeviceResponseWithPoa;
 use mdoc::SessionTranscript;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborError;
@@ -46,6 +50,7 @@ use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
+use wscd::Poa;
 use wscd::wscd::JwtPoaInput;
 
 use crate::AttributesNotAvailable;
@@ -57,6 +62,7 @@ use crate::errors::RemoteEcdsaKeyError;
 use crate::errors::UpdatePolicyError;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
+use crate::storage::DisclosableAttestation;
 use crate::storage::PartialAttestation;
 use crate::storage::Storage;
 use crate::wallet::DisclosureError;
@@ -211,6 +217,14 @@ pub enum CloseProximityDisclosureError {
     #[error("Failed creating device response: {0}")]
     #[category(pd)]
     DeviceResponse(#[source] mdoc::Error),
+
+    #[error("Could not extract Common Name from certificate: {0}")]
+    #[category(critical)]
+    InvalidCertificate(#[source] CertificateError),
+
+    #[error("No Common Name found in certificate")]
+    #[category(critical)]
+    MissingCommonName,
 }
 
 fn parse_device_request(bytes: &[u8]) -> Result<DeviceRequest, CloseProximityDisclosureError> {
@@ -229,7 +243,9 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         | CloseProximityDisclosureError::InvalidDocRequest(_)
         | CloseProximityDisclosureError::MissingReaderRegistration
         | CloseProximityDisclosureError::InvalidCertificateType(_)
-        | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_) => Some(DeviceResponseStatus::GeneralError),
+        | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_)
+        | CloseProximityDisclosureError::InvalidCertificate(_)
+        | CloseProximityDisclosureError::MissingCommonName => Some(DeviceResponseStatus::GeneralError),
         // These are either internal wallet errors or failures already handled by platform support,
         // so we do not expect to send a protocol-level error DeviceResponse for them.
         CloseProximityDisclosureError::ErrorDeviceResponseEncoding(_)
@@ -338,8 +354,6 @@ where
             return Err(DisclosureError::SessionState);
         };
 
-        let wallet_config = self.config_repository.get();
-
         let device_request = match parse_device_request(&device_request) {
             Ok(device_request) => device_request,
             Err(error) => {
@@ -350,6 +364,7 @@ where
         // the session transcript is made by our own native code, so deserialization errors are programmer errors
         let session_transcript = SessionTranscript::try_from_bytes(&session_transcript).unwrap();
 
+        let wallet_config = self.config_repository.get();
         let verifier_certificate = match verify_device_request(
             &device_request,
             &session_transcript,
@@ -506,52 +521,16 @@ where
             return Err(DisclosureError::IncrementUsageCount(error));
         }
 
-        // Gather all partial mdocs presentations by cloning the attestations held in the session, as disclosing
-        // attestations needs to be retryable.
-        let partial_mdocs = attestations
-            .values()
-            .map(|attestation| {
-                let PartialAttestation::MsoMdoc { partial_mdoc } = attestation.partial_attestation() else {
-                    panic!("SD-JWT attestations are not supported in close proximity disclosure")
-                };
-
-                *partial_mdoc.clone()
-            })
-            .collect_vec()
-            .try_into()
-            .unwrap();
-
-        // Actually perform disclosure, casting any `InstructionError` that occurs during signing
-        // to `RemoteEcdsaKeyError::Instruction`.
-        // if this fails, there's a bug in the code
-        let nonce = Nonce::from(hex::encode(cbor_serialize(session_transcript.as_ref()).unwrap()));
-        let poa_input = JwtPoaInput::new(
-            Some(nonce),
-            "aud".to_string(), // TODO what should this be?
-        );
-
-        let result =
-            DeviceResponse::sign_from_partial_mdocs(partial_mdocs, &session_transcript, &remote_wscd, poa_input).await;
-
-        let device_response = match result {
+        let device_response = match Self::create_close_proximity_device_response(
+            attestations.values().copied(),
+            session_transcript.as_ref(),
+            &verifier_certificate,
+            &remote_wscd,
+        )
+        .await
+        {
             Ok(device_response) => device_response,
-            Err(error) => {
-                let disclosure_error = match error {
-                    // Upgrade any signing errors that are caused by an instruction error to
-                    // `DisclosureError::Instruction`.
-                    mdoc::Error::Cose(CoseError::Signing(signing_error))
-                        if matches!(
-                            signing_error.downcast_ref::<RemoteEcdsaKeyError>(),
-                            Some(RemoteEcdsaKeyError::Instruction(_))
-                        ) =>
-                    {
-                        DisclosureError::Instruction(instruction_error_from_signing_error(signing_error))
-                    }
-                    other => DisclosureError::CloseProximityDisclosureSessionError(
-                        CloseProximityDisclosureError::DeviceResponse(other),
-                    ),
-                };
-
+            Err(disclosure_error) => {
                 // IncorrectPin is a functional error and does not need to be recorded.
                 //
                 // If storing the event results in an error, log it but do nothing else.
@@ -605,6 +584,7 @@ where
             }
         };
 
+        // Actually perform the disclosure by sending the device response to the reader
         // if serialization fails, there's a bug in the code
         CPC::send_device_response(cbor_serialize(&device_response).unwrap()).await?;
 
@@ -665,6 +645,61 @@ where
         }
 
         Ok(())
+    }
+
+    async fn create_close_proximity_device_response<'a, K, W>(
+        attestations: impl IntoIterator<Item = &'a DisclosableAttestation>,
+        session_transcript: &SessionTranscript,
+        verifier_certificate: &VerifierCertificate,
+        wscd: &W,
+    ) -> Result<DeviceResponseWithPoa<Poa>, DisclosureError>
+    where
+        K: CredentialEcdsaKey,
+        W: DisclosureWscd<Key = K, Poa = Poa>,
+    {
+        // Gather all partial mdocs presentations by cloning the attestations held in the session, as disclosing
+        // attestations needs to be retryable.
+        let partial_mdocs = attestations
+            .into_iter()
+            .map(|attestation| {
+                let PartialAttestation::MsoMdoc { partial_mdoc } = attestation.partial_attestation() else {
+                    panic!("SD-JWT attestations are not supported in close proximity disclosure")
+                };
+
+                *partial_mdoc.clone()
+            })
+            .collect_vec()
+            .try_into()
+            .unwrap();
+
+        // if this fails, there's a bug in the code
+        let nonce = Nonce::from(hex::encode(cbor_serialize(&session_transcript).unwrap()));
+        // use the same aud as for SD-JWT
+        let aud = verifier_certificate
+            .certificate()
+            .common_name()
+            .map_err(CloseProximityDisclosureError::InvalidCertificate)?
+            .ok_or(CloseProximityDisclosureError::MissingCommonName)?
+            .to_string();
+        let poa_input = JwtPoaInput::new(Some(nonce), aud);
+
+        // Create the device response, casting any `InstructionError` that occurs during signing
+        // to `RemoteEcdsaKeyError::Instruction`.
+        DeviceResponseWithPoa::sign_from_partial_mdocs(partial_mdocs, session_transcript, wscd, poa_input)
+            .await
+            .map_err(|error| match error {
+                mdoc::Error::Cose(CoseError::Signing(signing_error))
+                    if matches!(
+                        signing_error.downcast_ref::<RemoteEcdsaKeyError>(),
+                        Some(RemoteEcdsaKeyError::Instruction(_))
+                    ) =>
+                {
+                    DisclosureError::Instruction(instruction_error_from_signing_error(signing_error))
+                }
+                other => DisclosureError::CloseProximityDisclosureSessionError(
+                    CloseProximityDisclosureError::DeviceResponse(other),
+                ),
+            })
     }
 }
 
@@ -744,11 +779,13 @@ mod tests {
     use attestation_types::pid_constants::PID_FAMILY_NAME;
     use attestation_types::pid_constants::PID_GIVEN_NAME;
     use crypto::WithVerifyingKey;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::p256_der::DerSignature;
     use crypto::server_keys::generate::Ca;
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
+    use jwt::nonce::Nonce;
     use mdoc::DeviceEngagement;
     use mdoc::DeviceRequest;
     use mdoc::DeviceResponse;
@@ -774,16 +811,20 @@ mod tests {
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::SignResult;
+    use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
+    use wscd::mock_remote::MockRemoteWscd;
 
     use crate::DisclosureAttestationOptions;
     use crate::DisclosureProposalPresentation;
     use crate::account_provider::AccountProviderError;
     use crate::account_provider::AccountProviderResponseError;
     use crate::attestation::mock::EmptyPresentationConfig;
+    use crate::config::LocalConfigurationRepository;
     use crate::errors::StorageError;
     use crate::storage::ChangePinData;
     use crate::storage::DisclosableAttestation;
     use crate::storage::InstructionData;
+    use crate::storage::StoredAttestationCopy;
     use crate::wallet::DisclosureError;
     use crate::wallet::Session;
     use crate::wallet::disclosure::WalletDisclosureAttestations;
@@ -793,6 +834,7 @@ mod tests {
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::example_pid_stored_attestation_copy;
     use crate::wallet::test::example_stored_attestation_copy;
+    use crate::wallet::test::mock_verifier_certificate;
 
     use super::CloseProximityDisclosureError;
     use super::CloseProximityDisclosureSession;
@@ -994,7 +1036,7 @@ mod tests {
         context.expect().once().returning(|| Ok(()));
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let verifier_certificate = setup_close_proximity_disclosure_proposed_session(&mut wallet);
+        let (verifier_certificate, _) = setup_close_proximity_disclosure_proposed_session(&mut wallet);
         let reader_certificate = verifier_certificate.certificate().clone();
 
         wallet
@@ -1107,7 +1149,7 @@ mod tests {
         let verifier_certificate = setup_close_proximity_disclosure_session(&mut wallet, items_request).await;
 
         // Create three PID attestations.
-        let mut pid_credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+        let mut pid_credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default()).0;
         let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
         *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() = Attribute::Single(AttributeValue::Text("Jane".to_string()));
         pid_credential_payload.previewable_payload.attributes = attributes_root.into();
@@ -1115,9 +1157,10 @@ mod tests {
             CredentialFormat::MsoMdoc,
             pid_credential_payload.clone(),
             NormalizedTypeMetadata::nl_pid_example(),
+            &SigningKey::random(&mut OsRng),
         );
 
-        let pid2 = example_pid_stored_attestation_copy(CredentialFormat::MsoMdoc);
+        let (pid2, _) = example_pid_stored_attestation_copy(CredentialFormat::MsoMdoc);
 
         let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
         *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() = Attribute::Single(AttributeValue::Text("John".to_string()));
@@ -1126,6 +1169,7 @@ mod tests {
             CredentialFormat::MsoMdoc,
             pid_credential_payload,
             NormalizedTypeMetadata::nl_pid_example(),
+            &SigningKey::random(&mut OsRng),
         );
 
         wallet
@@ -1451,7 +1495,9 @@ mod tests {
     /// Creates a `CloseProximityDisclosureSession` in the `DisclosureProposed` state and installs
     /// it as `wallet.session`. Returns the `VerifierCertificate` stored inside the session so that
     /// callers can set up event-log expectations against its certificate.
-    fn setup_close_proximity_disclosure_proposed_session(wallet: &mut TestWalletMockStorage) -> VerifierCertificate {
+    fn setup_close_proximity_disclosure_proposed_session(
+        wallet: &mut TestWalletMockStorage,
+    ) -> (VerifierCertificate, SessionTranscript) {
         let items_request = pid_given_name_items_request();
         let mut reader_registration = ReaderRegistration::new_mock();
         let (doc_type, claims) = items_request.clone().into_doctype_and_claims();
@@ -1463,11 +1509,12 @@ mod tests {
             .unwrap()
             .unwrap();
 
-        let pid_credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+        let (pid_credential_payload, holder_key) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
         let pid = example_stored_attestation_copy(
             CredentialFormat::MsoMdoc,
             pid_credential_payload.clone(),
             NormalizedTypeMetadata::nl_pid_example(),
+            &holder_key,
         );
 
         let credential_requests = NormalizedCredentialRequests::new_mock_mdoc_from_slices(
@@ -1481,14 +1528,12 @@ mod tests {
         )
         .unwrap();
 
-        let ephemeral_key = SigningKey::random(&mut OsRng);
-        let cose_key: CoseKey = ephemeral_key.verifying_key().try_into().unwrap();
-        let session_transcript = SessionTranscript::new_qr(cose_key, None);
+        let session_transcript = qr_session_transcript(None);
 
         wallet.session = Some(Session::CloseProximityDisclosure(CloseProximityDisclosureSession {
             listener: tokio::spawn(async {}),
             session_state: Arc::new(Mutex::new(CloseProximityDisclosureSessionState::DisclosureProposed {
-                session_transcript: Box::new(session_transcript),
+                session_transcript: Box::new(session_transcript.clone()),
                 verifier_certificate: Box::new(verifier_certificate.clone()),
                 attestations: WalletDisclosureAttestations::Proposal(IndexMap::from([(
                     0,
@@ -1497,10 +1542,14 @@ mod tests {
             })),
         }));
 
-        verifier_certificate
+        (verifier_certificate, session_transcript)
     }
 
     fn setup_mock_sign_instruction(wallet: &mut TestWalletMockStorage) {
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
         wallet
             .mut_storage()
             .expect_fetch_data::<InstructionData>()
@@ -1531,6 +1580,32 @@ mod tests {
                     poa: None,
                 }))
             });
+    }
+
+    fn pid_given_name_disclosable_attestation() -> (DisclosableAttestation, SigningKey) {
+        let credential_requests = NormalizedCredentialRequests::new_mock_mdoc_from_slices(
+            &[(PID_ATTESTATION_TYPE, &[&[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]])],
+            None,
+        );
+
+        let (stored_attestation_copy, holder_key) = example_pid_stored_attestation_copy(CredentialFormat::MsoMdoc);
+
+        (
+            disclosable_attestation_from_credential_requests(stored_attestation_copy, &credential_requests),
+            holder_key,
+        )
+    }
+
+    fn disclosable_attestation_from_credential_requests(
+        stored_attestation_copy: StoredAttestationCopy,
+        credential_requests: &NormalizedCredentialRequests,
+    ) -> DisclosableAttestation {
+        DisclosableAttestation::try_new(
+            stored_attestation_copy,
+            credential_requests.as_ref().first().unwrap().claim_paths(),
+            &EmptyPresentationConfig,
+        )
+        .unwrap()
     }
 
     /// Sets up the mock account provider to return `account_error` when the Sign instruction is
@@ -1564,10 +1639,68 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_create_close_proximity_device_response_includes_expected_poa() {
+        let verifier_certificate = mock_verifier_certificate();
+        let session_transcript = qr_session_transcript(None);
+
+        let expected_nonce = Nonce::from(hex::encode(cbor_serialize(&session_transcript).unwrap()));
+        let expected_aud = verifier_certificate
+            .certificate()
+            .common_name()
+            .unwrap()
+            .expect("mock verifier certificate should have a Common Name")
+            .to_string();
+
+        let (pid1, key1) = pid_given_name_disclosable_attestation();
+        let (pid2, key2) = example_pid_stored_attestation_copy(CredentialFormat::MsoMdoc);
+
+        let key_id1 = pid1.partial_attestation().private_key_id().to_owned();
+        let key_id2 = pid2.private_key_id().to_owned();
+
+        let disclosable_attestations = [
+            pid1,
+            disclosable_attestation_from_credential_requests(
+                pid2,
+                &NormalizedCredentialRequests::new_mock_mdoc_from_slices(
+                    &[(PID_ATTESTATION_TYPE, &[&[PID_ATTESTATION_TYPE, PID_FAMILY_NAME]])],
+                    None,
+                ),
+            ),
+        ];
+
+        let expected_keys = [key1.verifying_key().to_owned(), key2.verifying_key().to_owned()];
+
+        let remote_key1 = MockRemoteEcdsaKey::new(key_id1, key1);
+        let remote_key2 = MockRemoteEcdsaKey::new(key_id2, key2);
+        let wscd = MockRemoteWscd::new(vec![remote_key1, remote_key2]);
+
+        let device_response =
+            TestWalletMockStorage::<LocalConfigurationRepository>::create_close_proximity_device_response(
+                disclosable_attestations.iter(),
+                &session_transcript,
+                &verifier_certificate,
+                &wscd,
+            )
+            .await
+            .expect("device response creation should succeed");
+
+        let poa = device_response
+            .poa
+            .expect("device response should contain a POA when disclosing multiple credential keys");
+        poa.verify(
+            &expected_keys,
+            &expected_aud,
+            &[MOCK_WALLET_CLIENT_ID.to_string()],
+            &expected_nonce,
+        )
+        .expect("POA should verify");
+    }
+
+    #[tokio::test]
     #[serial(MockCloseProximityDisclosureClient)]
     async fn test_wallet_accept_close_proximity_disclosure() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let verifier_certificate = setup_close_proximity_disclosure_proposed_session(&mut wallet);
+        let (verifier_certificate, _) = setup_close_proximity_disclosure_proposed_session(&mut wallet);
 
         setup_mock_sign_instruction(&mut wallet);
 
@@ -1621,7 +1754,7 @@ mod tests {
     #[serial(MockCloseProximityDisclosureClient)]
     async fn test_wallet_accept_close_proximity_disclosure_error_increment_usage_count() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let verifier_certificate = setup_close_proximity_disclosure_proposed_session(&mut wallet);
+        let (verifier_certificate, _) = setup_close_proximity_disclosure_proposed_session(&mut wallet);
 
         setup_mock_sign_instruction(&mut wallet);
 
@@ -1741,7 +1874,7 @@ mod tests {
     #[serial(MockCloseProximityDisclosureClient)]
     async fn test_wallet_accept_close_proximity_disclosure_error_instruction_validation() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let verifier_certificate = setup_close_proximity_disclosure_proposed_session(&mut wallet);
+        let (verifier_certificate, _) = setup_close_proximity_disclosure_proposed_session(&mut wallet);
 
         setup_mock_sign_instruction_error(&mut wallet, AccountError::InstructionValidation);
         wallet
@@ -1784,7 +1917,7 @@ mod tests {
     #[serial(MockCloseProximityDisclosureClient)]
     async fn test_wallet_accept_close_proximity_disclosure_error_instruction_pin_timeout() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let verifier_certificate = setup_close_proximity_disclosure_proposed_session(&mut wallet);
+        let (verifier_certificate, _) = setup_close_proximity_disclosure_proposed_session(&mut wallet);
 
         setup_mock_sign_instruction_error(
             &mut wallet,
@@ -1836,7 +1969,7 @@ mod tests {
     #[serial(MockCloseProximityDisclosureClient)]
     async fn test_wallet_accept_close_proximity_disclosure_error_instruction_account_blocked() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let verifier_certificate = setup_close_proximity_disclosure_proposed_session(&mut wallet);
+        let (verifier_certificate, _) = setup_close_proximity_disclosure_proposed_session(&mut wallet);
 
         setup_mock_sign_instruction_error(&mut wallet, AccountError::AccountBlocked);
         wallet

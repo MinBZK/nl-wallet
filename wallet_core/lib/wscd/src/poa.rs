@@ -157,7 +157,7 @@ impl Poa {
         for (jwt, jwk) in jwts.into_iter().zip(payload.jwks.as_slice()) {
             let pubkey = jwk_to_p256(jwk)?;
             jwt.parse_and_verify(&(&pubkey).into(), &validations)
-                .map_err(PoaVerificationError::IncorrectTyp)?;
+                .map_err(PoaVerificationError::InvalidJwt)?;
         }
 
         // Check that all keys that must be associated are in the PoA. We use `jwk::AlgorithmParameters` for this
