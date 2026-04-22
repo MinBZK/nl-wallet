@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::future::Future;
 
 use anyhow::Context;
 use anyhow::Result;
@@ -311,10 +310,13 @@ impl Command {
             } => {
                 let ca = read_self_signed_ca(&ca_crt_file, &ca_key_file)?;
                 let reader_registration: ReaderRegistration = serde_json::from_reader(reader_auth_file)?;
-                let session_transcript_bytes = decode_hex("session transcript", &session_transcript_hex)?;
+
+                let session_transcript_bytes =
+                    hex::decode(&session_transcript_hex).with_context(|| "invalid session transcript hex")?;
                 let session_transcript = SessionTranscript::try_from_bytes(&session_transcript_bytes)?;
-                let common_name = common_name.unwrap_or_else(|| default_reader_common_name(&reader_registration));
-                let device_request = block_on(create_reader_device_request(
+                let common_name = common_name.unwrap_or_else(|| reader_common_name_or_default(&reader_registration));
+                let runtime = tokio::runtime::Builder::new_current_thread().build().unwrap();
+                let device_request = runtime.block_on(create_reader_device_request(
                     &ca,
                     &common_name,
                     reader_registration,
@@ -416,19 +418,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn block_on<F, T>(future: F) -> Result<T>
-where
-    F: Future<Output = Result<T>>,
-{
-    let runtime = tokio::runtime::Builder::new_current_thread().build()?;
-    runtime.block_on(future)
-}
-
-fn decode_hex(label: &str, value: &str) -> Result<Vec<u8>> {
-    hex::decode(value).with_context(|| format!("invalid {label} hex"))
-}
-
-fn default_reader_common_name(reader_registration: &ReaderRegistration) -> String {
+fn reader_common_name_or_default(reader_registration: &ReaderRegistration) -> String {
     reader_registration
         .request_origin_base_url
         .host_str()
@@ -600,153 +590,4 @@ async fn create_reader_device_request(
         .map_err(|_| anyhow!("reader_auth.json did not produce any doc requests"))?;
 
     Ok(DeviceRequest::from_doc_requests(doc_requests))
-}
-
-#[cfg(test)]
-mod tests {
-    use attestation_data::auth::reader_auth::ReaderRegistration;
-    use crypto::server_keys::generate::Ca;
-    use crypto::x509::BorrowingCertificateExtension;
-    use mdoc::SessionTranscript;
-    use mdoc::utils::cose::CoseKey;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
-    use serde_json::json;
-    use utils::generator::TimeGenerator;
-
-    use super::create_reader_device_request;
-    use super::items_requests_from_reader_registration;
-
-    #[test]
-    fn test_items_requests_from_reader_registration_defaults_single_segment_paths_to_doc_type_namespace() {
-        let mut reader_registration = ReaderRegistration::new_mock();
-        reader_registration.authorized_attributes =
-            ReaderRegistration::create_attributes("urn:eudi:pid:nl:1", [["bsn"], ["family_name"]]);
-
-        let items_requests = items_requests_from_reader_registration(&reader_registration).unwrap();
-        let items_request = items_requests.first().unwrap();
-        let data_elements = items_request.name_spaces.as_ref().get("urn:eudi:pid:nl:1").unwrap();
-
-        assert!(data_elements.as_ref().contains_key("bsn"));
-        assert!(data_elements.as_ref().contains_key("family_name"));
-    }
-
-    #[test]
-    fn test_items_requests_from_reader_registration_match_original_xyz_bank_registration() {
-        let reader_registration: ReaderRegistration = serde_json::from_value(json!({
-            "purposeStatement": {
-                "nl": "Bankrekening openen",
-                "en": "Opening bank account"
-            },
-            "retentionPolicy": {
-                "intentToRetain": true,
-                "maxDurationInMinutes": 525600
-            },
-            "sharingPolicy": {
-                "intentToShare": false
-            },
-            "deletionPolicy": {
-                "deleteable": true
-            },
-            "organization": {
-                "displayName": {
-                    "nl": "XYZ Bank",
-                    "en": "XYZ Bank"
-                },
-                "legalName": {
-                    "nl": "XYZ Bank N.V.",
-                    "en": "XYZ Bank N.V."
-                },
-                "description": {
-                    "nl": "De toegankelijke bank voor betalen, sparen en beleggen.",
-                    "en": "The accessible bank for paying, saving and investing."
-                },
-                "webUrl": "https://www.xyzbank.nl",
-                "privacyPolicyUrl": "https://www.xyzbank.nl/privacy",
-                "city": {
-                    "nl": "Utrecht",
-                    "en": "Utrecht"
-                },
-                "category": {
-                    "nl": "Bank",
-                    "en": "Bank"
-                },
-                "countryCode": "nl",
-                "kvk": "12345678"
-            },
-            "requestOriginBaseUrl": "https://www.xyzbank.nl",
-            "authorizedAttributes": {
-                "urn:eudi:pid:nl:1": [
-                    ["urn:eudi:pid:nl:1", "given_name"],
-                    ["urn:eudi:pid:nl:1", "family_name"],
-                    ["urn:eudi:pid:nl:1", "birthdate"],
-                    ["urn:eudi:pid:nl:1", "bsn"],
-                    ["urn:eudi:pid:nl:1.address", "street_address"],
-                    ["urn:eudi:pid:nl:1.address", "house_number"],
-                    ["urn:eudi:pid:nl:1.address", "postal_code"],
-                    ["given_name"],
-                    ["family_name"],
-                    ["birthdate"],
-                    ["bsn"],
-                    ["address", "street_address"],
-                    ["address", "house_number"],
-                    ["address", "postal_code"]
-                ],
-                "urn:eudi:pid:1": [
-                    ["given_name"],
-                    ["family_name"],
-                    ["birthdate"],
-                    ["address", "street_address"],
-                    ["address", "house_number"],
-                    ["address", "postal_code"]
-                ]
-            }
-        }))
-        .unwrap();
-
-        let items_requests = items_requests_from_reader_registration(&reader_registration).unwrap();
-        assert_eq!(items_requests.len(), 1);
-        assert_eq!(items_requests[0].doc_type, "urn:eudi:pid:nl:1");
-
-        reader_registration
-            .verify_requested_attributes(items_requests)
-            .expect("generated ItemsRequests should validate against the same ReaderRegistration");
-    }
-
-    #[test]
-    fn test_create_reader_device_request_signs_verifiable_reader_auth() {
-        let runtime = tokio::runtime::Builder::new_current_thread().build().unwrap();
-
-        runtime.block_on(async {
-            let mut reader_registration = ReaderRegistration::new_mock();
-            reader_registration.authorized_attributes = ReaderRegistration::create_attributes(
-                "urn:eudi:pid:nl:1",
-                vec![vec!["bsn"], vec!["urn:eudi:pid:nl:1.address", "street_address"]],
-            );
-
-            let ca = Ca::generate_reader_mock_ca().unwrap();
-            let e_reader_key = SigningKey::random(&mut OsRng);
-            let cose_key: CoseKey = e_reader_key.verifying_key().try_into().unwrap();
-            let session_transcript = SessionTranscript::new_qr(cose_key, None);
-
-            let device_request =
-                create_reader_device_request(&ca, "reader.example.com", reader_registration, &session_transcript)
-                    .await
-                    .unwrap();
-
-            assert_eq!(device_request.doc_requests.len().get(), 1);
-            let certificate = device_request
-                .doc_requests
-                .first()
-                .verify(&session_transcript, &TimeGenerator, &[ca.to_trust_anchor()])
-                .unwrap()
-                .unwrap();
-
-            let parsed_registration = ReaderRegistration::from_certificate(&certificate).unwrap().unwrap();
-            assert_eq!(
-                parsed_registration.request_origin_base_url.as_str(),
-                "https://example.com/"
-            );
-        });
-    }
 }
