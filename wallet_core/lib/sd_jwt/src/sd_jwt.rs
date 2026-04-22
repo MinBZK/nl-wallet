@@ -5,34 +5,24 @@ use std::fmt::Display;
 use std::str::FromStr;
 use std::sync::LazyLock;
 
-use chrono::DateTime;
-use chrono::Utc;
-use derive_more::AsRef;
-use indexmap::IndexMap;
-use indexmap::IndexSet;
-use itertools::Itertools;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::Validation;
-use p256::ecdsa::VerifyingKey;
-use rustls_pki_types::TrustAnchor;
-use serde::Deserialize;
-use serde::Serialize;
-use serde::de::DeserializeOwned;
-use serde_with::DeserializeFromStr;
-use serde_with::SerializeDisplay;
-use serde_with::skip_serializing_none;
-use ssri::Integrity;
-
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
+use chrono::DateTime;
+use chrono::Utc;
 use crypto::CredentialEcdsaKey;
 use crypto::EcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
+use derive_more::AsRef;
 use http_utils::urls::HttpsUri;
+use indexmap::IndexMap;
+use indexmap::IndexSet;
+use itertools::Itertools;
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::Validation;
 use jwt::EcdsaDecodingKey;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
@@ -40,7 +30,16 @@ use jwt::VerifiedJwt;
 use jwt::confirmation::ConfirmationClaim;
 use jwt::error::JwkConversionError;
 use jwt::headers::HeaderWithX5c;
+use p256::ecdsa::VerifyingKey;
+use rustls_pki_types::TrustAnchor;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
+use serde::Deserialize;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
+use serde_with::skip_serializing_none;
+use ssri::Integrity;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
@@ -811,18 +810,17 @@ where
 
 #[cfg(any(test, feature = "examples"))]
 mod examples {
-    use chrono::DateTime;
-    use chrono::Days;
-    use chrono::Utc;
-    use p256::ecdsa::VerifyingKey;
-    use serde_json::Value;
-    use serde_json::json;
-
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::qualification::AttestationQualification;
     use attestation_types::status_claim::StatusClaim;
+    use chrono::DateTime;
+    use chrono::Days;
+    use chrono::Utc;
     use jwt::confirmation::ConfirmationClaim;
     use jwt::jwk::jwk_from_p256;
+    use p256::ecdsa::VerifyingKey;
+    use serde_json::Value;
+    use serde_json::json;
     use utils::generator::Generator;
 
     use super::SdJwtVcClaims;
@@ -880,7 +878,9 @@ mod test {
 
     use assert_matches::assert_matches;
     use chrono::DateTime;
+    use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
+    use http_utils::urls::HttpsUri;
     use itertools::Itertools;
     use jsonwebtoken::errors::ErrorKind;
     use jsonwebtoken::jwk::AlgorithmParameters;
@@ -888,21 +888,19 @@ mod test {
     use jsonwebtoken::jwk::EllipticCurveKeyParameters;
     use jsonwebtoken::jwk::EllipticCurveKeyType;
     use jsonwebtoken::jwk::Jwk;
+    use jwt::Header;
+    use jwt::confirmation::ConfirmationClaim;
+    use jwt::error::JwtError;
+    use jwt::nonce::Nonce;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use rstest::rstest;
     use serde_json::Value;
     use serde_json::json;
-
-    use crypto::server_keys::generate::Ca;
-    use http_utils::urls::HttpsUri;
-    use jwt::Header;
-    use jwt::confirmation::ConfirmationClaim;
-    use jwt::error::JwtError;
-    use jwt::nonce::Nonce;
     use utils::date_time_seconds::DateTimeSeconds;
     use utils::generator::mock::MockTimeGenerator;
 
+    use super::*;
     use crate::builder::SdJwtBuilder;
     use crate::claims::ArrayClaim;
     use crate::disclosure::Disclosure;
@@ -919,8 +917,6 @@ mod test {
     use crate::test::DIGESTS_KEY;
     use crate::test::array_disclosure;
     use crate::test::object_disclosure;
-
-    use super::*;
 
     #[rstest]
     #[case(SIMPLE_STRUCTURED_SD_JWT, 2)]

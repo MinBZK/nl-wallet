@@ -1,9 +1,8 @@
-use derive_more::Debug;
-
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
+use derive_more::Debug;
 use error_category::ErrorCategory;
 
 use crate::auth::issuer_auth::IssuerRegistration;
@@ -75,11 +74,10 @@ impl From<&CertificateType> for CertificateUsage {
 
 #[cfg(any(test, feature = "generate"))]
 pub mod generate {
-    use rcgen::CustomExtension;
-
     use crypto::x509::BorrowingCertificateExtension;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
+    use rcgen::CustomExtension;
 
     use crate::x509::CertificateType;
 
@@ -104,10 +102,9 @@ pub mod generate {
         use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
         use crypto::server_keys::generate::mock::RP_CERT_CN;
 
+        use super::*;
         use crate::auth::issuer_auth::IssuerRegistration;
         use crate::auth::reader_auth::ReaderRegistration;
-
-        use super::*;
 
         pub fn generate_issuer_mock_with_registration(
             ca: &Ca,
@@ -149,19 +146,17 @@ mod test {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
-    use time::OffsetDateTime;
-    use time::macros::datetime;
-    use x509_parser::certificate::X509Certificate;
-
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateConfiguration;
+    use time::OffsetDateTime;
+    use time::macros::datetime;
     use utils::generator::TimeGenerator;
+    use x509_parser::certificate::X509Certificate;
 
+    use super::CertificateUsage;
     use crate::auth::issuer_auth::IssuerRegistration;
     use crate::auth::reader_auth::ReaderRegistration;
     use crate::x509::CertificateType;
-
-    use super::CertificateUsage;
 
     #[test]
     fn generate_and_verify_issuer_cert() {

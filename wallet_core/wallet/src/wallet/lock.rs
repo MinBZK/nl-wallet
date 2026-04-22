@@ -1,37 +1,33 @@
 use std::sync::Arc;
 
-use tracing::info;
-use tracing::instrument;
-use tracing::warn;
-
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
-
 use platform_support::attested_key::AttestedKeyHolder;
+use tracing::info;
+use tracing::instrument;
+use tracing::warn;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
-use crate::instruction::InstructionClientParameters;
-pub use crate::lock::LockCallback;
-pub use crate::storage::UnlockMethod;
-
+use super::Wallet;
 use crate::account_provider::AccountProviderClient;
 use crate::errors::ChangePinError;
 use crate::errors::StorageError;
+use crate::instruction::InstructionClientParameters;
 use crate::instruction::InstructionError;
+pub use crate::lock::LockCallback;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::storage::UnlockData;
+pub use crate::storage::UnlockMethod;
 use crate::update_policy::UpdatePolicyError;
 use crate::wallet::PinRecoverySession;
 use crate::wallet::Session;
-
-use super::Wallet;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -276,18 +272,17 @@ where
 mod tests {
     use std::sync::Arc;
 
+    use apple_app_attest::AssertionCounter;
     use assert_matches::assert_matches;
     use chrono::Utc;
     use http::StatusCode;
+    use jwt::SignedJwt;
     use mockall::predicate::*;
     use p256::ecdsa::SigningKey;
     use parking_lot::Mutex;
+    use platform_support::attested_key::AttestedKey;
     use rand_core::OsRng;
     use rstest::rstest;
-
-    use apple_app_attest::AssertionCounter;
-    use jwt::SignedJwt;
-    use platform_support::attested_key::AttestedKey;
     use wallet_account::messages::errors::AccountError;
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::IncorrectPinData;
@@ -298,18 +293,17 @@ mod tests {
     use wallet_account::messages::instructions::InstructionResultClaims;
     use wallet_account::signed::SequenceNumberComparison;
 
-    use crate::account_provider::AccountProviderResponseError;
-    use crate::pin::key::PinKey;
-    use crate::storage::ChangePinData;
-    use crate::storage::InstructionData;
-    use crate::storage::StorageState;
-
     use super::super::WalletRegistration;
     use super::super::test::TestWalletInMemoryStorage;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::create_wp_result;
     use super::*;
+    use crate::account_provider::AccountProviderResponseError;
+    use crate::pin::key::PinKey;
+    use crate::storage::ChangePinData;
+    use crate::storage::InstructionData;
+    use crate::storage::StorageState;
 
     const PIN: &str = "051097";
 

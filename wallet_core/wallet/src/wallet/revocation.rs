@@ -5,10 +5,17 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
+use error_category::ErrorCategory;
 use futures::StreamExt;
+use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::wallet_issuance::IssuanceDiscovery;
 use parking_lot::Mutex;
+use platform_support::attested_key::AttestedKeyHolder;
 use rand::random;
 use rustls_pki_types::TrustAnchor;
+use token_status_list::verification::client::StatusListClient;
+use token_status_list::verification::verifier::RevocationStatus;
+use token_status_list::verification::verifier::RevocationVerifier;
 use tokio::sync::RwLock;
 use tokio::task::JoinHandle;
 use tokio::time;
@@ -17,18 +24,9 @@ use tracing::error;
 use tracing::info;
 use tracing::instrument;
 use tracing::warn;
-use uuid::Uuid;
-
-use error_category::ErrorCategory;
-use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::wallet_issuance::IssuanceDiscovery;
-
-use platform_support::attested_key::AttestedKeyHolder;
-use token_status_list::verification::client::StatusListClient;
-use token_status_list::verification::verifier::RevocationStatus;
-use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
+use uuid::Uuid;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::NotificationType;
@@ -308,28 +306,26 @@ mod tests {
     use std::sync::atomic::Ordering;
     use std::time::Duration;
 
-    use itertools::Itertools;
-    use parking_lot::Mutex;
-    use tokio::time;
-
     use attestation_data::validity::ValidityWindow;
     use attestation_types::status_claim::StatusClaim;
     use attestation_types::status_claim::StatusListClaim;
     use crypto::server_keys::generate::Ca;
     use crypto::utils::random_string;
+    use itertools::Itertools;
+    use parking_lot::Mutex;
     use token_status_list::status_list_token::mock::create_status_list_token;
     use token_status_list::verification::client::mock::MockStatusListClient;
     use token_status_list::verification::verifier::RevocationStatus;
+    use tokio::time;
     use utils::generator::mock::MockTimeGenerator;
 
+    use super::*;
     use crate::config::default_wallet_config;
     use crate::storage::MockStorage;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::create_example_pid_sd_jwt;
-
-    use super::*;
 
     struct TestConfigRepo(parking_lot::RwLock<WalletConfiguration>);
 

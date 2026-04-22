@@ -1,12 +1,11 @@
 use std::time::Duration;
 
+use crypto::p256_der::DerVerifyingKey;
+use http_utils::client::TlsPinningConfig;
 use serde::Deserialize;
 use serde_with::DurationSeconds;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
-
-use crypto::p256_der::DerVerifyingKey;
-use http_utils::client::TlsPinningConfig;
 
 use crate::EnvironmentSpecific;
 

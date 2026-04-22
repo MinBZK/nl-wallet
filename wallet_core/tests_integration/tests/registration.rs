@@ -1,9 +1,8 @@
+use db_test::DbSetup;
 use rstest::rstest;
 use sea_orm::Database;
 use serde_json::json;
 use serial_test::serial;
-
-use db_test::DbSetup;
 use tests_integration::common::*;
 use update_policy_server::config::UpdatePolicyConfig;
 use wallet::errors::WalletRegistrationError;

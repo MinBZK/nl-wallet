@@ -29,11 +29,12 @@ pub enum PinPolicyEvaluation {
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    use crate::model::pin_policy::PinPolicyEvaluation;
-    use crate::model::pin_policy::PinPolicyEvaluator;
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
+
+    use crate::model::pin_policy::PinPolicyEvaluation;
+    use crate::model::pin_policy::PinPolicyEvaluator;
 
     pub struct FailingPinPolicy;
     impl PinPolicyEvaluator for FailingPinPolicy {

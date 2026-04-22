@@ -1,10 +1,7 @@
-use futures::TryFutureExt;
-use reqwest::Client;
-use reqwest::Response;
-
 use dcql::Query;
 use dcql::unique_id_vec::UniqueIdVec;
 use demo_utils::disclosure::DemoDisclosedAttestations;
+use futures::TryFutureExt;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::urls::BaseUrl;
 use openid4vc::return_url::ReturnUrlTemplate;
@@ -12,6 +9,8 @@ use openid4vc::server_state::SessionToken;
 use openid4vc_server::verifier::DisclosedAttributesParams;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
+use reqwest::Client;
+use reqwest::Response;
 
 pub struct WalletServerClient {
     client: Client,

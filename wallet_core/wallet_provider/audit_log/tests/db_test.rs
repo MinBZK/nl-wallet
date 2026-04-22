@@ -2,25 +2,22 @@ use std::error::Error;
 
 use assert_matches::assert_matches;
 use audit_log::audited;
+use audit_log::entity;
+use audit_log::model::AuditLog;
 use audit_log::model::FromAuditLogError;
+use audit_log::model::PostgresAuditLog;
 use chrono::Utc;
+use db_test::DbSetup;
+use db_test::connection_from_url;
 use rstest::rstest;
 use sea_orm::ColumnTrait;
 use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use sea_orm::QueryOrder;
 use serde_json::json;
-use uuid::Uuid;
-
 use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
-
-use audit_log::entity;
-use audit_log::model::AuditLog;
-use audit_log::model::PostgresAuditLog;
-
-use db_test::DbSetup;
-use db_test::connection_from_url;
+use uuid::Uuid;
 
 struct MockUuid(Uuid);
 

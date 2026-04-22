@@ -6,12 +6,11 @@ use std::str::FromStr;
 use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 
-use crate::reqwest::CachedReqwestClient;
-
 use super::Filename;
 use super::HttpClient;
 use super::HttpClientError;
 use super::HttpResponse;
+use crate::reqwest::CachedReqwestClient;
 
 pub struct ReqwestHttpClient<T, B> {
     cached_client: CachedReqwestClient<B>,

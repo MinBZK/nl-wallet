@@ -22,12 +22,11 @@ fn attested_key_test(test_data: TestData) {
 
 #[cfg(target_os = "android")]
 mod android {
+    use android_attest::root_public_key::GOOGLE_ROOT_PUBKEYS;
+    use android_logger::Config;
     use jni::JNIEnv;
     use jni::objects::JClass;
     use log::LevelFilter;
-
-    use android_attest::root_public_key::GOOGLE_ROOT_PUBKEYS;
-    use android_logger::Config;
 
     use crate::attested_key::test::AndroidTestData;
     use crate::attested_key::test::TestData;

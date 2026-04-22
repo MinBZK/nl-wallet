@@ -1,14 +1,13 @@
 use std::fmt::Display;
 
-use indexmap::IndexMap;
-use serde_with::SerializeDisplay;
-
 use attestation_types::claim_path::ClaimPath;
 use crypto::EcdsaKey;
 use crypto::server_keys::KeyPair;
+use indexmap::IndexMap;
 use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::headers::HeaderWithX5c;
+use serde_with::SerializeDisplay;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::disclosure::Disclosure;
@@ -239,18 +238,16 @@ impl<H: Hasher> SdJwtBuilder<H> {
 
 #[cfg(feature = "examples")]
 mod examples {
-    use futures::FutureExt;
-    use p256::ecdsa::VerifyingKey;
-
     use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::KeyPair;
+    use futures::FutureExt;
+    use p256::ecdsa::VerifyingKey;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
 
-    use crate::sd_jwt::SdJwtVcClaims;
-
     use super::SdJwtBuilder;
     use super::SignedSdJwt;
+    use crate::sd_jwt::SdJwtVcClaims;
 
     impl SignedSdJwt {
         pub fn pid_example(issuer_keypair: &KeyPair, holder_pubkey: &VerifyingKey) -> Self {
@@ -282,7 +279,6 @@ mod test {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use serde_json::json;
-
     use utils::generator::mock::MockTimeGenerator;
 
     use super::*;
@@ -370,9 +366,8 @@ mod test {
             mod on_top_level {
                 use utils::vec_nonempty;
 
-                use crate::error::ClaimError;
-
                 use super::*;
+                use crate::error::ClaimError;
 
                 #[test]
                 fn returns_an_error_for_nonexistant_object_paths() {
@@ -418,9 +413,8 @@ mod test {
             }
 
             mod as_subproperties {
-                use crate::error::ClaimError;
-
                 use super::*;
+                use crate::error::ClaimError;
 
                 #[test]
                 fn returns_an_error_for_nonexistant_object_paths() {

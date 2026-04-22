@@ -2,16 +2,14 @@ use std::sync::Arc;
 
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
-
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::Wallet;
 use crate::repository::ObservableRepository;
 use crate::repository::Repository;
 use crate::repository::RepositoryCallback;
-
-use super::Wallet;
 
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
@@ -64,13 +62,11 @@ mod tests {
 
     use parking_lot::Mutex;
     use tokio::sync::Notify;
-
     use wallet_configuration::wallet_config::WalletConfiguration;
-
-    use crate::config::default_wallet_config;
 
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
+    use crate::config::default_wallet_config;
 
     // Tests both setting and clearing the configuration callback.
     #[tokio::test]

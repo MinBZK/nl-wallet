@@ -1,9 +1,8 @@
 use std::mem;
 
-use p256::ecdsa::signature::Verifier;
-
 use crypto::keys::SecureEcdsaKey;
 use crypto::keys::SecureEncryptionKey;
+use p256::ecdsa::signature::Verifier;
 
 use super::StoredByIdentifier;
 

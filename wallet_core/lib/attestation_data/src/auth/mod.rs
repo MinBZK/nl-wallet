@@ -89,10 +89,10 @@ pub mod mock {
 
 #[cfg(test)]
 pub mod test {
-    use super::*;
-
     use rstest::rstest;
     use serde_json::json;
+
+    use super::*;
 
     #[rstest]
     #[case("image/svg+xml", "<svg></svg>", Image::Svg("<svg></svg>".to_owned()))]

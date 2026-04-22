@@ -50,14 +50,10 @@ pub struct HwSignedChallengeResponse<T>(SignedSubjectMessage<ChallengeResponsePa
 
 #[cfg(feature = "client")]
 pub mod client {
-    use serde::Serialize;
-
     use crypto::keys::EphemeralEcdsaKey;
     use crypto::keys::SecureEcdsaKey;
     use platform_support::attested_key::AppleAttestedKey;
-
-    use crate::error::EncodeError;
-    use crate::signed::payload::HwSignedChallengeResponse;
+    use serde::Serialize;
 
     use super::super::EcdsaSignatureType;
     use super::super::SignedMessage;
@@ -66,6 +62,8 @@ pub mod client {
     use super::ChallengeResponse;
     use super::ChallengeResponsePayload;
     use super::SignedSubjectMessage;
+    use crate::error::EncodeError;
+    use crate::signed::payload::HwSignedChallengeResponse;
 
     impl ChallengeRequest {
         pub async fn sign_apple<K>(
@@ -219,14 +217,10 @@ pub mod client {
 
 #[cfg(feature = "server")]
 pub mod server {
-    use p256::ecdsa::VerifyingKey;
-    use serde::de::DeserializeOwned;
-
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AssertionCounter;
-
-    use crate::error::DecodeError;
-    use crate::signed::HwSignedChallengeResponse;
+    use p256::ecdsa::VerifyingKey;
+    use serde::de::DeserializeOwned;
 
     use super::super::ContainsChallenge;
     use super::super::EcdsaSignatureType;
@@ -235,6 +229,8 @@ pub mod server {
     use super::ChallengeResponse;
     use super::ChallengeResponsePayload;
     use super::SignedSubjectMessage;
+    use crate::error::DecodeError;
+    use crate::signed::HwSignedChallengeResponse;
 
     #[derive(Debug, Clone, Copy)]
     pub enum SequenceNumberComparison {
@@ -488,23 +484,21 @@ pub mod mock {
 
 #[cfg(all(test, feature = "client", feature = "server"))]
 mod tests {
+    use apple_app_attest::AppIdentifier;
+    use apple_app_attest::AssertionCounter;
     use assert_matches::assert_matches;
     use futures::FutureExt;
     use p256::ecdsa::SigningKey;
+    use platform_support::attested_key::mock::MockAppleAttestedKey;
     use rand_core::OsRng;
     use serde::Deserialize;
     use serde::Serialize;
 
-    use apple_app_attest::AppIdentifier;
-    use apple_app_attest::AssertionCounter;
-    use platform_support::attested_key::mock::MockAppleAttestedKey;
-
-    use crate::error::DecodeError;
-    use crate::signed::HwSignedChallengeResponse;
-
     use super::ChallengeRequest;
     use super::ChallengeResponse;
     use super::server::SequenceNumberComparison;
+    use crate::error::DecodeError;
+    use crate::signed::HwSignedChallengeResponse;
 
     #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
     struct ToyMessage {

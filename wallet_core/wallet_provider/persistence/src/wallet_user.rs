@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
+use apple_app_attest::AssertionCounter;
 use chrono::DateTime;
 use chrono::Utc;
+use hsm::model::encrypted::Encrypted;
+use hsm::model::encrypted::InitializationVector;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePublicKey;
 use p256::pkcs8::EncodePublicKey;
@@ -24,10 +27,6 @@ use sea_orm::sea_query::Query;
 use sea_orm::sea_query::SelectStatement;
 use sea_orm::sea_query::SimpleExpr;
 use uuid::Uuid;
-
-use apple_app_attest::AssertionCounter;
-use hsm::model::encrypted::Encrypted;
-use hsm::model::encrypted::InitializationVector;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;

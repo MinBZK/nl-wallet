@@ -1,7 +1,6 @@
-use futures::FutureExt;
-
 use attestation_types::claim_path::ClaimPath;
 use crypto::server_keys::KeyPair;
+use futures::FutureExt;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::builder::SdJwtBuilder;

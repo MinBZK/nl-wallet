@@ -1,14 +1,13 @@
 use std::error::Error;
 use std::fs::OpenOptions;
 
+use android_attest::android_crl::GoogleRevocationListClient;
+use hsm::service::Pkcs11Hsm;
+use http_utils::reqwest::default_tls_reqwest_client_builder;
 use rustls::crypto::CryptoProvider;
 use rustls::crypto::ring;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
-
-use android_attest::android_crl::GoogleRevocationListClient;
-use hsm::service::Pkcs11Hsm;
-use http_utils::reqwest::default_tls_reqwest_client_builder;
 use wallet_provider::logging::redirect_stdout_stderr_to_log;
 use wallet_provider::server;
 use wallet_provider::settings::Settings;

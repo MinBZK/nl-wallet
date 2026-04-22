@@ -1,8 +1,6 @@
 use std::time::Duration;
 
 use assert_matches::assert_matches;
-use serial_test::serial;
-
 use attestation_data::issuable_document::IssuableDocument;
 use db_test::DbSetup;
 use dcql::CredentialFormat;
@@ -10,12 +8,12 @@ use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
+use serial_test::serial;
+use tests_integration::common::*;
 use token_status_list::status_list_service::BatchIsRevoked;
 use token_status_list::verification::verifier::RevocationStatus;
 use wallet::AttestationPresentation;
 use wallet::errors::DisclosureError;
-
-use tests_integration::common::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]

@@ -3,6 +3,14 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::time::Duration;
 
+use http_utils::urls::BaseUrl;
+use jwt::UnverifiedJwt;
+use jwt::headers::HeaderWithJwk;
+use jwt::pop::JwtPopClaims;
+use jwt::wua::WuaDisclosure;
+use mdoc::IssuerSigned;
+use mdoc::utils::serialization::CborBase64;
+use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -12,15 +20,6 @@ use serde_with::DurationSeconds;
 use serde_with::json::JsonString;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
-
-use http_utils::urls::BaseUrl;
-use jwt::UnverifiedJwt;
-use jwt::headers::HeaderWithJwk;
-use jwt::pop::JwtPopClaims;
-use jwt::wua::WuaDisclosure;
-use mdoc::IssuerSigned;
-use mdoc::utils::serialization::CborBase64;
-use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -310,18 +309,16 @@ mod tests {
     use assert_matches::assert_matches;
     use base64::Engine;
     use base64::prelude::BASE64_URL_SAFE_NO_PAD;
-    use serde_json::json;
-
     use mdoc::DeviceResponse;
     use mdoc::examples::Example;
     use mdoc::utils::serialization::cbor_serialize;
     use sd_jwt::examples::SD_JWT_VC;
-
-    use crate::Format;
+    use serde_json::json;
 
     use super::Credential;
     use super::CredentialResponse;
     use super::Grants;
+    use crate::Format;
 
     #[test]
     fn test_grants_serialization() {

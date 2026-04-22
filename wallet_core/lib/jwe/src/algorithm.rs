@@ -1,9 +1,8 @@
 use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
 use jwk_simple::Algorithm;
-use strum::EnumString;
-
 #[cfg(feature = "rsa")]
 pub use rsa::RsaAlgorithm;
+use strum::EnumString;
 
 /// A type representing possible values of the "alg" header parameter value for JWE, when using an elliptic curve
 /// secret and public key. It contains only those algorithms supported by this crate.

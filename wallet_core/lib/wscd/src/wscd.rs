@@ -1,9 +1,8 @@
 use std::error::Error;
 use std::num::NonZeroUsize;
 
-use derive_more::Constructor;
-
 use crypto::wscd::WscdPoa;
+use derive_more::Constructor;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
 use jwt::nonce::Nonce;

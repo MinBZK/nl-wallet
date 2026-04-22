@@ -1,26 +1,24 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use http_utils::client::TlsPinningConfig;
 use parking_lot::Mutex;
 use tokio::task::JoinHandle;
 use tokio::time;
 use tokio::time::MissedTickBehavior;
 use tracing::error;
 use tracing::info;
-
-use http_utils::client::TlsPinningConfig;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::ConfigurationError;
+use super::FileStorageConfigurationRepository;
+use super::WalletConfigurationRepository;
 use crate::repository::ObservableRepository;
 use crate::repository::Repository;
 use crate::repository::RepositoryCallback;
 use crate::repository::RepositoryUpdateState;
 use crate::repository::UpdateableRepository;
-
-use super::ConfigurationError;
-use super::FileStorageConfigurationRepository;
-use super::WalletConfigurationRepository;
 
 pub struct UpdatingConfigurationRepository<T> {
     wrapped: Arc<T>,
@@ -135,7 +133,6 @@ mod tests {
     use parking_lot::RwLock;
     use tokio::sync::Notify;
     use tokio::time;
-
     use wallet_configuration::wallet_config::WalletConfiguration;
 
     use crate::config::ConfigurationError;

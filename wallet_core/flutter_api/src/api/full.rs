@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
+use flutter_api_macros::flutter_api_error;
 use flutter_rust_bridge::DartFnFuture;
 use flutter_rust_bridge::frb;
 use itertools::Itertools;
 use tokio::sync::OnceCell;
 use tokio::sync::RwLock;
 use url::Url;
-
-use flutter_api_macros::flutter_api_error;
 use wallet::DisclosureUriSource;
 use wallet::PidIssuancePurpose;
 use wallet::UnlockMethod;

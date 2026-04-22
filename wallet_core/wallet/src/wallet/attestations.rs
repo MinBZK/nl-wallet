@@ -1,20 +1,18 @@
 use std::sync::Arc;
 
-use tracing::info;
-
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
+use tracing::info;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::Wallet;
 use crate::attestation::AttestationPresentation;
 use crate::repository::Repository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
-
-use super::Wallet;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -82,21 +80,19 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
+    use attestation_data::validity::ValidityWindow;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use uuid::Uuid;
-
-    use attestation_data::validity::ValidityWindow;
-
-    use crate::storage::StoredAttestation;
-    use crate::storage::StoredAttestationCopy;
-    use crate::wallet::test::create_example_pid_mdoc;
-    use crate::wallet::test::create_example_pid_sd_jwt;
 
     use super::super::test;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::*;
+    use crate::storage::StoredAttestation;
+    use crate::storage::StoredAttestationCopy;
+    use crate::wallet::test::create_example_pid_mdoc;
+    use crate::wallet::test::create_example_pid_sd_jwt;
 
     // Tests both setting and clearing the attestations callback on an unregistered `Wallet`.
     #[tokio::test]

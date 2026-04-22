@@ -31,21 +31,20 @@ use axum_extra::extract::CookieJar;
 use axum_extra::extract::cookie::Cookie;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
+use crypto::SymmetricKey;
+use crypto::utils::sha256;
 use derive_more::AsRef;
 use derive_more::Display;
+use http_utils::health::create_health_router;
 use itertools::Itertools;
 use serde::Deserialize;
+use server_utils::log_requests::log_request_response;
 use strfmt::strfmt;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use tracing::warn;
-
-use crypto::SymmetricKey;
-use crypto::utils::sha256;
-use http_utils::health::create_health_router;
-use server_utils::log_requests::log_request_response;
 use utils::path::prefix_local_path;
 use web_utils::headers::set_static_cache_control;
 use web_utils::language::LANGUAGE_JS_SHA256;
@@ -393,20 +392,18 @@ mod tests {
     use axum::http::header;
     use chrono::TimeZone;
     use chrono::Utc;
+    use crypto::utils::random_bytes;
+    use crypto::utils::random_string;
     use rstest::rstest;
     use scraper::Html;
     use scraper::Selector;
     use tower::Service;
     use tower::ServiceExt;
-
-    use crypto::utils::random_bytes;
-    use crypto::utils::random_string;
     use web_utils::language::Language;
 
+    use super::*;
     use crate::revocation_client::tests::MockRevocationClient;
     use crate::translations::TRANSLATIONS;
-
-    use super::*;
 
     async fn get_csrf_and_cookie(app: &mut Router) -> (String, String) {
         let response = app

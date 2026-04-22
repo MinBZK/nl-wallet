@@ -1,11 +1,10 @@
-use chrono::DateTime;
-use chrono::Utc;
-use uuid::Uuid;
-
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure_type::DisclosureType;
+use chrono::DateTime;
+use chrono::Utc;
 use crypto::x509::BorrowingCertificate;
 use entity::disclosure_event::EventStatus;
+use uuid::Uuid;
 
 use crate::attestation::AttestationPresentation;
 

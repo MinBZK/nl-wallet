@@ -2,14 +2,15 @@ use std::hash::Hash;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use parking_lot::RwLock;
-use tracing::info;
-
 use http_utils::reqwest::IntoReqwestClient;
 use jwt::DEFAULT_VALIDATIONS;
 use jwt::EcdsaDecodingKey;
+use parking_lot::RwLock;
+use tracing::info;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::WalletConfigJwt;
+use super::file_repository::RawJwtProvider;
 use crate::config::ConfigurationError;
 use crate::repository::EtagHttpClient;
 use crate::repository::HttpClient;
@@ -17,9 +18,6 @@ use crate::repository::HttpResponse;
 use crate::repository::Repository;
 use crate::repository::RepositoryUpdateState;
 use crate::repository::UpdateableRepository;
-
-use super::WalletConfigJwt;
-use super::file_repository::RawJwtProvider;
 
 type ConfigState = (Arc<WalletConfiguration>, Option<Arc<WalletConfigJwt>>);
 

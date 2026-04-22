@@ -2,6 +2,9 @@ use std::num::NonZeroUsize;
 use std::path::PathBuf;
 use std::time::Duration;
 
+use crypto::p256_der::verifying_key_sha256;
+use crypto::utils::random_bytes;
+use crypto::utils::sha256;
 use cryptoki::context::CInitializeArgs;
 use cryptoki::context::Pkcs11;
 use cryptoki::mechanism::Mechanism;
@@ -17,6 +20,7 @@ use der::Encode;
 use der::asn1::OctetString;
 use derive_more::AsRef;
 use futures::future;
+use measure::measure;
 use p256::NistP256;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
@@ -26,11 +30,6 @@ use r2d2_cryptoki::SessionAuth;
 use r2d2_cryptoki::SessionManager;
 use r2d2_cryptoki::r2d2::LoggingErrorHandler;
 use sec1::EcParameters;
-
-use crypto::p256_der::verifying_key_sha256;
-use crypto::utils::random_bytes;
-use crypto::utils::sha256;
-use measure::measure;
 use utils::spawn;
 use utils::vec_at_least::VecNonEmpty;
 

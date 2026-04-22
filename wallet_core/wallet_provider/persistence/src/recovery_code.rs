@@ -8,7 +8,6 @@ use sea_orm::SelectColumns;
 use sea_orm::Set;
 use sea_orm::prelude::Expr;
 use sea_orm::sea_query::OnConflict;
-
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::repository::PersistenceError;
 

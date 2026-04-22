@@ -7,7 +7,6 @@ use nutype::nutype;
 use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
-
 use utils::path::prefix_local_path;
 
 use crate::gba;
@@ -582,8 +581,9 @@ pub struct GbaInvestigation {
 
 #[cfg(test)]
 mod test {
-    use crate::haal_centraal::Bsn;
     use rstest::rstest;
+
+    use crate::haal_centraal::Bsn;
 
     #[rstest]
     #[case("999991772")]

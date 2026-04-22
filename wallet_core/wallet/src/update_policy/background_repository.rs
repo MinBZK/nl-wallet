@@ -3,19 +3,17 @@ use std::sync::Arc;
 use parking_lot::Mutex;
 use tokio::task::JoinHandle;
 use tracing::error;
-
 use update_policy_model::update_policy::VersionState;
 
+use super::HttpUpdatePolicyRepository;
+use super::UpdatePolicyError;
+use super::UpdatePolicyRepository;
 use crate::repository::BackgroundUpdateableRepository;
 use crate::repository::ObservableRepository;
 use crate::repository::Repository;
 use crate::repository::RepositoryCallback;
 use crate::repository::RepositoryUpdateState;
 use crate::repository::UpdateableRepository;
-
-use super::HttpUpdatePolicyRepository;
-use super::UpdatePolicyError;
-use super::UpdatePolicyRepository;
 
 type UpdateTask = JoinHandle<Result<RepositoryUpdateState<VersionState>, UpdatePolicyError>>;
 
@@ -149,14 +147,12 @@ mod tests {
     use http_utils::reqwest::test::get_tls_pinning_config_for_url;
     use parking_lot::RwLock;
     use tokio::sync::Notify;
-
     use update_policy_model::update_policy::VersionState;
 
+    use super::*;
     use crate::repository::Repository;
     use crate::repository::RepositoryUpdateState;
     use crate::repository::UpdateableRepository;
-
-    use super::*;
 
     struct TestRepo(RwLock<VersionState>);
 

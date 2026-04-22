@@ -1,13 +1,12 @@
 pub mod key_attestation;
 pub mod key_description;
 
-use x509_parser::certificate::X509Certificate;
-use x509_parser::der_parser::Oid;
-use x509_parser::der_parser::oid;
-
 use key_attestation::KeyAttestation;
 use key_attestation::KeyDescriptionFieldError;
 use key_description::KeyDescription;
+use x509_parser::certificate::X509Certificate;
+use x509_parser::der_parser::Oid;
+use x509_parser::der_parser::oid;
 
 #[rustfmt::skip]
 pub const KEY_ATTESTATION_EXTENSION_OID: Oid = oid!(1.3.6.1.4.1.11129.2.1.17);
@@ -65,7 +64,6 @@ mod tests {
     use super::key_description::RootOfTrust;
     use super::key_description::SecurityLevel;
     use super::key_description::VerifiedBootState;
-
     use super::*;
 
     // This cert was exported from the emulator

@@ -17,14 +17,6 @@ use coset::ProtectedHeader;
 use coset::SignatureContext;
 use coset::iana;
 use coset::sig_structure_data;
-use p256::ecdsa::Signature;
-use p256::ecdsa::VerifyingKey;
-use p256::ecdsa::signature::Verifier;
-use ring::hmac;
-use rustls_pki_types::TrustAnchor;
-use serde::Serialize;
-use serde::de::DeserializeOwned;
-
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
 use crypto::wscd::DisclosureWscd;
@@ -33,6 +25,13 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
+use p256::ecdsa::signature::Verifier;
+use ring::hmac;
+use rustls_pki_types::TrustAnchor;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 use utils::generator::Generator;
 
 use crate::utils::serialization::CborError;
@@ -444,20 +443,18 @@ mod tests {
     use coset::Header;
     use coset::HeaderBuilder;
     use coset::Label;
+    use crypto::server_keys::generate::Ca;
+    use crypto::x509::CertificateUsage;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use serde::Deserialize;
     use serde::Serialize;
-
-    use crypto::server_keys::generate::Ca;
-    use crypto::x509::CertificateUsage;
     use utils::generator::TimeGenerator;
-
-    use crate::utils::cose;
-    use crate::utils::cose::CoseError;
 
     use super::ClonePayload;
     use super::MdocCose;
+    use crate::utils::cose;
+    use crate::utils::cose::CoseError;
 
     #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
     struct ToyMessage {

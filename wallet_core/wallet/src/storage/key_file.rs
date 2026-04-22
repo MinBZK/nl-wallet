@@ -2,10 +2,9 @@ use std::io;
 use std::path::Path;
 use std::path::PathBuf;
 
-use tokio::fs;
-
 use crypto::keys::SecureEncryptionKey;
 use error_category::ErrorCategory;
+use tokio::fs;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]

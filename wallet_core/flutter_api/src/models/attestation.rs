@@ -1,5 +1,4 @@
 use chrono::Utc;
-
 use wallet::attestation_data;
 use wallet::sd_jwt_vc_metadata::LogoMetadata;
 

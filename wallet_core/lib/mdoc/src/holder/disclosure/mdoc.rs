@@ -3,13 +3,12 @@ use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use utils::vec_at_least::VecNonEmpty;
 
+use super::super::Mdoc;
+use super::MissingAttributesError;
 use crate::errors::Result;
 use crate::iso::disclosure::IssuerSigned;
 use crate::iso::mdocs::DeviceKey;
 use crate::iso::mdocs::DocType;
-
-use super::super::Mdoc;
-use super::MissingAttributesError;
 
 #[derive(Debug, Clone)]
 pub struct PartialMdoc {
@@ -71,18 +70,16 @@ mod examples {
 
     use std::sync::LazyLock;
 
-    use futures::FutureExt;
-
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
+    use futures::FutureExt;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
-    use crate::holder::Mdoc;
-
     use super::PartialMdoc;
+    use crate::holder::Mdoc;
 
     static PID_EXAMPLE_CLAIM_PATHS: LazyLock<Vec<VecNonEmpty<ClaimPath>>> = LazyLock::new(|| {
         ["bsn", "given_name", "family_name"]

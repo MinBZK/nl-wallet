@@ -1,6 +1,3 @@
-use serial_test::serial;
-use tracing::debug;
-
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use db_test::DbSetup;
@@ -21,10 +18,12 @@ use pid_issuer::pid::constants::PID_BSN;
 use pid_issuer::pid::constants::PID_FAMILY_NAME;
 use pid_issuer::pid::constants::PID_GIVEN_NAME;
 use pid_issuer::pid::constants::PID_RESIDENT_COUNTRY;
+use serial_test::serial;
 use server_utils::keys::SecretKeyVariant;
 use server_utils::settings::SecretKey;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
+use tracing::debug;
 use wallet::test::default_wallet_config;
 
 /// Test the DigiD connector + BRP proxy integration as consumed by the pid_issuer.

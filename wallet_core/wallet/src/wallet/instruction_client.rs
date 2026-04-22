@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
-
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::Wallet;
 use crate::account_provider::AccountProviderClient;
 use crate::errors::ChangePinError;
 use crate::instruction::HwSignedInstructionClient;
@@ -16,8 +16,6 @@ use crate::instruction::InstructionClientParameters;
 use crate::pin::change::ChangePinStorage;
 use crate::repository::Repository;
 use crate::storage::Storage;
-
-use super::Wallet;
 
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where

@@ -24,19 +24,6 @@ use axum_csrf::CsrfLayer;
 use axum_csrf::CsrfToken;
 use derive_more::AsRef;
 use derive_more::From;
-use http::StatusCode;
-use http::request::Parts;
-use nutype::nutype;
-use serde::Deserialize;
-use tokio::net::TcpListener;
-use tower_http::trace::TraceLayer;
-use tracing::info;
-use tracing::level_filters::LevelFilter;
-use tracing::warn;
-use tracing_subscriber::EnvFilter;
-
-use utils::built_info::version_string;
-
 use gba_hc_converter::gba::client::GbavClient;
 use gba_hc_converter::gba::client::HttpGbavClient;
 use gba_hc_converter::gba::encryption::HmacSha256;
@@ -47,7 +34,18 @@ use gba_hc_converter::haal_centraal::Bsn;
 use gba_hc_converter::settings::PreloadedSettings;
 use gba_hc_converter::settings::RunMode;
 use gba_hc_converter::settings::Settings;
+use http::StatusCode;
+use http::request::Parts;
 use http_utils::health::create_health_router;
+use nutype::nutype;
+use serde::Deserialize;
+use tokio::net::TcpListener;
+use tower_http::trace::TraceLayer;
+use tracing::info;
+use tracing::level_filters::LevelFilter;
+use tracing::warn;
+use tracing_subscriber::EnvFilter;
+use utils::built_info::version_string;
 
 const CERT_SERIAL_HEADER: &str = "Cert-Serial";
 

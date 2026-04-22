@@ -2,16 +2,13 @@ use std::hash::Hash;
 
 use chrono::DateTime;
 use chrono::Utc;
-use rustls_pki_types::TrustAnchor;
-
 use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
+use rustls_pki_types::TrustAnchor;
 use utils::generator::Generator;
 use wscd::Poa;
-
-use crate::verifier::SessionType;
 
 use super::DisclosureClient;
 use super::DisclosureSession;
@@ -20,6 +17,7 @@ use super::VerifierCertificate;
 use super::error::DisclosureError;
 use super::error::VpSessionError;
 use super::uri_source::DisclosureUriSource;
+use crate::verifier::SessionType;
 
 mockall::mock! {
     #[derive(Debug)]

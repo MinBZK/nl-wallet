@@ -5,9 +5,8 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use serde::Deserialize;
-
 use http_utils::urls::BaseUrl;
+use serde::Deserialize;
 use utils::path::prefix_local_path;
 
 #[derive(Deserialize, Clone)]

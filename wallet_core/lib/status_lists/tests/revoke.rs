@@ -2,6 +2,10 @@ use std::num::NonZeroUsize;
 use std::sync::Arc;
 use std::time::Duration;
 
+use crypto::server_keys::generate::Ca;
+use crypto::utils::random_string;
+use db_test::DbSetup;
+use db_test::connection_from_url;
 use futures::future::join_all;
 use futures::future::try_join_all;
 use p256::ecdsa::SigningKey;
@@ -10,14 +14,6 @@ use sea_orm::ColumnTrait;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
-use tokio::net::TcpListener;
-use url::Url;
-use uuid::Uuid;
-
-use crypto::server_keys::generate::Ca;
-use crypto::utils::random_string;
-use db_test::DbSetup;
-use db_test::connection_from_url;
 use status_lists::config::StatusListConfig;
 use status_lists::entity::attestation_batch;
 use status_lists::postgres::NoRevokeAll;
@@ -25,8 +21,11 @@ use status_lists::postgres::PostgresStatusListService;
 use status_lists::publish::PublishDir;
 use status_lists::revoke::create_revocation_router;
 use token_status_list::status_list_service::StatusListRevocationService;
+use tokio::net::TcpListener;
+use url::Url;
 use utils::num::NonZeroU31;
 use utils::num::U31;
+use uuid::Uuid;
 
 async fn setup_revocation_server<L>(service: Arc<L>) -> anyhow::Result<Url>
 where

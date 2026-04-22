@@ -1,5 +1,3 @@
-use jwk_simple::Key;
-
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
@@ -8,12 +6,15 @@ use attestation_data::issuable_document::IssuableDocument;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
 use hsm::service::HsmError;
+use jwk_simple::Key;
 use openid4vc::issuer::AttributeService;
 use openid4vc::token::TokenRequest;
 use server_utils::keys::SecretKeyVariant;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
+use super::digid;
+use super::digid::OpenIdClient;
 use crate::pid::brp::client::BrpClient;
 use crate::pid::brp::client::BrpError;
 use crate::pid::brp::client::HttpBrpClient;
@@ -21,9 +22,6 @@ use crate::pid::constants::PID_ATTESTATION_TYPE;
 use crate::pid::constants::PID_BSN;
 use crate::pid::constants::PID_RECOVERY_CODE;
 use crate::settings::DigidClientSettings;
-
-use super::digid;
-use super::digid::OpenIdClient;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -122,13 +120,12 @@ impl BrpPidAttributeService {
 
 #[cfg(test)]
 mod tests {
-    use indexmap::IndexMap;
-    use ring::hmac;
-    use ring::hmac::HMAC_SHA256;
-
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
+    use indexmap::IndexMap;
+    use ring::hmac;
+    use ring::hmac::HMAC_SHA256;
     use server_utils::keys::SecretKeyVariant;
     use server_utils::settings::SecretKey;
 

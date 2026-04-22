@@ -229,16 +229,15 @@ mod tests {
     use serde::Serialize;
     use serde_json::json;
 
+    use super::JweCompression;
+    use super::JweEncrypter;
+    use super::JweJsonEncryptionError;
+    use super::JwePublicKey;
     use crate::algorithm::EcdhAlgorithm;
     use crate::algorithm::EncryptionAlgorithm;
     use crate::error::EcdhPublicJwkError;
     use crate::error::EcdhPublicJwkErrorDiscriminants;
     use crate::error::JwkErrorDiscriminants;
-
-    use super::JweCompression;
-    use super::JweEncrypter;
-    use super::JweJsonEncryptionError;
-    use super::JwePublicKey;
 
     fn example_jwk() -> serde_json::Value {
         example_jwk_with_alg(EcdhAlgorithm::EcdhEs)

@@ -1,8 +1,7 @@
 use assert_matches::assert_matches;
 
-use crate::CloseProximityDisclosureUpdate;
-
 use super::CloseProximityDisclosureClient;
+use crate::CloseProximityDisclosureUpdate;
 
 pub async fn test_start_qr_handover<I: CloseProximityDisclosureClient>() {
     let (qr, mut receiver) = I::start_qr_handover().await.unwrap();

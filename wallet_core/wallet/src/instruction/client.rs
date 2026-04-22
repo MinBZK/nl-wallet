@@ -2,26 +2,24 @@ use std::future::Future;
 use std::sync::Arc;
 
 use derive_more::Constructor;
-use tokio::sync::RwLock;
-use tokio::sync::RwLockWriteGuard;
-
 use http_utils::client::TlsPinningConfig;
 use jwt::EcdsaDecodingKey;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
+use tokio::sync::RwLock;
+use tokio::sync::RwLockWriteGuard;
 use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::registration::WalletCertificate;
 
+use super::InstructionError;
 use crate::account_provider::AccountProviderClient;
 use crate::pin::key::PinKey;
 use crate::storage::InstructionData;
 use crate::storage::Storage;
-
-use super::InstructionError;
 
 pub struct InstructionClient<S, AK, GK, A> {
     pin: String,

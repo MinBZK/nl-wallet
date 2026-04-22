@@ -13,7 +13,6 @@ use tracing::error;
 use tracing::info;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
-
 use utils::built_info::version_string;
 
 use crate::log_requests::log_request_response;

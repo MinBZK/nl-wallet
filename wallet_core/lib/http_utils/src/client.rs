@@ -7,7 +7,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
-
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::reqwest::IntoReqwestClient;

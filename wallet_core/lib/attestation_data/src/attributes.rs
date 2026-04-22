@@ -1,16 +1,12 @@
 use std::collections::HashSet;
 use std::num::TryFromIntError;
 
+use attestation_types::claim_path::ClaimPath;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use serde::Deserialize;
-use serde::Serialize;
-use serde_json::Number;
-
-use attestation_types::claim_path::ClaimPath;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
 use sd_jwt::claims::ArrayClaim;
@@ -18,6 +14,9 @@ use sd_jwt::claims::ClaimNameError;
 use sd_jwt::claims::ClaimValue;
 use sd_jwt::claims::ObjectClaims;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_json::Number;
 use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, Clone, Display, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -609,9 +608,8 @@ pub enum AttributesHandlingError {
 
 #[cfg(any(test, feature = "example_credential_payloads"))]
 mod examples {
-    use indexmap::IndexMap;
-
     use attestation_types::claim_path::ClaimPath;
+    use indexmap::IndexMap;
     use itertools::Itertools;
 
     use super::Attribute;
@@ -702,15 +700,14 @@ mod mock {
 #[cfg(test)]
 pub mod test {
     use assert_matches::assert_matches;
-    use indexmap::IndexMap;
-    use rstest::rstest;
-    use serde_json::json;
-    use serde_valid::json::ToJsonString;
-
     use attestation_types::claim_path::ClaimPath;
+    use indexmap::IndexMap;
     use mdoc::Entry;
     use mdoc::NameSpace;
+    use rstest::rstest;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use serde_json::json;
+    use serde_valid::json::ToJsonString;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 

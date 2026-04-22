@@ -1,15 +1,10 @@
 use std::fmt::Debug;
 use std::sync::Arc;
 
-use itertools::Itertools;
-use p256::ecdsa::VerifyingKey;
-use tracing::info;
-use tracing::instrument;
-use url::Url;
-
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::urls;
+use itertools::Itertools;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -17,13 +12,23 @@ use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::authorization::OAuthError;
 use openid4vc::wallet_issuance::credential::IssuedCredential;
+use p256::ecdsa::VerifyingKey;
 use platform_support::attested_key::AttestedKeyHolder;
+use tracing::info;
+use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
+use url::Url;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::PidAttributesConfigurationError;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::IssuanceError;
+use super::Session;
+use super::Wallet;
+use super::WalletRegistration;
+use super::issuance::PidAttestationFormat;
+use super::recovery_code::RecoveryCodeError;
 use crate::account_provider::AccountProviderClient;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::errors::InstructionError;
@@ -41,13 +46,6 @@ use crate::storage::PinRecoveryData;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::validate_pin;
-
-use super::IssuanceError;
-use super::Session;
-use super::Wallet;
-use super::WalletRegistration;
-use super::issuance::PidAttestationFormat;
-use super::recovery_code::RecoveryCodeError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -451,10 +449,6 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
-    use rstest::rstest;
-    use url::Url;
-    use uuid::Uuid;
-
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -470,16 +464,21 @@ mod tests {
     use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
+    use rstest::rstest;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+    use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
+    use uuid::Uuid;
     use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::registration::WalletCertificateClaims;
     use wscd::Poa;
     use wscd::wscd::IssuanceWscd;
 
+    use super::PinRecoveryError;
+    use super::PinRecoverySession;
     use crate::errors::PinValidationError;
     use crate::instruction::PinRecoveryWscd;
     use crate::repository::Repository;
@@ -498,9 +497,6 @@ mod tests {
     use crate::wallet::test::create_example_pid_sd_jwt;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::mock_issuance_session;
-
-    use super::PinRecoveryError;
-    use super::PinRecoverySession;
 
     fn setup_issuer_metadata_mock(wallet: &mut TestWalletMockStorage) {
         wallet

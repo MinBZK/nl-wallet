@@ -1,12 +1,11 @@
 use assert_matches::assert_matches;
 use chrono::Utc;
+use crypto::utils::random_string;
+use db_test::DbSetup;
 use sea_orm::ActiveModelTrait;
 use sea_orm::Set;
 use semver::Version;
 use uuid::Uuid;
-
-use crypto::utils::random_string;
-use db_test::DbSetup;
 use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_persistence::PersistenceConnection;

@@ -1,18 +1,17 @@
 use std::borrow::Cow;
 
-use p256::ecdsa;
-use p256::ecdsa::Signature;
-use p256::ecdsa::SigningKey;
-use p256::ecdsa::VerifyingKey;
-use ring::hmac;
-use ring::hmac::HMAC_SHA256;
-
 use crypto::keys::EcdsaKeySend;
 use crypto::x509::CertificateError;
 use hsm::keys::HsmEcdsaKey;
 use hsm::keys::HsmHmacKey;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Hsm;
+use p256::ecdsa;
+use p256::ecdsa::Signature;
+use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
+use ring::hmac;
+use ring::hmac::HMAC_SHA256;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 
 use crate::settings::PrivateKey;

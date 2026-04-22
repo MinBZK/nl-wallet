@@ -1,7 +1,6 @@
+use http_utils::reqwest::HttpJsonClient;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
-
-use http_utils::reqwest::HttpJsonClient;
 
 use crate::credential::CredentialOfferContainer;
 use crate::issuer_identifier::IssuerIdentifier;
@@ -116,29 +115,30 @@ mod test {
     use std::collections::HashMap;
     use std::num::NonZeroU8;
 
-    use http::header;
-    use httpmock::Method::GET;
-    use httpmock::Method::POST;
-    use httpmock::MockServer;
-    use indexmap::IndexMap;
-    use rustls_pki_types::TrustAnchor;
-    use serde_json::json;
-    use url::Url;
-
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::server_keys::generate::Ca;
+    use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
     use http_utils::reqwest::HttpJsonClient;
     use http_utils::reqwest::default_reqwest_client_builder;
+    use httpmock::Method::GET;
+    use httpmock::Method::POST;
+    use httpmock::MockServer;
+    use indexmap::IndexMap;
+    use rustls_pki_types::TrustAnchor;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
+    use serde_json::json;
+    use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
 
+    use super::HttpIssuanceDiscovery;
+    use super::IssuanceDiscovery;
     use crate::Format;
     use crate::credential::CredentialOffer;
     use crate::credential::CredentialOfferContainer;
@@ -154,9 +154,6 @@ mod test {
     use crate::wallet_issuance::AuthorizationSession;
     use crate::wallet_issuance::IssuanceSession;
     use crate::wallet_issuance::WalletIssuanceError;
-
-    use super::HttpIssuanceDiscovery;
-    use super::IssuanceDiscovery;
 
     /// Starts a wiremock server that serves the well-known metadata endpoints, a token endpoint,
     /// and a credential preview endpoint. Returns the server, issuer identifier, and trust anchor.

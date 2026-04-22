@@ -3,17 +3,9 @@ use std::num::NonZeroUsize;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
-use derive_more::Constructor;
-use semver::Version;
-use serde::Deserialize;
-use serde::Serialize;
-use serde::de::DeserializeOwned;
-use serde_with::base64::Base64;
-use serde_with::serde_as;
-use uuid::Uuid;
-
 use crypto::p256_der::DerSignature;
 use crypto::p256_der::DerVerifyingKey;
+use derive_more::Constructor;
 use jwt::JwtSub;
 use jwt::JwtTyp;
 use jwt::UnverifiedJwt;
@@ -22,15 +14,21 @@ use jwt::nonce::Nonce;
 use jwt::pop::JwtPopClaims;
 use jwt::wua::WuaDisclosure;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
+use semver::Version;
+use serde::Deserialize;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+use serde_with::base64::Base64;
+use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmpty;
+use uuid::Uuid;
 use wscd::Poa;
 
+use super::registration::WalletCertificate;
 use crate::messages::transfer::TransferSessionState;
 use crate::signed::ChallengeRequest;
 use crate::signed::ChallengeResponse;
 use crate::signed::HwSignedChallengeResponse;
-
-use super::registration::WalletCertificate;
 
 /// Request for a challenge, sent by wallet to account server before sending an instruction.
 #[derive(Debug, Serialize, Deserialize, Constructor)]
@@ -395,23 +393,21 @@ impl InstructionAndResult for DeleteKeys {
 
 #[cfg(feature = "client")]
 mod client {
-    use serde::Serialize;
-    use serde::de::DeserializeOwned;
-
     use crypto::keys::EphemeralEcdsaKey;
     use crypto::keys::SecureEcdsaKey;
     use platform_support::attested_key::AppleAttestedKey;
-
-    use crate::error::EncodeError;
-    use crate::messages::registration::WalletCertificate;
-    use crate::signed::ChallengeRequest;
-    use crate::signed::ChallengeResponse;
-    use crate::signed::HwSignedChallengeResponse;
+    use serde::Serialize;
+    use serde::de::DeserializeOwned;
 
     use super::HwSignedInstruction;
     use super::Instruction;
     use super::InstructionAndResult;
     use super::InstructionChallengeRequest;
+    use crate::error::EncodeError;
+    use crate::messages::registration::WalletCertificate;
+    use crate::signed::ChallengeRequest;
+    use crate::signed::ChallengeResponse;
+    use crate::signed::HwSignedChallengeResponse;
 
     // Constructors for Instruction.
     impl<T> Instruction<T>

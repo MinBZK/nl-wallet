@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::atomic::AtomicU32;
 
+use crypto::keys::EcdsaKey;
+use crypto::keys::SecureEcdsaKey;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -9,9 +11,6 @@ use p256::ecdsa::signature::Signer;
 use parking_lot::RwLock;
 use rand_core::OsRng;
 use uuid::Uuid;
-
-use crypto::keys::EcdsaKey;
-use crypto::keys::SecureEcdsaKey;
 
 use super::AppleAssertion;
 use super::AppleAttestedKey;
@@ -505,10 +504,9 @@ mod apple {
 
 #[cfg(feature = "mock_attested_key_google")]
 mod google {
-    use base64::prelude::*;
-
     use android_attest::attestation_extension::key_description::KeyDescription;
     use android_attest::mock_chain::MockCaChain;
+    use base64::prelude::*;
 
     use super::*;
 
@@ -575,11 +573,11 @@ mod google {
 
 #[cfg(feature = "mock_attested_key_apple_ca")]
 mod apple_ca {
-    use super::*;
-
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AttestationEnvironment;
     use apple_app_attest::MockAttestationCa;
+
+    use super::*;
 
     impl MockHardwareAttestedKeyHolder {
         /// Create a key holder that produces mock Apple attested keys using the
@@ -604,18 +602,16 @@ mod persistent {
     use std::path::PathBuf;
     use std::sync::LazyLock;
 
+    use apple_app_attest::AppIdentifier;
+    use apple_app_attest::AttestationEnvironment;
+    use apple_app_attest::MockAttestationCa;
     use futures::TryFutureExt;
     use p256::pkcs8::DecodePrivateKey;
     use tokio::fs;
     use tokio::sync::Mutex;
 
-    use apple_app_attest::AppIdentifier;
-    use apple_app_attest::AttestationEnvironment;
-    use apple_app_attest::MockAttestationCa;
-
-    use crate::utils::PlatformUtilities;
-
     use super::*;
+    use crate::utils::PlatformUtilities;
 
     /// The global state of all keys managed by [`PersistentMockAttestedKeyHolder`] instances.
     static KEY_STATES: LazyLock<KeyStates> = LazyLock::new(|| Arc::new(RwLock::new(HashMap::new())));
@@ -808,11 +804,10 @@ mod persistent {
         use apple_app_attest::AppIdentifier;
         use apple_app_attest::AttestationEnvironment;
 
-        use crate::attested_key::test;
-        use crate::utils::mock::MockHardwareUtilities;
-
         use super::KEY_STATES_FILE;
         use super::PersistentMockAttestedKeyHolder;
+        use crate::attested_key::test;
+        use crate::utils::mock::MockHardwareUtilities;
 
         #[tokio::test]
         async fn test_persistent_mock_attested_key_holder() {
@@ -849,13 +844,12 @@ mod tests {
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AttestationEnvironment;
 
+    use super::KeyHolderType;
+    use super::MockHardwareAttestedKeyHolder;
     use crate::attested_key::test;
     use crate::attested_key::test::AndroidTestData;
     use crate::attested_key::test::AppleTestData;
     use crate::attested_key::test::TestData;
-
-    use super::KeyHolderType;
-    use super::MockHardwareAttestedKeyHolder;
 
     impl MockHardwareAttestedKeyHolder {
         pub fn to_test_data(&self) -> TestData<'_> {

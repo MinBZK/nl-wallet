@@ -1,8 +1,4 @@
 use ctor::ctor;
-use reqwest::StatusCode;
-use tracing::instrument;
-use url::Url;
-
 use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::verifier::SessionType;
@@ -12,10 +8,13 @@ use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
+use reqwest::StatusCode;
 use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
 use tests_integration::logging::init_logging;
 use tests_integration::test_credential::new_mock_mdoc_pid_example;
+use tracing::instrument;
+use url::Url;
 use wallet::DisclosureUriSource;
 use wallet::PidIssuancePurpose;
 use wallet::Wallet;

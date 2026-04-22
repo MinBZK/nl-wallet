@@ -3,27 +3,21 @@ use std::hash::Hash;
 
 use chrono::DateTime;
 use chrono::Utc;
-use itertools::Itertools;
-use tracing::info;
-use tracing::warn;
-
 use crypto::CredentialEcdsaKey;
 use crypto::utils::random_string;
 use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
+use itertools::Itertools;
 use jwe::algorithm::EncryptionAlgorithm;
 use mdoc::iso::disclosure::DeviceResponse;
 use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
+use tracing::info;
+use tracing::warn;
 use utils::generator::Generator;
 use wscd::Poa;
 use wscd::wscd::JwtPoaInput;
-
-use crate::openid4vp::NormalizedVpAuthorizationRequest;
-use crate::openid4vp::VerifiablePresentation;
-use crate::openid4vp::VpAuthorizationResponse;
-use crate::verifier::SessionType;
 
 use super::DisclosableAttestations;
 use super::DisclosureSession;
@@ -33,6 +27,10 @@ use super::error::DisclosureError;
 use super::error::VpClientError;
 use super::error::VpSessionError;
 use super::message_client::VpMessageClient;
+use crate::openid4vp::NormalizedVpAuthorizationRequest;
+use crate::openid4vp::VerifiablePresentation;
+use crate::openid4vp::VpAuthorizationResponse;
+use crate::verifier::SessionType;
 
 #[derive(Debug)]
 pub struct VpDisclosureSession<H> {
@@ -282,12 +280,6 @@ mod tests {
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
-    use futures::FutureExt;
-    use http::StatusCode;
-    use http_utils::urls::BaseUrl;
-    use rstest::rstest;
-    use serde::de::Error;
-
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::verifier_certificate::VerifierCertificate;
     use attestation_types::claim_path::ClaimPath;
@@ -297,18 +289,17 @@ mod tests {
     use crypto::x509::CertificateUsage;
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
+    use futures::FutureExt;
+    use http::StatusCode;
+    use http_utils::urls::BaseUrl;
     use jwe::algorithm::EncryptionAlgorithm;
     use mdoc::holder::disclosure::PartialMdoc;
+    use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
+    use serde::de::Error;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wscd::mock_remote::MockRemoteWscd;
-
-    use crate::disclosure_session::error::DataDisclosed;
-    use crate::errors::AuthorizationErrorCode;
-    use crate::errors::VpAuthorizationErrorCode;
-    use crate::openid4vp::VpRequestUriMethod;
-    use crate::verifier::SessionType;
 
     use super::super::DisclosableAttestations;
     use super::super::DisclosureSession;
@@ -323,6 +314,11 @@ mod tests {
     use super::super::message_client::mock::MockVerifierVpMessageClient;
     use super::super::message_client::mock::WalletMessage;
     use super::VpDisclosureSession;
+    use crate::disclosure_session::error::DataDisclosed;
+    use crate::errors::AuthorizationErrorCode;
+    use crate::errors::VpAuthorizationErrorCode;
+    use crate::openid4vp::VpRequestUriMethod;
+    use crate::verifier::SessionType;
 
     static VERIFIER_URL: LazyLock<BaseUrl> = LazyLock::new(|| "http://cert.rp.example.com/disclosure".parse().unwrap());
 

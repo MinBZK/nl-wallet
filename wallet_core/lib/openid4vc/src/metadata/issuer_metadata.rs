@@ -2,23 +2,22 @@ use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::ops::Not;
 
+use attestation_types::claim_path::ClaimPath;
 use derive_more::Into;
+use http_utils::data_uri::DataUri;
 use itertools::Itertools;
 use jwk_simple::Algorithm;
 use jwk_simple::Key;
+use sd_jwt_vc_metadata::ClaimMetadata;
+use sd_jwt_vc_metadata::DisplayMetadata;
+use sd_jwt_vc_metadata::LogoMetadata;
+use sd_jwt_vc_metadata::RenderingMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::MapPreventDuplicates;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
-
-use attestation_types::claim_path::ClaimPath;
-use http_utils::data_uri::DataUri;
-use sd_jwt_vc_metadata::ClaimMetadata;
-use sd_jwt_vc_metadata::DisplayMetadata;
-use sd_jwt_vc_metadata::LogoMetadata;
-use sd_jwt_vc_metadata::RenderingMetadata;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -671,13 +670,10 @@ mod tests {
     use std::collections::HashMap;
 
     use assert_matches::assert_matches;
+    use jwe::algorithm::EncryptionAlgorithm;
     use jwk_simple::Algorithm;
     use jwk_simple::KeyParams;
     use serde_json::json;
-
-    use jwe::algorithm::EncryptionAlgorithm;
-
-    use crate::jwe::JweCompressionAlgorithm;
 
     use super::CoseAlgorithmIdentifier;
     use super::CredentialConfiguration;
@@ -686,6 +682,7 @@ mod tests {
     use super::IssuerMetadata;
     use super::JwsAlgorithm;
     use super::KnownCoseAlgorithmIdentifier;
+    use crate::jwe::JweCompressionAlgorithm;
 
     #[test]
     fn test_sd_jwt_issuer_metadata_deserialization() {

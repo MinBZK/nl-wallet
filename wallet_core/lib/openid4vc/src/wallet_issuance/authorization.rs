@@ -1,12 +1,11 @@
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
-use indexmap::IndexSet;
-use rustls_pki_types::TrustAnchor;
-use url::Url;
-
 use error_category::ErrorCategory;
 use http_utils::reqwest::HttpJsonClient;
+use indexmap::IndexSet;
 use jwt::nonce::Nonce;
+use rustls_pki_types::TrustAnchor;
+use url::Url;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
@@ -203,20 +202,18 @@ mod tests {
     use std::collections::HashMap;
 
     use assert_matches::assert_matches;
+    use http_utils::reqwest::HttpJsonClient;
+    use http_utils::reqwest::default_reqwest_client_builder;
     use rstest::rstest;
     use serial_test::serial;
     use url::Url;
 
-    use http_utils::reqwest::HttpJsonClient;
-    use http_utils::reqwest::default_reqwest_client_builder;
-
+    use super::HttpAuthorizationSession;
+    use super::OAuthError;
     use crate::AuthorizationErrorCode;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
     use crate::pkce::MockPkcePair;
-
-    use super::HttpAuthorizationSession;
-    use super::OAuthError;
 
     const ISSUER_URL: &str = "https://example.com";
     const CLIENT_ID: &str = "client-1";

@@ -3,19 +3,18 @@ use std::hash::Hasher;
 use std::num::NonZeroUsize;
 
 use crypto::WithVerifyingKey;
-use derive_more::Constructor;
-use p256::ecdsa::VerifyingKey;
-use p256::ecdsa::signature;
-use parking_lot::Mutex;
-
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::WithIdentifier;
 use crypto::p256_der::DerSignature;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
+use derive_more::Constructor;
 use jwt::UnverifiedJwt;
 use jwt::nonce::Nonce;
+use p256::ecdsa::VerifyingKey;
+use p256::ecdsa::signature;
+use parking_lot::Mutex;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use wallet_account::messages::instructions::PerformIssuance;
@@ -28,11 +27,10 @@ use wscd::Poa;
 use wscd::wscd::IssuanceResult;
 use wscd::wscd::IssuanceWscd;
 
-use crate::account_provider::AccountProviderClient;
-use crate::storage::Storage;
-
 use super::InstructionClient;
 use super::InstructionError;
+use crate::account_provider::AccountProviderClient;
+use crate::storage::Storage;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RemoteEcdsaKeyError {

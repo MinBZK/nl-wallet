@@ -3,13 +3,6 @@ use std::num::NonZeroUsize;
 use std::slice::Iter;
 use std::sync::Arc;
 
-use p256::ecdsa::SigningKey;
-use p256::pkcs8::EncodePrivateKey;
-use rstest::rstest;
-use rustls_pki_types::TrustAnchor;
-use tokio::net::TcpListener;
-use url::Url;
-
 use attestation_data::credential_payload::CredentialPayload;
 use crypto::server_keys::generate::Ca;
 use http_utils::reqwest::HttpJsonClient;
@@ -38,6 +31,12 @@ use openid4vc::wallet_issuance::credential::IssuedCredential;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
 use openid4vc_server::issuer::create_issuance_router;
+use p256::ecdsa::SigningKey;
+use p256::pkcs8::EncodePrivateKey;
+use rstest::rstest;
+use rustls_pki_types::TrustAnchor;
+use tokio::net::TcpListener;
+use url::Url;
 use wscd::mock_remote::MockRemoteWscd;
 
 fn generate_localhost_tls() -> (TlsServerConfig, ReqwestTrustAnchor) {

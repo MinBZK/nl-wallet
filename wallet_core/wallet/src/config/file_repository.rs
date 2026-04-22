@@ -2,20 +2,18 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use derive_more::Constructor;
-
 use http_utils::reqwest::IntoReqwestClient;
 use jwt::DEFAULT_VALIDATIONS;
 use jwt::EcdsaDecodingKey;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
-use crate::repository::Repository;
-use crate::repository::RepositoryUpdateState;
-use crate::repository::UpdateableRepository;
-
 use super::ConfigurationError;
 use super::HttpConfigurationRepository;
 use super::WalletConfigJwt;
 use super::config_file;
+use crate::repository::Repository;
+use crate::repository::RepositoryUpdateState;
+use crate::repository::UpdateableRepository;
 
 pub trait RawJwtProvider {
     fn last_raw_jwt(&self) -> Option<Arc<WalletConfigJwt>>;
@@ -92,17 +90,17 @@ where
 mod tests {
     use std::sync::Arc;
 
-    use p256::ecdsa::SigningKey;
-    use parking_lot::RwLock;
-    use rand_core::OsRng;
-
     use http_utils::client::InternalHttpConfig;
     use http_utils::client::TlsPinningConfig;
     use jwt::DEFAULT_VALIDATIONS;
     use jwt::EcdsaDecodingKey;
     use jwt::SignedJwt;
+    use p256::ecdsa::SigningKey;
+    use parking_lot::RwLock;
+    use rand_core::OsRng;
     use wallet_configuration::wallet_config::WalletConfiguration;
 
+    use super::RawJwtProvider;
     use crate::config::ConfigurationError;
     use crate::config::FileStorageConfigurationRepository;
     use crate::config::HttpConfigurationRepository;
@@ -112,8 +110,6 @@ mod tests {
     use crate::repository::Repository;
     use crate::repository::RepositoryUpdateState;
     use crate::repository::UpdateableRepository;
-
-    use super::RawJwtProvider;
 
     struct TestConfigRepo {
         signing_key: SigningKey,

@@ -1,11 +1,11 @@
-use itertools::Itertools;
-
 use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
+use itertools::Itertools;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
+use super::mdoc::PartialMdoc;
 use crate::DeviceResponseWithPoa;
 use crate::errors::Error;
 use crate::errors::Result;
@@ -16,8 +16,6 @@ use crate::iso::disclosure::DeviceSigned;
 use crate::iso::disclosure::Document;
 use crate::iso::engagement::DeviceAuthenticationKeyed;
 use crate::iso::engagement::SessionTranscript;
-
-use super::mdoc::PartialMdoc;
 
 impl DeviceResponse {
     pub fn new(documents: VecNonEmpty<Document>) -> Self {
@@ -136,15 +134,15 @@ impl<P> DeviceResponseWithPoa<P> {
 
 #[cfg(test)]
 mod tests {
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteWscd;
+    use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use rstest::rstest;
 
-    use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::mock_remote::MockRemoteWscd;
-    use crypto::server_keys::generate::Ca;
-
+    use super::super::mdoc::PartialMdoc;
     use crate::DeviceResponseWithPoa;
     use crate::examples::Example;
     use crate::iso::disclosure::DeviceAuth;
@@ -155,8 +153,6 @@ mod tests {
     use crate::utils::cose::ClonePayload;
     use crate::utils::serialization::cbor_deserialize;
     use crate::utils::serialization::cbor_serialize;
-
-    use super::super::mdoc::PartialMdoc;
 
     #[test]
     fn test_error_device_response_constructor() {

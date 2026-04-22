@@ -1,10 +1,9 @@
 use std::error::Error;
 use std::net::SocketAddr;
 
+use hsm::service::Pkcs11Hsm;
 use tokio::net::TcpListener;
 use tracing::info;
-
-use hsm::service::Pkcs11Hsm;
 use utils::built_info::version_string;
 use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::account_server::IntegrityTokenDecoder;

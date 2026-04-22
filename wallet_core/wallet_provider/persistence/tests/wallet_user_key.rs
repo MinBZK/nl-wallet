@@ -2,12 +2,11 @@ use std::collections::HashSet;
 use std::slice::from_ref;
 
 use crypto::utils::random_string;
+use db_test::DbSetup;
+use hsm::model::wrapped_key::WrappedKey;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use uuid::Uuid;
-
-use db_test::DbSetup;
-use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;

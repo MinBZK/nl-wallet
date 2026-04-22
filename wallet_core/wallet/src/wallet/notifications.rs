@@ -1,16 +1,14 @@
 use std::pin::Pin;
 use std::sync::Arc;
 
-use parking_lot::Mutex;
-use tokio::sync::RwLock;
-use tracing::info;
-
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
-
+use parking_lot::Mutex;
 use platform_support::attested_key::AttestedKeyHolder;
+use tokio::sync::RwLock;
+use tracing::info;
 use utils::generator::TimeGenerator;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -128,10 +126,9 @@ pub async fn emit_scheduled_notifications<S: Storage>(
 mod tests {
     use std::sync::Arc;
 
+    use attestation_data::validity::ValidityWindow;
     use parking_lot::Mutex;
     use uuid::Uuid;
-
-    use attestation_data::validity::ValidityWindow;
 
     use crate::Notification;
     use crate::storage::StoredAttestation;

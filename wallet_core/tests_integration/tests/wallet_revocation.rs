@@ -1,18 +1,18 @@
 use std::iter;
 
 use assert_matches::assert_matches;
+use audit_log::entity;
 use axum::http::StatusCode;
+use db_test::DbSetup;
+use http_utils::reqwest::ReqwestTrustAnchor;
+use http_utils::reqwest::tls_reqwest_client_builder;
 use sea_orm::EntityTrait;
 use sea_orm::PaginatorTrait;
 use sea_orm::QueryOrder;
 use serde_json::json;
 use serial_test::serial;
 use tempfile::TempDir;
-
-use audit_log::entity;
-use db_test::DbSetup;
-use http_utils::reqwest::ReqwestTrustAnchor;
-use http_utils::reqwest::tls_reqwest_client_builder;
+use tests_integration::common::*;
 use wallet::AccountRevokedData;
 use wallet::BlockedReason;
 use wallet::PidIssuancePurpose;
@@ -25,8 +25,6 @@ use wallet::errors::WalletUnlockError;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wallet_provider_persistence::test::clear_flags_dropper;
-
-use tests_integration::common::*;
 
 /// Revoke a wallet via the wallet provider's internal endpoint and assert
 /// that the wallet wipes itself (UserRequest revocation).

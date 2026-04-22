@@ -6,7 +6,6 @@ use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use sea_orm::QuerySelect;
 use uuid::Uuid;
-
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;

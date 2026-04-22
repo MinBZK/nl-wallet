@@ -1,12 +1,11 @@
+use attestation_data::attributes::Attribute;
+use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use chrono::NaiveDate;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde_with::skip_serializing_none;
-
-use attestation_data::attributes::Attribute;
-use attestation_data::attributes::AttributeValue;
 
 use crate::pid::constants::PID_ADDRESS_GROUP;
 use crate::pid::constants::PID_AGE_OVER_18;
@@ -296,7 +295,6 @@ mod tests {
 
     use rstest::rstest;
     use serde_json::json;
-
     use utils::path::prefix_local_path;
 
     use crate::pid::brp::data::BrpPersons;

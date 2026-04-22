@@ -204,15 +204,13 @@ mod test {
     use assert_matches::assert_matches;
     use base64::Engine;
     use base64::prelude::BASE64_URL_SAFE_NO_PAD;
-    use serde_json::json;
-
     use crypto::utils::random_bytes;
-
-    use crate::claims::ClaimValue;
-    use crate::error::DecoderError;
+    use serde_json::json;
 
     use super::Disclosure;
     use super::DisclosureContent;
+    use crate::claims::ClaimValue;
+    use crate::error::DecoderError;
 
     // Test values from:
     // <https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#appendix-A.2-7>

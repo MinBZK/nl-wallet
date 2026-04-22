@@ -1,16 +1,15 @@
-use chrono::DateTime;
-use chrono::Utc;
-use rustls_pki_types::TrustAnchor;
-use uuid::Uuid;
-
 use attestation_types::status_claim::StatusClaim;
 use attestation_types::status_claim::StatusListClaim;
+use chrono::DateTime;
+use chrono::Utc;
 use crypto::x509::DistinguishedName;
 use entity::revocation_info;
+use rustls_pki_types::TrustAnchor;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::Generator;
+use uuid::Uuid;
 
 /// An instance of an attestation copy's revocation information
 #[derive(Debug, Clone)]
@@ -61,15 +60,14 @@ mod test {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
-    use futures::FutureExt;
-    use uuid::Uuid;
-
     use attestation_types::status_claim::StatusClaim;
     use crypto::server_keys::generate::Ca;
+    use futures::FutureExt;
     use token_status_list::verification::client::mock::StatusListClientStub;
     use token_status_list::verification::verifier::RevocationStatus;
     use token_status_list::verification::verifier::RevocationVerifier;
     use utils::generator::mock::MockTimeGenerator;
+    use uuid::Uuid;
 
     use crate::storage::revocation_info::RevocationInfo;
 

@@ -20,8 +20,6 @@ use axum_extra::headers::CacheControl;
 use axum_extra::headers::Header;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::authorization::Credentials;
-use tracing::warn;
-
 use crypto::keys::EcdsaKeySend;
 use openid4vc::CredentialErrorCode;
 use openid4vc::CredentialPreviewErrorCode;
@@ -48,6 +46,7 @@ use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponse;
 use token_status_list::status_list_service::StatusListServices;
+use tracing::warn;
 
 struct ApplicationState<K, A, S, N, L> {
     issuer: Arc<Issuer<K, A, S, N, L>>,

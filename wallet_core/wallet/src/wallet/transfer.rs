@@ -1,11 +1,5 @@
 use std::sync::Arc;
 
-use tempfile::NamedTempFile;
-use tracing::info;
-use tracing::instrument;
-use url::Url;
-use uuid::Uuid;
-
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use jwe::algorithm::EcdhAlgorithm;
@@ -15,8 +9,13 @@ use jwe::error::JweJsonEncryptionError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
+use tempfile::NamedTempFile;
+use tracing::info;
+use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
+use url::Url;
 use utils::built_info::version;
+use uuid::Uuid;
 use wallet_account::messages::instructions::CancelTransfer;
 use wallet_account::messages::instructions::CompleteTransfer;
 use wallet_account::messages::instructions::ConfirmTransfer;
@@ -467,17 +466,20 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use crypto::utils::random_bytes;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use parking_lot::Mutex;
     use url::Host;
     use uuid::Uuid;
-
-    use crypto::utils::random_bytes;
-    use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use wallet_account::messages::errors::AccountError;
     use wallet_account::messages::instructions::HwSignedInstruction;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::instructions::ReceiveWalletPayloadResult;
 
+    use super::super::test::TestWalletInMemoryStorage;
+    use super::super::test::TestWalletMockStorage;
+    use super::super::test::WalletDeviceVendor;
+    use super::*;
     use crate::PidIssuancePurpose;
     use crate::account_provider::AccountProviderError;
     use crate::account_provider::AccountProviderResponseError;
@@ -488,11 +490,6 @@ mod tests {
     use crate::wallet::Session;
     use crate::wallet::issuance::WalletIssuanceSession;
     use crate::wallet::test::create_wp_result;
-
-    use super::super::test::TestWalletInMemoryStorage;
-    use super::super::test::TestWalletMockStorage;
-    use super::super::test::WalletDeviceVendor;
-    use super::*;
 
     #[tokio::test]
     async fn test_transfer_error_blocked() {

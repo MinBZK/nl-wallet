@@ -1,12 +1,11 @@
 use futures::TryFutureExt;
-use reqwest::Response;
-use serde::Serialize;
-use url::ParseError;
-
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::reqwest::is_problem_json_response;
 use http_utils::urls::BaseUrl;
+use reqwest::Response;
+use serde::Serialize;
+use url::ParseError;
 
 use crate::pid::brp::data::*;
 

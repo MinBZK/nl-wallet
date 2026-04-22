@@ -3,6 +3,7 @@
 use std::borrow::Cow;
 use std::fmt::Debug;
 
+use attestation_types::claim_path::ClaimPath;
 use ciborium::de::Error as CiboriumError;
 use ciborium::value::Value;
 use coset::CoseSign1;
@@ -13,8 +14,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
-
-use attestation_types::claim_path::ClaimPath;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -323,11 +322,10 @@ mod examples {
     use indexmap::IndexMap;
     use utils::vec_at_least::NonEmptyIterator;
 
+    use super::ItemsRequest;
     use crate::examples::EXAMPLE_ATTRIBUTES;
     use crate::examples::EXAMPLE_DOC_TYPE;
     use crate::examples::EXAMPLE_NAMESPACE;
-
-    use super::ItemsRequest;
 
     impl ItemsRequest {
         /// Build an [`ItemsRequest`] from a list of attributes.
