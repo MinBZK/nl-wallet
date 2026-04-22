@@ -179,49 +179,49 @@ pub enum CloseProximityDisclosureError {
     #[category(critical)]
     MissingReaderAuth,
 
-    #[error("ReaderAuths are not all identical")]
+    #[error("not all ReaderAuths are identical")]
     #[category(critical)]
     InconsistentReaderAuths,
 
-    #[error("Invalid DocRequest")]
+    #[error("invalid DocRequest")]
     InvalidDocRequest(#[from] mdoc::Error),
 
-    #[error("Missing ReaderRegistration in certificate")]
+    #[error("missing ReaderRegistration in certificate")]
     #[category(critical)]
     MissingReaderRegistration,
 
-    #[error("Invalid certificate type: {0}")]
+    #[error("invalid certificate type: {0}")]
     InvalidCertificateType(#[from] CertificateTypeError),
 
-    #[error("Requested unregistered attributes: {0}")]
+    #[error("reader auth validation error: {0}")]
     #[category(pd)]
-    RequestedUnregisteredAttributes(#[from] ValidationError),
+    ReaderAuthValidation(#[source] ValidationError),
 
-    #[error("Received invalid CBOR from reader: {0}")]
+    #[error("received invalid CBOR from reader: {0}")]
     #[category(critical)]
-    MalformedDeviceRequest(#[from] CborError),
+    MalformedDeviceRequest(#[source] CborError),
 
-    #[error("Received invalid Device Request structure from reader: {0}")]
+    #[error("received invalid Device Request structure from reader: {0}")]
     #[category(critical)]
     InvalidDeviceRequest(#[source] CborError),
 
-    #[error("Could not encode error DeviceResponse: {0}")]
+    #[error("could not encode error DeviceResponse: {0}")]
     #[category(critical)]
-    ErrorDeviceResponseEncoding(#[source] CborError),
+    DeviceResponseEncoding(#[source] CborError),
 
-    #[error("Received error from native close proximity bridge: {0}")]
+    #[error("received error from native close proximity bridge: {0}")]
     #[category(critical)]
     PlatformError(#[from] PlatformError),
 
-    #[error("Failed creating device response: {0}")]
+    #[error("failed creating device response: {0}")]
     #[category(pd)]
     DeviceResponse(#[source] mdoc::Error),
 
-    #[error("Could not extract Common Name from certificate: {0}")]
+    #[error("could not extract Common Name from certificate: {0}")]
     #[category(critical)]
     InvalidCertificate(#[source] CertificateError),
 
-    #[error("No Common Name found in certificate")]
+    #[error("no Common Name found in certificate")]
     #[category(critical)]
     MissingCommonName,
 }
@@ -242,12 +242,12 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         | CloseProximityDisclosureError::InvalidDocRequest(_)
         | CloseProximityDisclosureError::MissingReaderRegistration
         | CloseProximityDisclosureError::InvalidCertificateType(_)
-        | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_)
+        | CloseProximityDisclosureError::ReaderAuthValidation(_)
         | CloseProximityDisclosureError::InvalidCertificate(_)
         | CloseProximityDisclosureError::MissingCommonName => Some(DeviceResponseStatus::GeneralError),
         // These are either internal wallet errors or failures already handled by platform support,
         // so we do not expect to send a protocol-level error DeviceResponse for them.
-        CloseProximityDisclosureError::ErrorDeviceResponseEncoding(_)
+        CloseProximityDisclosureError::DeviceResponseEncoding(_)
         | CloseProximityDisclosureError::PlatformError(_)
         | CloseProximityDisclosureError::DeviceResponse(_) => None,
     }
@@ -255,7 +255,7 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
 
 fn encode_error_device_response(status: DeviceResponseStatus) -> Result<Vec<u8>, CloseProximityDisclosureError> {
     // Defensive: with the current fixed DeviceResponse shape we do not expect CBOR serialization to fail in practice.
-    cbor_serialize(&DeviceResponse::error(status)).map_err(CloseProximityDisclosureError::ErrorDeviceResponseEncoding)
+    cbor_serialize(&DeviceResponse::error(status)).map_err(CloseProximityDisclosureError::DeviceResponseEncoding)
 }
 
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
@@ -742,7 +742,8 @@ pub fn verify_device_request(
     // Verify that the requested attributes are included in the reader authentication.
     verifier_certificate
         .registration()
-        .verify_requested_attributes(device_request.items_requests())?;
+        .verify_requested_attributes(device_request.items_requests())
+        .map_err(CloseProximityDisclosureError::ReaderAuthValidation)?;
 
     Ok(verifier_certificate)
 }
@@ -1480,10 +1481,7 @@ mod tests {
             &trust_anchors,
         );
 
-        assert_matches!(
-            result,
-            Err(CloseProximityDisclosureError::RequestedUnregisteredAttributes(_))
-        );
+        assert_matches!(result, Err(CloseProximityDisclosureError::ReaderAuthValidation(_)));
     }
 
     // The PIN used in accept_disclosure tests.
