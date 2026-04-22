@@ -17,17 +17,10 @@ use crypto::x509::CertificateUsage::OAuthStatusSigning;
 use indexmap::IndexMap;
 use mdoc::DataElements;
 use mdoc::DeviceRequest;
-use mdoc::DocRequest;
 use mdoc::ItemsRequest;
-use mdoc::ItemsRequestBytes;
 use mdoc::NameSpaces;
-use mdoc::ReaderAuthenticationBytes;
-use mdoc::ReaderAuthenticationKeyed;
 use mdoc::SessionTranscript;
-use mdoc::utils::cose::MdocCose;
-use mdoc::utils::cose::new_certificate_header;
-use mdoc::utils::serialization::CborSeq;
-use mdoc::utils::serialization::TaggedBytes;
+use mdoc::holder::disclosure::create_doc_request;
 use mdoc::utils::serialization::cbor_serialize;
 use utils::built_info::version_string;
 use utils::vec_at_least::VecNonEmpty;
@@ -549,29 +542,6 @@ fn is_mdoc_namespace_for_doc_type(doc_type: &str, namespace: &str) -> bool {
             .is_some_and(|suffix| suffix.starts_with('.'))
 }
 
-async fn create_doc_request(
-    items_request: ItemsRequest,
-    session_transcript: &SessionTranscript,
-    key_pair: &crypto::server_keys::KeyPair,
-) -> Result<DocRequest> {
-    let items_request: ItemsRequestBytes = items_request.into();
-    let items_request_for_auth = items_request.clone();
-    let reader_auth_keyed = ReaderAuthenticationKeyed::new(session_transcript, &items_request_for_auth);
-
-    let reader_auth = MdocCose::<_, ReaderAuthenticationBytes>::sign(
-        &TaggedBytes(CborSeq(reader_auth_keyed)),
-        new_certificate_header(key_pair.certificate()),
-        key_pair,
-        false,
-    )
-    .await?;
-
-    Ok(DocRequest {
-        items_request,
-        reader_auth: Some(reader_auth.0.into()),
-    })
-}
-
 async fn create_reader_device_request(
     ca: &generate::Ca,
     common_name: &str,
@@ -583,7 +553,7 @@ async fn create_reader_device_request(
 
     let mut doc_requests = Vec::with_capacity(items_requests.len());
     for items_request in items_requests {
-        doc_requests.push(create_doc_request(items_request, session_transcript, &key_pair).await?);
+        doc_requests.push(create_doc_request(items_request, session_transcript, &key_pair).await);
     }
 
     let doc_requests = VecNonEmpty::try_from(doc_requests)

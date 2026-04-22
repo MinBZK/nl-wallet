@@ -27,7 +27,7 @@ x509-parser.workspace = true
 crypto = { path = "../lib/crypto", features = ["generate", "mock"] }
 attestation_data = { path = "../lib/attestation_data", features = ["generate"] }
 attestation_types.path = "../lib/attestation_types"
-mdoc.path = "../lib/mdoc"
+mdoc = { path = "../lib/mdoc", features = ["test"] }
 utils.path = "../lib/utils"
 
 [dev-dependencies]
