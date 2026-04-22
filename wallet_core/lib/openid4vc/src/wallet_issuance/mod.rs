@@ -242,6 +242,9 @@ pub trait AuthorizationSession {
     /// Returns the authorization URL the user should be redirected to.
     fn auth_url(&self) -> &Url;
 
+    /// Returns the OAuth `state` (CSRF token) stored in the PAR-submitted authorization request.
+    fn state(&self) -> &str;
+
     /// Exchanges the authorization code in `received_redirect_uri` for an access token and
     /// credential previews, returning an [`IssuanceSession`].
     async fn start_issuance(

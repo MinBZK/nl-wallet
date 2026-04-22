@@ -24,6 +24,9 @@ mod uri;
 #[cfg(test)]
 mod test;
 
+#[cfg(any(test, feature = "test"))]
+pub mod test_support;
+
 use std::marker::PhantomData;
 use std::sync::Arc;
 

@@ -85,10 +85,6 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
 
     let wallet_config = default_wallet_config();
 
-    // Discover the credential issuer and start authorization code flow. The wallet sends `client_id`
-    // to the pid_issuer's PAR endpoint, which validates it against its configured wallet_client_ids.
-    // The pid_issuer then substitutes its own DigiD client_id before forwarding to rdo-max.
-    // Overridable here so CI can use a wallet client_id that is registered with that pid_issuer.
     let redirect_uri = option_env!("DIGID_TEST_REDIRECT_URI")
         .map(|raw| raw.parse().expect("DIGID_TEST_REDIRECT_URI is not a valid URL"))
         .unwrap_or_else(|| {
@@ -108,7 +104,6 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     // Do fake DigiD authentication and parse the access token out of the redirect URL
     let redirect_url = fake_digid_auth(
         authorization_session.auth_url().clone(),
-        &issuer_url.public,
         settings.digid.client_settings.oidc_identifier.as_ref(),
         settings
             .digid
@@ -117,7 +112,6 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             .into_iter()
             .map(|ta| ta.into_certificate())
             .collect_vec(),
-        settings.digid.client_id.as_str(),
         "999991772",
     )
     .await;

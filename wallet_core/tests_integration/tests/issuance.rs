@@ -215,13 +215,17 @@ async fn ltc2_test_pid_missing_required_attributes() {
 
     wallet = do_wallet_registration(wallet, pin).await;
 
-    let auth_url = wallet
+    wallet
         .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
         .await
         .expect("should create PID issuance redirect URL");
 
+    let state = wallet
+        .current_oauth_state()
+        .expect("wallet should have active OAuth state")
+        .to_owned();
     let _unsigned_mdocs = wallet
-        .continue_pid_issuance(fake_oidc_redirect(&auth_url))
+        .continue_pid_issuance(fake_oidc_redirect(&state))
         .await
         .expect("should continue PID issuance");
     let error = wallet

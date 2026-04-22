@@ -1070,13 +1070,7 @@ pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: &str) ->
 /// content, any authorization code works. We only need the correct `state` parameter
 /// (to pass the CSRF check) and a redirect URI that starts with the wallet's issuance base URI.
 /// A random code ensures each call gets a fresh session in the pid issuer's session store.
-pub fn fake_oidc_redirect(auth_url: &Url) -> Url {
-    let state = auth_url
-        .query_pairs()
-        .find(|(k, _)| k == "state")
-        .map(|(_, v)| v.into_owned())
-        .expect("auth URL should contain state parameter");
-
+pub fn fake_oidc_redirect(state: &str) -> Url {
     let code = crypto::utils::random_string(32);
 
     let redirect_base: BaseUrl = DEFAULT_UNIVERSAL_LINK_BASE
@@ -1100,12 +1094,16 @@ pub async fn do_pid_issuance_with_purpose(
     pin: String,
     purpose: PidIssuancePurpose,
 ) -> WalletWithStorage {
-    let auth_url = wallet
+    wallet
         .create_pid_issuance_auth_url(purpose)
         .await
         .expect("Could not create pid issuance auth url");
 
-    let redirect_url = fake_oidc_redirect(&auth_url);
+    let state = wallet
+        .current_oauth_state()
+        .expect("wallet should have an active OAuth state after creating auth URL")
+        .to_owned();
+    let redirect_url = fake_oidc_redirect(&state);
 
     let _attestations = wallet
         .continue_pid_issuance(redirect_url)
@@ -1119,12 +1117,16 @@ pub async fn do_pid_issuance_with_purpose(
 }
 
 pub async fn do_pin_recovery(mut wallet: WalletWithStorage, new_pin: String) -> WalletWithStorage {
-    let auth_url = wallet
+    wallet
         .create_pin_recovery_redirect_uri()
         .await
         .expect("Could not create pin recovery redirect URI");
 
-    let redirect_url = fake_oidc_redirect(&auth_url);
+    let state = wallet
+        .current_oauth_state()
+        .expect("wallet should have an active OAuth state after creating pin recovery redirect URI")
+        .to_owned();
+    let redirect_url = fake_oidc_redirect(&state);
 
     wallet
         .continue_pin_recovery(redirect_url)

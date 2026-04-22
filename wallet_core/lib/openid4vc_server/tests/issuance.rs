@@ -217,22 +217,21 @@ async fn authorization_code_flow(
         .await
         .unwrap();
 
-    dbg!(&auth_session.auth_url());
-    dbg!(issuer_identifier.as_base_url().as_ref().as_str());
-
-    // Auth URL must point to the authorization endpoint of the issuer
+    // Auth URL must point to the authorize endpoint and carry PAR params (RFC 9126).
     assert!(auth_session.auth_url().as_str().starts_with(&format!(
         "{}issuance/authorize",
         issuer_identifier.as_base_url().as_ref().as_str()
     )));
-
-    // Extract the state from the auth URL so we can craft a valid redirect.
     let auth_params: HashMap<String, String> = auth_session
         .auth_url()
         .query_pairs()
         .map(|(k, v)| (k.to_string(), v.to_string()))
         .collect();
-    let state = auth_params.get("state").unwrap().clone();
+    assert!(auth_params.contains_key("request_uri"));
+    assert!(!auth_params.contains_key("state"));
+
+    // State is inside the PAR-stored request; read it from the session to craft the redirect.
+    let state = auth_session.state().to_owned();
 
     // Simulate the authorization server redirecting back with a code and the matching state.
     // The issuer will treat any unknown code as a new (authorization-code-flow) session and

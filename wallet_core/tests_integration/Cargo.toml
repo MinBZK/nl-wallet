@@ -211,6 +211,7 @@ digid_test = [
     "dep:ring",
     "dep:rustls-pki-types",
     "dep:serial_test",
+    "dep:wallet_account",
 ]
 
 # Should be enabled when building the performance_test binary
