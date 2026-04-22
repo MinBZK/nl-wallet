@@ -1,22 +1,21 @@
+use android_attest::attestation_extension::key_attestation::OsVersion;
+use android_attest::attestation_extension::key_attestation::PatchLevel;
+use apple_app_attest::AssertionCounter;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::p256_der::verifying_key_sha256;
 use derive_more::AsRef;
 use derive_more::Debug;
 use derive_more::Display;
 use derive_more::From;
 use derive_more::Into;
+use hsm::model::encrypted::Encrypted;
+use hsm::model::wrapped_key::WrappedKey;
 use p256::ecdsa::VerifyingKey;
 use semver::Version;
 use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
-
-use android_attest::attestation_extension::key_attestation::OsVersion;
-use android_attest::attestation_extension::key_attestation::PatchLevel;
-use apple_app_attest::AssertionCounter;
-use crypto::p256_der::verifying_key_sha256;
-use hsm::model::encrypted::Encrypted;
-use hsm::model::wrapped_key::WrappedKey;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::transfer::TransferSessionState;
 
@@ -198,19 +197,17 @@ impl From<WalletUser> for WalletUserIsRevoked {
 pub mod mock {
     use std::str::FromStr;
 
-    use p256::ecdsa::VerifyingKey;
-    use uuid::uuid;
-
     use crypto::utils::random_bytes;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypted::InitializationVector;
-
-    use crate::model::wallet_user::WalletId;
+    use p256::ecdsa::VerifyingKey;
+    use uuid::uuid;
 
     use super::AndroidHardwareIdentifiers;
     use super::WalletUser;
     use super::WalletUserAttestation;
     use super::WalletUserState;
+    use crate::model::wallet_user::WalletId;
 
     pub fn wallet_user_1() -> WalletUser {
         wallet_user_with_id("wallet_123".to_owned().into())

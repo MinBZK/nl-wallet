@@ -1,19 +1,18 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
+use attestation_types::claim_path::ClaimPath;
+use crypto::x509::BorrowingCertificateExtension;
+use error_category::ErrorCategory;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
-use x509_parser::der_parser::Oid;
-use x509_parser::der_parser::asn1_rs::oid;
-
-use attestation_types::claim_path::ClaimPath;
-use crypto::x509::BorrowingCertificateExtension;
-use error_category::ErrorCategory;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use x509_parser::der_parser::Oid;
+use x509_parser::der_parser::asn1_rs::oid;
 
 use crate::auth::LocalizedStrings;
 use crate::auth::Organization;
@@ -132,11 +131,10 @@ impl BorrowingCertificateExtension for ReaderRegistration {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use itertools::Itertools;
-
     use dcql::ClaimsSelection;
     use dcql::CredentialQueryFormat;
     use dcql::Query;
+    use itertools::Itertools;
     use utils::vec_at_least::VecNonEmpty;
 
     use super::*;
@@ -270,9 +268,8 @@ pub mod mock {
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
-    use rstest::rstest;
-
     use dcql::normalized::NormalizedCredentialRequests;
+    use rstest::rstest;
 
     use super::mock::*;
     use super::*;

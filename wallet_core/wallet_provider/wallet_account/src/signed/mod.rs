@@ -5,13 +5,12 @@ pub use self::payload::ChallengeResponsePayload;
 pub use self::payload::HwSignedChallengeResponse;
 #[cfg(feature = "server")]
 pub use self::payload::server::SequenceNumberComparison;
+use self::raw_value::TypedRawValue;
 pub use self::signed_message::EcdsaSignatureType;
 pub use self::signed_message::SignatureType;
-pub use self::signed_message::SubjectPayload;
-
-use self::raw_value::TypedRawValue;
 use self::signed_message::SignedMessage;
 use self::signed_message::SignedSubjectMessage;
+pub use self::signed_message::SubjectPayload;
 #[cfg(feature = "server")]
 use self::signed_message::server::ContainsChallenge;
 

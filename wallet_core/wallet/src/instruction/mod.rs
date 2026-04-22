@@ -6,10 +6,6 @@ use jwt::error::JwtError;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountRevokedData;
 
-use crate::account_provider::AccountProviderError;
-use crate::account_provider::AccountProviderResponseError;
-use crate::storage::StorageError;
-
 pub use self::client::HwSignedInstructionClient;
 pub use self::client::InstructionClient;
 pub use self::client::InstructionClientFactory;
@@ -18,6 +14,9 @@ pub use self::keys::PinRecoveryRemoteEcdsaWscd;
 pub use self::keys::PinRecoveryWscd;
 pub use self::keys::RemoteEcdsaKeyError;
 pub use self::keys::RemoteEcdsaWscd;
+use crate::account_provider::AccountProviderError;
+use crate::account_provider::AccountProviderResponseError;
+use crate::storage::StorageError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]

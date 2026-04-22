@@ -1,9 +1,8 @@
-use tracing::instrument;
-
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
+use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::errors::AccountRevokedData;
 use wallet_account::messages::errors::RevocationReason;
@@ -152,9 +151,6 @@ where
 #[cfg(test)]
 #[expect(clippy::too_many_arguments)] // Doesn't work at `fn` level in combination with `rstest`
 mod tests {
-    use rstest::rstest;
-    use uuid::Uuid;
-
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use jwe::algorithm::EcdhAlgorithm;
@@ -163,7 +159,9 @@ mod tests {
     use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
+    use rstest::rstest;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+    use uuid::Uuid;
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
 

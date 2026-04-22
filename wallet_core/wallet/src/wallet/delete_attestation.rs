@@ -1,21 +1,21 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use itertools::Itertools;
-use tracing::info;
-use tracing::instrument;
-
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
+use itertools::Itertools;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
+use tracing::info;
+use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::messages::instructions::DeleteKeys;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::Wallet;
 use crate::account_provider::AccountProviderClient;
 use crate::errors::ChangePinError;
 use crate::errors::InstructionError;
@@ -27,8 +27,6 @@ use crate::storage::Storage;
 use crate::update_policy::UpdatePolicyError;
 use crate::wallet::HistoryError;
 use crate::wallet::attestations::AttestationsError;
-
-use super::Wallet;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -178,25 +176,23 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use mockall::predicate::always;
     use mockall::predicate::eq;
-    use uuid::Uuid;
-
-    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use update_policy_model::update_policy::VersionState;
+    use uuid::Uuid;
     use wallet_account::messages::instructions::DeleteKeys;
     use wallet_account::messages::instructions::Instruction;
-
-    use crate::storage::ChangePinData;
-    use crate::storage::InstructionData;
-    use crate::storage::StorageError;
-    use crate::wallet::test::setup_mock_attestations_callback;
-    use crate::wallet::test::setup_mock_recent_history_callback;
 
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::create_wp_result;
     use super::*;
+    use crate::storage::ChangePinData;
+    use crate::storage::InstructionData;
+    use crate::storage::StorageError;
+    use crate::wallet::test::setup_mock_attestations_callback;
+    use crate::wallet::test::setup_mock_recent_history_callback;
 
     const PIN: &str = "051097";
 

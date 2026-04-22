@@ -1,6 +1,5 @@
 use db_test::DbName;
 use db_test::DbSetup;
-
 use wallet_provider_domain::model::wallet_flag::WalletFlag;
 use wallet_provider_domain::model::wallet_flag::WalletFlag::SolutionRevoked;
 use wallet_provider_persistence::database::Db;

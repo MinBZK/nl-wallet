@@ -1,3 +1,7 @@
+use http_utils::error::HttpJsonError;
+use http_utils::error::HttpJsonErrorType;
+use http_utils::urls::BaseUrl;
+use jwt::wua::WuaError;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
@@ -6,11 +10,6 @@ use serde_with::SerializeDisplay;
 use serde_with::skip_serializing_none;
 use strum::EnumString;
 use url::Url;
-
-use http_utils::error::HttpJsonError;
-use http_utils::error::HttpJsonErrorType;
-use http_utils::urls::BaseUrl;
-use jwt::wua::WuaError;
 use wscd::PoaVerificationError;
 
 use crate::issuer::CredentialPreviewError;

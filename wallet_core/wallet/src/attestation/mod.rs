@@ -2,25 +2,24 @@ mod attribute;
 
 use std::collections::HashSet;
 
+use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::AttributesError;
+use attestation_data::auth::Organization;
+use attestation_data::validity::ValidityWindow;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::NaiveDate;
 use chrono::Utc;
 use derive_more::Display;
-use serde::Deserialize;
-use serde::Serialize;
-use uuid::Uuid;
-
-use attestation_data::attributes::AttributeValue;
-use attestation_data::attributes::AttributesError;
-use attestation_data::auth::Organization;
-use attestation_data::validity::ValidityWindow;
 use error_category::ErrorCategory;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
+use serde::Deserialize;
+use serde::Serialize;
 use token_status_list::verification::verifier::RevocationStatus;
 use utils::vec_at_least::VecNonEmpty;
+use uuid::Uuid;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

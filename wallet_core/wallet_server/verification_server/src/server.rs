@@ -2,8 +2,6 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::Router;
-use tokio::net::TcpListener;
-
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::service::Pkcs11Hsm;
 use http_utils::health::create_health_router;
@@ -18,6 +16,7 @@ use server_utils::server::listen;
 use server_utils::server::secure_internal_router;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
+use tokio::net::TcpListener;
 use utils::generator::TimeGenerator;
 
 use crate::settings::VerifierSettings;

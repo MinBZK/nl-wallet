@@ -248,10 +248,9 @@ mod tests {
     use x509_parser::prelude::X509Certificate;
     use x509_parser::public_key::PublicKey;
 
+    use super::MockCaChain;
     use crate::attestation_extension::key_description::KeyDescription;
     use crate::sig_alg::ECDSA_P256_SHA256_WITH_NULL_PARAMETERS;
-
-    use super::MockCaChain;
 
     #[rstest]
     fn test_generate_mock_ca_chain(#[values(0, 1, 3, 6)] intermediate_count: u8) {

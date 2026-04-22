@@ -6,12 +6,11 @@ use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::From;
 use derive_more::FromStr;
-use http::StatusCode;
-use metrics::counter;
-
 use hsm::service::HsmError;
+use http::StatusCode;
 use http_utils::error::HttpJsonError;
 use http_utils::error::HttpJsonErrorType;
+use metrics::counter;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
 use wallet_account::messages::errors::AccountRevokedData;
@@ -228,7 +227,6 @@ mod tests {
     use metrics::SharedString;
     use metrics::Unit;
     use rstest::rstest;
-
     use wallet_account::error::DecodeError;
     use wallet_provider_service::account_server::InstructionValidationError;
 

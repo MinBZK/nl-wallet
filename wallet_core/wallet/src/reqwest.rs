@@ -4,10 +4,9 @@ use std::hash::Hasher;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use parking_lot::Mutex;
-
 use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClient;
+use parking_lot::Mutex;
 
 #[derive(Debug)]
 struct CachedClientState {

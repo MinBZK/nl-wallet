@@ -7,15 +7,13 @@ use openid4vc::Format;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
-
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::PidAttributesConfigurationError;
 
+use super::Wallet;
 use crate::errors::StorageError;
 use crate::storage::Storage;
-
-use super::Wallet;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]

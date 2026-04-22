@@ -1,12 +1,11 @@
 use std::future::Future;
 
 use derive_more::Constructor;
+use error_category::ErrorCategory;
+use jwt::error::JwtError;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
-
-use error_category::ErrorCategory;
-use jwt::error::JwtError;
 use wallet_account::messages::registration::WalletCertificate;
 
 use crate::errors::InstructionError;
@@ -312,16 +311,14 @@ pub mod mock {
 mod test {
     use assert_matches::assert_matches;
     use chrono::Utc;
+    use jwt::SignedJwt;
     use mockall::predicate::eq;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
-
-    use jwt::SignedJwt;
     use wallet_account::RevocationCode;
     use wallet_account::messages::registration::WalletCertificateClaims;
 
     use super::*;
-
     use crate::errors::InstructionError;
     use crate::pin::change::ChangePinError;
     use crate::pin::change::MockChangePinClient;

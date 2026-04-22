@@ -1,20 +1,18 @@
 use std::sync::LazyLock;
 
-use mime::Mime;
-
 use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
+use mime::Mime;
 
+pub use self::error::VpMessageClientError;
+pub use self::error::VpMessageClientErrorType;
+pub use self::http::HttpVpMessageClient;
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::AuthorizationErrorResponse;
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
 use crate::openid4vp::VpAuthorizationRequest;
-
-pub use self::error::VpMessageClientError;
-pub use self::error::VpMessageClientErrorType;
-pub use self::http::HttpVpMessageClient;
 
 mod error;
 mod http;

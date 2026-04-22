@@ -4,16 +4,15 @@ use std::str;
 
 use aes_gcm::Aes256Gcm;
 use base64::prelude::*;
+use crypto::SymmetricKey;
 use http::header;
+use http_utils::reqwest::tls_pinned_client_builder;
+use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use pem::Pem;
 use reqwest::Certificate;
 use reqwest::Identity;
 use tracing::info;
-
-use crypto::SymmetricKey;
-use http_utils::reqwest::tls_pinned_client_builder;
-use http_utils::urls::BaseUrl;
 use utils::path::prefix_local_path;
 
 use crate::gba::encryption::HmacSha256;

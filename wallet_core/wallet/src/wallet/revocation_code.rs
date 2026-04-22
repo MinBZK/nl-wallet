@@ -1,30 +1,27 @@
 use std::sync::Arc;
 
-use tracing::info;
-use tracing::instrument;
-
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
-
 use platform_support::attested_key::AttestedKeyHolder;
+use tracing::info;
+use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::RevocationCode;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::Wallet;
+use super::WalletRegistration;
+use super::issuance::PidAttestationFormat;
+use super::lock::WalletUnlockError;
 use crate::account_provider::AccountProviderClient;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::update_policy::UpdatePolicyError;
-
-use super::Wallet;
-use super::WalletRegistration;
-use super::issuance::PidAttestationFormat;
-use super::lock::WalletUnlockError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -122,7 +119,6 @@ mod test {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
-
     use crypto::utils::random_bytes;
     use update_policy_model::update_policy::VersionState;
     use wallet_account::messages::errors::AccountError;
@@ -130,17 +126,16 @@ mod test {
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::Instruction;
 
-    use crate::account_provider::AccountProviderError;
-    use crate::account_provider::AccountProviderResponseError;
-    use crate::instruction::InstructionError;
-    use crate::storage::ChangePinData;
-    use crate::storage::InstructionData;
-
     use super::super::lock::WalletUnlockError;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::create_wp_result;
     use super::RevocationCodeError;
+    use crate::account_provider::AccountProviderError;
+    use crate::account_provider::AccountProviderResponseError;
+    use crate::instruction::InstructionError;
+    use crate::storage::ChangePinData;
+    use crate::storage::InstructionData;
 
     const PIN: &str = "293847";
 

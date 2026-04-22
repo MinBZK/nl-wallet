@@ -13,11 +13,10 @@ use etag::EntityTag;
 use http::HeaderMap;
 use http::HeaderValue;
 use http::header;
+use http_utils::health::create_health_router;
 use tokio::net::TcpListener;
 use tracing::debug;
 use tracing::info;
-
-use http_utils::health::create_health_router;
 use utils::built_info::version_string;
 use utils::generator::TimeGenerator;
 

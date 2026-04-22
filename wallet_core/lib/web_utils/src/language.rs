@@ -7,12 +7,11 @@ use axum::http::header::ACCEPT_LANGUAGE;
 use axum::http::request::Parts;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
+use crypto::utils::sha256;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
-
-use crypto::utils::sha256;
 
 pub static LANGUAGE_JS_SHA256: LazyLock<String> =
     LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../static/language.js"))));

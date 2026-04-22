@@ -5,12 +5,11 @@ use axum::Router;
 use axum::extract::State;
 use axum::routing::post;
 use http::StatusCode;
+use http_utils::error::HttpJsonError;
+use http_utils::health::create_health_router;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing::info;
-
-use http_utils::error::HttpJsonError;
-use http_utils::health::create_health_router;
 use utils::built_info::version_string;
 
 use crate::error::Error;

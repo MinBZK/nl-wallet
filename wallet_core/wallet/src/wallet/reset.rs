@@ -1,27 +1,24 @@
 use std::mem;
 
-use tracing::info;
-use tracing::instrument;
-use tracing::warn;
-
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
-
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::GoogleAttestedKey;
+use tracing::info;
+use tracing::instrument;
+use tracing::warn;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::errors::AccountRevokedData;
 use wallet_account::messages::errors::RevocationReason;
 
+use super::Wallet;
+use super::WalletRegistration;
 use crate::errors::InstructionError;
 use crate::repository::Repository;
 use crate::storage::Storage;
-
-use super::Wallet;
-use super::WalletRegistration;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum ResetError {
@@ -138,22 +135,20 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use utils::vec_nonempty;
-
-    use crate::PidIssuancePurpose;
-    use crate::attestation::AttestationPresentation;
-    use crate::errors::InstructionError;
-    use crate::storage::StorageState;
-    use crate::wallet::Session;
-    use crate::wallet::test::TestWalletInMemoryStorage;
 
     use super::super::issuance::WalletIssuanceSession;
     use super::super::test;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::*;
+    use crate::PidIssuancePurpose;
+    use crate::attestation::AttestationPresentation;
+    use crate::errors::InstructionError;
+    use crate::storage::StorageState;
+    use crate::wallet::Session;
+    use crate::wallet::test::TestWalletInMemoryStorage;
 
     // TODO: Test key deletion for Google attested key.
 

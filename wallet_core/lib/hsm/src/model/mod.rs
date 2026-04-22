@@ -27,6 +27,7 @@ pub mod mock {
     use std::error::Error;
     use std::marker::PhantomData;
 
+    use crypto::utils::random_bytes;
     use dashmap::DashMap;
     use hmac::Hmac;
     use hmac::Mac;
@@ -37,8 +38,6 @@ pub mod mock {
     use p256::ecdsa::signature::Signer;
     use rand::rngs::OsRng;
     use sha2::Sha256;
-
-    use crypto::utils::random_bytes;
 
     use crate::model::Hsm;
     use crate::model::encrypted::Encrypted;

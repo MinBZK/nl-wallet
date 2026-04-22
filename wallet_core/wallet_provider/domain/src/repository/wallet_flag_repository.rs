@@ -1,6 +1,5 @@
-use crate::model::wallet_flag::WalletFlag;
-
 use super::errors::PersistenceError;
+use crate::model::wallet_flag::WalletFlag;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 

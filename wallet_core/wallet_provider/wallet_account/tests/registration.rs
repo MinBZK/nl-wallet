@@ -1,10 +1,3 @@
-use futures::FutureExt;
-use p256::ecdsa::SigningKey;
-use p256::ecdsa::VerifyingKey;
-use p256::pkcs8::DecodePublicKey;
-use rand_core::OsRng;
-use rustls_pki_types::CertificateDer;
-
 use android_attest::android_crl::RevocationStatusList;
 use android_attest::attestation_extension::key_description::KeyDescription;
 use android_attest::certificate_chain::verify_google_key_attestation;
@@ -15,8 +8,13 @@ use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
 use apple_app_attest::VerifiedAttestation;
+use futures::FutureExt;
+use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::DecodePublicKey;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
-
+use rand_core::OsRng;
+use rustls_pki_types::CertificateDer;
 use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::RegistrationAttestation;
 use wallet_account::signed::ChallengeResponse;

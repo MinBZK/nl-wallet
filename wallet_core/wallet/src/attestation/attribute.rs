@@ -1,12 +1,11 @@
 use std::collections::HashSet;
 
-use chrono::NaiveDate;
-use indexmap::IndexMap;
-
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
 use attestation_types::claim_path::ClaimPath;
+use chrono::NaiveDate;
+use indexmap::IndexMap;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
 use sd_jwt::claims::ObjectClaims;
@@ -198,11 +197,6 @@ pub mod test {
     use std::collections::HashSet;
 
     use assert_matches::assert_matches;
-    use chrono::NaiveDate;
-    use indexmap::IndexMap;
-    use rstest::rstest;
-    use serde_json::json;
-
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
@@ -212,8 +206,11 @@ pub mod test {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_BSN;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
+    use chrono::NaiveDate;
+    use indexmap::IndexMap;
     use mdoc::iso::mdocs::DataElementValue;
     use mdoc::iso::mdocs::Entry;
+    use rstest::rstest;
     use sd_jwt_vc_metadata::ClaimDisplayMetadata;
     use sd_jwt_vc_metadata::ClaimMetadata;
     use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
@@ -222,10 +219,8 @@ pub mod test {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+    use serde_json::json;
     use utils::vec_nonempty;
-
-    use crate::attestation::AttestationValidity;
-    use crate::config::test::test_wallet_config;
 
     use super::super::AttestationAttribute;
     use super::super::AttestationAttributeValue;
@@ -234,6 +229,8 @@ pub mod test {
     use super::super::AttestationPresentation;
     use super::super::AttributesError;
     use super::super::mock::EmptyPresentationConfig;
+    use crate::attestation::AttestationValidity;
+    use crate::config::test::test_wallet_config;
 
     fn claim_metadata(keys: &[&str]) -> ClaimMetadata {
         ClaimMetadata {

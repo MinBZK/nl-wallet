@@ -1,14 +1,11 @@
 use std::collections::HashMap;
 use std::iter;
 
-use indexmap::IndexSet;
-
 use dcql::disclosure::ExtendingVctRetriever;
+use indexmap::IndexSet;
+pub use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
 
 use crate::issuer_identifier::IssuerIdentifier;
-use crate::token::TokenRequest;
-use crate::token::TokenRequestGrantType;
-
 // Re-exported for convenience
 use crate::metadata::issuer_metadata::BatchCredentialIssuance;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
@@ -16,8 +13,8 @@ use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::NonZeroOrOneU64;
 use crate::metadata::issuer_metadata::ProofType;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
-
-pub use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
+use crate::token::TokenRequest;
+use crate::token::TokenRequestGrantType;
 
 pub struct ExtendingVctRetrieverStub;
 impl ExtendingVctRetriever for ExtendingVctRetrieverStub {

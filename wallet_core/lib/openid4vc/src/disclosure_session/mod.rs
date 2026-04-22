@@ -1,24 +1,21 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
+use attestation_data::verifier_certificate::VerifierCertificate;
 use chrono::DateTime;
 use chrono::Utc;
-use nutype::nutype;
-use rustls_pki_types::TrustAnchor;
-
-use attestation_data::verifier_certificate::VerifierCertificate;
 use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::disclosure::PartialMdoc;
+use nutype::nutype;
+use rustls_pki_types::TrustAnchor;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::Poa;
-
-use crate::verifier::SessionType;
 
 pub use self::client::VpDisclosureClient;
 pub use self::error::DataDisclosed;
@@ -33,6 +30,7 @@ pub use self::message_client::VpMessageClientError;
 pub use self::message_client::VpMessageClientErrorType;
 pub use self::session::VpDisclosureSession;
 pub use self::uri_source::DisclosureUriSource;
+use crate::verifier::SessionType;
 
 mod client;
 mod error;

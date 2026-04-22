@@ -7,14 +7,13 @@ use async_trait::async_trait;
 use config::Config;
 use config::ConfigError;
 use config::File;
+use crypto::utils::random_bytes;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Verifier;
 use rand_core::OsRng;
 use serde::Deserialize;
 use serde_with::serde_as;
-
-use crypto::utils::random_bytes;
 use utils::path::prefix_local_path;
 
 use crate::model::Hsm;

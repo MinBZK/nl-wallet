@@ -1,5 +1,4 @@
 use chrono::SecondsFormat;
-
 use wallet::configuration::WalletConfiguration;
 
 pub struct FlutterConfiguration {

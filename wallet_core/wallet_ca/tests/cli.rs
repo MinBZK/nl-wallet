@@ -9,6 +9,9 @@ use assert_cmd::prelude::*;
 use assert_fs::TempDir;
 use assert_fs::fixture::ChildPath;
 use assert_fs::prelude::*;
+use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::auth::reader_auth::ReaderRegistration;
+use crypto::x509::CertificateUsage;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::EncodePublicKey;
@@ -24,10 +27,6 @@ use rand_core::OsRng;
 use time::Duration;
 use time::OffsetDateTime;
 use x509_parser::oid_registry::OID_KEY_TYPE_EC_PUBLIC_KEY;
-
-use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::auth::reader_auth::ReaderRegistration;
-use crypto::x509::CertificateUsage;
 
 trait RangeCompare<Offset> {
     /// Compare [`self`] to the range of [`other`] +/- the [`offset`].

@@ -2,30 +2,21 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
-use chrono::DateTime;
-use chrono::Utc;
-use derive_more::IsVariant;
-use itertools::Itertools;
-use nutype::nutype;
-use parking_lot::Mutex;
-use tokio::sync::mpsc;
-use tokio::task::JoinHandle;
-use tracing::error;
-use tracing::info;
-use tracing::instrument;
-use url::Url;
-
 use attestation_data::auth::reader_auth::ValidationError;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::verifier_certificate::VerifierCertificate;
 use attestation_data::x509::CertificateTypeError;
+use chrono::DateTime;
+use chrono::Utc;
 use crypto::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use crypto::x509::CertificateError;
+use derive_more::IsVariant;
 use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
+use itertools::Itertools;
 use jwt::nonce::Nonce;
 use mdoc::DeviceRequest;
 use mdoc::DeviceRequestParseError;
@@ -36,16 +27,24 @@ use mdoc::SessionTranscript;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborError;
 use mdoc::utils::serialization::cbor_serialize;
+use nutype::nutype;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::verifier::SessionType;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use parking_lot::Mutex;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureError as PlatformError;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
 use rustls_pki_types::TrustAnchor;
+use tokio::sync::mpsc;
+use tokio::task::JoinHandle;
+use tracing::error;
+use tracing::info;
+use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
+use url::Url;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
@@ -755,19 +754,6 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
-    use futures::future::join_all;
-    use indexmap::IndexMap;
-    use itertools::Itertools;
-    use mockall::predicate::always;
-    use mockall::predicate::eq;
-    use p256::ecdsa::Signature;
-    use p256::ecdsa::SigningKey;
-    use p256::ecdsa::signature::Signer;
-    use parking_lot::Mutex;
-    use rand_core::OsRng;
-    use rustls_pki_types::TrustAnchor;
-    use serial_test::serial;
-
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::reader_auth::ReaderRegistration;
@@ -785,6 +771,9 @@ mod tests {
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
+    use futures::future::join_all;
+    use indexmap::IndexMap;
+    use itertools::Itertools;
     use jwt::nonce::Nonce;
     use mdoc::DeviceEngagement;
     use mdoc::DeviceRequest;
@@ -798,11 +787,20 @@ mod tests {
     use mdoc::utils::serialization::CborSeq;
     use mdoc::utils::serialization::cbor_deserialize;
     use mdoc::utils::serialization::cbor_serialize;
+    use mockall::predicate::always;
+    use mockall::predicate::eq;
+    use p256::ecdsa::Signature;
+    use p256::ecdsa::SigningKey;
+    use p256::ecdsa::signature::Signer;
+    use parking_lot::Mutex;
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureChannel;
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureChannelImpl;
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
     use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
+    use rand_core::OsRng;
+    use rustls_pki_types::TrustAnchor;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use serial_test::serial;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wallet_account::messages::errors::AccountError;
@@ -814,6 +812,13 @@ mod tests {
     use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
     use wscd::mock_remote::MockRemoteWscd;
 
+    use super::CloseProximityDisclosureError;
+    use super::CloseProximityDisclosureSession;
+    use super::CloseProximityDisclosureSessionState;
+    use super::CloseProximityDisclosureUpdate;
+    use super::DeviceResponseStatus;
+    use super::PlatformError;
+    use super::verify_device_request;
     use crate::DisclosureAttestationOptions;
     use crate::DisclosureProposalPresentation;
     use crate::account_provider::AccountProviderError;
@@ -835,14 +840,6 @@ mod tests {
     use crate::wallet::test::example_pid_stored_attestation_copy;
     use crate::wallet::test::example_stored_attestation_copy;
     use crate::wallet::test::mock_verifier_certificate;
-
-    use super::CloseProximityDisclosureError;
-    use super::CloseProximityDisclosureSession;
-    use super::CloseProximityDisclosureSessionState;
-    use super::CloseProximityDisclosureUpdate;
-    use super::DeviceResponseStatus;
-    use super::PlatformError;
-    use super::verify_device_request;
 
     fn pid_given_name_items_request() -> ItemsRequest {
         ItemsRequest {

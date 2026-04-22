@@ -15,7 +15,6 @@ use serde_with::serde_as;
 use ssri::Algorithm;
 use ssri::Integrity;
 use ssri::IntegrityChecker;
-
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -285,10 +284,11 @@ impl From<VerifiedTypeMetadataDocuments> for TypeMetadataDocuments {
 #[cfg(any(test, feature = "example_constructors"))]
 mod example_constructors {
     use ssri::Integrity;
-
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
+    use super::TypeMetadataDocuments;
+    use super::VerifiedTypeMetadataDocuments;
     use crate::examples::DEGREE_METADATA_BYTES;
     use crate::examples::EUDI_ADDRESS_METADATA_BYTES;
     use crate::examples::EUDI_PID_METADATA_BYTES;
@@ -296,9 +296,6 @@ mod example_constructors {
     use crate::examples::NL_PID_METADATA_BYTES;
     use crate::metadata::MetadataExtends;
     use crate::metadata::TypeMetadata;
-
-    use super::TypeMetadataDocuments;
-    use super::VerifiedTypeMetadataDocuments;
 
     impl TypeMetadataDocuments {
         /// Construct a [`TypeMetadataDocuments`] chain for transmission by JSON encoding an ordered sequence of
@@ -399,19 +396,21 @@ mod test {
     use std::collections::HashSet;
 
     use assert_matches::assert_matches;
+    use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use itertools::Itertools;
     use rstest::rstest;
     use serde_json::json;
     use ssri::Algorithm;
     use ssri::Integrity;
     use ssri::IntegrityOpts;
-
-    use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
-    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use utils::vec_at_least::NonEmptyIterator;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
+    use super::SortedTypeMetadata;
+    use super::TypeMetadataChainError;
+    use super::TypeMetadataDocuments;
     use crate::VerifiedTypeMetadataDocuments;
     use crate::examples::EXAMPLE_METADATA_BYTES;
     use crate::examples::PID_METADATA_BYTES;
@@ -423,10 +422,6 @@ mod test {
     use crate::metadata::MetadataExtends;
     use crate::metadata::TypeMetadata;
     use crate::metadata::UncheckedTypeMetadata;
-
-    use super::SortedTypeMetadata;
-    use super::TypeMetadataChainError;
-    use super::TypeMetadataDocuments;
 
     impl SortedTypeMetadata {
         pub fn new_mock(chain: VecNonEmpty<TypeMetadata>) -> Self {

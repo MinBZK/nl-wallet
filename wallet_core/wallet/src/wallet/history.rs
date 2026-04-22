@@ -1,31 +1,28 @@
 use std::str::FromStr;
 
+use attestation_data::disclosure_type::DisclosureType;
 use chrono::DateTime;
 use chrono::Utc;
-use tracing::info;
-use tracing::instrument;
-use uuid::Uuid;
-
-use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
-
 use platform_support::attested_key::AttestedKeyHolder;
+use tracing::info;
+use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
 use utils::vec_at_least::VecNonEmpty;
+use uuid::Uuid;
 
+use super::Wallet;
 use crate::attestation::AttestationPresentation;
 use crate::errors::StorageError;
 use crate::repository::Repository;
 use crate::storage::DisclosureStatus;
 use crate::storage::Storage;
 use crate::storage::WalletEvent;
-
-use super::Wallet;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -185,28 +182,26 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
-    use chrono::Duration;
-    use chrono::TimeZone;
-    use chrono::Utc;
-    use itertools::Itertools;
-    use uuid::Uuid;
-
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+    use chrono::Duration;
+    use chrono::TimeZone;
+    use chrono::Utc;
     use crypto::server_keys::generate::Ca;
+    use itertools::Itertools;
     use openid4vc::disclosure_session::DataDisclosed;
-
-    use crate::AttestationPresentation;
-    use crate::DisclosureStatus;
-    use crate::WalletEvent;
-    use crate::errors::StorageError;
-    use crate::wallet::test::TestWalletInMemoryStorage;
+    use uuid::Uuid;
 
     use super::super::test;
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::HistoryError;
+    use crate::AttestationPresentation;
+    use crate::DisclosureStatus;
+    use crate::WalletEvent;
+    use crate::errors::StorageError;
+    use crate::wallet::test::TestWalletInMemoryStorage;
 
     const PID_DOCTYPE: &str = "com.example.pid";
 

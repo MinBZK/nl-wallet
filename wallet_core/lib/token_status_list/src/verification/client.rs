@@ -1,6 +1,5 @@
-use url::Url;
-
 use jwt::error::JwtError;
+use url::Url;
 
 use crate::status_list_token::StatusListToken;
 
@@ -26,11 +25,10 @@ pub mod mock {
 
     use chrono::Days;
     use chrono::Utc;
-    use derive_more::Constructor;
-    use url::Url;
-
     use crypto::EcdsaKeySend;
     use crypto::server_keys::KeyPair;
+    use derive_more::Constructor;
+    use url::Url;
 
     use crate::status_list::StatusList;
     use crate::status_list_token::StatusListToken;

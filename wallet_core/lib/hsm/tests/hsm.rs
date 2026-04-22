@@ -1,10 +1,9 @@
 use async_dropper::AsyncDropper;
+use hsm::service::Pkcs11Hsm;
+use hsm::test::TestCase;
 use rstest::Context;
 use rstest::rstest;
 use serial_test::serial;
-
-use hsm::service::Pkcs11Hsm;
-use hsm::test::TestCase;
 
 #[rstest]
 #[case::sign_sha256_hmac(TestCase::sign_sha256_hmac)]

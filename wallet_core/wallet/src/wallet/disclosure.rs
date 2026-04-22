@@ -4,37 +4,33 @@ use std::hash::Hash;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 
-use chrono::Utc;
-use futures::future::try_join_all;
-use indexmap::IndexMap;
-use indexmap::IndexSet;
-use itertools::Either;
-use itertools::Itertools;
-use tracing::error;
-use tracing::info;
-use tracing::instrument;
-use url::Url;
-
 use attestation_data::auth::Organization;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::AttestationRequest;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::verifier_certificate::VerifierCertificate;
 use attestation_types::claim_path::ClaimPath;
+use chrono::Utc;
 use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequest;
 use entity::disclosure_event::EventStatus;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
+use futures::future::try_join_all;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
+use indexmap::IndexMap;
+use indexmap::IndexSet;
+use itertools::Either;
+use itertools::Itertools;
 use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
 use openid4vc::disclosure_session::DataDisclosed;
 use openid4vc::disclosure_session::DisclosableAttestations;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
+pub use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::disclosure_session::VpVerifierError;
@@ -47,7 +43,11 @@ use platform_support::close_proximity_disclosure::CloseProximityDisclosureError 
 use sd_jwt::claims::NonSelectivelyDisclosableClaimsError;
 use sd_jwt::error::SigningError;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
+use tracing::error;
+use tracing::info;
+use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
+use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -59,6 +59,9 @@ use wallet_configuration::wallet_config::PidAttributePaths;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::UriType;
+use super::Wallet;
+use super::uri::identify_uri;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationPresentation;
 use crate::attestation::AttestationPresentationConfig;
@@ -78,12 +81,6 @@ use crate::storage::StorageError;
 use crate::wallet::HistoryError;
 use crate::wallet::Session;
 use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureError;
-
-use super::UriType;
-use super::Wallet;
-use super::uri::identify_uri;
-
-pub use openid4vc::disclosure_session::DisclosureUriSource;
 
 #[derive(Debug, Clone)]
 pub struct DisclosureProposalPresentation {
@@ -1100,17 +1097,6 @@ mod tests {
     use std::sync::atomic::Ordering;
 
     use assert_matches::assert_matches;
-    use indexmap::IndexMap;
-    use itertools::Itertools;
-    use mockall::predicate::always;
-    use mockall::predicate::eq;
-    use mockall::predicate::function;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
-    use rstest::rstest;
-    use serde::de::Error;
-    use url::Url;
-
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
@@ -1139,8 +1125,13 @@ mod tests {
     use entity::disclosure_event::EventStatus;
     use http_utils::urls;
     use http_utils::urls::BaseUrl;
+    use indexmap::IndexMap;
+    use itertools::Itertools;
     use mdoc::iso::mdocs::Entry;
     use mdoc::utils::cose::CoseError;
+    use mockall::predicate::always;
+    use mockall::predicate::eq;
+    use mockall::predicate::function;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::disclosure_session;
     use openid4vc::disclosure_session::DataDisclosed;
@@ -1158,10 +1149,15 @@ mod tests {
     use openid4vc::verifier::SessionType;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+    use rstest::rstest;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+    use serde::de::Error;
     use update_policy_model::update_policy::VersionState;
+    use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
@@ -1170,6 +1166,18 @@ mod tests {
     use wallet_configuration::wallet_config::PidAttributePaths;
     use wallet_configuration::wallet_config::PidAttributesConfiguration;
 
+    use super::super::Session;
+    use super::super::test::TestWalletMockStorage;
+    use super::super::test::WalletDeviceVendor;
+    use super::super::test::setup_mock_recent_history_callback;
+    use super::AttributesNotAvailable;
+    use super::DisclosureAttestationOptions;
+    use super::DisclosureError;
+    use super::DisclosureProposalPresentation;
+    use super::RedirectUriPurpose;
+    use super::WalletDisclosureAttestations;
+    use super::WalletDisclosureSession;
+    use super::is_request_for_recovery_code;
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
     use crate::attestation::mock::EmptyPresentationConfig;
@@ -1185,19 +1193,6 @@ mod tests {
     use crate::wallet::test::example_pid_stored_attestation_copy_with_issuer_keypair;
     use crate::wallet::test::example_stored_attestation_copy;
     use crate::wallet::test::mock_verifier_certificate;
-
-    use super::super::Session;
-    use super::super::test::TestWalletMockStorage;
-    use super::super::test::WalletDeviceVendor;
-    use super::super::test::setup_mock_recent_history_callback;
-    use super::AttributesNotAvailable;
-    use super::DisclosureAttestationOptions;
-    use super::DisclosureError;
-    use super::DisclosureProposalPresentation;
-    use super::RedirectUriPurpose;
-    use super::WalletDisclosureAttestations;
-    use super::WalletDisclosureSession;
-    use super::is_request_for_recovery_code;
 
     static DISCLOSURE_URI: LazyLock<Url> =
         LazyLock::new(|| urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy?foo=bar"));

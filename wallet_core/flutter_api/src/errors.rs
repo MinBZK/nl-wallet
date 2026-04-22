@@ -5,7 +5,6 @@ use anyhow::Chain;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
-
 use wallet::AccountRevokedData;
 use wallet::attestation_data::LocalizedStrings;
 use wallet::errors::AccountProviderError;
@@ -698,7 +697,6 @@ mod tests {
 
     use rstest::rstest;
     use serde_json::json;
-
     use wallet::AccountRevokedData;
     use wallet::RevocationReason;
     use wallet::attestation_data::AttributeValue;

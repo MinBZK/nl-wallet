@@ -185,11 +185,10 @@ mod mock {
     use sha2::Digest;
     use sha2::Sha256;
 
-    use crate::app_identifier::AppIdentifier;
-    use crate::auth_data::AuthenticatorDataWithSource;
-
     use super::Assertion;
     use super::AssertionCounter;
+    use crate::app_identifier::AppIdentifier;
+    use crate::auth_data::AuthenticatorDataWithSource;
 
     impl Assertion {
         /// Generate a mock [`Assertion`] based on a private key and other parameters.

@@ -1,5 +1,4 @@
 use http::StatusCode;
-
 use http_utils::error::HttpJsonError;
 use http_utils::error::HttpJsonErrorType;
 

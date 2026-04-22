@@ -265,15 +265,14 @@ pub mod mock {
     use x509_parser::der_parser::Oid;
     use x509_parser::der_parser::oid;
 
-    use crate::app_identifier::AppIdentifier;
-    use crate::auth_data::FullAuthenticatorDataWithSource;
-    use crate::certificates::APPLE_ANONYMOUS_ATTESTATION_OID;
-    use crate::certificates::AppleAnonymousAttestationExtension;
-
     use super::Attestation;
     use super::AttestationEnvironment;
     use super::AttestationFormat;
     use super::AttestationStatement;
+    use crate::app_identifier::AppIdentifier;
+    use crate::auth_data::FullAuthenticatorDataWithSource;
+    use crate::certificates::APPLE_ANONYMOUS_ATTESTATION_OID;
+    use crate::certificates::AppleAnonymousAttestationExtension;
 
     // This Extended Key Usage started appearing in Apple attestation certificates
     // instead of client_auth (1.3.6.1.5.5.7.3.2) as of 2026-02-03.
@@ -315,17 +314,17 @@ pub mod mock {
 
     #[cfg(feature = "mock_ca")]
     mod mock_ca {
+        use std::sync::Arc;
+
         use rcgen::Issuer;
         use rcgen::KeyPair;
         use rcgen::PKCS_ECDSA_P384_SHA384;
         use rustls_pki_types::CertificateDer;
         use rustls_pki_types::PrivateKeyDer;
-        use std::sync::Arc;
-
-        use crate::MOCK_APPLE_ROOT_CA;
-        use crate::MOCK_APPLE_ROOT_CA_KEY;
 
         use super::MockAttestationCa;
+        use crate::MOCK_APPLE_ROOT_CA;
+        use crate::MOCK_APPLE_ROOT_CA_KEY;
 
         #[derive(Debug, thiserror::Error)]
         enum MockAttestationCaDerError {

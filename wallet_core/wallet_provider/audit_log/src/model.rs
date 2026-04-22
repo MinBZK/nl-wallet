@@ -10,10 +10,9 @@ use sea_orm::prelude::DateTimeWithTimeZone;
 use sea_orm::sqlx::types::chrono::Utc;
 use tracing::Level;
 use tracing::span;
-use uuid::Uuid;
-
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
+use uuid::Uuid;
 
 use crate::entity::audit_log;
 

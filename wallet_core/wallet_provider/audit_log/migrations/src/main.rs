@@ -1,6 +1,5 @@
-use sea_orm_migration::prelude::*;
-
 use audit_log_migrations::Migrator;
+use sea_orm_migration::prelude::*;
 
 #[tokio::main]
 async fn main() {

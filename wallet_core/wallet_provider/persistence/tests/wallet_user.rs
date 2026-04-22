@@ -1,16 +1,15 @@
-use assert_matches::assert_matches;
-use chrono::SubsecRound;
-use chrono::Utc;
-use p256::ecdsa::VerifyingKey;
-use p256::pkcs8::EncodePublicKey;
-use uuid::Uuid;
-
 use android_attest::attestation_extension::key_attestation::OsVersion;
 use android_attest::attestation_extension::key_attestation::PatchLevel;
 use apple_app_attest::AssertionCounter;
+use assert_matches::assert_matches;
+use chrono::SubsecRound;
+use chrono::Utc;
 use crypto::utils::random_string;
 use db_test::DbSetup;
 use hsm::model::encrypted::Encrypted;
+use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::EncodePublicKey;
+use uuid::Uuid;
 use wallet_provider_domain::model::QueryResult;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;

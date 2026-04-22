@@ -2,6 +2,15 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
+use openid4vc::server_state::Expirable;
+use openid4vc::server_state::HasProgress;
+use openid4vc::server_state::Progress;
+use openid4vc::server_state::SessionDataType;
+use openid4vc::server_state::SessionState;
+use openid4vc::server_state::SessionStore;
+use openid4vc::server_state::SessionStoreError;
+use openid4vc::server_state::SessionStoreTimeouts;
+use openid4vc::server_state::SessionToken;
 use sea_orm::ActiveValue;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectOptions;
@@ -18,16 +27,6 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use tracing::log::LevelFilter;
 use url::Url;
-
-use openid4vc::server_state::Expirable;
-use openid4vc::server_state::HasProgress;
-use openid4vc::server_state::Progress;
-use openid4vc::server_state::SessionDataType;
-use openid4vc::server_state::SessionState;
-use openid4vc::server_state::SessionStore;
-use openid4vc::server_state::SessionStoreError;
-use openid4vc::server_state::SessionStoreTimeouts;
-use openid4vc::server_state::SessionToken;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 

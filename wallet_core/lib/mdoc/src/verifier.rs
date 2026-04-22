@@ -1,25 +1,24 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
+use attestation_types::qualification::AttestationQualification;
 use chrono::DateTime;
 use chrono::Utc;
 use coset::RegisteredLabelWithPrivate;
 use coset::iana::Algorithm;
+use crypto::x509::CertificateUsage;
+use crypto::x509::KeyIdentifier;
 use futures::future::try_join_all;
+use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::SecretKey;
 use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::TrustAnchor;
-use tracing::debug;
-use tracing::warn;
-
-use attestation_types::qualification::AttestationQualification;
-use crypto::x509::CertificateUsage;
-use crypto::x509::KeyIdentifier;
-use http_utils::urls::HttpsUri;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
+use tracing::debug;
+use tracing::warn;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -453,12 +452,12 @@ mod tests {
 
     use chrono::Duration;
     use chrono::Utc;
-
     use crypto::examples::Examples;
     use crypto::server_keys::generate::Ca;
     use token_status_list::verification::client::mock::StatusListClientStub;
     use utils::vec_nonempty;
 
+    use super::*;
     use crate::examples::EXAMPLE_ATTR_NAME;
     use crate::examples::EXAMPLE_ATTR_VALUE;
     use crate::examples::EXAMPLE_DOC_TYPE;
@@ -470,8 +469,6 @@ mod tests {
     use crate::iso::mdocs::ValidityInfo;
     use crate::test;
     use crate::test::DebugCollapseBts;
-
-    use super::*;
 
     fn new_validity_info(add_from_days: i64, add_until_days: i64) -> ValidityInfo {
         let now = Utc::now();

@@ -1,13 +1,12 @@
 use derive_more::Constructor;
 use update_policy_model::update_policy::VersionState;
 
+use super::UpdatePolicyError;
 use crate::repository::BackgroundUpdateableRepository;
 use crate::repository::ObservableRepository;
 use crate::repository::Repository;
 use crate::repository::RepositoryUpdateState;
 use crate::repository::UpdateableRepository;
-
-use super::UpdatePolicyError;
 
 #[derive(Default, Constructor)]
 pub struct MockUpdatePolicyRepository {

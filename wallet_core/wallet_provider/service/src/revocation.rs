@@ -1,14 +1,13 @@
 use std::collections::HashSet;
 
-use chrono::DateTime;
-use chrono::Utc;
-use itertools::Itertools;
-
 use audit_log::audited;
 use audit_log::model::AuditLog;
 use audit_log::model::FromAuditLogError;
+use chrono::DateTime;
+use chrono::Utc;
 use hsm::model::Hsm;
 use hsm::service::HsmError;
+use itertools::Itertools;
 use token_status_list::status_list_service::StatusListRevocationService;
 use utils::generator::Generator;
 use wallet_account::RevocationCode;

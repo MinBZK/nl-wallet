@@ -1,5 +1,3 @@
-use serde::Deserialize;
-
 use attestation_data::attributes::Attributes;
 use attestation_data::validity::IssuanceValidity;
 use attestation_types::qualification::AttestationQualification;
@@ -7,6 +5,7 @@ use dcql::CredentialQueryIdentifier;
 use dcql::unique_id_vec::MayHaveUniqueId;
 use http_utils::urls::HttpsUri;
 use openid4vc::Format;
+use serde::Deserialize;
 use utils::vec_at_least::VecNonEmpty;
 
 /// Attributes of an attestation that was disclosed, but without the DisclosedAttributes enum. This way, we can
@@ -41,15 +40,14 @@ impl MayHaveUniqueId for DemoDisclosedAttestations {
 
 #[cfg(test)]
 mod test {
-    use chrono::DateTime;
-    use indexmap::IndexMap;
-
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use chrono::DateTime;
+    use indexmap::IndexMap;
     use token_status_list::verification::verifier::RevocationStatus;
 
     use super::*;

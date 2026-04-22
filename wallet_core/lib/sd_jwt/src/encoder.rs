@@ -3,12 +3,11 @@
 //! It encodes a claims object by substituting selected claim values with digests derived from disclosures.
 //!
 //! See the decoder [`SdObjectDecoder`] on how to reconstruct original values given the disclosures.
+use attestation_types::claim_path::ClaimPath;
 use base64::prelude::*;
+use crypto::utils::random_bytes;
 use rand::Rng;
 use serde_json::Value;
-
-use attestation_types::claim_path::ClaimPath;
-use crypto::utils::random_bytes;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::claims::ClaimValue;
@@ -131,18 +130,16 @@ mod test {
     use std::vec;
 
     use assert_matches::assert_matches;
+    use attestation_types::claim_path::ClaimPath;
     use serde_json::Value;
     use serde_json::json;
-
-    use attestation_types::claim_path::ClaimPath;
     use utils::vec_nonempty;
 
+    use super::SdObjectEncoder;
     use crate::claims::ClaimName;
     use crate::claims::ObjectClaims;
     use crate::error::ClaimError;
     use crate::error::EncoderError;
-
-    use super::SdObjectEncoder;
 
     impl<H> SdObjectEncoder<H> {
         pub fn object_claims(&self) -> &ObjectClaims {

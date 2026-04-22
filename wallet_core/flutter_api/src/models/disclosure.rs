@@ -1,6 +1,5 @@
 use itertools::Itertools;
 use url::Url;
-
 use wallet::AttributesNotAvailable;
 use wallet::CloseProximityDisclosureUpdate;
 use wallet::DisclosureAttestationOptions;
@@ -9,12 +8,11 @@ use wallet::attestation_data::ReaderRegistration;
 use wallet::errors::DisclosureError;
 use wallet::openid4vc::SessionType;
 
-use crate::errors::FlutterApiError;
-
 use super::attestation::AttestationPresentation;
 use super::image::Image;
 use super::instruction::WalletInstructionError;
 use super::localize::LocalizedString;
+use crate::errors::FlutterApiError;
 
 pub struct Organization {
     pub legal_name: Vec<LocalizedString>,

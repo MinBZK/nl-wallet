@@ -167,6 +167,7 @@ mod tests {
     use chrono::NaiveDate;
     use http::header::CACHE_CONTROL;
     use http::header::CONTENT_TYPE;
+    use http_utils::httpmock::httpmock_reqwest_client_builder;
     use httpmock::Method::GET;
     use httpmock::Mock;
     use httpmock::MockServer;
@@ -174,8 +175,6 @@ mod tests {
     use x509_parser::pem;
     use x509_parser::prelude::FromDer;
     use x509_parser::prelude::X509Certificate;
-
-    use http_utils::httpmock::httpmock_reqwest_client_builder;
 
     use super::*;
 

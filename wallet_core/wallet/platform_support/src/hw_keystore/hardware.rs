@@ -3,26 +3,24 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::LazyLock;
 
-use p256::ecdsa::Signature;
-use p256::ecdsa::VerifyingKey;
-use p256::pkcs8::DecodePublicKey;
-use parking_lot::Mutex;
-
 use crypto::keys::EcdsaKey;
 use crypto::keys::EncryptionKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::keys::SecureEncryptionKey;
 use crypto::keys::WithIdentifier;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::DecodePublicKey;
+use parking_lot::Mutex;
 use utils::spawn;
-
-use crate::bridge::hw_keystore::get_encryption_key_bridge;
-use crate::bridge::hw_keystore::get_signing_key_bridge;
 
 use super::HardwareKeyStoreError;
 use super::KeyStoreError;
 use super::PlatformEcdsaKey;
 use super::PlatformEncryptionKey;
 use super::StoredByIdentifier;
+use crate::bridge::hw_keystore::get_encryption_key_bridge;
+use crate::bridge::hw_keystore::get_signing_key_bridge;
 
 /// A static hash map of sets that contains all the identifiers for which an instance
 /// of that type currently exists within the application, keyed by the type's `TypeId`.

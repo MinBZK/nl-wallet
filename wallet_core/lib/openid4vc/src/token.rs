@@ -1,21 +1,6 @@
 use std::num::NonZeroU8;
 use std::time::Duration;
 
-use derive_more::Debug;
-use derive_more::From;
-use indexmap::IndexMap;
-use indexmap::IndexSet;
-use rustls_pki_types::TrustAnchor;
-use serde::Deserialize;
-use serde::Serialize;
-use serde_with::DurationSeconds;
-use serde_with::StringWithSeparator;
-use serde_with::base64::Base64;
-use serde_with::formats::SpaceSeparator;
-use serde_with::serde_as;
-use serde_with::skip_serializing_none;
-use url::Url;
-
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::x509::CertificateType;
@@ -25,9 +10,23 @@ use crypto::utils::sha256;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
+use derive_more::Debug;
+use derive_more::From;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
+use indexmap::IndexMap;
+use indexmap::IndexSet;
+use rustls_pki_types::TrustAnchor;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::DurationSeconds;
+use serde_with::StringWithSeparator;
+use serde_with::base64::Base64;
+use serde_with::formats::SpaceSeparator;
+use serde_with::serde_as;
+use serde_with::skip_serializing_none;
+use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 

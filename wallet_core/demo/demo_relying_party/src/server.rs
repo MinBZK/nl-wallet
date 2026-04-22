@@ -1,7 +1,6 @@
 use anyhow::Result;
 use tokio::net::TcpListener;
 use tracing::info;
-
 use utils::built_info::version_string;
 
 use crate::app::create_router;

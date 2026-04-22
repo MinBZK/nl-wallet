@@ -1,17 +1,15 @@
+use attestation_data::issuable_document::IssuableDocument;
+use db_test::DbSetup;
+use dcql::CredentialFormat;
 use sea_orm::ColumnTrait;
 use sea_orm::EntityTrait;
 use sea_orm::PaginatorTrait;
 use sea_orm::QueryFilter;
 use serial_test::serial;
-
-use attestation_data::issuable_document::IssuableDocument;
-use db_test::DbSetup;
-use dcql::CredentialFormat;
+use tests_integration::common::*;
 use wallet::AttestationIdentity;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_persistence::entity::wallet_user_key;
-
-use tests_integration::common::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]

@@ -1,7 +1,6 @@
 use derive_more::AsRef;
 use derive_more::Constructor;
 use derive_more::Into;
-
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;

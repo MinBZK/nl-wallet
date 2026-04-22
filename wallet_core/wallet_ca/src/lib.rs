@@ -4,13 +4,12 @@ use std::path::Path;
 use anyhow::Result;
 use anyhow::anyhow;
 use clio::CachedInput;
+use crypto::server_keys::generate::Ca;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePrivateKey;
 use pem::EncodeConfig;
 use pem::LineEnding;
 use pem::Pem;
-
-use crypto::server_keys::generate::Ca;
 
 pub fn read_public_key(public_key_file: &CachedInput) -> Result<Pem> {
     let pem = Pem::try_from(public_key_file.get_data())?;

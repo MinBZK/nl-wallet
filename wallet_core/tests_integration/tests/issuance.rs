@@ -1,6 +1,4 @@
 use assert_matches::assert_matches;
-use serial_test::serial;
-
 use attestation_data::attributes::Attributes;
 use attestation_data::issuable_document::IssuableDocument;
 use db_test::DbSetup;
@@ -18,13 +16,13 @@ use pid_issuer::pid::constants::PID_RESIDENT_COUNTRY;
 use pid_issuer::pid::constants::PID_RESIDENT_HOUSE_NUMBER;
 use pid_issuer::pid::constants::PID_RESIDENT_POSTAL_CODE;
 use pid_issuer::pid::constants::PID_RESIDENT_STREET;
+use serial_test::serial;
+use tests_integration::common::*;
 use utils::vec_nonempty;
 use wallet::AttestationAttributeValue;
 use wallet::PidIssuancePurpose;
 use wallet::attestation_data::AttributeValue;
 use wallet::errors::IssuanceError;
-
-use tests_integration::common::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]

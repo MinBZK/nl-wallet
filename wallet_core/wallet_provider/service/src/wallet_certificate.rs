@@ -1,14 +1,13 @@
 use chrono::Utc;
-use p256::ecdsa::VerifyingKey;
-use p256::pkcs8::EncodePublicKey;
-use tracing::debug;
-
 use hsm::model::Hsm;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::service::HsmError;
 use jwt::EcdsaDecodingKey;
 use jwt::SignedJwt;
+use p256::ecdsa::VerifyingKey;
+use p256::pkcs8::EncodePublicKey;
+use tracing::debug;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_provider_domain::model::QueryResult;
@@ -263,15 +262,14 @@ where
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use p256::ecdsa::SigningKey;
-    use p256::ecdsa::VerifyingKey;
-    use rand_core::OsRng;
-
     use hsm::model::Hsm;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
+    use p256::ecdsa::SigningKey;
+    use p256::ecdsa::VerifyingKey;
+    use rand_core::OsRng;
 
     pub const SIGNING_KEY_IDENTIFIER: &str = "certificate_signing_key_1";
     pub const PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER: &str =
@@ -329,16 +327,15 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
-    use p256::ecdsa::SigningKey;
-    use p256::ecdsa::VerifyingKey;
-    use rand_core::OsRng;
-
     use crypto::utils::random_bytes;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
     use jwt::EcdsaDecodingKey;
+    use p256::ecdsa::SigningKey;
+    use p256::ecdsa::VerifyingKey;
+    use rand_core::OsRng;
     use token_status_list::status_list_service::mock::MockStatusListService;
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;

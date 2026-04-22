@@ -1,6 +1,5 @@
 use serde::Deserialize;
 use serde::Serialize;
-
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::token::CredentialPreview;

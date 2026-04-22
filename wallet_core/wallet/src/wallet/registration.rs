@@ -1,10 +1,6 @@
 use std::error::Error;
 use std::sync::Arc;
 
-use tracing::info;
-use tracing::instrument;
-use tracing::warn;
-
 use crypto::keys::EcdsaKey;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -12,12 +8,14 @@ use http_utils::client::TlsPinningConfig;
 use jwt::error::JwtError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
-
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::KeyWithAttestation;
 use platform_support::attested_key::hardware::AttestedKeyError;
 use platform_support::attested_key::hardware::HardwareAttestedKeyError;
+use tracing::info;
+use tracing::instrument;
+use tracing::warn;
 use update_policy_model::update_policy::VersionState;
 use utils::vec_at_least::VecAtLeastNError;
 use utils::vec_at_least::VecAtLeastNErrorKind;
@@ -27,6 +25,8 @@ use wallet_account::messages::registration::Registration;
 use wallet_account::signed::ChallengeResponse;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::Wallet;
+use super::WalletRegistration;
 use crate::account_provider::AccountProviderClient;
 use crate::account_provider::AccountProviderError;
 use crate::errors::AccountProviderResponseError;
@@ -41,9 +41,6 @@ use crate::storage::KeyData;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::storage::StorageError;
-
-use super::Wallet;
-use super::WalletRegistration;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -336,34 +333,32 @@ where
 mod tests {
     use std::sync::Arc;
 
-    use assert_matches::assert_matches;
-    use futures::FutureExt;
-    use http::StatusCode;
-    use p256::ecdsa::SigningKey;
-    use parking_lot::Mutex;
-    use rand_core::OsRng;
-    use rstest::rstest;
-
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::VerifiedAttestation;
+    use assert_matches::assert_matches;
     use crypto::x509::BorrowingCertificate;
+    use futures::FutureExt;
+    use http::StatusCode;
     use jwt::SignedJwt;
+    use p256::ecdsa::SigningKey;
+    use parking_lot::Mutex;
     use platform_support::attested_key::mock::KeyHolderErrorScenario;
     use platform_support::attested_key::mock::KeyHolderType;
+    use rand_core::OsRng;
+    use rstest::rstest;
     use wallet_account::RevocationCode;
     use wallet_account::messages::registration::RegistrationAttestation;
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::SequenceNumberComparison;
 
+    use super::super::test::TestWalletMockStorage;
+    use super::super::test::WalletDeviceVendor;
+    use super::*;
     use crate::account_provider::AccountProviderResponseError;
     use crate::wallet::test::TestWallet;
     use crate::wallet::test::TestWalletInMemoryStorage;
     use crate::wallet::test::valid_certificate;
     use crate::wallet::test::valid_certificate_claims;
-
-    use super::super::test::TestWalletMockStorage;
-    use super::super::test::WalletDeviceVendor;
-    use super::*;
 
     const PIN: &str = "051097";
 

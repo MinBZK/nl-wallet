@@ -4,10 +4,6 @@ use anyhow::anyhow;
 use anyhow::bail;
 use clap::Parser;
 use clio::ClioPath;
-
-use utils::built_info::version_string;
-use utils::path::prefix_local_path;
-
 use gba_hc_converter::gba::client::GbavClient;
 use gba_hc_converter::gba::client::HttpGbavClient;
 use gba_hc_converter::gba::encryption::HmacSha256;
@@ -15,6 +11,8 @@ use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
 use gba_hc_converter::haal_centraal::Bsn;
 use gba_hc_converter::settings::RunMode;
 use gba_hc_converter::settings::Settings;
+use utils::built_info::version_string;
+use utils::path::prefix_local_path;
 
 #[derive(Parser)]
 #[command(version=version_string(), about, long_about = None)]

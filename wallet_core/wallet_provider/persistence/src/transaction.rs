@@ -2,7 +2,6 @@ use sea_orm::DatabaseTransaction;
 use sea_orm::TransactionTrait;
 use tokio::task;
 use tracing::error;
-
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;

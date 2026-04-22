@@ -7,12 +7,11 @@ use reqwest::header::ETAG;
 use reqwest::header::IF_NONE_MATCH;
 use reqwest::header::VARY;
 use rstest::rstest;
+use status_lists::publish::PublishDir;
+use status_lists::serve::create_serve_router;
 use tempfile::TempDir;
 use tokio::net::TcpListener;
 use url::Url;
-
-use status_lists::publish::PublishDir;
-use status_lists::serve::create_serve_router;
 
 async fn setup_server(publish_dir: &TempDir, ttl: Option<Duration>) -> anyhow::Result<Url> {
     let publish_dir = PublishDir::try_new(publish_dir.path().to_path_buf())?;

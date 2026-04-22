@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use chrono::DateTime;
-
 use db_test::DbSetup;
 use db_test::connection_from_url;
 use issuer_common::nonce_store::ProofNonceStore;

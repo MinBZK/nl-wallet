@@ -133,6 +133,7 @@ mod test {
     use std::io::Write;
     use std::os::fd::AsRawFd;
     use std::sync::Mutex;
+
     use tempfile::tempfile;
 
     use super::*;

@@ -1,17 +1,10 @@
 use std::collections::HashMap;
 
+use attestation_types::qualification::AttestationQualification;
+use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use coset::CoseSign1;
-use p256::ecdsa::VerifyingKey;
-use serde::Deserialize;
-use serde::Serialize;
-use serde_with::serde_as;
-use serde_with::skip_serializing_none;
-use ssri::Integrity;
-
-use attestation_types::qualification::AttestationQualification;
-use attestation_types::status_claim::StatusClaim;
 use crypto::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use error_category::ErrorCategory;
@@ -33,6 +26,7 @@ use mdoc::utils::cose::MdocCose;
 use mdoc::utils::crypto::CryptoError;
 use mdoc::utils::serialization::CborError;
 use mdoc::utils::serialization::TaggedBytes;
+use p256::ecdsa::VerifyingKey;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::builder::SignedSdJwt;
 use sd_jwt::claims::ClaimNameError;
@@ -42,6 +36,11 @@ use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataError;
 use sd_jwt_vc_metadata::TypeMetadataValidationError;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::serde_as;
+use serde_with::skip_serializing_none;
+use ssri::Integrity;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
 
@@ -540,21 +539,19 @@ fn split_mdoc(
 
 #[cfg(any(test, feature = "example_credential_payloads"))]
 mod examples {
+    use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
+    use jwt::jwk::jwk_from_p256;
     use p256::ecdsa::VerifyingKey;
     use ssri::Integrity;
-
-    use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
-    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
-    use jwt::jwk::jwk_from_p256;
     use utils::generator::Generator;
 
+    use super::*;
     use crate::attributes::AttributeValue;
     use crate::attributes::Attributes;
-
-    use super::*;
 
     impl CredentialPayload {
         pub fn from_previewable_credential_payload_unvalidated(
@@ -650,19 +647,17 @@ mod examples {
 
 #[cfg(feature = "mock")]
 mod mock {
+    use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::DateTime;
     use chrono::Utc;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
-
-    use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
-    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use utils::generator::Generator;
-
-    use crate::attributes::Attributes;
 
     use super::CredentialPayload;
     use super::PreviewableCredentialPayload;
+    use crate::attributes::Attributes;
 
     impl CredentialPayload {
         pub fn nl_pid_example(time_generator: &impl Generator<DateTime<Utc>>) -> (Self, SigningKey) {
@@ -706,27 +701,24 @@ mod test {
     use std::time::Duration;
 
     use assert_matches::assert_matches;
-    use chrono::TimeZone;
-    use chrono::Utc;
-    use futures::FutureExt;
-    use indexmap::IndexMap;
-    use itertools::Itertools;
-    use jwt::nonce::Nonce;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
-    use serde_json::json;
-    use ssri::Integrity;
-
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::qualification::AttestationQualification;
+    use chrono::TimeZone;
+    use chrono::Utc;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
+    use futures::FutureExt;
+    use indexmap::IndexMap;
+    use itertools::Itertools;
     use jwt::jwk::jwk_from_p256;
+    use jwt::nonce::Nonce;
     use mdoc::holder::Mdoc;
     use mdoc::utils::serialization::TaggedBytes;
     use mdoc::verifier::ValidityRequirement;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use sd_jwt::builder::SdJwtBuilder;
     use sd_jwt::key_binding_jwt::KbVerificationOptions;
     use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
@@ -735,20 +727,21 @@ mod test {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+    use serde_json::json;
+    use ssri::Integrity;
     use token_status_list::verification::client::mock::StatusListClientStub;
     use token_status_list::verification::verifier::RevocationVerifier;
     use utils::generator::TimeGenerator;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
 
+    use super::*;
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
     use crate::attributes::Attributes;
     use crate::attributes::test::complex_attributes;
     use crate::auth::issuer_auth::IssuerRegistration;
     use crate::x509::CertificateType;
-
-    use super::*;
 
     fn setup_into_signed() -> (
         PreviewableCredentialPayload,
