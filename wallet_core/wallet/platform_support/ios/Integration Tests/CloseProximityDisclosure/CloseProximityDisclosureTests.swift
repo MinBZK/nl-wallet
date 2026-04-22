@@ -164,7 +164,8 @@ final class CloseProximityDisclosureTests: XCTestCase {
         let closeProximityDisclosure = CloseProximityDisclosure()
         let channel = TestChannel()
 
-        XCTAssertFalse(closeProximityDisclosure.isBleServerActiveForTesting())
+        let isBleServerActiveBeforeStart = await closeProximityDisclosure.isBleServerActiveForTesting()
+        XCTAssertFalse(isBleServerActiveBeforeStart)
 
         let qrCode = try await closeProximityDisclosure.startQrHandover(channel: channel)
 
@@ -172,13 +173,15 @@ final class CloseProximityDisclosureTests: XCTestCase {
 
         XCTAssertFalse(qrCode.isEmpty)
         XCTAssertFalse(qrCode.hasPrefix("mdoc:"))
-        XCTAssertTrue(closeProximityDisclosure.isBleServerActiveForTesting())
+        let isBleServerActiveAfterStart = await closeProximityDisclosure.isBleServerActiveForTesting()
+        XCTAssertTrue(isBleServerActiveAfterStart)
 
         try await closeProximityDisclosure.stopBleServer()
 
         let hasReceivedClosedUpdate = await channel.hasReceivedClosedUpdate()
         XCTAssertTrue(hasReceivedClosedUpdate)
-        XCTAssertFalse(closeProximityDisclosure.isBleServerActiveForTesting())
+        let isBleServerActiveAfterStop = await closeProximityDisclosure.isBleServerActiveForTesting()
+        XCTAssertFalse(isBleServerActiveAfterStop)
     }
 
     func testCloseProximityDisclosureFullFlowWithMacReader() async throws {
@@ -196,7 +199,8 @@ final class CloseProximityDisclosureTests: XCTestCase {
         let closeProximityDisclosure = CloseProximityDisclosure()
         let channel = TestChannel()
 
-        XCTAssertFalse(closeProximityDisclosure.isBleServerActiveForTesting())
+        let isBleServerActiveBeforeStart = await closeProximityDisclosure.isBleServerActiveForTesting()
+        XCTAssertFalse(isBleServerActiveBeforeStart)
 
         let qrCode = try await closeProximityDisclosure.startQrHandover(channel: channel)
 
@@ -211,7 +215,8 @@ final class CloseProximityDisclosureTests: XCTestCase {
 
         XCTAssertFalse(qrCode.isEmpty)
         XCTAssertFalse(qrCode.hasPrefix("mdoc:"))
-        XCTAssertTrue(closeProximityDisclosure.isBleServerActiveForTesting())
+        let isBleServerActiveAfterStart = await closeProximityDisclosure.isBleServerActiveForTesting()
+        XCTAssertTrue(isBleServerActiveAfterStart)
 
         let didReceiveSessionEstablished = await waitUntil(timeoutNanoseconds: 30_000_000_000) {
             await channel.hasReceivedSessionEstablishedUpdate()
@@ -275,7 +280,8 @@ final class CloseProximityDisclosureTests: XCTestCase {
 
         XCTAssertLessThan(connectingIndex, sessionEstablishedIndex)
         XCTAssertLessThan(sessionEstablishedIndex, closedIndex)
-        XCTAssertFalse(closeProximityDisclosure.isBleServerActiveForTesting())
+        let isBleServerActiveAfterClose = await closeProximityDisclosure.isBleServerActiveForTesting()
+        XCTAssertFalse(isBleServerActiveAfterClose)
     }
 
     func testStartQrHandoverFromTwoTasksReplacesPreviousSession() async throws {
@@ -302,7 +308,8 @@ final class CloseProximityDisclosureTests: XCTestCase {
         XCTAssertFalse(resolvedSecondQrCode.isEmpty)
         XCTAssertFalse(resolvedFirstQrCode.hasPrefix("mdoc:"))
         XCTAssertFalse(resolvedSecondQrCode.hasPrefix("mdoc:"))
-        XCTAssertTrue(closeProximityDisclosure.isBleServerActiveForTesting())
+        let isBleServerActiveAfterStart = await closeProximityDisclosure.isBleServerActiveForTesting()
+        XCTAssertTrue(isBleServerActiveAfterStart)
 
         let firstClosed = await waitUntil(timeoutNanoseconds: 1_000_000_000) {
             await firstChannel.hasReceivedClosedUpdate()
@@ -329,7 +336,8 @@ final class CloseProximityDisclosureTests: XCTestCase {
         XCTAssertTrue(activeDidClose)
         XCTAssertEqual(activeUpdatesAfterStop, [.closed])
         XCTAssertEqual(replacedUpdatesAfterStop, [.closed])
-        XCTAssertFalse(closeProximityDisclosure.isBleServerActiveForTesting())
+        let isBleServerActiveAfterStop = await closeProximityDisclosure.isBleServerActiveForTesting()
+        XCTAssertFalse(isBleServerActiveAfterStop)
     }
 
     private func waitUntil(

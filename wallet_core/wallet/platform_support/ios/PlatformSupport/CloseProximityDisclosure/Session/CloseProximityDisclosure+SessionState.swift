@@ -3,49 +3,31 @@ import Foundation
 
 extension CloseProximityDisclosure {
     internal func isBleServerActiveForTesting() -> Bool {
-        withActiveSessionLock {
-            activeSession != nil
-        }
-    }
-
-    func withActiveSessionLock<T>(_ body: () -> T) -> T {
-        activeSessionLock.lock()
-        defer { activeSessionLock.unlock() }
-        return body()
+        activeSessionState != nil
     }
 
     func setActiveSession(_ session: CloseProximityDisclosureActiveSession?) {
-        withActiveSessionLock {
-            activeSession = session
-        }
+        activeSessionState = session.map(CloseProximityDisclosureActiveSessionState.init)
     }
 
-    func takeActiveSession() -> CloseProximityDisclosureActiveSession? {
-        withActiveSessionLock {
-            let session = activeSession
-            activeSession = nil
-            return session
-        }
+    func takeActiveSessionState() -> CloseProximityDisclosureActiveSessionState? {
+        let sessionState = activeSessionState
+        activeSessionState = nil
+        return sessionState
     }
 
     func clearActiveSessionIfCurrent(_ session: CloseProximityDisclosureActiveSession) -> Bool {
-        withActiveSessionLock {
-            if activeSession === session {
-                activeSession = nil
-                return true
-            }
-            return false
-        }
+        guard let activeSessionState, activeSessionState.session === session else { return false }
+        self.activeSessionState = nil
+        return true
     }
 
     func isActiveSession(_ session: CloseProximityDisclosureActiveSession) -> Bool {
-        withActiveSessionLock {
-            activeSession === session
-        }
+        activeSessionState?.session === session
     }
 
     func requireActiveSession() throws -> CloseProximityDisclosureActiveSession {
-        guard let session = withActiveSessionLock({ activeSession }) else {
+        guard let session = activeSessionState?.session else {
             throw CloseProximityDisclosureError.PlatformError(
                 reason: "No active close proximity disclosure session"
             )
@@ -58,6 +40,67 @@ extension CloseProximityDisclosure {
             throw CloseProximityDisclosureError.PlatformError(
                 reason: "Close proximity disclosure session is no longer active"
             )
+        }
+    }
+
+    func setConnectionTask(
+        _ connectionTask: Task<Void, Never>,
+        for session: CloseProximityDisclosureActiveSession
+    ) {
+        mutateActiveSessionState(session) { sessionState in
+            sessionState.connectionTask = connectionTask
+        }
+    }
+
+    func setReadMessagesTask(
+        _ readMessagesTask: Task<Void, Never>,
+        for session: CloseProximityDisclosureActiveSession
+    ) {
+        mutateActiveSessionState(session) { sessionState in
+            sessionState.readMessagesTask = readMessagesTask
+        }
+    }
+
+    func readerSessionContext(
+        for session: CloseProximityDisclosureActiveSession
+    ) -> CloseProximityDisclosureReaderSessionContext? {
+        guard let activeSessionState, activeSessionState.session === session else { return nil }
+        return activeSessionState.readerSessionContext
+    }
+
+    func setReaderSessionContext(
+        _ readerSessionContext: CloseProximityDisclosureReaderSessionContext,
+        for session: CloseProximityDisclosureActiveSession
+    ) {
+        mutateActiveSessionState(session) { sessionState in
+            sessionState.sessionEncryption = readerSessionContext.sessionEncryption
+            sessionState.encodedSessionTranscript = readerSessionContext.encodedSessionTranscript
+        }
+    }
+
+    func establishedSessionContext(
+        for session: CloseProximityDisclosureActiveSession
+    ) -> CloseProximityDisclosureEstablishedSessionContext? {
+        guard let activeSessionState, activeSessionState.session === session else { return nil }
+        return activeSessionState.establishedSessionContext
+    }
+
+    func cancelReadMessagesTaskAndWait(_ session: CloseProximityDisclosureActiveSession) async {
+        let readMessagesTask = takeReadMessagesTask(for: session)
+        guard let readMessagesTask else { return }
+        readMessagesTask.cancel()
+        _ = await readMessagesTask.value
+    }
+
+    func cancelBackgroundTasks(_ sessionState: CloseProximityDisclosureActiveSessionState) async {
+        sessionState.readMessagesTask?.cancel()
+        sessionState.connectionTask?.cancel()
+
+        if let readMessagesTask = sessionState.readMessagesTask {
+            _ = await readMessagesTask.value
+        }
+        if let connectionTask = sessionState.connectionTask {
+            _ = await connectionTask.value
         }
     }
 
@@ -89,6 +132,25 @@ extension CloseProximityDisclosure {
 
     func closeSessionTransports(_ session: CloseProximityDisclosureActiveSession) async {
         try? await session.transport.close()
+    }
+
+    private func takeReadMessagesTask(
+        for session: CloseProximityDisclosureActiveSession
+    ) -> Task<Void, Never>? {
+        guard var activeSessionState, activeSessionState.session === session else { return nil }
+        let readMessagesTask = activeSessionState.readMessagesTask
+        activeSessionState.readMessagesTask = nil
+        self.activeSessionState = activeSessionState
+        return readMessagesTask
+    }
+
+    private func mutateActiveSessionState(
+        _ session: CloseProximityDisclosureActiveSession,
+        mutation: (inout CloseProximityDisclosureActiveSessionState) -> Void
+    ) {
+        guard var activeSessionState, activeSessionState.session === session else { return }
+        mutation(&activeSessionState)
+        self.activeSessionState = activeSessionState
     }
 }
 

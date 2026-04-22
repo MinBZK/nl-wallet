@@ -14,7 +14,7 @@ extension CloseProximityDisclosure {
                 return
             }
 
-            let currentReaderSessionContext = session.sessionState().readerSessionContext
+            let currentReaderSessionContext = readerSessionContext(for: session)
             guard let readerSessionContext = try await ensureReaderSessionContext(
                 session: session,
                 transport: transport,
@@ -124,10 +124,7 @@ extension CloseProximityDisclosure {
             }
             throw error
         }
-        session.setSessionEncryption(
-            newContext.sessionEncryption,
-            encodedSessionTranscript: newContext.encodedSessionTranscript
-        )
+        setReaderSessionContext(newContext, for: session)
 
         guard isActiveSession(session) else {
             try? await transport.close()

@@ -71,24 +71,24 @@ extension CloseProximityDisclosure {
         let connectionTask = Task { [weak self] in
             guard let self else { return }
             do {
-                guard self.isActiveSession(session) else { return }
+                guard await self.isActiveSession(session) else { return }
                 try await session.channel.sendUpdate(
                     update: CloseProximityDisclosureUpdate.connecting
                 )
                 try await session.transport.waitForConnection()
-                guard self.isActiveSession(session) else { return }
+                guard await self.isActiveSession(session) else { return }
                 try await session.channel.sendUpdate(
                     update: CloseProximityDisclosureUpdate.connected
                 )
-                self.startReadMessagesTask(session)
+                await self.startReadMessagesTask(session)
             } catch is CancellationError {
                 // The connection task is canceled when the session is replaced or stopped.
             } catch {
-                guard self.isActiveSession(session) else { return }
+                guard await self.isActiveSession(session) else { return }
                 await self.failSession(session, error: error)
             }
         }
-        session.setConnectionTask(connectionTask)
+        setConnectionTask(connectionTask, for: session)
     }
 
     func startReadMessagesTask(_ session: CloseProximityDisclosureActiveSession) {
@@ -103,22 +103,23 @@ extension CloseProximityDisclosure {
                 // The read task is canceled explicitly while shutting the session down, so nothing
                 // needs to be reported from this path.
             } catch {
-                guard self.isActiveSession(session) else { return }
+                guard await self.isActiveSession(session) else { return }
                 await self.failSession(session, error: error)
             }
         }
-        session.setReadMessagesTask(readMessagesTask)
+        setReadMessagesTask(readMessagesTask, for: session)
     }
 
     func stopBleServerLocked() async {
-        guard let session = takeActiveSession() else { return }
+        guard let sessionState = takeActiveSessionState() else { return }
 
         // Take and clear the session first so any already-running background work immediately
         // observes itself as stale before we start canceling tasks and closing transports.
-        await session.cancelReadMessagesTaskAndWait()
-        await session.cancelBackgroundTasks()
-        await closeSessionTransports(session)
-        try? await session.channel.sendUpdate(update: CloseProximityDisclosureUpdate.closed)
+        await cancelBackgroundTasks(sessionState)
+        await closeSessionTransports(sessionState.session)
+        try? await sessionState.session.channel.sendUpdate(
+            update: CloseProximityDisclosureUpdate.closed
+        )
     }
 
     func reportStartQrHandoverFailure(

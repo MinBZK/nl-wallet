@@ -5,10 +5,9 @@ extension CloseProximityDisclosure {
     func establishedSessionContextOrRestartReadTask(
         _ session: CloseProximityDisclosureActiveSession
     ) throws -> CloseProximityDisclosureEstablishedSessionContext {
-        guard let establishedSessionContext = session.establishedTransportAndEncryption() else {
-            if isActiveSession(session) {
-                startReadMessagesTask(session)
-            }
+        try requireSessionIsActive(session)
+        guard let establishedSessionContext = establishedSessionContext(for: session) else {
+            startReadMessagesTask(session)
             throw CloseProximityDisclosureError.PlatformError(
                 reason: "Session has not been established yet"
             )

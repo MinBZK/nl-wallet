@@ -145,9 +145,9 @@ The implementation currently keeps the long-running work off the `startQrHandove
 - A background connection task waits for BLE connection and emits the connected updates.
 - A background read task waits for reader messages and drives session establishment and reader status handling.
 - Lifecycle helpers start and stop those tasks.
-- Session helpers manage active-session ownership and teardown.
+- Actor-owned session helpers manage active-session ownership, task handles, session establishment state, and teardown.
 - Exchange helpers handle inbound reader messages and outbound device messages.
-- The active session stores task handles and session state, but does not itself execute the connection or read loops.
+- `CloseProximityDisclosure` owns the mutable runtime state, while `ActiveSession` is now immutable and only carries channel / transport / key material for the current handover.
 
 This split exists so `startQrHandover()` can return the QR code immediately, while later calls such as `sendDeviceResponse()` can explicitly stop the read loop before writing the final response.
 
@@ -155,8 +155,8 @@ This split exists so `startQrHandover()` can return the QR code immediately, whi
 sequenceDiagram
     autonumber
     actor Caller as Wallet Core / App
-    participant CPD as CloseProximityDisclosure runtime
-    participant Session as ActiveSession
+    participant CPD as CloseProximityDisclosure actor
+    participant Session as ActiveSession data
     participant ConnTask as Background connection task
     participant ReadTask as Background read task
     participant BLE as CloseProximityBleTransport
@@ -168,9 +168,9 @@ sequenceDiagram
     CPD->>BLE: advertise()
     BLE-->>CPD: advertising started
     CPD->>Session: create active session
-    CPD->>CPD: store active session
+    CPD->>CPD: store active session state
     CPD->>ConnTask: spawn
-    ConnTask->>Session: store task handle
+    CPD->>CPD: store connection task handle
     CPD-->>Caller: QR code (device engagement)
 
     ConnTask->>Channel: sendUpdate(.connecting)
@@ -179,25 +179,25 @@ sequenceDiagram
     BLE-->>ConnTask: waitForConnection() returns
     ConnTask->>Channel: sendUpdate(.connected)
     ConnTask->>ReadTask: spawn
-    ReadTask->>Session: store task handle
+    CPD->>CPD: store read task handle
 
     Reader->>BLE: write first reader message
     BLE-->>ReadTask: waitForMessage()
     ReadTask->>CPD: process reader message
     CPD->>CPD: derive reader key + session transcript
-    CPD->>Session: store session encryption
+    CPD->>CPD: store reader session context
     CPD->>Channel: sendUpdate(.sessionEstablished)
 
     alt App sends DeviceResponse
         Caller->>CPD: sendDeviceResponse(deviceResponse)
-        CPD->>Session: cancel read task
+        CPD->>CPD: cancel read task
         CPD->>BLE: send encrypted DeviceResponse
         CPD->>CPD: finishSession(.closed)
         CPD->>BLE: close()
         CPD->>Channel: sendUpdate(.closed)
     else App sends SessionTermination
         Caller->>CPD: sendSessionTermination()
-        CPD->>Session: cancel read task
+        CPD->>CPD: cancel read task
         CPD->>BLE: send termination status
         CPD->>CPD: finishSession(.closed)
         CPD->>BLE: close()
@@ -215,7 +215,7 @@ sequenceDiagram
 Notes:
 
 - `startQrHandover()` must return before a reader connects, so waiting for connection cannot happen inline on that call path.
-- The active session stores both the transport and the session-encryption state derived from the first reader message.
+- The actor stores task handles plus the session-encryption state derived from the first reader message; `ActiveSession` itself remains immutable.
 - `sendDeviceResponse()` and `sendSessionTermination()` cancel the read task first so the app does not race its own background message loop while sending the final message.
 - Reader-side protocol failures are mapped to ISO 18013-5 status codes before the BLE transport is closed.
 
