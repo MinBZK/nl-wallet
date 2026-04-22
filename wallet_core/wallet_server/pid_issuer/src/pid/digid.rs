@@ -16,10 +16,10 @@ use openid4vc::metadata::well_known;
 use openid4vc::metadata::well_known::WellKnownError;
 use openid4vc::metadata::well_known::WellKnownPath;
 use openid4vc::token::TokenRequest;
+use openid4vc_server::issuer::UpstreamAuthorizationContext;
 use openid4vc_server::issuer::UpstreamAuthorizationEndpointResolver;
 use openid4vc_server::issuer::UpstreamResolveError;
 use tokio::sync::OnceCell;
-use url::Url;
 
 use crate::pid::userinfo;
 use crate::pid::userinfo::UserInfo;
@@ -87,26 +87,34 @@ impl DigidMetadataCache {
 /// [`DigidMetadataCache`] for the lifetime of the process.
 pub struct DigidAuthorizationEndpointResolver {
     cache: Arc<DigidMetadataCache>,
+    client_id: String,
 }
 
 impl DigidAuthorizationEndpointResolver {
-    pub fn new(cache: Arc<DigidMetadataCache>) -> Self {
-        Self { cache }
+    pub fn new(cache: Arc<DigidMetadataCache>, client_id: impl Into<String>) -> Self {
+        Self {
+            cache,
+            client_id: client_id.into(),
+        }
     }
 }
 
 #[async_trait]
 impl UpstreamAuthorizationEndpointResolver for DigidAuthorizationEndpointResolver {
-    async fn resolve(&self) -> Result<Url, UpstreamResolveError> {
+    async fn resolve(&self) -> Result<UpstreamAuthorizationContext, UpstreamResolveError> {
         let metadata = self
             .cache
             .metadata()
             .await
             .map_err(|e| UpstreamResolveError::Discovery(Box::new(e)))?;
-        metadata
+        let authorization_endpoint = metadata
             .authorization_endpoint
             .clone()
-            .ok_or(UpstreamResolveError::NoAuthorizationEndpoint)
+            .ok_or(UpstreamResolveError::NoAuthorizationEndpoint)?;
+        Ok(UpstreamAuthorizationContext {
+            authorization_endpoint,
+            client_id: self.client_id.clone(),
+        })
     }
 }
 
@@ -133,8 +141,10 @@ impl OpenIdClient {
         })
     }
 
-    pub async fn bsn(&self, token_request: TokenRequest) -> Result<String, Error> {
+    pub async fn bsn(&self, mut token_request: TokenRequest) -> Result<String, Error> {
         let metadata = self.cache.metadata().await.map_err(Error::WellKnown)?;
+        token_request.client_id = Some(self.client_id.clone());
+
         let userinfo_claims = userinfo::request_userinfo::<UserInfo>(
             self.cache.http_client(),
             metadata,

@@ -38,6 +38,7 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
+use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -297,7 +298,7 @@ where
             .issuance_discovery
             .start_authorization_code_flow(
                 &pid_issuance_config.url,
-                pid_issuance_config.client_id.clone(),
+                String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
             )
             .await?;

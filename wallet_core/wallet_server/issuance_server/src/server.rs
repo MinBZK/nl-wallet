@@ -135,7 +135,12 @@ where
         Arc::clone(&status_list_services),
     ));
 
-    let issuance_router = create_issuance_router(Arc::clone(&issuer), Arc::new(()), None);
+    let issuance_router = create_issuance_router(
+        Arc::clone(&issuer),
+        Arc::new(()),
+        None,
+        issuer_settings.wallet_client_ids.clone(),
+    );
 
     let result_handler = IssuanceResultHandler {
         issuer,

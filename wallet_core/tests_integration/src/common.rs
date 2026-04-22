@@ -912,9 +912,10 @@ pub async fn start_pid_issuer_server(
                 public_listener,
                 internal_listener,
                 attr_service,
-                Arc::new(DigidAuthorizationEndpointResolver::new(Arc::new(
-                    DigidMetadataCache::try_new(settings.digid.client_settings).unwrap(),
-                ))),
+                Arc::new(DigidAuthorizationEndpointResolver::new(
+                    Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings).unwrap()),
+                    settings.digid.client_id,
+                )),
                 settings.issuer_settings,
                 hsm,
                 issuance_sessions,

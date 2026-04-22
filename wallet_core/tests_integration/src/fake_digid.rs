@@ -10,6 +10,7 @@ use reqwest::Certificate;
 use reqwest::Response;
 use reqwest::header::LOCATION;
 use reqwest::redirect::Policy;
+use tracing::debug;
 use url::Url;
 
 // Use the mock flow of the DigiD bridge to simulate a DigiD login,
@@ -22,6 +23,7 @@ pub async fn fake_digid_auth(
     issuer_identifier: &IssuerIdentifier,
     digid_url: &str,
     digid_trust_anchors: Vec<Certificate>,
+    digid_client_id: &str,
     bsn: &str,
 ) -> Url {
     let http_client = tls_reqwest_client_builder(digid_trust_anchors.clone())
@@ -62,10 +64,26 @@ pub async fn fake_digid_auth(
     )
     .unwrap();
 
+    // Replace the client_id query parameter
+    let query_params: Vec<(String, String)> = authorization_url
+        .query_pairs()
+        .filter(|(name, _)| name != "client_id")
+        .map(|(k, v)| (k.into_owned(), v.into_owned()))
+        .collect();
+    authorization_url
+        .query_pairs_mut()
+        .clear()
+        .extend_pairs(query_params)
+        .append_pair("client_id", digid_client_id);
+
     // Avoid the DigiD/mock DigiD landing page of the DigiD bridge by preselecting the latter
     authorization_url
         .query_pairs_mut()
         .append_pair("login_hint", "digid_mock");
+
+    debug!("original_authorization_url: {}", original_authorization_url);
+    debug!("digid base url: {}", digid_url);
+    debug!("rewritten authorization_url: {}", authorization_url.to_string());
 
     // Start authentication by GETting the authorization URL.
     // In the resulting HTML page, find the "RelayState" parameter which we need for the following URL.

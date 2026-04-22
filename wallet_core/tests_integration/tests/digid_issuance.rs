@@ -27,8 +27,8 @@ use server_utils::keys::SecretKeyVariant;
 use server_utils::settings::SecretKey;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
-use tracing::debug;
 use wallet::test::default_wallet_config;
+use wallet_account::NL_WALLET_CLIENT_ID;
 
 /// Test the DigiD connector + BRP proxy integration as consumed by the pid_issuer.
 ///
@@ -85,13 +85,10 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
 
     let wallet_config = default_wallet_config();
 
-    // Discover the credential issuer and start authorization code flow. `client_id` and
-    // `redirect_uri` are forwarded verbatim to rdo-max, which validates them against its
-    // registered client — overridable here so CI can point at a deployed rdo-max whose
-    // registered client differs from the local-dev defaults.
-    let client_id = option_env!("DIGID_TEST_CLIENT_ID")
-        .map(str::to_owned)
-        .unwrap_or_else(|| wallet_config.pid_issuance.client_id.clone());
+    // Discover the credential issuer and start authorization code flow. The wallet sends `client_id`
+    // to the pid_issuer's PAR endpoint, which validates it against its configured wallet_client_ids.
+    // The pid_issuer then substitutes its own DigiD client_id before forwarding to rdo-max.
+    // Overridable here so CI can use a wallet client_id that is registered with that pid_issuer.
     let redirect_uri = option_env!("DIGID_TEST_REDIRECT_URI")
         .map(|raw| raw.parse().expect("DIGID_TEST_REDIRECT_URI is not a valid URL"))
         .unwrap_or_else(|| {
@@ -104,24 +101,9 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_client);
 
     let authorization_session = credential_issuer_discovery
-        .start_authorization_code_flow(&issuer_url.public, client_id, redirect_uri)
+        .start_authorization_code_flow(&issuer_url.public, String::from(NL_WALLET_CLIENT_ID), redirect_uri)
         .await
         .unwrap();
-
-    debug!(
-        "authorization_url: {}",
-        authorization_session.auth_url().clone().to_string()
-    );
-    debug!(
-        "digid base url: {}",
-        settings
-            .digid
-            .client_settings
-            .oidc_identifier
-            .as_base_url()
-            .clone()
-            .to_string()
-    );
 
     // Do fake DigiD authentication and parse the access token out of the redirect URL
     let redirect_url = fake_digid_auth(
@@ -135,6 +117,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             .into_iter()
             .map(|ta| ta.into_certificate())
             .collect_vec(),
+        settings.digid.client_id.as_str(),
         "999991772",
     )
     .await;

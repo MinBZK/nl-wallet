@@ -86,10 +86,11 @@ where
 
     let status_list_services = Arc::new(status_list_services);
     let par_store = Arc::new(MemoryParStore::default());
+    let wallet_client_ids = settings.wallet_client_ids;
     let wallet_issuance_router = create_issuance_router(
         Arc::new(Issuer::new(
             settings.public_url,
-            settings.wallet_client_ids,
+            wallet_client_ids.clone(),
             attestation_config,
             Some(WiaConfig {
                 wia_issuer_pubkey: (&wia_issuer_pubkey).into(),
@@ -101,6 +102,7 @@ where
         )),
         Arc::clone(&par_store),
         Some(upstream_authorization_resolver),
+        wallet_client_ids,
     );
 
     let mut router = add_cache_control_no_store_layer(wallet_issuance_router);

@@ -59,6 +59,7 @@ async fn main() {
         option_env!("INTERNAL_VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3006/");
     let digid_url = option_env!("DIGID_URL").unwrap_or("https://localhost:8006");
     let digid_trust_anchor = option_env!("DIGID_TRUST_ANCHOR").unwrap_or_default();
+    let digid_client_id = env!("DIGID_CLIENT_ID");
 
     let config_server_config = default_config_server_config();
     let wallet_config = default_wallet_config();
@@ -116,6 +117,7 @@ async fn main() {
                     .expect("Could not parse trust anchor"),
             ]
         },
+        digid_client_id,
         "999991772",
     )
     .await;

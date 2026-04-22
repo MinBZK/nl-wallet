@@ -73,16 +73,25 @@ pub enum UpstreamResolveError {
     NoAuthorizationEndpoint,
 }
 
-/// Resolves the upstream authorization endpoint URL, e.g. by performing OIDC discovery.
+/// Returned by [`UpstreamAuthorizationEndpointResolver::resolve`].
+pub struct UpstreamAuthorizationContext {
+    /// Resolved upstream authorization endpoint URL, e.g. by performing OIDC discovery.
+    pub authorization_endpoint: Url,
+    /// The `client_id` used when forwarding the authorization request upstream.
+    pub client_id: String,
+}
+
+/// Resolves the upstream authorization endpoint URL and client_id, e.g. by performing OIDC discovery.
 #[async_trait]
 pub trait UpstreamAuthorizationEndpointResolver: Send + Sync {
-    async fn resolve(&self) -> Result<Url, UpstreamResolveError>;
+    async fn resolve(&self) -> Result<UpstreamAuthorizationContext, UpstreamResolveError>;
 }
 
 struct ApplicationState<K, A, S, N, L, P> {
     issuer: Arc<Issuer<K, A, S, N, L>>,
     par_store: Arc<P>,
     upstream_authorization_resolver: Option<Arc<dyn UpstreamAuthorizationEndpointResolver>>,
+    accepted_wallet_client_ids: Vec<String>,
 }
 
 // Implement `Clone` manually, because `#[derive(Clone)]` unnecessarily adds `Clone` bounds on its type parameters,
@@ -93,6 +102,7 @@ impl<K, A, S, N, L, P> Clone for ApplicationState<K, A, S, N, L, P> {
             issuer: self.issuer.clone(),
             par_store: self.par_store.clone(),
             upstream_authorization_resolver: self.upstream_authorization_resolver.clone(),
+            accepted_wallet_client_ids: self.accepted_wallet_client_ids.clone(),
         }
     }
 }
@@ -101,6 +111,7 @@ pub fn create_issuance_router<K, A, S, N, L, P>(
     issuer: Arc<Issuer<K, A, S, N, L>>,
     par_store: Arc<P>,
     upstream_authorization_resolver: Option<Arc<dyn UpstreamAuthorizationEndpointResolver>>,
+    accepted_wallet_client_ids: Vec<String>,
 ) -> Router
 where
     K: EcdsaKeySend + Sync + 'static,
@@ -114,6 +125,7 @@ where
         issuer,
         par_store,
         upstream_authorization_resolver,
+        accepted_wallet_client_ids,
     };
 
     Router::new()
@@ -355,6 +367,17 @@ where
     L: StatusListServices,
     P: ParStore,
 {
+    if !state
+        .accepted_wallet_client_ids
+        .contains(&authorization_request.client_id)
+    {
+        return Err(ErrorResponse {
+            error: ParError::InvalidClient,
+            error_description: Some(format!("unknown client_id: {}", authorization_request.client_id)),
+            error_uri: None,
+        });
+    }
+
     let request_uri = par::generate_request_uri();
     let expires_at = Utc::now() + PAR_TTL;
 
@@ -382,7 +405,7 @@ where
 
 async fn authorize<K, A, S, N, L, P>(
     State(state): State<ApplicationState<K, A, S, N, L, P>>,
-    Query(PushedAuthorizationRequest { request_uri, .. }): Query<PushedAuthorizationRequest>,
+    Query(PushedAuthorizationRequest { request_uri, client_id }): Query<PushedAuthorizationRequest>,
 ) -> Result<Response, ErrorResponse<AuthorizeError>>
 where
     K: EcdsaKeySend,
@@ -392,6 +415,14 @@ where
     L: StatusListServices,
     P: ParStore,
 {
+    if !state.accepted_wallet_client_ids.contains(&client_id) {
+        return Err(ErrorResponse {
+            error: AuthorizeError::InvalidClient,
+            error_description: Some(format!("unknown client_id: {client_id}")),
+            error_uri: None,
+        });
+    }
+
     let upstream_authorization_resolver =
         state
             .upstream_authorization_resolver
@@ -402,7 +433,7 @@ where
                 error_uri: None,
             })?;
 
-    let upstream_authorization_endpoint = upstream_authorization_resolver.resolve().await.map_err(|error| {
+    let upstream_context = upstream_authorization_resolver.resolve().await.map_err(|error| {
         warn!("resolving upstream authorization endpoint failed: {}", error);
         ErrorResponse {
             error: AuthorizeError::ServerError,
@@ -411,7 +442,7 @@ where
         }
     })?;
 
-    let authorization_request = state
+    let mut authorization_request = state
         .par_store
         .consume(&request_uri)
         .await
@@ -429,6 +460,9 @@ where
             error_uri: None,
         })?;
 
+    // Rewrite the wallet client_id to the upstream (DigiD) client_id before forwarding.
+    authorization_request.client_id = upstream_context.client_id;
+
     let query_string = serde_urlencoded::to_string(&authorization_request).map_err(|error| {
         warn!("encoding authorization request as query string failed: {}", error);
         ErrorResponse {
@@ -438,7 +472,7 @@ where
         }
     })?;
 
-    let mut redirect_url = upstream_authorization_endpoint;
+    let mut redirect_url = upstream_context.authorization_endpoint;
     redirect_url.set_query(Some(&query_string));
 
     Ok((StatusCode::FOUND, [(header::LOCATION, redirect_url.to_string())]).into_response())
@@ -447,18 +481,23 @@ where
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum ParError {
+    InvalidClient,
     ServerError,
 }
 
 impl ErrorStatusCode for ParError {
     fn status_code(&self) -> StatusCode {
-        StatusCode::INTERNAL_SERVER_ERROR
+        match self {
+            Self::InvalidClient => StatusCode::UNAUTHORIZED,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+        }
     }
 }
 
 #[derive(Serialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
 enum AuthorizeError {
+    InvalidClient,
     InvalidRequest,
     ServerError,
 }
@@ -466,6 +505,7 @@ enum AuthorizeError {
 impl ErrorStatusCode for AuthorizeError {
     fn status_code(&self) -> StatusCode {
         match self {
+            Self::InvalidClient => StatusCode::UNAUTHORIZED,
             Self::InvalidRequest => StatusCode::BAD_REQUEST,
             Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }

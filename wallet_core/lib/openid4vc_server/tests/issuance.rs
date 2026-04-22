@@ -9,6 +9,7 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
+use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::GrantPreAuthorizedCode;
@@ -31,23 +32,43 @@ use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredential;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
+use openid4vc_server::issuer::UpstreamAuthorizationContext;
 use openid4vc_server::issuer::UpstreamAuthorizationEndpointResolver;
 use openid4vc_server::issuer::UpstreamResolveError;
 use openid4vc_server::issuer::create_issuance_router;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePrivateKey;
+use reqwest::StatusCode;
+use reqwest::redirect::Policy;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use tokio::net::TcpListener;
 use url::Url;
 use wscd::mock_remote::MockRemoteWscd;
 
-struct StaticAuthorizationEndpointResolver(Url);
+const MOCK_UPSTREAM_CLIENT_ID: &str = "mock_upstream_client_id";
+
+struct StaticAuthorizationEndpointResolver {
+    url: Url,
+    client_id: String,
+}
+
+impl StaticAuthorizationEndpointResolver {
+    fn new(url: Url) -> Self {
+        Self {
+            url,
+            client_id: MOCK_UPSTREAM_CLIENT_ID.to_string(),
+        }
+    }
+}
 
 #[async_trait::async_trait]
 impl UpstreamAuthorizationEndpointResolver for StaticAuthorizationEndpointResolver {
-    async fn resolve(&self) -> Result<Url, UpstreamResolveError> {
-        Ok(self.0.clone())
+    async fn resolve(&self) -> Result<UpstreamAuthorizationContext, UpstreamResolveError> {
+        Ok(UpstreamAuthorizationContext {
+            authorization_endpoint: self.url.clone(),
+            client_id: self.client_id.clone(),
+        })
     }
 }
 
@@ -94,9 +115,14 @@ async fn start_server(
     let issuer = Arc::new(issuer);
 
     let resolver = upstream_authorization_endpoint.map(|url| {
-        Arc::new(StaticAuthorizationEndpointResolver(url)) as Arc<dyn UpstreamAuthorizationEndpointResolver>
+        Arc::new(StaticAuthorizationEndpointResolver::new(url)) as Arc<dyn UpstreamAuthorizationEndpointResolver>
     });
-    let router = create_issuance_router(Arc::clone(&issuer), par_store, resolver);
+    let router = create_issuance_router(
+        Arc::clone(&issuer),
+        par_store,
+        resolver,
+        vec![MOCK_WALLET_CLIENT_ID.to_string()],
+    );
     tokio::spawn(async move {
         axum_server::from_tcp_rustls(listener, tls_server_config.into_rustls_config().unwrap())
             .unwrap()
@@ -290,4 +316,73 @@ async fn reject_issuance() {
         .unwrap();
 
     session.reject_issuance().await.unwrap();
+}
+
+#[tokio::test]
+async fn par_rejects_unknown_client_id() {
+    let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
+    let (_, _, issuer_identifier, _, tls_trust_anchor) = start_server(NonZeroUsize::MIN, Some(upstream_endpoint)).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .build()
+        .unwrap();
+
+    let par_url = format!("{}issuance/par", issuer_identifier.as_base_url().as_ref().as_str());
+    let response = http_client
+        .post(&par_url)
+        .form(&[("response_type", "code"), ("client_id", "unknown_client_id")])
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("invalid_client"), "unexpected body: {body}");
+}
+
+#[tokio::test]
+async fn authorize_rewrites_client_id_for_upstream() {
+    let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
+    let (_, _, issuer_identifier, _, tls_trust_anchor) =
+        start_server(NonZeroUsize::MIN, Some(upstream_endpoint.clone())).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .redirect(Policy::none())
+        .build()
+        .unwrap();
+
+    let base = issuer_identifier.as_base_url().as_ref().as_str().to_string();
+
+    // Step 1: PAR with the wallet client_id.
+    let par_resp: PushedAuthorizationResponse = http_client
+        .post(format!("{base}issuance/par"))
+        .form(&[("response_type", "code"), ("client_id", MOCK_WALLET_CLIENT_ID)])
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+
+    // Step 2: Authorize — should redirect to upstream with the upstream client_id.
+    let mut authorize_url: Url = format!("{base}issuance/authorize").parse().unwrap();
+    authorize_url
+        .query_pairs_mut()
+        .append_pair("client_id", MOCK_WALLET_CLIENT_ID)
+        .append_pair("request_uri", &par_resp.request_uri);
+    let response = http_client.get(authorize_url).send().await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::FOUND);
+    let location = response.headers().get("location").unwrap().to_str().unwrap();
+    let location_url: Url = location.parse().unwrap();
+
+    let params: HashMap<String, String> = location_url
+        .query_pairs()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect();
+
+    // The forwarded request must carry the upstream (DigiD) client_id, not the wallet client_id.
+    assert_eq!(params.get("client_id").unwrap(), MOCK_UPSTREAM_CLIENT_ID);
+    assert_ne!(params.get("client_id").unwrap(), MOCK_WALLET_CLIENT_ID);
+    assert!(location.starts_with(upstream_endpoint.as_str()));
 }

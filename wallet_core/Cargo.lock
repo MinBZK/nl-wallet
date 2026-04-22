@@ -5197,6 +5197,7 @@ dependencies = [
  "jwt",
  "openid4vc",
  "p256",
+ "reqwest",
  "ring",
  "rstest",
  "rustls-pki-types",
