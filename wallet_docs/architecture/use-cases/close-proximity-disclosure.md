@@ -102,7 +102,6 @@ sequenceDiagram
         wallet_core->>platform_support: Send session termination
         platform_support->>reader_app: StatusMessage { status: 20 }
 
-        wallet_core->>platform_support: Stop BLE server
         platform_support->>platform_support: Stop BLE
     end
 
@@ -120,7 +119,6 @@ sequenceDiagram
         wallet_core->>platform_support: Send session termination
         platform_support->>reader_app: StatusMessage { status: 20 }
 
-        wallet_core->>platform_support: Stop BLE server
         platform_support->>platform_support: Stop BLE
     end
 
@@ -145,7 +143,6 @@ sequenceDiagram
     wallet_core->>platform_support: sendDeviceResponse(DeviceResponse)
     platform_support->>reader_app: Encrypted DeviceResponse
 
-    wallet_core->>platform_support: Stop BLE server
     platform_support->>platform_support: Stop BLE
 
     reader_app-->>reader_app: Verify DeviceResponse
