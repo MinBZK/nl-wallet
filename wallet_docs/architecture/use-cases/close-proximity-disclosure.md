@@ -21,7 +21,6 @@ sequenceDiagram
     Note over user, reader: Reader scans the QR with the DeviceEngagement
 
     reader-->>wallet: Connect to BLE
-    wallet-->>user: Update "connecting"
     wallet-->>user: Update "connected"
 
     reader->>wallet: SessionEstablishment { eReaderKey, encrypted DeviceRequest }
@@ -78,9 +77,6 @@ sequenceDiagram
     Note over user, reader_app: Reader scans the QR with the DeviceEngagement
 
     reader_app-->>platform_support: Connect to BLE server
-    platform_support-->>wallet_core: Update: connecting
-    wallet_core-->>wallet_app: Update: connecting
-
     platform_support-->>wallet_core: Update: connected
     wallet_core-->>wallet_app: Update: connected
 
