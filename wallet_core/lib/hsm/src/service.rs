@@ -345,13 +345,13 @@ impl Pkcs11Client for Pkcs11Hsm {
         spawn::blocking(move || {
             let session = pool.get()?;
 
-            let mut oid = vec![];
+            let mut ec_params = vec![];
             EcParameters::NamedCurve(NistP256::OID)
-                .encode_to_vec(&mut oid)
+                .encode_to_vec(&mut ec_params)
                 .map_err(|error| HsmError::Sec1(Box::new(error)))?;
 
             let pub_key_template = &[
-                Attribute::EcParams(oid),
+                Attribute::EcParams(ec_params),
                 Attribute::Token(false),
                 Attribute::Private(false),
             ];
@@ -379,13 +379,13 @@ impl Pkcs11Client for Pkcs11Hsm {
         spawn::blocking(move || {
             let session = pool.get()?;
 
-            let mut oid = vec![];
+            let mut ec_params = vec![];
             EcParameters::NamedCurve(NistP256::OID)
-                .encode_to_vec(&mut oid)
+                .encode_to_vec(&mut ec_params)
                 .map_err(|error| HsmError::Sec1(Box::new(error)))?;
 
             let pub_key_template = &[
-                Attribute::EcParams(oid),
+                Attribute::EcParams(ec_params),
                 Attribute::Token(true),
                 Attribute::Private(false),
                 Attribute::Label(identifier.clone().into()),
