@@ -96,6 +96,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     on<DisclosureReportPressed>(_onReportPressed);
     on<DisclosureConfirmPinFailed>(_onConfirmPinFailed);
     on<DisclosureCloseProximityEventReceived>(_onCloseProximityEventReceived);
+    on<DisclosurePinValidationStarted>(_onPinValidationStarted);
   }
 
   Future<void> _onSessionStarted(DisclosureSessionStarted event, Emitter<DisclosureState> emit) async {
@@ -327,7 +328,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     }
   }
 
-  Future<void> _onPinConfirmed(DisclosurePinConfirmed event, emit) async {
+  Future<void> _onPinConfirmed(DisclosurePinConfirmed event, Emitter<DisclosureState> emit) async {
     assert(_startDisclosureResult != null, 'DisclosureResult should still be available after confirming the tx');
     final lastEvent = await _getMostRecentWalletEventUseCase.invoke();
     assert(lastEvent != null, 'Last event should not be null after a successful disclosure');
@@ -342,6 +343,14 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     );
   }
 
+  Future<void> _onConfirmPinFailed(DisclosureConfirmPinFailed event, Emitter<DisclosureState> emit) {
+    return _handleApplicationError(event.error, emit);
+  }
+
+  FutureOr<void> _onPinValidationStarted(DisclosurePinValidationStarted event, Emitter<DisclosureState> emit) {
+    _closeProximityEventSubscription?.cancel();
+  }
+
   Future<void> _onReportPressed(DisclosureReportPressed event, Emitter<DisclosureState> emit) async {
     Fimber.d('User selected reporting option ${event.option}');
     emit(DisclosureLoadInProgress(state.stepperProgress));
@@ -349,9 +358,6 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     if (cancelResult.hasError) Fimber.e('Failed to explicitly cancel disclosure flow', ex: cancelResult.error);
     emit(DisclosureLeftFeedback(returnUrl: cancelResult.value));
   }
-
-  Future<void> _onConfirmPinFailed(DisclosureConfirmPinFailed event, Emitter<DisclosureState> emit) =>
-      _handleApplicationError(event.error, emit);
 
   Future<void> _handleApplicationError(ApplicationError error, Emitter<DisclosureState> emit) async {
     emit(DisclosureLoadInProgress(state.stepperProgress));
