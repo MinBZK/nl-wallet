@@ -1,10 +1,18 @@
 use std::convert::Infallible;
 use std::time::Duration;
 
+use android_attest::attestation_extension::key_attestation::OsVersion;
+use android_attest::attestation_extension::key_attestation::PatchLevel;
+use apple_app_attest::AssertionCounter;
 use async_dropper::AsyncDrop;
 use async_dropper::AsyncDropper;
 use async_trait::async_trait;
 use chrono::Utc;
+use crypto::utils::random_bytes;
+use db_test::DbSetup;
+use hsm::model::encrypted::Encrypted;
+use hsm::model::encrypter::Encrypter;
+use hsm::model::mock::MockPkcs11Client;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
@@ -12,15 +20,6 @@ use sea_orm::ConnectionTrait;
 use sea_orm::EntityTrait;
 use url::Url;
 use uuid::Uuid;
-
-use android_attest::attestation_extension::key_attestation::OsVersion;
-use android_attest::attestation_extension::key_attestation::PatchLevel;
-use apple_app_attest::AssertionCounter;
-use crypto::utils::random_bytes;
-use db_test::DbSetup;
-use hsm::model::encrypted::Encrypted;
-use hsm::model::encrypter::Encrypter;
-use hsm::model::mock::MockPkcs11Client;
 use wallet_provider_domain::model::wallet_user::AndroidHardwareIdentifiers;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestationCreate;

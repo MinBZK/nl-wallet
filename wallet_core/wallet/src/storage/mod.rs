@@ -7,37 +7,31 @@ mod key_file;
 mod revocation_info;
 mod sql_cipher_key;
 
-#[cfg(any(test, feature = "test"))]
-pub use database_storage::test_storage::MockHardwareDatabaseStorage;
-
 use std::array::TryFromSliceError;
 use std::collections::HashSet;
 use std::io;
 
+use attestation_data::disclosure_type::DisclosureType;
 use chrono::DateTime;
 use chrono::Utc;
-use sea_orm::DbErr;
-
-use derive_more::Constructor;
-use serde::Deserialize;
-use serde::Serialize;
-use tempfile::NamedTempFile;
-use uuid::Uuid;
-
-use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificate;
+#[cfg(any(test, feature = "test"))]
+pub use database_storage::test_storage::MockHardwareDatabaseStorage;
 use dcql::CredentialFormat;
+use derive_more::Constructor;
 use error_category::ErrorCategory;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborError;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
+use sea_orm::DbErr;
+use serde::Deserialize;
+use serde::Serialize;
+use tempfile::NamedTempFile;
 use token_status_list::verification::verifier::RevocationStatus;
 use utils::generator::Generator;
-
-use crate::AttestationPresentation;
-use crate::storage::sql_cipher_key::SqlCipherKey;
+use uuid::Uuid;
 
 pub use self::attestation_copy::DisclosableAttestation;
 pub use self::attestation_copy::PartialAttestation;
@@ -58,6 +52,8 @@ pub use self::event_log::DisclosureStatus;
 pub use self::event_log::WalletEvent;
 pub use self::key_file::KeyFileError;
 pub use self::revocation_info::RevocationInfo;
+use crate::AttestationPresentation;
+use crate::storage::sql_cipher_key::SqlCipherKey;
 
 #[cfg(test)]
 pub mod test {

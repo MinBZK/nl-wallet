@@ -1,12 +1,11 @@
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::From;
-use serde::Deserialize;
-
 use http_utils::client::HttpServiceConfig;
 use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
+use serde::Deserialize;
 
 use crate::DeletionCode;
 

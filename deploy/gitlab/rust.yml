@@ -170,6 +170,9 @@ test-sea-orm-generate-entity:
     - job: test-rust
       artifacts: false
       optional: true
+    - job: test-rust-digid
+      artifacts: false
+      optional: true
     - job: test-rust-doctest
       artifacts: false
       optional: true

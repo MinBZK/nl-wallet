@@ -5,15 +5,14 @@ use axum::Router;
 #[cfg(feature = "test_api")]
 use axum::extract::Path;
 use axum::extract::State;
-use utoipa::OpenApi;
-use utoipa_axum::router::OpenApiRouter;
-use utoipa_axum::routes;
-use uuid::Uuid;
-
 #[cfg(feature = "test_api")]
 use token_status_list::status_list_service::BatchIsRevoked;
 use token_status_list::status_list_service::RevocationError;
 use token_status_list::status_list_service::StatusListRevocationService;
+use utoipa::OpenApi;
+use utoipa_axum::router::OpenApiRouter;
+use utoipa_axum::routes;
+use uuid::Uuid;
 
 #[derive(OpenApi)]
 #[openapi(info(title = "Revocation API"))]

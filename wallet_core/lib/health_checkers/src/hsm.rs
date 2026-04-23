@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-
 use hsm::service::Pkcs11Hsm;
 use http_utils::health::HealthChecker;
 use http_utils::health::HealthStatus;

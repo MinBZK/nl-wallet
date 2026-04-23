@@ -12,7 +12,6 @@ use http::Method;
 use http::StatusCode;
 use http::Uri;
 use http::Version;
-
 use http_utils::error::APPLICATION_PROBLEM_JSON;
 use openid4vc::disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 

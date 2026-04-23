@@ -2,9 +2,6 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::Router;
-use p256::ecdsa::VerifyingKey;
-use tokio::net::TcpListener;
-
 use hsm::service::Pkcs11Hsm;
 use issuer_common::settings::IssuerSettings;
 use openid4vc::issuer::AttributeService;
@@ -14,6 +11,7 @@ use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::nonce::store::NonceStore;
 use openid4vc::server_state::SessionStore;
 use openid4vc_server::issuer::create_issuance_router;
+use p256::ecdsa::VerifyingKey;
 use server_utils::server::add_cache_control_no_store_layer;
 use server_utils::server::create_internal_listener;
 use server_utils::server::create_wallet_listener;
@@ -22,6 +20,7 @@ use server_utils::server::secure_internal_router;
 use status_lists::revoke::create_revocation_router;
 use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListServices;
+use tokio::net::TcpListener;
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
 pub async fn serve<A, IS, N, L>(

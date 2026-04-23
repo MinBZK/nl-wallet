@@ -1,11 +1,10 @@
 use std::time::Duration;
 
+use attestation_types::claim_path::ClaimPath;
 use chrono::DateTime;
 use chrono::Utc;
-use itertools::Itertools;
-
-use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
+use itertools::Itertools;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::error::JwtX5cError;

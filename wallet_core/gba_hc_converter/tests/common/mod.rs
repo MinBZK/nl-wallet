@@ -4,14 +4,12 @@ use std::path::PathBuf;
 
 use aes_gcm::Aes256Gcm;
 use aes_gcm::KeyInit;
-use rand_core::OsRng;
-use tempfile::TempDir;
-
 use crypto::SymmetricKey;
-use utils::path::prefix_local_path;
-
 use gba_hc_converter::gba::encryption::HmacSha256;
 use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
+use rand_core::OsRng;
+use tempfile::TempDir;
+use utils::path::prefix_local_path;
 
 fn xml_resources_path() -> PathBuf {
     prefix_local_path(Path::new("tests/resources")).into_owned()

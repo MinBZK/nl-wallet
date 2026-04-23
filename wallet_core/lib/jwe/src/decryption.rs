@@ -8,6 +8,8 @@ use josekit::jwe::alg::ecdh_es::EcdhEsJweAlgorithm;
 use p256::SecretKey;
 use p256::pkcs8::EncodePrivateKey;
 use rand_core::OsRng;
+#[cfg(feature = "rsa")]
+pub use rsa::JweRsaPrivateKey;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -20,9 +22,6 @@ use crate::encryption::JwePublicKey;
 use crate::error::JweDecryptionError;
 use crate::error::JweJsonDecryptionError;
 use crate::error::JweStringDecryptionError;
-
-#[cfg(feature = "rsa")]
-pub use rsa::JweRsaPrivateKey;
 
 #[derive(Debug, Clone, From, AsRef, Display, FromStr)]
 #[display(
@@ -192,11 +191,10 @@ mod rsa {
     use rsa::RsaPrivateKey;
     use rsa::pkcs1::EncodeRsaPrivateKey;
 
+    use super::JweDecrypter;
     use crate::algorithm::RsaAlgorithm;
     use crate::error::JwkError;
     use crate::error::RsaPrivateJwkError;
-
-    use super::JweDecrypter;
 
     #[derive(Debug, Clone, Constructor)]
     pub struct JweRsaPrivateKey {
@@ -300,10 +298,9 @@ mod rsa {
         use jwk_simple::Key;
         use serde_json::json;
 
-        use crate::algorithm::RsaAlgorithm;
-
         use super::JweDecrypter;
         use super::JweRsaPrivateKey;
+        use crate::algorithm::RsaAlgorithm;
 
         #[test]
         fn test_jwe_rsa_private_key_try_from_jwk() {
@@ -355,11 +352,10 @@ mod tests {
     use p256::SecretKey;
     use serde_json::json;
 
-    use crate::algorithm::EcdhAlgorithm;
-
     use super::ExpectedEncryptionAlgorithm;
     use super::JweDecrypter;
     use super::JweEcdhSecretKey;
+    use crate::algorithm::EcdhAlgorithm;
 
     // Source: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.3-7
     const EXAMPLE_JWE: &str = "eyJhbGciOiJFQ0RILUVTIiwiZW5jIjoiQTEyOEdDTSIsImtpZCI6ImFjIiwiZXBrIjp7Imt0eSI6IkVD\

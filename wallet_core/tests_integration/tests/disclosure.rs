@@ -1,12 +1,6 @@
 use std::collections::HashSet;
 
 use assert_matches::assert_matches;
-use itertools::Itertools;
-use reqwest::StatusCode;
-use rstest::rstest;
-use serial_test::serial;
-use url::Url;
-
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::test_credential::TestCredentials;
 use db_test::DbSetup;
@@ -17,6 +11,7 @@ use dcql::TrustedAuthoritiesQuery;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::error::HttpJsonErrorBody;
+use itertools::Itertools;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
@@ -27,13 +22,16 @@ use openid4vc_server::verifier::StatusParams;
 use pid_issuer::pid::constants::EUDI_PID_ATTESTATION_TYPE;
 use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
 use pid_issuer::pid::constants::PID_GIVEN_NAME;
+use reqwest::StatusCode;
+use rstest::rstest;
+use serial_test::serial;
 use tests_integration::common::*;
 use tests_integration::test_credential::new_mock_mdoc_pid_example;
 use tests_integration::test_credential::nl_pid_credentials_family_name;
 use tests_integration::test_credential::nl_pid_credentials_full_name;
 use tests_integration::test_credential::nl_pid_credentials_given_name;
 use tests_integration::test_credential::nl_pid_credentials_given_name_for_query_id;
-use tests_integration::test_credential::nl_pid_full_name_and_minimal_address;
+use url::Url;
 use utils::vec_nonempty;
 use wallet::AttributesNotAvailable;
 use wallet::DisclosureUriSource;
@@ -137,10 +135,8 @@ async fn assert_disclosure_ok(
     assert_matches!(get_verifier_status(&client, status_url).await, StatusResponse::Done);
 
     // Check if we received a return URL when we should have, based on the use case and session type.
-    let should_have_return_url = match (usecase, session_type) {
-        (usecase, _) if usecase == "xyz_bank_no_return_url" || usecase == "multiple_cards" => false,
-        (usecase, _) if usecase == "xyz_bank_all_return_url" => true,
-        (_, SessionType::SameDevice) => true,
+    let should_have_return_url = match (usecase.as_str(), session_type) {
+        ("xyz_bank_all_return_url", _) | (_, SessionType::SameDevice) => true,
         (_, SessionType::CrossDevice) => false,
     };
     assert_eq!(return_url.is_some(), should_have_return_url);
@@ -184,12 +180,6 @@ async fn assert_disclosure_ok(
 #[rstest]
 #[case(
     SessionType::SameDevice,
-    None,
-    "xyz_bank_no_return_url",
-    nl_pid_credentials_full_name()
-)]
-#[case(
-    SessionType::SameDevice,
     Some("http://localhost:3004/return".parse().unwrap()),
     // Note that this use case is exactly the same as "xyz_bank_mdoc" and only differs for the demo RP.
     "xyz_bank_sd_jwt",
@@ -222,15 +212,9 @@ async fn assert_disclosure_ok(
 )]
 #[case(
     SessionType::SameDevice,
-    None,
+    Some("http://localhost:3004/return".parse().unwrap()),
     "xyz_bank_no_return_url",
     nl_pid_credentials_given_name() + nl_pid_credentials_family_name(),
-)]
-#[case(
-    SessionType::SameDevice,
-    None,
-    "xyz_bank_no_return_url",
-    nl_pid_full_name_and_minimal_address()
 )]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
@@ -258,8 +242,8 @@ async fn ltc15_ltc16_test_disclosure_usecases_ok(
 #[serial(hsm)]
 async fn ltc15_test_disclosure_extended_vct_ok() {
     let session_type = SessionType::SameDevice;
-    let return_url_template = None;
-    let usecase = "xyz_bank_no_return_url".to_owned();
+    let return_url_template = Some("http://localhost:3004/return".parse().unwrap());
+    let usecase = "xyz_bank_sd_jwt".to_owned();
     let format = CredentialFormat::SdJwt;
 
     let query_id = "eudi_pid_given_name";

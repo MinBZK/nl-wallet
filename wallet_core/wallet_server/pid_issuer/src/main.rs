@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use anyhow::anyhow;
-
 use health_checkers::boxed;
 use health_checkers::hsm::HsmChecker;
 use health_checkers::postgres::DatabaseChecker;

@@ -14,6 +14,12 @@ mod wallet;
 
 pub mod errors;
 
+pub use token_status_list::verification::verifier::RevocationStatus;
+pub use wallet_account::RevocationCode;
+pub use wallet_account::messages::errors::AccountRevokedData;
+pub use wallet_account::messages::errors::RevocationReason;
+pub use wallet_account::messages::transfer::TransferSessionState;
+
 pub use crate::attestation::AttestationAttribute;
 pub use crate::attestation::AttestationAttributeValue;
 pub use crate::attestation::AttestationIdentity;
@@ -42,12 +48,6 @@ pub use crate::wallet::Wallet;
 pub use crate::wallet::WalletClients;
 pub use crate::wallet::WalletRepositories;
 pub use crate::wallet::WalletState;
-
-pub use token_status_list::verification::verifier::RevocationStatus;
-pub use wallet_account::RevocationCode;
-pub use wallet_account::messages::errors::AccountRevokedData;
-pub use wallet_account::messages::errors::RevocationReason;
-pub use wallet_account::messages::transfer::TransferSessionState;
 
 pub mod attestation_data {
     pub use attestation_data::attributes::Attribute;

@@ -1,12 +1,11 @@
+use jwe::decryption::JweEcdhSecretKey;
+use jwe::encryption::JwePublicKey;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_with::DisplayFromStr;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
-
-use jwe::decryption::JweEcdhSecretKey;
-use jwe::encryption::JwePublicKey;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::AccountRevokedData;
 use wallet_account::messages::registration::WalletCertificate;

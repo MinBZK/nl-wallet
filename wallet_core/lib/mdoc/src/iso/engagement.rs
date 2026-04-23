@@ -8,6 +8,9 @@
 use std::borrow::Cow;
 use std::fmt::Debug;
 
+use crypto::utils::sha256;
+use http_utils::urls::BaseUrl;
+use mdoc_derive::CborIndexedFields;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
@@ -15,10 +18,6 @@ use serde_bytes::Bytes;
 use serde_repr::Deserialize_repr;
 use serde_repr::Serialize_repr;
 use serde_with::skip_serializing_none;
-
-use crypto::utils::sha256;
-use http_utils::urls::BaseUrl;
-use mdoc_derive::CborIndexedFields;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::errors::Result;
@@ -455,12 +454,11 @@ mod test {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::examples::EXAMPLE_DOC_TYPE;
     use crate::examples::Example;
     use crate::utils::serialization;
     use crate::utils::serialization::TaggedBytes;
-
-    use super::*;
 
     #[test]
     fn test_device_authentication_keyed_new() {

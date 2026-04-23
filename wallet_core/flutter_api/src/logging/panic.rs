@@ -1,7 +1,6 @@
 use std::panic;
 
 use backtrace::Backtrace;
-
 use tracing::error;
 
 pub fn init_panic_logger() {

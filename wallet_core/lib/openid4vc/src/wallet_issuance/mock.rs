@@ -1,7 +1,6 @@
+use attestation_data::auth::issuer_auth::IssuerRegistration;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
-
-use attestation_data::auth::issuer_auth::IssuerRegistration;
 
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::wallet_issuance::AuthorizationSession;

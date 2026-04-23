@@ -188,9 +188,8 @@ fn map_io_error(path: &std::path::Path, err: &std::io::Error) -> StatusCode {
 mod tests {
     use assert_matches::assert_matches;
 
-    use crate::serve::check_accept;
-
     use super::*;
+    use crate::serve::check_accept;
 
     #[test]
     fn check_serve_dir_errors_on_empty_path() {

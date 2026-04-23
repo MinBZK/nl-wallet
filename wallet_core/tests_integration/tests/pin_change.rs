@@ -1,6 +1,5 @@
-use serial_test::serial;
-
 use db_test::DbSetup;
+use serial_test::serial;
 use tests_integration::common::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]

@@ -1,15 +1,11 @@
 use std::borrow::Cow;
-
 use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Duration;
 
-use futures::try_join;
-use reqwest::ClientBuilder;
-use tokio::sync::RwLock;
-
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
+use futures::try_join;
 use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
@@ -22,11 +18,16 @@ use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use platform_support::utils::PlatformUtilities;
 use platform_support::utils::UtilitiesError;
 use platform_support::utils::hardware::HardwareUtilities;
+use reqwest::ClientBuilder;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::reqwest::HttpStatusListClient;
+use tokio::sync::RwLock;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::KeyHolderType;
+use super::Wallet;
+use super::WalletRegistration;
 use crate::config::ConfigurationError;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::WalletConfigurationRepository;
@@ -43,10 +44,6 @@ use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StorageState;
 use crate::update_policy::UpdatePolicyRepository;
-
-use super::KeyHolderType;
-use super::Wallet;
-use super::WalletRegistration;
 
 const DATABASE_NAME: &str = "wallet";
 
@@ -318,17 +315,15 @@ where
 mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
-
     use wallet_account::RevocationCode;
-
-    use crate::pin::key as pin_key;
-    use crate::storage::MockStorage;
-    use crate::wallet::test::TestWalletMockStorage;
-    use crate::wallet::test::generate_key_holder;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
     use super::*;
+    use crate::pin::key as pin_key;
+    use crate::storage::MockStorage;
+    use crate::wallet::test::TestWalletMockStorage;
+    use crate::wallet::test::generate_key_holder;
 
     // Tests if the `Wallet::init_registration()` method completes successfully with the mock generics.
     #[tokio::test]

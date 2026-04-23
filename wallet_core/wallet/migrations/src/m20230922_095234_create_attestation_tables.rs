@@ -1,9 +1,8 @@
 use async_trait::async_trait;
+use entity::attestation_copy::AttestationFormat;
 use sea_orm_migration::prelude::*;
 use sea_orm_migration::schema::timestamp_with_time_zone_null;
 use sea_orm_migration::sea_orm::Iterable;
-
-use entity::attestation_copy::AttestationFormat;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;

@@ -1,7 +1,6 @@
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
-
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluator;
 
@@ -132,7 +131,6 @@ mod tests {
     use chrono::Duration;
     use chrono::Utc;
     use rstest::rstest;
-
     use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
     use wallet_provider_domain::model::pin_policy::PinPolicyEvaluator;
 

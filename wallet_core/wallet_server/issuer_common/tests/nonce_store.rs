@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
 use chrono::DateTime;
-use sea_orm::ConnectionTrait;
-use sea_orm::DbBackend;
-use sea_orm::Statement;
-
 use db_test::DbSetup;
 use db_test::connection_from_url;
 use issuer_common::nonce_store::ProofNonceStore;
 use openid4vc::nonce::store::test::test_nonce_store;
+use sea_orm::ConnectionTrait;
+use sea_orm::DbBackend;
+use sea_orm::Statement;
 use utils::generator::mock::MockTimeGenerator;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]

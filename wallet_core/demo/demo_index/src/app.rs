@@ -12,14 +12,13 @@ use axum::middleware;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
+use http_utils::health::create_health_router;
 use itertools::Itertools;
 use server_utils::log_requests::log_request_response;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
-
-use http_utils::health::create_health_router;
 use utils::path::prefix_local_path;
 use web_utils::headers::set_content_security_policy;
 use web_utils::headers::set_static_cache_control;

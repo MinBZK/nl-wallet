@@ -1,21 +1,20 @@
 use std::error::Error;
 
+use android_attest::root_public_key::RootPublicKey;
+use audit_log::model::PostgresAuditLog;
 use chrono::Days;
 use chrono::Duration;
+use crypto::keys::EcdsaKey;
+use hsm::keys::HsmEcdsaKey;
+use hsm::service::Pkcs11Hsm;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use status_lists::postgres::PostgresStatusListService;
 use tracing::info;
-use uuid::Uuid;
-
-use android_attest::root_public_key::RootPublicKey;
-use audit_log::model::PostgresAuditLog;
-use crypto::keys::EcdsaKey;
-use hsm::keys::HsmEcdsaKey;
-use hsm::service::Pkcs11Hsm;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::generator::UuidV4AndTimeGenerator;
+use uuid::Uuid;
 use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;

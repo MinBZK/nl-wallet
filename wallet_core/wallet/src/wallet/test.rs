@@ -2,18 +2,6 @@ use std::num::NonZeroU8;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
-use chrono::DateTime;
-use chrono::Utc;
-use futures::future::FutureExt;
-use indexmap::IndexMap;
-use p256::ecdsa::SigningKey;
-use p256::ecdsa::VerifyingKey;
-use parking_lot::Mutex;
-use rand_core::OsRng;
-use serde::Serialize;
-use serde::de::DeserializeOwned;
-use ssri::Integrity;
-
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use attestation_data::attributes::AttributeValue;
@@ -29,12 +17,16 @@ use attestation_data::x509::generate::mock::generate_reader_mock_with_registrati
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_RECOVERY_CODE;
 use attestation_types::status_claim::StatusClaim;
+use chrono::DateTime;
+use chrono::Utc;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::BorrowingCertificateExtension;
 use dcql::CredentialFormat;
+use futures::future::FutureExt;
+use indexmap::IndexMap;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
@@ -47,11 +39,15 @@ use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
 use openid4vc::wallet_issuance::mock::MockIssuanceSession;
 use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
+use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
+use parking_lot::Mutex;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
 use platform_support::attested_key::mock::MockGoogleAttestedKey;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
+use rand_core::OsRng;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
@@ -60,6 +56,9 @@ use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+use ssri::Integrity;
 use token_status_list::verification::client::mock::MockStatusListClient;
 use utils::generator::Generator;
 use utils::generator::mock::MockTimeGenerator;
@@ -72,6 +71,11 @@ use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::HistoryError;
+use super::Wallet;
+use super::WalletInitError;
+use super::WalletRegistration;
+use super::init::RegistrationStatus;
 use crate::AttestationIdentity;
 use crate::account_provider::MockAccountProviderClient;
 use crate::attestation::AttestationPresentation;
@@ -95,12 +99,6 @@ use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
 use crate::wallet::init::WalletClients;
 use crate::wallet::init::WalletRepositories;
-
-use super::HistoryError;
-use super::Wallet;
-use super::WalletInitError;
-use super::WalletRegistration;
-use super::init::RegistrationStatus;
 
 pub const AUTH_URL: &str = "http://example.com/auth";
 
@@ -247,7 +245,7 @@ pub fn create_example_pid_preview_data(
 
 /// Generates a valid [`VerifiedSdJwt`] that contains a full mdoc PID.
 pub fn create_example_pid_sd_jwt() -> (VerifiedSdJwt, NormalizedTypeMetadata) {
-    let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+    let (credential_payload, _) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
     let verified_sd_jwt =
@@ -271,23 +269,26 @@ pub fn verified_sd_jwt_from_credential_payload(
 }
 
 /// Generates a valid [`Mdoc`] that contains a full mdoc PID.
-pub fn create_example_pid_mdoc() -> (Mdoc, NormalizedTypeMetadata) {
+pub fn create_example_pid_mdoc(holder_key: &SigningKey) -> (Mdoc, NormalizedTypeMetadata) {
     let preview_payload = PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default());
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
-    let mdoc = mdoc_from_credential_payload(preview_payload, &ISSUER_KEY.issuance_key);
+    let mdoc = mdoc_from_credential_payload(preview_payload, &ISSUER_KEY.issuance_key, holder_key);
     (mdoc, metadata)
 }
 
 /// Generates a valid [`Mdoc`], based on an [`PreviewableCredentialPayload`] and issuer key.
-pub fn mdoc_from_credential_payload(preview_payload: PreviewableCredentialPayload, issuer_keypair: &KeyPair) -> Mdoc {
+pub fn mdoc_from_credential_payload(
+    preview_payload: PreviewableCredentialPayload,
+    issuer_keypair: &KeyPair,
+    holder_key: &SigningKey,
+) -> Mdoc {
     let private_key_id = crypto::utils::random_string(16);
-    let holder_privkey = SigningKey::random(&mut OsRng);
 
     let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
         preview_payload,
         Utc::now(),
-        holder_privkey.verifying_key(),
+        holder_key.verifying_key(),
         Integrity::from(""),
         StatusClaim::new_mock(),
     )
@@ -646,15 +647,23 @@ pub fn example_stored_attestation_copy(
     format: CredentialFormat,
     credential_payload: CredentialPayload,
     metadata: NormalizedTypeMetadata,
+    holder_key: &SigningKey,
 ) -> StoredAttestationCopy {
-    example_stored_attestation_copy_with_key(format, credential_payload, metadata, &ISSUER_KEY.issuance_key)
+    example_stored_attestation_copy_with_issuer_keypair(
+        format,
+        credential_payload,
+        metadata,
+        &ISSUER_KEY.issuance_key,
+        holder_key,
+    )
 }
 
-fn example_stored_attestation_copy_with_key(
+fn example_stored_attestation_copy_with_issuer_keypair(
     format: CredentialFormat,
     credential_payload: CredentialPayload,
     metadata: NormalizedTypeMetadata,
     issuer_keypair: &KeyPair,
+    holder_key: &SigningKey,
 ) -> StoredAttestationCopy {
     match format {
         CredentialFormat::MsoMdoc => StoredAttestationCopy::new(
@@ -662,7 +671,7 @@ fn example_stored_attestation_copy_with_key(
             Uuid::new_v4(),
             ValidityWindow::new_valid_mock(),
             StoredAttestation::MsoMdoc {
-                mdoc: mdoc_from_credential_payload(credential_payload.previewable_payload, issuer_keypair),
+                mdoc: mdoc_from_credential_payload(credential_payload.previewable_payload, issuer_keypair, holder_key),
             },
             metadata,
             None,
@@ -681,22 +690,31 @@ fn example_stored_attestation_copy_with_key(
     }
 }
 
-pub fn example_pid_stored_attestation_copy(format: CredentialFormat) -> StoredAttestationCopy {
-    example_stored_attestation_copy(
-        format,
-        CredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
-        NormalizedTypeMetadata::nl_pid_example(),
+pub fn example_pid_stored_attestation_copy(format: CredentialFormat) -> (StoredAttestationCopy, SigningKey) {
+    let (credential_payload, holder_key) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+
+    (
+        example_stored_attestation_copy(
+            format,
+            credential_payload,
+            NormalizedTypeMetadata::nl_pid_example(),
+            &holder_key,
+        ),
+        holder_key,
     )
 }
 
-pub fn example_pid_stored_attestation_copy_with_key(
+pub fn example_pid_stored_attestation_copy_with_issuer_keypair(
     format: CredentialFormat,
     issuer_keypair: &KeyPair,
 ) -> StoredAttestationCopy {
-    example_stored_attestation_copy_with_key(
+    let (credential_payload, holder_key) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+
+    example_stored_attestation_copy_with_issuer_keypair(
         format,
-        CredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+        credential_payload,
         NormalizedTypeMetadata::nl_pid_example(),
         issuer_keypair,
+        &holder_key,
     )
 }

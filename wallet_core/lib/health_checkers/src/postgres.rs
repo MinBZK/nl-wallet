@@ -1,9 +1,8 @@
+use http_utils::health::HealthChecker;
+use http_utils::health::HealthStatus;
 use sea_orm::DatabaseConnection;
 use sea_orm::sqlx::Connection;
 use sea_orm::sqlx::PgPool;
-
-use http_utils::health::HealthChecker;
-use http_utils::health::HealthStatus;
 
 #[derive(Debug, Clone)]
 pub struct DatabaseChecker {

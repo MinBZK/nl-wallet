@@ -11,6 +11,9 @@ use derive_more::Constructor;
 use derive_more::Debug;
 use derive_more::Display;
 use derive_more::From;
+use error_category::ErrorCategory;
+use http_utils::urls::HttpsUri;
+use http_utils::urls::HttpsUriError;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
@@ -27,6 +30,8 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
+use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmpty;
 use webpki::EndEntityCert;
 use webpki::ring::ECDSA_P256_SHA256;
 use x509_parser::asn1_rs::SerializeError;
@@ -45,12 +50,6 @@ use x509_parser::prelude::X509Error;
 use x509_parser::x509::X509Name;
 use yoke::Yoke;
 use yoke::Yokeable;
-
-use error_category::ErrorCategory;
-use http_utils::urls::HttpsUri;
-use http_utils::urls::HttpsUriError;
-use utils::generator::Generator;
-use utils::vec_at_least::VecNonEmpty;
 
 /// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
 /// [`Certificate::verify()`] receives this as parameter and enforces that it is present in the certificate
@@ -308,6 +307,11 @@ impl BorrowingCertificate {
         x509_common_names(&self.x509_certificate().subject)
     }
 
+    /// Returns the first CN, if any, from the certificate.
+    pub fn common_name(&self) -> Result<Option<&str>, CertificateError> {
+        Ok(self.common_names()?.into_iter().next())
+    }
+
     pub fn distinguished_name(&self) -> Result<String, CertificateError> {
         let dn = self
             .x509_certificate()
@@ -527,20 +531,17 @@ mod test {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
+    use p256::pkcs8::EncodePublicKey;
     use p256::pkcs8::ObjectIdentifier;
     use rcgen::CustomExtension;
     use time::OffsetDateTime;
     use time::macros::datetime;
+    use utils::generator::TimeGenerator;
     use x509_parser::certificate::X509Certificate;
 
-    use utils::generator::TimeGenerator;
-
-    use p256::pkcs8::EncodePublicKey;
-
+    use super::*;
     use crate::server_keys::generate::Ca;
     use crate::utils::sha256;
-
-    use super::*;
 
     struct MdlExtension;
 

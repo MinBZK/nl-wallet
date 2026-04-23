@@ -7,7 +7,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
-
 use update_policy_model::update_policy::UpdatePolicyResponse;
 use update_policy_model::update_policy::VersionReq;
 use update_policy_model::update_policy::VersionState;

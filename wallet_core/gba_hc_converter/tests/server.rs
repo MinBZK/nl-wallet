@@ -4,15 +4,6 @@ use std::time::Duration;
 use assert_json_diff::CompareMode;
 use assert_json_diff::Config;
 use assert_json_diff::assert_json_matches;
-use http::StatusCode;
-use reqwest::Response;
-use serde_json::Value;
-use serde_json::json;
-use tokio::net::TcpListener;
-use tokio::time;
-use tracing::level_filters::LevelFilter;
-use tracing_subscriber::EnvFilter;
-
 use gba_hc_converter::gba::client::GbavClient;
 use gba_hc_converter::gba::error::Error;
 use gba_hc_converter::haal_centraal::Bsn;
@@ -20,8 +11,16 @@ use gba_hc_converter::haal_centraal::Element;
 use gba_hc_converter::haal_centraal::PersonQuery;
 use gba_hc_converter::haal_centraal::PersonsResponse;
 use gba_hc_converter::server;
+use http::StatusCode;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
+use reqwest::Response;
+use serde_json::Value;
+use serde_json::json;
+use tokio::net::TcpListener;
+use tokio::time;
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::EnvFilter;
 
 use crate::common::read_file;
 

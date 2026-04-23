@@ -2,20 +2,19 @@ use std::collections::HashMap;
 use std::iter::Peekable;
 use std::iter::repeat_n;
 
+use attestation_types::claim_path::ClaimPath;
 use derive_more::Display;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use nutype::nutype;
+use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Number;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use thiserror::Error;
-
-use attestation_types::claim_path::ClaimPath;
-use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use utils::single_unique::MultipleItemsFound;
 use utils::single_unique::SingleUnique;
 use utils::vec_at_least::VecNonEmpty;
@@ -709,9 +708,8 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
-    use crate::hasher::Sha256Hasher;
-
     use super::*;
+    use crate::hasher::Sha256Hasher;
 
     #[test]
     fn test_object_claims_conceal() {

@@ -1,8 +1,7 @@
+use attestation_data::disclosure_type::DisclosureType;
 use chrono::DateTime;
 use chrono::Utc;
 use sea_orm::entity::prelude::*;
-
-use attestation_data::disclosure_type::DisclosureType;
 
 use super::disclosure_event_attestation;
 

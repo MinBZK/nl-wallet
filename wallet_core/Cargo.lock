@@ -6783,9 +6783,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.103.12"
+version = "0.103.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8279bb85272c9f10811ae6a6c547ff594d6a7f3c6c6b02ee9726d1d0dcfcdd06"
+checksum = "61c429a8649f110dddef65e2a5ad240f747e85f7758a6bccc7e5777bd33f756e"
 dependencies = [
  "ring",
  "rustls-pki-types",
@@ -9698,17 +9698,22 @@ dependencies = [
  "assert_cmd",
  "assert_fs",
  "attestation_data",
+ "attestation_types",
  "chrono",
  "clap",
  "clio",
  "crypto",
+ "hex",
+ "indexmap 2.12.1",
  "itertools 0.14.0",
+ "mdoc",
  "p256",
  "pem",
  "predicates",
  "rand_core 0.6.4",
  "serde_json",
  "time",
+ "tokio",
  "utils",
  "x509-parser 0.18.0",
 ]

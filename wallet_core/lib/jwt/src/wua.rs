@@ -1,5 +1,6 @@
 use std::sync::LazyLock;
 
+use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
@@ -8,8 +9,6 @@ use jsonwebtoken::Validation;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
-
-use attestation_types::status_claim::StatusClaim;
 
 use crate::DEFAULT_VALIDATIONS;
 use crate::EcdsaDecodingKey;

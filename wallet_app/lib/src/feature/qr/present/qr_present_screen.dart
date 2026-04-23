@@ -1,13 +1,13 @@
 import 'dart:io';
 
+import 'package:bluetooth/bluetooth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../domain/model/result/application_error.dart';
 import '../../../navigation/wallet_routes.dart';
-import '../../../theme/light_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../../util/helper/dialog_helper.dart';
 import '../../../wallet_assets.dart';
 import '../../../wallet_constants.dart';
@@ -15,13 +15,17 @@ import '../../common/dialog/qr_code_dialog.dart';
 import '../../common/page/generic_loading_page.dart';
 import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/button/bottom_back_button.dart';
+import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/icon/back_icon_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/list_button.dart';
+import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/utility/check_permissions_on_resume.dart';
 import '../../common/widget/utility/scroll_offset_provider.dart';
 import '../../common/widget/wallet_app_bar.dart';
+import '../../common/widget/wallet_qr_view.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 import '../../disclosure/argument/disclosure_screen_argument.dart';
 import '../../error/error_button_builder.dart';
@@ -41,6 +45,7 @@ class QrPresentScreen extends StatelessWidget {
       QrPresentConnected() => _buildConnected(context),
       QrPresentConnectionFailed() => _buildConnectionFailed(context),
       QrPresentError(:final error) => _buildError(context, error),
+      QrPresentBluetoothDisabled() => _buildBluetoothDisabled(context, context.theme.platform),
     };
     return ScrollOffsetProvider(
       debugLabel: 'qr_present_screen',
@@ -84,6 +89,7 @@ class QrPresentScreen extends StatelessWidget {
     QrPresentConnected() => true,
     QrPresentConnectionFailed() => true,
     QrPresentError() => true,
+    QrPresentBluetoothDisabled() => true,
   };
 
   Widget? _leadingButton(QrPresentState state) {
@@ -94,6 +100,7 @@ class QrPresentScreen extends StatelessWidget {
       QrPresentConnected() => null,
       QrPresentConnectionFailed() => null,
       QrPresentError() => const BackIconButton(),
+      QrPresentBluetoothDisabled() => const BackIconButton(),
     };
   }
 
@@ -114,6 +121,7 @@ class QrPresentScreen extends StatelessWidget {
       QrPresentConnected() => '',
       QrPresentConnectionFailed() => context.l10n.qrPresentScreenConnectionFailedPageTitle,
       QrPresentError(:final error) => _buildError(context, error).title,
+      QrPresentBluetoothDisabled() => context.l10n.qrPresentScreenBluetoothDisabledPageTitle,
     };
   }
 
@@ -141,19 +149,7 @@ class QrPresentScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                        child: QrImageView(
-                          padding: EdgeInsets.zero,
-                          backgroundColor: LightWalletTheme.colorScheme.surface,
-                          dataModuleStyle: const QrDataModuleStyle(
-                            color: Colors.black,
-                            dataModuleShape: QrDataModuleShape.square,
-                          ),
-                          data: qrContents,
-                          embeddedImage: const AssetImage(WalletAssets.logo_wallet_qr),
-                          embeddedImageEmitsError: true,
-                          errorCorrectionLevel: QrErrorCorrectLevel.Q,
-                          embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(64, 64)),
-                        ),
+                        child: WalletQrView(data: qrContents),
                       ),
                       const SizedBox(height: 16),
                       ListButton(
@@ -210,6 +206,33 @@ class QrPresentScreen extends StatelessWidget {
         onPressed: () => context.read<QrPresentBloc>().add(const QrPresentStartRequested()),
       ),
       secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+    );
+  }
+
+  /// Builds the state for when the user has not enabled bluetooth on the device.
+  Widget _buildBluetoothDisabled(BuildContext context, TargetPlatform platform) {
+    final bool isIos = platform == TargetPlatform.iOS;
+    return ErrorPage(
+      title: context.l10n.qrPresentScreenBluetoothDisabledPageTitle,
+      description: isIos
+          ? context.l10n.qrPresentScreenBluetoothDisabledPageDescriptioniOSVariant
+          : context.l10n.qrPresentScreenBluetoothDisabledPageDescription,
+      illustration: WalletAssets.svg_error_bluetooth,
+      secondaryButton: isIos ? null : _buildEnableBluetoothButton(context),
+      primaryButton: TertiaryButton(
+        text: Text.rich(context.l10n.generalClose.toTextSpan(context)),
+        icon: const Icon(Icons.close_outlined),
+        onPressed: () => Navigator.maybePop(context),
+      ),
+    );
+  }
+
+  /// Builds the 'enable bluetooth' action button
+  FitsWidthWidget _buildEnableBluetoothButton(BuildContext context) {
+    return PrimaryButton(
+      text: Text.rich(context.l10n.qrPresentScreenBluetoothDisabledPageEnableCta.toTextSpan(context)),
+      icon: const Icon(Icons.bluetooth_audio_outlined),
+      onPressed: () => context.read<Bluetooth>().enable(),
     );
   }
 }

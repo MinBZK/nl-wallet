@@ -7,27 +7,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
+use attestation_data::disclosure::DisclosedAttestations;
 use chrono::DateTime;
 use chrono::SecondsFormat;
 use chrono::Utc;
-use derive_more::AsRef;
-use derive_more::Constructor;
-use derive_more::Debug;
-use ring::hmac;
-use rustls_pki_types::TrustAnchor;
-use serde::Deserialize;
-use serde::Serialize;
-use serde_with::DeserializeFromStr;
-use serde_with::SerializeDisplay;
-use serde_with::hex::Hex;
-use serde_with::serde_as;
-use serde_with::skip_serializing_none;
-use tokio::task::AbortHandle;
-use tracing::debug;
-use tracing::info;
-use tracing::warn;
-
-use attestation_data::disclosure::DisclosedAttestations;
 use crypto::EcdsaKeySend;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
@@ -38,6 +21,9 @@ use dcql::disclosure::ExtendingVctRetriever;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::UnsupportedDcqlFeatures;
 use dcql::unique_id_vec::UniqueIdVec;
+use derive_more::AsRef;
+use derive_more::Constructor;
+use derive_more::Debug;
 use http_utils::urls::BaseUrl;
 use jwe::algorithm::EcdhAlgorithm;
 use jwe::decryption::JweEcdhSecretKey;
@@ -45,8 +31,21 @@ use jwt::SignedJwt;
 use jwt::error::JwtError;
 use jwt::headers::HeaderWithX5c;
 use jwt::nonce::Nonce;
+use ring::hmac;
+use rustls_pki_types::TrustAnchor;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
+use serde_with::hex::Hex;
+use serde_with::serde_as;
+use serde_with::skip_serializing_none;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
+use tokio::task::AbortHandle;
+use tracing::debug;
+use tracing::info;
+use tracing::warn;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -221,7 +220,7 @@ pub struct Created {
     credential_requests: NormalizedCredentialRequests,
     usecase_id: String,
     client_id: ClientId,
-    redirect_uri_template: Option<RedirectUriTemplate>,
+    redirect_uri_template: RedirectUriTemplate,
     accept_undetermined_revocation_status: bool,
 }
 
@@ -482,7 +481,6 @@ pub enum SessionType {
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SessionTypeReturnUrl {
-    Neither,
     #[default]
     SameDevice,
     Both,
@@ -594,22 +592,17 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError> {
         // If the caller passes a `return_url_template` then we use that,
-        // if not then we use the one configured in `self` (if any).
-        let redirect_uri_template = return_url_template
-            .or_else(|| self.return_url_template.clone())
-            .map(|template| RedirectUriTemplate {
-                template,
-                share_on_error: true,
-            });
-
-        // Check if we should or should not have received a return URL
-        // template, based on the configuration for the use case.
-        if match self.data.session_type_return_url {
-            SessionTypeReturnUrl::Neither => redirect_uri_template.is_some(),
-            SessionTypeReturnUrl::SameDevice | SessionTypeReturnUrl::Both => redirect_uri_template.is_none(),
-        } {
+        // if not then we use the one configured in `self` (if neither is available, this returns an error).
+        let Some(redirect_uri_template) =
+            return_url_template
+                .or_else(|| self.return_url_template.clone())
+                .map(|template| RedirectUriTemplate {
+                    template,
+                    share_on_error: true,
+                })
+        else {
             return Err(NewSessionError::ReturnUrlConfigurationMismatch);
-        }
+        };
 
         // We use either the specified dcql_query, or if not specified, the one configured in the usecase.
         let credential_requests = dcql_query
@@ -773,10 +766,10 @@ impl<K: EcdsaKeySend> UseCase for WalletInitiatedUseCase<K> {
             self.credential_requests.clone(),
             id,
             self.data.client_id.clone(),
-            Some(RedirectUriTemplate {
+            RedirectUriTemplate {
                 template: self.return_url_template.clone(),
                 share_on_error: false,
-            }),
+            },
             false,
         );
 
@@ -1238,7 +1231,7 @@ impl Session<Created> {
         credential_requests: NormalizedCredentialRequests,
         usecase_id: String,
         client_id: ClientId,
-        redirect_uri_template: Option<RedirectUriTemplate>,
+        redirect_uri_template: RedirectUriTemplate,
         accept_undetermined_revocation_status: bool,
     ) -> Session<Created> {
         Session::<Created> {
@@ -1341,7 +1334,7 @@ impl Session<Created> {
             usecase.session_type_return_url,
             session_type,
             self.state().redirect_uri_template.clone(),
-        )?;
+        );
 
         // Construct the Authorization Request.
         let nonce = Nonce::new_random();
@@ -1373,33 +1366,21 @@ impl Session<Created> {
         session_token: &SessionToken,
         session_type_return_url: SessionTypeReturnUrl,
         session_type: SessionType,
-        return_url: Option<RedirectUriTemplate>,
-    ) -> Result<Option<RedirectUri>, GetAuthRequestError> {
+        return_url: RedirectUriTemplate,
+    ) -> Option<RedirectUri> {
         match (session_type_return_url, session_type, return_url) {
-            (SessionTypeReturnUrl::Both, _, Some(return_url_config))
-            | (SessionTypeReturnUrl::SameDevice, SessionType::SameDevice, Some(return_url_config)) => {
+            (SessionTypeReturnUrl::Both, _, return_url_config)
+            | (SessionTypeReturnUrl::SameDevice, SessionType::SameDevice, return_url_config) => {
                 let nonce = random_string(32);
                 let mut redirect_uri = return_url_config.template.into_url(session_token);
                 redirect_uri.query_pairs_mut().append_pair("nonce", &nonce);
-                Ok(Some(RedirectUri {
+                Some(RedirectUri {
                     uri: redirect_uri.try_into().unwrap(),
                     nonce,
                     share_on_error: return_url_config.share_on_error,
-                }))
+                })
             }
-            (SessionTypeReturnUrl::Neither, _, _) | (SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, _) => {
-                Ok(None)
-            }
-            (_, _, template) => {
-                // We checked for this case when the session was created, so this should not happen
-                // except when the configuration has changed during this session.
-                warn!(
-                    "configuration inconsistency: return URL configuration mismatch type {0:?}, session type {1:?}, \
-                     redirect URI template {2:?}",
-                    session_type_return_url, session_type, template
-                );
-                Err(GetAuthRequestError::ReturnUrlConfigurationMismatch)
-            }
+            (SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, _) => None,
         }
     }
 }
@@ -1574,15 +1555,6 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
-    use chrono::DateTime;
-    use chrono::Duration;
-    use chrono::Utc;
-    use itertools::Itertools;
-    use p256::ecdsa::SigningKey;
-    use ring::hmac;
-    use ring::rand;
-    use rstest::rstest;
-
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttestations;
@@ -1590,26 +1562,26 @@ mod tests {
     use attestation_data::validity::IssuanceValidity;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
+    use chrono::DateTime;
+    use chrono::Duration;
+    use chrono::Utc;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::RP_CERT_CN;
     use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequests;
     use dcql::unique_id_vec::UniqueIdVec;
     use http_utils::urls::BaseUrl;
+    use itertools::Itertools;
+    use p256::ecdsa::SigningKey;
+    use ring::hmac;
+    use ring::rand;
+    use rstest::rstest;
     use token_status_list::verification::client::mock::StatusListClientStub;
     use token_status_list::verification::verifier::RevocationStatus;
     use token_status_list::verification::verifier::RevocationVerifier;
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
     use utils::vec_nonempty;
-
-    use crate::ErrorResponse;
-    use crate::mock::MOCK_WALLET_CLIENT_ID;
-    use crate::server_state::MemorySessionStore;
-    use crate::server_state::SessionStore;
-    use crate::server_state::SessionToken;
-    use crate::server_state::test::memory_session_store_with_mock_time;
-    use crate::server_state::test::test_memory_store_with_cleanup_task;
 
     use super::AuthorizationErrorCode;
     use super::AuthorizationErrorResponse;
@@ -1643,8 +1615,14 @@ mod tests {
     use super::WalletAuthResponse;
     use super::WalletInitiatedUseCase;
     use super::WalletInitiatedUseCases;
+    use crate::ErrorResponse;
+    use crate::mock::MOCK_WALLET_CLIENT_ID;
+    use crate::server_state::MemorySessionStore;
+    use crate::server_state::SessionStore;
+    use crate::server_state::SessionToken;
+    use crate::server_state::test::memory_session_store_with_mock_time;
+    use crate::server_state::test::test_memory_store_with_cleanup_task;
 
-    const DISCLOSURE_USECASE_NO_REDIRECT_URI: &str = "example_usecase_no_redirect_uri";
     const DISCLOSURE_USECASE: &str = "example_usecase";
     const DISCLOSURE_USECASE_ALL_REDIRECT_URI: &str = "example_usecase_all_redirect_uri";
 
@@ -1678,18 +1656,6 @@ mod tests {
         let reader_registration = ReaderRegistration::new_mock();
 
         let use_cases = HashMap::from([
-            (
-                DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
-                RpInitiatedUseCase::try_new(
-                    generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
-                    &public_url,
-                    SessionTypeReturnUrl::Neither,
-                    None,
-                    None,
-                    false,
-                )
-                .unwrap(),
-            ),
             (
                 DISCLOSURE_USECASE.to_string(),
                 RpInitiatedUseCase::try_new(
@@ -1737,8 +1703,6 @@ mod tests {
     }
 
     #[rstest]
-    #[case(DISCLOSURE_USECASE_NO_REDIRECT_URI, false, true)]
-    #[case(DISCLOSURE_USECASE_NO_REDIRECT_URI, true, false)]
     #[case(DISCLOSURE_USECASE, false, false)]
     #[case(DISCLOSURE_USECASE, true, true)]
     #[case(DISCLOSURE_USECASE_ALL_REDIRECT_URI, false, false)]
@@ -2117,11 +2081,11 @@ mod tests {
         let reader_registration = ReaderRegistration::new_mock();
 
         let use_cases = HashMap::from([(
-            DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
+            DISCLOSURE_USECASE.to_string(),
             WalletInitiatedUseCase {
                 data: UseCaseData {
                     key_pair: generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
-                    session_type_return_url: SessionTypeReturnUrl::Neither,
+                    session_type_return_url: SessionTypeReturnUrl::SameDevice,
                     client_id: "client_id".into(),
                 },
                 credential_requests: NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
@@ -2154,7 +2118,7 @@ mod tests {
 
         verifier
             .process_get_request(
-                DISCLOSURE_USECASE_NO_REDIRECT_URI,
+                DISCLOSURE_USECASE,
                 &"https://example.com/response_uri".parse().unwrap(),
                 Some(&query_params),
                 None,

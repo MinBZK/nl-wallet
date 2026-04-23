@@ -1,8 +1,7 @@
 use derive_more::Constructor;
+use http_utils::reqwest::HttpJsonClient;
 use jsonwebtoken::jwk::JwkSet;
 use url::Url;
-
-use http_utils::reqwest::HttpJsonClient;
 
 #[derive(Debug, thiserror::Error)]
 pub enum JwksError {

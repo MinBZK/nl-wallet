@@ -1,7 +1,6 @@
+use http_utils::urls::ALLOWED_HTTP_SCHEMES;
 use nutype::nutype;
 use strfmt::strfmt;
-
-use http_utils::urls::ALLOWED_HTTP_SCHEMES;
 use url::Url;
 
 use crate::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;

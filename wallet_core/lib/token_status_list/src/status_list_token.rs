@@ -4,21 +4,20 @@ use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
 use chrono::serde::ts_seconds_option;
-use derive_more::AsRef;
-use derive_more::FromStr;
-use serde::Deserialize;
-use serde::Serialize;
-use serde_with::DurationSeconds;
-use serde_with::serde_as;
-use url::Url;
-
 use crypto::EcdsaKey;
 use crypto::server_keys::KeyPair;
+use derive_more::AsRef;
+use derive_more::FromStr;
 use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
 use jwt::headers::HeaderWithX5c;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::DurationSeconds;
+use serde_with::serde_as;
+use url::Url;
 
 use crate::status_list::PackedStatusList;
 
@@ -111,14 +110,13 @@ pub mod verification {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
-    use rustls_pki_types::TrustAnchor;
-    use url::Url;
-
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
     use crypto::x509::DistinguishedName;
     use jwt::DEFAULT_VALIDATIONS;
     use jwt::error::JwtX5cError;
+    use rustls_pki_types::TrustAnchor;
+    use url::Url;
     use utils::generator::Generator;
 
     use crate::status_list_token::StatusListClaims;
@@ -194,12 +192,11 @@ pub mod verification {
 pub mod mock {
     use base64::Engine;
     use base64::prelude::BASE64_STANDARD;
-    use serde_json::json;
-
     use crypto::EcdsaKey;
     use crypto::server_keys::KeyPair;
     use jwt::headers::HeaderWithTyp;
     use jwt::headers::HeaderWithX5c;
+    use serde_json::json;
 
     use crate::status_list_token::StatusListClaims;
     use crate::status_list_token::StatusListToken;
@@ -252,16 +249,14 @@ mod test {
 
     use assert_matches::assert_matches;
     use chrono::Days;
-
     use crypto::server_keys::generate::Ca;
     use jwt::DEFAULT_VALIDATIONS;
     use jwt::error::JwtX5cError;
     use utils::generator::mock::MockTimeGenerator;
 
+    use super::*;
     use crate::status_list_token::mock::create_status_list_token;
     use crate::status_list_token::verification::StatusListTokenVerificationError;
-
-    use super::*;
 
     const SLT_EXP: i64 = 2291720170;
     const SLT_TTL: i64 = 43200;

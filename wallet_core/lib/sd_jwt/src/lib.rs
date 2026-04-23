@@ -180,12 +180,11 @@ mod tests {
     use std::collections::HashSet;
 
     use assert_matches::assert_matches;
-    use rstest::rstest;
-    use serde_json::json;
-
     use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::Ca;
+    use rstest::rstest;
     use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
+    use serde_json::json;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 

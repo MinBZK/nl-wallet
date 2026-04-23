@@ -2,10 +2,6 @@ use std::sync::Arc;
 
 use chrono::DateTime;
 use chrono::Utc;
-use parking_lot::RwLock;
-use serde::Deserialize;
-use serde::Serialize;
-
 use db_test::DbSetup;
 use db_test::connection_from_url;
 use openid4vc::server_state::Expirable;
@@ -15,6 +11,9 @@ use openid4vc::server_state::SessionDataType;
 use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::server_state::test;
 use openid4vc::server_state::test::RandomData;
+use parking_lot::RwLock;
+use serde::Deserialize;
+use serde::Serialize;
 use server_utils::store::postgres::PostgresSessionStore;
 use utils::generator::mock::MockTimeGenerator;
 

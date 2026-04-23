@@ -9,7 +9,6 @@ use sea_orm::DbErr;
 use sea_orm::TransactionTrait;
 use tokio::fs;
 use tracing::log::LevelFilter;
-
 use wallet_migrations::Migrator;
 use wallet_migrations::MigratorTrait;
 
@@ -192,12 +191,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_entities_database() {
+        use entity::keyed_data;
         use sea_orm::Set;
         use sea_orm::prelude::*;
         use serde::Deserialize;
         use serde::Serialize;
-
-        use entity::keyed_data;
 
         // Define example JSON data
         #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]

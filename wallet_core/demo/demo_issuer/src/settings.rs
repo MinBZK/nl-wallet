@@ -2,20 +2,19 @@ use std::collections::HashMap;
 use std::net::IpAddr;
 use std::path::Path;
 
+use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attributes;
+use attestation_data::issuable_document::IssuableDocument;
 use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
 use derive_more::Into;
-use serde::Deserialize;
-use serde_valid::Validate;
-
-use attestation_data::attributes::AttributeValue;
-use attestation_data::attributes::Attributes;
-use attestation_data::issuable_document::IssuableDocument;
 use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use serde::Deserialize;
+use serde_valid::Validate;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 

@@ -3,15 +3,15 @@ mod storage;
 
 use std::sync::Arc;
 
-use tracing::info;
-
 use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
+use tracing::info;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::WalletRegistration;
 use crate::Wallet;
 use crate::account_provider::AccountProviderClient;
 use crate::errors::InstructionError;
@@ -24,8 +24,6 @@ use crate::pin::change::FinishChangePinOperation;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
-
-use super::WalletRegistration;
 
 const CHANGE_PIN_RETRIES: u8 = 3;
 
@@ -174,7 +172,6 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
-
     use platform_support::attested_key::AttestedKey;
     use wallet_account::messages::instructions::ChangePinCommit;
     use wallet_account::messages::instructions::ChangePinStart;

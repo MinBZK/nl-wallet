@@ -876,7 +876,6 @@ mod test {
     use rstest::rstest;
 
     use super::key_description::VerifiedBootState;
-
     use super::*;
 
     #[rstest]

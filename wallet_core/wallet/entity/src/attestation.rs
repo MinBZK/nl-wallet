@@ -1,6 +1,7 @@
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Constructor;
+use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use sea_orm::ActiveModelBehavior;
 use sea_orm::DeriveEntityModel;
 use sea_orm::DerivePrimaryKey;
@@ -14,8 +15,6 @@ use sea_orm::RelationTrait;
 use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
-
-use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
 use super::attestation_copy;
 

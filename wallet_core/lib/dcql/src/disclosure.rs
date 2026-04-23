@@ -2,11 +2,10 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::iter;
 
-use itertools::Either;
-use itertools::Itertools;
-
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::KeyIdentifier;
+use itertools::Either;
+use itertools::Itertools;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::CredentialFormat;
@@ -202,23 +201,21 @@ mod tests {
     use std::collections::HashMap;
     use std::collections::HashSet;
 
-    use rstest::rstest;
-
     use attestation_types::claim_path::ClaimPath;
     use crypto::x509::KeyIdentifier;
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
     use mdoc::examples::EXAMPLE_NAMESPACE;
+    use rstest::rstest;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
-
-    use crate::CredentialFormat;
-    use crate::CredentialQueryIdentifier;
-    use crate::normalized::NormalizedCredentialRequests;
 
     use super::CredentialValidationError;
     use super::DisclosedCredential;
     use super::ExtendingVctRetriever;
+    use crate::CredentialFormat;
+    use crate::CredentialQueryIdentifier;
+    use crate::normalized::NormalizedCredentialRequests;
 
     const EXAMPLE_VCT: &str = "com.example.pid";
     const EXTENDING_EXAMPLE_VCT: &str = "com.example.pid_extending";

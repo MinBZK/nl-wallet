@@ -1,12 +1,11 @@
-use reqwest::Client;
-use serde_json::Value;
-use serde_json::json;
-use serial_test::serial;
-
 use db_test::DbSetup;
 use hsm::service::Pkcs11Hsm;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
+use reqwest::Client;
+use serde_json::Value;
+use serde_json::json;
+use serial_test::serial;
 use tests_integration::common::start_wallet_provider;
 use tests_integration::common::wallet_provider_settings;
 

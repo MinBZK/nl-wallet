@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-
 use hsm::service::Pkcs11Hsm;
 use http_utils::reqwest::default_reqwest_client_builder;
 use server_utils::server::wallet_server_main;

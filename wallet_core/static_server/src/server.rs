@@ -11,13 +11,12 @@ use http::HeaderMap;
 use http::HeaderValue;
 use http::StatusCode;
 use http::header;
-use tokio::net::TcpListener;
-use tracing::debug;
-use tracing::info;
-
 use http_utils::health::create_health_router;
 use jwt::VerifiedJwt;
 use status_lists::serve::create_serve_router;
+use tokio::net::TcpListener;
+use tracing::debug;
+use tracing::info;
 use utils::built_info::version_string;
 use wallet_configuration::wallet_config::WalletConfiguration;
 

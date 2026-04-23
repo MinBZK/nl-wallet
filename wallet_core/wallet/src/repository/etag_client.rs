@@ -8,19 +8,17 @@ use std::str::FromStr;
 use http::HeaderValue;
 use http::StatusCode;
 use http::header;
-use parking_lot::Mutex;
-use tokio::fs;
-
 use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
-
-use crate::reqwest::CachedReqwestClient;
+use parking_lot::Mutex;
+use tokio::fs;
 
 use super::FileStorageError;
 use super::Filename;
 use super::HttpClient;
 use super::HttpClientError;
 use super::HttpResponse;
+use crate::reqwest::CachedReqwestClient;
 
 pub struct EtagHttpClient<T, B, E> {
     cached_client: CachedReqwestClient<B>,
@@ -139,16 +137,14 @@ mod test {
     use std::str::FromStr;
 
     use http::header;
+    use http_utils::client::TlsPinningConfig;
     use httpmock::Method::GET;
     use httpmock::MockServer;
 
-    use http_utils::client::TlsPinningConfig;
-
+    use super::EtagHttpClient;
     use crate::repository::HttpClient;
     use crate::repository::HttpClientError;
     use crate::repository::HttpResponse;
-
-    use super::EtagHttpClient;
 
     struct Stub;
 

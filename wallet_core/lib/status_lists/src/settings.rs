@@ -2,10 +2,9 @@ use std::num::NonZeroU16;
 use std::time::Duration;
 
 use derive_more::Debug;
+use http_utils::urls::BaseUrl;
 use serde::Deserialize;
 use url::Url;
-
-use http_utils::urls::BaseUrl;
 use utils::num::NonZeroU31;
 use utils::num::Ratio;
 

@@ -1,13 +1,12 @@
+use attestation_types::qualification::AttestationQualification;
 use chrono::DateTime;
 use chrono::Utc;
+use http_utils::urls::HttpsUri;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_valid::Validate;
 use uuid::Uuid;
-
-use attestation_types::qualification::AttestationQualification;
-use http_utils::urls::HttpsUri;
-use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
 use crate::attributes::Attributes;
 use crate::attributes::AttributesError;
@@ -95,10 +94,9 @@ impl IssuableDocument {
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    use super::*;
-
     use indexmap::IndexMap;
 
+    use super::*;
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
 

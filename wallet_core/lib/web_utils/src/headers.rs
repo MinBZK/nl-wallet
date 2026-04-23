@@ -4,10 +4,9 @@ use axum::http::Method;
 use axum::http::header::CACHE_CONTROL;
 use axum::middleware::Next;
 use axum::response::Response;
+use http_utils::urls::CorsOrigin;
 use tower_http::cors::Any;
 use tower_http::cors::CorsLayer;
-
-use http_utils::urls::CorsOrigin;
 
 pub fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
     CorsLayer::new()

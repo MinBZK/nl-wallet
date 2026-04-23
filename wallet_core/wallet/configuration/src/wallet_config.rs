@@ -1,25 +1,24 @@
 use std::collections::HashMap;
 use std::ops::Range;
 
+use attestation_data::disclosure_type::DisclosureTypeConfig;
+use attestation_types::claim_path::ClaimPath;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::p256_der::DerVerifyingKey;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use derive_more::Debug;
+use error_category::ErrorCategory;
+use http_utils::client::TlsPinningConfig;
+use http_utils::urls::BaseUrl;
 use itertools::Itertools;
+use jwt::JwtTyp;
+use openid4vc::issuer_identifier::IssuerIdentifier;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
-
-use attestation_data::disclosure_type::DisclosureTypeConfig;
-use attestation_types::claim_path::ClaimPath;
-use crypto::p256_der::DerVerifyingKey;
-use crypto::trust_anchor::BorrowingTrustAnchor;
-use error_category::ErrorCategory;
-use http_utils::client::TlsPinningConfig;
-use http_utils::urls::BaseUrl;
-use jwt::JwtTyp;
-use openid4vc::issuer_identifier::IssuerIdentifier;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 

@@ -4,12 +4,11 @@ use std::time::Duration;
 
 use itertools::Itertools;
 use parking_lot::RwLock;
+use status_lists::postgres::RevokeAll;
 use strum::VariantArray;
 use tokio::sync::Mutex;
 use tokio::task::AbortHandle;
 use tokio::time::MissedTickBehavior;
-
-use status_lists::postgres::RevokeAll;
 use wallet_provider_domain::model::wallet_flag::WalletFlag;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::WalletFlagRepository;

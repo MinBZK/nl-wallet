@@ -192,7 +192,7 @@ void main() {
     );
 
     blocTest(
-      'when the user confirms the pin, the bloc emits DisclosureSuccess',
+      'when the user confirms the pin, the bloc emits DisclosureSuccess (regular)',
       setUp: () {
         when(getMostRecentWalletEventUseCase.invoke()).thenAnswer((_) async => WalletMockData.disclosureEvent);
         when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
@@ -209,7 +209,63 @@ void main() {
         bloc.add(const DisclosurePinConfirmed());
       },
       skip: 3,
-      expect: () => [isA<DisclosureSuccess>()],
+      expect: () => [
+        isA<DisclosureSuccess>().having(
+          (it) => it.descriptionType,
+          'regular type success',
+          SuccessDescriptionType.regular,
+        ),
+      ],
+    );
+
+    blocTest(
+      'when the user confirms the pin, the bloc emits DisclosureSuccess (login)',
+      setUp: () {
+        when(getMostRecentWalletEventUseCase.invoke()).thenAnswer((_) async => WalletMockData.disclosureEvent);
+        when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+          return Result.success(emptyRequest(sessionType: .sameDevice, type: .login));
+        });
+      },
+      build: create,
+      act: (bloc) async {
+        bloc.add(const DisclosureSessionStarted(StartDisclosureRequest.qrScan('')));
+        // Give the bloc 25ms to process the previous event
+        await Future.delayed(const Duration(milliseconds: 25));
+        bloc.add(const DisclosureShareRequestedCardsApproved());
+        bloc.add(const DisclosurePinConfirmed());
+      },
+      skip: 2,
+      expect: () => [
+        isA<DisclosureSuccess>().having((it) => it.descriptionType, 'login type success', SuccessDescriptionType.login),
+      ],
+    );
+
+    blocTest(
+      'when the user confirms the pin, the bloc emits DisclosureSuccess (close_proximity)',
+      setUp: () {
+        when(getMostRecentWalletEventUseCase.invoke()).thenAnswer((_) async => WalletMockData.disclosureEvent);
+        when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+          return Result.success(emptyRequest(sessionType: .closeProximity, type: .login));
+        });
+        when(observeCloseProximityConnectionUseCase.invoke()).thenAnswer((_) => const Stream.empty());
+      },
+      build: create,
+      act: (bloc) async {
+        bloc.add(const DisclosureSessionStarted(StartDisclosureRequest.closeProximity()));
+        // Give the bloc 25ms to process the previous event
+        await Future.delayed(const Duration(milliseconds: 25));
+        bloc.add(const DisclosureShareRequestedCardsApproved());
+        bloc.add(const DisclosurePinConfirmed());
+      },
+      expect: () => [
+        isA<DisclosureCheckOrganizationForLogin>(),
+        isA<DisclosureConfirmPin>(),
+        isA<DisclosureSuccess>().having(
+          (it) => it.descriptionType,
+          'close proximity type success',
+          SuccessDescriptionType.closeProximity,
+        ),
+      ],
     );
 
     blocTest(
@@ -864,6 +920,53 @@ void main() {
         isA<DisclosureLoadInProgress>(),
         isA<DisclosureGenericError>(),
       ],
+    );
+
+    blocTest(
+      'proximity events are ignored when state is DisclosureSuccess',
+      build: create,
+      seed: () => DisclosureSuccess(relyingParty: WalletMockData.organization, isCrossDevice: false),
+      act: (bloc) => bloc.add(const DisclosureCloseProximityEventReceived(BleDisconnected())),
+      expect: () => [],
+      verify: (bloc) => verifyNever(cancelDisclosureUseCase.invoke()),
+    );
+
+    blocTest(
+      'proximity events are ignored when state is an ErrorState',
+      build: create,
+      seed: () => const DisclosureGenericError(error: GenericError('test', sourceError: 'test')),
+      act: (bloc) => bloc.add(const DisclosureCloseProximityEventReceived(BleDisconnected())),
+      expect: () => [],
+      verify: (bloc) => verifyNever(cancelDisclosureUseCase.invoke()),
+    );
+
+    blocTest(
+      'proximity events are ignored after pin validation started',
+      setUp: () {
+        when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+          return Result.success(emptyRequest(sessionType: .closeProximity, type: .regular));
+        });
+        when(getMostRecentWalletEventUseCase.invoke()).thenAnswer((_) async => WalletMockData.disclosureEvent);
+      },
+      build: create,
+      act: (bloc) async {
+        // Trigger session start
+        bloc.add(const DisclosureSessionStarted(StartDisclosureRequest.closeProximity()));
+        await Future.delayed(Duration.zero);
+        // Move to confirm pin page
+        bloc.add(const DisclosureShareRequestedCardsApproved());
+        await Future.delayed(Duration.zero);
+        // Pretend user has entered a PIN
+        bloc.add(const DisclosurePinValidationStarted());
+        await Future.delayed(Duration.zero);
+        // Trigger a disconnect event (should be ignored as user already entered PIN)
+        bleEventController.add(const BleDisconnected());
+        await Future.delayed(Duration.zero);
+        // Notify BLoC about pin confirmation, triggering final success state
+        bloc.add(const DisclosurePinConfirmed());
+      },
+      expect: () => [isA<DisclosureConfirmDataAttributes>(), isA<DisclosureConfirmPin>(), isA<DisclosureSuccess>()],
+      verify: (bloc) => verifyNever(cancelDisclosureUseCase.invoke()),
     );
   });
 }

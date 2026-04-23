@@ -2,20 +2,18 @@ use std::result::Result;
 
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::x509::BorrowingCertificate;
 use rustls_pki_types::TrustAnchor;
 use ssri::Integrity;
-
-use crypto::x509::BorrowingCertificate;
 use utils::generator::Generator;
 
+use super::HolderError;
 use crate::errors::Error;
 use crate::iso::*;
 use crate::utils::cose::CoseError;
 use crate::utils::serialization::TaggedBytes;
 use crate::verifier::IssuerSignedVerificationResult;
 use crate::verifier::ValidityRequirement;
-
-use super::HolderError;
 
 /// A full mdoc: everything needed to disclose attributes from the mdoc.
 #[derive(Debug, Clone, PartialEq)]
@@ -113,21 +111,21 @@ impl Mdoc {
 
 #[cfg(any(test, feature = "test"))]
 mod test {
+    use attestation_types::status_claim::StatusClaim;
     use chrono::DateTime;
     use chrono::TimeDelta;
     use chrono::Utc;
-    use futures::FutureExt;
-    use indexmap::IndexMap;
-    use ssri::Integrity;
-
-    use attestation_types::status_claim::StatusClaim;
     use crypto::CredentialEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::x509::CertificateUsage;
+    use futures::FutureExt;
     use http_utils::urls::HttpsUri;
+    use indexmap::IndexMap;
+    use ssri::Integrity;
     use utils::generator::Generator;
 
+    use super::Mdoc;
     use crate::iso::disclosure::IssuerSigned;
     use crate::iso::mdocs::DigestAlgorithm;
     use crate::iso::mdocs::Entry;
@@ -139,8 +137,6 @@ mod test {
     use crate::utils::cose::CoseKey;
     use crate::utils::cose::MdocCose;
     use crate::utils::serialization::TaggedBytes;
-
-    use super::Mdoc;
 
     impl Mdoc {
         pub fn new_unverified(mso: MobileSecurityObject, private_key_id: String, issuer_signed: IssuerSigned) -> Self {
@@ -219,28 +215,26 @@ mod test {
 
 #[cfg(any(test, feature = "mock_example_constructors"))]
 pub mod mock {
+    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::DateTime;
     use chrono::Utc;
     use ciborium::Value;
-    use indexmap::IndexMap;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
-
-    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::CredentialEcdsaKey;
     use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+    use indexmap::IndexMap;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use utils::generator::Generator;
     use utils::generator::mock::MockTimeGenerator;
 
+    use super::Mdoc;
     use crate::examples::IsoCertTimeGenerator;
     use crate::iso::disclosure::DeviceResponse;
     use crate::iso::mdocs::Entry;
-
-    use super::Mdoc;
 
     impl Mdoc {
         /// Out of the example data structures in the standard, assemble an mdoc.

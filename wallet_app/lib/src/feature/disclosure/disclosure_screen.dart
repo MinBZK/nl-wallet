@@ -235,6 +235,7 @@ class DisclosureScreen extends StatelessWidget {
         title: title,
         onPinValidated: (returnUrl) => context.bloc.add(DisclosurePinConfirmed(returnUrl: returnUrl)),
         onConfirmWithPinFailed: (context, state) => context.bloc.add(DisclosureConfirmPinFailed(error: state.error)),
+        onPinValidationStarted: () => context.bloc.add(const DisclosurePinValidationStarted()),
         onForgotPinPressed: () async {
           final stopped = await StopToResetPinDialog.show(
             context,
@@ -272,7 +273,7 @@ class DisclosureScreen extends StatelessWidget {
     return DisclosureSuccessPage(
       organizationDisplayName: state.relyingParty.displayName,
       returnUrl: state.returnUrl,
-      isLoginFlow: state.isLoginFlow,
+      descriptionType: state.descriptionType,
       onHistoryPressed: state.event == null
           ? null
           : () {

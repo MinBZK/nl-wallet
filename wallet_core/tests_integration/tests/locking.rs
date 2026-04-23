@@ -1,12 +1,11 @@
 use std::time::Duration;
 
 use assert_matches::assert_matches;
+use db_test::DbSetup;
 use rstest::rstest;
 use serial_test::serial;
-use tokio::time::sleep;
-
-use db_test::DbSetup;
 use tests_integration::common::*;
+use tokio::time::sleep;
 use wallet::errors::InstructionError;
 use wallet::errors::WalletUnlockError;
 

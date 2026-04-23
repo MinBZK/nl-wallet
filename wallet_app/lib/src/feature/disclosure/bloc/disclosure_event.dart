@@ -97,6 +97,11 @@ class DisclosureConfirmPinFailed extends DisclosureEvent {
   List<Object?> get props => [error];
 }
 
+/// Triggered when the user has entered a PIN (at the start of PIN confirmation)
+class DisclosurePinValidationStarted extends DisclosureEvent {
+  const DisclosurePinValidationStarted();
+}
+
 /// Triggered when a close proximity [BleConnectionEvent] is received.
 class DisclosureCloseProximityEventReceived extends DisclosureEvent {
   final BleConnectionEvent event;

@@ -1,7 +1,6 @@
+use http_utils::reqwest::HttpJsonClient;
 use serde::de::DeserializeOwned;
 use url::Url;
-
-use http_utils::reqwest::HttpJsonClient;
 
 use crate::issuer_identifier::IssuerIdentifier;
 

@@ -1,8 +1,5 @@
 use std::sync::Arc;
 
-use tracing::info;
-use tracing::instrument;
-
 use attestation_data::auth::Organization;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
@@ -16,10 +13,16 @@ use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use platform_support::attested_key::AttestedKeyHolder;
+use tracing::info;
+use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::DisclosureError;
+use super::IssuanceError;
+use super::Wallet;
+use super::disclosure::RedirectUriPurpose;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationPresentation;
 use crate::errors::UpdatePolicyError;
@@ -27,11 +30,6 @@ use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::wallet::Session;
-
-use super::DisclosureError;
-use super::IssuanceError;
-use super::Wallet;
-use super::disclosure::RedirectUriPurpose;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -161,13 +159,6 @@ fn convert_and_enrich_error(error: WalletIssuanceError, organization: &Organizat
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use indexmap::IndexMap;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
-    use rstest::rstest;
-    use utils::vec_nonempty;
-    use uuid::Uuid;
-
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::disclosure_type::DisclosureType;
@@ -177,6 +168,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use dcql::CredentialFormat;
+    use indexmap::IndexMap;
     use mdoc::holder::disclosure::PartialMdoc;
     use openid4vc::DisclosureErrorResponse;
     use openid4vc::Format;
@@ -195,16 +187,12 @@ mod tests {
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::verifier::ToPostAuthResponseErrorCode;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+    use rstest::rstest;
     use utils::generator::mock::MockTimeGenerator;
-
-    use crate::attestation::AttestationPresentation;
-    use crate::storage::ChangePinData;
-    use crate::storage::DisclosableAttestation;
-    use crate::storage::PartialAttestation;
-    use crate::storage::StoredAttestation;
-    use crate::storage::StoredAttestationCopy;
-    use crate::wallet::test::TestWalletMockStorage;
-    use crate::wallet::test::create_example_pid_mdoc;
+    use utils::vec_nonempty;
+    use uuid::Uuid;
 
     use super::super::DisclosureBasedIssuanceError;
     use super::super::Session;
@@ -214,6 +202,14 @@ mod tests {
     use super::super::test::WalletDeviceVendor;
     use super::super::test::create_example_pid_preview_data;
     use super::super::test::create_example_pid_sd_jwt;
+    use crate::attestation::AttestationPresentation;
+    use crate::storage::ChangePinData;
+    use crate::storage::DisclosableAttestation;
+    use crate::storage::PartialAttestation;
+    use crate::storage::StoredAttestation;
+    use crate::storage::StoredAttestationCopy;
+    use crate::wallet::test::TestWalletMockStorage;
+    use crate::wallet::test::create_example_pid_mdoc;
 
     const PIN: &str = "051097";
 
@@ -334,7 +330,7 @@ mod tests {
             .expect_fetch_recent_wallet_events()
             .returning(move || Ok(vec![]));
 
-        let (mdoc, metadata) = create_example_pid_mdoc();
+        let (mdoc, metadata) = create_example_pid_mdoc(&SigningKey::random(&mut OsRng));
         let stored_attestation_copy = StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),

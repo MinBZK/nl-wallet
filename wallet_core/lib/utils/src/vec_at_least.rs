@@ -7,7 +7,9 @@ use std::num::NonZeroUsize;
 use derive_more::Index;
 use itertools::Itertools;
 use nonempty_collections::FromNonEmptyIterator;
+pub use nonempty_collections::IntoNonEmptyIterator;
 use nonempty_collections::Singleton;
+pub use nonempty_collections::iter::NonEmptyIterator;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -15,9 +17,6 @@ use serde::Serializer;
 use serde::de;
 use serde_with::DeserializeAs;
 use serde_with::SerializeAs;
-
-pub use nonempty_collections::IntoNonEmptyIterator;
-pub use nonempty_collections::iter::NonEmptyIterator;
 
 #[derive(Debug, thiserror::Error)]
 #[error("{kind}")]

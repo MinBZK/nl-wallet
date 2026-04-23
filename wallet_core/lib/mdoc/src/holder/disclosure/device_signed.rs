@@ -2,14 +2,12 @@ use coset::CoseMac0Builder;
 use coset::Header;
 use coset::HeaderBuilder;
 use coset::iana;
-
-use indexmap::IndexMap;
-use p256::PublicKey;
-use p256::SecretKey;
-
 use crypto::keys::CredentialEcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
+use indexmap::IndexMap;
+use p256::PublicKey;
+use p256::SecretKey;
 
 use crate::errors::Result;
 use crate::iso::*;
@@ -76,10 +74,9 @@ impl DeviceSigned {
 mod tests {
     use std::sync::Arc;
 
-    use p256::SecretKey;
-
     use crypto::examples::Examples;
     use crypto::server_keys::generate::Ca;
+    use p256::SecretKey;
     use token_status_list::verification::client::mock::StatusListClientStub;
     use token_status_list::verification::verifier::RevocationVerifier;
 

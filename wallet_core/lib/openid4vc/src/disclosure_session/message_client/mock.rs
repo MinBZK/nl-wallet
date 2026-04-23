@@ -1,19 +1,15 @@
 use std::sync::Arc;
 
-use chrono::Utc;
-use derive_more::Constructor;
-use derive_more::Debug;
-use futures::FutureExt;
-use parking_lot::Mutex;
-use rustls_pki_types::TrustAnchor;
-use url::Url;
-
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+use chrono::Utc;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::utils::random_string;
 use dcql::normalized::NormalizedCredentialRequests;
+use derive_more::Constructor;
+use derive_more::Debug;
+use futures::FutureExt;
 use http_utils::urls::BaseUrl;
 use jwe::algorithm::EcdhAlgorithm;
 use jwe::decryption::JweEcdhSecretKey;
@@ -21,8 +17,13 @@ use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 use jwt::nonce::Nonce;
+use parking_lot::Mutex;
+use rustls_pki_types::TrustAnchor;
+use url::Url;
 use utils::vec_nonempty;
 
+use super::VpMessageClient;
+use super::VpMessageClientError;
 use crate::cose::KnownCoseAlgorithmIdentifier;
 use crate::errors::AuthorizationErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
@@ -40,9 +41,6 @@ use crate::openid4vp::WalletRequest;
 use crate::verifier::EphemeralIdParameters;
 use crate::verifier::SessionType;
 use crate::verifier::VerifierUrlParameters;
-
-use super::VpMessageClient;
-use super::VpMessageClientError;
 
 /// Message that the wallet sends to the verifier through one of the mock [`VpMessageClient`] implementations.
 #[derive(Debug, Clone)]

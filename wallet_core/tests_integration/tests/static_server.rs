@@ -1,18 +1,17 @@
 use std::env;
 
 use assert_matches::assert_matches;
+use http_utils::client::TlsPinningConfig;
+use jwt::SignedJwt;
+use jwt::error::JwtError;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::EncodePrivateKey;
 use rand_core::OsRng;
 use regex::Regex;
 use reqwest::header::HeaderValue;
-use tokio::fs;
-
-use http_utils::client::TlsPinningConfig;
-use jwt::SignedJwt;
-use jwt::error::JwtError;
 use tests_integration::common::*;
+use tokio::fs;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wallet::errors::ConfigurationError;

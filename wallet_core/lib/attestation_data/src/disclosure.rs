@@ -1,10 +1,5 @@
 use std::collections::HashSet;
 
-use indexmap::IndexMap;
-use itertools::Itertools;
-use serde::Deserialize;
-use serde::Serialize;
-
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
 use crypto::x509::CertificateError;
@@ -15,6 +10,8 @@ use dcql::disclosure::DisclosedCredential;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::unique_id_vec::MayHaveUniqueId;
 use http_utils::urls::HttpsUri;
+use indexmap::IndexMap;
+use itertools::Itertools;
 use mdoc::DataElementIdentifier;
 use mdoc::DataElementValue;
 use mdoc::ItemsRequest;
@@ -22,6 +19,8 @@ use mdoc::NameSpace;
 use mdoc::holder::disclosure::claim_path_to_mdoc_path;
 use mdoc::verifier::DisclosedDocument;
 use sd_jwt::sd_jwt::VerifiedSdJwtPresentation;
+use serde::Deserialize;
+use serde::Serialize;
 use token_status_list::verification::verifier::RevocationStatus;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -313,30 +312,28 @@ impl<T: AttestationRequest> AttestationRequest for &T {
 
 #[cfg(test)]
 mod test {
-    use chrono::Utc;
-    use indexmap::IndexMap;
-    use itertools::Itertools;
-    use rstest::rstest;
-    use serde_json::json;
-
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::qualification::AttestationQualification;
+    use chrono::Utc;
     use dcql::CredentialFormat;
     use dcql::disclosure::DisclosedCredential;
+    use indexmap::IndexMap;
+    use itertools::Itertools;
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
     use mdoc::examples::EXAMPLE_NAMESPACE;
+    use rstest::rstest;
+    use serde_json::json;
     use token_status_list::verification::verifier::RevocationStatus;
     use utils::vec_at_least::NonEmptyIterator;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
+    use super::DisclosedAttestation;
+    use super::DisclosedAttributes;
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
     use crate::validity::IssuanceValidity;
-
-    use super::DisclosedAttestation;
-    use super::DisclosedAttributes;
 
     impl DisclosedAttestation {
         fn mdoc_example() -> Self {

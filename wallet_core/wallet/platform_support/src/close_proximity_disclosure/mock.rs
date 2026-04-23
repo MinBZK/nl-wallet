@@ -1,11 +1,10 @@
 use tokio::sync::mpsc;
 
+use super::CloseProximityDisclosureClient;
 use crate::bridge::close_proximity_disclosure::CloseProximityDisclosureChannel;
 use crate::bridge::close_proximity_disclosure::CloseProximityDisclosureError;
 use crate::bridge::close_proximity_disclosure::CloseProximityDisclosureUpdate;
 use crate::close_proximity_disclosure::CloseProximityDisclosureChannelImpl;
-
-use super::CloseProximityDisclosureClient;
 
 #[derive(Debug, Default)]
 pub struct MockCloseProximityDisclosureClient;

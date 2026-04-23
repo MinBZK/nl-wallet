@@ -3,10 +3,20 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::convert::identity;
 
+use attestation_data::attributes::AttributesTraversalBehaviour;
+use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::credential_payload::CredentialPayload;
+use attestation_types::claim_path::ClaimPath;
+use crypto::x509::BorrowingCertificate;
 use derive_more::Debug;
 use futures::TryFutureExt;
 use futures::future::try_join_all;
+use http_utils::reqwest::HttpJsonClient;
 use itertools::Itertools;
+use jwt::wua::WuaDisclosure;
+use mdoc::ATTR_RANDOM_LENGTH;
+use mdoc::holder::Mdoc;
+use mdoc::utils::serialization::TaggedBytes;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
@@ -15,24 +25,13 @@ use reqwest::Response;
 use reqwest::header::AUTHORIZATION;
 use reqwest::header::ToStrError;
 use rustls_pki_types::TrustAnchor;
-use serde::Serialize;
-use serde::de::DeserializeOwned;
-use url::Url;
-
-use attestation_data::attributes::AttributesTraversalBehaviour;
-use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::credential_payload::CredentialPayload;
-use attestation_types::claim_path::ClaimPath;
-use crypto::x509::BorrowingCertificate;
-use http_utils::reqwest::HttpJsonClient;
-use jwt::wua::WuaDisclosure;
-use mdoc::ATTR_RANDOM_LENGTH;
-use mdoc::holder::Mdoc;
-use mdoc::utils::serialization::TaggedBytes;
 use sd_jwt::error::DecoderError;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
+use url::Url;
 use utils::generator::TimeGenerator;
 use utils::single_unique::SingleUnique;
 use utils::vec_at_least::VecNonEmpty;
@@ -897,15 +896,6 @@ mod tests {
     use std::vec;
 
     use assert_matches::assert_matches;
-    use chrono::Utc;
-    use futures::FutureExt;
-    use indexmap::IndexMap;
-    use mockall::predicate::eq;
-    use rstest::rstest;
-    use serde_bytes::ByteBuf;
-    use serde_json::json;
-    use ssri::Integrity;
-
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
@@ -916,12 +906,17 @@ mod tests {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::qualification::AttestationQualification;
     use attestation_types::status_claim::StatusClaim;
+    use chrono::Utc;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateError;
+    use futures::FutureExt;
+    use indexmap::IndexMap;
     use jwt::jwk::jwk_to_p256;
     use jwt::nonce::Nonce;
     use mdoc::utils::serialization::TaggedBytes;
+    use mockall::predicate::eq;
+    use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::claims::ClaimName;
     use sd_jwt::error::ClaimError;
@@ -929,10 +924,14 @@ mod tests {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
+    use serde_bytes::ByteBuf;
+    use serde_json::json;
+    use ssri::Integrity;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wscd::mock_remote::MockRemoteWscd;
 
+    use super::*;
     use crate::Format;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
@@ -944,8 +943,6 @@ mod tests {
     use crate::token::TokenResponse;
     use crate::wallet_issuance::TypeMetadataChainError;
     use crate::wallet_issuance::WalletIssuanceError;
-
-    use super::*;
 
     fn test_start_issuance(
         ca: &Ca,

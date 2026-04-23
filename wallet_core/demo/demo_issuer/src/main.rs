@@ -1,9 +1,8 @@
 use anyhow::Result;
-use tracing::level_filters::LevelFilter;
-use tracing_subscriber::EnvFilter;
-
 use demo_issuer::server;
 use demo_issuer::settings::Settings;
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> Result<()> {

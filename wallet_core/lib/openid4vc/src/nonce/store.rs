@@ -38,9 +38,8 @@ pub mod test {
     use assert_matches::assert_matches;
     use chrono::DateTime;
     use chrono::Utc;
-    use parking_lot::RwLock;
-
     use jwt::nonce::Nonce;
+    use parking_lot::RwLock;
 
     use super::super::C_NONCE_VALIDITY;
     use super::NonceStatus;

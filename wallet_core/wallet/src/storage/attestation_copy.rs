@@ -1,6 +1,3 @@
-use crypto::x509::KeyIdentifier;
-use uuid::Uuid;
-
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -8,6 +5,7 @@ use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificateExtension;
+use crypto::x509::KeyIdentifier;
 use mdoc::IssuerSigned;
 use mdoc::holder::Mdoc;
 use mdoc::holder::disclosure::MissingAttributesError;
@@ -17,6 +15,7 @@ use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use token_status_list::verification::verifier::RevocationStatus;
 use utils::vec_at_least::VecNonEmpty;
+use uuid::Uuid;
 
 use crate::AttestationIdentity;
 use crate::AttestationPresentation;
@@ -368,16 +367,31 @@ impl DisclosableAttestation {
 }
 
 #[cfg(test)]
+mod test {
+    use super::*;
+
+    impl StoredAttestationCopy {
+        pub fn private_key_id(&self) -> &str {
+            match &self.attestation {
+                StoredAttestation::MsoMdoc { mdoc } => mdoc.private_key_id(),
+                StoredAttestation::SdJwt { key_identifier, .. } => key_identifier.as_str(),
+            }
+        }
+    }
+
+    impl PartialAttestation {
+        pub fn private_key_id(&self) -> &str {
+            match &self {
+                PartialAttestation::MsoMdoc { partial_mdoc } => partial_mdoc.private_key_id(),
+                PartialAttestation::SdJwt { key_identifier, .. } => key_identifier.as_str(),
+            }
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use std::sync::LazyLock;
-
-    use chrono::Utc;
-    use futures::FutureExt;
-    use itertools::Itertools;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
-    use ssri::Integrity;
-    use uuid::Uuid;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::CredentialPayload;
@@ -388,20 +402,26 @@ mod tests {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_BSN;
     use attestation_types::status_claim::StatusClaim;
+    use chrono::Utc;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
+    use futures::FutureExt;
+    use itertools::Itertools;
     use mdoc::holder::Mdoc;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use ssri::Integrity;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
-
-    use crate::config::test::test_wallet_config;
+    use uuid::Uuid;
 
     use super::DisclosableAttestation;
     use super::PartialAttestation;
     use super::StoredAttestation;
     use super::StoredAttestationCopy;
+    use crate::config::test::test_wallet_config;
 
     static ATTESTATION_ID: LazyLock<Uuid> = LazyLock::new(Uuid::new_v4);
 
@@ -443,7 +463,7 @@ mod tests {
     }
 
     fn sd_jwt_stored_attestation_copy(issuer_keypair: &KeyPair) -> (StoredAttestationCopy, VecNonEmpty<ClaimPath>) {
-        let credential_payload = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
+        let (credential_payload, _) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
         let sd_jwt = credential_payload
             .into_signed_sd_jwt(&NormalizedTypeMetadata::nl_pid_example(), issuer_keypair)
             .now_or_never()

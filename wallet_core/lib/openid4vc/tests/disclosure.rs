@@ -4,20 +4,6 @@ use std::sync::Arc;
 
 use assert_matches::assert_matches;
 use async_trait::async_trait;
-use chrono::DateTime;
-use chrono::Utc;
-use futures::FutureExt;
-use indexmap::IndexMap;
-use itertools::Itertools;
-use p256::ecdsa::SigningKey;
-use p256::ecdsa::VerifyingKey;
-use rand_core::OsRng;
-use ring::hmac;
-use ring::rand;
-use rstest::rstest;
-use rustls_pki_types::TrustAnchor;
-use url::Url;
-
 use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure::DisclosedAttestations;
@@ -34,6 +20,8 @@ use attestation_data::x509::generate::mock::generate_reader_mock_with_registrati
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_GIVEN_NAME;
 use attestation_types::pid_constants::ROOT_PID_ATTESTATION_TYPE;
+use chrono::DateTime;
+use chrono::Utc;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteWscd as DisclosureMockRemoteWscd;
 use crypto::mock_remote::MockRemoteWscdError;
@@ -51,7 +39,10 @@ use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::unique_id_vec::UniqueIdVec;
+use futures::FutureExt;
 use http_utils::urls::BaseUrl;
+use indexmap::IndexMap;
+use itertools::Itertools;
 use jwe::algorithm::EcdhAlgorithm;
 use jwe::decryption::JweEcdhSecretKey;
 use jwt::SignedJwt;
@@ -105,8 +96,16 @@ use openid4vc::verifier::VpToken;
 use openid4vc::verifier::WalletAuthResponse;
 use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
+use p256::ecdsa::SigningKey;
+use p256::ecdsa::VerifyingKey;
+use rand_core::OsRng;
+use ring::hmac;
+use ring::rand;
+use rstest::rstest;
+use rustls_pki_types::TrustAnchor;
 use token_status_list::verification::client::mock::StatusListClientStub;
 use token_status_list::verification::verifier::RevocationVerifier;
+use url::Url;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
@@ -424,7 +423,6 @@ impl VpMessageClient for DirectMockVpMessageClient {
     }
 }
 
-const NO_RETURN_URL_USE_CASE: &str = "no_return_url";
 const DEFAULT_RETURN_URL_USE_CASE: &str = "default_return_url";
 const ALL_RETURN_URL_USE_CASE: &str = "all_return_url";
 const WALLET_INITIATED_RETURN_URL_USE_CASE: &str = "wallet_initiated_return_url";
@@ -458,69 +456,57 @@ impl DisclosureResultHandler for MockDisclosureResultHandler {
 #[rstest]
 #[case(
     SessionType::SameDevice,
-    None,
-    NO_RETURN_URL_USE_CASE,
-    nl_pid_credentials_full_name()
-)]
-#[case(
-    SessionType::SameDevice,
-    Some("https://example.com/return_url".parse().unwrap()),
+    "https://example.com/return_url".parse().unwrap(),
     DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_full_name(),
 )]
 #[case(
     SessionType::SameDevice,
-    Some("https://example.com/return_url".parse().unwrap()),
+    "https://example.com/return_url".parse().unwrap(),
     ALL_RETURN_URL_USE_CASE,
     nl_pid_credentials_full_name(),
 )]
 #[case(
     SessionType::CrossDevice,
-    None,
-    NO_RETURN_URL_USE_CASE,
-    nl_pid_credentials_full_name()
-)]
-#[case(
-    SessionType::CrossDevice,
-    Some("https://example.com/return_url".parse().unwrap()),
+    "https://example.com/return_url".parse().unwrap(),
     DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_full_name(),
 )]
 #[case(
     SessionType::CrossDevice,
-    Some("https://example.com/return_url".parse().unwrap()),
+    "https://example.com/return_url".parse().unwrap(),
     ALL_RETURN_URL_USE_CASE,
     nl_pid_credentials_full_name(),
 )]
 #[case(
     SessionType::SameDevice,
-    None,
-    NO_RETURN_URL_USE_CASE,
+    "https://example.com/return_url".parse().unwrap(),
+    DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_given_name()
 )]
 // attributes from different documents, so this case also tests the PoA
 #[case(
     SessionType::SameDevice,
-    None,
-    NO_RETURN_URL_USE_CASE,
+    "https://example.com/return_url".parse().unwrap(),
+    DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_given_name() + nl_pid_address_minimal_address(),
 )]
 #[case(
     SessionType::SameDevice,
-    None,
-    NO_RETURN_URL_USE_CASE,
+    "https://example.com/return_url".parse().unwrap(),
+    DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_given_name() + nl_pid_credentials_family_name(),
 )]
 #[case(
     SessionType::SameDevice,
-    None,
-    NO_RETURN_URL_USE_CASE,
+    "https://example.com/return_url".parse().unwrap(),
+    DEFAULT_RETURN_URL_USE_CASE,
     nl_pid_credentials_given_name() + nl_pid_credentials_full_name() + nl_pid_credentials_all(),
 )]
 #[tokio::test]
 async fn test_client_and_server(
     #[case] session_type: SessionType,
-    #[case] return_url_template: Option<ReturnUrlTemplate>,
+    #[case] return_url_template: ReturnUrlTemplate,
     #[case] use_case: &str,
     #[case] test_credentials: TestCredentials,
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
@@ -533,7 +519,7 @@ async fn test_client_and_server(
 
     // Start the session
     let session_token = verifier
-        .new_session(use_case.to_string(), Some(dcql_query), return_url_template)
+        .new_session(use_case.to_string(), Some(dcql_query), Some(return_url_template))
         .await
         .unwrap();
 
@@ -570,7 +556,6 @@ async fn test_client_and_server(
 
     // Check if we received a redirect URI when we should have, based on the use case and session type.
     let should_have_redirect_uri = match (use_case, session_type) {
-        (use_case, _) if use_case == NO_RETURN_URL_USE_CASE => false,
         (use_case, _) if use_case == ALL_RETURN_URL_USE_CASE => true,
         (_, SessionType::SameDevice) => true,
         (_, SessionType::CrossDevice) => false,
@@ -768,13 +753,17 @@ async fn test_disclosure_invalid_poa() {
 
     let test_credentials = nl_pid_credentials_full_name() + nl_pid_address_minimal_address();
     let dcql_query = test_credentials.to_dcql_query([CredentialFormat::SdJwt, CredentialFormat::SdJwt]);
-    let use_case = NO_RETURN_URL_USE_CASE;
+    let use_case = DEFAULT_RETURN_URL_USE_CASE;
 
     let (verifier, rp_trust_anchor, issuer_keypair) = setup_verifier(&dcql_query, None);
 
     // Start the session
     let session_token = verifier
-        .new_session(use_case.to_string(), Some(dcql_query), None)
+        .new_session(
+            use_case.to_string(),
+            Some(dcql_query),
+            Some("https://example.com/{session_token}".parse().unwrap()),
+        )
         .await
         .unwrap();
 
@@ -1120,18 +1109,6 @@ fn setup_verifier(
     let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
     let reader_registration = ReaderRegistration::mock_from_dcql_query(dcql_query);
     let usecases = HashMap::from([
-        (
-            NO_RETURN_URL_USE_CASE.to_string(),
-            RpInitiatedUseCase::try_new(
-                generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
-                &public_url,
-                SessionTypeReturnUrl::Neither,
-                None,
-                None,
-                false,
-            )
-            .unwrap(),
-        ),
         (
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::try_new(

@@ -3,10 +3,9 @@ use std::error::Error;
 
 use assert_matches::assert_matches;
 use audit_log::model::FromAuditLogError;
-use serde::Serialize;
-
 use audit_log::model::mock::MockAuditLog;
 use audit_log_macros::audited;
+use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 struct MyType;

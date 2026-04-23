@@ -52,10 +52,6 @@
     "vue": "^3.2.25",
     "vue-tsc": "^2.0.16"
   },
-  "bundleDependencies": [
-    "axios",
-    "vue"
-  ],
   "dependencies": {
     "@lavamoat/preinstall-always-fail": "^2.1.1"
   },

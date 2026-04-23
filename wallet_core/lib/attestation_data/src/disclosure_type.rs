@@ -1,7 +1,6 @@
-use itertools::Itertools;
-
 use attestation_types::claim_path::ClaimPath;
 use dcql::normalized::NormalizedCredentialRequest;
+use itertools::Itertools;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DisclosureType {
@@ -63,9 +62,8 @@ impl DisclosureType {
 
 #[cfg(test)]
 mod test {
-    use rstest::rstest;
-
     use dcql::normalized::NormalizedCredentialRequests;
+    use rstest::rstest;
 
     use super::DisclosureType;
     use super::DisclosureTypeConfig;

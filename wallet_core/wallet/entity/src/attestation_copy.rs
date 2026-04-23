@@ -1,11 +1,9 @@
+use crypto::x509::DistinguishedName;
 use sea_orm::entity::prelude::*;
 use uuid::Uuid;
 
-use crypto::x509::DistinguishedName;
-
-use crate::compressed_blob::CompressedBlob;
-
 use super::attestation;
+use crate::compressed_blob::CompressedBlob;
 
 #[derive(Clone, Debug, Eq, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "attestation_copy")]

@@ -5,7 +5,6 @@ use sea_orm::QueryFilter;
 use sea_orm::QuerySelect;
 use sea_orm::Set;
 use sea_orm::sea_query::OnConflict;
-
 use wallet_provider_domain::model::wallet_flag::WalletFlag;
 use wallet_provider_domain::repository::PersistenceError;
 

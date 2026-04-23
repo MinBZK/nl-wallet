@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
-use futures::FutureExt;
-use indexmap::IndexMap;
-
 use attestation_types::claim_path::ClaimPath;
 use crypto::examples::Examples;
 use crypto::mock_remote::MockRemoteWscd;
 use crypto::server_keys::generate::Ca;
+use futures::FutureExt;
+use indexmap::IndexMap;
 use token_status_list::verification::client::mock::StatusListClientStub;
 use token_status_list::verification::verifier::RevocationVerifier;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
+use super::mdoc::PartialMdoc;
 use crate::examples::EXAMPLE_ATTR_NAME;
 use crate::examples::EXAMPLE_ATTR_VALUE;
 use crate::examples::EXAMPLE_DOC_TYPE;
@@ -29,8 +29,6 @@ use crate::test;
 use crate::test::DebugCollapseBts;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
-
-use super::mdoc::PartialMdoc;
 
 fn create_example_device_response(
     device_request: DeviceRequest,

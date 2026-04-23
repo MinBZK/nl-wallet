@@ -1,7 +1,6 @@
+use super::mdoc::PartialMdoc;
 use crate::iso::disclosure::DeviceSigned;
 use crate::iso::disclosure::Document;
-
-use super::mdoc::PartialMdoc;
 
 impl Document {
     pub fn new(partial_mdoc: PartialMdoc, device_signed: DeviceSigned) -> Self {

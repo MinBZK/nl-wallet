@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
+use crypto::server_keys::KeyPair;
 use derive_more::AsRef;
 use derive_more::From;
 use derive_more::IntoIterator;
-
-use crypto::server_keys::KeyPair;
 use http_utils::urls::BaseUrl;
 use utils::num::NonZeroU31;
 use utils::num::U31;

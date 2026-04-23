@@ -5,7 +5,6 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use serde::de::DeserializeOwned;
-
 use utils::path::prefix_local_path;
 use wallet_configuration::EnvironmentSpecific;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;

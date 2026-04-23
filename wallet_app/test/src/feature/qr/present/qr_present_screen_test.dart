@@ -1,11 +1,10 @@
-import 'dart:ui';
-
 import 'package:bloc_test/bloc_test.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/feature/qr/present/bloc/qr_present_bloc.dart';
 import 'package:wallet/src/feature/qr/present/qr_present_screen.dart';
+import 'package:wallet/src/util/extension/build_context_extension.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../test_util/golden_utils.dart';
@@ -87,6 +86,34 @@ void main() {
         ),
       );
       await screenMatchesGolden('qr_present_error.light');
+    });
+
+    testGoldens('QrPresentBluetoothDisabled - Android', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const QrPresentScreen().withState<QrPresentBloc, QrPresentState>(
+          MockQrPresentBloc(),
+          const QrPresentBluetoothDisabled(),
+        ),
+      );
+      await screenMatchesGolden('qr_present_bluetooth_disabled.android.light');
+    });
+
+    testGoldens('QrPresentBluetoothDisabled - iOS (dark)', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            return Theme(
+              data: context.theme.copyWith(platform: .iOS),
+              child: const QrPresentScreen().withState<QrPresentBloc, QrPresentState>(
+                MockQrPresentBloc(),
+                const QrPresentBluetoothDisabled(),
+              ),
+            );
+          },
+        ),
+        brightness: .dark,
+      );
+      await screenMatchesGolden('qr_present_bluetooth_disabled.ios.dark');
     });
 
     group('QrPresentScreen - Centered QR Dialog', () {

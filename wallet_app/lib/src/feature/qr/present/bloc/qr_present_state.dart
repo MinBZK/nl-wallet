@@ -43,6 +43,11 @@ class QrPresentConnectionFailed extends QrPresentState {
   const QrPresentConnectionFailed();
 }
 
+/// Bluetooth is disabled on the host device.
+class QrPresentBluetoothDisabled extends QrPresentState {
+  const QrPresentBluetoothDisabled();
+}
+
 /// An error occurred during the QR presentation flow.
 class QrPresentError extends QrPresentState implements ErrorState {
   @override

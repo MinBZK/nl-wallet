@@ -1,4 +1,5 @@
 use indexmap::IndexSet;
+use jwt::nonce::Nonce;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DeserializeFromStr;
@@ -8,8 +9,6 @@ use serde_with::formats::SpaceSeparator;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
-
-use jwt::nonce::Nonce;
 
 /// See
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-authorization-request>

@@ -1,10 +1,9 @@
-use p256::ecdsa::Signature;
-use p256::ecdsa::VerifyingKey;
-
 use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::HsmError;
+use p256::ecdsa::Signature;
+use p256::ecdsa::VerifyingKey;
 
 pub trait WalletCertificateSigningKey: SecureEcdsaKey {}
 pub trait InstructionResultSigningKey: SecureEcdsaKey {}

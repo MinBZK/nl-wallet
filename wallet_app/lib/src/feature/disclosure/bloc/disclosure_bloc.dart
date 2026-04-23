@@ -67,6 +67,9 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     return _startDisclosureResult?.sessionType == DisclosureSessionType.crossDevice;
   }
 
+  /// Determines if the current session is a close-proximity (ISO 18013-5) disclosure flow.
+  bool get isCloseProximityFlow => _closeProximityEventSubscription != null;
+
   /// Returns the indices of the cards selected by the user for disclosure.
   ///
   /// Returns null if the bloc is not in a state where selections can be made.
@@ -96,10 +99,12 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     on<DisclosureReportPressed>(_onReportPressed);
     on<DisclosureConfirmPinFailed>(_onConfirmPinFailed);
     on<DisclosureCloseProximityEventReceived>(_onCloseProximityEventReceived);
+    on<DisclosurePinValidationStarted>(_onPinValidationStarted);
   }
 
   Future<void> _onSessionStarted(DisclosureSessionStarted event, Emitter<DisclosureState> emit) async {
     unawaited(_closeProximityEventSubscription?.cancel());
+    _closeProximityEventSubscription = null;
 
     final startDisclosureResult = await _startDisclosureUseCase.invoke(event.request);
 
@@ -145,6 +150,9 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     DisclosureCloseProximityEventReceived event,
     Emitter<DisclosureState> emit,
   ) async {
+    // Avoid updating UI on event when already showing success or error state.
+    if (state is DisclosureSuccess || state is ErrorState) return;
+
     switch (event.event) {
       case BleAdvertising():
       case BleConnecting():
@@ -324,19 +332,32 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     }
   }
 
-  Future<void> _onPinConfirmed(DisclosurePinConfirmed event, emit) async {
+  Future<void> _onPinConfirmed(DisclosurePinConfirmed event, Emitter<DisclosureState> emit) async {
     assert(_startDisclosureResult != null, 'DisclosureResult should still be available after confirming the tx');
     final lastEvent = await _getMostRecentWalletEventUseCase.invoke();
     assert(lastEvent != null, 'Last event should not be null after a successful disclosure');
+
+    SuccessDescriptionType descriptionType = SuccessDescriptionType.regular;
+    if (isLoginFlow) descriptionType = .login;
+    if (isCloseProximityFlow) descriptionType = .closeProximity;
+
     emit(
       DisclosureSuccess(
         relyingParty: _startDisclosureResult!.relyingParty,
         event: lastEvent,
         returnUrl: event.returnUrl,
-        isLoginFlow: isLoginFlow,
+        descriptionType: descriptionType,
         isCrossDevice: isCrossDeviceFlow,
       ),
     );
+  }
+
+  Future<void> _onConfirmPinFailed(DisclosureConfirmPinFailed event, Emitter<DisclosureState> emit) {
+    return _handleApplicationError(event.error, emit);
+  }
+
+  FutureOr<void> _onPinValidationStarted(DisclosurePinValidationStarted event, Emitter<DisclosureState> emit) {
+    _closeProximityEventSubscription?.cancel();
   }
 
   Future<void> _onReportPressed(DisclosureReportPressed event, Emitter<DisclosureState> emit) async {
@@ -346,9 +367,6 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     if (cancelResult.hasError) Fimber.e('Failed to explicitly cancel disclosure flow', ex: cancelResult.error);
     emit(DisclosureLeftFeedback(returnUrl: cancelResult.value));
   }
-
-  Future<void> _onConfirmPinFailed(DisclosureConfirmPinFailed event, Emitter<DisclosureState> emit) =>
-      _handleApplicationError(event.error, emit);
 
   Future<void> _handleApplicationError(ApplicationError error, Emitter<DisclosureState> emit) async {
     emit(DisclosureLoadInProgress(state.stepperProgress));

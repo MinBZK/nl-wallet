@@ -5,6 +5,9 @@ use std::ops::Deref;
 use std::string::FromUtf8Error;
 use std::sync::LazyLock;
 
+use attestation_types::claim_path::ClaimPath;
+use http_utils::data_uri::DataUri;
+use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use jsonschema::Draft;
 use jsonschema::ValidationError;
@@ -18,10 +21,6 @@ use serde_with::TryFromInto;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use ssri::Integrity;
-
-use attestation_types::claim_path::ClaimPath;
-use http_utils::data_uri::DataUri;
-use http_utils::urls::BaseUrl;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -568,15 +567,10 @@ impl Deref for SvgId {
 mod example_constructors {
     use std::collections::HashMap;
 
-    use serde_json::json;
-
     use attestation_types::claim_path::ClaimPath;
     use crypto::utils::random_string;
+    use serde_json::json;
     use utils::vec_nonempty;
-
-    use crate::examples::CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES;
-    use crate::examples::EXAMPLE_METADATA_BYTES;
-    use crate::examples::PID_METADATA_BYTES;
 
     use super::ClaimDisplayMetadata;
     use super::ClaimMetadata;
@@ -590,6 +584,9 @@ mod example_constructors {
     use super::SchemaOption;
     use super::TypeMetadata;
     use super::UncheckedTypeMetadata;
+    use crate::examples::CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES;
+    use crate::examples::EXAMPLE_METADATA_BYTES;
+    use crate::examples::PID_METADATA_BYTES;
 
     impl UncheckedTypeMetadata {
         pub fn empty_example() -> Self {
@@ -737,13 +734,13 @@ mod test {
     use std::str::FromStr;
 
     use assert_matches::assert_matches;
+    use attestation_types::claim_path::ClaimPath;
     use jsonschema::error::ValidationErrorKind;
     use rstest::rstest;
     use serde_json::json;
-
-    use attestation_types::claim_path::ClaimPath;
     use utils::vec_nonempty;
 
+    use super::*;
     use crate::examples::EXAMPLE_METADATA_BYTES;
     use crate::examples::test::EXAMPLE_V2_METADATA_BYTES;
     use crate::examples::test::EXAMPLE_V3_METADATA_BYTES;
@@ -751,8 +748,6 @@ mod test {
     use crate::examples::test::SIMPLE_EMBEDDED_METADATA_BYTES;
     use crate::examples::test::SIMPLE_REMOTE_METADATA_BYTES;
     use crate::examples::test::VCT_EXAMPLE_CREDENTIAL;
-
-    use super::*;
 
     impl UncheckedTypeMetadata {
         pub(crate) fn example_v2() -> Self {

@@ -1,5 +1,4 @@
 use base64::prelude::*;
-
 use crypto::utils::random_string;
 use crypto::utils::sha256;
 

@@ -12,7 +12,6 @@ use sea_orm::Set;
 use sea_orm::prelude::Expr;
 use semver::Version;
 use uuid::Uuid;
-
 use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::model::wallet_user::TransferSession;
 use wallet_provider_domain::repository::PersistenceError;

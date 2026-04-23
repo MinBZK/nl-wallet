@@ -6,9 +6,8 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use crate::issuer_identifier::IssuerIdentifier;
-
 use super::well_known::WellKnownMetadata;
+use crate::issuer_identifier::IssuerIdentifier;
 
 /// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414), to be
 /// published at `.well-known/oauth-authorization-server`.
@@ -156,17 +155,15 @@ const fn bool_value<const B: bool>() -> bool {
 pub mod tests {
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
+    use http_utils::reqwest::HttpJsonClient;
     use httpmock::Method::GET;
     use httpmock::MockServer;
     use serde_json::json;
 
-    use http_utils::reqwest::HttpJsonClient;
-
+    use super::AuthorizationServerMetadata;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::well_known::WellKnownPath;
     use crate::metadata::well_known::fetch_well_known;
-
-    use super::AuthorizationServerMetadata;
 
     #[tokio::test]
     async fn test_discovery() {

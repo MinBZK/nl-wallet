@@ -1,11 +1,10 @@
-use rstest::rstest;
-use sea_orm::Database;
-
 use db_test::DbSetup;
 use db_test::default_connection_options;
 use health_checkers::postgres::DatabaseChecker;
 use http_utils::health::HealthChecker;
 use http_utils::health::HealthStatus;
+use rstest::rstest;
+use sea_orm::Database;
 
 #[tokio::test(flavor = "multi_thread")]
 async fn test_db_check_up() {

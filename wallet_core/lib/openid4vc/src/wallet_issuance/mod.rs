@@ -10,22 +10,21 @@ pub mod mock;
 use std::collections::HashSet;
 use std::fmt::Debug;
 
-use itertools::Itertools;
-use reqwest::header::ToStrError;
-use rustls_pki_types::TrustAnchor;
-use url::Url;
-
 use attestation_data::attributes::AttributesError;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::MdocCredentialPayloadError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use error_category::ErrorCategory;
+use itertools::Itertools;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
+use reqwest::header::ToStrError;
+use rustls_pki_types::TrustAnchor;
 use sd_jwt::error::DecoderError;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
+use url::Url;
 use utils::single_unique::MultipleItemsFound;
 use wscd::Poa;
 use wscd::wscd::IssuanceWscd;
