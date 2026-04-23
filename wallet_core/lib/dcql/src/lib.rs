@@ -4,14 +4,13 @@ pub mod unique_id_vec;
 
 use std::ops::Not;
 
+use attestation_types::claim_path::ClaimPath;
 use crypto::x509::KeyIdentifier;
 use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use strum::EnumDiscriminants;
-
-use attestation_types::claim_path::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 

@@ -1,23 +1,17 @@
 use std::sync::Arc;
 
-use chrono::DateTime;
-use chrono::Utc;
-use itertools::Itertools;
-use p256::ecdsa::signature;
-use tracing::info;
-use tracing::instrument;
-use url::Url;
-use uuid::Uuid;
-
 use attestation_data::auth::Organization;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
+use chrono::DateTime;
+use chrono::Utc;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls;
+use itertools::Itertools;
 use jwt::error::JwtError;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::metadata::well_known::WellKnownError;
@@ -30,19 +24,25 @@ use openid4vc::wallet_issuance::authorization::OAuthError;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredential;
 use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
+use p256::ecdsa::signature;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::GoogleAttestedKey;
+use tracing::info;
+use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
+use url::Url;
 use utils::built_info::version;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use uuid::Uuid;
 use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::Wallet;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationIdentity;
@@ -68,8 +68,6 @@ use crate::wallet::Session;
 use crate::wallet::attestations::AttestationsError;
 use crate::wallet::notifications::NotificationsError;
 use crate::wallet::recovery_code::RecoveryCodeError;
-
-use super::Wallet;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -771,33 +769,36 @@ mod tests {
     use std::ops::Add;
 
     use assert_matches::assert_matches;
-    use chrono::Duration;
-    use futures::FutureExt;
-    use itertools::multiunzip;
-    use mockall::predicate::*;
-    use rstest::rstest;
-    use url::Url;
-    use uuid::Uuid;
-
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::validity::ValidityWindow;
     use attestation_data::x509::CertificateType;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
+    use chrono::Duration;
     use crypto::server_keys::generate::Ca;
+    use futures::FutureExt;
+    use itertools::multiunzip;
+    use mockall::predicate::*;
     use openid4vc::Format;
     use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
+    use rstest::rstest;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+    use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
+    use uuid::Uuid;
     use wallet_account::messages::errors::AccountRevokedData;
     use wallet_account::messages::errors::RevocationReason;
     use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
     use wallet_account::messages::instructions::Instruction;
     use wallet_configuration::wallet_config::PidAttributePaths;
 
+    use super::super::test;
+    use super::super::test::TestWalletMockStorage;
+    use super::super::test::WalletDeviceVendor;
+    use super::*;
     use crate::WalletEvent;
     use crate::attestation::AttestationAttributeValue;
     use crate::storage::ChangePinData;
@@ -813,11 +814,6 @@ mod tests {
     use crate::wallet::test::create_example_preview_data;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::mock_issuance_session;
-
-    use super::super::test;
-    use super::super::test::TestWalletMockStorage;
-    use super::super::test::WalletDeviceVendor;
-    use super::*;
 
     #[rstest]
     #[case(PidIssuancePurpose::Enrollment, false)]

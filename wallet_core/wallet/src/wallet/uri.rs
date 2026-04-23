@@ -1,26 +1,23 @@
 use std::sync::Arc;
 
-use tracing::info;
-use tracing::instrument;
-use url::Url;
-
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::urls;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
-
 use platform_support::attested_key::AttestedKeyHolder;
+use tracing::info;
+use tracing::instrument;
+use url::Url;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::Wallet;
 use crate::PidIssuancePurpose;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::repository::Repository;
 use crate::wallet::Session;
 use crate::wallet::issuance::WalletIssuanceSession;
 use crate::wallet::pin_recovery::PinRecoverySession;
-
-use super::Wallet;
 
 #[derive(Debug)]
 pub enum UriType {
@@ -135,16 +132,14 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use rstest::rstest;
-
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
-
-    use crate::config::UNIVERSAL_LINK_BASE_URL;
-    use crate::wallet::issuance::WalletIssuanceSession;
+    use rstest::rstest;
 
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::*;
+    use crate::config::UNIVERSAL_LINK_BASE_URL;
+    use crate::wallet::issuance::WalletIssuanceSession;
 
     #[tokio::test]
     async fn test_wallet_identify_redirect_uri() {

@@ -4,7 +4,10 @@ use ciborium::value::Value;
 use coset::CoseKeyBuilder;
 use coset::Label;
 use coset::iana;
+use crypto::utils::hkdf;
+use crypto::utils::sha256;
 use derive_more::Debug;
+use error_category::ErrorCategory;
 use nom::AsBytes;
 use p256::EncodedPoint;
 use p256::PublicKey;
@@ -13,10 +16,6 @@ use p256::ecdh;
 use p256::ecdsa::VerifyingKey;
 use ring::hmac;
 use serde::Serialize;
-
-use crypto::utils::hkdf;
-use crypto::utils::sha256;
-use error_category::ErrorCategory;
 
 use crate::CipherSuiteIdentifier;
 use crate::Result;

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use attestation_data::disclosure::DisclosedAttestations;
 use axum::Form;
 use axum::Json;
 use axum::Router;
@@ -11,22 +12,14 @@ use axum::response::IntoResponse;
 use axum::routing::delete;
 use axum::routing::get;
 use axum::routing::post;
+use crypto::keys::EcdsaKeySend;
+use dcql::unique_id_vec::UniqueIdVec;
 use http::HeaderMap;
 use http::HeaderValue;
 use http::Method;
 use http::StatusCode;
 use http::Uri;
 use http::header;
-use rustls_pki_types::TrustAnchor;
-use serde::Deserialize;
-use serde::Serialize;
-use tower_http::cors::CorsLayer;
-use tracing::info;
-use tracing::warn;
-
-use attestation_data::disclosure::DisclosedAttestations;
-use crypto::keys::EcdsaKeySend;
-use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::error::HttpJsonError;
 use http_utils::urls;
 use http_utils::urls::BaseUrl;
@@ -52,8 +45,14 @@ use openid4vc::verifier::UseCase;
 use openid4vc::verifier::UseCases;
 use openid4vc::verifier::Verifier;
 use openid4vc::verifier::WalletAuthResponse;
+use rustls_pki_types::TrustAnchor;
+use serde::Deserialize;
+use serde::Serialize;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
+use tower_http::cors::CorsLayer;
+use tracing::info;
+use tracing::warn;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 

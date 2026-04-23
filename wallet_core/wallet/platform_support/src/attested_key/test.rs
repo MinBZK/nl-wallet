@@ -2,10 +2,6 @@ use std::convert::Infallible;
 use std::fmt::Debug;
 use std::mem;
 
-use p256::ecdsa::signature::Verifier;
-use rustls_pki_types::CertificateDer;
-use rustls_pki_types::TrustAnchor;
-
 use android_attest::android_crl::RevocationStatusList;
 use android_attest::certificate_chain::verify_google_key_attestation;
 use android_attest::root_public_key::RootPublicKey;
@@ -16,6 +12,9 @@ use apple_app_attest::ClientData;
 use apple_app_attest::VerifiedAssertion;
 use apple_app_attest::VerifiedAttestation;
 use crypto::keys::EcdsaKey;
+use p256::ecdsa::signature::Verifier;
+use rustls_pki_types::CertificateDer;
+use rustls_pki_types::TrustAnchor;
 
 use super::AppleAttestedKey;
 use super::AttestedKey;

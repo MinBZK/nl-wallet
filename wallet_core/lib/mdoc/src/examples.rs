@@ -8,7 +8,6 @@ use chrono::Utc;
 use ciborium::Value;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -71,10 +70,9 @@ pub trait Example {
 mod test {
     use crypto::server_keys::generate::Ca;
 
-    use crate::iso::disclosure::IssuerSigned;
-
     use super::DeviceResponse;
     use super::Example;
+    use crate::iso::disclosure::IssuerSigned;
 
     impl DeviceResponse {
         pub async fn example_resigned(ca: &Ca) -> Self {
@@ -332,11 +330,10 @@ impl Example for crate::utils::serialization::CborSeq<crate::OID4VPHandoverInfo<
 mod tests {
     use std::marker::PhantomData;
 
-    use p256::ecdsa::VerifyingKey;
-    use rstest::rstest;
-
     use crypto::examples::Examples;
     use crypto::x509::CertificateUsage;
+    use p256::ecdsa::VerifyingKey;
+    use rstest::rstest;
 
     use super::*;
 

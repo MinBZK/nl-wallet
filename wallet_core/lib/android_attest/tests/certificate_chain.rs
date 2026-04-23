@@ -1,13 +1,6 @@
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
-use android_attest::certificate_chain::verify_google_key_attestation_with_params;
-use android_attest::sig_alg::ECDSA_P256_SHA256_WITH_NULL_PARAMETERS;
-use assert_matches::assert_matches;
-use chrono::Utc;
-use rstest::rstest;
-use rustls_pki_types::CertificateDer;
-
 use android_attest::android_crl::AndroidCrlStatus;
 use android_attest::android_crl::RevocationStatusEntry;
 use android_attest::android_crl::RevocationStatusList;
@@ -17,8 +10,14 @@ use android_attest::attestation_extension::key_description::KeyDescription;
 use android_attest::attestation_extension::key_description::SecurityLevel;
 use android_attest::certificate_chain::GoogleKeyAttestationError;
 use android_attest::certificate_chain::verify_google_key_attestation;
+use android_attest::certificate_chain::verify_google_key_attestation_with_params;
 use android_attest::mock_chain::MockCaChain;
 use android_attest::root_public_key::RootPublicKey;
+use android_attest::sig_alg::ECDSA_P256_SHA256_WITH_NULL_PARAMETERS;
+use assert_matches::assert_matches;
+use chrono::Utc;
+use rstest::rstest;
+use rustls_pki_types::CertificateDer;
 use webpki::ring::ECDSA_P256_SHA256;
 use webpki::ring::RSA_PKCS1_2048_8192_SHA256;
 

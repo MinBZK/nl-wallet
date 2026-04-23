@@ -5,15 +5,14 @@ use std::io::Write;
 use http::StatusCode;
 use http::header::CONTENT_ENCODING;
 use http::header::CONTENT_TYPE;
-use reqwest::RequestBuilder;
-use serde::Serialize;
-use serde::de::DeserializeOwned;
-
 use http_utils::client::TlsPinningConfig;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use http_utils::reqwest::parse_content_type;
+use reqwest::RequestBuilder;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
@@ -29,11 +28,10 @@ use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::signed::ChallengeResponse;
 
-use crate::reqwest::CachedReqwestClient;
-
 use super::AccountProviderClient;
 use super::AccountProviderError;
 use super::AccountProviderResponseError;
+use crate::reqwest::CachedReqwestClient;
 
 impl AccountProviderResponseError {
     fn from_json_body(status: StatusCode, body: String) -> Self {
@@ -261,6 +259,7 @@ fn compress_bytes(bytes: &[u8]) -> Result<Vec<u8>, io::Error> {
 mod tests {
     use assert_matches::assert_matches;
     use http::header;
+    use http_utils::reqwest::IntoReqwestClient;
     use httpmock::Method::POST;
     use httpmock::MockServer;
     use reqwest::StatusCode;
@@ -268,8 +267,6 @@ mod tests {
     use serde::Serialize;
     use serde_json::Value;
     use serde_json::json;
-
-    use http_utils::reqwest::IntoReqwestClient;
 
     use super::*;
 

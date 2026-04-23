@@ -1,19 +1,17 @@
 use std::error::Error;
 
-use derive_more::Constructor;
-use derive_more::Display;
-
 use attestation_data::auth::reader_auth::ValidationError;
 use attestation_data::x509::CertificateTypeError;
 use dcql::CredentialFormat;
+use derive_more::Constructor;
+use derive_more::Display;
 use error_category::ErrorCategory;
-
-use crate::openid4vp::AuthRequestValidationError;
-use crate::openid4vp::AuthResponseError;
-use crate::verifier::SessionType;
 
 use super::VpMessageClientError;
 use super::uri_source::DisclosureUriSource;
+use crate::openid4vp::AuthRequestValidationError;
+use crate::openid4vp::AuthResponseError;
+use crate::verifier::SessionType;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]

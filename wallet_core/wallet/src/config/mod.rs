@@ -12,9 +12,6 @@ use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
-use crate::repository::FileStorageError;
-use crate::repository::HttpClientError;
-
 pub use self::data::UNIVERSAL_LINK_BASE_URL;
 pub use self::data::default_config_server_config;
 pub use self::data::default_wallet_config;
@@ -22,6 +19,8 @@ pub use self::data::init_universal_link_base_url;
 pub use self::file_repository::FileStorageConfigurationRepository;
 pub use self::http_repository::HttpConfigurationRepository;
 pub use self::updating_repository::UpdatingConfigurationRepository;
+use crate::repository::FileStorageError;
+use crate::repository::HttpClientError;
 
 pub type WalletConfigJwt = UnverifiedJwt<WalletConfiguration>;
 

@@ -1,17 +1,11 @@
+use crypto::keys::EcdsaKey;
+use crypto::keys::SecureEcdsaKey;
 use derive_more::Debug;
+use key::HardwareAttestedKey;
+use key::UniqueCreatedResult;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePublicKey;
-
-use crypto::keys::EcdsaKey;
-use crypto::keys::SecureEcdsaKey;
-
-use crate::bridge::attested_key::AttestationData;
-use crate::bridge::attested_key::AttestedKeyBridge;
-use crate::bridge::attested_key::AttestedKeyType;
-use crate::bridge::attested_key::get_attested_key_bridge;
-
-pub use crate::bridge::attested_key::AttestedKeyError;
 
 use super::AppleAssertion;
 use super::AppleAttestedKey;
@@ -20,9 +14,11 @@ use super::AttestedKey;
 use super::AttestedKeyHolder;
 use super::GoogleAttestedKey;
 use super::KeyWithAttestation;
-
-use key::HardwareAttestedKey;
-use key::UniqueCreatedResult;
+use crate::bridge::attested_key::AttestationData;
+use crate::bridge::attested_key::AttestedKeyBridge;
+pub use crate::bridge::attested_key::AttestedKeyError;
+use crate::bridge::attested_key::AttestedKeyType;
+use crate::bridge::attested_key::get_attested_key_bridge;
 
 mod key {
     use std::collections::HashSet;

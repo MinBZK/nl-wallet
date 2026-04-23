@@ -188,13 +188,12 @@ impl<A> PlayIntegrityClient<A> {
 mod tests {
     use assert_matches::assert_matches;
     use http::header::CONTENT_TYPE;
+    use http_utils::httpmock::httpmock_reqwest_client_builder;
     use httpmock::Method::POST;
     use httpmock::MockServer;
     use reqwest::StatusCode;
     use serde_json::Value;
     use serde_json::json;
-
-    use http_utils::httpmock::httpmock_reqwest_client_builder;
 
     use super::super::tests::EXAMPLE_VERDICT;
     use super::super::tests::EXAMPLE_VERDICT_JSON;

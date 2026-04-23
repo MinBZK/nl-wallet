@@ -1,17 +1,26 @@
-use derive_more::Constructor;
-use reqwest::ClientBuilder;
-use tracing::info;
-use tracing::warn;
-
 use crypto::utils as crypto_utils;
 use crypto::x509::BorrowingCertificate;
 use dcql::CredentialFormat;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
+use derive_more::Constructor;
 use http_utils::urls::BaseUrl;
+use reqwest::ClientBuilder;
+use tracing::info;
+use tracing::warn;
 use utils::single_unique::NonEmptySingleUnique;
 use utils::vec_at_least::NonEmptyIterator;
 
+use super::DisclosureClient;
+use super::VerifierCertificate;
+use super::error::UnsupportedRequestUriVariant;
+use super::error::VpClientError;
+use super::error::VpSessionError;
+use super::error::VpVerifierError;
+use super::message_client::HttpVpMessageClient;
+use super::message_client::VpMessageClient;
+use super::session::VpDisclosureSession;
+use super::uri_source::DisclosureUriSource;
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::AuthorizationErrorResponse;
 use crate::errors::ErrorResponse;
@@ -24,17 +33,6 @@ use crate::openid4vp::VpRequestUri;
 use crate::openid4vp::VpRequestUriMethod;
 use crate::openid4vp::VpRequestUriObject;
 use crate::verifier::VerifierUrlParameters;
-
-use super::DisclosureClient;
-use super::VerifierCertificate;
-use super::error::UnsupportedRequestUriVariant;
-use super::error::VpClientError;
-use super::error::VpSessionError;
-use super::error::VpVerifierError;
-use super::message_client::HttpVpMessageClient;
-use super::message_client::VpMessageClient;
-use super::session::VpDisclosureSession;
-use super::uri_source::DisclosureUriSource;
 
 #[derive(Debug, Constructor)]
 pub struct VpDisclosureClient<H = HttpVpMessageClient> {
@@ -274,12 +272,6 @@ mod tests {
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
-    use futures::FutureExt;
-    use http::StatusCode;
-    use itertools::Itertools;
-    use rstest::rstest;
-    use serde::de::Error;
-
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::auth::reader_auth::ValidationError;
@@ -295,28 +287,21 @@ mod tests {
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
+    use futures::FutureExt;
+    use http::StatusCode;
     use http_utils::urls::BaseUrl;
+    use itertools::Itertools;
     use jwt::error::JwtError;
     use mdoc::holder::disclosure::PartialMdoc;
+    use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
+    use serde::de::Error;
     use token_status_list::verification::client::mock::StatusListClientStub;
     use token_status_list::verification::verifier::RevocationVerifier;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
     use wscd::mock_remote::MockRemoteWscd;
-
-    use crate::errors::AuthorizationErrorCode;
-    use crate::errors::VpAuthorizationErrorCode;
-    use crate::mock::ExtendingVctRetrieverStub;
-    use crate::openid4vp::AuthRequestValidationError;
-    use crate::openid4vp::VpAuthorizationResponse;
-    use crate::openid4vp::VpFormatsSupported;
-    use crate::openid4vp::VpRequestUri;
-    use crate::openid4vp::VpRequestUriMethod;
-    use crate::openid4vp::VpRequestUriObject;
-    use crate::openid4vp::WalletRequest;
-    use crate::verifier::SessionType;
 
     use super::super::DisclosableAttestations;
     use super::super::DisclosureClient;
@@ -334,6 +319,17 @@ mod tests {
     use super::super::message_client::mock::request_uri;
     use super::super::session::VpDisclosureSession;
     use super::VpDisclosureClient;
+    use crate::errors::AuthorizationErrorCode;
+    use crate::errors::VpAuthorizationErrorCode;
+    use crate::mock::ExtendingVctRetrieverStub;
+    use crate::openid4vp::AuthRequestValidationError;
+    use crate::openid4vp::VpAuthorizationResponse;
+    use crate::openid4vp::VpFormatsSupported;
+    use crate::openid4vp::VpRequestUri;
+    use crate::openid4vp::VpRequestUriMethod;
+    use crate::openid4vp::VpRequestUriObject;
+    use crate::openid4vp::WalletRequest;
+    use crate::verifier::SessionType;
 
     static VERIFIER_URL: LazyLock<BaseUrl> = LazyLock::new(|| "http://cert.rp.example.com/disclosure".parse().unwrap());
 

@@ -6,7 +6,6 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 use serde::de;
-
 use utils::vec_at_least::IntoIter;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::Iter;

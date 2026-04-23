@@ -3,10 +3,8 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::Router;
-use futures::future::try_join_all;
-use tokio::net::TcpListener;
-
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use futures::future::try_join_all;
 use hsm::service::Pkcs11Hsm;
 use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::issuer::IssuanceData;
@@ -30,6 +28,7 @@ use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListServices;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
+use tokio::net::TcpListener;
 use utils::generator::TimeGenerator;
 
 use crate::disclosure::AttributesFetcher;

@@ -27,34 +27,20 @@ mod test;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use parking_lot::Mutex;
-use tokio::sync::RwLock;
-use tokio::task::JoinHandle;
-
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
+use parking_lot::Mutex;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::hardware::HardwareCloseProximityDisclosureClient;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use token_status_list::verification::reqwest::HttpStatusListClient;
-
-use crate::account_provider::HttpAccountProviderClient;
-use crate::config::WalletConfigurationRepository;
-use crate::lock::WalletLock;
-use crate::storage::DatabaseStorage;
-use crate::storage::RegistrationData;
-use crate::update_policy::UpdatePolicyRepository;
-use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureSession;
-use crate::wallet::notifications::DirectNotificationsCallback;
-use crate::wallet::pin_recovery::PinRecoverySession;
+use tokio::sync::RwLock;
+use tokio::task::JoinHandle;
 
 use self::attestations::AttestationsCallback;
-use self::disclosure::WalletDisclosureSession;
-use self::issuance::WalletIssuanceSession;
-
 pub use self::close_proximity_disclosure::CloseProximityDisclosureError;
 pub use self::close_proximity_disclosure::CloseProximityDisclosureUpdate;
 pub use self::delete_attestation::DeleteAttestationError;
@@ -63,6 +49,7 @@ pub use self::disclosure::DisclosureAttestationOptions;
 pub use self::disclosure::DisclosureError;
 pub use self::disclosure::DisclosureProposalPresentation;
 pub use self::disclosure::DisclosureUriSource;
+use self::disclosure::WalletDisclosureSession;
 pub use self::disclosure_based_issuance::DisclosureBasedIssuanceError;
 pub use self::history::HistoryError;
 pub use self::history::RecentHistoryCallback;
@@ -72,6 +59,7 @@ pub use self::init::WalletRepositories;
 pub use self::issuance::IssuanceError;
 pub use self::issuance::IssuanceResult;
 pub use self::issuance::PidIssuancePurpose;
+use self::issuance::WalletIssuanceSession;
 pub use self::lock::LockCallback;
 pub use self::lock::UnlockMethod;
 pub use self::lock::WalletUnlockError;
@@ -87,6 +75,15 @@ pub use self::state::WalletState;
 pub use self::transfer::TransferError;
 pub use self::uri::UriIdentificationError;
 pub use self::uri::UriType;
+use crate::account_provider::HttpAccountProviderClient;
+use crate::config::WalletConfigurationRepository;
+use crate::lock::WalletLock;
+use crate::storage::DatabaseStorage;
+use crate::storage::RegistrationData;
+use crate::update_policy::UpdatePolicyRepository;
+use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureSession;
+use crate::wallet::notifications::DirectNotificationsCallback;
+use crate::wallet::pin_recovery::PinRecoverySession;
 
 type KeyHolderType = cfg_select! {
     feature = "fake_attestation" => platform_support::attested_key::mock::PersistentMockAttestedKeyHolder,

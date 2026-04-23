@@ -43,10 +43,20 @@ use std::sync::LazyLock;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
+use crypto::utils::random_string;
 use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::FromStr;
+use error_category::ErrorCategory;
 use futures::FutureExt;
+use jwt::Algorithm;
+use jwt::JwtTyp;
+use jwt::SignedJwt;
+use jwt::UnverifiedJwt;
+use jwt::Validation;
+use jwt::error::JwkConversionError;
+use jwt::error::JwtError;
+use jwt::headers::HeaderWithJwk;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
@@ -58,17 +68,6 @@ use serde_with::formats::Unpadded;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
-
-use crypto::utils::random_string;
-use error_category::ErrorCategory;
-use jwt::Algorithm;
-use jwt::JwtTyp;
-use jwt::SignedJwt;
-use jwt::UnverifiedJwt;
-use jwt::Validation;
-use jwt::error::JwkConversionError;
-use jwt::error::JwtError;
-use jwt::headers::HeaderWithJwk;
 
 use crate::token::AccessToken;
 
@@ -221,6 +220,7 @@ impl Dpop {
 #[cfg(test)]
 mod tests {
     use base64::prelude::*;
+    use jwt::Header;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use reqwest::Method;
@@ -228,13 +228,10 @@ mod tests {
     use serde::de::DeserializeOwned;
     use url::Url;
 
-    use jwt::Header;
-
+    use super::Dpop;
     use crate::dpop::DpopPayload;
     use crate::dpop::OPENID4VCI_DPOP_JWT_TYPE;
     use crate::token::AccessToken;
-
-    use super::Dpop;
 
     #[rstest]
     #[case(None, Some("123".to_string().into()))]

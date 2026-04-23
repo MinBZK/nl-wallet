@@ -1,10 +1,9 @@
 use base64::DecodeError;
+use crypto::x509::CertificateError;
+use error_category::ErrorCategory;
 use jsonwebtoken::jwk::EllipticCurve;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature;
-
-use crypto::x509::CertificateError;
-use error_category::ErrorCategory;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum JwtError {

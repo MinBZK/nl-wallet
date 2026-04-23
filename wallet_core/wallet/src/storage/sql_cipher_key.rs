@@ -1,11 +1,10 @@
 use std::array::TryFromSliceError;
 use std::fmt::Write;
 
+use crypto::utils::random_bytes;
 use derive_more::Constructor;
 use serde::Deserialize;
 use serde::Serialize;
-
-use crypto::utils::random_bytes;
 
 // Utility function for converting bytes to uppercase hex.
 fn bytes_to_hex(bytes: &[u8]) -> String {

@@ -1,6 +1,5 @@
 use derive_more::AsRef;
 use derive_more::Constructor;
-
 use mdoc::holder::Mdoc;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;

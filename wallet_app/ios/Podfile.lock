@@ -3,6 +3,8 @@ PODS:
     - Flutter
   - app_settings (5.1.1):
     - Flutter
+  - bluetooth (0.0.1):
+    - Flutter
   - connectivity_plus (0.0.1):
     - Flutter
   - country_codes (0.0.1):
@@ -13,6 +15,8 @@ PODS:
   - flutter_local_notifications (0.0.1):
     - Flutter
   - flutter_native_splash (2.4.3):
+    - Flutter
+  - integration_test (0.0.1):
     - Flutter
   - IOSSecuritySuite (1.9.10)
   - local_auth_darwin (0.0.1):
@@ -32,11 +36,11 @@ PODS:
     - Flutter
   - sensors_plus (0.0.1):
     - Flutter
-  - Sentry/HybridSDK (8.56.2)
-  - sentry_flutter (9.14.0):
+  - Sentry/HybridSDK (8.58.1)
+  - sentry_flutter (9.17.0):
     - Flutter
     - FlutterMacOS
-    - Sentry/HybridSDK (= 8.56.2)
+    - Sentry/HybridSDK (= 8.58.1)
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -55,12 +59,14 @@ PODS:
 DEPENDENCIES:
   - app_links (from `.symlinks/plugins/app_links/ios`)
   - app_settings (from `.symlinks/plugins/app_settings/ios`)
+  - bluetooth (from `.symlinks/plugins/bluetooth/ios`)
   - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - country_codes (from `.symlinks/plugins/country_codes/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
   - Flutter (from `Flutter`)
   - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
   - flutter_native_splash (from `.symlinks/plugins/flutter_native_splash/ios`)
+  - integration_test (from `.symlinks/plugins/integration_test/ios`)
   - IOSSecuritySuite (= 1.9.10)
   - local_auth_darwin (from `.symlinks/plugins/local_auth_darwin/darwin`)
   - mobile_scanner (from `.symlinks/plugins/mobile_scanner/darwin`)
@@ -87,6 +93,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/app_links/ios"
   app_settings:
     :path: ".symlinks/plugins/app_settings/ios"
+  bluetooth:
+    :path: ".symlinks/plugins/bluetooth/ios"
   connectivity_plus:
     :path: ".symlinks/plugins/connectivity_plus/ios"
   country_codes:
@@ -99,6 +107,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_local_notifications/ios"
   flutter_native_splash:
     :path: ".symlinks/plugins/flutter_native_splash/ios"
+  integration_test:
+    :path: ".symlinks/plugins/integration_test/ios"
   local_auth_darwin:
     :path: ".symlinks/plugins/local_auth_darwin/darwin"
   mobile_scanner:
@@ -131,12 +141,14 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   app_links: a754cbec3c255bd4bbb4d236ecc06f28cd9a7ce8
   app_settings: 5127ae0678de1dcc19f2293271c51d37c89428b2
+  bluetooth: 4e8f5704d1b5b2e47e8855b5456cb375f9badbc0
   connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
   country_codes: b534fe92b5dd4d4cfd31a720f2bfa223373d162c
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_local_notifications: a5a732f069baa862e728d839dd2ebb904737effb
   flutter_native_splash: c32d145d68aeda5502d5f543ee38c192065986cf
+  integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
   IOSSecuritySuite: e764318117aabd1f894cbdfc5ac013a59352953d
   local_auth_darwin: c3ee6cce0a8d56be34c8ccb66ba31f7f180aaebb
   mobile_scanner: 9157936403f5a0644ca3779a38ff8404c5434a93
@@ -145,8 +157,8 @@ SPEC CHECKSUMS:
   root_jailbreak_sniffer: ddaf19e879b5042d74ea446cac763feb35925204
   screen_brightness_ios: 9953fd7da5bd480f1a93990daeec2eb42d4f3b52
   sensors_plus: 6a11ed0c2e1d0bd0b20b4029d3bad27d96e0c65b
-  Sentry: b53951377b78e21a734f5dc8318e333dbfc682d7
-  sentry_flutter: 841fa2fe08dc72eb95e2320b76e3f751f3400cf5
+  Sentry: 958d9619ceccf6abb8c4736003fa336dac1a80a7
+  sentry_flutter: b4ad2ac16ea7ad64fd5254c049a5fd5d06510283
   shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
   store_redirect: 55fd455802ceab09803b2df6e68f19a58815266a
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b

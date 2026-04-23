@@ -1,19 +1,18 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
+use apple_app_attest::AssertionCounter;
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::AsRef;
 use derive_more::From;
+use hsm::model::encrypted::Encrypted;
+use hsm::model::wrapped_key::WrappedKey;
+use measure::measure;
 use p256::ecdsa::VerifyingKey;
 use semver::Version;
 use uuid;
 use uuid::Uuid;
-
-use apple_app_attest::AssertionCounter;
-use hsm::model::encrypted::Encrypted;
-use hsm::model::wrapped_key::WrappedKey;
-use measure::measure;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_account::messages::transfer::TransferSessionState;
 use wallet_provider_domain::model::wallet_flag::WalletFlag;
@@ -563,9 +562,12 @@ pub mod mock {
     use std::collections::HashSet;
     use std::time::Duration;
 
+    use apple_app_attest::AssertionCounter;
     use chrono::DateTime;
     use chrono::Utc;
     use dashmap::DashMap;
+    use hsm::model::encrypted::Encrypted;
+    use hsm::model::wrapped_key::WrappedKey;
     use mockall;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
@@ -573,10 +575,6 @@ pub mod mock {
     use semver::Version;
     use uuid::Uuid;
     use uuid::uuid;
-
-    use apple_app_attest::AssertionCounter;
-    use hsm::model::encrypted::Encrypted;
-    use hsm::model::wrapped_key::WrappedKey;
     use wallet_account::messages::errors::RevocationReason;
     use wallet_provider_domain::model::QueryResult;
     use wallet_provider_domain::model::wallet_flag::WalletFlag;

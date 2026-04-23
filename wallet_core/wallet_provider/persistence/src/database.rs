@@ -8,7 +8,6 @@ use serde_with::DurationSeconds;
 use serde_with::serde_as;
 use tracing::log::LevelFilter;
 use url::Url;
-
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;

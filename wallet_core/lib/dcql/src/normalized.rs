@@ -1,11 +1,10 @@
+use crypto::x509::KeyIdentifier;
 use derive_more::IntoIterator;
+use error_category::ErrorCategory;
 use itertools::Either;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
-
-use crypto::x509::KeyIdentifier;
-use error_category::ErrorCategory;
 use utils::vec_at_least::Iter;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -374,28 +373,26 @@ impl From<SdJwtAttributeRequest> for ClaimsQuery {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use itertools::Itertools;
-
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::ROOT_PID_ATTESTATION_TYPE;
     use crypto::x509::KeyIdentifier;
+    use itertools::Itertools;
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
     use mdoc::examples::EXAMPLE_NAMESPACE;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
+    use super::MdocAttributeRequest;
+    use super::NormalizedCredentialRequest;
+    use super::NormalizedCredentialRequests;
+    use super::SdJwtAttributeRequest;
     use crate::ClaimPath;
     use crate::ClaimsQuery;
     use crate::ClaimsSelection;
     use crate::CredentialQuery;
     use crate::CredentialQueryFormat;
     use crate::Query;
-
-    use super::MdocAttributeRequest;
-    use super::NormalizedCredentialRequest;
-    use super::NormalizedCredentialRequests;
-    use super::SdJwtAttributeRequest;
 
     impl Query {
         pub fn new_mock_single(credential_query: CredentialQuery) -> Self {
@@ -746,9 +743,13 @@ pub mod mock {
 #[cfg(test)]
 mod test {
     use rstest::rstest;
-
     use utils::vec_nonempty;
 
+    use super::MdocAttributeRequest;
+    use super::NormalizedCredentialRequest;
+    use super::NormalizedCredentialRequests;
+    use super::SdJwtAttributeRequest;
+    use super::UnsupportedDcqlFeatures;
     use crate::ClaimPath;
     use crate::ClaimsQuery;
     use crate::ClaimsQueryValue;
@@ -756,12 +757,6 @@ mod test {
     use crate::CredentialQuery;
     use crate::Query;
     use crate::TrustedAuthoritiesQuery;
-
-    use super::MdocAttributeRequest;
-    use super::NormalizedCredentialRequest;
-    use super::NormalizedCredentialRequests;
-    use super::SdJwtAttributeRequest;
-    use super::UnsupportedDcqlFeatures;
 
     #[rstest]
     #[case(

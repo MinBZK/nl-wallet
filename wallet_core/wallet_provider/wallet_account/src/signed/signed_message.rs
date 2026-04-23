@@ -1,12 +1,11 @@
 use std::borrow::Cow;
 
+use crypto::keys::AppleAssertion;
+use crypto::p256_der::DerSignature;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
-
-use crypto::keys::AppleAssertion;
-use crypto::p256_der::DerSignature;
 
 use super::TypedRawValue;
 
@@ -78,13 +77,10 @@ pub struct SignedSubjectMessage<T>(SignedMessage<PayloadWithSubject<T>>);
 pub mod client {
     use std::borrow::Cow;
 
-    use p256::ecdsa::Signature;
-    use serde::Serialize;
-
     use crypto::keys::EcdsaKey;
+    use p256::ecdsa::Signature;
     use platform_support::attested_key::AppleAttestedKey;
-
-    use crate::error::EncodeError;
+    use serde::Serialize;
 
     use super::super::TypedRawValue;
     use super::EcdsaSignatureType;
@@ -93,6 +89,7 @@ pub mod client {
     use super::SignedMessage;
     use super::SignedSubjectMessage;
     use super::SubjectPayload;
+    use crate::error::EncodeError;
 
     impl MessageSignature {
         fn new_ecdsa(r#type: EcdsaSignatureType, signature: Signature) -> Self {
@@ -187,17 +184,14 @@ pub mod client {
 
 #[cfg(feature = "server")]
 pub mod server {
-    use p256::ecdsa::Signature;
-    use p256::ecdsa::VerifyingKey;
-    use p256::ecdsa::signature::Verifier;
-    use serde::de::DeserializeOwned;
-
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::ClientData;
     use apple_app_attest::VerifiedAssertion;
-
-    use crate::error::DecodeError;
+    use p256::ecdsa::Signature;
+    use p256::ecdsa::VerifyingKey;
+    use p256::ecdsa::signature::Verifier;
+    use serde::de::DeserializeOwned;
 
     use super::EcdsaSignatureType;
     use super::MessageSignature;
@@ -207,6 +201,7 @@ pub mod server {
     use super::SignedSubjectMessage;
     use super::SubjectPayload;
     use super::TypedRawValue;
+    use crate::error::DecodeError;
 
     /// Used internally within this submodule to represent a payload that contains a challenge.
     pub trait ContainsChallenge {
@@ -418,19 +413,16 @@ pub mod server {
 
 #[cfg(all(test, feature = "client", feature = "server"))]
 mod tests {
+    use apple_app_attest::AppIdentifier;
+    use apple_app_attest::AssertionCounter;
     use assert_matches::assert_matches;
     use futures::FutureExt;
     use p256::ecdsa::SigningKey;
+    use platform_support::attested_key::mock::MockAppleAttestedKey;
     use rand_core::OsRng;
     use rstest::rstest;
     use serde::Deserialize;
     use serde::Serialize;
-
-    use apple_app_attest::AppIdentifier;
-    use apple_app_attest::AssertionCounter;
-    use platform_support::attested_key::mock::MockAppleAttestedKey;
-
-    use crate::error::DecodeError;
 
     use super::EcdsaSignatureType;
     use super::SignatureType;
@@ -438,6 +430,7 @@ mod tests {
     use super::SignedSubjectMessage;
     use super::SubjectPayload;
     use super::server::ContainsChallenge;
+    use crate::error::DecodeError;
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     struct ToyPayload {

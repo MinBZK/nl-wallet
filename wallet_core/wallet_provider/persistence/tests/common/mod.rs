@@ -1,5 +1,8 @@
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::utils::random_bytes;
+use crypto::utils::random_string;
+use db_test::DbSetup;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectionTrait;
 use sea_orm::EntityTrait;
@@ -8,10 +11,6 @@ use sea_orm::QueryFilter;
 use sea_orm::sea_query::Expr;
 use sea_orm::sea_query::Query;
 use uuid::Uuid;
-
-use crypto::utils::random_bytes;
-use crypto::utils::random_string;
-use db_test::DbSetup;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_persistence::PersistenceConnection;

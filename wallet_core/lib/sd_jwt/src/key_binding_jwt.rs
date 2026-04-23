@@ -4,23 +4,22 @@ use std::time::Duration;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
-use derive_more::Display;
-use derive_more::FromStr;
-use jsonwebtoken::Algorithm;
-use jsonwebtoken::Validation;
-use serde::Deserialize;
-use serde::Serialize;
-
 use crypto::CredentialEcdsaKey;
 use crypto::EcdsaKey;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
+use derive_more::Display;
+use derive_more::FromStr;
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::Validation;
 use jwt::EcdsaDecodingKey;
 use jwt::JwtTyp;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::VerifiedJwt;
 use jwt::nonce::Nonce;
+use serde::Deserialize;
+use serde::Serialize;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
@@ -226,31 +225,29 @@ mod test {
     use base64::prelude::*;
     use chrono::TimeZone;
     use chrono::Utc;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteWscd;
+    use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use itertools::Itertools;
     use jsonwebtoken::Algorithm;
+    use jwt::EcdsaDecodingKey;
+    use jwt::SignedJwt;
+    use jwt::error::JwtError;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use rstest::rstest;
     use serde_json::json;
-
-    use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::mock_remote::MockRemoteWscd;
-    use crypto::server_keys::generate::Ca;
-    use jwt::EcdsaDecodingKey;
-    use jwt::SignedJwt;
-    use jwt::error::JwtError;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_at_least::IntoNonEmptyIterator;
     use utils::vec_at_least::NonEmptyIterator;
     use utils::vec_nonempty;
 
+    use super::*;
     use crate::builder::SdJwtBuilder;
     use crate::hasher::Hasher;
     use crate::hasher::Sha256Hasher;
     use crate::sd_jwt::SdJwtVcClaims;
-
-    use super::*;
 
     async fn example_kb_jwt(signing_key: &SigningKey) -> SignedJwt<KeyBindingJwtClaims> {
         example_kb_jwt_with_iat(

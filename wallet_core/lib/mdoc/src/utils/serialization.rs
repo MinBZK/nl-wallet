@@ -1,11 +1,12 @@
 //! CBOR serialization: wrapper types that modify serialization and specialized (de)serialization implementations.
+use core::fmt::Debug;
 use std::borrow::Cow;
 
 use base64::prelude::*;
 use ciborium::tag;
 use ciborium::value::Value;
-use core::fmt::Debug;
 use coset::AsCborValue;
+use error_category::ErrorCategory;
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
@@ -18,8 +19,6 @@ use serde_aux::serde_introspection::serde_introspect;
 use serde_bytes::ByteBuf;
 use serde_with::DeserializeAs;
 use serde_with::SerializeAs;
-
-use error_category::ErrorCategory;
 
 use crate::iso::*;
 use crate::utils::cose::CoseKey;
@@ -336,6 +335,7 @@ where
 /// * During serialization, always serializes to `T::required_value()`.
 /// * During deserialization, accepts only `T::required_value()`.
 #[derive(Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct RequiredValue<T: RequiredValueTrait>(pub T::Type);
 
 impl<T: RequiredValueTrait> Default for RequiredValue<T> {
@@ -376,7 +376,7 @@ where
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NullCborValue;
 
 impl RequiredValueTrait for NullCborValue {
@@ -479,9 +479,8 @@ mod tests {
     use ciborium::value::Value::Text;
     use hex_literal::hex;
 
-    use crate::examples::Example;
-
     use super::*;
+    use crate::examples::Example;
 
     #[test]
     fn tagged_bytes() {

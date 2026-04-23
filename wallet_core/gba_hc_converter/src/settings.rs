@@ -6,13 +6,12 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use serde::Deserialize;
-use serde_with::base64::Base64;
-use serde_with::serde_as;
-
 use crypto::SymmetricKey;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::urls::BaseUrl;
+use serde::Deserialize;
+use serde_with::base64::Base64;
+use serde_with::serde_as;
 use utils::path::prefix_local_path;
 
 use crate::gba;

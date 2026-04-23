@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use crypto::utils::random_string;
+use db_test::DbSetup;
 use tokio::time::Duration;
 use tokio::time::sleep;
-
-use db_test::DbSetup;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::repository::Committable;

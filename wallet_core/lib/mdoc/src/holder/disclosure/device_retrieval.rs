@@ -1,10 +1,9 @@
+use attestation_types::claim_path::ClaimPath;
 use chrono::DateTime;
 use chrono::Utc;
-use rustls_pki_types::TrustAnchor;
-
-use attestation_types::claim_path::ClaimPath;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
+use rustls_pki_types::TrustAnchor;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -81,11 +80,10 @@ impl From<ItemsRequest> for Vec<VecNonEmpty<ClaimPath>> {
 pub mod test {
     use crypto::server_keys::KeyPair;
 
+    use super::*;
     use crate::iso::device_retrieval::ReaderAuthenticationBytes;
     use crate::utils::cose;
     use crate::utils::cose::MdocCose;
-
-    use super::*;
 
     /// Create a `DocRequest` including reader authentication,
     /// based on a `SessionTranscript` and `KeyPair`.
@@ -119,14 +117,12 @@ pub mod test {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-
     use crypto::server_keys::generate::Ca;
     use utils::generator::TimeGenerator;
 
+    use super::*;
     use crate::errors::Error;
     use crate::holder::disclosure::device_retrieval::test::create_doc_request;
-
-    use super::*;
 
     #[tokio::test]
     async fn test_doc_request_verify() {

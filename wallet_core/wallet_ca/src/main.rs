@@ -1,12 +1,11 @@
 use anyhow::Result;
+use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::auth::reader_auth::ReaderRegistration;
 use chrono::Duration;
 use chrono::Utc;
 use clap::Parser;
 use clap::Subcommand;
 use clio::CachedInput;
-
-use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::auth::reader_auth::ReaderRegistration;
 use crypto::server_keys::generate;
 use crypto::x509::CertificateConfiguration;
 use crypto::x509::CertificateUsage::OAuthStatusSigning;

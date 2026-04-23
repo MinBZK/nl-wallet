@@ -2,11 +2,10 @@ use std::str::FromStr;
 
 use derive_more::Display;
 use derive_more::From;
+use jwe::algorithm::EncryptionAlgorithm;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 use strum::EnumString;
-
-use jwe::algorithm::EncryptionAlgorithm;
 
 /// A type representing the "enc" header parameter value for JWE, i.e. the JWE encryption algorithm.
 /// See: <https://www.rfc-editor.org/rfc/rfc7518.html#section-5>
@@ -71,9 +70,8 @@ pub enum JweCompressionAlgorithm {
 
 #[cfg(test)]
 mod tests {
-    use rstest::rstest;
-
     use jwe::algorithm::EncryptionAlgorithm;
+    use rstest::rstest;
 
     use super::JweCompressionAlgorithm;
     use super::JweEncryptionAlgorithm;

@@ -1,3 +1,5 @@
+use http_utils::urls;
+use jwe::encryption::JwePublicKey;
 use jwk_simple::jwk::Key;
 use serde::Deserialize;
 use serde::Serialize;
@@ -5,9 +7,6 @@ use serde_with::TryFromInto;
 use serde_with::json::JsonString;
 use serde_with::serde_as;
 use url::Url;
-
-use http_utils::urls;
-use jwe::encryption::JwePublicKey;
 
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::transfer::TransferSessionId;
@@ -65,12 +64,11 @@ impl TryFrom<TransferQuery> for Url {
 
 #[cfg(test)]
 mod tests {
+    use jwe::algorithm::EcdhAlgorithm;
+    use jwe::decryption::JweEcdhSecretKey;
     use url::Host;
     use url::Url;
     use uuid::Uuid;
-
-    use jwe::algorithm::EcdhAlgorithm;
-    use jwe::decryption::JweEcdhSecretKey;
 
     use crate::transfer::uri::TransferQuery;
 

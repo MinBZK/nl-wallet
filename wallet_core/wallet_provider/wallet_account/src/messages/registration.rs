@@ -1,16 +1,15 @@
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
+use crypto::p256_der::DerVerifyingKey;
+use jwt::JwtSub;
+use jwt::JwtTyp;
+use jwt::UnverifiedJwt;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DisplayFromStr;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
-
-use crypto::p256_der::DerVerifyingKey;
-use jwt::JwtSub;
-use jwt::JwtTyp;
-use jwt::UnverifiedJwt;
 use utils::vec_at_least::VecAtLeastTwo;
 
 use crate::RevocationCode;
@@ -83,19 +82,17 @@ impl JwtTyp for WalletCertificateClaims {}
 
 #[cfg(feature = "client")]
 mod client {
-    use futures::TryFutureExt;
-
     use crypto::keys::EphemeralEcdsaKey;
     use crypto::keys::SecureEcdsaKey;
     use crypto::p256_der::DerVerifyingKey;
+    use futures::TryFutureExt;
     use platform_support::attested_key::AppleAttestedKey;
     use utils::vec_at_least::VecAtLeastTwo;
 
-    use crate::error::EncodeError;
-    use crate::signed::ChallengeResponse;
-
     use super::Registration;
     use super::RegistrationAttestation;
+    use crate::error::EncodeError;
+    use crate::signed::ChallengeResponse;
 
     // Constructors for ChallengeResponse<Registration>.
     impl ChallengeResponse<Registration> {

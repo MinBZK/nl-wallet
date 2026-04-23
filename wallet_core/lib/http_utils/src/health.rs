@@ -1,10 +1,9 @@
 //! Following MicroProfile Health [specification](https://github.com/microprofile/microprofile-health/blob/main/spec/src/main/asciidoc/protocol-wireformat.asciidoc):
 
 use async_trait::async_trait;
-use serde::Serialize;
-
 #[cfg(feature = "server")]
 pub use router::create_health_router;
+use serde::Serialize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum HealthStatus {

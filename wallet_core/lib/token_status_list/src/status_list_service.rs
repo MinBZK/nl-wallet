@@ -1,10 +1,9 @@
 use std::num::NonZeroUsize;
 
-use uuid::Uuid;
-
 use attestation_types::status_claim::StatusClaim;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
+use uuid::Uuid;
 
 #[trait_variant::make(Send)]
 pub trait StatusListServices: StatusListRevocationService {
@@ -75,11 +74,10 @@ pub trait StatusListRevocationService {
 pub mod mock {
     use std::convert::Infallible;
 
+    use attestation_types::status_claim::StatusListClaim;
     use mockall::mock;
     use url::Url;
     use uuid::Uuid;
-
-    use attestation_types::status_claim::StatusListClaim;
 
     use super::*;
 

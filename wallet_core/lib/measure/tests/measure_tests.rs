@@ -5,7 +5,6 @@ use std::sync::Mutex;
 use std::sync::OnceLock;
 
 use metrics::CounterFn;
-
 use serial_test::serial;
 
 // Custom counter implementation

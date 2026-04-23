@@ -1,6 +1,8 @@
-use crate::gba::data::GbaResult;
-use hex::FromHexError;
 use std::string::FromUtf8Error;
+
+use hex::FromHexError;
+
+use crate::gba::data::GbaResult;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

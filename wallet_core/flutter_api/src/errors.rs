@@ -5,7 +5,6 @@ use anyhow::Chain;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
-
 use wallet::AccountRevokedData;
 use wallet::attestation_data::LocalizedStrings;
 use wallet::errors::AccountProviderError;
@@ -533,10 +532,12 @@ impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
             | CloseProximityDisclosureError::InvalidDocRequest(_)
             | CloseProximityDisclosureError::MissingReaderRegistration
             | CloseProximityDisclosureError::InvalidCertificateType(_)
-            | CloseProximityDisclosureError::RequestedUnregisteredAttributes(_)
+            | CloseProximityDisclosureError::ReaderAuthValidation(_)
             | CloseProximityDisclosureError::MalformedDeviceRequest(_)
-            | CloseProximityDisclosureError::InvalidDeviceRequest(_) => FlutterApiErrorType::Verifier,
-            CloseProximityDisclosureError::ErrorDeviceResponseEncoding(_)
+            | CloseProximityDisclosureError::InvalidDeviceRequest(_)
+            | CloseProximityDisclosureError::InvalidCertificate(_)
+            | CloseProximityDisclosureError::MissingCommonName => FlutterApiErrorType::Verifier,
+            CloseProximityDisclosureError::DeviceResponseEncoding(_)
             | CloseProximityDisclosureError::PlatformError(_)
             | CloseProximityDisclosureError::DeviceResponse(_) => FlutterApiErrorType::Generic,
         }
@@ -696,7 +697,6 @@ mod tests {
 
     use rstest::rstest;
     use serde_json::json;
-
     use wallet::AccountRevokedData;
     use wallet::RevocationReason;
     use wallet::attestation_data::AttributeValue;

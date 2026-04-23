@@ -4,13 +4,12 @@ use derive_more::AsRef;
 use derive_more::Display;
 use derive_more::Eq;
 use derive_more::PartialEq;
-use serde_with::DeserializeFromStr;
-use serde_with::SerializeDisplay;
-use url::Url;
-
 use http_utils::urls::ALLOWED_HTTP_SCHEMES;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::BaseUrlParseError;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
+use url::Url;
 
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(test, derive(strum::EnumDiscriminants))]
@@ -140,13 +139,13 @@ impl FromStr for IssuerIdentifier {
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+    use serde_json::json;
+
     use super::IssuerIdentifier;
     use super::IssuerIdentifierErrorDiscriminants;
     use super::IssuerUrl;
     use super::IssuerUrlErrorDiscriminants;
-
-    use rstest::rstest;
-    use serde_json::json;
 
     #[rstest]
     #[case::ok("https://example.com/", Ok(()))]

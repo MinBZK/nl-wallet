@@ -1,14 +1,10 @@
 use std::collections::HashSet;
 
+use crypto::keys::EcdsaKey;
+use crypto::wscd::WscdPoa;
 use derive_more::AsRef;
 use derive_more::From;
 use futures::future::try_join_all;
-use p256::ecdsa::VerifyingKey;
-use serde::Deserialize;
-use serde::Serialize;
-
-use crypto::keys::EcdsaKey;
-use crypto::wscd::WscdPoa;
 use jwt::DEFAULT_VALIDATIONS;
 use jwt::JsonJwt;
 use jwt::JwtTyp;
@@ -22,6 +18,9 @@ use jwt::jwk::jwk_from_p256;
 use jwt::jwk::jwk_to_p256;
 use jwt::nonce::Nonce;
 use jwt::pop::JwtPopClaims;
+use p256::ecdsa::VerifyingKey;
+use serde::Deserialize;
+use serde::Serialize;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -157,7 +156,7 @@ impl Poa {
         for (jwt, jwk) in jwts.into_iter().zip(payload.jwks.as_slice()) {
             let pubkey = jwk_to_p256(jwk)?;
             jwt.parse_and_verify(&(&pubkey).into(), &validations)
-                .map_err(PoaVerificationError::IncorrectTyp)?;
+                .map_err(PoaVerificationError::InvalidJwt)?;
         }
 
         // Check that all keys that must be associated are in the PoA. We use `jwk::AlgorithmParameters` for this
@@ -189,16 +188,15 @@ impl WscdPoa for Poa {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use p256::ecdsa::SigningKey;
-    use p256::ecdsa::VerifyingKey;
-    use rand_core::OsRng;
-    use rstest::rstest;
-
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use jwt::DEFAULT_VALIDATIONS;
     use jwt::UnverifiedJwt;
     use jwt::nonce::Nonce;
     use jwt::pop::JwtPopClaims;
+    use p256::ecdsa::SigningKey;
+    use p256::ecdsa::VerifyingKey;
+    use rand_core::OsRng;
+    use rstest::rstest;
     use utils::vec_at_least::VecNonEmpty;
 
     use super::Poa;

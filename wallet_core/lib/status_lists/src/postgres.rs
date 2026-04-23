@@ -6,12 +6,18 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
+use attestation_types::status_claim::StatusClaim;
+use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::EcdsaKeySend;
 use futures::StreamExt;
 use futures::future::join_all;
 use futures::future::try_join_all;
+use http_utils::urls::BaseUrlError;
 use itertools::Itertools;
+use jwt::error::JwtError;
+use measure::measure;
 use rand::seq::SliceRandom;
 use sea_orm::ColumnTrait;
 use sea_orm::DatabaseConnection;
@@ -35,14 +41,6 @@ use sea_orm::sea_query::LockType;
 use sea_orm::sea_query::OnConflict;
 use sea_orm::sea_query::Query;
 use sea_orm::sqlx::types::chrono::NaiveDate;
-use uuid::Uuid;
-
-use attestation_types::status_claim::StatusClaim;
-use attestation_types::status_claim::StatusListClaim;
-use crypto::EcdsaKeySend;
-use http_utils::urls::BaseUrlError;
-use jwt::error::JwtError;
-use measure::measure;
 use token_status_list::status_list::PackedStatusList;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
@@ -58,6 +56,7 @@ use tokio::task::JoinError;
 use tokio::task::JoinHandle;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
+use uuid::Uuid;
 
 use crate::config::StatusListConfig;
 use crate::config::StatusListConfigs;
@@ -1220,15 +1219,13 @@ mod tests {
     use std::time::Duration;
 
     use assert_matches::assert_matches;
-    use p256::ecdsa::SigningKey;
-
     use crypto::server_keys::generate::Ca;
+    use p256::ecdsa::SigningKey;
     use utils::num::NonZeroU31;
     use utils::num::U31;
 
-    use crate::publish::PublishDir;
-
     use super::*;
+    use crate::publish::PublishDir;
 
     fn mock_service() -> PostgresStatusListService<SigningKey, NoRevokeAll> {
         PostgresStatusListService {

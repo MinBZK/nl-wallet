@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::utils::random_string;
 use dashmap::DashMap;
 use dashmap::mapref::entry::Entry;
 use derive_more::AsRef;
@@ -15,8 +16,6 @@ use tokio::task::JoinHandle;
 use tokio::time;
 use tokio::time::MissedTickBehavior;
 use tracing::warn;
-
-use crypto::utils::random_string;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 
@@ -243,7 +242,6 @@ pub mod test {
 
     use assert_matches::assert_matches;
     use parking_lot::RwLock;
-
     use utils::generator::mock::MockTimeGenerator;
 
     use super::*;
@@ -505,7 +503,6 @@ pub mod test {
 mod tests {
     use self::test::RandomData;
     use self::test::memory_session_store_with_mock_time;
-
     use super::*;
 
     /// A mock data type that adheres to all the trait bounds necessary for testing.

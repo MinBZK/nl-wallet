@@ -2,14 +2,13 @@ use std::sync::Arc;
 
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::ConfigurationError;
 use crate::config::data::default_wallet_config;
 use crate::repository::ObservableRepository;
 use crate::repository::Repository;
 use crate::repository::RepositoryCallback;
 use crate::repository::RepositoryUpdateState;
 use crate::repository::UpdateableRepository;
-
-use super::ConfigurationError;
 
 pub struct LocalConfigurationRepository {
     config: Arc<WalletConfiguration>,

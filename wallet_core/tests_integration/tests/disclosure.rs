@@ -1,12 +1,6 @@
 use std::collections::HashSet;
 
 use assert_matches::assert_matches;
-use itertools::Itertools;
-use reqwest::StatusCode;
-use rstest::rstest;
-use serial_test::serial;
-use url::Url;
-
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::test_credential::TestCredentials;
 use db_test::DbSetup;
@@ -17,6 +11,7 @@ use dcql::TrustedAuthoritiesQuery;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::error::HttpJsonErrorBody;
+use itertools::Itertools;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
@@ -27,12 +22,16 @@ use openid4vc_server::verifier::StatusParams;
 use pid_issuer::pid::constants::EUDI_PID_ATTESTATION_TYPE;
 use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
 use pid_issuer::pid::constants::PID_GIVEN_NAME;
+use reqwest::StatusCode;
+use rstest::rstest;
+use serial_test::serial;
 use tests_integration::common::*;
 use tests_integration::test_credential::new_mock_mdoc_pid_example;
 use tests_integration::test_credential::nl_pid_credentials_family_name;
 use tests_integration::test_credential::nl_pid_credentials_full_name;
 use tests_integration::test_credential::nl_pid_credentials_given_name;
 use tests_integration::test_credential::nl_pid_credentials_given_name_for_query_id;
+use url::Url;
 use utils::vec_nonempty;
 use wallet::AttributesNotAvailable;
 use wallet::DisclosureUriSource;

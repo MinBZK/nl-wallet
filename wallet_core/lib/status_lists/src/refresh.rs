@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
-
 use crypto::utils::random_duration;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
@@ -113,7 +112,6 @@ where
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
-
     use utils::generator::mock::MockTimeGenerator;
 
     use super::*;

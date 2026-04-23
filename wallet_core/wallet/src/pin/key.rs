@@ -16,6 +16,10 @@
 //! - The [`PinKey<'a>`] struct, which contains the salt and the PIN, and has methods to compute signatures and the
 //!   public key (by first converting the user's PIN and salt to an ECDSA private key).
 
+use crypto::keys::EcdsaKey;
+use crypto::keys::EphemeralEcdsaKey;
+use crypto::utils::hkdf;
+use crypto::utils::random_bytes;
 use p256::NistP256;
 use p256::Scalar;
 use p256::SecretKey;
@@ -29,11 +33,6 @@ use p256::elliptic_curve::bigint::NonZero;
 use p256::elliptic_curve::bigint::U384;
 use p256::elliptic_curve::ops::Reduce;
 use ring::error::Unspecified as UnspecifiedRingError;
-
-use crypto::keys::EcdsaKey;
-use crypto::keys::EphemeralEcdsaKey;
-use crypto::utils::hkdf;
-use crypto::utils::random_bytes;
 
 /// Return a new salt, for use as the first parameter to [`sign_with_pin_key()`] and [`pin_public_key()`].
 pub fn new_pin_salt() -> Vec<u8> {
@@ -146,14 +145,14 @@ fn u384_to_u256(x: &U384) -> U256 {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     use p256::ecdsa::signature::Verifier;
     use p256::elliptic_curve::bigint::ArrayEncoding;
     use p256::elliptic_curve::bigint::Random;
     use p256::elliptic_curve::bigint::RandomMod;
     use p256::elliptic_curve::bigint::Wrapping;
     use rand_core::OsRng;
+
+    use super::*;
 
     #[test]
     fn test_conversion() {

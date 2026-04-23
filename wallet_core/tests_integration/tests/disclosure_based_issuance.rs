@@ -1,7 +1,3 @@
-use itertools::Itertools;
-use rstest::rstest;
-use serial_test::serial;
-
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_types::claim_path::ClaimPath;
@@ -11,17 +7,19 @@ use dcql::normalized::MdocAttributeRequest;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::SdJwtAttributeRequest;
+use itertools::Itertools;
 use openid4vc::verifier::StatusResponse;
 use openid4vc_server::verifier::DisclosedAttributesParams;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
+use rstest::rstest;
+use serial_test::serial;
+use tests_integration::common::*;
 use utils::vec_nonempty;
 use wallet::DisclosureAttestationOptions;
 use wallet::DisclosureUriSource;
 use wallet::openid4vc::SessionType;
-
-use tests_integration::common::*;
 
 #[rstest]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]

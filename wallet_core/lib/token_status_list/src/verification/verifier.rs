@@ -3,8 +3,12 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::time::Instant;
 
+use attestation_types::status_claim::StatusClaim;
+use attestation_types::status_claim::StatusClaim::StatusList;
+use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::x509::DistinguishedName;
 use moka::Expiry;
 use moka::future::Cache;
 use rustls_pki_types::TrustAnchor;
@@ -12,11 +16,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use tracing::warn;
 use url::Url;
-
-use attestation_types::status_claim::StatusClaim;
-use attestation_types::status_claim::StatusClaim::StatusList;
-use attestation_types::status_claim::StatusListClaim;
-use crypto::x509::DistinguishedName;
 use utils::generator::Generator;
 
 use crate::status_list::StatusType;
@@ -177,18 +176,17 @@ mod test {
     use std::time::Duration;
     use std::time::Instant;
 
+    use attestation_types::status_claim::StatusClaim::StatusList;
+    use attestation_types::status_claim::StatusListClaim;
     use chrono::DateTime;
     use chrono::Days;
     use chrono::Utc;
-    use futures::FutureExt;
-    use moka::Expiry;
-    use url::Url;
-
-    use attestation_types::status_claim::StatusClaim::StatusList;
-    use attestation_types::status_claim::StatusListClaim;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::DistinguishedName;
+    use futures::FutureExt;
     use jwt::error::JwtError;
+    use moka::Expiry;
+    use url::Url;
     use utils::generator::Generator;
     use utils::generator::mock::MockTimeGenerator;
 

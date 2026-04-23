@@ -1,9 +1,8 @@
 #![expect(dead_code)]
 
-use rstest::rstest;
-
 use error_category::Category;
 use error_category::ErrorCategory;
+use rstest::rstest;
 
 #[derive(ErrorCategory)]
 enum ChildError {

@@ -1,7 +1,6 @@
 use chrono::DateTime;
 use chrono::Utc;
 use rand::random;
-
 use token_status_list::verification::verifier::RevocationStatus;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
@@ -103,10 +102,9 @@ impl Notification {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use attestation_data::validity::ValidityWindow;
     use chrono::Duration;
     use chrono::Utc;
-
-    use attestation_data::validity::ValidityWindow;
     use utils::generator::mock::MockTimeGenerator;
 
     use super::*;

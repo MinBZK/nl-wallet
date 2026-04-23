@@ -1,7 +1,6 @@
+use jwt::nonce::Nonce;
 use serde::Deserialize;
 use serde::Serialize;
-
-use jwt::nonce::Nonce;
 
 /// Issuer response containing a fresh `c_nonce` value.
 /// See: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-7.2>.

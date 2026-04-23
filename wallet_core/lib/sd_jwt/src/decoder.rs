@@ -7,7 +7,6 @@
 //! See the encoder [`SdObjectEncoder`] on how to create selectively disclosable claims.
 use indexmap::IndexMap;
 use itertools::Itertools;
-
 use utils::vec_at_least::VecAtLeastN;
 
 use crate::claims::ArrayClaim;

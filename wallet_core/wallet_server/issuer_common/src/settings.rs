@@ -3,33 +3,32 @@ use std::fs;
 use std::num::NonZeroU8;
 use std::path::Path;
 
+use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
+use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::x509::CertificateError;
+use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
 use derive_more::Debug;
 use derive_more::From;
 use derive_more::IntoIterator;
 use futures::future::join_all;
 use futures::future::try_join_all;
-use indexmap::IndexMap;
-use itertools::Itertools;
-use rustls_pki_types::TrustAnchor;
-use serde::Deserialize;
-use serde::Deserializer;
-use serde::de;
-
-use attestation_types::qualification::AttestationQualification;
-use crypto::trust_anchor::BorrowingTrustAnchor;
-use crypto::x509::CertificateError;
-use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::HttpsUri;
+use indexmap::IndexMap;
+use itertools::Itertools;
 use openid4vc::Format;
 use openid4vc::issuer::AttestationTypeConfig;
 use openid4vc::issuer::AttestationTypesConfig;
 use openid4vc::issuer_identifier::IssuerIdentifier;
+use rustls_pki_types::TrustAnchor;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::de;
 use server_utils::keys::PrivateKeySettingsError;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::CertificateVerificationError;
@@ -334,8 +333,6 @@ mod tests {
     use std::collections::HashMap;
 
     use assert_matches::assert_matches;
-    use indexmap::IndexMap;
-
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::x509::CertificateTypeError;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
@@ -345,6 +342,7 @@ mod tests {
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
     use http_utils::urls::HttpsUri;
+    use indexmap::IndexMap;
     use openid4vc::Format;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use sd_jwt_vc_metadata::TypeMetadata;
@@ -356,11 +354,10 @@ mod tests {
     use server_utils::settings::Storage;
     use status_lists::publish::PublishDir;
 
-    use crate::settings::IssuerSettingsError;
-
     use super::AttestationTypeConfigSettings;
     use super::IssuerSettings;
     use super::StatusListAttestationSettings;
+    use crate::settings::IssuerSettingsError;
 
     fn mock_settings(issuer_ca: &Ca) -> IssuerSettings {
         let keypair = generate_issuer_mock_with_registration(issuer_ca, IssuerRegistration::new_mock())

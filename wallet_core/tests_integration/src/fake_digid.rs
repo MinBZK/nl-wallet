@@ -1,10 +1,9 @@
+use http_utils::reqwest::default_reqwest_client_builder;
+use http_utils::urls::BaseUrl;
 use reqwest::Response;
 use reqwest::header::LOCATION;
 use reqwest::redirect::Policy;
 use url::Url;
-
-use http_utils::reqwest::default_reqwest_client_builder;
-use http_utils::urls::BaseUrl;
 
 // Use the mock flow of the DigiD bridge to simulate a DigiD login,
 // invoking the same URLs at the DigiD bridge that would normally be invoked by the app and browser in the mock

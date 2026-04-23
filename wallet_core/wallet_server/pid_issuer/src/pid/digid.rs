@@ -1,13 +1,12 @@
-use jsonwebtoken::Algorithm;
-use jwk_simple::Key;
-
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::tls_pinned_client_builder;
+use jsonwebtoken::Algorithm;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::algorithm::RsaAlgorithm;
 use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweRsaPrivateKey;
 use jwe::error::RsaPrivateJwkError;
+use jwk_simple::Key;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::token::TokenRequest;
 

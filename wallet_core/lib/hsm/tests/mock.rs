@@ -1,9 +1,8 @@
-use rstest::Context;
-use rstest::rstest;
-
 use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
 use hsm::test::TestCase;
+use rstest::Context;
+use rstest::rstest;
 
 #[rstest]
 #[case::sign_sha256_hmac(TestCase::sign_sha256_hmac)]

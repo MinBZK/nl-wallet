@@ -7,12 +7,16 @@
 use std::fmt::Debug;
 use std::result::Result;
 
+use attestation_types::qualification::AttestationQualification;
+use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::ParseError;
 use chrono::SecondsFormat;
 use chrono::Utc;
 use ciborium::tag;
 use ciborium::value::Value;
+use crypto::utils::random_bytes;
+use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use nutype::nutype;
@@ -22,11 +26,6 @@ use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
 use ssri::Integrity;
-
-use attestation_types::qualification::AttestationQualification;
-use attestation_types::status_claim::StatusClaim;
-use crypto::utils::random_bytes;
-use http_utils::urls::HttpsUri;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -576,10 +575,9 @@ mod tests {
     use rstest::rstest;
     use serde_bytes::ByteBuf;
 
-    use crate::utils::serialization::TaggedBytes;
-
     use super::Attributes;
     use super::IssuerSignedItem;
+    use crate::utils::serialization::TaggedBytes;
 
     #[rstest]
     #[case(vec![], false)]

@@ -1,15 +1,10 @@
 use futures::TryFutureExt;
 use futures::try_join;
+use http_utils::reqwest::HttpJsonClient;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::Validation;
 use jsonwebtoken::jwk::JwkSet;
-use reqwest::header;
-use serde::Deserialize;
-use serde::Serialize;
-use serde::de::DeserializeOwned;
-
-use http_utils::reqwest::HttpJsonClient;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::ExpectedEncryptionAlgorithm;
 use jwe::decryption::JweDecrypter;
@@ -23,6 +18,10 @@ use openid4vc::metadata::well_known;
 use openid4vc::metadata::well_known::WellKnownError;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponse;
+use reqwest::header;
+use serde::Deserialize;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 
 use super::jwks::HttpJwksClient;
 use super::jwks::JwksError;

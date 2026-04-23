@@ -3,19 +3,11 @@ use std::net::IpAddr;
 use std::num::NonZeroU64;
 use std::time::Duration;
 
+use attestation_data::x509::CertificateType;
+use attestation_data::x509::CertificateTypeError;
 use chrono::DateTime;
 use chrono::Utc;
 use config::ConfigError;
-use nutype::nutype;
-use rustls_pki_types::TrustAnchor;
-use serde::Deserialize;
-use serde_with::base64::Base64;
-use serde_with::hex::Hex;
-use serde_with::serde_as;
-use url::Url;
-
-use attestation_data::x509::CertificateType;
-use attestation_data::x509::CertificateTypeError;
 use crypto::p256_der::DerSigningKey;
 use crypto::server_keys::KeyPair as ParsedKeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;
@@ -24,7 +16,14 @@ use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
+use nutype::nutype;
 use openid4vc::server_state::SessionStoreTimeouts;
+use rustls_pki_types::TrustAnchor;
+use serde::Deserialize;
+use serde_with::base64::Base64;
+use serde_with::hex::Hex;
+use serde_with::serde_as;
+use url::Url;
 use utils::generator::Generator;
 
 use crate::keys::PrivateKeySettingsError;

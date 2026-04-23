@@ -2,20 +2,19 @@ use std::collections::HashSet;
 use std::num::NonZeroUsize;
 use std::time::Duration;
 
-use base64::prelude::*;
-use itertools::Itertools;
-use p256::ecdsa::SigningKey;
-use rand::rngs::OsRng;
-use rstest::rstest;
-
 use android_attest::attestation_extension::key_description::KeyDescription;
 use attestation_types::status_claim::StatusClaim;
+use base64::prelude::*;
 use crypto::server_keys::generate::Ca;
 use db_test::DbSetup;
 use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
+use itertools::Itertools;
 use jwt::nonce::Nonce;
+use p256::ecdsa::SigningKey;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
+use rand::rngs::OsRng;
+use rstest::rstest;
 use status_lists::config::StatusListConfig;
 use status_lists::postgres::PostgresStatusListService;
 use utils::generator::UuidV4AndTimeGenerator;

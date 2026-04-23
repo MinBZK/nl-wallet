@@ -2,8 +2,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use itertools::Itertools;
-
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::issuable_document::IssuableDocument;
 use dcql::unique_id_vec::UniqueIdVec;
@@ -11,6 +9,7 @@ use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
+use itertools::Itertools;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
@@ -183,10 +182,6 @@ mod tests {
     use std::convert::Infallible;
     use std::sync::Arc;
 
-    use chrono::Utc;
-    use indexmap::IndexMap;
-    use p256::ecdsa::SigningKey;
-
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::disclosure::DisclosedAttestation;
@@ -195,7 +190,9 @@ mod tests {
     use attestation_data::issuable_document::IssuableDocument;
     use attestation_data::validity::IssuanceValidity;
     use attestation_types::qualification::AttestationQualification;
+    use chrono::Utc;
     use dcql::unique_id_vec::UniqueIdVec;
+    use indexmap::IndexMap;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential::CredentialOffer;
     use openid4vc::issuer::AttestationTypeConfig;
@@ -207,6 +204,7 @@ mod tests {
     use openid4vc::server_state::SessionStoreTimeouts;
     use openid4vc::server_state::SessionToken;
     use openid4vc::verifier::DisclosureResultHandler;
+    use p256::ecdsa::SigningKey;
     use token_status_list::status_list_service::mock::MockStatusListServices;
     use token_status_list::verification::verifier::RevocationStatus;
     use utils::vec_nonempty;

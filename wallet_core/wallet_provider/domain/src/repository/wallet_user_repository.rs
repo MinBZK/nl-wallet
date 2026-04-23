@@ -1,17 +1,18 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
+use apple_app_attest::AssertionCounter;
 use chrono::DateTime;
 use chrono::Utc;
+use hsm::model::encrypted::Encrypted;
+use hsm::model::wrapped_key::WrappedKey;
 use p256::ecdsa::VerifyingKey;
 use semver::Version;
 use uuid::Uuid;
-
-use apple_app_attest::AssertionCounter;
-use hsm::model::encrypted::Encrypted;
-use hsm::model::wrapped_key::WrappedKey;
 use wallet_account::messages::errors::RevocationReason;
 
+use super::errors::PersistenceError;
+use super::transaction::Committable;
 use crate::model::wallet_user::InstructionChallenge;
 use crate::model::wallet_user::RecoveryCode;
 use crate::model::wallet_user::TransferSession;
@@ -21,9 +22,6 @@ use crate::model::wallet_user::WalletUserIsRevoked;
 use crate::model::wallet_user::WalletUserKeys;
 use crate::model::wallet_user::WalletUserQueryResult;
 use crate::model::wallet_user::WalletUserState;
-
-use super::errors::PersistenceError;
-use super::transaction::Committable;
 
 type Result<T> = std::result::Result<T, PersistenceError>;
 
@@ -270,13 +268,12 @@ pub mod mock {
     use uuid::Uuid;
     use uuid::uuid;
 
+    use super::super::transaction::mock::MockTransaction;
+    use super::*;
     use crate::model::QueryResult;
     use crate::model::wallet_user;
     use crate::model::wallet_user::WalletId;
     use crate::model::wallet_user::WalletUserQueryResult;
-
-    use super::super::transaction::mock::MockTransaction;
-    use super::*;
 
     pub struct WalletUserRepositoryStub;
 

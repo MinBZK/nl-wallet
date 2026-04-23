@@ -1,8 +1,7 @@
-pub use ssri::Integrity;
-
 pub use chain::*;
 pub use metadata::*;
 pub use normalized::*;
+pub use ssri::Integrity;
 
 mod chain;
 mod metadata;

@@ -1,6 +1,6 @@
 use std::sync::Arc;
-use tokio::sync::RwLock;
 
+use tokio::sync::RwLock;
 use wallet_account::messages::registration::WalletCertificate;
 
 use crate::errors::StorageError;
@@ -50,14 +50,12 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-
     use wallet_account::RevocationCode;
 
+    use super::*;
     use crate::pin::change::ChangePinStorage;
     use crate::pin::change::State;
     use crate::storage::MockHardwareDatabaseStorage;
-
-    use super::*;
 
     #[tokio::test]
     async fn test_change_pin_storage() {

@@ -26,8 +26,8 @@ pub enum PoaVerificationError {
     IncorrectNonce,
     #[error("error converting key from/to JWK: {0}")]
     Jwk(#[from] JwkConversionError),
-    #[error("typ field of PoA header had unexpected value: {0}")]
-    IncorrectTyp(#[source] JwtError),
+    #[error("any of the JWTs in the PoA are invalid: {0}")]
+    InvalidJwt(#[source] JwtError),
     #[error("key missing in PoA: {0:?}")]
     MissingKey(AlgorithmParameters),
 }

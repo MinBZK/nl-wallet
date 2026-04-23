@@ -2,10 +2,9 @@ use std::path::PathBuf;
 
 use utils::spawn;
 
-use crate::bridge::utils::get_utils_bridge;
-
 use super::PlatformUtilities;
 use super::UtilitiesError;
+use crate::bridge::utils::get_utils_bridge;
 
 pub struct HardwareUtilities;
 

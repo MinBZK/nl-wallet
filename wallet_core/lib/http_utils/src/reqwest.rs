@@ -276,9 +276,8 @@ pub mod test {
     use base64::prelude::BASE64_STANDARD;
     use utils::vec_nonempty;
 
-    use crate::client::TlsPinningConfig;
-
     use super::ReqwestTrustAnchor;
+    use crate::client::TlsPinningConfig;
 
     pub const TEST_CERTIFICATE_BASE64: &str = "MIIBUzCB+6ADAgECAhRGv/y0WtvIgkZodTBjwPMTvUcrujAKBggqhkjOPQQDAjAPMQ0wCwYDVQQDDAR0ZXN0MB4XDTI2MDMxMDE2MTUyM1oXDTI3MDMxMTE2MTUyM1owDzENMAsGA1UEAwwEdGVzdDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABIIT6QWW/A3sM0BDxZje7PvqheHP4qA1tEC2fSPBj+RbzOyUl6e39tB8nHZDFpk/UrRoLRYpJfa2PCebGeO+dBmjNTAzMB0GA1UdDgQWBBS/TIByJWDzfwSizPd6VRU/BQE4zTASBgNVHRMBAf8ECDAGAQH/AgEAMAoGCCqGSM49BAMCA0cAMEQCIGahEuSBxSDpgLIdGpSbVfqMKdLQ9c9ErbueoxFZZChbAiAGMCrYxBD4YRrhoiSdIndASo8RI9577oaKprb0KFa+Eg==";
 
@@ -297,9 +296,8 @@ mod tests {
     use base64::prelude::Engine;
     use rstest::rstest;
 
-    use crate::reqwest::test::TEST_CERTIFICATE_BASE64;
-
     use super::ReqwestTrustAnchor;
+    use crate::reqwest::test::TEST_CERTIFICATE_BASE64;
 
     #[test]
     fn request_trust_anchor_from_bytes_success() {

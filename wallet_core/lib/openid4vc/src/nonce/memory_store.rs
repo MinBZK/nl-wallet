@@ -4,7 +4,6 @@ use std::sync::Mutex;
 use chrono::DateTime;
 use chrono::Utc;
 use itertools::Itertools;
-
 use jwt::nonce::Nonce;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
@@ -118,7 +117,6 @@ mod tests {
 
     use chrono::DateTime;
     use futures::FutureExt;
-
     use utils::generator::mock::MockTimeGenerator;
 
     use super::super::store::test::test_nonce_store;

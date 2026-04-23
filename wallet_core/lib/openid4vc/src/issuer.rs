@@ -5,25 +5,6 @@ use std::num::NonZero;
 use std::ops::Add;
 use std::sync::Arc;
 
-use chrono::DateTime;
-use chrono::Days;
-use chrono::DurationRound;
-use chrono::Utc;
-use derive_more::AsRef;
-use derive_more::Debug;
-use derive_more::From;
-use futures::future::try_join_all;
-use indexmap::IndexMap;
-use itertools::Itertools;
-use p256::ecdsa::VerifyingKey;
-use reqwest::Method;
-use serde::Deserialize;
-use serde::Serialize;
-use ssri::Integrity;
-use tokio::task::AbortHandle;
-use tracing::info;
-use uuid::Uuid;
-
 use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::CredentialPayloadError;
@@ -33,11 +14,21 @@ use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use attestation_data::issuable_document::IssuableDocument;
 use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
+use chrono::DateTime;
+use chrono::Days;
+use chrono::DurationRound;
+use chrono::Utc;
 use crypto::EcdsaKeySend;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
+use derive_more::AsRef;
+use derive_more::Debug;
+use derive_more::From;
+use futures::future::try_join_all;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::HttpsUri;
+use indexmap::IndexMap;
+use itertools::Itertools;
 use jwt::Algorithm;
 use jwt::EcdsaDecodingKey;
 use jwt::Validation;
@@ -46,13 +37,21 @@ use jwt::error::JwtError;
 use jwt::nonce::Nonce;
 use jwt::wua::WuaDisclosure;
 use jwt::wua::WuaError;
+use p256::ecdsa::VerifyingKey;
+use reqwest::Method;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
+use serde::Deserialize;
+use serde::Serialize;
+use ssri::Integrity;
 use token_status_list::status_list_service::StatusListServices;
+use tokio::task::AbortHandle;
+use tracing::info;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use uuid::Uuid;
 use wscd::Poa;
 use wscd::PoaVerificationError;
 
@@ -1595,29 +1594,29 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
-    use chrono::Days;
-    use chrono::Timelike;
-    use derive_more::Debug;
-    use indexmap::IndexMap;
-    use p256::ecdsa::SigningKey;
-    use rustls_pki_types::TrustAnchor;
-    use thiserror::Error;
-    use tracing_test::traced_test;
-    use url::Url;
-
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::issuable_document::IssuableDocument;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
+    use chrono::Days;
+    use chrono::Timelike;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
+    use derive_more::Debug;
+    use indexmap::IndexMap;
     use jwt::JsonJwt;
     use jwt::UnverifiedJwt;
+    use p256::ecdsa::SigningKey;
+    use rustls_pki_types::TrustAnchor;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
+    use thiserror::Error;
+    use tracing_test::traced_test;
+    use url::Url;
     use wscd::Poa;
     use wscd::PoaPayload;
     use wscd::mock_remote::MockRemoteWscd;
 
+    use super::*;
     use crate::CredentialErrorCode;
     use crate::Format;
     use crate::credential::CredentialRequest;
@@ -1645,8 +1644,6 @@ mod tests {
     use crate::wallet_issuance::WalletIssuanceError;
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
     use crate::wallet_issuance::issuance_session::VcMessageClient;
-
-    use super::*;
 
     #[derive(Debug, Error, Clone, Eq, PartialEq)]
     #[error("MyError")]

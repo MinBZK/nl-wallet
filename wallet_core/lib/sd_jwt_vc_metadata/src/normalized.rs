@@ -2,11 +2,10 @@ use std::collections::HashMap;
 use std::mem;
 use std::num::NonZeroUsize;
 
+use attestation_types::claim_path::ClaimPath;
 use itertools::Either;
 use itertools::Itertools;
 use jsonschema::ValidationError;
-
-use attestation_types::claim_path::ClaimPath;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::chain::SortedTypeMetadata;
@@ -353,11 +352,10 @@ where
 mod example_constructors {
     use utils::vec_nonempty;
 
+    use super::NormalizedTypeMetadata;
     use crate::VerifiedTypeMetadataDocuments;
     use crate::metadata::SchemaOption;
     use crate::metadata::UncheckedTypeMetadata;
-
-    use super::NormalizedTypeMetadata;
 
     impl NormalizedTypeMetadata {
         pub fn from_single_example(metadata: UncheckedTypeMetadata) -> Self {
@@ -397,16 +395,18 @@ mod example_constructors {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use attestation_types::claim_path::ClaimPath;
     use rstest::rstest;
     use serde_json::json;
     use ssri::Integrity;
-
-    use attestation_types::claim_path::ClaimPath;
     use utils::vec_at_least::IntoNonEmptyIterator;
     use utils::vec_at_least::NonEmptyIterator;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
+    use super::NormalizedTypeMetadata;
+    use super::NormalizedTypeMetadataError;
+    use super::TypeMetadataValidationError;
     use crate::chain::SortedTypeMetadata;
     use crate::metadata::ClaimDisplayMetadata;
     use crate::metadata::ClaimMetadata;
@@ -417,10 +417,6 @@ mod tests {
     use crate::metadata::SvgId;
     use crate::metadata::TypeMetadata;
     use crate::metadata::UncheckedTypeMetadata;
-
-    use super::NormalizedTypeMetadata;
-    use super::NormalizedTypeMetadataError;
-    use super::TypeMetadataValidationError;
 
     fn all_claim_paths(claims: &[ClaimMetadata]) -> Vec<&[ClaimPath]> {
         claims.iter().map(|claim| claim.path.as_ref()).collect()

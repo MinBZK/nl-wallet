@@ -1,8 +1,7 @@
+use crypto::x509::DistinguishedName;
 use sea_orm::FromQueryResult;
 use sea_orm::entity::prelude::*;
 use uuid::Uuid;
-
-use crypto::x509::DistinguishedName;
 
 use super::attestation_copy;
 
