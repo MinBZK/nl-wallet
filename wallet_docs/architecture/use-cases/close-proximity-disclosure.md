@@ -79,6 +79,7 @@ sequenceDiagram
     reader_app-->>platform_support: Connect to BLE server
     platform_support-->>wallet_core: Update: connected
     wallet_core-->>wallet_app: Update: connected
+    wallet_app-->>user: Render "Receiving request"
 
     reader_app->>platform_support: SessionEstablishment { eReaderKey, encrypted DeviceRequest }
 
@@ -87,6 +88,10 @@ sequenceDiagram
     Note over wallet_core, reader_app: The DeviceRequest contains the ReaderAuth
 
     wallet_core-->>wallet_app: Update: DeviceRequestReceived
+
+    wallet_app->>wallet_app: Navigate to DisclosureScreen
+    wallet_app-->>user: Render "Fetching disclosure request"
+
     wallet_app-->>wallet_core: continueCloseProximity()
 
     wallet_core->>wallet_core: Verify ReaderAuth
