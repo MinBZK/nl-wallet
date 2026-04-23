@@ -34,6 +34,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
         static let startByte: UInt8 = 0x01
         static let endByte: UInt8 = 0x02
         static let pollIntervalNanoseconds: UInt64 = 10_000_000
+        static let postSendSleepNanoseconds: UInt64 = 1_000_000_000
         static let maxCharacteristicSize = 512
     }
 
@@ -170,6 +171,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
             try await writeNotificationChunk(chunk)
             offset += chunkSize
         }
+        try await Task.sleep(nanoseconds: Constants.postSendSleepNanoseconds)
 
         log("sendMessage completed")
     }
