@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-04-10T14:19:19+02:00",
+    "@@last_modified": "2026-04-14T16:06:25+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -123,7 +123,7 @@
     "cardDetailScreenCardDataCta": "Details in this card",
     "cardDetailScreenCardDataPrivacyWarning": "Keep your details private",
     "cardDetailScreenCardDeleteCta": "Delete card",
-    "cardDetailScreenCardDeleteWarning": "This card will be permanently deleted",
+    "cardDetailScreenCardDeleteWarning": "This card will be deleted",
     "cardDetailScreenCardHistoryCta": "Card activities",
     "cardDetailScreenCardValidUntil": "Valid until {dateTime}",
     "@cardDetailScreenCardValidUntil": {
@@ -360,7 +360,7 @@
     "dataIncorrectScreenDeclineTitle": "Decline card",
     "dataIncorrectScreenHeaderDescription": "Contact the providing organization to request a data update. You have two options now:",
     "dataIncorrectScreenHeaderTitle": "Are your details incorrect?",
-    "deleteCardDialogBody": "The card will be permanently deleted from your wallet.\n\nYou can still view the previous activities of this card in your wallet.",
+    "deleteCardDialogBody": "The card will be deleted from your wallet.\n\nYou can still view the previous activities of this card in your wallet.",
     "deleteCardDialogCancelCta": "Cancel",
     "deleteCardDialogConfirmCta": "Yes, delete",
     "deleteCardDialogTitle": "Do you want to delete {cardTitle} card?",
@@ -1277,6 +1277,10 @@
     "qrActionSheetShowQrTitle": "Show your QR code",
     "qrActionSheetTitle": "Choose how you do it",
     "qrCodeCodeDialogTitle": "Scan the QR code with your NL Wallet app",
+    "qrPresentScreenBluetoothDisabledPageDescription": "You first need to turn on \"Bluetooth\" on your device.",
+    "qrPresentScreenBluetoothDisabledPageDescriptioniOSVariant": "You first need to turn on \"Bluetooth\" on your device.\n\nGo to Settings > Bluetooth",
+    "qrPresentScreenBluetoothDisabledPageEnableCta": "Turn on Bluetooth",
+    "qrPresentScreenBluetoothDisabledPageTitle": "Turn on Bluetooth first",
     "qrPresentScreenCenterQrCodeCta": "Center QR code on screen",
     "qrPresentScreenConnectedTitle": "Please wait. Your request is being retrieved.",
     "qrPresentScreenConnectingTitle": "Please wait. Connecting to the organisation.",

@@ -1,3 +1,4 @@
+import 'package:bluetooth/bluetooth.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_it/get_it.dart';
@@ -175,6 +176,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<LocalNotificationService>()])
 @GenerateNiceMocks([MockSpec<Workmanager>()])
 @GenerateNiceMocks([MockSpec<CloseProximityRepository>()])
+@GenerateNiceMocks([MockSpec<Bluetooth>()])
 /// Mock use cases
 @GenerateNiceMocks([MockSpec<DecodeUriUseCase>()])
 @GenerateNiceMocks([MockSpec<IsWalletInitializedUseCase>()])

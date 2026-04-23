@@ -3,8 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../domain/usecase/permission/check_permission_usecase.dart';
+import 'do_on_resume.dart';
 
-class CheckPermissionsOnResume extends StatefulWidget {
+class CheckPermissionsOnResume extends StatelessWidget {
   final Widget child;
   final VoidCallback? onPermissionGranted;
   final VoidCallback? onPermissionDenied;
@@ -23,40 +24,23 @@ class CheckPermissionsOnResume extends StatefulWidget {
   });
 
   @override
-  State<CheckPermissionsOnResume> createState() => _CheckPermissionsOnResumeState();
-}
-
-class _CheckPermissionsOnResumeState extends State<CheckPermissionsOnResume> with WidgetsBindingObserver {
-  @override
   Widget build(BuildContext context) {
-    return widget.child;
+    return DoOnResume(
+      onResume: () => _checkPermission(context),
+      child: child,
+    );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
+  Future<void> _checkPermission(BuildContext context) async {
+    final usecase = checkPermissionUseCase ?? context.read<CheckPermissionUseCase>();
+    final result = await usecase.invoke(permissions);
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _checkPermission();
-  }
+    if (!context.mounted) return;
 
-  Future<void> _checkPermission() async {
-    final usecase = widget.checkPermissionUseCase ?? context.read<CheckPermissionUseCase>();
-    final result = await usecase.invoke(widget.permissions);
-    if (!mounted) return;
     if (result.isGranted) {
-      widget.onPermissionGranted?.call();
+      onPermissionGranted?.call();
     } else {
-      widget.onPermissionDenied?.call();
+      onPermissionDenied?.call();
     }
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
   }
 }
