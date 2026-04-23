@@ -883,6 +883,35 @@ void main() {
       expect: () => [],
       verify: (bloc) => verifyNever(cancelDisclosureUseCase.invoke()),
     );
+
+    blocTest(
+      'proximity events are ignored after pin validation started',
+      setUp: () {
+        when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+          return Result.success(emptyRequest(sessionType: .closeProximity, type: .regular));
+        });
+        when(getMostRecentWalletEventUseCase.invoke()).thenAnswer((_) async => WalletMockData.disclosureEvent);
+      },
+      build: create,
+      act: (bloc) async {
+        // Trigger session start
+        bloc.add(const DisclosureSessionStarted(StartDisclosureRequest.closeProximity()));
+        await Future.delayed(Duration.zero);
+        // Move to confirm pin page
+        bloc.add(const DisclosureShareRequestedCardsApproved());
+        await Future.delayed(Duration.zero);
+        // Pretend user has entered a PIN
+        bloc.add(const DisclosurePinValidationStarted());
+        await Future.delayed(Duration.zero);
+        // Trigger a disconnect event (should be ignored as user already entered PIN)
+        bleEventController.add(const BleDisconnected());
+        await Future.delayed(Duration.zero);
+        // Notify BLoC about pin confirmation, triggering final success state
+        bloc.add(const DisclosurePinConfirmed());
+      },
+      expect: () => [isA<DisclosureConfirmDataAttributes>(), isA<DisclosureConfirmPin>(), isA<DisclosureSuccess>()],
+      verify: (bloc) => verifyNever(cancelDisclosureUseCase.invoke()),
+    );
   });
 }
 

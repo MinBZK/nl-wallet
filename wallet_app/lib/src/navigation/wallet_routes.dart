@@ -689,6 +689,8 @@ WidgetBuilder _createQrPresentScreenBuilder(RouteSettings settings) {
         context.read(),
         context.read(),
         context.read(),
+        context.read(),
+        context.read(),
       )..add(const QrPresentStartRequested()),
       child: const QrPresentScreen(),
     );

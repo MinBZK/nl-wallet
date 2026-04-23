@@ -10,6 +10,7 @@ class DisclosureConfirmPinPage extends StatelessWidget {
   final OnPinValidatedCallback<String?> onPinValidated;
   final OnPinErrorCallback onConfirmWithPinFailed;
   final VoidCallback? onForgotPinPressed;
+  final VoidCallback? onPinValidationStarted;
   final String title;
 
   @visibleForTesting
@@ -19,6 +20,7 @@ class DisclosureConfirmPinPage extends StatelessWidget {
     required this.onPinValidated,
     required this.onConfirmWithPinFailed,
     this.onForgotPinPressed,
+    this.onPinValidationStarted,
     required this.title,
     this.bloc,
     super.key,
@@ -33,6 +35,10 @@ class DisclosureConfirmPinPage extends StatelessWidget {
         onPinValidated: (result) => onPinValidated.call(result as String?),
         onPinError: onConfirmWithPinFailed,
         onForgotPinPressed: onForgotPinPressed,
+        onStateChanged: (context, state) {
+          if (state is PinValidateInProgress) onPinValidationStarted?.call();
+          return false;
+        },
       ),
     );
   }
