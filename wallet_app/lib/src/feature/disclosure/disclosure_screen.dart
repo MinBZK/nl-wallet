@@ -273,7 +273,7 @@ class DisclosureScreen extends StatelessWidget {
     return DisclosureSuccessPage(
       organizationDisplayName: state.relyingParty.displayName,
       returnUrl: state.returnUrl,
-      isLoginFlow: state.isLoginFlow,
+      descriptionType: state.descriptionType,
       onHistoryPressed: state.event == null
           ? null
           : () {

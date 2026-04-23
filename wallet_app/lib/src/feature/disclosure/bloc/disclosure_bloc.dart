@@ -67,6 +67,9 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     return _startDisclosureResult?.sessionType == DisclosureSessionType.crossDevice;
   }
 
+  /// Determines if the current session is a close-proximity (ISO 18013-5) disclosure flow.
+  bool get isCloseProximityFlow => _closeProximityEventSubscription != null;
+
   /// Returns the indices of the cards selected by the user for disclosure.
   ///
   /// Returns null if the bloc is not in a state where selections can be made.
@@ -101,6 +104,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   Future<void> _onSessionStarted(DisclosureSessionStarted event, Emitter<DisclosureState> emit) async {
     unawaited(_closeProximityEventSubscription?.cancel());
+    _closeProximityEventSubscription = null;
 
     final startDisclosureResult = await _startDisclosureUseCase.invoke(event.request);
 
@@ -332,12 +336,17 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     assert(_startDisclosureResult != null, 'DisclosureResult should still be available after confirming the tx');
     final lastEvent = await _getMostRecentWalletEventUseCase.invoke();
     assert(lastEvent != null, 'Last event should not be null after a successful disclosure');
+
+    SuccessDescriptionType descriptionType = SuccessDescriptionType.regular;
+    if (isLoginFlow) descriptionType = .login;
+    if (isCloseProximityFlow) descriptionType = .closeProximity;
+
     emit(
       DisclosureSuccess(
         relyingParty: _startDisclosureResult!.relyingParty,
         event: lastEvent,
         returnUrl: event.returnUrl,
-        isLoginFlow: isLoginFlow,
+        descriptionType: descriptionType,
         isCrossDevice: isCrossDeviceFlow,
       ),
     );
