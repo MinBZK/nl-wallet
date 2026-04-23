@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-04-14T16:06:25+02:00",
+    "@@last_modified": "2026-04-21T13:27:51+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -542,7 +542,16 @@
             }
         }
     },
-    "disclosureSuccessPageDescriptionForLogin": "You are logged in. Continue on the website of {organization}.",
+    "disclosureSuccessPageDescriptionForCloseProximity": "You are logged in. Continue on the website of {organization}.",
+    "@disclosureSuccessPageDescriptionForCloseProximity": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureSuccessPageDescriptionForLogin": "Your data has been shared with {organization}. Close this screen and continue with the process.",
     "@disclosureSuccessPageDescriptionForLogin": {
         "placeholders": {
             "organization": {
@@ -691,6 +700,9 @@
     "genericRelyingPartyErrorDescription": "The card(s) couldn’t be added. This may have several reasons.\n\nGo back to the organization's website where you started and try again. If it still doesn’t work, contact the organization.",
     "genericRelyingPartyErrorDescriptionWithOrganizationName": "The card(s) couldn’t be added. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
     "genericRelyingPartyErrorTitle": "Sorry, something went wrong",
+    "helpScreenGroupTitleHelp": "Help",
+    "helpScreenGroupTitleInformation": "Information",
+    "helpScreenTitle": "Help and information",
     "helpSheetDescription": "Contact support. The following data could be required.",
     "helpSheetErrorCode": "Error code: {code}",
     "@helpSheetErrorCode": {
@@ -712,6 +724,7 @@
         }
     },
     "helpSheetTitle": "Need help?",
+    "helpTopicScreenReferencesHeading": "Other questions",
     "historyDetailScreenAboutOrganizationCta": "About {organization}",
     "@historyDetailScreenAboutOrganizationCta": {
         "placeholders": {
@@ -1061,7 +1074,7 @@
     "menuScreenBrowserCta": "Browser Test",
     "menuScreenDesignCta": "Design System",
     "menuScreenFeedbackCta": "Give feedback",
-    "menuScreenHelpCta": "Need help?",
+    "menuScreenHelpCta": "Help and information",
     "menuScreenHistoryCta": "Activities",
     "menuScreenLockCta": "Log out",
     "menuScreenScanQrCta": "Scan QR code",

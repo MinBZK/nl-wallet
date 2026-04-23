@@ -8,35 +8,39 @@ import '../../common/page/terminal_page.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/page_illustration.dart';
+import '../bloc/disclosure_bloc.dart';
 
 class DisclosureSuccessPage extends StatelessWidget {
   final LocalizedText organizationDisplayName;
   final VoidCallback? onHistoryPressed;
   final Function(String?) onPrimaryPressed;
   final String? returnUrl;
-  final bool isLoginFlow;
+  final SuccessDescriptionType descriptionType;
 
   const DisclosureSuccessPage({
     required this.organizationDisplayName,
     required this.onPrimaryPressed,
     this.returnUrl,
     this.onHistoryPressed,
-    this.isLoginFlow = false,
+    this.descriptionType = .regular,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    final title = isLoginFlow
-        ? context.l10n.disclosureSuccessPageDescriptionForLogin(organizationDisplayName.l10nValue(context))
-        : context.l10n.disclosureSuccessPageDescription(organizationDisplayName.l10nValue(context));
+    final orgName = organizationDisplayName.l10nValue(context);
+    final description = switch (descriptionType) {
+      SuccessDescriptionType.regular => context.l10n.disclosureSuccessPageDescription(orgName),
+      SuccessDescriptionType.login => context.l10n.disclosureSuccessPageDescriptionForLogin(orgName),
+      SuccessDescriptionType.closeProximity => context.l10n.disclosureSuccessPageDescriptionForLogin(orgName),
+    };
     final bool hasReturnUrl = returnUrl != null;
     final primaryButtonCta = hasReturnUrl
         ? context.l10n.disclosureSuccessPageToWebsiteCta
         : context.l10n.disclosureSuccessPageToDashboardCta;
     return TerminalPage(
       title: context.l10n.disclosureSuccessPageTitle,
-      description: title,
+      description: description,
       illustration: const PageIllustration(asset: WalletAssets.svg_sharing_success),
       primaryButton: PrimaryButton(
         text: Text(primaryButtonCta),

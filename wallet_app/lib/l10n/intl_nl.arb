@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2026-04-14T16:06:25+02:00",
+    "@@last_modified": "2026-04-21T13:27:51+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -538,7 +538,16 @@
             }
         }
     },
-    "disclosureSuccessPageDescriptionForLogin": "Je bent ingelogd. Ga verder op de website van {organization}.",
+    "disclosureSuccessPageDescriptionForCloseProximity": "Je bent ingelogd. Ga verder op de website van {organization}.",
+    "@disclosureSuccessPageDescriptionForCloseProximity": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureSuccessPageDescriptionForLogin": "Je gegevens zijn gedeeld met {organization}. Sluit dit scherm en ga verder met het proces.",
     "@disclosureSuccessPageDescriptionForLogin": {
         "placeholders": {
             "organization": {
@@ -687,6 +696,9 @@
     "genericRelyingPartyErrorDescription": "De kaart(en) kunnen niet worden toegevoegd. Dit kan meerdere redenen hebben.\n\nGa terug naar de website van de organisatie waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met de organisatie.",
     "genericRelyingPartyErrorDescriptionWithOrganizationName": "De kaart(en) kunnen niet worden toegevoegd. Dit kan meerdere redenen hebben.\n\nGa terug naar de website van {organization} waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met {organization}.",
     "genericRelyingPartyErrorTitle": "Sorry, er gaat iets mis",
+    "helpScreenGroupTitleHelp": "Hulp",
+    "helpScreenGroupTitleInformation": "Informatie",
+    "helpScreenTitle": "Hulp en informatie",
     "helpSheetDescription": "Neem contact op met de helpdesk. De volgende gegevens kunnen nodig zijn.",
     "helpSheetErrorCode": "Foutcode: {code}",
     "@helpSheetErrorCode": {
@@ -708,6 +720,7 @@
         }
     },
     "helpSheetTitle": "Hulp nodig?",
+    "helpTopicScreenReferencesHeading": "Andere vragen",
     "historyDetailScreenAboutOrganizationCta": "Over {organization}",
     "@historyDetailScreenAboutOrganizationCta": {
         "placeholders": {
@@ -1057,7 +1070,7 @@
     "menuScreenBrowserCta": "Browser Test",
     "menuScreenDesignCta": "Design System",
     "menuScreenFeedbackCta": "Geef feedback",
-    "menuScreenHelpCta": "Hulp nodig?",
+    "menuScreenHelpCta": "Hulp en informatie",
     "menuScreenHistoryCta": "Activiteiten",
     "menuScreenLockCta": "Uitloggen",
     "menuScreenScanQrCta": "Scan QR-code",

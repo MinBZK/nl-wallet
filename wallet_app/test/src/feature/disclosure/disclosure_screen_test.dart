@@ -363,6 +363,36 @@ void main() {
       await screenMatchesGolden('success.light');
     });
 
+    testGoldens('ltc15 DisclosureSuccess Light (Login)', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          DisclosureSuccess(
+            relyingParty: WalletMockData.organization,
+            event: WalletMockData.disclosureEvent,
+            isCrossDevice: false,
+            descriptionType: .login,
+          ),
+        ),
+      );
+      await screenMatchesGolden('success.login.light');
+    });
+
+    testGoldens('ltc15 DisclosureSuccess Light (Close Proximity)', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          DisclosureSuccess(
+            relyingParty: WalletMockData.organization,
+            event: WalletMockData.disclosureEvent,
+            isCrossDevice: false,
+            descriptionType: .closeProximity,
+          ),
+        ),
+      );
+      await screenMatchesGolden('success.close_proximity.light');
+    });
+
     testGoldens('ltc15 DisclosureSuccess Light - with returnUrl', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
