@@ -1122,16 +1122,6 @@ fn setup_verifier(
     let reader_registration = ReaderRegistration::mock_from_dcql_query(dcql_query);
     let usecases = HashMap::from([
         (
-            NO_RETURN_URL_USE_CASE.to_string(),
-            RpInitiatedUseCase::new(
-                generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
-                SessionTypeReturnUrl::Neither,
-                None,
-                None,
-                false,
-            ),
-        ),
-        (
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::new(
                 generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),

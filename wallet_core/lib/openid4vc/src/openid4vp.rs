@@ -12,7 +12,6 @@ use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
@@ -63,43 +62,6 @@ use serde_with::SerializeAs;
 use serde_with::SerializeDisplay;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
-
-use attestation_data::disclosure::DisclosedAttestation;
-use attestation_data::disclosure::DisclosedAttestationError;
-use attestation_data::disclosure::DisclosedAttestations;
-use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateUsage;
-use dcql::CredentialQueryIdentifier;
-use dcql::Query;
-use dcql::disclosure::CredentialValidationError;
-use dcql::disclosure::ExtendingVctRetriever;
-use dcql::normalized::NormalizedCredentialRequests;
-use dcql::normalized::UnsupportedDcqlFeatures;
-use dcql::unique_id_vec::UniqueIdVec;
-use error_category::ErrorCategory;
-use http_utils::urls::BaseUrl;
-use jwe::algorithm::EncryptionAlgorithm;
-use jwe::decryption::ExpectedEncryptionAlgorithm;
-use jwe::decryption::JweDecrypter;
-use jwe::decryption::JweEcdhSecretKey;
-use jwe::encryption::JweCompression;
-use jwe::encryption::JweEncrypter;
-use jwe::encryption::JwePublicKey;
-use jwe::error::EcdhPublicJwkError;
-use jwe::error::JweJsonDecryptionError;
-use jwe::error::JweJsonEncryptionError;
-use jwt::Algorithm;
-use jwt::JwtTyp;
-use jwt::UnverifiedJwt;
-use jwt::Validation;
-use jwt::error::JwtX5cError;
-use jwt::headers::HeaderWithX5c;
-use jwt::nonce::Nonce;
-use mdoc::DeviceResponse;
-use mdoc::SessionTranscript;
-use mdoc::utils::serialization::CborBase64;
-use sd_jwt::key_binding_jwt::KbVerificationOptions;
-use sd_jwt::sd_jwt::UnverifiedSdJwtPresentation;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
@@ -429,8 +391,8 @@ pub enum AuthRequestValidationError {
     #[error("unsupported DCQL query: {0}")]
     UnsupportedDcqlQuery(#[from] UnsupportedDcqlFeatures),
     #[error(
-        "client_id from Authorization Request was {client_id}, should have been x509_hash:{certificate_hash} to match the \
-         leaf X.509 certificate from the x5c JOSE header"
+        "client_id from Authorization Request was {client_id}, should have been x509_hash:{certificate_hash} to match \
+         the leaf X.509 certificate from the x5c JOSE header"
     )]
     #[category(critical)]
     UnauthorizedClientIdHash {
@@ -1205,6 +1167,8 @@ mod tests {
     use dcql::CredentialQueryIdentifier;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
+    use futures::FutureExt;
+    use itertools::Itertools;
     use jwe::algorithm::EcdhAlgorithm;
     use jwe::algorithm::EncryptionAlgorithm;
     use jwe::decryption::JweEcdhSecretKey;

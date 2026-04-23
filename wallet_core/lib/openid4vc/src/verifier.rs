@@ -1582,16 +1582,6 @@ mod tests {
 
         let use_cases = HashMap::from([
             (
-                DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
-                RpInitiatedUseCase::new(
-                    generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
-                    SessionTypeReturnUrl::Neither,
-                    None,
-                    None,
-                    false,
-                ),
-            ),
-            (
                 DISCLOSURE_USECASE.to_string(),
                 RpInitiatedUseCase::new(
                     generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
