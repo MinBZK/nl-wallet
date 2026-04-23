@@ -218,11 +218,29 @@ class Runner:
                 "--qr-code",
                 qr_code,
             ]
+            device_request_hex = payload.get("device_request_hex")
+            if isinstance(device_request_hex, str) and device_request_hex:
+                helper_command.extend(["--device-request-hex", device_request_hex])
+
+            reader_ca_crt_file = payload.get("reader_ca_crt_file")
+            if isinstance(reader_ca_crt_file, str) and reader_ca_crt_file:
+                helper_command.extend(["--reader-ca-crt-file", reader_ca_crt_file])
+
+            reader_ca_key_file = payload.get("reader_ca_key_file")
+            if isinstance(reader_ca_key_file, str) and reader_ca_key_file:
+                helper_command.extend(["--reader-ca-key-file", reader_ca_key_file])
+
+            reader_auth_file = payload.get("reader_auth_file")
+            if isinstance(reader_auth_file, str) and reader_auth_file:
+                helper_command.extend(["--reader-auth-file", reader_auth_file])
+
             expected_device_response_hex = payload.get("expected_device_response_hex")
             if isinstance(expected_device_response_hex, str) and expected_device_response_hex:
                 helper_command.extend(
                     ["--expect-device-response-hex", expected_device_response_hex]
                 )
+            if payload.get("print_device_response_hex") is True:
+                helper_command.append("--print-device-response-hex")
             command_string = " ".join(shlex.quote(part) for part in helper_command)
             print(
                 f"\n[auto-close-proximity] Launching helper: {command_string}\n",
