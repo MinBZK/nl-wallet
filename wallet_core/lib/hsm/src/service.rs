@@ -17,7 +17,7 @@ use cryptoki::object::ObjectHandle;
 use cryptoki::types::AuthPin;
 use der::Decode;
 use der::Encode;
-use der::asn1::OctetString;
+use der::asn1::OctetStringRef;
 use derive_more::AsRef;
 use futures::future;
 use measure::measure;
@@ -437,7 +437,7 @@ impl Pkcs11Client for Pkcs11Hsm {
             match attr {
                 Attribute::EcPoint(ec_point) => {
                     let octet_string =
-                        OctetString::from_der(&ec_point).map_err(|error| HsmError::Sec1(Box::new(error)))?;
+                        OctetStringRef::from_der(&ec_point).map_err(|error| HsmError::Sec1(Box::new(error)))?;
                     let public_key = VerifyingKey::from_sec1_bytes(octet_string.as_bytes())?;
                     Ok(public_key)
                 }
