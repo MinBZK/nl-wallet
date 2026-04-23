@@ -206,18 +206,21 @@ pub mod mock {
 
         async fn get_verifying_key(
             &self,
-            _public_key_handle: crate::service::PublicKeyHandle,
+            _public_key_handle: &crate::service::PublicKeyHandle,
         ) -> Result<VerifyingKey, HsmError> {
             todo!()
         }
 
-        async fn delete_key(&self, _private_key_handle: PrivateKeyHandle) -> Result<(), HsmError> {
+        async fn delete_key<KH>(&self, _key_handle: KH) -> Result<(), HsmError>
+        where
+            KH: crate::service::KeyHandle + Send + Sync + 'static,
+        {
             todo!()
         }
 
         async fn sign(
             &self,
-            _private_key_handle: PrivateKeyHandle,
+            _private_key_handle: &PrivateKeyHandle,
             _mechanism: crate::service::SigningMechanism,
             _data: &[u8],
         ) -> Result<Vec<u8>, HsmError> {
@@ -226,7 +229,7 @@ pub mod mock {
 
         async fn verify(
             &self,
-            _private_key_handle: PrivateKeyHandle,
+            _private_key_handle: &PrivateKeyHandle,
             _mechanism: crate::service::SigningMechanism,
             _data: &[u8],
             _signature: Vec<u8>,
@@ -236,7 +239,7 @@ pub mod mock {
 
         async fn encrypt(
             &self,
-            _key_handle: PrivateKeyHandle,
+            _key_handle: &PrivateKeyHandle,
             _iv: InitializationVector,
             _data: Vec<u8>,
         ) -> Result<(Vec<u8>, InitializationVector), HsmError> {
@@ -245,7 +248,7 @@ pub mod mock {
 
         async fn decrypt(
             &self,
-            _key_handle: PrivateKeyHandle,
+            _key_handle: &PrivateKeyHandle,
             _iv: InitializationVector,
             _encrypted_data: Vec<u8>,
         ) -> Result<Vec<u8>, HsmError> {
@@ -254,8 +257,8 @@ pub mod mock {
 
         async fn wrap_key(
             &self,
-            _wrapping_key: PrivateKeyHandle,
-            _key: PrivateKeyHandle,
+            _wrapping_key: &PrivateKeyHandle,
+            _key: &PrivateKeyHandle,
             _public_key: VerifyingKey,
         ) -> Result<WrappedKey, HsmError> {
             todo!()
@@ -263,7 +266,7 @@ pub mod mock {
 
         async fn unwrap_signing_key(
             &self,
-            _unwrapping_key: PrivateKeyHandle,
+            _unwrapping_key: &PrivateKeyHandle,
             _wrapped_key: WrappedKey,
         ) -> Result<PrivateKeyHandle, HsmError> {
             todo!()
