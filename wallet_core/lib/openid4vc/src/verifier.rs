@@ -2217,9 +2217,9 @@ mod tests {
 
         let token = verifier
             .new_session(
-                DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
+                DISCLOSURE_USECASE.to_string(),
                 Some(Query::new_mock_mdoc_pid_example()),
-                None,
+                Some("https://example.com/{session_token}".parse().unwrap()),
             )
             .await
             .unwrap();
