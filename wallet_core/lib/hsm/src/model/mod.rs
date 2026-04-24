@@ -209,10 +209,7 @@ pub mod mock {
             todo!()
         }
 
-        async fn delete_key<KH>(&self, _key_handle: KH) -> Result<(), HsmError>
-        where
-            KH: KeyHandle + Send + 'static,
-        {
+        async fn delete_key(&self, _key_handle: impl KeyHandle) -> Result<(), HsmError> {
             todo!()
         }
 

@@ -81,7 +81,7 @@ pub struct PrivateKeyHandle(ObjectHandle);
 /// leverage the type system to detect when handles are destroyed.
 pub struct PublicKeyHandle(ObjectHandle);
 
-pub trait KeyHandle {
+pub trait KeyHandle: Send + 'static {
     fn to_object_handle(&self) -> ObjectHandle;
 }
 
@@ -118,9 +118,7 @@ pub trait Pkcs11Client {
     async fn get_public_key_handle(&self, identifier: &str) -> Result<PublicKeyHandle>;
     async fn get_verifying_key(&self, public_key_handle: &PublicKeyHandle) -> Result<VerifyingKey>;
     /// Delete key (takes ownership since the handle is invalid after deletion)
-    async fn delete_key<KH>(&self, key_handle: KH) -> Result<()>
-    where
-        KH: KeyHandle + Send + 'static;
+    async fn delete_key(&self, key_handle: impl KeyHandle) -> Result<()>;
     async fn sign(
         &self,
         private_key_handle: &PrivateKeyHandle,
@@ -477,10 +475,7 @@ impl Pkcs11Client for Pkcs11Hsm {
     }
 
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
-    async fn delete_key<KH>(&self, key_handle: KH) -> Result<()>
-    where
-        KH: KeyHandle + Send + 'static,
-    {
+    async fn delete_key(&self, key_handle: impl KeyHandle) -> Result<()> {
         let pool = self.pool.clone();
 
         spawn::blocking(move || {
