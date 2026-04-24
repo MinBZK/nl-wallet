@@ -89,6 +89,7 @@ use openid4vc::verifier::SessionType;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
 use openid4vc::verifier::UseCase;
+use openid4vc::verifier::UseCaseData;
 use openid4vc::verifier::UseCases;
 use openid4vc::verifier::Verifier;
 use openid4vc::verifier::VerifierUrlParameters;
@@ -1111,27 +1112,33 @@ fn setup_verifier(
     let usecases = HashMap::from([
         (
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
-            RpInitiatedUseCase::try_new(
-                generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
-                &public_url,
-                SessionTypeReturnUrl::SameDevice,
+            RpInitiatedUseCase::new(
+                UseCaseData::try_new(
+                    generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
+                    &public_url,
+                    SessionTypeReturnUrl::SameDevice,
+                )
+                .unwrap(),
+                None,
                 None,
                 None,
                 false,
-            )
-            .unwrap(),
+            ),
         ),
         (
             ALL_RETURN_URL_USE_CASE.to_string(),
-            RpInitiatedUseCase::try_new(
-                generate_reader_mock_with_registration(&rp_ca, reader_registration).unwrap(),
-                &public_url,
-                SessionTypeReturnUrl::Both,
+            RpInitiatedUseCase::new(
+                UseCaseData::try_new(
+                    generate_reader_mock_with_registration(&rp_ca, reader_registration).unwrap(),
+                    &public_url,
+                    SessionTypeReturnUrl::Both,
+                )
+                .unwrap(),
+                None,
                 None,
                 None,
                 false,
-            )
-            .unwrap(),
+            ),
         ),
     ]);
 

@@ -55,6 +55,27 @@
                     android:pathPrefix="${ulIntentFilterPathPrefix}"
                     android:scheme="${ulIntentFilterScheme}" />
             </intent-filter>
+            <!-- ETSI TS 119 472-2: "eu-eaap" scheme -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="eu-eaap" />
+            </intent-filter>
+            <!-- OpenID4VP: "openid4vp" scheme -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="openid4vp" />
+            </intent-filter>
+            <!-- HAIP: "haip-vp" scheme -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="haip-vp" />
+            </intent-filter>
         </activity>
 
         <!-- Used by flutter_local_notifications to schedule alarms -->

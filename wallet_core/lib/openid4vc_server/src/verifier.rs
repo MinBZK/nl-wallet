@@ -59,12 +59,12 @@ use utils::vec_at_least::VecNonEmpty;
 struct ApplicationState<S, US, C> {
     verifier: Verifier<S, US, C>,
     public_url: BaseUrl,
-    universal_link_base_url: BaseUrl,
+    disclosure_base_deep_link: BaseUrl,
 }
 
 pub struct VerifierFactory<US> {
     public_url: BaseUrl,
-    universal_link_base_url: BaseUrl,
+    disclosure_base_deep_link: BaseUrl,
     use_cases: US,
     issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     accepted_wallet_client_ids: Vec<String>,
@@ -84,7 +84,7 @@ where
 {
     pub fn new(
         public_url: BaseUrl,
-        universal_link_base_url: BaseUrl,
+        disclosure_base_deep_link: BaseUrl,
         use_cases: US,
         issuer_trust_anchors: Vec<TrustAnchor<'static>>,
         accepted_wallet_client_ids: Vec<String>,
@@ -92,7 +92,7 @@ where
     ) -> Self {
         Self {
             public_url,
-            universal_link_base_url,
+            disclosure_base_deep_link,
             use_cases,
             issuer_trust_anchors,
             accepted_wallet_client_ids,
@@ -121,7 +121,7 @@ where
                 revocation_verifier,
             ),
             public_url: self.public_url,
-            universal_link_base_url: self.universal_link_base_url,
+            disclosure_base_deep_link: self.disclosure_base_deep_link,
         });
 
         // RFC 9101 defines just `GET` for the `request_uri` endpoint, but OpenID4VP extends that with `POST`.
@@ -287,12 +287,17 @@ where
     K: EcdsaKeySend,
     C: StatusListClient,
 {
+    let disclosure_base_deep_link = state
+        .verifier
+        .disclosure_usecase_base_deep_link(&session_token)
+        .await
+        .unwrap_or_else(|| state.disclosure_base_deep_link.clone());
     let response = state
         .verifier
         .status_response(
             &session_token,
             query.session_type,
-            &urls::disclosure_base_uri(&state.universal_link_base_url),
+            &urls::disclosure_base_uri(&disclosure_base_deep_link),
             state.public_url.join_base_url(&format!("{session_token}/request_uri")),
             &TimeGenerator,
         )

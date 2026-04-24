@@ -34,6 +34,9 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>walletdebuginteraction</string>
+				<string>eu-eaap</string>
+				<string>openid4vp</string>
+				<string>haip-vp</string>
 			</array>
 		</dict>
 	</array>
