@@ -69,7 +69,16 @@ pub enum HsmError {
 
 type Result<T> = std::result::Result<T, HsmError>;
 
+/// PrivateKeyHandle that wraps ObjectHandle for private keys
+///
+/// Note that this struct doesn't derive Copy (ObjectHandle does) on purpose to
+/// leverage the type system to detect when handles are destroyed.
 pub struct PrivateKeyHandle(ObjectHandle);
+
+/// PublicKeyHandle that wraps ObjectHandle for public keys
+///
+/// Note that this struct doesn't derive Copy (ObjectHandle does) on purpose to
+/// leverage the type system to detect when handles are destroyed.
 pub struct PublicKeyHandle(ObjectHandle);
 
 pub trait KeyHandle {
