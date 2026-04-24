@@ -18,12 +18,6 @@ impl HsmChecker {
     }
 }
 
-impl From<HsmChecker> for Box<dyn HealthChecker> {
-    fn from(value: HsmChecker) -> Self {
-        Box::new(value)
-    }
-}
-
 #[async_trait]
 impl HealthChecker for HsmChecker {
     fn name(&self) -> &'static str {
