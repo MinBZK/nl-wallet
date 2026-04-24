@@ -160,14 +160,21 @@ combined: the wallet talks to a single `PID Issuer`, which hosts its own `/par`,
 the `PID Issuer` still delegates the actual user authentication to an upstream
 OpenID Connect provider — in practice [RDO Max][6] acting as a DigiD broker.
 
+For the internal structure of the `PID Issuer` — which crates contribute the
+handlers, the `AttributeService` and `UpstreamAuthorizationEndpointResolver`
+seams, where state lives, and how a single `/token` request flows through the
+components — see
+[PID Issuer architecture](../../development/pid-issuer-architecture.md).
+
 ### Delegation to RDO Max: what is decoupled, what is passed through
 
 Conceptually the `PID Issuer` runs its own Authorization Server in front of RDO
 Max. Most OAuth parameters are therefore _decoupled_: the wallet's values are
 terminated at the `PID Issuer`, which substitutes its own for the upstream
 server. A few parameters are _shared_ so that RDO Max can redirect the browser
-straight back to the wallet without any intermediary hop on the PID Issuer's
-domain, and lets RDO Max's error/cancel responses reach the wallet directly.
+straight back to the wallet without any intermediary redirects to the PID
+Issuer's domain, and lets RDO Max's error/cancel responses reach the wallet
+directly.
 
 Parameter handling on **upstream `/authorize`**:
 
@@ -177,7 +184,7 @@ Parameter handling on **upstream `/authorize`**:
 | `redirect_uri`                    | **shared** — wallet's universal link, passed through                    |
 | `code_challenge`/`_method`        | **decoupled** — PID Issuer generates its own PKCE pair for the upstream |
 | `state`                           | **shared** — so the wallet can verify it when the code comes back       |
-| `response_type=code`              | shared                                                                  |
+| `response_type=code`              | **shared**                                                              |
 | `scope` / `authorization_details` | **terminated** — replaced with `openid`                                 |
 | `nonce` (OIDC)                    | PID Issuer generates its own for the upstream session                   |
 | `client_assertion` (WIA)          | **terminated** — wallet ↔ PID Issuer only                              |
@@ -190,7 +197,7 @@ Parameter handling on **upstream `/token`**:
 | `code`                          | **shared** — the upstream code flows wallet → PID Issuer → RDO Max     |
 | `redirect_uri`                  | **shared**                                                             |
 | `code_verifier`                 | **decoupled** — wallet sends its verifier; PID Issuer swaps in its own |
-| `grant_type=authorization_code` | shared                                                                 |
+| `grant_type=authorization_code` | **shared**                                                             |
 | `client_assertion` (WIA)        | **terminated**                                                         |
 | `DPoP` header                   | **terminated** — RDO Max is not DPoP-aware; upstream client auth used  |
 
