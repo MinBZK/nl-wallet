@@ -181,8 +181,8 @@ pub async fn setup_wallet_and_default_env(
 }
 
 pub struct DegreeClientIds {
-    pub mdoc: ClientId,
-    pub sd_jwt: ClientId,
+    mdoc: ClientId,
+    sd_jwt: ClientId,
 }
 
 impl DegreeClientIds {
@@ -360,7 +360,7 @@ pub async fn setup_env(
     let issuer_data = IssuerData {
         issuance_server: issuance_server_url,
         pid_issuer: pid_issuer_url,
-        degree_client_ids: degree_client_ids,
+        degree_client_ids,
     };
 
     let config_bytes = read_file("wallet-config.json");
