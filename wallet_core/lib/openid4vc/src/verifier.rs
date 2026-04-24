@@ -42,7 +42,7 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
-use tokio::task::JoinHandle;
+use tokio::task::AbortHandle;
 use tracing::debug;
 use tracing::info;
 use tracing::warn;
@@ -62,8 +62,8 @@ use crate::openid4vp::VpRequestUri;
 use crate::openid4vp::VpRequestUriMethod;
 use crate::openid4vp::VpRequestUriObject;
 use crate::openid4vp::VpResponse;
+use crate::recurring_task::start_recurring_task;
 use crate::return_url::ReturnUrlTemplate;
-use crate::server_state::CLEANUP_INTERVAL_SECONDS;
 use crate::server_state::Expirable;
 use crate::server_state::HasProgress;
 use crate::server_state::Progress;
@@ -72,6 +72,9 @@ use crate::server_state::SessionState;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
 use crate::server_state::SessionToken;
+
+/// The cleanup task that removes stale sessions runs every so often.
+const CLEANUP_INTERVAL: Duration = Duration::from_secs(120);
 
 pub const EPHEMERAL_ID_VALIDITY_SECONDS: Duration = Duration::from_secs(10);
 
@@ -860,7 +863,7 @@ pub trait DisclosureResultHandler {
 pub struct Verifier<S, US, C> {
     use_cases: US,
     sessions: Arc<S>,
-    cleanup_task: JoinHandle<()>,
+    cleanup_task: AbortHandle,
     trust_anchors: Vec<TrustAnchor<'static>>,
     #[debug(skip)]
     result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
@@ -906,9 +909,20 @@ where
     where
         S: Sync + 'static,
     {
+        let task_sessions = Arc::clone(&sessions);
+        let cleanup_task = start_recurring_task(CLEANUP_INTERVAL, move || {
+            let task_sessions = Arc::clone(&task_sessions);
+
+            async move {
+                if let Err(error) = task_sessions.cleanup().await {
+                    warn!("error during session cleanup: {error}");
+                }
+            }
+        });
+
         Self {
             use_cases,
-            cleanup_task: sessions.clone().start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
+            cleanup_task,
             sessions,
             trust_anchors,
             result_handler,
@@ -1571,6 +1585,7 @@ mod tests {
 
     use super::AuthorizationErrorCode;
     use super::AuthorizationErrorResponse;
+    use super::CLEANUP_INTERVAL;
     use super::ClientId;
     use super::DisclosedAttributesError;
     use super::DisclosureData;
@@ -1605,13 +1620,15 @@ mod tests {
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionStore;
     use crate::server_state::SessionToken;
+    use crate::server_state::test::memory_session_store_with_mock_time;
+    use crate::server_state::test::test_memory_store_with_cleanup_task;
 
     const DISCLOSURE_USECASE: &str = "example_usecase";
     const DISCLOSURE_USECASE_ALL_REDIRECT_URI: &str = "example_usecase_all_redirect_uri";
 
-    type TestVerifier = Verifier<
-        MemorySessionStore<DisclosureData>,
-        RpInitiatedUseCases<SigningKey, MemorySessionStore<DisclosureData>>,
+    type TestVerifier<G> = Verifier<
+        MemorySessionStore<DisclosureData, G>,
+        RpInitiatedUseCases<SigningKey, MemorySessionStore<DisclosureData, G>>,
         StatusListClientStub<SigningKey>,
     >;
 
@@ -1628,7 +1645,10 @@ mod tests {
         }
     }
 
-    fn create_verifier() -> TestVerifier {
+    fn create_verifier<G>(sessions: Arc<MemorySessionStore<DisclosureData, G>>) -> TestVerifier<G>
+    where
+        G: Generator<DateTime<Utc>> + Send + Sync + 'static,
+    {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
@@ -1662,15 +1682,13 @@ mod tests {
             ),
         ]);
 
-        let session_store = Arc::new(MemorySessionStore::default());
-
         Verifier::new(
             RpInitiatedUseCases::new(
                 use_cases,
                 hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
-                Arc::clone(&session_store),
+                Arc::clone(&sessions),
             ),
-            session_store,
+            sessions,
             trust_anchors,
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
@@ -1695,7 +1713,7 @@ mod tests {
         #[case] has_return_url: bool,
         #[case] should_succeed: bool,
     ) {
-        let verifier = create_verifier();
+        let verifier = create_verifier(Default::default());
         let return_url_template = has_return_url.then(|| "https://example.com/{session_token}".parse().unwrap());
 
         let result = verifier
@@ -1714,8 +1732,10 @@ mod tests {
         }
     }
 
-    async fn init_and_start_disclosure(time: &impl Generator<DateTime<Utc>>) -> (TestVerifier, SessionToken, BaseUrl) {
-        let verifier = create_verifier();
+    async fn init_and_start_disclosure(
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> (TestVerifier<TimeGenerator>, SessionToken, BaseUrl) {
+        let verifier = create_verifier(Default::default());
 
         // Start session
         let session_token = verifier
@@ -1875,7 +1895,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_verifier_disclosed_attributes() {
-        let verifier = create_verifier();
+        let verifier = create_verifier(Default::default());
 
         // Add three sessions to the store:
         // * One with disclosed attributes and a return URL
@@ -2151,5 +2171,22 @@ mod tests {
 
         let response: WalletAuthResponse = serde_urlencoded::from_str(&body).unwrap();
         assert_eq!(response, expected);
+    }
+
+    #[tokio::test]
+    async fn test_cleanup_task() {
+        let (sessions, mock_time) = memory_session_store_with_mock_time();
+        let sessions = Arc::new(sessions);
+        let verifier = create_verifier(Arc::clone(&sessions));
+
+        let token = verifier
+            .new_session(
+                DISCLOSURE_USECASE.to_string(),
+                Some(Query::new_mock_mdoc_pid_example()),
+                Some("https://example.com/{session_token}".parse().unwrap()),
+            )
+            .await
+            .unwrap();
+        test_memory_store_with_cleanup_task(sessions, token, &mock_time, CLEANUP_INTERVAL).await;
     }
 }
