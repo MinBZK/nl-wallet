@@ -4,7 +4,7 @@ import helper.RevocationHelper
 import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
-import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
@@ -158,8 +158,8 @@ class RevokeWalletsTests : TestBase() {
         assertTrue(walletSolutionBlockedScreen.visible(), "Wallet revoked screen is not visible")
     }
 
-    @AfterAll
-    fun afterAll() {
+    @AfterEach
+    fun afterEach() {
         revocationHelper.restoreWalletSolution()
         revocationHelper.deleteFromDenyList(DEFAULT_RECOVERY_CODE)
         Thread.sleep(MobileActions.DEFAULT_RESET_SLEEP)

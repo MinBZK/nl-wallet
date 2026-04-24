@@ -289,7 +289,7 @@ platform :android do
       }),
       log: false
     )
-    build_id = JSON.parse(build_response.lines[0..-2].join)["build_id"]
+    build_id = JSON.parse(build_response)["build_id"]
     UI.user_error!("Failed to start BrowserStack Espresso build (response: #{build_response})") if build_id.blank?
     UI.message("BrowserStack Espresso build started: #{build_id}")
 
@@ -633,7 +633,7 @@ platform :ios do
       sh("xcodebuild", "build-for-testing",
          "-project", "PlatformSupport.xcodeproj",
          "-scheme", "PlatformSupport",
-         "-testPlan", "RealDevice",
+         "-testPlan", "BrowserStackRealDevice",
          "-destination", "generic/platform=iOS",
          "-derivedDataPath", "build",
          "CODE_SIGN_IDENTITY=-",
