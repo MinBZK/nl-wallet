@@ -377,13 +377,6 @@ impl FlutterApiErrorFields for DisclosureError {
     }
 
     fn data(&self) -> serde_json::Value {
-        let session_type = match self {
-            DisclosureError::VpClient(VpClientError::DisclosureUriSourceMismatch(session_type, _)) => {
-                Some(*session_type)
-            }
-            DisclosureError::CloseProximityDisclosureSessionError(_) => Some(SessionType::CrossDevice),
-            _ => None,
-        };
         let can_retry = match self {
             DisclosureError::VpClient(VpClientError::Request(error))
             | DisclosureError::VpVerifierServer {
@@ -404,7 +397,6 @@ impl FlutterApiErrorFields for DisclosureError {
             },
             _ => None,
         };
-        let return_url = self.return_url();
         let organization_name = match self {
             DisclosureError::VpVerifierServer { organization, .. } => organization
                 .as_ref()
@@ -419,11 +411,10 @@ impl FlutterApiErrorFields for DisclosureError {
             ) => Some(organization.display_name.clone()),
             _ => None,
         };
-        let revocation_data = if let Self::Instruction(InstructionError::AccountRevoked(data)) = self {
-            Some(*data)
-        } else {
-            None
-        };
+
+        let session_type = self.session_type();
+        let return_url = self.return_url();
+        let revocation_data = self.revocation_data();
 
         if session_type.is_some()
             || can_retry.is_some()
