@@ -154,7 +154,7 @@ async fn wallet_server_settings_and_listener(
             key_pair: usecase_keypair.into(),
             dcql_query: None,
             return_url_template: None,
-            universal_link_base_url: None,
+            disclosure_base_deep_link: None,
             accept_undetermined_revocation_status: false,
         },
     )])

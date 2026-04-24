@@ -98,8 +98,8 @@ pub struct UseCaseSettings {
     pub dcql_query: Option<Query>,
     pub return_url_template: Option<ReturnUrlTemplate>,
 
-    // Override universal_link_base_url for this specific usecase.
-    pub universal_link_base_url: Option<BaseUrl>,
+    // Override `VerifierSettings::universal_link_base_url` for this specific usecase.
+    pub disclosure_base_deep_link: Option<BaseUrl>,
 
     #[serde(default)]
     pub accept_undetermined_revocation_status: bool,
@@ -143,7 +143,7 @@ impl UseCaseSettings {
             )?,
             self.dcql_query.map(TryInto::try_into).transpose()?,
             self.return_url_template,
-            self.universal_link_base_url,
+            self.disclosure_base_deep_link,
             self.accept_undetermined_revocation_status,
         );
 

@@ -521,7 +521,7 @@ pub trait UseCase {
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError>;
 
-    fn universal_link_base_url(&self) -> Option<&BaseUrl> {
+    fn disclosure_base_deep_link(&self) -> Option<&BaseUrl> {
         None
     }
 }
@@ -552,7 +552,7 @@ pub struct RpInitiatedUseCase<K> {
     data: UseCaseData<K>,
     credential_requests: Option<NormalizedCredentialRequests>,
     return_url_template: Option<ReturnUrlTemplate>,
-    universal_link_base_url: Option<BaseUrl>,
+    disclosure_base_deep_link: Option<BaseUrl>,
     accept_undetermined_revocation_status: bool,
 }
 
@@ -577,14 +577,14 @@ impl<K> RpInitiatedUseCase<K> {
         data: UseCaseData<K>,
         credential_requests: Option<NormalizedCredentialRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
-        universal_link_base_url: Option<BaseUrl>,
+        disclosure_base_deep_link: Option<BaseUrl>,
         accept_undetermined_revocation_status: bool,
     ) -> Self {
         Self {
             data,
             credential_requests,
             return_url_template,
-            universal_link_base_url,
+            disclosure_base_deep_link,
             accept_undetermined_revocation_status,
         }
     }
@@ -597,8 +597,8 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
         &self.data
     }
 
-    fn universal_link_base_url(&self) -> Option<&BaseUrl> {
-        self.universal_link_base_url.as_ref()
+    fn disclosure_base_deep_link(&self) -> Option<&BaseUrl> {
+        self.disclosure_base_deep_link.as_ref()
     }
 
     fn new_session(
@@ -1128,15 +1128,15 @@ where
         }
     }
 
-    /// Returns the per-use-case `universal_link_base_url` override for the session identified by
+    /// Returns the per-use-case `disclosure_base_deep_link` override for the session identified by
     /// `session_token`, if the session exists, is in the `Created` state, and its use case has such
     /// an override configured. Returns `None` otherwise.
-    pub async fn usecase_universal_link_base_url(&self, session_token: &SessionToken) -> Option<BaseUrl> {
+    pub async fn disclosure_usecase_base_deep_link(&self, session_token: &SessionToken) -> Option<BaseUrl> {
         let session_state = session_or_error(self.sessions.as_ref(), session_token).await.ok()?;
         let DisclosureData::Created(Created { ref usecase_id, .. }) = session_state.data else {
             return None;
         };
-        self.use_cases.get(usecase_id)?.universal_link_base_url().cloned()
+        self.use_cases.get(usecase_id)?.disclosure_base_deep_link().cloned()
     }
 }
 
