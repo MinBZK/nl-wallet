@@ -56,6 +56,7 @@ async fn init_wallets(db_setup: &DbSetup) -> (WalletData, WalletData) {
         .start_disclosure(
             &universal_link(
                 issuance_urls.issuance_server.public.as_base_url(),
+                &issuance_urls.disclosure_client_ids,
                 CredentialFormat::SdJwt,
             ),
             DisclosureUriSource::Link,

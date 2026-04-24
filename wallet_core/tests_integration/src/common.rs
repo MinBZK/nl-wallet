@@ -193,6 +193,32 @@ pub struct IssuerUrl {
 pub struct IssuerUrls {
     pub pid_issuer: IssuerUrl,
     pub issuance_server: IssuerUrl,
+    pub disclosure_client_ids: DisclosureClientIds,
+}
+
+pub struct DisclosureClientIds {
+    pub mdoc: ClientId,
+    pub sd_jwt: ClientId,
+}
+
+impl DisclosureClientIds {
+    fn from_settings(settings: &IssuanceServerSettings) -> Self {
+        Self {
+            mdoc: ClientId::x509_hash_from_certificate(
+                &settings.disclosure_settings["university_mdoc"].key_pair.certificate,
+            ),
+            sd_jwt: ClientId::x509_hash_from_certificate(
+                &settings.disclosure_settings["university_sd_jwt"].key_pair.certificate,
+            ),
+        }
+    }
+
+    pub fn for_format(&self, format: CredentialFormat) -> &ClientId {
+        match format {
+            CredentialFormat::MsoMdoc => &self.mdoc,
+            CredentialFormat::SdJwt => &self.sd_jwt,
+        }
+    }
 }
 
 pub struct MockDeviceConfig {
@@ -319,6 +345,8 @@ pub async fn setup_env(
 
     let verifier_server_urls = start_verification_server(verifier_settings, Some(hsm.clone())).await;
 
+    let disclosure_client_ids = DisclosureClientIds::from_settings(&issuance_server_settings);
+
     let issuance_server_url =
         start_issuance_server(issuance_server_settings, Some(hsm.clone()), attributes_fetcher).await;
 
@@ -332,6 +360,7 @@ pub async fn setup_env(
     let issuer_urls = IssuerUrls {
         issuance_server: issuance_server_url,
         pid_issuer: pid_issuer_url,
+        disclosure_client_ids,
     };
 
     let config_bytes = read_file("wallet-config.json");
@@ -1106,11 +1135,12 @@ pub async fn do_degree_issuance(
     wallet: &mut WalletWithStorage,
     pin: String,
     issuance_server_url: &IssuerIdentifier,
+    client_ids: &DisclosureClientIds,
     format: CredentialFormat,
 ) -> Vec<AttestationPresentation> {
     let _proposal = wallet
         .start_disclosure(
-            &universal_link(issuance_server_url.as_base_url(), format),
+            &universal_link(issuance_server_url.as_base_url(), client_ids, format),
             DisclosureUriSource::Link,
         )
         .await
@@ -1126,32 +1156,26 @@ pub async fn do_degree_issuance(
     attestation_previews
 }
 
-pub fn universal_link(issuance_server_url: &BaseUrl, format: CredentialFormat) -> Url {
+pub fn universal_link(
+    issuance_server_url: &BaseUrl,
+    client_ids: &DisclosureClientIds,
+    format: CredentialFormat,
+) -> Url {
     let params = serde_urlencoded::to_string(VerifierUrlParameters {
         session_type: SessionType::SameDevice,
         ephemeral_id_params: None,
     })
     .unwrap();
 
-    let settings = IssuanceServerSettings::new("issuance_server.toml", "issuance_server")
-        .expect("Could not read issuance server settings");
-    let (issuance_path, client_id) = match format {
-        CredentialFormat::MsoMdoc => (
-            "/disclosure/university_mdoc/request_uri",
-            ClientId::x509_hash_from_certificate(&settings.disclosure_settings["university_mdoc"].key_pair.certificate),
-        ),
-        CredentialFormat::SdJwt => (
-            "/disclosure/university_sd_jwt/request_uri",
-            ClientId::x509_hash_from_certificate(
-                &settings.disclosure_settings["university_sd_jwt"].key_pair.certificate,
-            ),
-        ),
+    let issuance_path = match format {
+        CredentialFormat::MsoMdoc => "/disclosure/university_mdoc/request_uri",
+        CredentialFormat::SdJwt => "/disclosure/university_sd_jwt/request_uri",
     };
     let mut issuance_server_url = issuance_server_url.join_base_url(issuance_path).into_inner();
     issuance_server_url.set_query(Some(&params));
 
     let query = serde_urlencoded::to_string(VpRequestUri {
-        client_id,
+        client_id: client_ids.for_format(format).clone(),
         object: VpRequestUriObject::AsReference {
             request_uri: issuance_server_url.try_into().unwrap(),
             request_uri_method: Some(VpRequestUriMethod::POST),

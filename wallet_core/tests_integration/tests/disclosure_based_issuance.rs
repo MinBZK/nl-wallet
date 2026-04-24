@@ -43,6 +43,7 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
         &mut wallet,
         pin.to_owned(),
         &issuance_urls.issuance_server.public,
+        &issuance_urls.disclosure_client_ids,
         pid_format,
     )
     .await;
@@ -246,7 +247,11 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
 
     let _proposal = wallet
         .start_disclosure(
-            &universal_link(issuance_urls.issuance_server.public.as_base_url(), format),
+            &universal_link(
+                issuance_urls.issuance_server.public.as_base_url(),
+                &issuance_urls.disclosure_client_ids,
+                format,
+            ),
             DisclosureUriSource::Link,
         )
         .await
