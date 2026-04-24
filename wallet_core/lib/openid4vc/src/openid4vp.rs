@@ -277,6 +277,10 @@ impl FromStr for ClientId {
 }
 
 impl ClientId {
+    fn x509_hash_value(certificate: &BorrowingCertificate) -> String {
+        BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::sha256(certificate.as_ref()))
+    }
+
     pub fn x509_hash(id: impl Into<String>) -> Self {
         Self {
             id: id.into(),
@@ -285,8 +289,9 @@ impl ClientId {
     }
 
     pub fn x509_hash_from_certificate(certificate: &BorrowingCertificate) -> Self {
-        Self::x509_hash(BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::sha256(certificate.as_ref())))
+        Self::x509_hash(Self::x509_hash_value(certificate))
     }
+
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -457,11 +462,11 @@ impl VpAuthorizationRequest {
 
         match &client_id.scheme {
             Some(ClientIdScheme::X509Hash) => {
-                let certificate_client_id = ClientId::x509_hash_from_certificate(rp_cert);
-                if client_id != &certificate_client_id {
+                let certificate_hash = ClientId::x509_hash_value(rp_cert);
+                if client_id.id != certificate_hash {
                     return Err(AuthRequestValidationError::UnauthorizedClientIdHash {
                         client_id: client_id.to_string(),
-                        certificate_hash: certificate_client_id.id,
+                        certificate_hash,
                     });
                 }
             }
@@ -1305,7 +1310,7 @@ mod tests {
     fn test_client_id_x509_hash_from_certificate() {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let key_pair = ca.generate_reader_mock().unwrap();
-        let expected_hash = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::sha256(key_pair.certificate().as_ref()));
+        let expected_hash = ClientId::x509_hash_value(key_pair.certificate());
 
         let client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
 
@@ -1420,7 +1425,7 @@ mod tests {
     fn test_authorization_request_validate_unauthorized_x509_hash_client_id() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
         let mut auth_request = VpAuthorizationRequest::from(auth_request);
-        let expected_hash = ClientId::x509_hash_from_certificate(rp_keypair.certificate()).id;
+        let expected_hash = ClientId::x509_hash_value(rp_keypair.certificate());
 
         auth_request.oauth_request.client_id = "x509_hash:wrong-hash".to_string();
 
@@ -1436,7 +1441,7 @@ mod tests {
     fn test_authorization_request_validate_unsupported_client_id_scheme() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
         let mut auth_request = VpAuthorizationRequest::from(auth_request);
-        let certificate_hash = ClientId::x509_hash_from_certificate(rp_keypair.certificate()).id;
+        let certificate_hash = ClientId::x509_hash_value(rp_keypair.certificate());
         auth_request.oauth_request.client_id = format!("redirect_uri:{certificate_hash}");
 
         let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
@@ -1452,7 +1457,7 @@ mod tests {
     fn test_authorization_request_validate_unsupported_client_id_without_scheme() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
         let mut auth_request = VpAuthorizationRequest::from(auth_request);
-        auth_request.oauth_request.client_id = ClientId::x509_hash_from_certificate(rp_keypair.certificate()).id;
+        auth_request.oauth_request.client_id = ClientId::x509_hash_value(rp_keypair.certificate());
 
         let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
         assert_matches!(err, AuthRequestValidationError::UnsupportedClientIdWithoutScheme);
