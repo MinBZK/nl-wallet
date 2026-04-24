@@ -33,7 +33,7 @@ async fn test_revocation_pid_ok() {
         .start_disclosure(
             &universal_link(
                 issuance_urls.issuance_server.public.as_base_url(),
-                &issuance_urls.disclosure_client_ids,
+                &issuance_urls.degree_client_ids,
                 CredentialFormat::SdJwt,
             ),
             DisclosureUriSource::Link,
@@ -74,7 +74,7 @@ async fn test_revocation_degree_ok() {
         &mut wallet,
         pin.to_owned(),
         &issuance_urls.issuance_server.public,
-        &issuance_urls.disclosure_client_ids,
+        &issuance_urls.degree_client_ids,
         CredentialFormat::SdJwt,
     )
     .await;

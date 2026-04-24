@@ -32,7 +32,7 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
     let pin = "112233";
 
     // Start with a wallet that contains the PID.
-    let (mut wallet, disclosure_urls, issuance_urls) =
+    let (mut wallet, disclosure_urls, issuance_data) =
         setup_wallet_and_default_env(&db_setup, WalletDeviceVendor::Apple).await;
 
     wallet = do_wallet_registration(wallet, pin).await;
@@ -42,8 +42,8 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
     let attestation_previews = do_degree_issuance(
         &mut wallet,
         pin.to_owned(),
-        &issuance_urls.issuance_server.public,
-        &issuance_urls.disclosure_client_ids,
+        &issuance_data.issuance_server.public,
+        &issuance_data.degree_client_ids,
         pid_format,
     )
     .await;
@@ -249,7 +249,7 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
         .start_disclosure(
             &universal_link(
                 issuance_urls.issuance_server.public.as_base_url(),
-                &issuance_urls.disclosure_client_ids,
+                &issuance_urls.degree_client_ids,
                 format,
             ),
             DisclosureUriSource::Link,

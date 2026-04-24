@@ -66,7 +66,7 @@ async fn test_delete_attestation_ok() {
         &mut wallet,
         pin.to_owned(),
         &issuance_urls.issuance_server.public,
-        &issuance_urls.disclosure_client_ids,
+        &issuance_urls.degree_client_ids,
         CredentialFormat::MsoMdoc,
     )
     .await;

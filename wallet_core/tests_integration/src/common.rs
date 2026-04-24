@@ -168,7 +168,7 @@ pub type WalletWithStorage = Wallet<
 pub async fn setup_wallet_and_default_env(
     db_setup: &DbSetup,
     vendor: WalletDeviceVendor,
-) -> (WalletWithStorage, DisclosureUrls, IssuerUrls) {
+) -> (WalletWithStorage, DisclosureUrls, IssuerData) {
     setup_wallet_and_env(
         db_setup,
         vendor,
@@ -180,28 +180,12 @@ pub async fn setup_wallet_and_default_env(
     .await
 }
 
-pub struct DisclosureUrls {
-    pub verifier_url: BaseUrl,
-    pub verifier_internal_url: BaseUrl,
-}
-
-pub struct IssuerUrl {
-    pub internal: BaseUrl,
-    pub public: IssuerIdentifier,
-}
-
-pub struct IssuerUrls {
-    pub pid_issuer: IssuerUrl,
-    pub issuance_server: IssuerUrl,
-    pub disclosure_client_ids: DisclosureClientIds,
-}
-
-pub struct DisclosureClientIds {
+pub struct DegreeClientIds {
     pub mdoc: ClientId,
     pub sd_jwt: ClientId,
 }
 
-impl DisclosureClientIds {
+impl DegreeClientIds {
     fn from_settings(settings: &IssuanceServerSettings) -> Self {
         Self {
             mdoc: ClientId::x509_hash_from_certificate(
@@ -219,6 +203,22 @@ impl DisclosureClientIds {
             CredentialFormat::SdJwt => &self.sd_jwt,
         }
     }
+}
+
+pub struct DisclosureUrls {
+    pub verifier_url: BaseUrl,
+    pub verifier_internal_url: BaseUrl,
+}
+
+pub struct IssuerUrl {
+    pub internal: BaseUrl,
+    pub public: IssuerIdentifier,
+}
+
+pub struct IssuerData {
+    pub pid_issuer: IssuerUrl,
+    pub issuance_server: IssuerUrl,
+    pub degree_client_ids: DegreeClientIds,
 }
 
 pub struct MockDeviceConfig {
@@ -277,7 +277,7 @@ pub async fn setup_env_default(
     ConfigServerConfiguration,
     MockDeviceConfig,
     WalletConfiguration,
-    IssuerUrls,
+    IssuerData,
     DisclosureUrls,
 ) {
     setup_env(
@@ -307,7 +307,7 @@ pub async fn setup_env(
     ConfigServerConfiguration,
     MockDeviceConfig,
     WalletConfiguration,
-    IssuerUrls,
+    IssuerData,
     DisclosureUrls,
 ) {
     let mock_device_config = MockDeviceConfig::default();
@@ -345,7 +345,7 @@ pub async fn setup_env(
 
     let verifier_server_urls = start_verification_server(verifier_settings, Some(hsm.clone())).await;
 
-    let disclosure_client_ids = DisclosureClientIds::from_settings(&issuance_server_settings);
+    let degree_client_ids = DegreeClientIds::from_settings(&issuance_server_settings);
 
     let issuance_server_url =
         start_issuance_server(issuance_server_settings, Some(hsm.clone()), attributes_fetcher).await;
@@ -357,15 +357,15 @@ pub async fn setup_env(
     )
     .await;
 
-    let issuer_urls = IssuerUrls {
+    let issuer_data = IssuerData {
         issuance_server: issuance_server_url,
         pid_issuer: pid_issuer_url,
-        disclosure_client_ids,
+        degree_client_ids: degree_client_ids,
     };
 
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
-    served_wallet_config.pid_issuance.url = issuer_urls.pid_issuer.public.clone();
+    served_wallet_config.pid_issuance.url = issuer_data.pid_issuer.public.clone();
     served_wallet_config.account_server.http_config = TlsPinningConfig::try_new(
         local_wp_base_url(wp_port),
         VecNonEmpty::try_from(served_wallet_config.account_server.http_config.trust_anchors().to_vec()).unwrap(),
@@ -384,7 +384,7 @@ pub async fn setup_env(
     };
 
     let mut wallet_config = default_wallet_config();
-    wallet_config.pid_issuance.url = issuer_urls.pid_issuer.public.clone();
+    wallet_config.pid_issuance.url = issuer_data.pid_issuer.public.clone();
     wallet_config.account_server.http_config = TlsPinningConfig::try_new(
         local_wp_base_url(wp_port),
         VecNonEmpty::try_from(wallet_config.account_server.http_config.trust_anchors().to_vec()).unwrap(),
@@ -397,7 +397,7 @@ pub async fn setup_env(
         config_server_config,
         mock_device_config,
         wallet_config,
-        issuer_urls,
+        issuer_data,
         verifier_server_urls,
     )
 }
@@ -480,8 +480,8 @@ pub async fn setup_wallet_and_env(
         ReqwestTrustAnchor,
         TlsServerConfig,
     ),
-) -> (WalletWithStorage, DisclosureUrls, IssuerUrls) {
-    let (config_server_config, mock_device_config, wallet_config, issuer_urls, verifier_server_urls) = setup_env(
+) -> (WalletWithStorage, DisclosureUrls, IssuerData) {
+    let (config_server_config, mock_device_config, wallet_config, issuer_data, verifier_server_urls) = setup_env(
         static_server_settings(),
         ups_config,
         wp_config,
@@ -498,7 +498,7 @@ pub async fn setup_wallet_and_env(
 
     let wallet = setup_in_memory_wallet(config_server_config, wallet_config, key_holder).await;
 
-    (wallet, verifier_server_urls, issuer_urls)
+    (wallet, verifier_server_urls, issuer_data)
 }
 
 pub async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {
@@ -1135,7 +1135,7 @@ pub async fn do_degree_issuance(
     wallet: &mut WalletWithStorage,
     pin: String,
     issuance_server_url: &IssuerIdentifier,
-    client_ids: &DisclosureClientIds,
+    client_ids: &DegreeClientIds,
     format: CredentialFormat,
 ) -> Vec<AttestationPresentation> {
     let _proposal = wallet
@@ -1158,7 +1158,7 @@ pub async fn do_degree_issuance(
 
 pub fn universal_link(
     issuance_server_url: &BaseUrl,
-    client_ids: &DisclosureClientIds,
+    client_ids: &DegreeClientIds,
     format: CredentialFormat,
 ) -> Url {
     let params = serde_urlencoded::to_string(VerifierUrlParameters {
