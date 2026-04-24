@@ -631,13 +631,13 @@ impl Pkcs11Client for Pkcs11Hsm {
         let (public_handle, private_handle) = self.generate_session_signing_key_pair().await?;
         let verifying_key = Pkcs11Client::get_verifying_key(self, &public_handle).await?;
 
-        let wrapped = self
+        let result = self
             .wrap_key(&private_wrapping_handle, &private_handle, verifying_key)
-            .await?;
+            .await;
 
         self.clone().delete_keypair_in_background(private_handle, public_handle);
 
-        Ok(wrapped)
+        result
     }
 
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
@@ -653,9 +653,9 @@ impl Pkcs11Client for Pkcs11Hsm {
 
         let private_wrapping_handle = self.get_private_key_handle(wrapping_key_identifier).await?;
         let private_handle = self.unwrap_signing_key(&private_wrapping_handle, wrapped_key).await?;
-        let signature = Pkcs11Client::sign(self, &private_handle, SigningMechanism::Ecdsa256, data).await?;
+        let result = Pkcs11Client::sign(self, &private_handle, SigningMechanism::Ecdsa256, data).await;
         self.clone().delete_private_key_in_background(private_handle);
-        Ok(Signature::from_slice(&signature)?)
+        result.and_then(|signature| Signature::from_slice(&signature).map_err(HsmError::from))
     }
 }
 
