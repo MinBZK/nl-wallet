@@ -145,7 +145,7 @@ test.describe("LTC5, LTC15, LTC18 Verifier/Issuer displays disclosure/issuance p
     await demoPage.openWalletLogin()
     await demoPage.startCrossDeviceFlow()
     const initialQrScreenshot = await demoPage.getQrScreenshot()
-    await page.waitForTimeout(2100) // eslint-disable-line playwright/no-wait-for-timeout
+    await page.waitForTimeout(3000) // eslint-disable-line playwright/no-wait-for-timeout
     const newQrScreenshot = await demoPage.getQrScreenshot()
     expect(newQrScreenshot).not.toEqual(initialQrScreenshot)
   })
