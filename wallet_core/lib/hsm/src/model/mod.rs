@@ -46,8 +46,11 @@ pub mod mock {
     use crate::model::encrypter::Encrypter;
     use crate::model::wrapped_key::WrappedKey;
     use crate::service::HsmError;
+    use crate::service::KeyHandle;
     use crate::service::Pkcs11Client;
     use crate::service::PrivateKeyHandle;
+    use crate::service::PublicKeyHandle;
+    use crate::service::SigningMechanism;
 
     type HmacSha256 = Hmac<Sha256>;
 
@@ -83,7 +86,7 @@ pub mod mock {
             &self,
             _key_identifier: &str,
             data: VerifyingKey,
-        ) -> std::result::Result<Encrypted<VerifyingKey>, Self::Error> {
+        ) -> Result<Encrypted<VerifyingKey>, Self::Error> {
             let encrypted = Encrypted::new(data.to_sec1_bytes().to_vec(), InitializationVector(random_bytes(32)));
             Ok(encrypted)
         }
@@ -96,7 +99,7 @@ pub mod mock {
             &self,
             _key_identifier: &str,
             encrypted: Encrypted<VerifyingKey>,
-        ) -> std::result::Result<VerifyingKey, Self::Error> {
+        ) -> Result<VerifyingKey, Self::Error> {
             Ok(VerifyingKey::from_sec1_bytes(&encrypted.data).unwrap())
         }
     }
@@ -183,16 +186,14 @@ pub mod mock {
             todo!()
         }
 
-        async fn generate_session_signing_key_pair(
-            &self,
-        ) -> Result<(crate::service::PublicKeyHandle, PrivateKeyHandle), HsmError> {
+        async fn generate_session_signing_key_pair(&self) -> Result<(PublicKeyHandle, PrivateKeyHandle), HsmError> {
             todo!()
         }
 
         async fn generate_signing_key_pair(
             &self,
             _identifier: &str,
-        ) -> Result<(crate::service::PublicKeyHandle, PrivateKeyHandle), HsmError> {
+        ) -> Result<(PublicKeyHandle, PrivateKeyHandle), HsmError> {
             todo!()
         }
 
@@ -200,20 +201,17 @@ pub mod mock {
             todo!()
         }
 
-        async fn get_public_key_handle(&self, _identifier: &str) -> Result<crate::service::PublicKeyHandle, HsmError> {
+        async fn get_public_key_handle(&self, _identifier: &str) -> Result<PublicKeyHandle, HsmError> {
             todo!()
         }
 
-        async fn get_verifying_key(
-            &self,
-            _public_key_handle: &crate::service::PublicKeyHandle,
-        ) -> Result<VerifyingKey, HsmError> {
+        async fn get_verifying_key(&self, _public_key_handle: &PublicKeyHandle) -> Result<VerifyingKey, HsmError> {
             todo!()
         }
 
         async fn delete_key<KH>(&self, _key_handle: KH) -> Result<(), HsmError>
         where
-            KH: crate::service::KeyHandle + Send + Sync + 'static,
+            KH: KeyHandle + Send + Sync + 'static,
         {
             todo!()
         }
@@ -221,7 +219,7 @@ pub mod mock {
         async fn sign(
             &self,
             _private_key_handle: &PrivateKeyHandle,
-            _mechanism: crate::service::SigningMechanism,
+            _mechanism: SigningMechanism,
             _data: &[u8],
         ) -> Result<Vec<u8>, HsmError> {
             todo!()
@@ -230,7 +228,7 @@ pub mod mock {
         async fn verify(
             &self,
             _private_key_handle: &PrivateKeyHandle,
-            _mechanism: crate::service::SigningMechanism,
+            _mechanism: SigningMechanism,
             _data: &[u8],
             _signature: Vec<u8>,
         ) -> Result<(), HsmError> {
