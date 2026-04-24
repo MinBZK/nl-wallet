@@ -211,7 +211,7 @@ pub mod mock {
 
         async fn delete_key<KH>(&self, _key_handle: KH) -> Result<(), HsmError>
         where
-            KH: KeyHandle + Send + Sync + 'static,
+            KH: KeyHandle + Send + 'static,
         {
             todo!()
         }

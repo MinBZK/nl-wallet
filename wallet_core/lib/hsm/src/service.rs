@@ -120,7 +120,7 @@ pub trait Pkcs11Client {
     /// Delete key (takes ownership since the handle is invalid after deletion)
     async fn delete_key<KH>(&self, key_handle: KH) -> Result<()>
     where
-        KH: KeyHandle + Send + Sync + 'static;
+        KH: KeyHandle + Send + 'static;
     async fn sign(
         &self,
         private_key_handle: &PrivateKeyHandle,
@@ -479,7 +479,7 @@ impl Pkcs11Client for Pkcs11Hsm {
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn delete_key<KH>(&self, key_handle: KH) -> Result<()>
     where
-        KH: KeyHandle + Send + Sync + 'static,
+        KH: KeyHandle + Send + 'static,
     {
         let pool = self.pool.clone();
 
