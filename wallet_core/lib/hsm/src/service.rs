@@ -624,6 +624,9 @@ impl Pkcs11Client for Pkcs11Hsm {
 
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
     async fn generate_wrapped_key(&self, wrapping_key_identifier: &str) -> Result<WrappedKey> {
+        // TODO: PVW-5862 handles can be used in different sessions that are
+        // either connected to a different PKCS11 device or the session can be
+        // closed by the pool which will cause the deletion of session objects.
         let private_wrapping_handle = self.get_private_key_handle(wrapping_key_identifier).await?;
         let (public_handle, private_handle) = self.generate_session_signing_key_pair().await?;
         let verifying_key = Pkcs11Client::get_verifying_key(self, &public_handle).await?;
@@ -644,6 +647,10 @@ impl Pkcs11Client for Pkcs11Hsm {
         wrapped_key: WrappedKey,
         data: &[u8],
     ) -> Result<Signature> {
+        // TODO: PVW-5862 handles can be used in different sessions that are
+        // either connected to a different PKCS11 device or the session can be
+        // closed by the pool which will cause the deletion of session objects.
+
         let private_wrapping_handle = self.get_private_key_handle(wrapping_key_identifier).await?;
         let private_handle = self.unwrap_signing_key(&private_wrapping_handle, wrapped_key).await?;
         let signature = Pkcs11Client::sign(self, &private_handle, SigningMechanism::Ecdsa256, data).await?;
