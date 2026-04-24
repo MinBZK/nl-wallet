@@ -8,7 +8,7 @@ use jwt::nonce::Nonce;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 
-use super::C_NONCE_VALIDITY;
+use super::nonce_is_valid;
 use super::store::NonceStatus;
 use super::store::NonceStore;
 use super::store::NonceStoreError;
@@ -44,10 +44,6 @@ impl<T> MemoryNonceStore<T>
 where
     T: Generator<DateTime<Utc>>,
 {
-    fn is_valid(created_date_time: DateTime<Utc>, now: DateTime<Utc>) -> bool {
-        created_date_time + C_NONCE_VALIDITY >= now
-    }
-
     fn now(&self) -> DateTime<Utc> {
         self.time_generator.generate()
     }
@@ -83,7 +79,7 @@ where
         let now = self.now();
         if removed_nonce_datetimes
             .into_iter()
-            .all(|date_time| date_time.is_some_and(|created_date_time| Self::is_valid(created_date_time, now)))
+            .all(|date_time| date_time.is_some_and(|created_date_time| nonce_is_valid(created_date_time, now)))
         {
             NonceStatus::AllValid
         } else {
@@ -98,7 +94,7 @@ where
             .expect("there should be no panic while the lock is held");
 
         let now = self.now();
-        nonces.retain(|_nonce, created_date_time| Self::is_valid(*created_date_time, now));
+        nonces.retain(|_nonce, created_date_time| nonce_is_valid(*created_date_time, now));
     }
 }
 
