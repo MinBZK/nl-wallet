@@ -25,6 +25,7 @@ use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::RpInitiatedUseCase;
 use openid4vc::verifier::RpInitiatedUseCases;
 use openid4vc::verifier::SessionTypeReturnUrl;
+use openid4vc::verifier::UseCaseData;
 use ring::hmac;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
@@ -97,6 +98,9 @@ pub struct UseCaseSettings {
     pub dcql_query: Option<Query>,
     pub return_url_template: Option<ReturnUrlTemplate>,
 
+    // Override `VerifierSettings::universal_link_base_url` for this specific usecase.
+    pub disclosure_base_deep_link: Option<BaseUrl>,
+
     #[serde(default)]
     pub accept_undetermined_revocation_status: bool,
 }
@@ -127,10 +131,10 @@ impl UseCasesSettings {
 impl UseCaseSettings {
     pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<RpInitiatedUseCase<PrivateKeyVariant>, anyhow::Error> {
         let use_case = RpInitiatedUseCase::new(
-            self.key_pair.parse(hsm).await?,
-            self.session_type_return_url,
+            UseCaseData::new(self.key_pair.parse(hsm).await?, self.session_type_return_url),
             self.dcql_query.map(TryInto::try_into).transpose()?,
             self.return_url_template,
+            self.disclosure_base_deep_link,
             self.accept_undetermined_revocation_status,
         );
 

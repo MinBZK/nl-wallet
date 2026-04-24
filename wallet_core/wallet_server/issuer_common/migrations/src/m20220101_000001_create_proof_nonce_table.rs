@@ -27,6 +27,16 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        manager
+            .create_index(
+                Index::create()
+                    .table(ProofNonce::Table)
+                    .name("proof_nonce_created_date_time")
+                    .col(ProofNonce::CreatedDateTime)
+                    .to_owned(),
+            )
+            .await?;
+
         Ok(())
     }
 }

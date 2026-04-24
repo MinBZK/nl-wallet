@@ -39,6 +39,7 @@ private_key_type = "hsm"
 certificate = "${DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE}"
 private_key = "${DEMO_RELYING_PARTY_KEY_ONLINE_MARKETPLACE}"
 private_key_type = "software"
+disclosure_base_deep_link = "eu-eaap://"
 
 [usecases.xyz_bank_mdoc]
 certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"

@@ -8,7 +8,7 @@ use jwt::nonce::Nonce;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 
-use super::C_NONCE_VALIDITY;
+use super::nonce_is_valid;
 use super::store::NonceStatus;
 use super::store::NonceStore;
 use super::store::NonceStoreError;
@@ -76,13 +76,25 @@ where
             .map(|nonce| stored_nonces.remove(nonce))
             .collect_vec();
 
-        if removed_nonce_datetimes.into_iter().all(|date_time| {
-            date_time.is_some_and(|created_date_time| created_date_time + C_NONCE_VALIDITY >= self.now())
-        }) {
+        let now = self.now();
+        if removed_nonce_datetimes
+            .into_iter()
+            .all(|date_time| date_time.is_some_and(|created_date_time| nonce_is_valid(created_date_time, now)))
+        {
             NonceStatus::AllValid
         } else {
             NonceStatus::AtLeastOneAbsentOrExpired
         }
+    }
+
+    pub fn remove_expired(&self) {
+        let mut nonces = self
+            .nonces
+            .lock()
+            .expect("there should be no panic while the lock is held");
+
+        let now = self.now();
+        nonces.retain(|_nonce, created_date_time| nonce_is_valid(*created_date_time, now));
     }
 }
 
@@ -106,6 +118,12 @@ where
         let presence = self.remove_and_check(nonces);
 
         Ok(presence)
+    }
+
+    async fn remove_expired_nonces(&self) -> Result<(), NonceStoreError<Self::Error>> {
+        self.remove_expired();
+
+        Ok(())
     }
 }
 
@@ -132,6 +150,8 @@ mod tests {
             time_generator,
         };
 
-        test_nonce_store(store, mock_time).now_or_never().unwrap()
+        test_nonce_store(store, mock_time, async |store| store.nonces.lock().unwrap().len())
+            .now_or_never()
+            .unwrap();
     }
 }

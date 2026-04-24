@@ -2,9 +2,10 @@ use chrono::DateTime;
 use chrono::Utc;
 use itertools::Itertools;
 use jwt::nonce::Nonce;
-use openid4vc::nonce::C_NONCE_VALIDITY;
+use openid4vc::nonce::earliest_nonce_validity_datetime;
 use openid4vc::nonce::memory_store::MemoryNonceStore;
 use openid4vc::nonce::memory_store::NonceStoreResult;
+use openid4vc::nonce::nonce_is_valid;
 use openid4vc::nonce::store::NonceStatus;
 use openid4vc::nonce::store::NonceStore;
 use openid4vc::nonce::store::NonceStoreError;
@@ -17,6 +18,7 @@ use sea_orm::EntityTrait;
 use sea_orm::QueryFilter;
 use sea_orm::SqlErr;
 use server_utils::store::StoreConnection;
+use tracing::info;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 
@@ -28,8 +30,11 @@ pub enum ProofNonceStoreError {
     #[error("could not store nonce in database: {0}")]
     DbInsertNonce(#[source] DbErr),
 
-    #[error("could not find and delete nonce from database: {0}")]
-    DbDeleteNonce(#[source] DbErr),
+    #[error("could not check nonce status and delete them from database: {0}")]
+    DbCheckAndDeleteNonces(#[source] DbErr),
+
+    #[error("could not delete expired nonces from database: {0}")]
+    DbDeleteExpiredNonces(#[source] DbErr),
 }
 
 #[derive(Debug)]
@@ -130,8 +135,9 @@ where
                     .filter(proof_nonce::Column::Nonce.is_in(nonces))
                     .exec_with_returning(connection)
                     .await
-                    .map_err(ProofNonceStoreError::DbDeleteNonce)?;
+                    .map_err(ProofNonceStoreError::DbCheckAndDeleteNonces)?;
 
+                let now = self.now();
                 match deleted_nonces.len() {
                     deleted_nonce_count if deleted_nonce_count > nonce_count => {
                         panic!(
@@ -143,7 +149,7 @@ where
                         if deleted_nonce_count == nonce_count
                             && deleted_nonces
                                 .into_iter()
-                                .all(|nonce| nonce.created_date_time + C_NONCE_VALIDITY >= self.now()) =>
+                                .all(|nonce| nonce_is_valid(nonce.created_date_time.to_utc(), now)) =>
                     {
                         NonceStatus::AllValid
                     }
@@ -155,5 +161,24 @@ where
         };
 
         Ok(status)
+    }
+
+    async fn remove_expired_nonces(&self) -> Result<(), NonceStoreError<Self::Error>> {
+        match &self.backend {
+            NonceStoreBackend::Postgres(connection) => {
+                let result = ProofNonce::delete_many()
+                    .filter(proof_nonce::Column::CreatedDateTime.lt(earliest_nonce_validity_datetime(self.now())))
+                    .exec(connection)
+                    .await
+                    .map_err(ProofNonceStoreError::DbDeleteExpiredNonces)?;
+
+                if result.rows_affected > 0 {
+                    info!("Deleted {} expired nonce(s) from storage", result.rows_affected);
+                }
+            }
+            NonceStoreBackend::Memory(memory_store) => memory_store.remove_expired(),
+        }
+
+        Ok(())
     }
 }

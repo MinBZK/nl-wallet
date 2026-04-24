@@ -320,7 +320,7 @@ run-automation-smoke-test-ios-ont:
       artifacts: false
   script:
     - mv browserstack-config/browserstack-Iphone16Pro-18-NL.yml ./browserstack.yml
-    - ./gradlew --no-daemon --info --stacktrace smokeTestIOS -Dtest.config.remote=true -Dfile.encoding=UTF-8
+    - ./gradlew --no-daemon --info --stacktrace smokeTestIOS -Dtest.config.platform.name="IOS" -Dtest.config.remote=true -Dfile.encoding=UTF-8
 
 browsertests-format-lint:
   rules: !reference [.default-or-merge-request, rules]

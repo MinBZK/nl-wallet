@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::time::Duration;
 
 use chrono::DateTime;
@@ -12,17 +11,10 @@ use derive_more::From;
 use derive_more::Into;
 use serde::Deserialize;
 use serde::Serialize;
-use tokio::task::JoinHandle;
-use tokio::time;
-use tokio::time::MissedTickBehavior;
-use tracing::warn;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 
 use crate::token::AuthorizationCode;
-
-/// The cleanup task that removes stale sessions runs every so often.
-pub const CLEANUP_INTERVAL_SECONDS: Duration = Duration::from_secs(120);
 
 pub trait SessionDataType {
     const TYPE: &'static str;
@@ -70,23 +62,6 @@ where
     async fn get(&self, token: &SessionToken) -> Result<Option<SessionState<T>>, SessionStoreError>;
     async fn write(&self, session: SessionState<T>, is_new: bool) -> Result<(), SessionStoreError>;
     async fn cleanup(&self) -> Result<(), SessionStoreError>;
-
-    fn start_cleanup_task(self: Arc<Self>, interval: Duration) -> JoinHandle<()>
-    where
-        Self: Sync + 'static,
-    {
-        let mut interval = time::interval(interval);
-        interval.set_missed_tick_behavior(MissedTickBehavior::Delay);
-
-        tokio::spawn(async move {
-            loop {
-                interval.tick().await;
-                if let Err(e) = self.cleanup().await {
-                    warn!("error during session cleanup: {e}");
-                }
-            }
-        })
-    }
 }
 
 /// Different timeout values that should be used by the [`SessionStore::cleanup()`] implementation.
@@ -239,9 +214,11 @@ impl From<SessionToken> for AuthorizationCode {
 #[cfg(any(test, feature = "test"))]
 pub mod test {
     use std::fmt::Debug;
+    use std::sync::Arc;
 
     use assert_matches::assert_matches;
     use parking_lot::RwLock;
+    use tokio::time;
     use utils::generator::mock::MockTimeGenerator;
 
     use super::*;
@@ -461,6 +438,7 @@ pub mod test {
         session_store: Arc<MemorySessionStore<T, G>>,
         token: SessionToken,
         mock_time: &RwLock<DateTime<Utc>>,
+        interval: Duration,
     ) where
         T: HasProgress + Expirable + Clone + Send + Sync,
         G: Generator<DateTime<Utc>> + Send + Sync + 'static,
@@ -472,7 +450,7 @@ pub mod test {
         *mock_time.write() = expiry_time;
 
         time::pause();
-        time::advance(CLEANUP_INTERVAL_SECONDS + Duration::from_millis(1)).await;
+        time::advance(interval + Duration::from_millis(1)).await;
         time::resume();
         time::sleep(Duration::from_millis(100)).await;
 
@@ -482,7 +460,7 @@ pub mod test {
         *mock_time.write() = expiry_time + session_store.timeouts.failed_deletion + Duration::from_millis(1);
 
         time::pause();
-        time::advance(CLEANUP_INTERVAL_SECONDS + Duration::from_millis(1)).await;
+        time::advance(interval + Duration::from_millis(1)).await;
         time::resume();
         time::sleep(Duration::from_millis(100)).await;
 

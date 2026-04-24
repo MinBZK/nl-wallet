@@ -78,8 +78,6 @@ use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionToken;
-use openid4vc::server_state::test::memory_session_store_with_mock_time;
-use openid4vc::server_state::test::test_memory_store_with_cleanup_task;
 use openid4vc::verifier::DisclosedAttributesError;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::DisclosureResultHandler;
@@ -91,6 +89,7 @@ use openid4vc::verifier::SessionType;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
 use openid4vc::verifier::UseCase;
+use openid4vc::verifier::UseCaseData;
 use openid4vc::verifier::UseCases;
 use openid4vc::verifier::Verifier;
 use openid4vc::verifier::VerifierUrlParameters;
@@ -1040,19 +1039,6 @@ async fn test_rp_initiated_usecase_verifier_disclose_extending_credential() {
         .unwrap();
 }
 
-#[tokio::test]
-async fn test_cleanup_task() {
-    let (sessions, mock_time) = memory_session_store_with_mock_time();
-    let sessions = Arc::new(sessions);
-    let (verifier, _, _, _, _) = setup_wallet_initiated_usecase_verifier(sessions.clone());
-
-    let token = verifier
-        .new_session(WALLET_INITIATED_RETURN_URL_USE_CASE.to_string(), None, None)
-        .await
-        .unwrap();
-    test_memory_store_with_cleanup_task(sessions, token, &mock_time).await;
-}
-
 fn setup_wallet_initiated_usecase_verifier<G>(
     sessions: Arc<MemorySessionStore<DisclosureData, G>>,
 ) -> (
@@ -1124,8 +1110,11 @@ fn setup_verifier(
         (
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::new(
-                generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
-                SessionTypeReturnUrl::SameDevice,
+                UseCaseData::new(
+                    generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
+                    SessionTypeReturnUrl::SameDevice,
+                ),
+                None,
                 None,
                 None,
                 false,
@@ -1134,8 +1123,11 @@ fn setup_verifier(
         (
             ALL_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::new(
-                generate_reader_mock_with_registration(&rp_ca, reader_registration).unwrap(),
-                SessionTypeReturnUrl::Both,
+                UseCaseData::new(
+                    generate_reader_mock_with_registration(&rp_ca, reader_registration).unwrap(),
+                    SessionTypeReturnUrl::Both,
+                ),
+                None,
                 None,
                 None,
                 false,

@@ -4,6 +4,7 @@ use std::convert::Infallible;
 use std::num::NonZero;
 use std::ops::Add;
 use std::sync::Arc;
+use std::time::Duration;
 
 use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::CredentialPayload;
@@ -24,7 +25,9 @@ use crypto::utils::random_string;
 use derive_more::AsRef;
 use derive_more::Debug;
 use derive_more::From;
+use futures::TryFutureExt;
 use futures::future::try_join_all;
+use futures::join;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
@@ -48,6 +51,7 @@ use ssri::Integrity;
 use token_status_list::status_list_service::StatusListServices;
 use tokio::task::AbortHandle;
 use tracing::info;
+use tracing::warn;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -74,7 +78,7 @@ use crate::nonce::store::NonceStore;
 use crate::nonce::store::NonceStoreError;
 use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
-use crate::server_state::CLEANUP_INTERVAL_SECONDS;
+use crate::recurring_task::start_recurring_task;
 use crate::server_state::Expirable;
 use crate::server_state::HasProgress;
 use crate::server_state::Progress;
@@ -90,6 +94,9 @@ use crate::token::CredentialPreviewContent;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
+
+/// The cleanup task that removes stale sessions runs every so often.
+const CLEANUP_INTERVAL: Duration = Duration::from_secs(120);
 
 // Errors are structured as follows in this module: the handler for a token request on the one hand, and the handlers
 // for the other endpoints on the other hand, have specific error types. (There is also a general error type included
@@ -403,9 +410,9 @@ pub struct Issuer<K, A, S, N, L> {
     attr_service: A,
     issuer_data: IssuerData<K>,
     sessions: Arc<S>,
-    proof_nonce_store: N,
+    proof_nonce_store: Arc<N>,
     status_list_services: Arc<L>,
-    sessions_cleanup_task: AbortHandle,
+    cleanup_task: AbortHandle,
 }
 
 /// Fields of the [`Issuer`] needed by the issuance functions.
@@ -433,7 +440,7 @@ pub struct WuaConfig {
 impl<K, A, S, N, L> Drop for Issuer<K, A, S, N, L> {
     fn drop(&mut self) {
         // Stop the tasks at the next .await
-        self.sessions_cleanup_task.abort();
+        self.cleanup_task.abort();
     }
 }
 
@@ -445,7 +452,8 @@ impl<K, A, S, N, L> Issuer<K, A, S, N, L> {
 
 impl<K, A, S, N, L> Issuer<K, A, S, N, L>
 where
-    S: SessionStore<IssuanceData> + Send + Sync + 'static,
+    S: SessionStore<IssuanceData> + Sync + 'static,
+    N: NonceStore + Sync + 'static,
 {
     #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn new(
@@ -532,13 +540,33 @@ where
             metadata,
         };
 
+        let proof_nonce_store = Arc::new(proof_nonce_store);
+
+        let task_sessions = Arc::clone(&sessions);
+        let task_nonce_store = Arc::clone(&proof_nonce_store);
+        let cleanup_task = start_recurring_task(CLEANUP_INTERVAL, move || {
+            let task_sessions = Arc::clone(&task_sessions);
+            let task_nonce_store = Arc::clone(&task_nonce_store);
+
+            async move {
+                let _ = join!(
+                    task_sessions.cleanup().inspect_err(|error| {
+                        warn!("error during session cleanup: {error}");
+                    }),
+                    task_nonce_store.remove_expired_nonces().inspect_err(|error| {
+                        warn!("error during proof nonce cleanup: {error}");
+                    })
+                );
+            }
+        });
+
         Self {
             issuer_data,
             attr_service,
-            sessions: Arc::clone(&sessions),
+            sessions,
             proof_nonce_store,
             status_list_services,
-            sessions_cleanup_task: sessions.start_cleanup_task(CLEANUP_INTERVAL_SECONDS).abort_handle(),
+            cleanup_task,
         }
     }
 }
@@ -772,7 +800,7 @@ where
                 dpop,
                 &self.issuer_data,
                 IssuerServices {
-                    proof_nonce_store: &self.proof_nonce_store,
+                    proof_nonce_store: self.proof_nonce_store.as_ref(),
                     status_list_services: self.status_list_services.as_ref(),
                 },
             )
@@ -802,7 +830,7 @@ where
                 dpop,
                 &self.issuer_data,
                 IssuerServices {
-                    proof_nonce_store: &self.proof_nonce_store,
+                    proof_nonce_store: self.proof_nonce_store.as_ref(),
                     status_list_services: self.status_list_services.as_ref(),
                 },
             )
@@ -2029,7 +2057,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn cleanup_task() {
+    async fn test_cleanup_task() {
         let documents = mock_issuable_documents(NonZeroUsize::MIN);
 
         let (sessions, mock_time) = memory_session_store_with_mock_time();
@@ -2046,6 +2074,6 @@ mod tests {
         );
 
         let token = issuer.new_session(documents).await.unwrap();
-        test_memory_store_with_cleanup_task(sessions, token, &mock_time).await;
+        test_memory_store_with_cleanup_task(sessions, token, &mock_time, CLEANUP_INTERVAL).await;
     }
 }

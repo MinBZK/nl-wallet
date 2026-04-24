@@ -31,6 +31,7 @@ pub use errors::*;
 pub mod cose;
 pub mod jose;
 pub mod nonce;
+mod recurring_task;
 pub mod server_state;
 
 #[cfg(any(test, feature = "mock"))]
