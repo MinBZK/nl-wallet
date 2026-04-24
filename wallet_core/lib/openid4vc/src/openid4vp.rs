@@ -291,7 +291,6 @@ impl ClientId {
     pub fn x509_hash_from_certificate(certificate: &BorrowingCertificate) -> Self {
         Self::x509_hash(Self::x509_hash_value(certificate))
     }
-
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

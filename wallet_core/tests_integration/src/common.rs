@@ -1156,11 +1156,7 @@ pub async fn do_degree_issuance(
     attestation_previews
 }
 
-pub fn universal_link(
-    issuance_server_url: &BaseUrl,
-    client_ids: &DegreeClientIds,
-    format: CredentialFormat,
-) -> Url {
+pub fn universal_link(issuance_server_url: &BaseUrl, client_ids: &DegreeClientIds, format: CredentialFormat) -> Url {
     let params = serde_urlencoded::to_string(VerifierUrlParameters {
         session_type: SessionType::SameDevice,
         ephemeral_id_params: None,
