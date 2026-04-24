@@ -172,7 +172,9 @@ where
                     .await
                     .map_err(ProofNonceStoreError::DbDeleteExpiredNonces)?;
 
-                info!("Deleted {} expired nonce(s) from storage", result.rows_affected);
+                if result.rows_affected > 0 {
+                    info!("Deleted {} expired nonce(s) from storage", result.rows_affected);
+                }
             }
             NonceStoreBackend::Memory(memory_store) => memory_store.remove_expired(),
         }
