@@ -17,7 +17,7 @@ kotlin {
 val browserstackAgent by configurations.creating
 
 dependencies {
-    browserstackAgent("com.browserstack:browserstack-java-sdk:latest.release")
+    browserstackAgent("com.browserstack:browserstack-java-sdk:1.56.6")
 
     implementation(kotlin("stdlib"))
 
