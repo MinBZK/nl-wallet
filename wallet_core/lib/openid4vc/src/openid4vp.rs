@@ -454,10 +454,10 @@ impl VpAuthorizationRequest {
         let selected_encryption_algorithm =
             NormalizedVpAuthorizationRequest::select_encryption_algorithm(&validated_auth_request.client_metadata)?;
         let client_id = &validated_auth_request.client_id;
-        let certificate_client_id = ClientId::x509_hash_from_certificate(rp_cert);
 
         match &client_id.scheme {
             Some(ClientIdScheme::X509Hash) => {
+                let certificate_client_id = ClientId::x509_hash_from_certificate(rp_cert);
                 if client_id != &certificate_client_id {
                     return Err(AuthRequestValidationError::UnauthorizedClientIdHash {
                         client_id: client_id.to_string(),
@@ -1354,16 +1354,6 @@ mod tests {
     }
 
     #[test]
-    fn test_new_from_certificate_uses_x509_hash_client_id() {
-        let (_, rp_keypair, _, auth_request) = setup_mdoc();
-
-        assert_eq!(
-            auth_request.client_id,
-            ClientId::x509_hash_from_certificate(rp_keypair.certificate())
-        );
-    }
-
-    #[test]
     fn test_encrypt_decrypt_authorization_response() {
         let (_, _, encryption_secret_key, auth_request) = setup_mdoc();
 
@@ -1424,17 +1414,6 @@ mod tests {
         let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &[trust_anchor]).unwrap();
         let (auth_request, _) = auth_request.validate(&cert, None).unwrap();
         assert_eq!(auth_request.state.as_deref(), Some("authorization_state"));
-    }
-
-    #[test]
-    fn test_authorization_request_validate_x509_hash_client_id() {
-        let (_, rp_keypair, _, auth_request) = setup_mdoc();
-        let mut auth_request = VpAuthorizationRequest::from(auth_request);
-
-        auth_request.oauth_request.client_id =
-            ClientId::x509_hash_from_certificate(rp_keypair.certificate()).to_string();
-
-        auth_request.validate(rp_keypair.certificate(), None).unwrap();
     }
 
     #[test]

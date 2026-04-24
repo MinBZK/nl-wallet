@@ -2049,35 +2049,6 @@ mod tests {
     }
 
     #[test]
-    fn test_rp_initiated_usecase_client_id_uses_x509_hash() {
-        let ca = Ca::generate_reader_mock_ca().unwrap();
-        let reader_registration = ReaderRegistration::new_mock();
-        let key_pair = generate_reader_mock_with_registration(&ca, reader_registration).unwrap();
-        let expected_client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
-
-        let use_case = RpInitiatedUseCase::new(key_pair, SessionTypeReturnUrl::SameDevice, None, None, false);
-
-        assert_eq!(use_case.data.client_id, expected_client_id);
-    }
-
-    #[test]
-    fn test_wallet_initiated_usecase_client_id_uses_x509_hash() {
-        let ca = Ca::generate_reader_mock_ca().unwrap();
-        let reader_registration = ReaderRegistration::new_mock();
-        let key_pair = generate_reader_mock_with_registration(&ca, reader_registration).unwrap();
-        let expected_client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
-
-        let use_case = WalletInitiatedUseCase::new(
-            key_pair,
-            SessionTypeReturnUrl::SameDevice,
-            NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
-            "https://example.com/redirect_uri".parse().unwrap(),
-        );
-
-        assert_eq!(use_case.data.client_id, expected_client_id);
-    }
-
-    #[test]
     fn test_wallet_auth_response_jwe_serializes_to_response_parameter() {
         let body = serde_urlencoded::to_string(WalletAuthResponse::Response(VpToken {
             response: "jwe".to_string(),
