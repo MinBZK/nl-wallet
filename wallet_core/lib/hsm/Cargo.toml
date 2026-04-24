@@ -41,6 +41,8 @@ serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
+tracing.workspace = true
+tokio.workspace = true
 
 async-dropper = { workspace = true, optional = true }
 async-trait = { workspace = true, optional = true }

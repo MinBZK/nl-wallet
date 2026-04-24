@@ -628,8 +628,7 @@ impl Pkcs11Client for Pkcs11Hsm {
             .wrap_key(&private_wrapping_handle, &private_handle, verifying_key)
             .await?;
 
-        Pkcs11Client::delete_key(self, private_handle).await?;
-        Pkcs11Client::delete_key(self, public_handle).await?;
+        self.clone().delete_keypair_in_background(private_handle, public_handle);
 
         Ok(wrapped)
     }
@@ -644,7 +643,28 @@ impl Pkcs11Client for Pkcs11Hsm {
         let private_wrapping_handle = self.get_private_key_handle(wrapping_key_identifier).await?;
         let private_handle = self.unwrap_signing_key(&private_wrapping_handle, wrapped_key).await?;
         let signature = Pkcs11Client::sign(self, &private_handle, SigningMechanism::Ecdsa256, data).await?;
-        Pkcs11Client::delete_key(self, private_handle).await?;
+        self.clone().delete_private_key_in_background(private_handle);
         Ok(Signature::from_slice(&signature)?)
+    }
+}
+
+impl Pkcs11Hsm {
+    fn delete_private_key_in_background(self, private_handle: PrivateKeyHandle) {
+        tokio::spawn(async move {
+            if let Err(err) = Pkcs11Client::delete_key(&self, private_handle).await {
+                tracing::warn!("failed to delete private key: {err:?}");
+            }
+        });
+    }
+
+    fn delete_keypair_in_background(self, private_key_handle: PrivateKeyHandle, public_key_handle: PublicKeyHandle) {
+        tokio::spawn(async move {
+            if let Err(err) = Pkcs11Client::delete_key(&self, private_key_handle).await {
+                tracing::warn!("failed to delete private key: {err:?}");
+            }
+            if let Err(err) = Pkcs11Client::delete_key(&self, public_key_handle).await {
+                tracing::warn!("failed to delete public key: {err:?}");
+            }
+        });
     }
 }
