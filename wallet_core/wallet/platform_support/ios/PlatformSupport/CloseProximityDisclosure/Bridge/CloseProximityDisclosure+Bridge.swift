@@ -15,7 +15,7 @@ extension CloseProximityDisclosure: CloseProximityDisclosureBridge {
 
     func sendDeviceResponse(deviceResponse: [UInt8]) async throws {
         let session = try requireActiveSession()
-        let establishedSessionContext = try establishedSessionContextFail(session)
+        let establishedSessionContext = try establishedSessionContextOrFail(session)
         await cancelReadMessagesTaskAndWait(session)
         try requireSessionIsActive(session)
         try await sendDeviceResponse(

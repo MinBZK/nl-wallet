@@ -93,8 +93,7 @@ extension CloseProximityDisclosure {
             guard let self else { return }
             do {
                 try await self.receiveMessages(
-                    session: session,
-                    transport: session.transport
+                    session: session
                 )
             } catch is CancellationError {
                 // The read task is canceled explicitly while shutting the session down, so nothing

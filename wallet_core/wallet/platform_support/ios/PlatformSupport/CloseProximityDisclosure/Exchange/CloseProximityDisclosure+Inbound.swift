@@ -3,13 +3,11 @@ import Foundation
 
 extension CloseProximityDisclosure {
     func receiveMessages(
-        session: CloseProximityDisclosureActiveSession,
-        transport: CloseProximityBleTransport
+        session: CloseProximityDisclosureActiveSession
     ) async throws {
         while isActiveSession(session) {
             guard let message = try await waitForSessionMessage(
-                session: session,
-                transport: transport
+                session: session
             ) else {
                 return
             }
@@ -17,7 +15,6 @@ extension CloseProximityDisclosure {
             let currentReaderSessionContext = readerSessionContext(for: session)
             guard let readerSessionContext = try await ensureReaderSessionContext(
                 session: session,
-                transport: transport,
                 message: message,
                 currentContext: currentReaderSessionContext
             ) else {
@@ -26,7 +23,6 @@ extension CloseProximityDisclosure {
 
             if try await handleReaderMessage(
                 session: session,
-                transport: transport,
                 message: message,
                 readerSessionContext: readerSessionContext
             ) {
@@ -82,10 +78,9 @@ extension CloseProximityDisclosure {
     }
 
     private func waitForSessionMessage(
-        session: CloseProximityDisclosureActiveSession,
-        transport: CloseProximityBleTransport
+        session: CloseProximityDisclosureActiveSession
     ) async throws -> KotlinByteArray? {
-        let message = try await transport.waitForMessage().kotlinByteArray()
+        let message = try await session.transport.waitForMessage().kotlinByteArray()
         guard isActiveSession(session) else { return nil }
 
         if message.isEmpty {
@@ -97,7 +92,6 @@ extension CloseProximityDisclosure {
 
     private func ensureReaderSessionContext(
         session: CloseProximityDisclosureActiveSession,
-        transport: CloseProximityBleTransport,
         message: KotlinByteArray,
         currentContext: CloseProximityDisclosureReaderSessionContext?
     ) async throws -> CloseProximityDisclosureReaderSessionContext? {
@@ -116,7 +110,6 @@ extension CloseProximityDisclosure {
             if let status = sessionEstablishmentFailureStatus(for: error) {
                 await failSessionWithStatus(
                     session,
-                    transport: transport,
                     status: status,
                     error: error
                 )
@@ -127,7 +120,7 @@ extension CloseProximityDisclosure {
         setReaderSessionContext(newContext, for: session)
 
         guard isActiveSession(session) else {
-            try? await transport.close()
+            try? await session.transport.close()
             return nil
         }
         return newContext
@@ -135,7 +128,6 @@ extension CloseProximityDisclosure {
 
     private func handleReaderMessage(
         session: CloseProximityDisclosureActiveSession,
-        transport: CloseProximityBleTransport,
         message: KotlinByteArray,
         readerSessionContext: CloseProximityDisclosureReaderSessionContext
     ) async throws -> Bool {
@@ -151,7 +143,6 @@ extension CloseProximityDisclosure {
             if let status = sessionMessageFailureStatus(for: error) {
                 await failSessionWithStatus(
                     session,
-                    transport: transport,
                     status: status,
                     error: error
                 )
@@ -201,14 +192,13 @@ extension CloseProximityDisclosure {
 
     private func failSessionWithStatus(
         _ session: CloseProximityDisclosureActiveSession,
-        transport: CloseProximityBleTransport,
         status: Int64,
         error: Error
     ) async {
         // PVW-5710: return the ISO 18013-5 status before shutting BLE down so the reader and
         // wallet core both observe a deterministic close proximity failure.
         if isActiveSession(session) {
-            try? await transport.sendMessage(
+            try? await session.transport.sendMessage(
                 message: SessionEncryption.companion.encodeStatus(statusCode: status).uint8Array()
             )
         }
