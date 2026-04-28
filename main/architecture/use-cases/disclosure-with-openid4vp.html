@@ -560,7 +560,7 @@ Proof of Association (PoA) as a custom addition.</p>
 <section id="how-disclosure-is-implemented">
 <h2>How disclosure is implemented<a class="headerlink" href="#how-disclosure-is-implemented" title="Link to this heading"></a></h2>
 <p>This diagram shows how OpenID4VP is implemented within the NL Wallet Solution.</p>
-<p>Client authentication is done using the <code class="docutils literal notranslate"><span class="pre">x509_san_dns</span></code> Client Identifier Scheme.
+<p>Client authentication is done using the <code class="docutils literal notranslate"><span class="pre">x509_hash</span></code> Client Identifier Scheme.
 Other Client Identifier Schemes are currently not supported.</p>
 <p>The reponse mode is <code class="docutils literal notranslate"><span class="pre">direct_post.jwt</span></code>. Other response modes are currently not
 supported. In more detail, the protocol works as follows:</p>
@@ -622,7 +622,7 @@ supported. In more detail, the protocol works as follows:</p>
     autonumber
 
     participant Wallet as WalletApp (core)
-    participant WB as Wallet Backend 
+    participant WB as Wallet Backend
     participant HSM as HSM
     participant DB as WB Database
 
@@ -633,10 +633,10 @@ supported. In more detail, the protocol works as follows:</p>
     HSM -&gt;&gt; HSM: unwrap wrapped_key(s) using attestationWrappingKey and&lt;br/&gt; use unwrapped key (attestationPrivateKey) for signing message(s)
     HSM -&gt;&gt;- WB: signed message
     opt PoA requested (in case of multiple messages)
-        WB -&gt;&gt;+ HSM: sign PoAs for keys, using PoA nonce  
+        WB -&gt;&gt;+ HSM: sign PoAs for keys, using PoA nonce
         HSM --&gt;&gt;- WB: signed PoAs
     end
-    WB --&gt;&gt;- Wallet: instruction response: signed messsage(s), PoA  
+    WB --&gt;&gt;- Wallet: instruction response: signed messsage(s), PoA
 
     </pre><!-- References -->
 </section>

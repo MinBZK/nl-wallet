@@ -189,13 +189,13 @@
 <h1>v0.6.0 (dev)<a class="headerlink" href="#v0-6-0-dev" title="Link to this heading"></a></h1>
 <section id="upgrading">
 <h2>Upgrading<a class="headerlink" href="#upgrading" title="Link to this heading"></a></h2>
-<ul class="simple">
+<ul>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">neither</span></code> value for <code class="docutils literal notranslate"><span class="pre">session_type_return_url</span></code> in the verification server
 configuration is no longer supported; use <code class="docutils literal notranslate"><span class="pre">same_device</span></code> (the default) with
 a <code class="docutils literal notranslate"><span class="pre">return_url_template</span></code> instead.</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuance</span></code> section of the Wallet configuration has been paired down
 as follows:</p>
-<ul>
+<ul class="simple">
 <li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuer_url</span></code> field is now just called <code class="docutils literal notranslate"><span class="pre">url</span></code>.</p></li>
 <li><p>The value at the <code class="docutils literal notranslate"><span class="pre">digid/client_id</span></code> path has been moved to <code class="docutils literal notranslate"><span class="pre">client_id</span></code>.</p></li>
 <li><p>The object contained in <code class="docutils literal notranslate"><span class="pre">digid_http_config</span></code> has been removed.</p></li>
@@ -204,6 +204,17 @@ as follows:</p>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> configuration has had its <code class="docutils literal notranslate"><span class="pre">digid.http_config</span></code> section
 renamed to <code class="docutils literal notranslate"><span class="pre">digid.client_settings</span></code>. Within this section, the <code class="docutils literal notranslate"><span class="pre">base_url</span></code> field
 has been renamed to <code class="docutils literal notranslate"><span class="pre">oidc_identifier</span></code>, which contains the same value.</p></li>
+<li><p>The supported <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-defined-client-identifier-p">client identifier prefix</a> (in the context of OpenID4VP, so a
+“client” here is a relying-party, a verifier) has changed from <code class="docutils literal notranslate"><span class="pre">x509_san_dns</span></code>
+to <code class="docutils literal notranslate"><span class="pre">x509_hash</span></code>. That means our wallet app expects <code class="docutils literal notranslate"><span class="pre">x509_hash</span></code> client ids. In
+our issuer server, the <code class="docutils literal notranslate"><span class="pre">client_id</span></code> field, which is part of a <code class="docutils literal notranslate"><span class="pre">usecase</span></code> needs
+to be updated (in our code that means the <code class="docutils literal notranslate"><span class="pre">demo_issuer</span></code>). For example:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;client_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;x509_hash:YYIN_SgqjFj2044q1fpvpa0rxqrXEG0U1xdm2Hw_ohM&quot;</span><span class="p">,</span>
+</pre></div>
+</div>
+<p>The value of <code class="docutils literal notranslate"><span class="pre">x509_hash</span></code> is the base64url-encoded value of the SHA-256 hash of
+the DER-encoded X.509 certificate.</p>
+</li>
 </ul>
 </section>
 <section id="new-features">
