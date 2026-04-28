@@ -15,29 +15,27 @@ extension CloseProximityDisclosure: CloseProximityDisclosureBridge {
 
     func sendDeviceResponse(deviceResponse: [UInt8]) async throws {
         let session = try requireActiveSession()
-        try requireSessionIsActive(session)
+        let establishedSessionContext = try establishedSessionContextFail(session)
         await cancelReadMessagesTaskAndWait(session)
         try requireSessionIsActive(session)
-        let establishedSessionContext = try establishedSessionContextOrRestartReadTask(session)
         try await sendDeviceResponse(
             session: session,
             establishedSessionContext: establishedSessionContext,
             deviceResponse: deviceResponse
         )
-        await closeSessionAfterDeviceResponse(session)
+        await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
     }
 
     func sendSessionTermination() async throws {
         let session = try requireActiveSession()
-        try requireSessionIsActive(session)
+        let establishedSessionContext = try establishedSessionContextOrFail(session)
         await cancelReadMessagesTaskAndWait(session)
         try requireSessionIsActive(session)
-        let establishedSessionContext = try establishedSessionContextOrRestartReadTask(session)
         try await sendSessionTermination(
             session: session,
             transport: establishedSessionContext.transport
         )
-        await closeSessionAfterDeviceResponse(session)
+        await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
     }
 
     func stopBleServer() async throws {

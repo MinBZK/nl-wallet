@@ -85,6 +85,18 @@ extension CloseProximityDisclosure {
         return activeSessionState.establishedSessionContext
     }
 
+    func establishedSessionContextOrFail(
+        _ session: CloseProximityDisclosureActiveSession
+    ) throws -> CloseProximityDisclosureEstablishedSessionContext {
+        try requireSessionIsActive(session)
+        guard let establishedSessionContext = establishedSessionContext(for: session) else {
+            throw CloseProximityDisclosureError.PlatformError(
+                reason: "Session has not been established yet"
+            )
+        }
+        return establishedSessionContext
+    }
+
     func cancelReadMessagesTaskAndWait(_ session: CloseProximityDisclosureActiveSession) async {
         let readMessagesTask = takeReadMessagesTask(for: session)
         guard let readMessagesTask else { return }

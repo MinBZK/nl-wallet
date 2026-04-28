@@ -2,18 +2,6 @@ import Foundation
 @preconcurrency import Multipaz
 
 extension CloseProximityDisclosure {
-    func establishedSessionContextOrRestartReadTask(
-        _ session: CloseProximityDisclosureActiveSession
-    ) throws -> CloseProximityDisclosureEstablishedSessionContext {
-        try requireSessionIsActive(session)
-        guard let establishedSessionContext = establishedSessionContext(for: session) else {
-            startReadMessagesTask(session)
-            throw CloseProximityDisclosureError.PlatformError(
-                reason: "Session has not been established yet"
-            )
-        }
-        return establishedSessionContext
-    }
 
     func sendDeviceResponse(
         session: CloseProximityDisclosureActiveSession,
@@ -50,12 +38,6 @@ extension CloseProximityDisclosure {
                 await failSession(session, error: error)
             }
             throw error.asCloseProximityDisclosureError
-        }
-    }
-
-    func closeSessionAfterDeviceResponse(_ session: CloseProximityDisclosureActiveSession) async {
-        if isActiveSession(session) {
-            await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
         }
     }
 
