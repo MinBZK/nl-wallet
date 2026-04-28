@@ -355,8 +355,7 @@ run-wallet-web-browsertest-test-ont:
   after_script:
     - deploy/bin/store-artifact.sh browsertests/packages/wallet-web/test-results/results.xml
       qt/quality-time/junit-results/browsertest-wallet-web.xml
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-wallet-web.zip
-      browsertests/packages/wallet-web/allure-results/*
+    - find browsertests/packages/wallet-web/allure-results -maxdepth 1 -type f ! -name '*-attachment.zip' | xargs deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-wallet-web.zip
   artifacts:
     name: browsertest-wallet-web
     when: always
@@ -383,8 +382,7 @@ run-fallback-pages-browsertest-test-ont:
   after_script:
     - deploy/bin/store-artifact.sh browsertests/packages/fallback-pages/test-results/results.xml
       qt/quality-time/junit-results/browsertest-fallback-pages.xml
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-fallback-pages.zip
-      browsertests/packages/fallback-pages/allure-results/*
+    - find browsertests/packages/fallback-pages/allure-results -maxdepth 1 -type f ! -name '*-attachment.zip' | xargs deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-fallback-pages.zip
   artifacts:
     name: browsertest-fallback-page
     when: always
@@ -411,8 +409,7 @@ run-revocation-portal-browsertest-test-ont:
   after_script:
     - deploy/bin/store-artifact.sh browsertests/packages/revocation-portal/test-results/results.xml
       qt/quality-time/junit-results/browsertest-revocation-portal.xml
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-revocation-portal.zip
-      browsertests/packages/revocation-portal/allure-results/*
+    - find browsertests/packages/revocation-portal/allure-results -maxdepth 1 -type f ! -name '*-attachment.zip' | xargs deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-revocation-portal.zip
   artifacts:
     name: browsertest-revocation-portal
     when: always
