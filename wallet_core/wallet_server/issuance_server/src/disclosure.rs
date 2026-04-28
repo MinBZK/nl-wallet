@@ -195,7 +195,7 @@ mod tests {
     use indexmap::IndexMap;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential::CredentialOffer;
-    use openid4vc::issuer::AttestationTypeConfig;
+    use openid4vc::issuer::CredentialConfiguration;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
@@ -278,7 +278,7 @@ mod tests {
         Issuer::new(
             "https://example.com".parse().unwrap(),
             vec![],
-            HashMap::<String, AttestationTypeConfig<SigningKey>>::new().into(),
+            HashMap::<String, CredentialConfiguration<SigningKey>>::new().into(),
             None,
             None,
             (),

@@ -20,8 +20,8 @@ use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use openid4vc::Format;
-use openid4vc::issuer::AttestationTypeConfig;
-use openid4vc::issuer::AttestationTypesConfig;
+use openid4vc::issuer::CredentialConfiguration;
+use openid4vc::issuer::CredentialConfigurations;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use rustls_pki_types::TrustAnchor;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -119,7 +119,7 @@ impl AttestationTypesConfigSettings {
         self,
         hsm: &Option<Pkcs11Hsm>,
         metadata: &TypeMetadataByVct,
-    ) -> Result<AttestationTypesConfig<PrivateKeyVariant>, PrivateKeySettingsError> {
+    ) -> Result<CredentialConfigurations<PrivateKeyVariant>, PrivateKeySettingsError> {
         let issuer_keys = join_all(self.0.into_iter().map(|(typ, attestation)| {
             async move {
                 // Take the SAN from the settings if specified, or otherwise take the first SAN from the certificate.
@@ -149,7 +149,7 @@ impl AttestationTypesConfigSettings {
                 // This `.unwrap()` is guaranteed to succeed because we are supplying at least one entry.
                 let metadata_documents = TypeMetadataDocuments::new(documents.try_into().unwrap());
 
-                let config = AttestationTypeConfig::try_new(
+                let config = CredentialConfiguration::try_new(
                     &typ,
                     attestation.keypair.parse(hsm.clone()).await?,
                     Days::new(attestation.valid_days),
@@ -164,7 +164,7 @@ impl AttestationTypesConfigSettings {
         }))
         .await
         .into_iter()
-        .collect::<Result<HashMap<String, AttestationTypeConfig<PrivateKeyVariant>>, PrivateKeySettingsError>>()?;
+        .collect::<Result<HashMap<String, CredentialConfiguration<PrivateKeyVariant>>, PrivateKeySettingsError>>()?;
 
         Ok(issuer_keys.into())
     }

@@ -32,8 +32,8 @@ use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
 use crate::Format;
-use crate::issuer::AttestationTypeConfig;
 use crate::issuer::AttributeService;
+use crate::issuer::CredentialConfiguration;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
 use crate::issuer::WiaConfig;
@@ -125,7 +125,7 @@ where
 
             (
                 attestation_type.to_string(),
-                AttestationTypeConfig::try_new(
+                CredentialConfiguration::try_new(
                     attestation_type,
                     KeyPair::new_from_signing_key(
                         issuance_keypair.private_key().clone(),

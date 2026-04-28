@@ -133,7 +133,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 }
 
                 CredentialRequestError::IssuanceError(IssuanceError::SessionStore(_))
-                | CredentialRequestError::MissingAttestationTypeConfiguration(_)
+                | CredentialRequestError::MissingCredentialConfiguration(_)
                 | CredentialRequestError::PreviewConversion(_)
                 | CredentialRequestError::MdocConversion(_)
                 | CredentialRequestError::SdJwtConversion(_)
@@ -242,7 +242,7 @@ impl From<CredentialPreviewError> for ErrorResponse<CredentialPreviewErrorCode> 
         ErrorResponse {
             error: match err {
                 CredentialPreviewError::IssuanceError(IssuanceError::SessionStore(_))
-                | CredentialPreviewError::MissingAttestationTypeConfig(_) => CredentialPreviewErrorCode::ServerError,
+                | CredentialPreviewError::MissingCredentialConfiguration(_) => CredentialPreviewErrorCode::ServerError,
                 CredentialPreviewError::IssuanceError(_)
                 | CredentialPreviewError::UnknownCredentialIdentifier(_)
                 | CredentialPreviewError::CredentialPreviewsNotFound => CredentialPreviewErrorCode::InvalidRequest,

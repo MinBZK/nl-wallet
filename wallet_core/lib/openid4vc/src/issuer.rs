@@ -67,7 +67,7 @@ use crate::credential::CredentialResponses;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::issuer_identifier::IssuerIdentifier;
-use crate::metadata::issuer_metadata::CredentialConfiguration;
+use crate::metadata::issuer_metadata;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::ProofType;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
@@ -177,8 +177,8 @@ pub enum CredentialRequestError {
     #[error("JWT error: {0}")]
     Jwt(#[from] JwtError),
 
-    #[error("missing attestation type config for {0}")]
-    MissingAttestationTypeConfiguration(String),
+    #[error("missing credential configuration with identifier: {0}")]
+    MissingCredentialConfiguration(String),
 
     #[error("mismatch between requested: {requested} and offered attestation types: {offered}")]
     CredentialTypeMismatch { requested: Format, offered: Format },
@@ -226,8 +226,8 @@ pub enum CredentialPreviewError {
     #[error("unknown credential identifier: {0}")]
     UnknownCredentialIdentifier(String),
 
-    #[error("missing attestation type config for {0}")]
-    MissingAttestationTypeConfig(String),
+    #[error("missing credential configuration with identifier: {0}")]
+    MissingCredentialConfiguration(String),
 
     #[error("requested credential previews not found in session")]
     CredentialPreviewsNotFound,
@@ -347,10 +347,13 @@ impl AttributeService for () {
     }
 }
 
-/// Static attestation data shared across all instances of an attestation type. The issuer augments this with an
-/// [`IssuableDocument`] to form the attestation.
+/// Static attestation data shared across all instances of an attestation type for a particular format. Parts of this
+/// configuration are represented in the `credential_configurations_supported` section of the issuer metadata.
+///
+/// When performing issuance, the issuer augments the [`CredentialConfiguration`] with an [`IssuableDocument`] to form
+/// the attestation.
 #[derive(Debug)]
-pub struct AttestationTypeConfig<K> {
+pub struct CredentialConfiguration<K> {
     #[debug(skip)]
     pub key_pair: KeyPair<K>,
     pub valid_days: Days,
@@ -363,8 +366,8 @@ pub struct AttestationTypeConfig<K> {
     metadata: NormalizedTypeMetadata,
 }
 
-impl<K> AttestationTypeConfig<K> {
-    /// Create a new [`AttestationTypeConfig`] and decode and validate the type metadata documents.
+impl<K> CredentialConfiguration<K> {
+    /// Create a new [`CredentialConfiguration`] and decode and validate the type metadata documents.
     #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn try_new(
         attestation_type: &str,
@@ -394,9 +397,9 @@ impl<K> AttestationTypeConfig<K> {
     }
 }
 
-/// Static attestation data indexed by attestation type.
+/// Static credential configurations indexed by their identifier.
 #[derive(Debug, From, AsRef)]
-pub struct AttestationTypesConfig<K>(HashMap<String, AttestationTypeConfig<K>>);
+pub struct CredentialConfigurations<K>(HashMap<String, CredentialConfiguration<K>>);
 
 pub struct Issuer<K, A, S, N, L> {
     attr_service: A,
@@ -409,7 +412,7 @@ pub struct Issuer<K, A, S, N, L> {
 
 /// Fields of the [`Issuer`] needed by the issuance functions.
 pub struct IssuerData<K> {
-    attestation_config: AttestationTypesConfig<K>,
+    credential_configs: CredentialConfigurations<K>,
     wia_config: Option<WiaConfig>,
 
     /// Wallet IDs accepted by this server, MUST be used by the wallet as `iss` in its PoP JWTs.
@@ -451,7 +454,7 @@ where
     pub fn new(
         issuer_identifier: IssuerIdentifier,
         wallet_client_ids: Vec<String>,
-        attestation_config: AttestationTypesConfig<K>,
+        credential_configs: CredentialConfigurations<K>,
         wia_config: Option<WiaConfig>,
         upstream_oauth_identifier: Option<IssuerIdentifier>,
         attr_service: A,
@@ -459,13 +462,13 @@ where
         proof_nonce_store: N,
         status_list_services: Arc<L>,
     ) -> Self {
-        let credential_configurations_supported = attestation_config
+        let credential_configurations_supported = credential_configs
             .as_ref()
             .iter()
             .flat_map(|(attestation_type, config)| {
                 config.copies_per_format.keys().flat_map(move |format| {
                     // TODO (PVW-5554): Include the credential configuration id in the settings, instead of
-                    //                  hard coupling the AttestationTypeConfig key with the doctype / vct.
+                    //                  hard coupling the CredentialConfiguration key with the doctype / vct.
                     let config_id = format!("{attestation_type}_{format}");
                     // TODO (PVW-5548): Add "attestation" proof type.
                     let proof_types = vec![ProofType::Jwt];
@@ -475,7 +478,7 @@ where
                     match format {
                         Format::MsoMdoc => Some((
                             config_id,
-                            CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(
+                            issuer_metadata::CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(
                                 attestation_type.clone(),
                                 proof_types,
                                 display,
@@ -484,7 +487,7 @@ where
                         )),
                         Format::SdJwt => Some((
                             config_id,
-                            CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
+                            issuer_metadata::CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
                                 attestation_type.clone(),
                                 proof_types,
                                 display,
@@ -521,7 +524,7 @@ where
         };
 
         let issuer_data = IssuerData {
-            attestation_config,
+            credential_configs,
             accepted_wallet_client_ids: wallet_client_ids,
             wia_config,
             upstream_oauth_identifier,
@@ -690,10 +693,10 @@ where
         let attestation_type = &state.credential_payload.attestation_type;
         let config = self
             .issuer_data
-            .attestation_config
+            .credential_configs
             .as_ref()
             .get(attestation_type)
-            .ok_or_else(|| CredentialPreviewError::MissingAttestationTypeConfig(attestation_type.clone()))?;
+            .ok_or_else(|| CredentialPreviewError::MissingCredentialConfiguration(attestation_type.clone()))?;
 
         Ok(CredentialPreview {
             content: CredentialPreviewContent {
@@ -749,7 +752,7 @@ where
                 dpop,
                 &self.attr_service,
                 &self.issuer_data.server_url,
-                &self.issuer_data.attestation_config,
+                &self.issuer_data.credential_configs,
                 is_new_session,
             )
             .await;
@@ -932,7 +935,7 @@ impl Session<Created> {
         dpop: Dpop,
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
-        attestation_settings: &AttestationTypesConfig<impl EcdsaKeySend>,
+        credential_configurations: &CredentialConfigurations<impl EcdsaKeySend>,
         is_new_session: bool,
     ) -> Result<(TokenResponse, String, Session<WaitingForResponse>), (TokenRequestError, Session<Done>)> {
         let result = self
@@ -941,7 +944,7 @@ impl Session<Created> {
                 dpop,
                 attr_service,
                 server_url,
-                attestation_settings,
+                credential_configurations,
                 is_new_session,
             )
             .await;
@@ -971,7 +974,7 @@ impl Session<Created> {
 
     fn id_and_credential_preview_from_issuable_document(
         document: IssuableDocument,
-        attestation_data: &AttestationTypeConfig<impl EcdsaKeySend>,
+        attestation_data: &CredentialConfiguration<impl EcdsaKeySend>,
     ) -> (Uuid, CredentialPreview) {
         // Truncate the current time to only include the date part, so that all issued credentials on a single
         // day have the same `nbf` and `exp` field
@@ -1003,7 +1006,7 @@ impl Session<Created> {
         dpop: Dpop,
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
-        attestation_settings: &AttestationTypesConfig<impl EcdsaKeySend>,
+        credential_configurations: &CredentialConfigurations<impl EcdsaKeySend>,
         is_new_session: bool,
     ) -> Result<
         (
@@ -1051,7 +1054,7 @@ impl Session<Created> {
         let (ids, previews) = issuables
             .into_nonempty_iter()
             .map(|document| {
-                let attestation_data = attestation_settings
+                let attestation_data = credential_configurations
                     .as_ref()
                     .get(document.attestation_type())
                     .ok_or_else(|| {
@@ -1246,10 +1249,10 @@ impl Session<WaitingForResponse> {
 
         let attestation_type = &preview.credential_payload.attestation_type;
         let config = issuer_data
-            .attestation_config
+            .credential_configs
             .as_ref()
             .get(attestation_type)
-            .ok_or_else(|| CredentialRequestError::MissingAttestationTypeConfiguration(attestation_type.to_owned()))?;
+            .ok_or_else(|| CredentialRequestError::MissingCredentialConfiguration(attestation_type.to_owned()))?;
 
         let status_claim = services
             .status_list_services
@@ -1364,11 +1367,11 @@ impl Session<WaitingForResponse> {
 
                 let attestation_type = &preview.credential_payload.attestation_type;
                 let config = issuer_data
-                    .attestation_config
+                    .credential_configs
                     .as_ref()
                     .get(attestation_type)
                     .ok_or_else(|| {
-                        CredentialRequestError::MissingAttestationTypeConfiguration(attestation_type.to_string())
+                        CredentialRequestError::MissingCredentialConfiguration(attestation_type.to_string())
                     })?;
 
                 Ok((preview, config, format_pubkeys))
@@ -1499,44 +1502,42 @@ impl CredentialResponse {
         preview_credential_payload: PreviewableCredentialPayload,
         issued_at: DateTime<Utc>,
         holder_pubkey: &VerifyingKey,
-        attestation_config: &AttestationTypeConfig<impl EcdsaKeySend>,
+        credential_config: &CredentialConfiguration<impl EcdsaKeySend>,
         status_claim: StatusClaim,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let payload = CredentialPayload::from_previewable_credential_payload(
             preview_credential_payload,
             issued_at,
             holder_pubkey,
-            &attestation_config.metadata,
-            attestation_config.first_metadata_integrity.clone(),
+            &credential_config.metadata,
+            credential_config.first_metadata_integrity.clone(),
             status_claim,
         )?;
 
         match credential_format {
-            Format::MsoMdoc => Self::new_for_mdoc(payload, attestation_config).await,
-            Format::SdJwt => Self::new_for_sd_jwt(payload, attestation_config).await,
+            Format::MsoMdoc => Self::new_for_mdoc(payload, credential_config).await,
+            Format::SdJwt => Self::new_for_sd_jwt(payload, credential_config).await,
             other => Err(CredentialRequestError::CredentialTypeNotOffered(other.to_string())),
         }
     }
 
     async fn new_for_mdoc(
         credential_payload: CredentialPayload,
-        attestation_config: &AttestationTypeConfig<impl EcdsaKeySend + Sized>,
+        credential_config: &CredentialConfiguration<impl EcdsaKeySend + Sized>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         // Construct an mdoc `IssuerSigned` from the contents of `PreviewableCredentialPayload`
         // and the attestation config by signing it.
-        let (issuer_signed, _) = credential_payload
-            .into_signed_mdoc(&attestation_config.key_pair)
-            .await?;
+        let (issuer_signed, _) = credential_payload.into_signed_mdoc(&credential_config.key_pair).await?;
 
         Ok(CredentialResponse::new_immediate(Credential::new_mdoc(issuer_signed)))
     }
 
     async fn new_for_sd_jwt(
         credential_payload: CredentialPayload,
-        attestation_config: &AttestationTypeConfig<impl EcdsaKeySend + Sized>,
+        credential_config: &CredentialConfiguration<impl EcdsaKeySend + Sized>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let signed_sd_jwt = credential_payload
-            .into_signed_sd_jwt(&attestation_config.metadata, &attestation_config.key_pair)
+            .into_signed_sd_jwt(&credential_config.metadata, &credential_config.key_pair)
             .await?;
 
         Ok(CredentialResponse::new_immediate(Credential::new_sd_jwt(
@@ -1634,7 +1635,7 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
         let document = IssuableDocument::new_mock_degree("Education".to_string());
-        let config = AttestationTypeConfig::try_new(
+        let config = CredentialConfiguration::try_new(
             document.attestation_type(),
             KeyPair::new_from_signing_key(
                 issuance_keypair.private_key().to_owned(),
