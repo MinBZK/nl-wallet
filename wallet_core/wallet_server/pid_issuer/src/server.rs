@@ -81,7 +81,10 @@ where
 {
     let log_requests = settings.server_settings.log_requests;
 
-    let attestation_config = settings.attestation_settings.parse(&hsm, &settings.metadata).await?;
+    let attestation_config = settings
+        .credential_configurations
+        .parse(&hsm, &settings.metadata)
+        .await?;
 
     let status_list_services = Arc::new(status_list_services);
     let wallet_issuance_router = create_issuance_router(Arc::new(Issuer::new(

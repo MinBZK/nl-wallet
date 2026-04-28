@@ -100,7 +100,7 @@ where
     let log_requests = issuer_settings.server_settings.log_requests;
     let type_metadata = issuer_settings.metadata;
     let disclosure_public_url = issuer_settings.public_url.as_base_url().join_base_url("disclosure");
-    let attestation_config = issuer_settings.attestation_settings.parse(&hsm, &type_metadata).await?;
+    let attestation_config = issuer_settings.credential_configurations.parse(&hsm, &type_metadata).await?;
 
     let use_cases = try_join_all(settings.disclosure_settings.into_iter().map(|(id, s)| {
         let hsm = hsm.clone();

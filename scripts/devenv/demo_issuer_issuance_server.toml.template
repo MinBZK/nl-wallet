@@ -62,14 +62,14 @@ claims = [
 base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/university_sd_jwt/"
 trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
-[attestation_settings."com.example.degree"]
+[credential_configurations."com.example.degree"]
 valid_days = 365
 copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_ISSUER}"
 certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_ISSUER}"
 
-[attestation_settings."com.example.degree".status_list]
+[credential_configurations."com.example.degree".status_list]
 context_path = "/tsl"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 private_key_type = "software"
@@ -93,21 +93,21 @@ claims = [
 base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/insurance/"
 trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
-[attestation_settings."com.example.insurance"]
+[credential_configurations."com.example.insurance"]
 valid_days = 365
 copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_INSURANCE_ISSUER}"
 certificate = "${DEMO_ISSUER_CRT_INSURANCE_ISSUER}"
 
-[attestation_settings."com.example.insurance".status_list]
+[credential_configurations."com.example.insurance".status_list]
 context_path = "/tsl"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_INSURANCE_TSL}"
 certificate = "${DEMO_ISSUER_CRT_INSURANCE_TSL}"
 
-[attestation_settings."com.example.housing"]
+[credential_configurations."com.example.housing"]
 valid_days = 365
 copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"
@@ -131,7 +131,7 @@ claims = [
 base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/housing/"
 trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
-[attestation_settings."com.example.housing".status_list]
+[credential_configurations."com.example.housing".status_list]
 context_path = "/tsl"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 private_key_type = "software"

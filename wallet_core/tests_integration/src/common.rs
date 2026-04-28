@@ -740,7 +740,7 @@ async fn get_status_list_service_and_router(
     let db_connection = new_connection(storage_url).await.unwrap();
 
     let status_list_router = create_serve_router(
-        (&issuer_settings.attestation_settings)
+        (&issuer_settings.credential_configurations)
             .into_iter()
             .map(|(_, settings)| {
                 (
@@ -754,7 +754,7 @@ async fn get_status_list_service_and_router(
 
     let status_list_configs = StatusListAttestationSettings::settings_into_configs(
         issuer_settings
-            .attestation_settings
+            .credential_configurations
             .as_ref()
             .iter()
             .map(|(id, settings)| (id.clone(), settings.status_list.clone())),

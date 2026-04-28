@@ -51,7 +51,7 @@ pub struct IssuerSettings {
     /// Identifier.
     pub public_url: IssuerIdentifier,
 
-    pub attestation_settings: AttestationTypesConfigSettings,
+    pub credential_configurations: CredentialConfigurationsSettings,
 
     #[serde(deserialize_with = "deserialize_type_metadata")]
     #[debug(skip)]
@@ -70,10 +70,12 @@ pub struct IssuerSettings {
 }
 
 #[derive(Debug, Clone, Deserialize, From, IntoIterator, AsRef)]
-pub struct AttestationTypesConfigSettings(#[into_iterator(owned, ref)] HashMap<String, AttestationTypeConfigSettings>);
+pub struct CredentialConfigurationsSettings(
+    #[into_iterator(owned, ref)] HashMap<String, CredentialConfigurationSettings>,
+);
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct AttestationTypeConfigSettings {
+pub struct CredentialConfigurationSettings {
     #[serde(flatten)]
     #[debug(skip)]
     pub keypair: KeyPair,
@@ -114,7 +116,7 @@ where
     Ok(documents)
 }
 
-impl AttestationTypesConfigSettings {
+impl CredentialConfigurationsSettings {
     pub async fn parse(
         self,
         hsm: &Option<Pkcs11Hsm>,
@@ -192,7 +194,7 @@ impl IssuerSettings {
     pub fn validate(&self) -> Result<(), IssuerSettingsError> {
         tracing::debug!("verifying issuer settings");
 
-        for (typ, attestation) in self.attestation_settings.as_ref() {
+        for (typ, attestation) in self.credential_configurations.as_ref() {
             if let Some(certificate_san) = attestation.certificate_san.as_ref() {
                 // If the certificate SAN to be used has been specified, then it has to be present in the certificate.
                 if !attestation
@@ -227,7 +229,7 @@ impl IssuerSettings {
             .collect::<Vec<_>>();
 
         let key_pairs: Vec<(&str, &KeyPair)> = self
-            .attestation_settings
+            .credential_configurations
             .as_ref()
             .iter()
             .map(|(typ, attestation)| (typ.as_ref(), &attestation.keypair))
@@ -236,7 +238,7 @@ impl IssuerSettings {
         verify_key_pairs(&key_pairs, &trust_anchors, CertificateUsage::Mdl, &time)?;
 
         let key_pairs: Vec<(&str, &KeyPair)> = self
-            .attestation_settings
+            .credential_configurations
             .as_ref()
             .iter()
             .map(|(typ, attestation)| (typ.as_ref(), &attestation.status_list.keypair))
@@ -244,7 +246,7 @@ impl IssuerSettings {
 
         verify_key_pairs(&key_pairs, &trust_anchors, CertificateUsage::OAuthStatusSigning, &time)?;
 
-        for (typ, attestation) in self.attestation_settings.as_ref() {
+        for (typ, attestation) in self.credential_configurations.as_ref() {
             let attestation_dn = attestation.keypair.certificate.distinguished_name()?;
             let status_list_dn = attestation.status_list.keypair.certificate.distinguished_name()?;
             if attestation_dn != status_list_dn {
@@ -354,7 +356,7 @@ mod tests {
     use server_utils::settings::Storage;
     use status_lists::publish::PublishDir;
 
-    use super::AttestationTypeConfigSettings;
+    use super::CredentialConfigurationSettings;
     use super::IssuerSettings;
     use super::StatusListAttestationSettings;
     use crate::settings::IssuerSettingsError;
@@ -371,9 +373,9 @@ mod tests {
 
         IssuerSettings {
             public_url: "https://example.com".parse().unwrap(),
-            attestation_settings: HashMap::from([(
+            credential_configurations: HashMap::from([(
                 "com.example.pid".to_string(),
-                AttestationTypeConfigSettings {
+                CredentialConfigurationSettings {
                     keypair,
                     valid_days: 365,
                     copies_per_format: IndexMap::from([(Format::MsoMdoc, 10.try_into().unwrap())]),
@@ -452,9 +454,9 @@ mod tests {
             .into();
 
         settings.server_settings.issuer_trust_anchors = vec![issuer_ca.borrowing_trust_anchor().clone()];
-        settings.attestation_settings = HashMap::from([(
+        settings.credential_configurations = HashMap::from([(
             "com.example.no_registration".to_string(),
-            AttestationTypeConfigSettings {
+            CredentialConfigurationSettings {
                 keypair: issuer_cert_no_registration.into(),
                 valid_days: 365,
                 copies_per_format: IndexMap::from([(Format::MsoMdoc, 4.try_into().unwrap())]),
@@ -500,10 +502,10 @@ mod tests {
 
         let wrong_san: HttpsUri = "https://wrong.san.example.com".parse().unwrap();
 
-        let (typ, attestation_settings) = settings.attestation_settings.as_ref().iter().next().unwrap();
+        let (typ, attestation_settings) = settings.credential_configurations.as_ref().iter().next().unwrap();
         let mut attestation_settings = attestation_settings.clone();
         attestation_settings.certificate_san = Some(wrong_san.clone());
-        settings.attestation_settings = HashMap::from([(typ.clone(), attestation_settings)]).into();
+        settings.credential_configurations = HashMap::from([(typ.clone(), attestation_settings)]).into();
 
         let error = settings.validate().expect_err("should fail");
         assert_matches!(error, IssuerSettingsError::CertificateMissingSan { san, .. } if san == wrong_san);
@@ -514,10 +516,10 @@ mod tests {
         let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
         let mut settings = mock_settings(&issuer_ca);
 
-        let (typ, attestation_settings) = settings.attestation_settings.as_ref().iter().next().unwrap();
+        let (typ, attestation_settings) = settings.credential_configurations.as_ref().iter().next().unwrap();
         let mut attestation_settings = attestation_settings.clone();
         attestation_settings.status_list.keypair = attestation_settings.keypair.clone();
-        settings.attestation_settings = HashMap::from([(typ.clone(), attestation_settings)]).into();
+        settings.credential_configurations = HashMap::from([(typ.clone(), attestation_settings)]).into();
 
         let error = settings.validate().expect_err("should fail");
         assert_matches!(error, IssuerSettingsError::CertificateVerification(CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key)) if key == "com.example.pid");
@@ -536,10 +538,10 @@ mod tests {
             )
             .expect("generate tsl cert failed");
 
-        let (typ, attestation_settings) = settings.attestation_settings.as_ref().iter().next().unwrap();
+        let (typ, attestation_settings) = settings.credential_configurations.as_ref().iter().next().unwrap();
         let mut attestation_settings = attestation_settings.clone();
         attestation_settings.status_list.keypair = status_list_keypair.into();
-        settings.attestation_settings = HashMap::from([(typ.clone(), attestation_settings)]).into();
+        settings.credential_configurations = HashMap::from([(typ.clone(), attestation_settings)]).into();
 
         let error = settings.validate().expect_err("should fail");
         assert_matches!(error, IssuerSettingsError::CertificatesSubjectNameMismatch { typ, attestation, status_list } if typ == "com.example.pid" && attestation == "CN=cert.issuer.example.com" && status_list == "CN=different.example.com");

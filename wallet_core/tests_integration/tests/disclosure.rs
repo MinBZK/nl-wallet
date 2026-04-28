@@ -393,7 +393,7 @@ async fn test_disclosure_aki_ok() {
     let (pid_issuer_settings, _) = pid_issuer_settings(Url::parse("postgres://unused").unwrap());
     let aki = pid_issuer_settings
         .issuer_settings
-        .attestation_settings
+        .credential_configurations
         .into_iter()
         .find(|(vct, _)| *vct == PID_ATTESTATION_TYPE)
         .unwrap()

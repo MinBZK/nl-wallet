@@ -41,7 +41,7 @@ user_pin = "${HSM_USER_PIN}"
 max_sessions = 3
 max_session_lifetime_in_sec = 900
 
-[attestation_settings."urn:eudi:pid:nl:1"]
+[credential_configurations."urn:eudi:pid:nl:1"]
 valid_days = 365
 copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 attestation_qualification = "QEAA"
@@ -49,7 +49,7 @@ private_key_type = "hsm"
 private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"
 
-[attestation_settings."urn:eudi:pid:nl:1".status_list]
+[credential_configurations."urn:eudi:pid:nl:1".status_list]
 context_path = "/tsl"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
 private_key_type = "software"
