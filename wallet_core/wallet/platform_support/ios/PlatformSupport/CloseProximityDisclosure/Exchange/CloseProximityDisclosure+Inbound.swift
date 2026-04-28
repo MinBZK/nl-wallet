@@ -11,12 +11,11 @@ extension CloseProximityDisclosure {
             ) else {
                 return
             }
-
-            let currentReaderSessionContext = readerSessionContext(for: session)
-            guard let readerSessionContext = try await ensureReaderSessionContext(
+            // According to the ISO-18013-5 protocol, the reader will send the eReader public key as the first payload.
+            // This is the last ingredient needed for the session transcript.
+            guard let readerSessionContext = await ensureReaderSessionContext(
                 session: session,
-                message: message,
-                currentContext: currentReaderSessionContext
+                message: message
             ) else {
                 return
             }
@@ -31,27 +30,30 @@ extension CloseProximityDisclosure {
         }
     }
 
-    private func createReaderSessionContext(
-        eDeviceKey: EcPrivateKey,
-        encodedDeviceEngagement: KotlinByteArray,
+    private func ensureReaderSessionContext(
+        session: CloseProximityDisclosureActiveSession,
         message: KotlinByteArray
-    ) -> CloseProximityDisclosureReaderSessionContext {
-        let eReaderKey = SessionEncryption.companion.getEReaderKey(
-            sessionEstablishmentMessage: message
-        )
-        let encodedSessionTranscript = buildEncodedSessionTranscript(
-            encodedDeviceEngagement: encodedDeviceEngagement,
-            encodedReaderKey: eReaderKey.encodedCoseKey
-        )
-        return CloseProximityDisclosureReaderSessionContext(
-            sessionEncryption: SessionEncryption(
-                role: .mdoc,
-                eSelfKey: eDeviceKey,
-                remotePublicKey: eReaderKey.publicKey,
-                encodedSessionTranscript: encodedSessionTranscript
-            ),
-            encodedSessionTranscript: encodedSessionTranscript
-        )
+    ) async -> CloseProximityDisclosureReaderSessionContext? {
+        if let readerSessionContext = readerSessionContext(for: session) {
+            return readerSessionContext
+        }
+
+        do {
+            let establishedReaderSessionContext = try createReaderSessionContextFromFirstReaderMessage(
+                session: session,
+                message: message
+            )
+            guard isActiveSession(session) else { return nil }
+            setReaderSessionContext(establishedReaderSessionContext, for: session)
+            return self.readerSessionContext(for: session)
+        } catch {
+            if let status = sessionEstablishmentFailureStatus(for: error) {
+                await failSessionWithStatus(session, status: status, error: error)
+            } else {
+                await failSession(session, error: error)
+            }
+            return nil
+        }
     }
 
     private func buildEncodedSessionTranscript(
@@ -90,40 +92,24 @@ extension CloseProximityDisclosure {
         return message
     }
 
-    private func ensureReaderSessionContext(
+    private func createReaderSessionContextFromFirstReaderMessage(
         session: CloseProximityDisclosureActiveSession,
-        message: KotlinByteArray,
-        currentContext: CloseProximityDisclosureReaderSessionContext?
-    ) async throws -> CloseProximityDisclosureReaderSessionContext? {
-        if let currentContext {
-            return currentContext
-        }
-
-        let newContext: CloseProximityDisclosureReaderSessionContext
-        do {
-            newContext = createReaderSessionContext(
-                eDeviceKey: session.eDeviceKey,
-                encodedDeviceEngagement: session.encodedDeviceEngagement,
-                message: message
-            )
-        } catch {
-            if let status = sessionEstablishmentFailureStatus(for: error) {
-                await failSessionWithStatus(
-                    session,
-                    status: status,
-                    error: error
-                )
-                return nil
-            }
-            throw error
-        }
-        setReaderSessionContext(newContext, for: session)
-
-        guard isActiveSession(session) else {
-            try? await session.transport.close()
-            return nil
-        }
-        return newContext
+        message: KotlinByteArray
+    ) throws -> CloseProximityDisclosureReaderSessionContext {
+        let eReaderKey = try SessionEncryption.companion.getEReaderKey(sessionEstablishmentMessage: message)
+        let encodedSessionTranscript = buildEncodedSessionTranscript(
+            encodedDeviceEngagement: session.encodedDeviceEngagement,
+            encodedReaderKey: eReaderKey.encodedCoseKey
+        )
+        return CloseProximityDisclosureReaderSessionContext(
+            sessionEncryption: SessionEncryption(
+                role: .mdoc,
+                eSelfKey: session.eDeviceKey,
+                remotePublicKey: eReaderKey.publicKey,
+                encodedSessionTranscript: encodedSessionTranscript
+            ),
+            encodedSessionTranscript: encodedSessionTranscript
+        )
     }
 
     private func handleReaderMessage(
