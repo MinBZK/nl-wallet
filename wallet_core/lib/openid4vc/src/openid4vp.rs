@@ -12,7 +12,6 @@ use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
@@ -278,11 +277,19 @@ impl FromStr for ClientId {
 }
 
 impl ClientId {
-    pub fn x509_san_dns(id: impl Into<String>) -> Self {
+    fn x509_hash_value(certificate: &BorrowingCertificate) -> String {
+        BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::sha256(certificate.as_ref()))
+    }
+
+    pub fn x509_hash(id: impl Into<String>) -> Self {
         Self {
             id: id.into(),
-            scheme: Some(ClientIdScheme::X509SanDns),
+            scheme: Some(ClientIdScheme::X509Hash),
         }
+    }
+
+    pub fn x509_hash_from_certificate(certificate: &BorrowingCertificate) -> Self {
+        Self::x509_hash(Self::x509_hash_value(certificate))
     }
 }
 
@@ -379,28 +386,23 @@ pub enum AuthRequestValidationError {
     )]
     #[category(critical)]
     NoSupportedEncryptedResponseEnc(VecNonEmpty<JweEncryptionAlgorithm>),
-    #[error("unsupported client_id scheme: {scheme}. Only x509_san_dns is currently supported")]
+    #[error("unsupported client_id scheme: {scheme}. Only x509_hash is currently supported")]
     #[category(critical)]
     UnsupportedClientIdScheme { scheme: ClientIdScheme },
-    #[error("unsupported client_id without a scheme (pre-registered). Only x509_san_dns is currently supported")]
+    #[error("unsupported client_id without a scheme (pre-registered). Only x509_hash is currently supported")]
     #[category(critical)]
     UnsupportedClientIdWithoutScheme,
-    #[error("response_uri fqdn {fqdn} does not match client_id {id}.")]
-    #[category(critical)]
-    UnmatchedResponseFqdn { fqdn: String, id: String },
     #[error("unsupported DCQL query: {0}")]
     UnsupportedDcqlQuery(#[from] UnsupportedDcqlFeatures),
     #[error(
-        "client_id from Authorization Request was {client_id}, should have been x509_san_dns:{dns_san} to match the \
-         SAN DNSName from the X.509 certificate"
+        "client_id from Authorization Request was {client_id}, should have been x509_hash:{certificate_hash} to match \
+         the leaf X.509 certificate from the x5c JOSE header"
     )]
     #[category(critical)]
-    UnauthorizedClientId { client_id: String, dns_san: String },
-    #[error("Subject Alternative Name missing from X.509 certificate")]
-    #[category(critical)]
-    MissingSAN,
-    #[error("error parsing X.509 certificate: {0}")]
-    CertificateParsing(#[from] CertificateError),
+    UnauthorizedClientIdHash {
+        client_id: String,
+        certificate_hash: String,
+    },
     #[error("failed to verify Authorization Request JWT: {0}")]
     JwtVerification(#[from] JwtX5cError),
     #[error("mismatch in wallet nonce: did not receive nonce when one was expected, or vice versa")]
@@ -436,7 +438,7 @@ impl VpAuthorizationRequest {
 
     /// Validate that an Authorization Request satisfies the following:
     /// - the request contents are compliant with the OpenID4VP specification.
-    /// - the `client_id` uses the `x509_san_dns` scheme and equals one of the DNS SAN names in the X.509 certificate.
+    /// - the `client_id` uses the `x509_hash` scheme and matches the leaf X.509 certificate.
     ///
     /// This method consumes `self` and turns it into an [`NormalizedVpAuthorizationRequest`], which
     /// contains only the fields we need and use.
@@ -445,10 +447,6 @@ impl VpAuthorizationRequest {
         rp_cert: &BorrowingCertificate,
         wallet_nonce: Option<&str>,
     ) -> Result<(NormalizedVpAuthorizationRequest, EncryptionAlgorithm), AuthRequestValidationError> {
-        let dns_sans = rp_cert.san_dns_names()?;
-        if dns_sans.is_empty() {
-            return Err(AuthRequestValidationError::MissingSAN);
-        }
         let validated_auth_request = NormalizedVpAuthorizationRequest::try_from(self)?;
 
         // Validate that the verifier advertised at least one encryption algorithm that the wallet supports,
@@ -462,38 +460,23 @@ impl VpAuthorizationRequest {
         let client_id = &validated_auth_request.client_id;
 
         match &client_id.scheme {
-            Some(ClientIdScheme::X509SanDns) => {}
+            Some(ClientIdScheme::X509Hash) => {
+                let certificate_hash = ClientId::x509_hash_value(rp_cert);
+                if client_id.id != certificate_hash {
+                    return Err(AuthRequestValidationError::UnauthorizedClientIdHash {
+                        client_id: client_id.to_string(),
+                        certificate_hash,
+                    });
+                }
+            }
             Some(scheme) => {
                 return Err(AuthRequestValidationError::UnsupportedClientIdScheme { scheme: scheme.clone() });
             }
             None => return Err(AuthRequestValidationError::UnsupportedClientIdWithoutScheme),
         }
 
-        if !dns_sans.contains(&client_id.id.as_str()) {
-            return Err(AuthRequestValidationError::UnauthorizedClientId {
-                client_id: client_id.to_string(),
-                dns_san: dns_sans.join(", "),
-            });
-        }
-
         if wallet_nonce != validated_auth_request.wallet_nonce.as_deref() {
             return Err(AuthRequestValidationError::WalletNonceMismatch);
-        }
-
-        // https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-8.2
-        // This checks the fqdn of the response uri against the x509_san_dns client id
-        if let Some(response_uri_fqdn) = validated_auth_request.response_uri.fqdn() {
-            if response_uri_fqdn != client_id.id {
-                return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
-                    fqdn: response_uri_fqdn.to_string(),
-                    id: client_id.id.clone(),
-                });
-            }
-        } else {
-            return Err(AuthRequestValidationError::UnmatchedResponseFqdn {
-                fqdn: validated_auth_request.response_uri.to_string(),
-                id: client_id.id.clone(),
-            });
         }
 
         Ok((validated_auth_request, selected_encryption_algorithm))
@@ -1150,12 +1133,7 @@ pub mod test {
             response_uri: BaseUrl,
             wallet_nonce: Option<String>,
         ) -> Self {
-            let client_id = ClientId::x509_san_dns(
-                rp_certificate
-                    .san_dns_name()
-                    .expect("certificate SAN DNSName should be parseable")
-                    .expect("certificate should contain SAN DNSName"),
-            );
+            let client_id = ClientId::x509_hash_from_certificate(rp_certificate);
 
             Self::new_for_verifier(
                 credential_requests,
@@ -1194,7 +1172,6 @@ mod tests {
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use futures::FutureExt;
-    use http_utils::urls::BaseUrl;
     use itertools::Itertools;
     use jwe::algorithm::EcdhAlgorithm;
     use jwe::algorithm::EncryptionAlgorithm;
@@ -1254,6 +1231,8 @@ mod tests {
         #[serde_as(as = "Vec<JsonBase64>")] VecNonEmpty<serde_json::Map<String, serde_json::Value>>,
     );
 
+    const EXAMPLE_X509_HASH_CLIENT_ID: &str = "x509_hash:ZXhhbXBsZS1jbGllbnQtaWQtaGFzaA";
+
     #[test]
     fn test_normalized_vp_authorization_request_sha256_thumbprint_bytes() {
         // Source (edited): https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.2.6.1-7
@@ -1291,15 +1270,6 @@ mod tests {
     }
 
     #[test]
-    fn test_client_id_parse_and_display_x509_san_dns() {
-        let client_id: ClientId = "x509_san_dns:example.com".into();
-
-        assert_eq!(client_id.to_string(), "x509_san_dns:example.com");
-        assert_matches!(client_id.scheme, Some(ClientIdScheme::X509SanDns));
-        assert_eq!(client_id.id, "example.com");
-    }
-
-    #[test]
     fn test_client_id_parse_and_display_without_scheme() {
         let client_id: ClientId = "example.com".into();
 
@@ -1333,6 +1303,19 @@ mod tests {
         assert_eq!(client_id.to_string(), "x509_hash:abcdef");
         assert_matches!(client_id.scheme, Some(ClientIdScheme::X509Hash));
         assert_eq!(client_id.id, "abcdef");
+    }
+
+    #[test]
+    fn test_client_id_x509_hash_from_certificate() {
+        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let key_pair = ca.generate_reader_mock().unwrap();
+        let expected_hash = ClientId::x509_hash_value(key_pair.certificate());
+
+        let client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
+
+        assert_eq!(client_id.to_string(), format!("x509_hash:{expected_hash}"));
+        assert_matches!(client_id.scheme, Some(ClientIdScheme::X509Hash));
+        assert_eq!(client_id.id, expected_hash);
     }
 
     fn setup_mdoc() -> (
@@ -1438,20 +1421,18 @@ mod tests {
     }
 
     #[test]
-    fn test_authorization_request_validate_unauthorized_client_id() {
+    fn test_authorization_request_validate_unauthorized_x509_hash_client_id() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
         let mut auth_request = VpAuthorizationRequest::from(auth_request);
-        let wrong_dns_san = "wrong.example.com";
-        let cert_dns_san = rp_keypair.certificate().san_dns_name().unwrap().unwrap();
+        let expected_hash = ClientId::x509_hash_value(rp_keypair.certificate());
 
-        auth_request.oauth_request.client_id = format!("x509_san_dns:{wrong_dns_san}");
-        auth_request.response_uri = Some(format!("https://{wrong_dns_san}/response_uri").parse().unwrap());
+        auth_request.oauth_request.client_id = "x509_hash:wrong-hash".to_string();
 
         let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
         assert_matches!(
             err,
-            AuthRequestValidationError::UnauthorizedClientId { client_id, dns_san }
-            if client_id == format!("x509_san_dns:{wrong_dns_san}") && dns_san.contains(cert_dns_san)
+            AuthRequestValidationError::UnauthorizedClientIdHash { client_id, certificate_hash }
+            if client_id == "x509_hash:wrong-hash" && certificate_hash == expected_hash
         );
     }
 
@@ -1459,8 +1440,8 @@ mod tests {
     fn test_authorization_request_validate_unsupported_client_id_scheme() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
         let mut auth_request = VpAuthorizationRequest::from(auth_request);
-        let dns_san = rp_keypair.certificate().san_dns_name().unwrap().unwrap();
-        auth_request.oauth_request.client_id = format!("redirect_uri:{dns_san}");
+        let certificate_hash = ClientId::x509_hash_value(rp_keypair.certificate());
+        auth_request.oauth_request.client_id = format!("redirect_uri:{certificate_hash}");
 
         let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
         assert_matches!(
@@ -1475,46 +1456,10 @@ mod tests {
     fn test_authorization_request_validate_unsupported_client_id_without_scheme() {
         let (_, rp_keypair, _, auth_request) = setup_mdoc();
         let mut auth_request = VpAuthorizationRequest::from(auth_request);
-        let dns_san = rp_keypair.certificate().san_dns_name().unwrap().unwrap();
-        auth_request.oauth_request.client_id = dns_san.to_string();
+        auth_request.oauth_request.client_id = ClientId::x509_hash_value(rp_keypair.certificate());
 
         let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
         assert_matches!(err, AuthRequestValidationError::UnsupportedClientIdWithoutScheme);
-    }
-
-    #[test]
-    fn test_authorization_request_validate_unmatched_response_fqdn() {
-        let (_, rp_keypair, _, auth_request) = setup_mdoc();
-        let mut auth_request = VpAuthorizationRequest::from(auth_request);
-        let wrong_fqdn = "wrong.example.com";
-        let expected_client_id = rp_keypair.certificate().san_dns_name().unwrap().unwrap().to_string();
-
-        auth_request.response_uri = Some(format!("https://{wrong_fqdn}/response_uri").parse().unwrap());
-
-        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
-        assert_matches!(
-            err,
-            AuthRequestValidationError::UnmatchedResponseFqdn { fqdn, id }
-            if fqdn == wrong_fqdn && id == expected_client_id
-        );
-    }
-
-    #[test]
-    fn test_authorization_request_validate_unmatched_response_fqdn_without_fqdn() {
-        let (_, rp_keypair, _, auth_request) = setup_mdoc();
-        let mut auth_request = VpAuthorizationRequest::from(auth_request);
-        let response_uri: BaseUrl = "file:///response_uri".parse().unwrap();
-        let expected_response_uri = response_uri.to_string();
-        let expected_client_id = rp_keypair.certificate().san_dns_name().unwrap().unwrap().to_string();
-
-        auth_request.response_uri = Some(response_uri);
-
-        let err = auth_request.validate(rp_keypair.certificate(), None).unwrap_err();
-        assert_matches!(
-            err,
-            AuthRequestValidationError::UnmatchedResponseFqdn { fqdn, id }
-            if fqdn == expected_response_uri && id == expected_client_id
-        );
     }
 
     #[test]
@@ -1524,7 +1469,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -1576,7 +1521,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -1632,7 +1577,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -1747,7 +1692,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -1826,7 +1771,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -1876,7 +1821,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -1936,7 +1881,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -1996,7 +1941,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -2041,7 +1986,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {
@@ -2083,7 +2028,7 @@ mod tests {
                 "aud": "https://self-issued.me/v2",
                 "response_type": "vp_token",
                 "response_mode": "direct_post.jwt",
-                "client_id": "x509_san_dns:example.com",
+                "client_id": EXAMPLE_X509_HASH_CLIENT_ID,
                 "response_uri": "https://example.com/post",
                 "nonce": "%%2_fsd32434!==r",
                 "client_metadata": {

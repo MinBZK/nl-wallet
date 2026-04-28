@@ -521,6 +521,10 @@ mod tests {
 
         use super::*;
 
+        // Note: We do not support x509_san_dns (we support x509_hash), but
+        // the point of this example data is to literally follow the examples
+        // from the specification.
+        // Source: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.2.6.1-7
         const EXAMPLE_CLIENT_ID: &str = "x509_san_dns:example.com";
         const EXAMPLE_NONCE: &str = "exc7gBkxjx1rdc9udRrveKvSsJIq80avlXeLHhGwqtA";
         const EXAMPLE_RESPONSE_URI: &str = "https://example.com/response";

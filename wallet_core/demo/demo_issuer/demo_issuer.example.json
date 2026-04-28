@@ -15,7 +15,7 @@
   },
   "usecases": {
     "university": {
-      "client_id": "x509_san_dns:localhost",
+      "client_id": "x509_hash:example-university-reader-cert-hash",
       "data": {
         "9999999999": [
           {
@@ -36,7 +36,7 @@
       }
     },
     "insurance": {
-      "client_id": "x509_san_dns:localhost",
+      "client_id": "x509_hash:example-insurance-reader-cert-hash",
       "data": {
         "9999999999": [
           {

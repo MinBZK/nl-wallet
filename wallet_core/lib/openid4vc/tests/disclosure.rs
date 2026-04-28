@@ -798,7 +798,7 @@ async fn test_disclosure_invalid_poa() {
 
 #[tokio::test]
 async fn test_wallet_initiated_usecase_verifier() {
-    let (verifier, test_credentials, rp_trust_anchor, issuer_keypair) =
+    let (verifier, test_credentials, rp_trust_anchor, issuer_keypair, client_id) =
         setup_wallet_initiated_usecase_verifier(Arc::new(MemorySessionStore::default()));
 
     let mut request_uri: Url = format!("https://{RP_CERT_CN}/{WALLET_INITIATED_RETURN_URL_USE_CASE}/request_uri")
@@ -813,7 +813,7 @@ async fn test_wallet_initiated_usecase_verifier() {
     ));
 
     let universal_link_query = serde_urlencoded::to_string(VpRequestUri {
-        client_id: ClientId::x509_san_dns(RP_CERT_CN),
+        client_id,
         object: VpRequestUriObject::AsReference {
             request_uri: request_uri.try_into().unwrap(),
             request_uri_method: Some(VpRequestUriMethod::POST),
@@ -844,7 +844,7 @@ async fn test_wallet_initiated_usecase_verifier() {
 
 #[tokio::test]
 async fn test_wallet_initiated_usecase_verifier_cancel() {
-    let (verifier, _test_credentials, rp_trust_anchor, _issuer_keypair) =
+    let (verifier, _test_credentials, rp_trust_anchor, _issuer_keypair, client_id) =
         setup_wallet_initiated_usecase_verifier(Arc::new(MemorySessionStore::default()));
 
     let mut request_uri: Url = format!("https://{RP_CERT_CN}/{WALLET_INITIATED_RETURN_URL_USE_CASE}/request_uri")
@@ -859,7 +859,7 @@ async fn test_wallet_initiated_usecase_verifier_cancel() {
     ));
 
     let universal_link_query = serde_urlencoded::to_string(VpRequestUri {
-        client_id: ClientId::x509_san_dns(RP_CERT_CN),
+        client_id,
         object: VpRequestUriObject::AsReference {
             request_uri: request_uri.try_into().unwrap(),
             request_uri_method: Some(VpRequestUriMethod::POST),
@@ -1046,6 +1046,7 @@ fn setup_wallet_initiated_usecase_verifier<G>(
     TestCredentials,
     TrustAnchor<'static>,
     KeyPair,
+    ClientId,
 )
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
@@ -1061,18 +1062,14 @@ where
     let test_credentials = nl_pid_credentials_full_name();
     let dcql_query = test_credentials.to_dcql_query([CredentialFormat::SdJwt]);
     let reader_registration = ReaderRegistration::mock_from_dcql_query(&dcql_query);
-    let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
-    let usecases = HashMap::from([(
-        WALLET_INITIATED_RETURN_URL_USE_CASE.to_string(),
-        WalletInitiatedUseCase::try_new(
-            generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
-            &public_url,
-            SessionTypeReturnUrl::SameDevice,
-            dcql_query.try_into().unwrap(),
-            "https://example.com/redirect_uri".parse().unwrap(),
-        )
-        .unwrap(),
-    )]);
+    let use_case = WalletInitiatedUseCase::new(
+        generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
+        SessionTypeReturnUrl::SameDevice,
+        dcql_query.try_into().unwrap(),
+        "https://example.com/redirect_uri".parse().unwrap(),
+    );
+    let client_id = use_case.data().client_id.clone();
+    let usecases = HashMap::from([(WALLET_INITIATED_RETURN_URL_USE_CASE.to_string(), use_case)]);
 
     let verifier = Arc::new(MockWalletInitiatedUseCaseVerifier::new(
         WalletInitiatedUseCases::new(usecases),
@@ -1091,6 +1088,7 @@ where
         test_credentials,
         rp_ca.to_trust_anchor().to_owned(),
         issuer_keypair,
+        client_id,
     )
 }
 
@@ -1107,18 +1105,15 @@ fn setup_verifier(
         .unwrap();
 
     // Initialize the verifier
-    let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
     let reader_registration = ReaderRegistration::mock_from_dcql_query(dcql_query);
     let usecases = HashMap::from([
         (
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::new(
-                UseCaseData::try_new(
+                UseCaseData::new(
                     generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),
-                    &public_url,
                     SessionTypeReturnUrl::SameDevice,
-                )
-                .unwrap(),
+                ),
                 None,
                 None,
                 None,
@@ -1128,12 +1123,10 @@ fn setup_verifier(
         (
             ALL_RETURN_URL_USE_CASE.to_string(),
             RpInitiatedUseCase::new(
-                UseCaseData::try_new(
+                UseCaseData::new(
                     generate_reader_mock_with_registration(&rp_ca, reader_registration).unwrap(),
-                    &public_url,
                     SessionTypeReturnUrl::Both,
-                )
-                .unwrap(),
+                ),
                 None,
                 None,
                 None,

@@ -15,7 +15,6 @@ use crypto::EcdsaKeySend;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
-use crypto::x509::CertificateError;
 use dcql::Query;
 use dcql::disclosure::ExtendingVctRetriever;
 use dcql::normalized::NormalizedCredentialRequests;
@@ -162,19 +161,6 @@ pub enum PostAuthResponseError {
     HandlingDisclosureResult(#[from] DisclosureResultHandlerError),
     #[error("failed serializing response: {0}")]
     ResponseEncoding(#[from] serde_urlencoded::ser::Error),
-}
-
-/// Errors that can occur when creating a [`UseCase`] instance.
-#[derive(Debug, thiserror::Error)]
-pub enum UseCaseCertificateError {
-    #[error("missing DNS SAN from RP certificate")]
-    MissingSAN,
-    #[error("missing host in verifier public URL: {0}")]
-    MissingPublicUrlHost(BaseUrl),
-    #[error("verifier public URL host {host} not present in RP certificate SAN DNS entries: {dns_sans}")]
-    PublicUrlHostNotInCertificate { host: String, dns_sans: String },
-    #[error("RP certificate error: {0}")]
-    Certificate(#[from] CertificateError),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -495,20 +481,14 @@ pub struct UseCaseData<K> {
 }
 
 impl<K> UseCaseData<K> {
-    pub fn try_new(
-        key_pair: KeyPair<K>,
-        public_url: &BaseUrl,
-        session_type_return_url: SessionTypeReturnUrl,
-    ) -> Result<Self, NewDisclosureUseCaseError> {
-        let client_id = client_id_from_public_url(&key_pair, public_url)?;
+    pub fn new(key_pair: KeyPair<K>, session_type_return_url: SessionTypeReturnUrl) -> Self {
+        let client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
 
-        let data = Self {
+        Self {
             key_pair,
             client_id,
             session_type_return_url,
-        };
-
-        Ok(data)
+        }
     }
 }
 
@@ -564,15 +544,6 @@ pub struct RpInitiatedUseCases<K, S> {
     disclosures: HashMap<String, RpInitiatedUseCase<K>>,
     ephemeral_id_secret: hmac::Key,
     sessions: Arc<S>,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum NewDisclosureUseCaseError {
-    #[error(transparent)]
-    UseCaseCertificate(#[from] UseCaseCertificateError),
-
-    #[error("additional accepted attestation types can only be configured for the SD-JWT format")]
-    WrongFormatForAdditionalAcceptedAttestationTypes,
 }
 
 impl<K> RpInitiatedUseCase<K> {
@@ -732,7 +703,7 @@ impl<K, S> RpInitiatedUseCases<K, S> {
 }
 
 /// A use case which is started not by an RP but by the wallet invoking the `request_uri` endpoint.
-#[derive(Debug, Constructor)]
+#[derive(Debug)]
 pub struct WalletInitiatedUseCase<K> {
     data: UseCaseData<K>,
     credential_requests: NormalizedCredentialRequests,
@@ -745,16 +716,15 @@ pub struct WalletInitiatedUseCases<K> {
 }
 
 impl<K> WalletInitiatedUseCase<K> {
-    pub fn try_new(
+    pub fn new(
         key_pair: KeyPair<K>,
-        public_url: &BaseUrl,
         session_type_return_url: SessionTypeReturnUrl,
         credential_requests: NormalizedCredentialRequests,
         return_url_template: ReturnUrlTemplate,
-    ) -> Result<Self, NewDisclosureUseCaseError> {
-        let client_id = client_id_from_public_url(&key_pair, public_url)?;
+    ) -> Self {
+        let client_id = ClientId::x509_hash_from_certificate(key_pair.certificate());
 
-        let use_case = Self {
+        Self {
             data: UseCaseData {
                 key_pair,
                 client_id,
@@ -762,9 +732,7 @@ impl<K> WalletInitiatedUseCase<K> {
             },
             credential_requests,
             return_url_template,
-        };
-
-        Ok(use_case)
+        }
     }
 }
 
@@ -826,30 +794,6 @@ where
     ) -> Option<EphemeralIdParameters> {
         None
     }
-}
-
-fn client_id_from_public_url<K>(
-    key_pair: &KeyPair<K>,
-    public_url: &BaseUrl,
-) -> Result<ClientId, UseCaseCertificateError> {
-    let host = public_url
-        .fqdn()
-        .ok_or_else(|| UseCaseCertificateError::MissingPublicUrlHost(public_url.clone()))?
-        .to_string();
-
-    let dns_sans = key_pair.certificate().san_dns_names()?;
-    if dns_sans.is_empty() {
-        return Err(UseCaseCertificateError::MissingSAN);
-    }
-
-    if !dns_sans.iter().any(|dns_san| *dns_san == host) {
-        return Err(UseCaseCertificateError::PublicUrlHostNotInCertificate {
-            host,
-            dns_sans: dns_sans.join(", "),
-        });
-    }
-
-    Ok(ClientId::x509_san_dns(host))
 }
 
 pub trait ToPostAuthResponseErrorCode: Error {
@@ -1596,7 +1540,6 @@ mod tests {
     use chrono::Duration;
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
-    use crypto::server_keys::generate::mock::RP_CERT_CN;
     use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequests;
     use dcql::unique_id_vec::UniqueIdVec;
@@ -1681,7 +1624,6 @@ mod tests {
     {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
-        let public_url: BaseUrl = format!("https://{RP_CERT_CN}/").parse().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
         let reader_registration = ReaderRegistration::new_mock();
 
@@ -1689,12 +1631,10 @@ mod tests {
             (
                 DISCLOSURE_USECASE.to_string(),
                 RpInitiatedUseCase::new(
-                    UseCaseData::try_new(
+                    UseCaseData::new(
                         generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
-                        &public_url,
                         SessionTypeReturnUrl::SameDevice,
-                    )
-                    .unwrap(),
+                    ),
                     None,
                     None,
                     None,
@@ -1704,12 +1644,10 @@ mod tests {
             (
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
                 RpInitiatedUseCase::new(
-                    UseCaseData::try_new(
+                    UseCaseData::new(
                         generate_reader_mock_with_registration(&ca, reader_registration).unwrap(),
-                        &public_url,
                         SessionTypeReturnUrl::Both,
-                    )
-                    .unwrap(),
+                    ),
                     None,
                     None,
                     None,

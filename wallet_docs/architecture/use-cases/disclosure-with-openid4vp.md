@@ -8,7 +8,7 @@ Proof of Association (PoA) as a custom addition.
 
 This diagram shows how OpenID4VP is implemented within the NL Wallet Solution.
 
-Client authentication is done using the `x509_san_dns` Client Identifier Scheme.
+Client authentication is done using the `x509_hash` Client Identifier Scheme.
 Other Client Identifier Schemes are currently not supported.
 
 The reponse mode is `direct_post.jwt`. Other response modes are currently not
@@ -66,14 +66,14 @@ sequenceDiagram
 
 #### Key usage during disclosure
 
-During disclosure, the Wallet will interact with the Wallet Backend to sign the Proofs of Possessions (PoPs) that will be sent to the Verifier (Step 7 in the previous diagram). The sequence diagram below describes this process in detail. 
+During disclosure, the Wallet will interact with the Wallet Backend to sign the Proofs of Possessions (PoPs) that will be sent to the Verifier (Step 7 in the previous diagram). The sequence diagram below describes this process in detail.
 
 ```{mermaid}
 sequenceDiagram
     autonumber
 
     participant Wallet as WalletApp (core)
-    participant WB as Wallet Backend 
+    participant WB as Wallet Backend
     participant HSM as HSM
     participant DB as WB Database
 
@@ -84,10 +84,10 @@ sequenceDiagram
     HSM ->> HSM: unwrap wrapped_key(s) using attestationWrappingKey and<br/> use unwrapped key (attestationPrivateKey) for signing message(s)
     HSM ->>- WB: signed message
     opt PoA requested (in case of multiple messages)
-        WB ->>+ HSM: sign PoAs for keys, using PoA nonce  
+        WB ->>+ HSM: sign PoAs for keys, using PoA nonce
         HSM -->>- WB: signed PoAs
     end
-    WB -->>- Wallet: instruction response: signed messsage(s), PoA  
+    WB -->>- Wallet: instruction response: signed messsage(s), PoA
 
 ```
 

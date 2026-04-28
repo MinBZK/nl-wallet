@@ -15,7 +15,7 @@
   },
   "usecases": {
     "university_mdoc": {
-      "client_id": "x509_san_dns:${SERVICES_HOST}",
+      "client_id": "${DEMO_ISSUER_CLIENT_ID_UNIVERSITY_READER}",
       "data": {
         "900253022": [
           {
@@ -70,7 +70,7 @@
       }
     },
     "university_sd_jwt": {
-      "client_id": "x509_san_dns:${SERVICES_HOST}",
+      "client_id": "${DEMO_ISSUER_CLIENT_ID_UNIVERSITY_READER}",
       "data": {
         "900253022": [
           {
@@ -125,7 +125,7 @@
       }
     },
     "insurance": {
-      "client_id": "x509_san_dns:${SERVICES_HOST}",
+      "client_id": "${DEMO_ISSUER_CLIENT_ID_INSURANCE_READER}",
       "data": {
         "999991772": [
           {
@@ -146,7 +146,7 @@
       }
     },
     "housing": {
-      "client_id": "x509_san_dns:${SERVICES_HOST}",
+      "client_id": "${DEMO_ISSUER_CLIENT_ID_HOUSING_READER}",
       "data": {
         "999991772": [
           {

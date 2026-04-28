@@ -401,6 +401,8 @@ DEMO_ISSUER_KEY_UNIVERSITY_READER=$(< "${TARGET_DIR}/demo_issuer/university.read
 export DEMO_ISSUER_KEY_UNIVERSITY_READER
 DEMO_ISSUER_CRT_UNIVERSITY_READER=$(< "${TARGET_DIR}/demo_issuer/university.reader.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_UNIVERSITY_READER
+DEMO_ISSUER_CLIENT_ID_UNIVERSITY_READER="x509_hash:$(openssl dgst -sha256 -binary "${TARGET_DIR}/demo_issuer/university.reader.crt.der" | base64_url_encode)"
+export DEMO_ISSUER_CLIENT_ID_UNIVERSITY_READER
 DEMO_ISSUER_KEY_UNIVERSITY_ISSUER=$(< "${TARGET_DIR}/demo_issuer/university.issuer.key.der" ${BASE64})
 export DEMO_ISSUER_KEY_UNIVERSITY_ISSUER
 DEMO_ISSUER_CRT_UNIVERSITY_ISSUER=$(< "${TARGET_DIR}/demo_issuer/university.issuer.crt.der" ${BASE64})
@@ -415,6 +417,8 @@ DEMO_ISSUER_KEY_INSURANCE_READER=$(< "${TARGET_DIR}/demo_issuer/insurance.reader
 export DEMO_ISSUER_KEY_INSURANCE_READER
 DEMO_ISSUER_CRT_INSURANCE_READER=$(< "${TARGET_DIR}/demo_issuer/insurance.reader.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_INSURANCE_READER
+DEMO_ISSUER_CLIENT_ID_INSURANCE_READER="x509_hash:$(openssl dgst -sha256 -binary "${TARGET_DIR}/demo_issuer/insurance.reader.crt.der" | base64_url_encode)"
+export DEMO_ISSUER_CLIENT_ID_INSURANCE_READER
 DEMO_ISSUER_KEY_INSURANCE_ISSUER=$(< "${TARGET_DIR}/demo_issuer/insurance.issuer.key.der" ${BASE64})
 export DEMO_ISSUER_KEY_INSURANCE_ISSUER
 DEMO_ISSUER_CRT_INSURANCE_ISSUER=$(< "${TARGET_DIR}/demo_issuer/insurance.issuer.crt.der" ${BASE64})
@@ -429,6 +433,8 @@ DEMO_ISSUER_KEY_HOUSING_READER=$(< "${TARGET_DIR}/demo_issuer/housing.reader.key
 export DEMO_ISSUER_KEY_HOUSING_READER
 DEMO_ISSUER_CRT_HOUSING_READER=$(< "${TARGET_DIR}/demo_issuer/housing.reader.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_HOUSING_READER
+DEMO_ISSUER_CLIENT_ID_HOUSING_READER="x509_hash:$(openssl dgst -sha256 -binary "${TARGET_DIR}/demo_issuer/housing.reader.crt.der" | base64_url_encode)"
+export DEMO_ISSUER_CLIENT_ID_HOUSING_READER
 DEMO_ISSUER_KEY_HOUSING_ISSUER=$(< "${TARGET_DIR}/demo_issuer/housing.issuer.key.der" ${BASE64})
 export DEMO_ISSUER_KEY_HOUSING_ISSUER
 DEMO_ISSUER_CRT_HOUSING_ISSUER=$(< "${TARGET_DIR}/demo_issuer/housing.issuer.crt.der" ${BASE64})

@@ -28,6 +28,7 @@ use crate::cose::KnownCoseAlgorithmIdentifier;
 use crate::errors::AuthorizationErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
 use crate::jose::JwsAlgorithm;
+use crate::openid4vp::ClientId;
 use crate::openid4vp::MsoMdocAlgValues;
 use crate::openid4vp::NormalizedVpAuthorizationRequest;
 use crate::openid4vp::SdJwtAlgValues;
@@ -188,10 +189,7 @@ impl MockVerifierSession {
         let nonce = Nonce::new_random();
         let encryption_secret_key = JweEcdhSecretKey::new_random(Some(random_string(32)), EcdhAlgorithm::EcdhEs);
         let response_uri = verifier_url.join_base_url("response_uri");
-        let client_id = format!(
-            "x509_san_dns:{}",
-            key_pair.certificate().san_dns_name().unwrap().unwrap()
-        );
+        let client_id = ClientId::x509_hash_from_certificate(key_pair.certificate()).to_string();
         let request_uri =
             request_uri_with_verifier_params(verifier_url.join_base_url("request_uri").into_inner(), session_type);
 

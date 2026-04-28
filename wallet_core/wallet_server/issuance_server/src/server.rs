@@ -103,19 +103,17 @@ where
     let attestation_config = issuer_settings.attestation_settings.parse(&hsm, &type_metadata).await?;
 
     let use_cases = try_join_all(settings.disclosure_settings.into_iter().map(|(id, s)| {
-        let disclosure_public_url = disclosure_public_url.clone();
         let hsm = hsm.clone();
 
         async move {
             Ok::<_, anyhow::Error>((
                 id,
-                WalletInitiatedUseCase::try_new(
+                WalletInitiatedUseCase::new(
                     s.key_pair.parse(hsm).await?,
-                    &disclosure_public_url,
                     SessionTypeReturnUrl::Both,
                     s.dcql_query.try_into()?,
                     format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap(),
-                )?,
+                ),
             ))
         }
     }))

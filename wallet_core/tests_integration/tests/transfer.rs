@@ -41,7 +41,7 @@ async fn init_wallets(db_setup: &DbSetup) -> (WalletData, WalletData) {
     let source_tempdir = TempDir::new().unwrap();
     let destination_tempdir = TempDir::new().unwrap();
 
-    let (config_server_config, mock_device_config, wallet_config, issuance_urls, _) = setup_env_default(db_setup).await;
+    let (config_server_config, mock_device_config, wallet_config, issuance_data, _) = setup_env_default(db_setup).await;
 
     let mut source = setup_file_wallet(
         config_server_config.clone(),
@@ -55,7 +55,8 @@ async fn init_wallets(db_setup: &DbSetup) -> (WalletData, WalletData) {
     source
         .start_disclosure(
             &universal_link(
-                issuance_urls.issuance_server.public.as_base_url(),
+                issuance_data.issuance_server.public.as_base_url(),
+                &issuance_data.degree_client_ids,
                 CredentialFormat::SdJwt,
             ),
             DisclosureUriSource::Link,
