@@ -43,6 +43,8 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
     }
 
     private enum Constants {
+        static let finalChunkPrefix: UInt8 = 0x00
+        static let continuationChunkPrefix: UInt8 = 0x01
         static let startByte: UInt8 = 0x01
         static let endByte: UInt8 = 0x02
         static let pollIntervalNanoseconds: UInt64 = 10_000_000
@@ -184,7 +186,11 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
                 let remaining = message.count - offset
                 let chunkSize = min(maxChunkSize, remaining)
                 let moreDataComing = offset + chunkSize < message.count
-                let chunk = [moreDataComing ? UInt8(0x01) : UInt8(0x00)] + Array(message[offset..<(offset + chunkSize)])
+                let chunk = [
+                    moreDataComing
+                        ? Constants.continuationChunkPrefix
+                        : Constants.finalChunkPrefix,
+                ] + Array(message[offset..<(offset + chunkSize)])
                 try await writeNotificationChunk(chunk)
                 offset += chunkSize
             }
@@ -292,10 +298,10 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
             incomingMessageBuffer.append(chunk.dropFirst())
 
             switch prefix {
-            case 0x00:
+            case Constants.finalChunkPrefix:
                 queuedMessages.append(.payload(Array(incomingMessageBuffer)))
                 incomingMessageBuffer.removeAll(keepingCapacity: false)
-            case 0x01:
+            case Constants.continuationChunkPrefix:
                 if chunk.count != maximumCharacteristicSize {
                     log("Received intermediate BLE chunk with unexpected size \(chunk.count), expected \(maximumCharacteristicSize)")
                 }
