@@ -31,8 +31,13 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
         case failed
     }
 
+    enum IncomingMessage {
+        case payload([UInt8])
+        case endOfStream
+    }
+
     private enum WaitForMessageAction {
-        case message([UInt8])
+        case message(IncomingMessage)
         case wait
         case throwError(Error)
     }
@@ -69,7 +74,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
     // Incoming message buffer, aggregating bytes before they are passed to the queuedMessages as full messages 
     private var incomingMessageBuffer = Data()
     // Hand-off buffer between CB delegate and the consumer
-    private var queuedMessages: [[UInt8]] = []
+    private var queuedMessages: [IncomingMessage] = []
 
     init(serviceUuid: CBUUID) {
         self.serviceUuid = serviceUuid
@@ -147,12 +152,12 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
         }
     }
 
-    func waitForMessage() async throws -> [UInt8] {
+    func waitForMessage() async throws -> IncomingMessage {
         while true {
             try Task.checkCancellation()
 
             switch withLock(body: nextWaitForMessageActionLocked) {
-            case .message(let queuedMessage):
+                case .message(let queuedMessage):
                 return queuedMessage
             case .throwError(let error):
                 throw error
@@ -295,7 +300,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
 
             switch prefix {
             case 0x00:
-                queuedMessages.append(Array(incomingMessageBuffer))
+                queuedMessages.append(.payload(Array(incomingMessageBuffer)))
                 incomingMessageBuffer.removeAll(keepingCapacity: false)
             case 0x01:
                 if chunk.count != maximumCharacteristicSize {
@@ -320,7 +325,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
         let didEnqueue = withLock {
             guard state == .connected else { return false }
             state = .readerClosed
-            queuedMessages.append([])
+            queuedMessages.append(.endOfStream)
             return true
         }
 
@@ -395,7 +400,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
             )
     }
 
-    private func popQueuedMessageLocked() -> [UInt8]? {
+    private func popQueuedMessageLocked() -> IncomingMessage? {
         guard !queuedMessages.isEmpty else { return nil }
         return queuedMessages.removeFirst()
     }

@@ -82,14 +82,16 @@ extension CloseProximityDisclosure {
     private func waitForSessionMessage(
         session: CloseProximityDisclosureActiveSession
     ) async throws -> KotlinByteArray? {
-        let message = try await session.transport.waitForMessage().kotlinByteArray()
+        let incomingMessage = try await session.transport.waitForMessage()
         guard isActiveSession(session) else { return nil }
 
-        if message.isEmpty {
+        switch incomingMessage {
+        case .payload(let message):
+            return message.kotlinByteArray()
+        case .endOfStream:
             await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
             return nil
         }
-        return message
     }
 
     private func createReaderSessionContextFromFirstReaderMessage(
