@@ -26,6 +26,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
         case idle
         case advertising
         case connected
+        case readerClosed
         case closed
         case failed
     }
@@ -65,7 +66,9 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
     private var state: State = .idle
     private var failure: Error?
     private var maximumCharacteristicSize = Constants.maxCharacteristicSize
+    // Incoming message buffer, aggregating bytes before they are passed to the queuedMessages as full messages 
     private var incomingMessageBuffer = Data()
+    // Hand-off buffer between CB delegate and the consumer
     private var queuedMessages: [[UInt8]] = []
 
     init(serviceUuid: CBUUID) {
@@ -136,7 +139,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
                 return
             case .failed:
                 throw currentFailure()
-            case .closed:
+            case .readerClosed, .closed:
                 throw CloseProximityBleTransportError.transportClosed
             case .idle, .advertising:
                 try await Task.sleep(nanoseconds: Constants.pollIntervalNanoseconds)
@@ -193,7 +196,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
             switch state {
             case .closed:
                 return false
-            case .failed, .idle, .advertising, .connected:
+            case .failed, .idle, .advertising, .connected, .readerClosed:
                 state = .closed
                 queuedMessages.removeAll()
                 incomingMessageBuffer.removeAll(keepingCapacity: false)
@@ -223,7 +226,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
             switch stateSnapshot {
             case .failed:
                 throw currentFailure()
-            case .closed:
+            case .readerClosed, .closed:
                 throw CloseProximityBleTransportError.transportClosed
             case .idle, .advertising, .connected:
                 try await Task.sleep(nanoseconds: Constants.pollIntervalNanoseconds)
@@ -271,7 +274,16 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
 
     private func handleIncomingChunk(_ chunk: Data) throws {
         let didHandleChunk = try withLock {
-            guard state == .connected else { return false }
+            switch state {
+            case .connected:
+                break
+            case .readerClosed:
+                throw CloseProximityBleTransportError.invalidIncomingChunk(
+                    "Received client-to-server BLE chunk after reader termination"
+                )
+            case .idle, .advertising, .closed, .failed:
+                return false
+            }
 
             guard let prefix = chunk.first else {
                 throw CloseProximityBleTransportError.invalidIncomingChunk(
@@ -307,6 +319,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
     private func enqueueTerminationMessage() {
         let didEnqueue = withLock {
             guard state == .connected else { return false }
+            state = .readerClosed
             queuedMessages.append([])
             return true
         }
@@ -340,7 +353,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
             switch state {
             case .failed, .closed:
                 return false
-            case .idle, .advertising, .connected:
+            case .idle, .advertising, .connected, .readerClosed:
                 failure = error
                 state = .failed
                 queuedMessages.removeAll()
@@ -362,7 +375,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
             if currentState == .failed {
                 throw currentFailure()
             }
-            if currentState == .closed {
+            if currentState == .readerClosed || currentState == .closed {
                 throw CloseProximityBleTransportError.transportClosed
             }
             throw CloseProximityBleTransportError.invalidState(
@@ -392,6 +405,11 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
         case .failed:
             return .throwError(currentFailureLocked())
         case .closed:
+            return .throwError(CloseProximityBleTransportError.transportClosed)
+        case .readerClosed:
+            if let queuedMessage = popQueuedMessageLocked() {
+                return .message(queuedMessage)
+            }
             return .throwError(CloseProximityBleTransportError.transportClosed)
         case .idle, .advertising, .connected:
             if let queuedMessage = popQueuedMessageLocked() {
