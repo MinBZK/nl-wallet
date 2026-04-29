@@ -117,7 +117,6 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
     }
 
     func waitForConnection() async throws {
-        try expectState(.advertising)
 
         while true {
             try Task.checkCancellation()
