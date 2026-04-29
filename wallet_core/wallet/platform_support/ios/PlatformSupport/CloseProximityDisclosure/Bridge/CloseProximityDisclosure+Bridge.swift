@@ -32,8 +32,7 @@ extension CloseProximityDisclosure: CloseProximityDisclosureBridge {
         await cancelReadMessagesTaskAndWait(session)
         try requireSessionIsActive(session)
         try await sendSessionTermination(
-            session: session,
-            transport: establishedSessionContext.transport
+            session: session
         )
         await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
     }

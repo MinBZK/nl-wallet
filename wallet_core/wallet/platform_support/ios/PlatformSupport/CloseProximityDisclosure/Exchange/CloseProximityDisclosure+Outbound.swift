@@ -24,11 +24,10 @@ extension CloseProximityDisclosure {
     }
 
     func sendSessionTermination(
-        session: CloseProximityDisclosureActiveSession,
-        transport: CloseProximityBleTransport
+        session: CloseProximityDisclosureActiveSession
     ) async throws {
         do {
-            try await transport.sendMessage(
+            try await session.transport.sendMessage(
                 message: SessionEncryption.companion.encodeStatus(
                     statusCode: Int64(Constants.shared.SESSION_DATA_STATUS_SESSION_TERMINATION)
                 ).uint8Array()
