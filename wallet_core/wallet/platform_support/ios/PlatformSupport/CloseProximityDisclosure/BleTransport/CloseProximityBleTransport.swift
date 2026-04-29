@@ -233,7 +233,8 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
 
     private func writeStateByte(_ value: UInt8) async throws {
         let chunk = [value]
-        try await writeNotificationChunk(chunk, characteristic: stateCharacteristic)
+        let characteristic = withLock { stateCharacteristic }
+        try await writeNotificationChunk(chunk, characteristic: characteristic)
     }
 
     private func writeNotificationChunk(
