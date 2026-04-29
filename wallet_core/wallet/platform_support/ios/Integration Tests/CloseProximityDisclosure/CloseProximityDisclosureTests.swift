@@ -14,7 +14,7 @@ import XCTest
 
 final class CloseProximityDisclosureTests: XCTestCase {
     private enum RecordedUpdate: Equatable, Sendable {
-        case connecting
+        case connected
         case sessionEstablished(sessionTranscript: [UInt8], deviceRequest: [UInt8])
         case closed
         case other
@@ -26,8 +26,8 @@ final class CloseProximityDisclosureTests: XCTestCase {
 
             func record(update: CloseProximityDisclosureUpdate) {
                 switch update {
-                case .connecting:
-                    updates.append(.connecting)
+                case .connected:
+                    updates.append(.connected)
                 case .sessionEstablished(let sessionTranscript, let deviceRequest):
                     updates.append(
                         .sessionEstablished(
@@ -42,8 +42,8 @@ final class CloseProximityDisclosureTests: XCTestCase {
                 }
             }
 
-            func hasReceivedConnectingUpdate() -> Bool {
-                updates.contains(.connecting)
+            func hasReceivedConnectedUpdate() -> Bool {
+                updates.contains(.connected)
             }
 
             func hasReceivedClosedUpdate() -> Bool {
@@ -91,8 +91,8 @@ final class CloseProximityDisclosureTests: XCTestCase {
             await state.record(update: update)
         }
 
-        func hasReceivedConnectingUpdate() async -> Bool {
-            await state.hasReceivedConnectingUpdate()
+        func hasReceivedConnectedUpdate() async -> Bool {
+            await state.hasReceivedConnectedUpdate()
         }
 
         func hasReceivedClosedUpdate() async -> Bool {
@@ -311,7 +311,7 @@ final class CloseProximityDisclosureTests: XCTestCase {
 
         let updatesAfterClose = await channel.receivedUpdates()
         guard
-            let connectingIndex = updatesAfterClose.firstIndex(of: .connecting),
+            let connectedIndex = updatesAfterClose.firstIndex(of: .connected),
             let sessionEstablishedIndex = updatesAfterClose.firstIndex(where: { update in
                 if case .sessionEstablished = update {
                     return true
@@ -321,12 +321,12 @@ final class CloseProximityDisclosureTests: XCTestCase {
             let closedIndex = updatesAfterClose.firstIndex(of: .closed)
         else {
             XCTFail(
-                "Expected connecting, SessionEstablished, and closed updates, got \(updatesAfterClose)"
+                "Expected connected, SessionEstablished, and closed updates, got \(updatesAfterClose)"
             )
             return
         }
 
-        XCTAssertLessThan(connectingIndex, sessionEstablishedIndex)
+        XCTAssertLessThan(connectedIndex, sessionEstablishedIndex)
         XCTAssertLessThan(sessionEstablishedIndex, closedIndex)
         let isBleServerActiveAfterClose = await closeProximityDisclosure.isBleServerActiveForTesting()
         XCTAssertFalse(isBleServerActiveAfterClose)
