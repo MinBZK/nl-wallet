@@ -121,7 +121,7 @@ extension CloseProximityDisclosure {
         update: CloseProximityDisclosureUpdate
     ) async {
         let shouldReport = clearActiveSessionIfCurrent(session)
-        await closeSessionTransports(session)
+        closeSessionTransports(session)
         if shouldReport {
             try? await session.channel.sendUpdate(update: update)
         }
@@ -132,7 +132,7 @@ extension CloseProximityDisclosure {
         error: Error
     ) async {
         let shouldReport = clearActiveSessionIfCurrent(session)
-        await closeSessionTransports(session)
+        closeSessionTransports(session)
         if shouldReport {
             try? await session.channel.sendUpdate(
                 update: CloseProximityDisclosureUpdate.error(
@@ -142,8 +142,8 @@ extension CloseProximityDisclosure {
         }
     }
 
-    func closeSessionTransports(_ session: CloseProximityDisclosureActiveSession) async {
-        try? await session.transport.close()
+    func closeSessionTransports(_ session: CloseProximityDisclosureActiveSession) {
+        try? session.transport.close()
     }
 
     private func takeReadMessagesTask(

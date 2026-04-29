@@ -176,7 +176,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
         log("sendMessage completed")
     }
 
-    func close() async throws {
+    func close() throws {
         let shouldClose = withLock {
             switch state {
             case .closed:

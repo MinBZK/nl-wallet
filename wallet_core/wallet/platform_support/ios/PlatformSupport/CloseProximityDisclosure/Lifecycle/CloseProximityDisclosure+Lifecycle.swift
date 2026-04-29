@@ -112,7 +112,7 @@ extension CloseProximityDisclosure {
         // Take and clear the session first so any already-running background work immediately
         // observes itself as stale before we start canceling tasks and closing transports.
         await cancelBackgroundTasks(sessionState)
-        await closeSessionTransports(sessionState.session)
+        closeSessionTransports(sessionState.session)
         try? await sessionState.session.channel.sendUpdate(
             update: CloseProximityDisclosureUpdate.closed
         )
