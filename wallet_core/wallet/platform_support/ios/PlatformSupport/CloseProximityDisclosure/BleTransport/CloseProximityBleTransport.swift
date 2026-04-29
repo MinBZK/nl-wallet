@@ -145,7 +145,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
         while true {
             try Task.checkCancellation()
 
-            let stateSnapshot = withLock { state }
+            let stateSnapshot = getStateSnapshot()
             switch stateSnapshot {
             case .connected:
                 return
@@ -389,7 +389,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
     }
 
     private func expectState(_ expectedState: State) throws {
-        let currentState = withLock { state }
+        let currentState = getStateSnapshot()
         guard currentState == expectedState else {
             if currentState == .failed {
                 throw currentFailure()
@@ -401,6 +401,10 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
                 "Expected close proximity BLE transport state \(expectedState), got \(currentState)"
             )
         }
+    }
+
+    private func getStateSnapshot() -> CloseProximityBleTransport.State {
+        return withLock { state }
     }
 
     private func currentFailure() -> Error {
