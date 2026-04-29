@@ -269,41 +269,67 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
     }
 
     private func handleIncomingChunk(_ chunk: Data) throws {
-        guard let prefix = chunk.first else {
-            throw CloseProximityBleTransportError.invalidIncomingChunk(
-                "Received empty client-to-server BLE chunk"
-            )
+        let didHandleChunk = try withLock {
+            guard state == .connected else { return false }
+
+            guard let prefix = chunk.first else {
+                throw CloseProximityBleTransportError.invalidIncomingChunk(
+                    "Received empty client-to-server BLE chunk"
+                )
+            }
+
+            incomingMessageBuffer.append(chunk.dropFirst())
+
+            switch prefix {
+            case 0x00:
+                queuedMessages.append(Array(incomingMessageBuffer))
+                incomingMessageBuffer.removeAll(keepingCapacity: false)
+            case 0x01:
+                if chunk.count != maximumCharacteristicSize {
+                    log("Received intermediate BLE chunk with unexpected size \(chunk.count), expected \(maximumCharacteristicSize)")
+                }
+            default:
+                throw CloseProximityBleTransportError.invalidIncomingChunk(
+                    "Received BLE chunk with invalid prefix 0x\(String(prefix, radix: 16))"
+                )
+            }
+
+            return true
         }
 
-        incomingMessageBuffer.append(chunk.dropFirst())
-
-        switch prefix {
-        case 0x00:
-            queuedMessages.append(Array(incomingMessageBuffer))
-            incomingMessageBuffer.removeAll(keepingCapacity: false)
-        case 0x01:
-            if chunk.count != maximumCharacteristicSize {
-                log("Received intermediate BLE chunk with unexpected size \(chunk.count), expected \(maximumCharacteristicSize)")
-            }
-        default:
-            throw CloseProximityBleTransportError.invalidIncomingChunk(
-                "Received BLE chunk with invalid prefix 0x\(String(prefix, radix: 16))"
-            )
+        guard didHandleChunk else {
+            log("Ignoring client-to-server BLE chunk while not connected")
+            return
         }
     }
 
     private func enqueueTerminationMessage() {
-        withLock {
+        let didEnqueue = withLock {
+            guard state == .connected else { return false }
             queuedMessages.append([])
+            return true
+        }
+
+        guard didEnqueue else {
+            log("Ignoring BLE transport termination byte while not connected")
+            return
         }
     }
 
     private func markConnected(maximumUpdateValueLength: Int) {
         let updatedMaximum = min(max(maximumUpdateValueLength, 1), Constants.maxCharacteristicSize)
-        withLock {
+        let didConnect = withLock {
+            guard state == .advertising else { return false }
             maximumCharacteristicSize = updatedMaximum
             state = .connected
+            return true
         }
+
+        guard didConnect else {
+            log("Ignoring BLE transport start byte while not advertising")
+            return
+        }
+
         log("BLE transport connected with max characteristic size \(updatedMaximum)")
         peripheralManager.stopAdvertising()
     }
@@ -412,9 +438,7 @@ extension CloseProximityBleTransport: CBPeripheralManagerDelegate {
 
             if request.characteristic.uuid == Self.clientToServerCharacteristicUuid {
                 do {
-                    try withLock {
-                        try handleIncomingChunk(value)
-                    }
+                    try handleIncomingChunk(value)
                 } catch {
                     fail(error)
                 }
