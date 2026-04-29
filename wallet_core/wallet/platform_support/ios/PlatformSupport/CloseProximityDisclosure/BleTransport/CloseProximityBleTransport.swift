@@ -48,6 +48,9 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
     // Example race prevented: didReceiveWrite appends an incoming chunk while waitForMessage()
     // pops queued messages or close() clears the buffers, corrupting the transport state machine.
     private let lock = NSLock()
+    // Serializes outbound sends across await points so concurrent callers cannot interleave
+    // notification chunks and corrupt the BLE message framing.
+    private let sendLock = CloseProximityDisclosureLifecycleLock()
     private var peripheralManager: CBPeripheralManager!
     private var service: CBMutableService?
     private var stateCharacteristic: CBMutableCharacteristic?
@@ -156,28 +159,32 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
     }
 
     func sendMessage(message: [UInt8]) async throws {
-        try expectState(.connected)
+        try await sendLock.withLock { [self] in
+            try expectState(.connected)
 
-        if message.isEmpty {
-            try await writeStateByte(Constants.endByte)
-            return
+            if message.isEmpty {
+                try await writeStateByte(Constants.endByte)
+                return
+            }
+
+            let maxChunkSize = withLock {
+                max(maximumCharacteristicSize - 1, 1)
+            }
+            log("sendMessage \(message.count) length")
+
+            var offset = 0
+            while offset < message.count {
+                let remaining = message.count - offset
+                let chunkSize = min(maxChunkSize, remaining)
+                let moreDataComing = offset + chunkSize < message.count
+                let chunk = [moreDataComing ? UInt8(0x01) : UInt8(0x00)] + Array(message[offset..<(offset + chunkSize)])
+                try await writeNotificationChunk(chunk)
+                offset += chunkSize
+            }
+            try await Task.sleep(nanoseconds: Constants.postSendSleepNanoseconds)
+
+            log("sendMessage completed")
         }
-
-        let maxChunkSize = max(maximumCharacteristicSize - 1, 1)
-        log("sendMessage \(message.count) length")
-
-        var offset = 0
-        while offset < message.count {
-            let remaining = message.count - offset
-            let chunkSize = min(maxChunkSize, remaining)
-            let moreDataComing = offset + chunkSize < message.count
-            let chunk = [moreDataComing ? UInt8(0x01) : UInt8(0x00)] + Array(message[offset..<(offset + chunkSize)])
-            try await writeNotificationChunk(chunk)
-            offset += chunkSize
-        }
-        try await Task.sleep(nanoseconds: Constants.postSendSleepNanoseconds)
-
-        log("sendMessage completed")
     }
 
     func close() throws {
