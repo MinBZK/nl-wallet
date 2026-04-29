@@ -96,7 +96,12 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
             serverToClientCharacteristic,
         ]
 
-        withLock {
+        try withLock {
+            guard state == .idle else {
+               throw CloseProximityBleTransportError.invalidState(
+                    "Expected close proximity BLE transport state .idle on advertise, got \(state)"
+                )
+            }
             self.service = service
             self.stateCharacteristic = stateCharacteristic
             self.clientToServerCharacteristic = clientToServerCharacteristic
