@@ -42,7 +42,14 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
         case throwError(Error)
     }
 
+    private enum MarkConnectedAction {
+        case ignore
+        case fail(Error)
+        case connect(Int)
+    }
+
     private enum Constants {
+        static let minCharacteristicSize = 2
         static let finalChunkPrefix: UInt8 = 0x00
         static let continuationChunkPrefix: UInt8 = 0x01
         static let startByte: UInt8 = 0x01
@@ -176,9 +183,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
                 return
             }
 
-            let maxChunkSize = withLock {
-                max(maximumCharacteristicSize - 1, 1)
-            }
+            let maxChunkSize = withLock { maximumCharacteristicSize - 1 }
             log("sendMessage \(message.count) length")
 
             var offset = 0
@@ -335,21 +340,31 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
     }
 
     private func markConnected(maximumUpdateValueLength: Int) {
-        let updatedMaximum = min(max(maximumUpdateValueLength, 1), Constants.maxCharacteristicSize)
-        let didConnect = withLock {
-            guard state == .advertising else { return false }
+        let action: MarkConnectedAction = withLock {
+            guard state == .advertising else { return .ignore }
+            guard maximumUpdateValueLength >= Constants.minCharacteristicSize else {
+                return .fail(CloseProximityBleTransportError.transportFailed(
+                    "Connected central reported maximumUpdateValueLength \(maximumUpdateValueLength), expected at least \(Constants.minCharacteristicSize)"
+                ))
+            }
+
+            let updatedMaximum = min(maximumUpdateValueLength, Constants.maxCharacteristicSize)
             maximumCharacteristicSize = updatedMaximum
             state = .connected
-            return true
+            return .connect(updatedMaximum)
         }
 
-        guard didConnect else {
+        switch action {
+        case .ignore:
             log("Ignoring BLE transport start byte while not advertising")
             return
+        case .fail(let error):
+            fail(error)
+            return
+        case .connect(let updatedMaximum):
+            log("BLE transport connected with max characteristic size \(updatedMaximum)")
+            peripheralManager.stopAdvertising()
         }
-
-        log("BLE transport connected with max characteristic size \(updatedMaximum)")
-        peripheralManager.stopAdvertising()
     }
 
     private func fail(_ error: Error) {
