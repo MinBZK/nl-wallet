@@ -190,7 +190,8 @@ final class CloseProximityDisclosureTests: XCTestCase {
         XCTAssertEqual(bytes.kotlinByteArray().base64UrlEncodedString(), "-_8A")
     }
 
-    func testGetEReaderKeyWithMissingReaderKeyLogsWhetherMultipazThrowsOrAborts() {
+    func testGetEReaderKeyWithMissingReaderKeyLogsWhetherMultipazThrowsOrAborts() throws {
+        // choosing to throw here instead of removing them from each scheme, to prevent accidentally turning them on on new schemes/targets
         throw XCTSkip("this test can be used to check multipaz methods failure handling, it will crash on current multipaz version")
         // Valid CBOR for {"data": h''}; the payload is structurally a session-establishment
         // message, but it omits the required eReaderKey field.
@@ -209,7 +210,8 @@ final class CloseProximityDisclosureTests: XCTestCase {
         )
     }
 
-    func testDecryptMessageWithBogusCiphertextLogsWhetherMultipazThrowsOrAborts() {
+    func testDecryptMessageWithBogusCiphertextLogsWhetherMultipazThrowsOrAborts() throws {
+        // choosing to throw here instead of removing them from each scheme, to prevent accidentally turning them on on new schemes/targets
         throw XCTSkip("this test can be used to check multipaz methods failure handling, it will crash on current multipaz version")
         let sessionEncryption = makeSessionEncryptionForRawDecryptCharacterization()
         // Valid CBOR for {"data": h'00010203'}; the payload has the expected SessionData shape,
