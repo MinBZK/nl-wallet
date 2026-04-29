@@ -190,6 +190,46 @@ final class CloseProximityDisclosureTests: XCTestCase {
         XCTAssertEqual(bytes.kotlinByteArray().base64UrlEncodedString(), "-_8A")
     }
 
+    func testGetEReaderKeyWithMissingReaderKeyLogsWhetherMultipazThrowsOrAborts() {
+        throw XCTSkip("this test can be used to check multipaz methods failure handling, it will crash on current multipaz version")
+        // Valid CBOR for {"data": h''}; the payload is structurally a session-establishment
+        // message, but it omits the required eReaderKey field.
+        let malformedSessionEstablishmentMessage: [UInt8] = [
+            0xA1,
+            0x64, 0x64, 0x61, 0x74, 0x61,
+            0x40,
+        ]
+
+        let payloadHex = malformedSessionEstablishmentMessage
+            .map { String(format: "%02x", $0) }
+            .joined()
+
+        _ = SessionEncryption.companion.getEReaderKey(
+            sessionEstablishmentMessage: malformedSessionEstablishmentMessage.kotlinByteArray()
+        )
+    }
+
+    func testDecryptMessageWithBogusCiphertextLogsWhetherMultipazThrowsOrAborts() {
+        throw XCTSkip("this test can be used to check multipaz methods failure handling, it will crash on current multipaz version")
+        let sessionEncryption = makeSessionEncryptionForRawDecryptCharacterization()
+        // Valid CBOR for {"data": h'00010203'}; the payload has the expected SessionData shape,
+        // but the ciphertext is intentionally bogus so decryptMessage has to decide how it fails.
+        let malformedSessionDataMessage: [UInt8] = [
+            0xA1,
+            0x64, 0x64, 0x61, 0x74, 0x61,
+            0x44, 0x00, 0x01, 0x02, 0x03,
+        ]
+
+        let payloadHex = malformedSessionDataMessage
+            .map { String(format: "%02x", $0) }
+            .joined()
+
+        let decryptedMessage = sessionEncryption.decryptMessage(
+            messageData: malformedSessionDataMessage.kotlinByteArray()
+        )
+
+    }
+
     func testCloseProximityDisclosureFullFlowWithMacReader() async throws {
         guard Self.runMacBleReaderFullFlowTest else {
             throw XCTSkip(
@@ -383,6 +423,31 @@ final class CloseProximityDisclosureTests: XCTestCase {
         }
 
         return "\(macBleReaderMarker){\"qr\":\"\(qrCode)\"}"
+    }
+
+    private func makeSessionEncryptionForRawDecryptCharacterization() -> SessionEncryption {
+        let eDeviceKey = Crypto.shared.createEcPrivateKey(curve: .p256)
+        let eReaderKey = Crypto.shared.createEcPrivateKey(curve: .p256)
+        let encodedReaderCoseKey = Cbor.shared.encode(
+            item: eReaderKey.publicKey.toCoseKey(additionalLabels: [:]).toDataItem()
+        )
+        // Keep the transcript setup minimal for this characterization test. The decrypt path only
+        // needs stable shared bytes here; the malformed SessionData payload is the behavior under
+        // test.
+        let encodedSessionTranscript = cborEncodeArray([
+            cborEncodeTagged(24, item: Data([0xF6])),
+            cborEncodeTagged(24, item: Data(encodedReaderCoseKey.uint8Array())),
+            Data([0xF6]),
+        ])
+        .map { $0 }
+        .kotlinByteArray()
+
+        return SessionEncryption(
+            role: .mdoc,
+            eSelfKey: eDeviceKey,
+            remotePublicKey: eReaderKey.publicKey,
+            encodedSessionTranscript: encodedSessionTranscript
+        )
     }
 
     private func expectedSessionTranscript(forQrCode qrCode: String) throws -> [UInt8] {
