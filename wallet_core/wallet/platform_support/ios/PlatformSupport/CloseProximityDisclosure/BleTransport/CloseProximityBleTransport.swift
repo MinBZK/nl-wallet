@@ -30,6 +30,12 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
         case failed
     }
 
+    private enum WaitForMessageAction {
+        case message([UInt8])
+        case wait
+        case throwError(Error)
+    }
+
     private enum Constants {
         static let startByte: UInt8 = 0x01
         static let endByte: UInt8 = 0x02
@@ -142,17 +148,12 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
         while true {
             try Task.checkCancellation()
 
-            if let queuedMessage = withLock(body: popQueuedMessageLocked) {
+            switch withLock(body: nextWaitForMessageActionLocked) {
+            case .message(let queuedMessage):
                 return queuedMessage
-            }
-
-            let stateSnapshot = withLock { state }
-            switch stateSnapshot {
-            case .failed:
-                throw currentFailure()
-            case .closed:
-                throw CloseProximityBleTransportError.transportClosed
-            case .idle, .advertising, .connected:
+            case .throwError(let error):
+                throw error
+            case .wait:
                 try await Task.sleep(nanoseconds: Constants.pollIntervalNanoseconds)
             }
         }
@@ -371,17 +372,33 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
     }
 
     private func currentFailure() -> Error {
-        withLock {
-            failure
-                ?? CloseProximityBleTransportError.transportFailed(
-                    "Close proximity BLE transport failed without a specific error"
-                )
-        }
+        withLock(body: currentFailureLocked)
+    }
+
+    private func currentFailureLocked() -> Error {
+        failure
+            ?? CloseProximityBleTransportError.transportFailed(
+                "Close proximity BLE transport failed without a specific error"
+            )
     }
 
     private func popQueuedMessageLocked() -> [UInt8]? {
         guard !queuedMessages.isEmpty else { return nil }
         return queuedMessages.removeFirst()
+    }
+
+    private func nextWaitForMessageActionLocked() -> WaitForMessageAction {
+        switch state {
+        case .failed:
+            return .throwError(currentFailureLocked())
+        case .closed:
+            return .throwError(CloseProximityBleTransportError.transportClosed)
+        case .idle, .advertising, .connected:
+            if let queuedMessage = popQueuedMessageLocked() {
+                return .message(queuedMessage)
+            }
+            return .wait
+        }
     }
 
     private func withLock<T>(body: () throws -> T) rethrows -> T {
