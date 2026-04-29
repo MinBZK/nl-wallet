@@ -139,12 +139,17 @@ extension CloseProximityDisclosure {
             throw error
         }
 
-        try requireReaderMessageContent(deviceRequest: deviceRequest, status: status)
+        if deviceRequest == nil && status == nil {
+            throw CloseProximityDisclosureError.PlatformError(
+                reason: "Reader message did not contain a device request or status"
+            )
+        }
         if let deviceRequest {
-            try await sendSessionEstablishedUpdate(
-                session: session,
-                encodedSessionTranscript: readerSessionContext.encodedSessionTranscript,
-                deviceRequest: deviceRequest
+            try await session.channel.sendUpdate(
+                update: CloseProximityDisclosureUpdate.sessionEstablished(
+                    sessionTranscript: encodedSessionTranscript.uint8Array(),
+                    deviceRequest: deviceRequest.uint8Array()
+                )
             )
         }
         if let status {
@@ -152,30 +157,6 @@ extension CloseProximityDisclosure {
             return true
         }
         return false
-    }
-
-    private func requireReaderMessageContent(
-        deviceRequest: KotlinByteArray?,
-        status: NSNumber?
-    ) throws {
-        if deviceRequest == nil && status == nil {
-            throw CloseProximityDisclosureError.PlatformError(
-                reason: "Reader message did not contain a device request or status"
-            )
-        }
-    }
-
-    private func sendSessionEstablishedUpdate(
-        session: CloseProximityDisclosureActiveSession,
-        encodedSessionTranscript: KotlinByteArray,
-        deviceRequest: KotlinByteArray
-    ) async throws {
-        try await session.channel.sendUpdate(
-            update: CloseProximityDisclosureUpdate.sessionEstablished(
-                sessionTranscript: encodedSessionTranscript.uint8Array(),
-                deviceRequest: deviceRequest.uint8Array()
-            )
-        )
     }
 
     private func failSessionWithStatus(
