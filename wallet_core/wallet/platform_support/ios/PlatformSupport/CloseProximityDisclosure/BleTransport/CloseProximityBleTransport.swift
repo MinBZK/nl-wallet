@@ -83,9 +83,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
     }
 
     func advertise() async throws {
-        try expectState(.idle)
-        try await waitForPoweredOn()
-        try expectState(.idle)
+        try await waitForPoweredOnAndIdle()
 
         let stateCharacteristic = CBMutableCharacteristic(
             type: Self.stateCharacteristicUuid,
@@ -157,7 +155,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
             try Task.checkCancellation()
 
             switch withLock(body: nextWaitForMessageActionLocked) {
-                case .message(let queuedMessage):
+            case .message(let queuedMessage):
                 return queuedMessage
             case .throwError(let error):
                 throw error
@@ -223,20 +221,14 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
         }
     }
 
-    private func waitForPoweredOn() async throws {
+    private func waitForPoweredOnAndIdle() async throws {
         while peripheralManager.state != .poweredOn {
             try Task.checkCancellation()
-
-            let stateSnapshot = withLock { state }
-            switch stateSnapshot {
-            case .failed:
-                throw currentFailure()
-            case .readerClosed, .closed:
-                throw CloseProximityBleTransportError.transportClosed
-            case .idle, .advertising, .connected:
-                try await Task.sleep(nanoseconds: Constants.pollIntervalNanoseconds)
-            }
+            try expectState(.idle)
+            try await Task.sleep(nanoseconds: Constants.pollIntervalNanoseconds)
         }
+
+        try expectState(.idle)
     }
 
     private func writeStateByte(_ value: UInt8) async throws {
