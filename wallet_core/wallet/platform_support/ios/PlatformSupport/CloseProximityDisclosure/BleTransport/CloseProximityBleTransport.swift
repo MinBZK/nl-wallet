@@ -453,8 +453,6 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
 
 extension CloseProximityBleTransport: CBPeripheralManagerDelegate {
     func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
-        guard peripheral.state != .poweredOn else { return }
-
         switch peripheral.state {
         case .poweredOn:
             return
