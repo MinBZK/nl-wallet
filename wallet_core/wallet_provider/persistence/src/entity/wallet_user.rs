@@ -57,8 +57,8 @@ pub enum Relation {
     WalletUserInstructionChallenge,
     #[sea_orm(has_many = "super::wallet_user_key::Entity")]
     WalletUserKey,
-    #[sea_orm(has_many = "super::wallet_user_wua::Entity")]
-    WalletUserWua,
+    #[sea_orm(has_many = "super::wallet_user_wia::Entity")]
+    WalletUserWia,
 }
 
 impl Related<super::wallet_user_android_attestation::Entity> for Entity {
@@ -85,9 +85,9 @@ impl Related<super::wallet_user_key::Entity> for Entity {
     }
 }
 
-impl Related<super::wallet_user_wua::Entity> for Entity {
+impl Related<super::wallet_user_wia::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::WalletUserWua.def()
+        Relation::WalletUserWia.def()
     }
 }
 

@@ -17,8 +17,8 @@ use itertools::Itertools;
 use jwt::SignedJwt;
 use jwt::nonce::Nonce;
 use jwt::pop::JwtPopClaims;
-use jwt::wua::WuaClaims;
-use jwt::wua::WuaDisclosure;
+use jwt::wia::WiaClaims;
+use jwt::wia::WiaDisclosure;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
@@ -39,7 +39,7 @@ pub const MOCK_WALLET_CLIENT_ID: &str = "mock_wallet_client_id";
 #[derive(Debug)]
 pub struct MockRemoteWscd {
     pub disclosure: DisclosureMockRemoteWscd,
-    wua_signing_key: Option<SigningKey>,
+    wia_signing_key: Option<SigningKey>,
 }
 
 impl MockRemoteWscd {
@@ -52,13 +52,13 @@ impl MockRemoteWscd {
     fn new_signing_keys(signing_keys: HashMap<String, SigningKey>) -> Self {
         Self {
             disclosure: DisclosureMockRemoteWscd::new_signing_keys(signing_keys),
-            wua_signing_key: None,
+            wia_signing_key: None,
         }
     }
 
-    pub fn new_with_wua_signing_key(wua_signing_key: SigningKey) -> Self {
+    pub fn new_with_wia_signing_key(wia_signing_key: SigningKey) -> Self {
         Self {
-            wua_signing_key: Some(wua_signing_key),
+            wia_signing_key: Some(wia_signing_key),
             ..Default::default()
         }
     }
@@ -136,7 +136,7 @@ impl IssuanceWscd for MockRemoteWscd {
         count: NonZeroUsize,
         aud: String,
         nonce: Option<Nonce>,
-        include_wua: bool,
+        include_wia: bool,
     ) -> Result<IssuanceResult<Poa>, Self::Error> {
         let claims = JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud);
 
@@ -164,38 +164,38 @@ impl IssuanceWscd for MockRemoteWscd {
             })
             .collect();
 
-        let wua_and_key = include_wua.then(|| {
-            let wua_key = SigningKey::random(&mut OsRng);
-            let wua_key = MockRemoteEcdsaKey::new(verifying_key_sha256(wua_key.verifying_key()), wua_key);
+        let wia_and_key = include_wia.then(|| {
+            let wia_key = SigningKey::random(&mut OsRng);
+            let wia_key = MockRemoteEcdsaKey::new(verifying_key_sha256(wia_key.verifying_key()), wia_key);
 
-            // If no WUA signing key is configured, just use the WUA's private key to sign it
-            let wua_signing_key = self.wua_signing_key.as_ref().unwrap_or(&wua_key.key);
-            let wua = SignedJwt::sign(
-                &WuaClaims::new(
-                    wua_key.verifying_key(),
+            // If no WIA signing key is configured, just use the WIA's private key to sign it
+            let wia_signing_key = self.wia_signing_key.as_ref().unwrap_or(&wia_key.key);
+            let wia = SignedJwt::sign(
+                &WiaClaims::new(
+                    wia_key.verifying_key(),
                     MOCK_WALLET_CLIENT_ID.to_string(),
                     Utc::now() + Duration::from_secs(600),
                     StatusClaim::new_mock(),
                 )
                 .unwrap(),
-                wua_signing_key,
+                wia_signing_key,
             )
             .now_or_never()
             .unwrap()
             .unwrap()
             .into();
 
-            let wua_disclosure = SignedJwt::sign(&claims, &wua_key).now_or_never().unwrap().unwrap();
+            let wia_disclosure = SignedJwt::sign(&claims, &wia_key).now_or_never().unwrap().unwrap();
 
-            (WuaDisclosure::new(wua, wua_disclosure.into()), wua_key)
+            (WiaDisclosure::new(wia, wia_disclosure.into()), wia_key)
         });
 
-        let count_including_wua = if include_wua { count.get() + 1 } else { count.get() };
-        let poa = (count_including_wua > 1).then(|| {
+        let count_including_wia = if include_wia { count.get() + 1 } else { count.get() };
+        let poa = (count_including_wia > 1).then(|| {
             Poa::new(
                 attestation_keys
                     .iter()
-                    .chain(wua_and_key.as_ref().map(|(_, key)| key))
+                    .chain(wia_and_key.as_ref().map(|(_, key)| key))
                     .collect_vec()
                     .try_into()
                     .unwrap(),
@@ -212,7 +212,7 @@ impl IssuanceWscd for MockRemoteWscd {
                 .map(|key| key.identifier)
                 .collect(),
             pops,
-            wua: wua_and_key.map(|(wua, _)| wua),
+            wia: wia_and_key.map(|(wia, _)| wia),
             poa,
         })
     }

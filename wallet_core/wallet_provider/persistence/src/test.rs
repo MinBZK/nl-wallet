@@ -29,7 +29,7 @@ use crate::PersistenceConnection;
 use crate::database::ConnectionOptions;
 use crate::database::Db;
 use crate::entity::wallet_flag;
-use crate::entity::wallet_user_wua;
+use crate::entity::wallet_user_wia;
 use crate::wallet_user::create_wallet_user;
 
 #[derive(Debug, Clone, Copy)]
@@ -105,15 +105,15 @@ where
     .expect("Could not create wallet user")
 }
 
-pub async fn truncate_wuas<S, T>(db: &T)
+pub async fn truncate_wias<S, T>(db: &T)
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    wallet_user_wua::Entity::delete_many()
+    wallet_user_wia::Entity::delete_many()
         .exec(db.connection())
         .await
-        .expect("should delete all WUA ids");
+        .expect("should delete all WIA ids");
 }
 
 pub fn clear_flags_dropper(db_setup: &DbSetup) -> AsyncDropper<ClearFlags> {

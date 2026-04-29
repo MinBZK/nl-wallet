@@ -7,7 +7,7 @@ use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
 use jwt::pop::JwtPopClaims;
-use jwt::wua::WuaDisclosure;
+use jwt::wia::WiaDisclosure;
 use mdoc::IssuerSigned;
 use mdoc::utils::serialization::CborBase64;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
@@ -35,7 +35,7 @@ use crate::token::AuthorizationCode;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialRequests {
     pub credential_requests: VecNonEmpty<CredentialRequest>,
-    pub attestations: Option<WuaDisclosure>,
+    pub attestations: Option<WiaDisclosure>,
     pub poa: Option<Poa>,
 }
 
@@ -47,7 +47,7 @@ pub struct CredentialRequest {
     #[serde(flatten)]
     pub credential_type: SpecOptional<CredentialRequestType>,
     pub proof: Option<CredentialRequestProof>,
-    pub attestations: Option<WuaDisclosure>,
+    pub attestations: Option<WiaDisclosure>,
     pub poa: Option<Poa>,
 }
 

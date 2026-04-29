@@ -13,7 +13,7 @@ use futures::TryFutureExt;
 use futures::future::try_join_all;
 use http_utils::reqwest::HttpJsonClient;
 use itertools::Itertools;
-use jwt::wua::WuaDisclosure;
+use jwt::wia::WiaDisclosure;
 use mdoc::ATTR_RANDOM_LENGTH;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::TaggedBytes;
@@ -457,7 +457,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         &mut self,
         trust_anchors: &[TrustAnchor<'_>],
         wscd: &W,
-        include_wua: bool,
+        include_wia: bool,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
     where
         W: IssuanceWscd<Poa = Poa>,
@@ -503,7 +503,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                     .as_ref()
                     .to_string(),
                 c_nonce,
-                include_wua,
+                include_wia,
             )
             .await
             .map_err(|e| WalletIssuanceError::PrivateKeyGeneration(e.into()))?;
@@ -547,7 +547,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         let responses = match credential_requests.len() {
             1 => {
                 let mut credential_request = credential_requests.pop().unwrap();
-                credential_request.attestations = issuance_data.wua.take();
+                credential_request.attestations = issuance_data.wia.take();
                 credential_request.poa = issuance_data.poa.take();
                 vec![
                     self.request_credential(credential_endpoint_url, &credential_request)
@@ -559,7 +559,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                 self.request_batch_credentials(
                     credential_endpoint_url,
                     credential_requests,
-                    issuance_data.wua.take(),
+                    issuance_data.wia.take(),
                     issuance_data.poa.take(),
                 )
                 .await?
@@ -694,7 +694,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         &self,
         url: &Url,
         credential_requests: VecNonEmpty<CredentialRequest>,
-        wua_disclosure: Option<WuaDisclosure>,
+        wia_disclosure: Option<WiaDisclosure>,
         poa: Option<Poa>,
     ) -> Result<Vec<CredentialResponse>, WalletIssuanceError> {
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), &Method::POST)?;
@@ -706,7 +706,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 url,
                 &CredentialRequests {
                     credential_requests,
-                    attestations: wua_disclosure,
+                    attestations: wia_disclosure,
                     poa,
                 },
                 &dpop_header,
@@ -1351,8 +1351,8 @@ mod tests {
         dpop_nonce: &str,
         dpop_header: &str,
         access_token_header: &str,
-        attestations: &Option<WuaDisclosure>,
-        use_wua: bool,
+        attestations: &Option<WiaDisclosure>,
+        use_wia: bool,
     ) {
         assert_eq!(access_token_header, "DPoP access_token".to_string());
 
@@ -1368,8 +1368,8 @@ mod tests {
             )
             .unwrap();
 
-        if use_wua != attestations.is_some() {
-            panic!("unexpected WUA usage");
+        if use_wia != attestations.is_some() {
+            panic!("unexpected WIA usage");
         }
     }
 
@@ -1381,7 +1381,7 @@ mod tests {
 
     #[rstest]
     fn test_accept_issuance(
-        #[values(true, false)] use_wua: bool,
+        #[values(true, false)] use_wia: bool,
         #[values(true, false)] multiple_creds: bool,
         #[values(
             TestNonceEndpoint::Absent,
@@ -1422,7 +1422,7 @@ mod tests {
                         dpop_header,
                         access_token_header,
                         &credential_requests.attestations,
-                        use_wua,
+                        use_wia,
                     );
 
                     let credential_responses = credential_requests
@@ -1449,7 +1449,7 @@ mod tests {
                         dpop_header,
                         access_token_header,
                         &credential_request.attestations,
-                        use_wua,
+                        use_wia,
                     );
 
                     let response = signer.into_response_from_request(credential_request);
@@ -1463,7 +1463,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state,
         }
-        .accept_issuance(&[trust_anchor], &wscd, use_wua)
+        .accept_issuance(&[trust_anchor], &wscd, use_wia)
         .now_or_never()
         .unwrap()
         .expect("accepting issuance should succeed");

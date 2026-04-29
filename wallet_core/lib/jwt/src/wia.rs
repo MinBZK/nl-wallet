@@ -21,7 +21,7 @@ use crate::nonce::Nonce;
 use crate::pop::JwtPopClaims;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct WuaClaims {
+pub struct WiaClaims {
     pub cnf: ConfirmationClaim,
 
     pub iss: String,
@@ -32,7 +32,7 @@ pub struct WuaClaims {
     pub status: StatusClaim,
 }
 
-impl WuaClaims {
+impl WiaClaims {
     pub fn new(
         holder_pubkey: &VerifyingKey,
         iss: String,
@@ -48,29 +48,29 @@ impl WuaClaims {
     }
 }
 
-pub const WUA_JWT_TYP: &str = "wua+jwt";
+pub const WIA_JWT_TYP: &str = "wia+jwt";
 
-impl JwtTyp for WuaClaims {
-    const TYP: &'static str = WUA_JWT_TYP;
+impl JwtTyp for WiaClaims {
+    const TYP: &'static str = WIA_JWT_TYP;
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
-pub struct WuaDisclosure(UnverifiedJwt<WuaClaims>, UnverifiedJwt<JwtPopClaims>);
+pub struct WiaDisclosure(UnverifiedJwt<WiaClaims>, UnverifiedJwt<JwtPopClaims>);
 
 #[cfg(feature = "test")]
-impl WuaDisclosure {
-    pub fn wua(&self) -> &UnverifiedJwt<WuaClaims> {
+impl WiaDisclosure {
+    pub fn wia(&self) -> &UnverifiedJwt<WiaClaims> {
         &self.0
     }
 
-    pub fn wua_pop(&self) -> &UnverifiedJwt<JwtPopClaims> {
+    pub fn wia_pop(&self) -> &UnverifiedJwt<JwtPopClaims> {
         &self.1
     }
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum WuaError {
-    #[error("nonce is missing from WUA payload")]
+pub enum WiaError {
+    #[error("nonce is missing from WIA payload")]
     MissingNonce,
     #[error("JWK conversion error: {0}")]
     JwkConversion(#[from] JwkConversionError),
@@ -78,33 +78,33 @@ pub enum WuaError {
     Jwt(#[from] JwtError),
 }
 
-impl WuaDisclosure {
+impl WiaDisclosure {
     pub fn verify(
         &self,
         issuer_public_key: &EcdsaDecodingKey,
         expected_aud: &str,
         accepted_wallet_client_ids: &[String],
-    ) -> Result<(VerifyingKey, Nonce), WuaError> {
-        let (_, verified_wua_claims) = self.0.parse_and_verify(issuer_public_key, &WUA_JWT_VALIDATIONS)?;
-        let wua_pubkey = verified_wua_claims.cnf.verifying_key()?;
-        tracing::debug!("WUA status claim: {:?}", verified_wua_claims.status);
+    ) -> Result<(VerifyingKey, Nonce), WiaError> {
+        let (_, verified_wia_claims) = self.0.parse_and_verify(issuer_public_key, &WIA_JWT_VALIDATIONS)?;
+        let wia_pubkey = verified_wia_claims.cnf.verifying_key()?;
+        tracing::debug!("WIA status claim: {:?}", verified_wia_claims.status);
 
         let mut validations = DEFAULT_VALIDATIONS.to_owned();
         validations.set_audience(&[expected_aud]);
         validations.set_issuer(accepted_wallet_client_ids);
-        let (_, wua_disclosure_claims) = self.1.parse_and_verify(&(&wua_pubkey).into(), &validations)?;
+        let (_, wia_disclosure_claims) = self.1.parse_and_verify(&(&wia_pubkey).into(), &validations)?;
 
-        let nonce = wua_disclosure_claims.nonce.ok_or(WuaError::MissingNonce)?;
+        let nonce = wia_disclosure_claims.nonce.ok_or(WiaError::MissingNonce)?;
 
-        Ok((wua_pubkey, nonce))
+        Ok((wia_pubkey, nonce))
     }
 }
 
-// Returns the JWS validations for WUA verification.
+// Returns the JWS validations for WIA verification.
 //
 // NOTE: the returned validation allows for no clock drift: time-based claims such as `exp` are validated
-// without leeway. There must be no clock drift between the WUA issuer and the caller.
-pub static WUA_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
+// without leeway. There must be no clock drift between the WIA issuer and the caller.
+pub static WIA_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
     let mut validations = DEFAULT_VALIDATIONS.to_owned();
     validations.leeway = 0;
 

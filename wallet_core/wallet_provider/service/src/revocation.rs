@@ -26,7 +26,7 @@ use wallet_provider_domain::repository::WalletUserRepository;
 
 use crate::account_server::UserState;
 use crate::flags::WalletFlags;
-use crate::wua_issuer::WuaIssuer;
+use crate::wia_issuer::WiaIssuer;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RevocationError {
@@ -36,8 +36,8 @@ pub enum RevocationError {
     #[error("flag error: {0}")]
     Flag(#[from] Box<dyn std::error::Error + Send + Sync>),
 
-    #[error("error revoking WUA: {0}")]
-    WuaRevocation(#[from] token_status_list::status_list_service::RevocationError),
+    #[error("error revoking WIA: {0}")]
+    WiaRevocation(#[from] token_status_list::status_list_service::RevocationError),
 
     #[error("wallet ID not found: {0:?}")]
     WalletIdsNotFound(HashSet<WalletId>),
@@ -65,7 +65,7 @@ impl FromAuditLogError for RevocationError {
 pub async fn revoke_wallet_by_revocation_code<T, R, F, H>(
     #[audit] revocation_code: RevocationCode,
     revocation_code_key_identifier: &str,
-    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
+    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,
 ) -> Result<DateTime<Utc>, RevocationError>
@@ -103,7 +103,7 @@ where
         time.generate()
     };
 
-    let wua_ids = user_state
+    let wia_ids = user_state
         .repositories
         .revoke_wallet_users(&tx, vec![wallet_user.id], revocation_reason, revocation_date_time)
         .await?;
@@ -113,7 +113,7 @@ where
 
     user_state
         .status_list_service
-        .revoke_attestation_batches(wua_ids)
+        .revoke_attestation_batches(wia_ids)
         .await?;
 
     Ok(revocation_date_time)
@@ -122,7 +122,7 @@ where
 #[audited]
 pub async fn revoke_wallets_by_recovery_code<T, R, F, H>(
     #[audit] recovery_code: &RecoveryCode,
-    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
+    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,
 ) -> Result<usize, RevocationError>
@@ -135,7 +135,7 @@ where
 
 pub async fn system_revoke_wallets_by_recovery_code<T, R, F, H>(
     recovery_code: &RecoveryCode,
-    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
+    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
 ) -> Result<usize, RevocationError>
 where
@@ -158,7 +158,7 @@ where
         .await?;
 
     let found_wallet_count = wallet_user_ids.len();
-    let wua_ids = user_state
+    let wia_ids = user_state
         .repositories
         .revoke_wallet_users(&tx, wallet_user_ids, revocation_reason, revocation_date_time)
         .await?;
@@ -168,7 +168,7 @@ where
 
     user_state
         .status_list_service
-        .revoke_attestation_batches(wua_ids)
+        .revoke_attestation_batches(wia_ids)
         .await?;
 
     Ok(found_wallet_count)
@@ -177,7 +177,7 @@ where
 #[audited]
 pub async fn revoke_wallets_by_wallet_id<T, R, F, H>(
     #[audit] wallet_ids: &HashSet<WalletId>,
-    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
+    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListRevocationService>,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,
 ) -> Result<(), RevocationError>
@@ -204,7 +204,7 @@ where
     }
 
     // revoke all users
-    let wua_ids = user_state
+    let wia_ids = user_state
         .repositories
         .revoke_wallet_users(
             &tx,
@@ -217,10 +217,10 @@ where
     // Commit transaction before updating status list
     tx.commit().await?;
 
-    // Revoke WUA attestations of all successfully revoked wallets
+    // Revoke WIA attestations of all successfully revoked wallets
     user_state
         .status_list_service
-        .revoke_attestation_batches(wua_ids)
+        .revoke_attestation_batches(wia_ids)
         .await?;
 
     Ok(())
@@ -228,7 +228,7 @@ where
 
 #[audited]
 pub async fn revoke_solution<R, F, H>(
-    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
+    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListRevocationService>,
     #[auditor] audit_log: &impl AuditLog,
 ) -> Result<(), RevocationError>
 where
@@ -244,7 +244,7 @@ where
 }
 
 pub async fn restore_solution<R, F, H>(
-    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
+    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListRevocationService>,
 ) -> Result<(), RevocationError>
 where
     R: WalletFlagRepository,
@@ -259,7 +259,7 @@ where
 }
 
 pub async fn list_wallets<T, R, F, H>(
-    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
+    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListRevocationService>,
 ) -> Result<Vec<WalletUserIsRevoked>, RevocationError>
 where
     T: Committable,
@@ -274,7 +274,7 @@ where
 }
 
 pub async fn list_denied_recovery_codes<T, R, F, H>(
-    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
+    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListRevocationService>,
 ) -> Result<Vec<RecoveryCode>, RevocationError>
 where
     T: Committable,
@@ -289,7 +289,7 @@ where
 }
 
 pub async fn remove_denied_recovery_code<T, R, F, H>(
-    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
+    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListRevocationService>,
     recovery_code: &RecoveryCode,
 ) -> Result<(), RevocationError>
 where

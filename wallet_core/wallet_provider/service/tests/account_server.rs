@@ -21,7 +21,7 @@ use utils::generator::UuidV4AndTimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use wallet_account::messages::instructions::CheckPin;
 use wallet_account::messages::instructions::PerformIssuance;
-use wallet_account::messages::instructions::PerformIssuanceWithWua;
+use wallet_account::messages::instructions::PerformIssuanceWithWia;
 use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
@@ -36,7 +36,7 @@ use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_persistence::test::db_from_setup;
 use wallet_provider_persistence::wallet_user;
-use wallet_provider_persistence::wallet_user_wua;
+use wallet_provider_persistence::wallet_user_wia;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::account_server::mock;
 use wallet_provider_service::account_server::mock::AttestationCa;
@@ -48,8 +48,8 @@ use wallet_provider_service::account_server::mock::MockHardwareKey;
 use wallet_provider_service::flags::mock::StubWalletFlags;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
 use wallet_provider_service::wallet_certificate;
-use wallet_provider_service::wua_issuer::WUA_ATTESTATION_TYPE_IDENTIFIER;
-use wallet_provider_service::wua_issuer::mock::MockWuaIssuer;
+use wallet_provider_service::wia_issuer::WIA_ATTESTATION_TYPE_IDENTIFIER;
+use wallet_provider_service::wia_issuer::mock::MockWiaIssuer;
 
 async fn do_registration(
     account_server: &MockAccountServer,
@@ -66,15 +66,15 @@ async fn do_registration(
         Repositories,
         StubWalletFlags,
         MockPkcs11Client<HsmError>,
-        MockWuaIssuer,
+        MockWiaIssuer,
         PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
 ) {
-    let wua_issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let key_pair = wua_issuer_ca.generate_status_list_mock().unwrap();
+    let wia_issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+    let key_pair = wia_issuer_ca.generate_status_list_mock().unwrap();
 
     let db_connection = db.to_connection();
-    let wua_status_list_config = StatusListConfig {
+    let wia_status_list_config = StatusListConfig {
         list_size: 100.try_into().unwrap(),
         create_threshold: 10.try_into().unwrap(),
         expiry: Duration::from_secs(3600),
@@ -89,8 +89,8 @@ async fn do_registration(
     let flags = StubWalletFlags::default();
     let status_list_service = PostgresStatusListService::try_new(
         db_connection,
-        WUA_ATTESTATION_TYPE_IDENTIFIER,
-        wua_status_list_config,
+        WIA_ATTESTATION_TYPE_IDENTIFIER,
+        wia_status_list_config,
         flags.clone(),
     )
     .await
@@ -236,7 +236,7 @@ async fn test_instruction_challenge(
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-async fn test_wua_status() {
+async fn test_wia_status() {
     let db_setup = DbSetup::create().await;
     let db = db_from_setup(&db_setup).await;
     let wrapping_key_identifier = "my-wrapping-key-identifier";
@@ -260,7 +260,7 @@ async fn test_wua_status() {
     let challenge = account_server
         .instruction_challenge(
             hw_privkey
-                .sign_instruction_challenge::<PerformIssuanceWithWua>(
+                .sign_instruction_challenge::<PerformIssuanceWithWia>(
                     cert_data.wallet_id.clone().into(),
                     1,
                     certificate.clone(),
@@ -274,7 +274,7 @@ async fn test_wua_status() {
 
     let instruction = hw_privkey
         .sign_instruction(
-            PerformIssuanceWithWua {
+            PerformIssuanceWithWia {
                 issuance_instruction: PerformIssuance {
                     key_count: NonZeroUsize::MIN,
                     aud: "aud".to_string(),
@@ -299,20 +299,20 @@ async fn test_wua_status() {
         .await
         .unwrap();
 
-    // fetch all WUA IDs for this wallet directly from the database
+    // fetch all WIA IDs for this wallet directly from the database
     let tx = user_state.repositories.begin_transaction().await.unwrap();
     let wallet_user_ids = wallet_user::find_wallet_user_id_by_wallet_ids(&tx, &HashSet::from([cert_data.wallet_id]))
         .await
         .unwrap()
         .into_values()
         .collect_vec();
-    let wua_ids = wallet_user_wua::find_wua_ids_for_wallet_users(&tx, wallet_user_ids)
+    let wia_ids = wallet_user_wia::find_wia_ids_for_wallet_users(&tx, wallet_user_ids)
         .await
         .unwrap();
     tx.commit().await.unwrap();
 
-    // assert that one WUA has been stored in the database, linked to this wallet
-    assert_eq!(wua_ids.len(), 1);
+    // assert that one WIA has been stored in the database, linked to this wallet
+    assert_eq!(wia_ids.len(), 1);
 
     assert!(matches!(
         result
@@ -320,8 +320,8 @@ async fn test_wua_status() {
             .unwrap()
             .1
             .result
-            .wua_disclosure
-            .wua()
+            .wia_disclosure
+            .wia()
             .dangerous_parse_unverified()
             .unwrap()
             .1

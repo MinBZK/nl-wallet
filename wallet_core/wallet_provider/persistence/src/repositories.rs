@@ -38,7 +38,7 @@ use crate::wallet_flag;
 use crate::wallet_transfer;
 use crate::wallet_user;
 use crate::wallet_user_key;
-use crate::wallet_user_wua;
+use crate::wallet_user_wia;
 
 #[derive(Clone, From, AsRef)]
 pub struct Repositories(Db);
@@ -487,18 +487,18 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn store_wua_id(
+    async fn store_wia_id(
         &self,
         transaction: &Self::TransactionType,
         wallet_user_id: Uuid,
-        wua_id: Uuid,
+        wia_id: Uuid,
     ) -> Result<(), PersistenceError> {
-        wallet_user_wua::create(transaction, wallet_user_id, wua_id).await
+        wallet_user_wia::create(transaction, wallet_user_id, wia_id).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn list_wua_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<Uuid>, PersistenceError> {
-        wallet_user_wua::list_wua_ids(transaction).await
+    async fn list_wia_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<Uuid>, PersistenceError> {
+        wallet_user_wia::list_wia_ids(transaction).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -517,7 +517,7 @@ impl WalletUserRepository for Repositories {
             revocation_date_time,
         )
         .await?;
-        wallet_user_wua::find_wua_ids_for_wallet_users(transaction, wallet_user_ids).await
+        wallet_user_wia::find_wia_ids_for_wallet_users(transaction, wallet_user_ids).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -839,14 +839,14 @@ pub mod mock {
                 destination_wallet_user_id: Uuid,
             ) -> Result<(), PersistenceError>;
 
-            async fn store_wua_id(
+            async fn store_wia_id(
                 &self,
                 transaction: &MockTransaction,
                 wallet_user_id: Uuid,
-                wua_id: Uuid,
+                wia_id: Uuid,
             ) -> Result<(), PersistenceError>;
 
-            async fn list_wua_ids(
+            async fn list_wia_ids(
                 &self,
                 transaction: &MockTransaction,
             ) -> Result<Vec<Uuid>, PersistenceError>;
@@ -1277,16 +1277,16 @@ pub mod mock {
             Ok(())
         }
 
-        async fn store_wua_id(
+        async fn store_wia_id(
             &self,
             _transaction: &Self::TransactionType,
-            _wua_id: Uuid,
+            _wia_id: Uuid,
             _wallet_user_id: Uuid,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }
 
-        async fn list_wua_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<Uuid>, PersistenceError> {
+        async fn list_wia_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<Uuid>, PersistenceError> {
             Ok(vec![
                 uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
                 uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),

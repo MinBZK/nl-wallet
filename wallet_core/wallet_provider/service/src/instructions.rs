@@ -17,7 +17,7 @@ use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
 use jwt::pop::JwtPopClaims;
-use jwt::wua::WuaDisclosure;
+use jwt::wia::WiaDisclosure;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -49,8 +49,8 @@ use wallet_account::messages::instructions::GetTransferStatus;
 use wallet_account::messages::instructions::PairTransfer;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceResult;
-use wallet_account::messages::instructions::PerformIssuanceWithWua;
-use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
+use wallet_account::messages::instructions::PerformIssuanceWithWia;
+use wallet_account::messages::instructions::PerformIssuanceWithWiaResult;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
 use wallet_account::messages::instructions::ReceiveWalletPayloadResult;
 use wallet_account::messages::instructions::ResetTransfer;
@@ -78,7 +78,7 @@ use crate::account_server::UserState;
 use crate::flags::WalletFlags;
 use crate::revocation::system_revoke_wallets_by_recovery_code;
 use crate::wallet_certificate::PinKeyChecks;
-use crate::wua_issuer::WuaIssuer;
+use crate::wia_issuer::WiaIssuer;
 
 fn default_validations(wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
     validate_wallet_user_not_revoked(wallet_user)?;
@@ -158,7 +158,7 @@ fn validate_transfer_instruction(wallet_user: &WalletUser) -> Result<(), Instruc
 
 impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for PerformIssuance {}
-impl ValidateInstruction for PerformIssuanceWithWua {}
+impl ValidateInstruction for PerformIssuanceWithWia {}
 impl ValidateInstruction for DiscloseRecoveryCode {}
 impl ValidateInstruction for DeleteKeys {}
 
@@ -316,7 +316,7 @@ pub trait PinChecks {
 
 impl PinChecks for ChangePinStart {}
 impl PinChecks for PerformIssuance {}
-impl PinChecks for PerformIssuanceWithWua {}
+impl PinChecks for PerformIssuanceWithWia {}
 impl PinChecks for DiscloseRecoveryCode {}
 impl PinChecks for DiscloseRecoveryCodePinRecovery {}
 impl PinChecks for ChangePinCommit {}
@@ -345,7 +345,7 @@ pub trait HandleInstruction {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -362,7 +362,7 @@ impl HandleInstruction for CheckPin {
         self,
         _wallet_user: &WalletUser,
         _generators: &G,
-        _user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        _user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<(), InstructionError>
     where
@@ -382,7 +382,7 @@ impl HandleInstruction for ChangePinCommit {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -404,37 +404,37 @@ impl HandleInstruction for ChangePinCommit {
     }
 }
 
-pub(super) async fn perform_issuance_with_wua<T, R, H>(
+pub(super) async fn perform_issuance_with_wia<T, R, H>(
     instruction: PerformIssuance,
     wallet_user: &WalletUser,
-    user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
-) -> Result<(PerformIssuanceWithWuaResult, VecNonEmpty<WrappedKey>, WrappedKey), InstructionError>
+    user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+) -> Result<(PerformIssuanceWithWiaResult, VecNonEmpty<WrappedKey>, WrappedKey), InstructionError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
 {
-    let (issuance_result, wua_disclosure, wrapped_keys, wua_key_and_id) =
+    let (issuance_result, wia_disclosure, wrapped_keys, wia_key_and_id) =
         perform_issuance(instruction, Some(wallet_user), user_state).await?;
 
-    let issuance_result = PerformIssuanceWithWuaResult {
+    let issuance_result = PerformIssuanceWithWiaResult {
         issuance_result,
-        wua_disclosure: wua_disclosure.unwrap(),
+        wia_disclosure: wia_disclosure.unwrap(),
     };
 
-    // unwrap: `perform_issuance()` included a WUA since we passed it `true` above.
-    Ok((issuance_result, wrapped_keys, wua_key_and_id.unwrap()))
+    // unwrap: `perform_issuance()` included a WIA since we passed it `true` above.
+    Ok((issuance_result, wrapped_keys, wia_key_and_id.unwrap()))
 }
 
-/// Helper for the [`PerformIssuance`] and [`PerformIssuanceWithWua`] instruction handlers.
+/// Helper for the [`PerformIssuance`] and [`PerformIssuanceWithWia`] instruction handlers.
 pub async fn perform_issuance<T, R, H>(
     instruction: PerformIssuance,
     wallet_user: Option<&WalletUser>,
-    user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+    user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
 ) -> Result<
     (
         PerformIssuanceResult,
-        Option<WuaDisclosure>,
+        Option<WiaDisclosure>,
         VecNonEmpty<WrappedKey>,
         Option<WrappedKey>,
     ),
@@ -460,21 +460,21 @@ where
     // The JWT claims to be signed in the PoPs and the PoA.
     let claims = JwtPopClaims::new(instruction.nonce, NL_WALLET_CLIENT_ID.to_string(), instruction.aud);
 
-    let (wua_key, wua_disclosure, key_count_including_wua) = if let Some(wallet_user) = wallet_user {
-        let (key, wua_disclosure) = wua(&claims, wallet_user, user_state).await?;
-        (Some(key), Some(wua_disclosure), instruction.key_count.get() + 1)
+    let (wia_key, wia_disclosure, key_count_including_wia) = if let Some(wallet_user) = wallet_user {
+        let (key, wia_disclosure) = wia(&claims, wallet_user, user_state).await?;
+        (Some(key), Some(wia_disclosure), instruction.key_count.get() + 1)
     } else {
         (None, None, instruction.key_count.get())
     };
 
     let pops = issuance_pops(&attestation_keys, &claims).await?;
-    let poa = if key_count_including_wua > 1 {
-        let wua_attestation_key = wua_key.as_ref().map(|key| attestation_key(key, user_state));
+    let poa = if key_count_including_wia > 1 {
+        let wia_attestation_key = wia_key.as_ref().map(|key| attestation_key(key, user_state));
         Some(
             Poa::new(
                 attestation_keys
                     .iter()
-                    .chain(wua_attestation_key.as_ref())
+                    .chain(wia_attestation_key.as_ref())
                     .collect_vec()
                     .try_into()
                     // Safe because we check the `key_count` above
@@ -493,18 +493,18 @@ where
         poa,
     };
 
-    Ok((issuance_result, wua_disclosure, wrapped_keys, wua_key))
+    Ok((issuance_result, wia_disclosure, wrapped_keys, wia_key))
 }
 
 fn create_issuance_keys(
     wrapped_keys: Vec<WrappedKey>,
-    wua_key: Option<WrappedKey>,
+    wia_key: Option<WrappedKey>,
     is_blocked: bool,
     uuid_generator: &impl Generator<Uuid>,
 ) -> Vec<WalletUserKey> {
     wrapped_keys
         .into_iter()
-        .chain(wua_key)
+        .chain(wia_key)
         .map(|key| WalletUserKey {
             wallet_user_key_id: uuid_generator.generate(),
             key,
@@ -516,7 +516,7 @@ fn create_issuance_keys(
 async fn persist_keys<T, R, H>(
     tx: &T,
     wallet_user: &WalletUser,
-    user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+    user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
     db_keys: Vec<WalletUserKey>,
     uuid_generator: &impl Generator<Uuid>,
 ) -> Result<(), InstructionError>
@@ -539,50 +539,50 @@ where
         .map_err(Into::into)
 }
 
-async fn wua<T, R, H>(
+async fn wia<T, R, H>(
     claims: &JwtPopClaims,
     wallet_user: &WalletUser,
-    user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
-) -> Result<(WrappedKey, WuaDisclosure), InstructionError>
+    user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+) -> Result<(WrappedKey, WiaDisclosure), InstructionError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
     H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
 {
-    // generate WUA ID
-    let wua_id = Uuid::new_v4();
-    let exp = Utc::now() + user_state.wua_validity;
+    // generate WIA ID
+    let wia_id = Uuid::new_v4();
+    let exp = Utc::now() + user_state.wia_validity;
     let status_claim = user_state
         .status_list_service
         .obtain_status_claims(
-            wua_id,
+            wia_id,
             Some(exp.into()),
-            NonZeroUsize::MIN, // only one WUA is issued
+            NonZeroUsize::MIN, // only one WIA is issued
         )
         .await
         .map_err(|e| InstructionError::ObtainStatusClaim(Box::new(e)))?
         .into_first(); // only one was requested
 
-    // link WUA ID to Wallet user ID
+    // link WIA ID to Wallet user ID
     let tx = user_state.repositories.begin_transaction().await?;
     user_state
         .repositories
-        .store_wua_id(&tx, wallet_user.id, wua_id)
+        .store_wia_id(&tx, wallet_user.id, wia_id)
         .await?;
     tx.commit().await?;
 
-    let (wua_wrapped_key, wua) = user_state
-        .wua_issuer
-        .issue_wua(exp, status_claim)
+    let (wia_wrapped_key, wia) = user_state
+        .wia_issuer
+        .issue_wia(exp, status_claim)
         .await
-        .map_err(|e| InstructionError::WuaIssuance(Box::new(e)))?;
+        .map_err(|e| InstructionError::WiaIssuance(Box::new(e)))?;
 
-    let wua_disclosure = SignedJwt::sign(claims, &attestation_key(&wua_wrapped_key, user_state))
+    let wia_disclosure = SignedJwt::sign(claims, &attestation_key(&wia_wrapped_key, user_state))
         .await
         .map_err(InstructionError::PopSigning)?
         .into();
 
-    Ok((wua_wrapped_key, WuaDisclosure::new(wua, wua_disclosure)))
+    Ok((wia_wrapped_key, WiaDisclosure::new(wia, wia_disclosure)))
 }
 
 async fn issuance_pops<H>(
@@ -609,7 +609,7 @@ where
 
 fn attestation_key<'a, T, R, H>(
     wrapped_key: &'a WrappedKey,
-    user_state: &'a UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+    user_state: &'a UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
 ) -> HsmCredentialSigningKey<'a, H>
 where
     T: Committable,
@@ -630,7 +630,7 @@ impl HandleInstruction for PerformIssuance {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -651,14 +651,14 @@ impl HandleInstruction for PerformIssuance {
     }
 }
 
-impl HandleInstruction for PerformIssuanceWithWua {
-    type Result = PerformIssuanceWithWuaResult;
+impl HandleInstruction for PerformIssuanceWithWia {
+    type Result = PerformIssuanceWithWiaResult;
 
     async fn handle<T, R, H, G>(
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -667,10 +667,10 @@ impl HandleInstruction for PerformIssuanceWithWua {
         H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
-        let (issuance_with_wua_result, wrapped_keys, wua_key_and_id) =
-            perform_issuance_with_wua(self.issuance_instruction, wallet_user, user_state).await?;
+        let (issuance_with_wia_result, wrapped_keys, wia_key_and_id) =
+            perform_issuance_with_wia(self.issuance_instruction, wallet_user, user_state).await?;
 
-        let db_keys = create_issuance_keys(wrapped_keys.into_inner(), Some(wua_key_and_id), true, generators);
+        let db_keys = create_issuance_keys(wrapped_keys.into_inner(), Some(wia_key_and_id), true, generators);
 
         let tx = user_state.repositories.begin_transaction().await?;
         // Delete all blocked keys for any previous PID renewal or PIN recovery
@@ -681,7 +681,7 @@ impl HandleInstruction for PerformIssuanceWithWua {
         persist_keys(&tx, wallet_user, user_state, db_keys, generators).await?;
         tx.commit().await?;
 
-        Ok(issuance_with_wua_result)
+        Ok(issuance_with_wia_result)
     }
 }
 
@@ -692,7 +692,7 @@ impl HandleInstruction for Sign {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<SignResult, InstructionError>
     where
@@ -762,7 +762,7 @@ impl HandleInstruction for DiscloseRecoveryCode {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -858,7 +858,7 @@ impl HandleInstruction for DiscloseRecoveryCodePinRecovery {
         self,
         wallet_user: &WalletUser,
         generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -910,7 +910,7 @@ impl HandleInstruction for PairTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -959,7 +959,7 @@ impl HandleInstruction for CancelTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -1010,7 +1010,7 @@ impl HandleInstruction for ResetTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -1056,7 +1056,7 @@ impl HandleInstruction for GetTransferStatus {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -1090,7 +1090,7 @@ impl HandleInstruction for ConfirmTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<(), InstructionError>
     where
@@ -1136,7 +1136,7 @@ impl HandleInstruction for SendWalletPayload {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<(), InstructionError>
     where
@@ -1183,7 +1183,7 @@ impl HandleInstruction for ReceiveWalletPayload {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<ReceiveWalletPayloadResult, InstructionError>
     where
@@ -1224,7 +1224,7 @@ impl HandleInstruction for CompleteTransfer {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -1281,7 +1281,7 @@ impl HandleInstruction for DeleteKeys {
         self,
         wallet_user: &WalletUser,
         _generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
         _recovery_code_config: &RecoveryCodeConfig,
     ) -> Result<Self::Result, InstructionError>
     where
@@ -1306,7 +1306,7 @@ impl HandleInstruction for DeleteKeys {
 async fn check_recovery_code<T, R, F, H>(
     wallet_user: &WalletUser,
     disclosed: &RecoveryCode,
-    user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListRevocationService>,
+    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListRevocationService>,
     generators: &impl Generator<DateTime<Utc>>,
 ) -> Result<(), InstructionError>
 where
@@ -1464,7 +1464,7 @@ mod tests {
     use jwt::headers::HeaderWithJwk;
     use jwt::nonce::Nonce;
     use jwt::pop::JwtPopClaims;
-    use jwt::wua::WuaDisclosure;
+    use jwt::wia::WiaDisclosure;
     use mockall::predicate;
     use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
@@ -1493,7 +1493,7 @@ mod tests {
     use wallet_account::messages::instructions::GetTransferStatus;
     use wallet_account::messages::instructions::PairTransfer;
     use wallet_account::messages::instructions::PerformIssuance;
-    use wallet_account::messages::instructions::PerformIssuanceWithWua;
+    use wallet_account::messages::instructions::PerformIssuanceWithWia;
     use wallet_account::messages::instructions::ReceiveWalletPayload;
     use wallet_account::messages::instructions::ResetTransfer;
     use wallet_account::messages::instructions::SendWalletPayload;
@@ -1520,12 +1520,12 @@ mod tests {
     use crate::instructions::ValidateInstruction;
     use crate::instructions::is_poa_message;
     use crate::wallet_certificate::mock::setup_hsm;
-    use crate::wua_issuer::mock::MockWuaIssuer;
+    use crate::wia_issuer::mock::MockWiaIssuer;
 
     pub async fn user_state<R>(
         repositories: R,
         wrapping_key_identifier: &str,
-    ) -> UserState<R, StubWalletFlags, MockPkcs11Client<HsmError>, MockWuaIssuer, MockStatusListService> {
+    ) -> UserState<R, StubWalletFlags, MockPkcs11Client<HsmError>, MockWiaIssuer, MockStatusListService> {
         mock_user_state(
             repositories,
             StubWalletFlags::default(),
@@ -1540,7 +1540,7 @@ mod tests {
         repositories: R,
         wrapping_key_identifier: &str,
         ca: &Ca,
-    ) -> UserState<R, StubWalletFlags, MockPkcs11Client<HsmError>, MockWuaIssuer, MockStatusListService> {
+    ) -> UserState<R, StubWalletFlags, MockPkcs11Client<HsmError>, MockWiaIssuer, MockStatusListService> {
         mock_user_state(
             repositories,
             StubWalletFlags::default(),
@@ -2204,7 +2204,7 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo.expect_save_keys().returning(|_, _| Ok(()));
-        wallet_user_repo.expect_store_wua_id().returning(|_, _, _| Ok(()));
+        wallet_user_repo.expect_store_wia_id().returning(|_, _, _| Ok(()));
         wallet_user_repo
             .expect_delete_all_blocked_keys()
             .returning(|_, _| Ok(()));
@@ -2223,7 +2223,7 @@ mod tests {
     fn validate_issuance(
         pops: &[UnverifiedJwt<JwtPopClaims, HeaderWithJwk>],
         poa: Option<Poa>,
-        wua_with_disclosure: Option<&WuaDisclosure>,
+        wia_with_disclosure: Option<&WiaDisclosure>,
     ) {
         let mut validations = Validation::new(Algorithm::ES256);
         validations.set_required_spec_claims(&["iss", "aud"]);
@@ -2239,9 +2239,9 @@ mod tests {
             })
             .collect_vec();
 
-        let wua_key = wua_with_disclosure.map(|wua_with_disclosure| {
-            let wua_key = &wua_with_disclosure
-                .wua()
+        let wia_key = wia_with_disclosure.map(|wia_with_disclosure| {
+            let wia_key = &wia_with_disclosure
+                .wia()
                 .dangerous_parse_unverified()
                 .unwrap()
                 .1
@@ -2249,15 +2249,15 @@ mod tests {
                 .verifying_key()
                 .unwrap();
 
-            wua_with_disclosure
-                .wua_pop()
-                .parse_and_verify(&wua_key.into(), &validations)
+            wia_with_disclosure
+                .wia_pop()
+                .parse_and_verify(&wia_key.into(), &validations)
                 .unwrap();
 
-            *wua_key
+            *wia_key
         });
 
-        let keys = keys.into_iter().chain(wua_key).collect_vec();
+        let keys = keys.into_iter().chain(wia_key).collect_vec();
         if keys.len() > 1 {
             poa.unwrap()
                 .verify(
@@ -2289,8 +2289,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_handle_perform_issuance_with_wua() {
-        let result = perform_issuance(PerformIssuanceWithWua {
+    async fn should_handle_perform_issuance_with_wia() {
+        let result = perform_issuance(PerformIssuanceWithWia {
             issuance_instruction: PerformIssuance {
                 key_count: NonZeroUsize::MIN,
                 aud: POP_AUD.to_string(),
@@ -2302,7 +2302,7 @@ mod tests {
         validate_issuance(
             result.issuance_result.pops.as_slice(),
             result.issuance_result.poa,
-            Some(&result.wua_disclosure),
+            Some(&result.wia_disclosure),
         );
     }
 
@@ -2331,15 +2331,15 @@ mod tests {
         }
     }
 
-    fn mock_issuance_with_wua_instruction() -> PerformIssuanceWithWua {
-        PerformIssuanceWithWua {
+    fn mock_issuance_with_wia_instruction() -> PerformIssuanceWithWia {
+        PerformIssuanceWithWia {
             issuance_instruction: mock_issuance_instruction(),
         }
     }
 
     fn mock_start_pin_recovery_instruction() -> StartPinRecovery {
         StartPinRecovery {
-            issuance_with_wua_instruction: mock_issuance_with_wua_instruction(),
+            issuance_with_wia_instruction: mock_issuance_with_wia_instruction(),
             pin_pubkey: (*SigningKey::random(&mut OsRng).verifying_key()).into(),
         }
     }
@@ -2370,7 +2370,7 @@ mod tests {
 
     #[rstest]
     #[case::perform_issuance(Box::new(mock_issuance_instruction()))]
-    #[case::perform_issuance_with_wua(Box::new(mock_issuance_with_wua_instruction()))]
+    #[case::perform_issuance_with_wia(Box::new(mock_issuance_with_wia_instruction()))]
     #[case::disclose_recovery_code(Box::new(DiscloseRecoveryCode { recovery_code_disclosure: "this.isan.sdjwt~".parse().unwrap(), app_version: "0.0.1".parse().unwrap() }))]
     #[case::sign_instruction(Box::new(mock_sign_instruction()))]
     #[case::change_pin_commit(Box::new(ChangePinCommit {}))]

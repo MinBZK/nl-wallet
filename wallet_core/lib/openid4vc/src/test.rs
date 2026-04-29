@@ -36,7 +36,7 @@ use crate::issuer::AttestationTypeConfig;
 use crate::issuer::AttributeService;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
-use crate::issuer::WuaConfig;
+use crate::issuer::WiaConfig;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::nonce::memory_store::MemoryNonceStore;
@@ -115,7 +115,7 @@ where
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
     let trust_anchor = ca.to_trust_anchor().to_owned();
-    let wua_issuer_privkey = SigningKey::random(&mut OsRng);
+    let wia_issuer_privkey = SigningKey::random(&mut OsRng);
 
     let attestation_config = MOCK_ATTESTATION_TYPES[..attestation_count.get()]
         .iter()
@@ -162,8 +162,8 @@ where
         issuer_identifier,
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
         attestation_config,
-        Some(WuaConfig {
-            wua_issuer_pubkey: wua_issuer_privkey.verifying_key().into(),
+        Some(WiaConfig {
+            wia_issuer_pubkey: wia_issuer_privkey.verifying_key().into(),
         }),
         upstream_oauth_identifier,
         attr_service,
@@ -172,5 +172,5 @@ where
         Arc::new(status_list_service),
     );
 
-    (issuer, trust_anchor, wua_issuer_privkey)
+    (issuer, trust_anchor, wia_issuer_privkey)
 }

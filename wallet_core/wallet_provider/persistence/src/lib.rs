@@ -8,7 +8,7 @@ pub mod wallet_flag;
 pub mod wallet_transfer;
 pub mod wallet_user;
 pub mod wallet_user_key;
-pub mod wallet_user_wua;
+pub mod wallet_user_wia;
 
 #[cfg(feature = "test")]
 pub mod test;

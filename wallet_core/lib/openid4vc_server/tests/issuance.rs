@@ -69,7 +69,7 @@ async fn start_server(
     let issuer_identifier: IssuerIdentifier = format!("https://localhost:{port}").parse().unwrap();
 
     let sessions = Arc::new(MemorySessionStore::default());
-    let (issuer, trust_anchor, wua_issuer_privkey) = setup_mock_issuer(
+    let (issuer, trust_anchor, wia_issuer_privkey) = setup_mock_issuer(
         issuer_identifier.clone(),
         MockAttrService {
             documents: mock_issuable_documents(attestation_count),
@@ -93,7 +93,7 @@ async fn start_server(
         issuer,
         trust_anchor,
         issuer_identifier,
-        wua_issuer_privkey,
+        wia_issuer_privkey,
         tls_trust_anchor,
     )
 }
@@ -157,7 +157,7 @@ async fn authorization_code_flow(
     #[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
 ) {
     let upstream_oauth_id: IssuerIdentifier = "https://auth.example.com/".parse().unwrap();
-    let (_, trust_anchor, issuer_identifier, wua_issuer_privkey, tls_trust_anchor) =
+    let (_, trust_anchor, issuer_identifier, wia_issuer_privkey, tls_trust_anchor) =
         start_server(attestation_count, Some(upstream_oauth_id)).await;
 
     let redirect_uri: Url = "https://wallet.example.com/callback".parse().unwrap();
@@ -205,7 +205,7 @@ async fn authorization_code_flow(
 
     assert_eq!(session.normalized_credential_preview().len(), attestation_count.get());
 
-    let wscd = MockRemoteWscd::new_with_wua_signing_key(wua_issuer_privkey);
+    let wscd = MockRemoteWscd::new_with_wia_signing_key(wia_issuer_privkey);
     let issued_creds = session.accept_issuance(trust_anchors, &wscd, true).await.unwrap();
 
     let copy_count = 4;
@@ -222,7 +222,7 @@ async fn authorization_code_flow(
 async fn pre_authorized_code_flow(
     #[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
 ) {
-    let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey, tls_trust_anchor) =
+    let (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey, tls_trust_anchor) =
         start_server(attestation_count, None).await;
 
     let documents = mock_issuable_documents(attestation_count);
@@ -241,7 +241,7 @@ async fn pre_authorized_code_flow(
         .unwrap();
 
     let copy_count = 4;
-    let wscd = MockRemoteWscd::new_with_wua_signing_key(wua_issuer_privkey);
+    let wscd = MockRemoteWscd::new_with_wia_signing_key(wia_issuer_privkey);
     let issued_creds = session.accept_issuance(trust_anchors, &wscd, true).await.unwrap();
 
     verify_issued_credentials(

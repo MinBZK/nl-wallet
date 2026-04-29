@@ -5,4 +5,4 @@ pub mod keys;
 pub mod pin_policy;
 pub mod revocation;
 pub mod wallet_certificate;
-pub mod wua_issuer;
+pub mod wia_issuer;
