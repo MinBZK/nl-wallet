@@ -10,13 +10,13 @@ private enum CloseProximityBleTransportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidState(let reason):
-            return reason
+            return "InvalidState: \(reason)"
         case .invalidIncomingChunk(let reason):
-            return reason
+            return "InvalidIncomingChunk: \(reason)"
         case .transportClosed:
-            return "Close proximity BLE transport is closed"
+            return "TransportClose: Close proximity BLE transport is closed"
         case .transportFailed(let reason):
-            return reason
+            return "TransportFailed: \(reason)"
         }
     }
 }
