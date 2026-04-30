@@ -11,6 +11,7 @@ extension CloseProximityDisclosure {
             ) else {
                 return
             }
+            guard isActiveSession(session) else { return }
             // According to the ISO-18013-5 protocol, the reader will send the eReader public key as the first payload.
             // This is the last ingredient needed for the session transcript.
             guard let readerSessionContext = await ensureReaderSessionContext(
@@ -19,6 +20,8 @@ extension CloseProximityDisclosure {
             ) else {
                 return
             }
+            
+            guard isActiveSession(session) else { return }
 
             if try await handleReaderMessage(
                 session: session,
@@ -43,7 +46,6 @@ extension CloseProximityDisclosure {
                 session: session,
                 message: message
             )
-            guard isActiveSession(session) else { return nil }
             setReaderSessionContext(establishedReaderSessionContext, for: session)
             return self.readerSessionContext(for: session)
         } catch {
@@ -145,12 +147,14 @@ extension CloseProximityDisclosure {
             )
         }
         if let deviceRequest {
-            try await session.channel.sendUpdate(
-                update: CloseProximityDisclosureUpdate.sessionEstablished(
-                    sessionTranscript: readerSessionContext.encodedSessionTranscript.uint8Array(),
-                    deviceRequest: deviceRequest.uint8Array()
+            if isActiveSession(session) {
+                try await session.channel.sendUpdate(
+                    update: CloseProximityDisclosureUpdate.sessionEstablished(
+                        sessionTranscript: readerSessionContext.encodedSessionTranscript.uint8Array(),
+                        deviceRequest: deviceRequest.uint8Array()
+                    )
                 )
-            )
+            }
         }
         if let status {
             await finishSession(session, update: status.asCloseProximityDisclosureUpdate)
