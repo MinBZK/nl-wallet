@@ -9,16 +9,16 @@ use uuid::Uuid;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
-use crate::entity::wallet_user_wia;
+use crate::entity::wallet_user_wua;
 
 pub async fn create<S, T>(db: &T, wallet_user_id: Uuid, wia_id: Uuid) -> Result<(), PersistenceError>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    wallet_user_wia::ActiveModel {
+    wallet_user_wua::ActiveModel {
         wallet_user_id: Set(wallet_user_id),
-        wia_id: Set(wia_id),
+        wua_id: Set(wia_id),
     }
     .insert(db.connection())
     .await
@@ -32,9 +32,9 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    wallet_user_wia::Entity::find()
+    wallet_user_wua::Entity::find()
         .select_only()
-        .column(wallet_user_wia::Column::WiaId)
+        .column(wallet_user_wua::Column::WuaId)
         .into_tuple()
         .all(db.connection())
         .await
@@ -49,10 +49,10 @@ where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    wallet_user_wia::Entity::find()
+    wallet_user_wua::Entity::find()
         .select_only()
-        .column(wallet_user_wia::Column::WiaId)
-        .filter(wallet_user_wia::Column::WalletUserId.is_in(wallet_user_ids))
+        .column(wallet_user_wua::Column::WuaId)
+        .filter(wallet_user_wua::Column::WalletUserId.is_in(wallet_user_ids))
         .into_tuple()
         .all(db.connection())
         .await
