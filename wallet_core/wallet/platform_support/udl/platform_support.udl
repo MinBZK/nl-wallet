@@ -157,6 +157,39 @@ interface CloseProximityDisclosureChannel {
     void send_update(CloseProximityDisclosureUpdate update);
 };
 
+// Close proximity session crypto helpers
+
+[Error]
+interface CloseProximitySessionCryptoError {
+    CborDecoding(string reason);
+    SessionEncryption(string reason);
+    Other(string reason);
+};
+
+dictionary CloseProximityReaderKey {
+    sequence<u8> encoded_cose_key;
+};
+
+dictionary CloseProximityDecryptedMessage {
+    sequence<u8>? data;
+    i64? status;
+};
+
+interface CloseProximitySessionCrypto {
+    [Throws=CloseProximitySessionCryptoError]
+    constructor(
+        sequence<u8> e_device_private_key,
+        sequence<u8> encoded_reader_key,
+        sequence<u8> encoded_session_transcript
+    );
+
+    [Throws=CloseProximitySessionCryptoError]
+    CloseProximityDecryptedMessage decrypt(sequence<u8> message);
+
+    [Throws=CloseProximitySessionCryptoError]
+    sequence<u8> encrypt(sequence<u8> plaintext, i64 status_code);
+};
+
 // all modules
 
 namespace platform_support {
@@ -169,4 +202,7 @@ namespace platform_support {
         UtilitiesBridge utils,
         CloseProximityDisclosureBridge close_proximity_disclosure
     );
+
+    [Throws=CloseProximitySessionCryptoError]
+    CloseProximityReaderKey close_proximity_get_e_reader_key(sequence<u8> session_establishment_message);
 };

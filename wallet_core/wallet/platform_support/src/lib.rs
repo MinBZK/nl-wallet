@@ -2,6 +2,7 @@ mod bridge;
 
 pub mod attested_key;
 pub mod close_proximity_disclosure;
+pub mod close_proximity_session_crypto;
 pub mod hw_keystore;
 pub mod utils;
 
@@ -23,5 +24,10 @@ use crate::bridge::hw_keystore::SigningKeyBridge;
 use crate::bridge::init_platform_support;
 use crate::bridge::utils::UtilitiesBridge;
 use crate::bridge::utils::UtilitiesError;
+use crate::close_proximity_session_crypto::CloseProximityDecryptedMessage;
+use crate::close_proximity_session_crypto::CloseProximityReaderKey;
+use crate::close_proximity_session_crypto::CloseProximitySessionCrypto;
+use crate::close_proximity_session_crypto::CloseProximitySessionCryptoError;
+use crate::close_proximity_session_crypto::close_proximity_get_e_reader_key;
 
 uniffi::include_scaffolding!("platform_support");
