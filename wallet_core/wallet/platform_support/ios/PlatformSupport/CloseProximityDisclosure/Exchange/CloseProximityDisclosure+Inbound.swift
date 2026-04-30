@@ -147,7 +147,7 @@ extension CloseProximityDisclosure {
         if let deviceRequest {
             try await session.channel.sendUpdate(
                 update: CloseProximityDisclosureUpdate.sessionEstablished(
-                    sessionTranscript: encodedSessionTranscript.uint8Array(),
+                    sessionTranscript: readerSessionContext.encodedSessionTranscript.uint8Array(),
                     deviceRequest: deviceRequest.uint8Array()
                 )
             )
