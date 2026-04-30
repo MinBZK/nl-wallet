@@ -121,7 +121,7 @@ use crate::flags::WalletFlags;
 use crate::instructions::HandleInstruction;
 use crate::instructions::PinChecks;
 use crate::instructions::ValidateInstruction;
-use crate::instructions::perform_issuance_with_wua;
+use crate::instructions::perform_issuance_with_wia;
 use crate::keys::InstructionResultSigningKey;
 use crate::keys::WalletCertificateSigningKey;
 use crate::pin_policy::PinRecoveryPinPolicy;
@@ -129,7 +129,7 @@ use crate::revocation::RevocationError;
 use crate::wallet_certificate::new_wallet_certificate;
 use crate::wallet_certificate::parse_and_verify_wallet_cert_using_hw_pubkey;
 use crate::wallet_certificate::verify_wallet_certificate;
-use crate::wua_issuer::WuaIssuer;
+use crate::wia_issuer::WiaIssuer;
 
 #[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 pub enum ChallengeError {
@@ -247,8 +247,8 @@ pub enum InstructionError {
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
 
-    #[error("WUA issuance: {0}")]
-    WuaIssuance(#[source] Box<dyn Error + Send + Sync + 'static>),
+    #[error("WIA issuance: {0}")]
+    WiaIssuance(#[source] Box<dyn Error + Send + Sync + 'static>),
 
     #[error("instruction referenced nonexisting key: {0}")]
     NonExistingKey(String),
@@ -355,8 +355,8 @@ pub enum InstructionValidationError {
     #[error("hsm error: {0}")]
     HsmError(#[from] HsmError),
 
-    #[error("WUA already issued")]
-    WuaAlreadyIssued,
+    #[error("WIA already issued")]
+    WiaAlreadyIssued,
 
     #[error("received instruction to sign a PoA with the Sign instruction")]
     PoaMessage,
@@ -520,8 +520,8 @@ pub struct UserState<R, F, H, W, S> {
     pub repositories: R,
     pub flags: F,
     pub wallet_user_hsm: H,
-    pub wua_issuer: W,
-    pub wua_validity: Days,
+    pub wia_issuer: W,
+    pub wia_validity: Days,
     pub wrapping_key_identifier: String,
     pub pid_issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     pub status_list_service: S,
@@ -926,7 +926,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
     ) -> Result<InstructionResult<IR>, InstructionError>
     where
         T: Committable,
@@ -967,7 +967,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction: HwSignedInstruction<I>,
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
     ) -> Result<InstructionResult<IR>, InstructionError>
     where
         T: Committable,
@@ -1057,7 +1057,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         signing_keys: (&impl InstructionResultSigningKey, &impl WalletCertificateSigningKey),
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, F, H, impl WuaIssuer, S>,
+        user_state: &UserState<R, F, H, impl WiaIssuer, S>,
     ) -> Result<InstructionResult<WalletCertificate>, InstructionError>
     where
         T: Committable,
@@ -1142,7 +1142,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, F, H, impl WuaIssuer, S>,
+        user_state: &UserState<R, F, H, impl WiaIssuer, S>,
     ) -> Result<InstructionResult<()>, InstructionError>
     where
         T: Committable,
@@ -1188,7 +1188,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction: Instruction<StartPinRecovery>,
         signing_keys: (&impl InstructionResultSigningKey, &impl WalletCertificateSigningKey),
         generators: &G,
-        user_state: &UserState<R, F, H, impl WuaIssuer, impl StatusListService>,
+        user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListService>,
     ) -> Result<InstructionResult<StartPinRecoveryResult>, InstructionError>
     where
         T: Committable,
@@ -1229,11 +1229,11 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             })
             .await?;
 
-        let issuance_instruction = instruction_payload.issuance_with_wua_instruction.issuance_instruction;
+        let issuance_instruction = instruction_payload.issuance_with_wia_instruction.issuance_instruction;
 
         // Handle the issuance part without persisting the generated keys
-        let (issuance_with_wua_result, keys, _) =
-            perform_issuance_with_wua(issuance_instruction, &wallet_user, user_state).await?;
+        let (issuance_with_wia_result, keys, _) =
+            perform_issuance_with_wia(issuance_instruction, &wallet_user, user_state).await?;
 
         let tx = user_state.repositories.begin_transaction().await?;
 
@@ -1293,7 +1293,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .sign_instruction_result(
                 instruction_result_signing_key,
                 StartPinRecoveryResult {
-                    issuance_with_wua_result,
+                    issuance_with_wia_result,
                     certificate,
                 },
             )
@@ -1309,7 +1309,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         instruction: Instruction<I>,
         generators: &G,
         pin_policy: &impl PinPolicyEvaluator,
-        user_state: &UserState<R, F, H, impl WuaIssuer, S>,
+        user_state: &UserState<R, F, H, impl WiaIssuer, S>,
         pin_pubkey: P,
     ) -> Result<(WalletUser, I), InstructionError>
     where
@@ -1701,7 +1701,7 @@ pub mod mock {
     use super::*;
     use crate::flags::mock::StubWalletFlags;
     use crate::wallet_certificate;
-    use crate::wua_issuer::mock::MockWuaIssuer;
+    use crate::wia_issuer::mock::MockWiaIssuer;
 
     pub static MOCK_APPLE_CA: LazyLock<MockAttestationCa> = LazyLock::new(MockAttestationCa::generate);
     pub static MOCK_GOOGLE_CA_CHAIN: LazyLock<MockCaChain> = LazyLock::new(|| MockCaChain::generate(1));
@@ -1741,7 +1741,7 @@ pub mod mock {
         status_list_service
             .expect_obtain_status_claims()
             .returning(|_, _, copies| {
-                let uri = "https://example.com/wua".parse().unwrap();
+                let uri = "https://example.com/wia".parse().unwrap();
                 Ok(generate_status_claims(&uri, copies))
             });
         status_list_service
@@ -1789,7 +1789,7 @@ pub mod mock {
         WalletUserTestRepo,
         StubWalletFlags,
         MockPkcs11Client<HsmError>,
-        MockWuaIssuer,
+        MockWiaIssuer,
         MockStatusListService,
     >;
 
@@ -1800,13 +1800,13 @@ pub mod mock {
         wrapping_key_identifier: String,
         pid_issuer_trust_anchors: Vec<TrustAnchor<'static>>,
         status_list_service: S,
-    ) -> UserState<R, F, MockPkcs11Client<HsmError>, MockWuaIssuer, S> {
-        UserState::<R, F, MockPkcs11Client<HsmError>, MockWuaIssuer, S> {
+    ) -> UserState<R, F, MockPkcs11Client<HsmError>, MockWiaIssuer, S> {
+        UserState::<R, F, MockPkcs11Client<HsmError>, MockWiaIssuer, S> {
             repositories,
             flags,
             wallet_user_hsm,
-            wua_issuer: MockWuaIssuer,
-            wua_validity: Days::new(1),
+            wia_issuer: MockWiaIssuer,
+            wia_validity: Days::new(1),
             wrapping_key_identifier,
             pid_issuer_trust_anchors,
             status_list_service,
@@ -2006,7 +2006,7 @@ mod tests {
     use wallet_account::messages::instructions::InstructionResult;
     use wallet_account::messages::instructions::PairTransfer;
     use wallet_account::messages::instructions::PerformIssuance;
-    use wallet_account::messages::instructions::PerformIssuanceWithWua;
+    use wallet_account::messages::instructions::PerformIssuanceWithWia;
     use wallet_account::messages::instructions::ResetTransfer;
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::StartPinRecovery;
@@ -2054,7 +2054,7 @@ mod tests {
     use crate::wallet_certificate::mock::WalletCertificateSetup;
     use crate::wallet_certificate::mock::setup_hsm;
     use crate::wallet_certificate::verify_wallet_certificate;
-    use crate::wua_issuer::mock::MockWuaIssuer;
+    use crate::wia_issuer::mock::MockWiaIssuer;
 
     fn verified_recovery_code_sd_jwt() -> VerifiedSdJwt {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -2143,8 +2143,8 @@ mod tests {
             repositories: wallet_user_repo,
             flags: StubWalletFlags::default(),
             wallet_user_hsm: hsm,
-            wua_issuer: MockWuaIssuer,
-            wua_validity: Days::new(1),
+            wia_issuer: MockWiaIssuer,
+            wia_validity: Days::new(1),
             wrapping_key_identifier: wrapping_key_identifier.to_string(),
             pid_issuer_trust_anchors: vec![], // not needed in these tests
             status_list_service: MockStatusListService::default(),
@@ -3446,7 +3446,7 @@ mod tests {
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
 
         let instruction = StartPinRecovery {
-            issuance_with_wua_instruction: PerformIssuanceWithWua {
+            issuance_with_wia_instruction: PerformIssuanceWithWia {
                 issuance_instruction: PerformIssuance {
                     key_count: NonZeroUsize::MIN,
                     aud: "aud".to_string(),
@@ -3535,7 +3535,7 @@ mod tests {
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
 
         let instruction = StartPinRecovery {
-            issuance_with_wua_instruction: PerformIssuanceWithWua {
+            issuance_with_wia_instruction: PerformIssuanceWithWia {
                 issuance_instruction: PerformIssuance {
                     key_count: NonZeroUsize::MIN,
                     aud: "aud".to_string(),
@@ -3577,7 +3577,7 @@ mod tests {
             .expect_begin_transaction()
             .times(4)
             .returning(|| Ok(MockTransaction));
-        repositories.expect_store_wua_id().once().returning(|_, _, _| Ok(()));
+        repositories.expect_store_wia_id().once().returning(|_, _, _| Ok(()));
 
         repositories
             .expect_change_pin()
@@ -3592,8 +3592,8 @@ mod tests {
             repositories,
             flags: StubWalletFlags::default(),
             wallet_user_hsm: user_state.wallet_user_hsm,
-            wua_issuer: user_state.wua_issuer,
-            wua_validity: Days::new(1),
+            wia_issuer: user_state.wia_issuer,
+            wia_validity: Days::new(1),
             wrapping_key_identifier: user_state.wrapping_key_identifier,
             pid_issuer_trust_anchors: user_state.pid_issuer_trust_anchors,
             status_list_service: user_state.status_list_service,
@@ -3669,7 +3669,7 @@ mod tests {
             MockTransactionalWalletUserRepository,
             StubWalletFlags,
             MockPkcs11Client<HsmError>,
-            MockWuaIssuer,
+            MockWiaIssuer,
             MockStatusListService,
         >,
         WalletCertificateSetup,
@@ -3679,8 +3679,8 @@ mod tests {
             repositories: MockTransactionalWalletUserRepository::new(),
             flags: StubWalletFlags::default(),
             wallet_user_hsm: setup_hsm().await,
-            wua_issuer: MockWuaIssuer,
-            wua_validity: Days::new(1),
+            wia_issuer: MockWiaIssuer,
+            wia_validity: Days::new(1),
             wrapping_key_identifier: "my_wrapping_key_identifier".to_string(),
             pid_issuer_trust_anchors: vec![],
             status_list_service: MockStatusListService::default(),
@@ -3888,7 +3888,7 @@ mod tests {
         let new_pin_privkey = SigningKey::random(&mut OsRng);
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
         let instruction = StartPinRecovery {
-            issuance_with_wua_instruction: PerformIssuanceWithWua {
+            issuance_with_wia_instruction: PerformIssuanceWithWia {
                 issuance_instruction: PerformIssuance {
                     key_count: NonZeroUsize::MIN,
                     aud: "aud".to_string(),

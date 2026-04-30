@@ -65,7 +65,7 @@ pub struct Settings {
     pub flags_refresh_delay: Duration,
     pub revoke_solution_enabled: bool,
 
-    pub wua_status_list: WuaStatusListsSettings,
+    pub wua_status_list: WiaStatusListsSettings,
 
     #[serde(rename = "instruction_challenge_timeout_in_ms")]
     #[serde_as(as = "DurationMilliSeconds")]
@@ -104,7 +104,7 @@ pub struct PinPolicySettings {
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
-pub struct WuaStatusListsSettings {
+pub struct WiaStatusListsSettings {
     #[serde(flatten)]
     pub list_settings: StatusListsSettings,
 
@@ -243,19 +243,19 @@ impl TryFrom<Vec<u8>> for AndroidRootPublicKey {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum WuaStatusListsSettingsError {
-    #[error("incorrectly configured WUA expiration: {0}")]
+pub enum WiaStatusListsSettingsError {
+    #[error("incorrectly configured WIA expiration: {0}")]
     ExpiryLessThanTtl(#[from] ExpiryLessThanTtl),
 
-    #[error("incorrectly configured WUA status list key identifier or certificate: {0}")]
+    #[error("incorrectly configured WIA status list key identifier or certificate: {0}")]
     PrivateKey(#[from] CertificateError),
 }
 
-impl WuaStatusListsSettings {
+impl WiaStatusListsSettings {
     pub async fn into_config(
         self,
         hsm: Pkcs11Hsm,
-    ) -> Result<StatusListConfig<HsmEcdsaKey>, WuaStatusListsSettingsError> {
+    ) -> Result<StatusListConfig<HsmEcdsaKey>, WiaStatusListsSettingsError> {
         let key_pair = KeyPair::new(HsmEcdsaKey::new(self.key_identifier, hsm), self.key_certificate).await?;
 
         let config = self

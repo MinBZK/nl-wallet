@@ -930,7 +930,7 @@ mod tests {
             _count: NonZeroUsize,
             _aud: String,
             _nonce: Option<Nonce>,
-            _include_wua: bool,
+            _include_wia: bool,
         ) -> Result<wscd::wscd::IssuanceResult<Self::Poa>, Self::Error> {
             unimplemented!()
         }

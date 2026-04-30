@@ -31,7 +31,7 @@ use wallet::test::default_wallet_config;
 /// The test runs an in-process pid_issuer against a real nl-rdo-max and BRP proxy, drives the OIDC
 /// authorization code flow with `fake_digid_auth`, exchanges the code for attestation previews, and
 /// asserts on the BSN and BRP-derived fields in those previews. It stops at `start_issuance` —
-/// actually accepting issuance would drag in WSCD/WUA plumbing which is covered by `test_pid_ok`
+/// actually accepting issuance would drag in WSCD/WIA plumbing which is covered by `test_pid_ok`
 /// and friends under the `integration_test` feature (those tests mock OIDC so they do not exercise
 /// the bridge covered here).
 ///

@@ -7,20 +7,20 @@ use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
 use jwt::nonce::Nonce;
 use jwt::pop::JwtPopClaims;
-use jwt::wua::WuaDisclosure;
+use jwt::wia::WiaDisclosure;
 use utils::vec_at_least::VecNonEmpty;
 
 pub trait IssuanceWscd {
     type Error: Error + Send + Sync + 'static;
     type Poa: WscdPoa;
 
-    /// Construct new keys along with PoPs and PoA, and optionally a WUA, for use during issuance.
+    /// Construct new keys along with PoPs and PoA, and optionally a WIA, for use during issuance.
     async fn perform_issuance(
         &self,
         count: NonZeroUsize,
         aud: String,
         nonce: Option<Nonce>,
-        include_wua: bool,
+        include_wia: bool,
     ) -> Result<IssuanceResult<Self::Poa>, Self::Error>;
 }
 
@@ -29,7 +29,7 @@ pub struct IssuanceResult<P> {
     pub key_identifiers: VecNonEmpty<String>,
     pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>,
     pub poa: Option<P>,
-    pub wua: Option<WuaDisclosure>,
+    pub wia: Option<WiaDisclosure>,
 }
 
 #[derive(Debug, Constructor)]

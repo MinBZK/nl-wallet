@@ -12,7 +12,7 @@ use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
 use jwt::nonce::Nonce;
 use jwt::pop::JwtPopClaims;
-use jwt::wua::WuaDisclosure;
+use jwt::wia::WiaDisclosure;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use semver::Version;
 use serde::Deserialize;
@@ -138,7 +138,7 @@ impl InstructionAndResult for ChangePinRollback {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StartPinRecovery {
     #[serde(flatten)]
-    pub issuance_with_wua_instruction: PerformIssuanceWithWua,
+    pub issuance_with_wia_instruction: PerformIssuanceWithWia,
     #[serde_as(as = "Base64")]
     pub pin_pubkey: DerVerifyingKey,
 }
@@ -147,7 +147,7 @@ pub struct StartPinRecovery {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StartPinRecoveryResult {
     #[serde(flatten)]
-    pub issuance_with_wua_result: PerformIssuanceWithWuaResult,
+    pub issuance_with_wia_result: PerformIssuanceWithWiaResult,
     pub certificate: WalletCertificate,
 }
 
@@ -183,23 +183,23 @@ impl InstructionAndResult for PerformIssuance {
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PerformIssuanceWithWua {
+pub struct PerformIssuanceWithWia {
     #[serde(flatten)]
     pub issuance_instruction: PerformIssuance,
 }
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
-pub struct PerformIssuanceWithWuaResult {
+pub struct PerformIssuanceWithWiaResult {
     #[serde(flatten)]
     pub issuance_result: PerformIssuanceResult,
-    pub wua_disclosure: WuaDisclosure,
+    pub wia_disclosure: WiaDisclosure,
 }
 
-impl InstructionAndResult for PerformIssuanceWithWua {
-    const NAME: &'static str = "perform_issuance_with_wua";
+impl InstructionAndResult for PerformIssuanceWithWia {
+    const NAME: &'static str = "perform_issuance_with_wia";
 
-    type Result = PerformIssuanceWithWuaResult;
+    type Result = PerformIssuanceWithWiaResult;
 }
 
 // Sign instruction.

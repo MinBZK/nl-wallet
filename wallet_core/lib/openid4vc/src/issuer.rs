@@ -38,8 +38,8 @@ use jwt::Validation;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::nonce::Nonce;
-use jwt::wua::WuaDisclosure;
-use jwt::wua::WuaError;
+use jwt::wia::WiaDisclosure;
+use jwt::wia::WiaError;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -173,7 +173,7 @@ pub enum CredentialRequestError {
     #[error("could not check proof nonce against nonce storage: {0}")]
     ProofNonceStore(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
-    #[error("invalid nonce used in credential request proof, WUA or PoA")]
+    #[error("invalid nonce used in credential request proof, WIA or PoA")]
     InvalidNonce,
 
     #[error("JWT error: {0}")]
@@ -191,8 +191,8 @@ pub enum CredentialRequestError {
     #[error("missing credential request proof of possession")]
     MissingCredentialRequestPoP,
 
-    #[error("missing WUA")]
-    MissingWua,
+    #[error("missing WIA")]
+    MissingWia,
 
     #[error("missing PoA")]
     MissingPoa,
@@ -209,8 +209,8 @@ pub enum CredentialRequestError {
     #[error("error converting CredentialPayload to SD-JWT: {0}")]
     SdJwtConversion(#[from] SdJwtCredentialPayloadError),
 
-    #[error("error verifying WUA: {0}")]
-    Wua(#[from] WuaError),
+    #[error("error verifying WIA: {0}")]
+    Wia(#[from] WiaError),
 
     #[error("error obtaining status claim: {0}")]
     ObtainStatusClaim(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
@@ -418,7 +418,7 @@ pub struct Issuer<K, A, S, N, L> {
 /// Fields of the [`Issuer`] needed by the issuance functions.
 pub struct IssuerData<K> {
     attestation_config: AttestationTypesConfig<K>,
-    wua_config: Option<WuaConfig>,
+    wia_config: Option<WiaConfig>,
 
     /// Wallet IDs accepted by this server, MUST be used by the wallet as `iss` in its PoP JWTs.
     accepted_wallet_client_ids: Vec<String>,
@@ -432,9 +432,9 @@ pub struct IssuerData<K> {
     upstream_oauth_identifier: Option<IssuerIdentifier>,
 }
 
-pub struct WuaConfig {
-    /// Public key of the WUA issuer.
-    pub wua_issuer_pubkey: EcdsaDecodingKey,
+pub struct WiaConfig {
+    /// Public key of the WIA issuer.
+    pub wia_issuer_pubkey: EcdsaDecodingKey,
 }
 
 impl<K, A, S, N, L> Drop for Issuer<K, A, S, N, L> {
@@ -460,7 +460,7 @@ where
         issuer_identifier: IssuerIdentifier,
         wallet_client_ids: Vec<String>,
         attestation_config: AttestationTypesConfig<K>,
-        wua_config: Option<WuaConfig>,
+        wia_config: Option<WiaConfig>,
         upstream_oauth_identifier: Option<IssuerIdentifier>,
         attr_service: A,
         sessions: Arc<S>,
@@ -531,7 +531,7 @@ where
         let issuer_data = IssuerData {
             attestation_config,
             accepted_wallet_client_ids: wallet_client_ids,
-            wua_config,
+            wia_config,
             upstream_oauth_identifier,
 
             // In this implementation, the public server URL is composed of the
@@ -1173,37 +1173,37 @@ impl Session<WaitingForResponse> {
         Ok(())
     }
 
-    fn verify_wua(
+    fn verify_wia(
         &self,
-        wua_config: &WuaConfig,
-        attestations: Option<&WuaDisclosure>,
+        wia_config: &WiaConfig,
+        attestations: Option<&WiaDisclosure>,
         issuer_identifier: &str,
     ) -> Result<(VerifyingKey, Nonce), CredentialRequestError> {
-        let wua_disclosure = attestations.ok_or(CredentialRequestError::MissingWua)?;
+        let wia_disclosure = attestations.ok_or(CredentialRequestError::MissingWia)?;
 
-        let (wua_pubkey, wua_nonce) = wua_disclosure.verify(
-            &wua_config.wua_issuer_pubkey,
+        let (wia_pubkey, wia_nonce) = wia_disclosure.verify(
+            &wia_config.wia_issuer_pubkey,
             issuer_identifier,
             &self.state.data.accepted_wallet_client_ids,
         )?;
 
-        Ok((wua_pubkey, wua_nonce))
+        Ok((wia_pubkey, wia_nonce))
     }
 
-    pub fn verify_wua_and_poa<K>(
+    pub fn verify_wia_and_poa<K>(
         &self,
-        attestations: Option<&WuaDisclosure>,
+        attestations: Option<&WiaDisclosure>,
         poa: Option<Poa>,
         attestation_keys: impl Iterator<Item = VerifyingKey>,
         issuer_data: &IssuerData<K>,
     ) -> Result<(Option<Nonce>, Nonce), CredentialRequestError> {
         let issuer_identifier = issuer_data.metadata.credential_issuer.as_ref();
 
-        let (attestation_keys, wua_nonce) = match &issuer_data.wua_config {
+        let (attestation_keys, wia_nonce) = match &issuer_data.wia_config {
             None => (attestation_keys.collect_vec(), None),
-            Some(wua) => {
-                let (wua_pubkey, wua_nonce) = self.verify_wua(wua, attestations, issuer_identifier)?;
-                (attestation_keys.chain([wua_pubkey]).collect_vec(), Some(wua_nonce))
+            Some(wia) => {
+                let (wia_pubkey, wia_nonce) = self.verify_wia(wia, attestations, issuer_identifier)?;
+                (attestation_keys.chain([wia_pubkey]).collect_vec(), Some(wia_nonce))
             }
         };
 
@@ -1213,7 +1213,7 @@ impl Session<WaitingForResponse> {
             &issuer_data.accepted_wallet_client_ids,
         )?;
 
-        Ok((wua_nonce, poa_nonce))
+        Ok((wia_nonce, poa_nonce))
     }
 
     async fn process_credential_inner<'a, K, N, S>(
@@ -1258,7 +1258,7 @@ impl Session<WaitingForResponse> {
             &issuer_data.metadata.credential_issuer,
         )?;
 
-        let (wua_nonce, poa_nonce) = self.verify_wua_and_poa(
+        let (wia_nonce, poa_nonce) = self.verify_wia_and_poa(
             credential_request.attestations.as_ref(),
             credential_request.poa,
             [holder_pubkey].into_iter(),
@@ -1268,7 +1268,7 @@ impl Session<WaitingForResponse> {
         // Check the validity of all of the nonces used, which may be equal to each other.
         let nonce_status = services
             .proof_nonce_store
-            .check_nonce_status_and_remove([&request_nonce, &poa_nonce].iter().copied().chain(wua_nonce.as_ref()))
+            .check_nonce_status_and_remove([&request_nonce, &poa_nonce].iter().copied().chain(wia_nonce.as_ref()))
             .await
             .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
 
@@ -1412,7 +1412,7 @@ impl Session<WaitingForResponse> {
             return Err(CredentialRequestError::WrongNumberOfCredentialRequests);
         }
 
-        let (wua_nonce, poa_nonce) = self.verify_wua_and_poa(
+        let (wia_nonce, poa_nonce) = self.verify_wia_and_poa(
             credential_requests.attestations.as_ref(),
             credential_requests.poa,
             previews_and_holder_pubkeys
@@ -1427,7 +1427,7 @@ impl Session<WaitingForResponse> {
             .check_nonce_status_and_remove(
                 request_nonces
                     .iter()
-                    .chain(wua_nonce.as_ref())
+                    .chain(wia_nonce.as_ref())
                     .chain(std::iter::once(&poa_nonce)),
             )
             .await
@@ -1737,7 +1737,7 @@ mod tests {
 
     fn setup_simple_mock_issuer() -> (MockIssuer, TrustAnchor<'static>, IssuerIdentifier, SigningKey) {
         let issuer_identifier: IssuerIdentifier = "https://example.com/".parse().unwrap();
-        let (issuer, trust_anchor, wua_issuer_privkey) = setup_mock_issuer(
+        let (issuer, trust_anchor, wia_issuer_privkey) = setup_mock_issuer(
             issuer_identifier.clone(),
             MockAttrService {
                 documents: mock_issuable_documents(NonZeroUsize::MIN),
@@ -1746,7 +1746,7 @@ mod tests {
             Arc::new(MemorySessionStore::default()),
             None,
         );
-        (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey)
+        (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey)
     }
 
     /// An implementation of [`VcMessageClient`] that dispatches messages directly to the contained
@@ -1763,7 +1763,7 @@ mod tests {
         invalidate_pop: bool,
         invalidate_poa: bool,
         strip_poa: bool,
-        strip_wua: bool,
+        strip_wia: bool,
     }
 
     impl VcMessageClientStub {
@@ -1775,7 +1775,7 @@ mod tests {
                 invalidate_pop: false,
                 invalidate_poa: false,
                 strip_poa: false,
-                strip_wua: false,
+                strip_wia: false,
             }
         }
 
@@ -1814,7 +1814,7 @@ mod tests {
                 credential_request.poa.take();
             }
 
-            if self.strip_wua {
+            if self.strip_wia {
                 credential_request.attestations.take();
             }
 
@@ -1839,7 +1839,7 @@ mod tests {
                 credential_requests.poa.take();
             }
 
-            if self.strip_wua {
+            if self.strip_wia {
                 credential_requests.attestations.take();
             }
 
@@ -1947,7 +1947,7 @@ mod tests {
         message_client: VcMessageClientStub,
         issuer_identifier: IssuerIdentifier,
         trust_anchor: TrustAnchor<'static>,
-        wua_issuer_privkey: SigningKey,
+        wia_issuer_privkey: SigningKey,
     ) -> WalletIssuanceError {
         let trust_anchors = &[trust_anchor];
         let issuer_metadata = message_client.issuer.metadata().clone();
@@ -1962,19 +1962,19 @@ mod tests {
         .await
         .unwrap();
 
-        let wscd = MockRemoteWscd::new_with_wua_signing_key(wua_issuer_privkey);
+        let wscd = MockRemoteWscd::new_with_wia_signing_key(wia_issuer_privkey);
         session.accept_issuance(trust_anchors, &wscd, true).await.unwrap_err()
     }
 
     #[tokio::test]
     async fn wrong_access_token() {
-        let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_simple_mock_issuer();
+        let (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey) = setup_simple_mock_issuer();
         let message_client = VcMessageClientStub {
             wrong_access_token: true,
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidToken)
@@ -1983,13 +1983,13 @@ mod tests {
 
     #[tokio::test]
     async fn invalid_dpop() {
-        let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_simple_mock_issuer();
+        let (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey) = setup_simple_mock_issuer();
         let message_client = VcMessageClientStub {
             invalidate_dpop: true,
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
@@ -1998,13 +1998,13 @@ mod tests {
 
     #[tokio::test]
     async fn invalid_pop() {
-        let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_simple_mock_issuer();
+        let (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey) = setup_simple_mock_issuer();
         let message_client = VcMessageClientStub {
             invalidate_pop: true,
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
@@ -2013,13 +2013,13 @@ mod tests {
 
     #[tokio::test]
     async fn invalid_poa() {
-        let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_simple_mock_issuer();
+        let (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey) = setup_simple_mock_issuer();
         let message_client = VcMessageClientStub {
             invalidate_poa: true,
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidProof)
@@ -2028,13 +2028,13 @@ mod tests {
 
     #[tokio::test]
     async fn no_poa() {
-        let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_simple_mock_issuer();
+        let (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey) = setup_simple_mock_issuer();
         let message_client = VcMessageClientStub {
             strip_poa: true,
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)
@@ -2042,14 +2042,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn no_wua() {
-        let (issuer, trust_anchor, issuer_identifier, wua_issuer_privkey) = setup_simple_mock_issuer();
+    async fn no_wia() {
+        let (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey) = setup_simple_mock_issuer();
         let message_client = VcMessageClientStub {
-            strip_wua: true,
+            strip_wia: true,
             ..VcMessageClientStub::new(issuer)
         };
 
-        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wua_issuer_privkey).await;
+        let result = start_and_accept_err(message_client, issuer_identifier, trust_anchor, wia_issuer_privkey).await;
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err) if matches!(err.error, CredentialErrorCode::InvalidCredentialRequest)

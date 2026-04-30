@@ -12,55 +12,55 @@ workspace "Name" "NL-Wallet" {
         ws = softwareSystem "NL-Wallet" {
             wab = group "NL-Wallet App containers" {
                 walletApp = container "Wallet app" "" "Android/iOS" {
-                    appGui = component "App Frontend" "" "flutter (dart)"  
+                    appGui = component "App Frontend" "" "flutter (dart)"
                     appCore = component "App Core" "" "rust"
                     appPlatform = component "Platform support" "native functions" "rust"
                 }
                 appDb = container "App database" "" "sqlite" {
                     tags "Database"
-                }      
+                }
             }
-            revokeUi = container "Wallet Revocation Portal" "" "vite" 
+            revokeUi = container "Wallet Revocation Portal" "" "vite"
             wb = group "NL-Wallet backend containers" {
                 walletBackend = container "WalletBackend (WB)" "Wallet backend" "axum (rust)" {
                     hsmInstructionClient = component "Assisted wallet Instructions (WSCA)"
                     walletAccountManager = component "Wallet Account manager (enroll / migrate / recover / revoke)"
                     walletStatusManager = component "Status List Service"
-                    walletDenyList = component "Wallet Deny list manager" 
+                    walletDenyList = component "Wallet Deny list manager"
                 }
                 updateServer = container "UpdateServer" "Serve app update policy" "nginx (static)" {
-                    updatePolicy = component "Policy configuration" "" "[update policy] section in .toml file" { 
-                        tags "File" 
+                    updatePolicy = component "Policy configuration" "" "[update policy] section in .toml file" {
+                        tags "File"
                     }
                 }
 
-                statusList = container "WUA status list" "" "Static content (TSL)"
-                configurationServer = container "ConfigurationServer" "Serve app config file" "nginx (static)"               
-                db = container "WB database (accounts, WUA status)" "" "postgress" {
+                statusList = container "WIA status list" "" "Static content (TSL)"
+                configurationServer = container "ConfigurationServer" "Serve app config file" "nginx (static)"
+                db = container "WB database (accounts, WIA status)" "" "postgress" {
                     tags "Database"
-                }                
+                }
             }
-            walletHsm = container "HSM device (WSCD)" "dedicated cryptographic hardware" 
+            walletHsm = container "HSM device (WSCD)" "dedicated cryptographic hardware"
         }
 
 
-       adminPortal = softwareSystem "Admin Portal" ""{ 
+       adminPortal = softwareSystem "Admin Portal" ""{
             tags "HostingPlatform"
             -> ws.walletBackend "[A-104] Manage vulnerable devices"
-            -> ws.walletBackend "[A-103] Revoke wallet (admin request)" 
+            -> ws.walletBackend "[A-103] Revoke wallet (admin request)"
             -> ws.walletBackend.walletDenyList "Manage vulnerable devices"
         }
-        ciCdPipeline = softwareSystem "CI/CD" "deployment"{ 
+        ciCdPipeline = softwareSystem "CI/CD" "deployment"{
             tags "HostingPlatform"
             -> ws.configurationServer "[A-101] Maintain runtime config"
             -> ws.updateServer.updatePolicy "[A-102] Maintain updatepolicy"
         }
- 
-        healthMonitoring = softwareSystem "Monitoring" "health monitoring"{ 
+
+        healthMonitoring = softwareSystem "Monitoring" "health monitoring"{
             tags "HostingPlatform"
             -> ws.walletBackend "[A-105] Get health"
         }
-        performanceMetrics = softwareSystem "Performance monitoring" "Prometheus"{ 
+        performanceMetrics = softwareSystem "Performance monitoring" "Prometheus"{
             tags "HostingPlatform"
             -> ws.walletBackend "[A-106] Get metrics"
         }
@@ -70,12 +70,12 @@ workspace "Name" "NL-Wallet" {
         }
 
         platformServicesApple = softwareSystem "Apple AppAttest"{
-          tags "External"            
+          tags "External"
         }
         platformServices = softwareSystem "Apple AppAttest / Google Play Integrity"{
-          tags "External"            
+          tags "External"
         }
-        
+
         sentry = softwareSystem "Sentry" {
             tags "External"
         }
@@ -83,28 +83,28 @@ workspace "Name" "NL-Wallet" {
 
 
         ua = person "Wallet Technical Support"{
-            -> ws "Maintain configuration, Manage vulnerabilities" 
+            -> ws "Maintain configuration, Manage vulnerabilities"
             -> adminPortal "Perform system administration"
         }
 
         hc = softwareSystem "BRP-V"
 
-        verifier = softwareSystem "Verifier" { 
-            tags "External" 
+        verifier = softwareSystem "Verifier" {
+            tags "External"
             ov = container "OV-component"{
                 verifying = component "Disclosure endpoint"
             }
 
             rpApp = container "Relying Party application"
         }
-        issuerPb = softwareSystem "(Pub/Q)EAA Issuer" { 
-            tags "External" 
+        issuerPb = softwareSystem "(Pub/Q)EAA Issuer" {
+            tags "External"
 
             vvPbi = container "VV for Disclosure based issuance" {
                 statusManager = component "Attestation Status manager" ""  "Rust (endpoint)"
-                issuing = component "Disc. based issuing endpoint" "" "Rust (endpoint)" 
+                issuing = component "Disc. based issuing endpoint" "" "Rust (endpoint)"
             }
-            statusDb = container "attestation-status storage" "" "postgress DB" { 
+            statusDb = container "attestation-status storage" "" "postgress DB" {
                     tags "Database"
             }
 
@@ -112,22 +112,22 @@ workspace "Name" "NL-Wallet" {
             statusList = container "Attestation status list" "" "Static content (TSL)"
         }
 
-        issuerPid = softwareSystem "PID Issuer" { 
-            tags "External" 
+        issuerPid = softwareSystem "PID Issuer" {
+            tags "External"
 
             vvPid = container "VV for PID issuer" "" "Rust app" {
                 statusManager = component "Attestation Status manager" ""  "Rust (endpoint)"
-                issuing = component "Issuing endpoint" "" "Rust (endpoint)" 
+                issuing = component "Issuing endpoint" "" "Rust (endpoint)"
             }
-            pidStatusDb = container "attestation-status storage" "" "postgress DB" { 
+            pidStatusDb = container "attestation-status storage" "" "postgress DB" {
                     tags "Database"
             }
             //pidIssuer = container "PID-issuer business logic" "" "Rust app"
             statusList = container "PID attestation status list" "" "Static content (TSL)"
-            mockUserStorage = container "Demo user storage" "" "Static files" { 
-                tags "Database" 
+            mockUserStorage = container "Demo user storage" "" "Static files" {
+                tags "Database"
             }
-            authServer = container "Authorization server" "" "OIDC/SAML proxy" 
+            authServer = container "Authorization server" "" "OIDC/SAML proxy"
         }
 
         haalCentraal = softwareSystem "BRP V" {
@@ -140,16 +140,16 @@ workspace "Name" "NL-Wallet" {
 
         issuerPid -> digid "User authentication"
         u -> ws "Uses"
-        u -> ws.revokeUi "Revoke wallet" 
+        u -> ws.revokeUi "Revoke wallet"
         u -> ws.walletApp "Uses"
         u -> ws.walletApp.appGui "Has interactions"
 
 
 
-        ws -> platformServices "[E-501] Request/verify app- and keyattestations" 
-        ws -> digid "[E-201] Start user authentication (onboarding and recovery)" 
+        ws -> platformServices "[E-501] Request/verify app- and keyattestations"
+        ws -> digid "[E-201] Start user authentication (onboarding and recovery)"
         ws -> verifier.ov "[E-401] Present data"
-        //issuerPb -> ws "Issue attestations" 
+        //issuerPb -> ws "Issue attestations"
         ws.walletApp -> platformServices "[I-113] Request App/key attestation (Apple AppAttest)"
         ws.walletApp -> sentry " [I-114] Send error report"
         ws.walletBackend -> platformServices "[I-405] Verify App attestation (Google Play Integrity)"
@@ -171,7 +171,7 @@ workspace "Name" "NL-Wallet" {
         ws.walletApp.appCore -> issuerPid.authServer "[I-107] Wallet activation and PID issuance, [I-108] check PID status "
 
         ws.walletBackend -> ws.walletHsm "[I-403] Call HSM for assisted operation"
-        ws.walletBackend -> ws.statusList "[I-402] Publish WUA statuslist" 
+        ws.walletBackend -> ws.statusList "[I-402] Publish WIA statuslist"
 
 
         ws.walletApp -> issuerPb "[E-301] Perform disclosure based issuance, [E-302] Retrieve Status List"
@@ -179,22 +179,22 @@ workspace "Name" "NL-Wallet" {
 
         ws.walletApp -> verifier "[I-111] Disclose attributes to verifier"
 
-        ws.walletBackend.walletAccountManager -> ws.walletBackend.walletStatusManager "Update WUA status"
-        ws.walletBackend.walletStatusManager -> ws.statusList "Publish WUA statuslist"
+        ws.walletBackend.walletAccountManager -> ws.walletBackend.walletStatusManager "Update WIA status"
+        ws.walletBackend.walletStatusManager -> ws.statusList "Publish WIA statuslist"
         ws.walletBackend.hsmInstructionClient -> ws.walletHsm "Process HSM instruction"
         ws.walletBackend.hsmInstructionClient -> ws.db "Store/retrieve (encrypted) keys"
         ws.walletBackend.hsmInstructionClient -> ws.walletBackend.walletDenyList "Check denylist"
         ws.walletBackend.walletAccountManager -> ws.db "Store/retrieve accountdata"
-        ws.walletBackend.walletStatusManager -> ws.db "Store/retrieve WUA data + status"
+        ws.walletBackend.walletStatusManager -> ws.db "Store/retrieve WIA data + status"
         ws.walletBackend.walletDenyList -> ws.db "Store/retrieve denylist"
         us -> ws.revokeUi "Revoke wallet"
-        issuerPid -> ws.statusList "[E-102] Check wallet validity" 
-        issuerPid.vvPid -> ws.statusList "Get WUA status" 
+        issuerPid -> ws.statusList "[E-102] Check wallet validity"
+        issuerPid.vvPid -> ws.statusList "Get WIA status"
 
-        ws.walletApp.appCore -> issuerPid.statusList "Get attestation status list (PID)" 
+        ws.walletApp.appCore -> issuerPid.statusList "Get attestation status list (PID)"
         //verifier.ov -> issuerPid.statusList "Get attestation status list (PID)"
-        uaPid -> issuerPid.vvPid.statusManager "Update PID attestation status" 
-        issuerPid.vvPid.statusManager -> issuerPid.statusList "Publish Status List" 
+        uaPid -> issuerPid.vvPid.statusManager "Update PID attestation status"
+        issuerPid.vvPid.statusManager -> issuerPid.statusList "Publish Status List"
 
         issuerPid.vvPid.statusManager -> issuerPid.pidStatusDb "Persist/retrieve attestation status"
         issuerPid.vvPid.issuing -> issuerPid.vvPid.statusManager "Persist attestation status"
@@ -205,21 +205,21 @@ workspace "Name" "NL-Wallet" {
         //issuerPid.authServer -> digid "Retrieve authentication result"
 
         //issuerPid.pidIssuer -> issuerPid.mockUserStorage "Fetch PID-Attributes"
-        ws.walletApp.appCore -> issuerPid.vvPid  "Retrieve PID / Disclose WUA + PoA" 
+        ws.walletApp.appCore -> issuerPid.vvPid  "Retrieve PID / Disclose WIA + PoA"
         //issuerPid.vvPid.issuing  -> issuerPid.pidIssuer "Retrieve attestation data"
         issuerPid.vvPid.issuing  -> issuerPid.mockUserStorage "Retrieve attestation data"
         //issuerPid.mockUserStorage -> haalCentraal "Call BRP V"
 
-        ws.walletApp.appCore -> issuerPb "Perform disclosure based issuance, retrieve Status List" 
-        ws.walletApp.appCore -> verifier "Perform disclosure of attributes" 
-        ws.walletApp.appCore -> issuerPb.statusList "Get attestation status list" 
+        ws.walletApp.appCore -> issuerPb "Perform disclosure based issuance, retrieve Status List"
+        ws.walletApp.appCore -> verifier "Perform disclosure of attributes"
+        ws.walletApp.appCore -> issuerPb.statusList "Get attestation status list"
         //verifier.ov -> issuerPb.statusList "Get attestation status list"
 
         issuerPb.vvPbi.issuing -> issuerPb.ds "Retrieve attestation data for disclosed attestation"
         issuerPb.vvPbi.statusManager -> issuerPb.statusDb "Persist/retrieve attestation status"
         issuerPb.vvPbi.issuing -> issuerPb.vvPbi.statusManager "Persist attestation status"
-        uaPb -> issuerPb.vvPbi.statusManager "Update attestation status" 
-        issuerPb.vvPbi.statusManager -> issuerPb.statusList "Publish Status List" 
+        uaPb -> issuerPb.vvPbi.statusManager "Update attestation status"
+        issuerPb.vvPbi.statusManager -> issuerPb.statusList "Publish Status List"
 
 
         verifier.rpApp -> verifier.ov.verifying "Disclosure session operations"
@@ -240,7 +240,7 @@ workspace "Name" "NL-Wallet" {
 
         component ws.walletBackend "GD2NL-walletBackend" {
             include *
-            
+
         }
 
         component ws.walletApp "HD2NL-WalletApp" {
@@ -267,14 +267,14 @@ workspace "Name" "NL-Wallet" {
             "structurizr.sort" "key"
         }
 
-      
+
         styles {
 
             element "Element" {
                 color #ffffff
             }
             element "Person" {
-                
+
                 background #7992bb
                 stroke #09326b
                 shape person
@@ -336,8 +336,8 @@ workspace "Name" "NL-Wallet" {
                 fontSize 28
             }
         }
-        branding {            
-            font "Calibri, Arial" 
+        branding {
+            font "Calibri, Arial"
         }
 
     }

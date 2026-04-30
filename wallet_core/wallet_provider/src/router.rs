@@ -51,7 +51,7 @@ use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResultMessage;
 use wallet_account::messages::instructions::PairTransfer;
 use wallet_account::messages::instructions::PerformIssuance;
-use wallet_account::messages::instructions::PerformIssuanceWithWua;
+use wallet_account::messages::instructions::PerformIssuanceWithWia;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
 use wallet_account::messages::instructions::ResetTransfer;
 use wallet_account::messages::instructions::SendWalletPayload;
@@ -70,7 +70,7 @@ use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::instructions::HandleInstruction;
 use wallet_provider_service::instructions::PinChecks;
 use wallet_provider_service::instructions::ValidateInstruction;
-use wallet_provider_service::wua_issuer::WuaIssuer;
+use wallet_provider_service::wia_issuer::WiaIssuer;
 
 use crate::errors::WalletProviderError;
 use crate::internal;
@@ -166,8 +166,8 @@ where
                     post(handle_instruction::<PerformIssuance, _, _, _>),
                 )
                 .route(
-                    &format!("/instructions/{}", PerformIssuanceWithWua::NAME),
-                    post(handle_instruction::<PerformIssuanceWithWua, _, _, _>),
+                    &format!("/instructions/{}", PerformIssuanceWithWia::NAME),
+                    post(handle_instruction::<PerformIssuanceWithWia, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/{}", DiscloseRecoveryCode::NAME),
@@ -419,13 +419,13 @@ struct PublicKeys {
     #[serde_as(as = "Base64")]
     instruction_result_public_key: DerVerifyingKey,
     #[serde_as(as = "Base64")]
-    wua_signing_key: DerVerifyingKey,
+    wia_signing_key: DerVerifyingKey,
 }
 
 async fn public_keys<GRC, PIC>(
     State(state): State<Arc<RouterState<GRC, PIC>>>,
 ) -> Result<(StatusCode, Json<PublicKeys>)> {
-    let (certificate_public_key, instruction_result_public_key, wua_signing_key) = try_join!(
+    let (certificate_public_key, instruction_result_public_key, wia_signing_key) = try_join!(
         state
             .certificate_signing_key
             .verifying_key()
@@ -436,16 +436,16 @@ async fn public_keys<GRC, PIC>(
             .map_err(WalletProviderError::Hsm),
         state
             .user_state
-            .wua_issuer
+            .wia_issuer
             .public_key()
-            .map_err(WalletProviderError::Wua)
+            .map_err(WalletProviderError::Wia)
     )
     .inspect_err(|error| warn!("getting wallet provider public keys failed: {}", error))?;
 
     let body = PublicKeys {
         certificate_public_key: certificate_public_key.into(),
         instruction_result_public_key: instruction_result_public_key.into(),
-        wua_signing_key: wua_signing_key.into(),
+        wia_signing_key: wia_signing_key.into(),
     };
 
     Ok((StatusCode::OK, body.into()))

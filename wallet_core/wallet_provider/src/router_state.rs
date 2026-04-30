@@ -34,8 +34,8 @@ use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::keys::InstructionResultSigning;
 use wallet_provider_service::keys::WalletCertificateSigning;
 use wallet_provider_service::pin_policy::PinPolicy;
-use wallet_provider_service::wua_issuer::HsmWuaIssuer;
-use wallet_provider_service::wua_issuer::WUA_ATTESTATION_TYPE_IDENTIFIER;
+use wallet_provider_service::wia_issuer::HsmWiaIssuer;
+use wallet_provider_service::wia_issuer::WIA_ATTESTATION_TYPE_IDENTIFIER;
 
 use crate::errors::WalletProviderError;
 use crate::settings::Settings;
@@ -44,7 +44,7 @@ type ProductionUserState = UserState<
     Repositories,
     WalletRepoFlags<Repositories>,
     Pkcs11Hsm,
-    HsmWuaIssuer<Pkcs11Hsm>,
+    HsmWiaIssuer<Pkcs11Hsm>,
     PostgresStatusListService<HsmEcdsaKey, WalletRepoFlags<Repositories>>,
 >;
 
@@ -138,7 +138,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         flags.start_refresh_job();
         let status_list_service = PostgresStatusListService::try_new(
             db.to_connection(),
-            WUA_ATTESTATION_TYPE_IDENTIFIER,
+            WIA_ATTESTATION_TYPE_IDENTIFIER,
             settings.wua_status_list.into_config(wallet_user_hsm.clone()).await?,
             flags.clone(),
         )
@@ -157,7 +157,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 .collect::<Result<_, _>>()?,
         );
 
-        let wua_issuer = HsmWuaIssuer::new(
+        let wia_issuer = HsmWiaIssuer::new(
             HsmEcdsaKey::new(settings.wua_signing_key_identifier, wallet_user_hsm.clone()),
             settings.wua_issuer_identifier,
             wallet_user_hsm.clone(),
@@ -175,8 +175,8 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 repositories,
                 flags,
                 wallet_user_hsm,
-                wua_issuer,
-                wua_validity: Days::new(settings.wua_valid_days),
+                wia_issuer,
+                wia_validity: Days::new(settings.wua_valid_days),
                 wrapping_key_identifier: settings.attestation_wrapping_key_identifier,
                 pid_issuer_trust_anchors: settings
                     .pid_issuer_trust_anchors

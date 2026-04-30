@@ -37,7 +37,7 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
         .route("/wallet-config", get(configuration))
         .with_state((settings.wallet_config_jwt, config_entity_tag));
 
-    let status_list_router = create_serve_router(std::iter::once(("/wua", settings.wua_publish_dir)), None)?;
+    let status_list_router = create_serve_router(std::iter::once(("/wia", settings.wua_publish_dir)), None)?;
 
     let app = Router::new()
         .merge(create_health_router([]))

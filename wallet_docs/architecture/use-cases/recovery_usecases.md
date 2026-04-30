@@ -56,8 +56,8 @@ sequenceDiagram
     Wallet ->> User: Request new PIN
     User ->> Wallet: Give new PIN (including confirmation)
     Wallet ->> WP: Send start_pin_recovery(new PIN public key, c_nonce for PID issuance)
-    WP ->> WP: Update PIN public key for account<br/> sign Wallet Certificate<br/>genereate new keys (blocked for regular use)<br/> sign PoP's<br/> issue WUA<br/>set account in 'recovery' state
-    WP ->> Wallet: New PIN OK, return new Wallet Certificate, WUA, signed PoP's
+    WP ->> WP: Update PIN public key for account<br/> sign Wallet Certificate<br/>genereate new keys (blocked for regular use)<br/> sign PoP's<br/> issue WIA<br/>set account in 'recovery' state
+    WP ->> Wallet: New PIN OK, return new Wallet Certificate, WIA, signed PoP's
     Wallet ->> Wallet: Delete previous Wallet Certificate,<br/> store new Wallet Certificate    
     note over Wallet, PID: Steps 22-24 from PID-issuance flow. <br/> Wallet has requested and received attestations from PID-issuer. 
     Wallet ->> WP: Send DiscloseRecoveryCodePinRecovery(new PID, with recovery code) instruction
@@ -184,7 +184,7 @@ sequenceDiagram
     User ->> Wallet : Start PID renewal
     note over Wallet, PID:Steps 2-17 from DigiD authentication / PID-issuance flow. <br/> Wallet has received access token from PID Issuer (and PID-preview)
     Wallet ->> Wallet: Check Recovery code in stored PID against recovery code in PID-preview    
-    note over Wallet, PID: Steps 20-23 from PID-issuance flow. <br/> Wallet has requested and received attestations from PID-issuer. Wallet Backend creates PoPs and new WUA. <br/>Issuance of new WUA will put account into 'recovery' and disable existing keys except the newly created keys for PID issuance.
+    note over Wallet, PID: Steps 20-23 from PID-issuance flow. <br/> Wallet has requested and received attestations from PID-issuer. Wallet Backend creates PoPs and new WIA. <br/>Issuance of new WIA will put account into 'recovery' and disable existing keys except the newly created keys for PID issuance.
     Wallet ->> WP: Call DiscloseRecoveryCode(recovery_code) (Recovery Code from new PID is used) to Wallet Backend.
     WP ->> WP: Check recovery code with account (fail if not matching) <br/> and update account to 'active'
     WP ->> Wallet: New PID accepted

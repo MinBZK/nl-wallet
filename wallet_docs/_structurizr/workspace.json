@@ -217,7 +217,7 @@
             "sourceId" : "8",
             "tags" : "Relationship"
           }, {
-            "description" : "Retrieve PID / Disclose WUA + PoA",
+            "description" : "Retrieve PID / Disclose WIA + PoA",
             "destinationId" : "59",
             "id" : "143",
             "sourceId" : "8",
@@ -359,7 +359,7 @@
           "linkedRelationshipId" : "129",
           "sourceId" : "6"
         }, {
-          "description" : "Retrieve PID / Disclose WUA + PoA",
+          "description" : "Retrieve PID / Disclose WIA + PoA",
           "destinationId" : "59",
           "id" : "144",
           "linkedRelationshipId" : "143",
@@ -447,7 +447,7 @@
             "structurizr.dsl.identifier" : "ws.walletBackend.walletAccountManager"
           },
           "relationships" : [ {
-            "description" : "Update WUA status",
+            "description" : "Update WIA status",
             "destinationId" : "15",
             "id" : "115",
             "sourceId" : "14",
@@ -468,13 +468,13 @@
             "structurizr.dsl.identifier" : "ws.walletBackend.walletStatusManager"
           },
           "relationships" : [ {
-            "description" : "Publish WUA statuslist",
+            "description" : "Publish WIA statuslist",
             "destinationId" : "19",
             "id" : "116",
             "sourceId" : "15",
             "tags" : "Relationship"
           }, {
-            "description" : "Store/retrieve WUA data + status",
+            "description" : "Store/retrieve WIA data + status",
             "destinationId" : "21",
             "id" : "121",
             "sourceId" : "15",
@@ -524,7 +524,7 @@
           "sourceId" : "12",
           "tags" : "Relationship"
         }, {
-          "description" : "[I-402] Publish WUA statuslist",
+          "description" : "[I-402] Publish WIA statuslist",
           "destinationId" : "19",
           "id" : "109",
           "sourceId" : "12",
@@ -557,7 +557,7 @@
         "documentation" : { },
         "group" : "NL-Wallet backend containers",
         "id" : "19",
-        "name" : "WUA status list",
+        "name" : "WIA status list",
         "properties" : {
           "structurizr.dsl.identifier" : "ws.statusList"
         },
@@ -578,7 +578,7 @@
         "documentation" : { },
         "group" : "NL-Wallet backend containers",
         "id" : "21",
-        "name" : "WB database (accounts, WUA status)",
+        "name" : "WB database (accounts, WIA status)",
         "properties" : {
           "structurizr.dsl.identifier" : "ws.db"
         },
@@ -667,7 +667,7 @@
         "linkedRelationshipId" : "129",
         "sourceId" : "5"
       }, {
-        "description" : "Retrieve PID / Disclose WUA + PoA",
+        "description" : "Retrieve PID / Disclose WIA + PoA",
         "destinationId" : "59",
         "id" : "145",
         "linkedRelationshipId" : "143",
@@ -1046,13 +1046,13 @@
           "structurizr.dsl.identifier" : "issuerPid.vvPid"
         },
         "relationships" : [ {
-          "description" : "Get WUA status",
+          "description" : "Get WIA status",
           "destinationId" : "19",
           "id" : "127",
           "sourceId" : "59",
           "tags" : "Relationship"
         }, {
-          "description" : "Get WUA status",
+          "description" : "Get WIA status",
           "destinationId" : "5",
           "id" : "128",
           "linkedRelationshipId" : "127",

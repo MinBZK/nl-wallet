@@ -6,7 +6,7 @@ use hsm::service::Pkcs11Hsm;
 use issuer_common::settings::IssuerSettings;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::Issuer;
-use openid4vc::issuer::WuaConfig;
+use openid4vc::issuer::WiaConfig;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::nonce::store::NonceStore;
 use openid4vc::server_state::SessionStore;
@@ -30,7 +30,7 @@ pub async fn serve<A, IS, N, L>(
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
     proof_nonce_store: N,
-    wua_issuer_pubkey: VerifyingKey,
+    wia_issuer_pubkey: VerifyingKey,
     status_list_services: L,
     status_list_router: Option<Router>,
     health_router: Router,
@@ -50,7 +50,7 @@ where
         hsm,
         issuance_sessions,
         proof_nonce_store,
-        wua_issuer_pubkey,
+        wia_issuer_pubkey,
         status_list_services,
         status_list_router,
         health_router,
@@ -68,7 +68,7 @@ pub async fn serve_with_listeners<A, IS, N, L>(
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
     proof_nonce_store: N,
-    wua_issuer_pubkey: VerifyingKey,
+    wia_issuer_pubkey: VerifyingKey,
     status_list_services: L,
     status_list_router: Option<Router>,
     health_router: Router,
@@ -88,8 +88,8 @@ where
         settings.public_url,
         settings.wallet_client_ids,
         attestation_config,
-        Some(WuaConfig {
-            wua_issuer_pubkey: (&wua_issuer_pubkey).into(),
+        Some(WiaConfig {
+            wia_issuer_pubkey: (&wia_issuer_pubkey).into(),
         }),
         Some(upstream_oauth_identifier),
         attr_service,

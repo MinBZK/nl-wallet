@@ -1,7 +1,7 @@
 use http_utils::error::HttpJsonError;
 use http_utils::error::HttpJsonErrorType;
 use http_utils::urls::BaseUrl;
-use jwt::wua::WuaError;
+use jwt::wia::WiaError;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
@@ -108,7 +108,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(_))
                 | CredentialRequestError::UseBatchIssuance
                 | CredentialRequestError::WrongNumberOfCredentialRequests
-                | CredentialRequestError::MissingWua
+                | CredentialRequestError::MissingWia
                 | CredentialRequestError::MissingPoa
                 | CredentialRequestError::CredentialTypeMismatch { .. } => {
                     CredentialErrorCode::InvalidCredentialRequest
@@ -120,7 +120,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
 
                 CredentialRequestError::MissingProofNonce
                 | CredentialRequestError::PoaVerification(PoaVerificationError::MissingNonce)
-                | CredentialRequestError::Wua(WuaError::MissingNonce)
+                | CredentialRequestError::Wia(WiaError::MissingNonce)
                 | CredentialRequestError::InvalidNonce => CredentialErrorCode::InvalidNonce,
 
                 // TODO (PVW-5541): Return `CredentialErrorCode::UnknownCredentialIdentifier` when appropriate.
@@ -129,7 +129,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::InvalidProofPublicKey(_)
                 | CredentialRequestError::MissingCredentialRequestPoP
                 | CredentialRequestError::PoaVerification(_)
-                | CredentialRequestError::Wua(_) => CredentialErrorCode::InvalidProof,
+                | CredentialRequestError::Wia(_) => CredentialErrorCode::InvalidProof,
 
                 // TODO (PVW-5538): Return `CredentialErrorCode::InvalidEncryptionParameters` when appropriate.
                 CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {

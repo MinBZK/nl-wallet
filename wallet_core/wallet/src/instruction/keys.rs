@@ -18,8 +18,8 @@ use parking_lot::Mutex;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use wallet_account::messages::instructions::PerformIssuance;
-use wallet_account::messages::instructions::PerformIssuanceWithWua;
-use wallet_account::messages::instructions::PerformIssuanceWithWuaResult;
+use wallet_account::messages::instructions::PerformIssuanceWithWia;
+use wallet_account::messages::instructions::PerformIssuanceWithWiaResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::registration::WalletCertificateClaims;
@@ -131,28 +131,28 @@ where
         key_count: NonZeroUsize,
         aud: String,
         nonce: Option<Nonce>,
-        include_wua: bool,
+        include_wia: bool,
     ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
         let issuance_instruction = PerformIssuance { key_count, aud, nonce };
-        let (issuance_result, wua) = if !include_wua {
+        let (issuance_result, wia) = if !include_wia {
             (self.instruction_client.send(issuance_instruction).await?, None)
         } else {
-            let PerformIssuanceWithWuaResult {
+            let PerformIssuanceWithWiaResult {
                 issuance_result,
-                wua_disclosure,
+                wia_disclosure,
             } = self
                 .instruction_client
-                .send(PerformIssuanceWithWua { issuance_instruction })
+                .send(PerformIssuanceWithWia { issuance_instruction })
                 .await?;
 
-            (issuance_result, Some(wua_disclosure))
+            (issuance_result, Some(wia_disclosure))
         };
 
         Ok(IssuanceResult::new(
             issuance_result.key_identifiers,
             issuance_result.pops,
             issuance_result.poa,
-            wua,
+            wia,
         ))
     }
 }
@@ -214,16 +214,16 @@ where
         key_count: std::num::NonZeroUsize,
         aud: String,
         nonce: Option<Nonce>,
-        include_wua: bool,
+        include_wia: bool,
     ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
-        if !include_wua {
-            panic!("include_wua must always be true for PinRecoveryRemoteEcdsaWscd")
+        if !include_wia {
+            panic!("include_wia must always be true for PinRecoveryRemoteEcdsaWscd")
         }
 
         let result = self
             .instruction_client
             .send(StartPinRecovery {
-                issuance_with_wua_instruction: PerformIssuanceWithWua {
+                issuance_with_wia_instruction: PerformIssuanceWithWia {
                     issuance_instruction: PerformIssuance { key_count, aud, nonce },
                 },
                 pin_pubkey: self.pin_key.into(),
@@ -232,12 +232,12 @@ where
 
         self.certificates.lock().push(result.certificate);
 
-        let issuance_result = result.issuance_with_wua_result.issuance_result;
+        let issuance_result = result.issuance_with_wia_result.issuance_result;
         Ok(IssuanceResult::new(
             issuance_result.key_identifiers,
             issuance_result.pops,
             issuance_result.poa,
-            Some(result.issuance_with_wua_result.wua_disclosure),
+            Some(result.issuance_with_wia_result.wia_disclosure),
         ))
     }
 }

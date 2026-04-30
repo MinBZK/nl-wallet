@@ -23,7 +23,7 @@ use crate::account_server::UserState;
 use crate::account_server::WalletCertificateError;
 use crate::instructions::PinCheckOptions;
 use crate::keys::WalletCertificateSigningKey;
-use crate::wua_issuer::WuaIssuer;
+use crate::wia_issuer::WiaIssuer;
 
 const WALLET_CERTIFICATE_VERSION: u32 = 0;
 
@@ -161,7 +161,7 @@ pub async fn verify_wallet_certificate<T, R, F, H, P, S>(
     pin_keys: &AccountServerPinKeys,
     pin_checks: PinCheckOptions,
     pin_pubkey: P,
-    user_state: &UserState<R, F, H, impl WuaIssuer, S>,
+    user_state: &UserState<R, F, H, impl WiaIssuer, S>,
 ) -> Result<(WalletUser, Encrypted<VerifyingKey>), WalletCertificateError>
 where
     T: Committable,
@@ -352,7 +352,7 @@ mod tests {
     use crate::wallet_certificate::sign_pin_pubkey;
     use crate::wallet_certificate::verify_pin_pubkey;
     use crate::wallet_certificate::verify_wallet_certificate;
-    use crate::wua_issuer::mock::MockWuaIssuer;
+    use crate::wia_issuer::mock::MockWiaIssuer;
 
     const WRAPPING_KEY_IDENTIFIER: &str = "my-wrapping-key-identifier";
 
@@ -360,7 +360,7 @@ mod tests {
         hw_pubkey: VerifyingKey,
         encrypted_pin_pubkey: Encrypted<VerifyingKey>,
         hsm: MockPkcs11Client<HsmError>,
-    ) -> UserState<WalletUserTestRepo, StubWalletFlags, MockPkcs11Client<HsmError>, MockWuaIssuer, MockStatusListService>
+    ) -> UserState<WalletUserTestRepo, StubWalletFlags, MockPkcs11Client<HsmError>, MockWiaIssuer, MockStatusListService>
     {
         user_state(
             WalletUserTestRepo {

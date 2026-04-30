@@ -105,7 +105,7 @@ where
     .expect("Could not create wallet user")
 }
 
-pub async fn truncate_wuas<S, T>(db: &T)
+pub async fn truncate_wias<S, T>(db: &T)
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -113,7 +113,7 @@ where
     wallet_user_wua::Entity::delete_many()
         .exec(db.connection())
         .await
-        .expect("should delete all WUA ids");
+        .expect("should delete all WIA ids");
 }
 
 pub fn clear_flags_dropper(db_setup: &DbSetup) -> AsyncDropper<ClearFlags> {

@@ -27,7 +27,7 @@ The official PID Issuer of the Netherlands is the National Office for Identity D
 Relations:
 
 - Issues PID-credential (including PID metadata) to NL Wallet (authentication token is exchanged here) (OpenID4VCI)
-- [E-102] Queries Wallet Unit Attestation (WUA) Status from NL Wallet. (TSL)
+- [E-102] Queries Wallet Unit Attestation (WIA) Status from NL Wallet. (TSL)
 - [E-103] Host Status List for issued credentials, consumed by NL Wallet
 - [E-104] Uses authentication token from Authentication session to retrieve authenticated user information from DigiD (⚠️ not in scope for NL Wallet, this interaction is between DigiD and PID-issuer) (OIDC)
 
