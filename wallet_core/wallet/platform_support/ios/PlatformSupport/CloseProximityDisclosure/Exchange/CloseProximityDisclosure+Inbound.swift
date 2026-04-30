@@ -85,7 +85,6 @@ extension CloseProximityDisclosure {
         session: CloseProximityDisclosureActiveSession
     ) async throws -> KotlinByteArray? {
         let incomingMessage = try await session.transport.waitForMessage()
-        guard isActiveSession(session) else { return nil }
 
         switch incomingMessage {
         case .payload(let message):
