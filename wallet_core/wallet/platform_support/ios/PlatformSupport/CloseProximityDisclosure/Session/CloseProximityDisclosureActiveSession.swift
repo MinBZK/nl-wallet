@@ -4,7 +4,6 @@ import Foundation
 struct CloseProximityDisclosureActiveSessionState {
     let session: CloseProximityDisclosureActiveSession
     var connectionTask: Task<Void, Never>?
-    var readMessagesTask: Task<Void, Never>?
     var sessionEncryption: SessionEncryption?
     var encodedSessionTranscript: KotlinByteArray?
 

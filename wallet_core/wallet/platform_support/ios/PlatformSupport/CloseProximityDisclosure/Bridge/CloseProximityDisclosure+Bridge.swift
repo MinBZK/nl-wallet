@@ -14,27 +14,29 @@ extension CloseProximityDisclosure: CloseProximityDisclosureBridge {
     }
 
     func sendDeviceResponse(deviceResponse: [UInt8]) async throws {
-        let session = try requireActiveSession()
-        let establishedSessionContext = try establishedSessionContextOrFail(session)
-        await cancelReadMessagesTaskAndWait(session)
-        try requireSessionIsActive(session)
+        let sessionState = try requireActiveSessionState()
+        let establishedSessionContext = try establishedSessionContextOrFail(sessionState.session)
+        // Stop listening for reader messages at this point, we are just going to write
+        await cancelBackgroundTasks(sessionState)
+        try requireSessionIsActive(sessionState.session)
         try await sendDeviceResponse(
-            session: session,
+            session: sessionState.session,
             establishedSessionContext: establishedSessionContext,
             deviceResponse: deviceResponse
         )
-        await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
+        await finishSession(sessionState.session, update: CloseProximityDisclosureUpdate.closed)
     }
 
     func sendSessionTermination() async throws {
-        let session = try requireActiveSession()
-        let establishedSessionContext = try establishedSessionContextOrFail(session)
-        await cancelReadMessagesTaskAndWait(session)
-        try requireSessionIsActive(session)
+        let sessionState = try requireActiveSessionState()
+        let _ = try establishedSessionContextOrFail(sessionState.session)
+        // Stop listening for reader messages at this point, we are just going to write
+        await cancelBackgroundTasks(sessionState)
+        try requireSessionIsActive(sessionState.session)
         try await sendSessionTermination(
-            session: session
+            session: sessionState.session
         )
-        await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
+        await finishSession(sessionState.session, update: CloseProximityDisclosureUpdate.closed)
     }
 
     func stopBleServer() async throws {

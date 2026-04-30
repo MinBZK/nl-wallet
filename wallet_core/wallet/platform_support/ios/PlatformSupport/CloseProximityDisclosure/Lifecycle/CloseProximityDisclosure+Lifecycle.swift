@@ -77,7 +77,9 @@ extension CloseProximityDisclosure {
                 try await session.channel.sendUpdate(
                     update: CloseProximityDisclosureUpdate.connected
                 )
-                await self.startReadMessagesTask(session)
+                try await self.receiveMessages(
+                    session: session
+                )
             } catch is CancellationError {
                 // The connection task is canceled when the session is replaced or stopped.
             } catch {
@@ -86,24 +88,6 @@ extension CloseProximityDisclosure {
             }
         }
         setConnectionTask(connectionTask, for: session)
-    }
-
-    func startReadMessagesTask(_ session: CloseProximityDisclosureActiveSession) {
-        let readMessagesTask = Task { [weak self] in
-            guard let self else { return }
-            do {
-                try await self.receiveMessages(
-                    session: session
-                )
-            } catch is CancellationError {
-                // The read task is canceled explicitly while shutting the session down, so nothing
-                // needs to be reported from this path.
-            } catch {
-                guard await self.isActiveSession(session) else { return }
-                await self.failSession(session, error: error)
-            }
-        }
-        setReadMessagesTask(readMessagesTask, for: session)
     }
 
     func stopBleServerLocked() async {
