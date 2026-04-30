@@ -200,7 +200,7 @@ are invalid and should be regenerated to accommodate the new structure.</p></li>
 <li><p>The minimum size for the <code class="docutils literal notranslate"><span class="pre">ephemeral_id_secret</span></code> in the configuration of the
 <code class="docutils literal notranslate"><span class="pre">verification_server</span></code> has been increased from 16 to 32 bytes.</p></li>
 <li><p>The Wallet Provider no longer tracks in the database for each user if that
-user received a WUA. The corresponding column in the WP’s user table has been
+user received a WIA. The corresponding column in the WP’s user table has been
 removed, so the WP’s database will therefore have to be cleared when deploying
 this.</p></li>
 <li><p>Switched configuration of mock relying party, issuance and verification server
@@ -211,13 +211,13 @@ object keyed by the attestation type. Instead, it returns an array of
 attestation objects, with <code class="docutils literal notranslate"><span class="pre">attestation_type</span></code> added as a field in that object.
 This effectively removes the limitation that a particular attestation type can
 only appear once in disclosed attributes.</p></li>
-<li><p>The WTE acronym has been replaced by WUA across the codebase, including in the
+<li><p>The WTE acronym has been replaced by WIA across the codebase, including in the
 Wallet Provider and PID issuer configurations, as well as their database table
 and column names. These configurations will need to be updated and the
 database migrations will need to be fresly run. In addition, a variable in the
 wallet configuration has been renamed, so an updated wallet configuration will
 need to be deployed. Also the name of the HSM key has been changed.</p></li>
-<li><p>The database table <code class="docutils literal notranslate"><span class="pre">used_wuas</span></code> (previously known as <code class="docutils literal notranslate"><span class="pre">used_wtes</span></code>) is removed.</p></li>
+<li><p>The database table <code class="docutils literal notranslate"><span class="pre">used_wias</span></code> (previously known as <code class="docutils literal notranslate"><span class="pre">used_wtes</span></code>) is removed.</p></li>
 <li><p>flutter_rust_bridge has been updated to 2.11.1, run
 <code class="docutils literal notranslate"><span class="pre">cargo</span> <span class="pre">install</span> <span class="pre">flutter_rust_bridge_codegen</span> <span class="pre">--locked</span> <span class="pre">--version</span> <span class="pre">2.11.1</span></code> to
 update.</p></li>
@@ -249,7 +249,7 @@ which should be changed to <code class="docutils literal notranslate"><span clas
 <li><p>The status field is now required in issued attestations. The field should be
 added to the SD-JWT VC Type metadata of issued attestations.</p></li>
 <li><p>The Wallet Provider now requires a keypair for signing Token Status Lists for
-the WUA.</p></li>
+the WIA.</p></li>
 <li><p>The configuration-server is renamed to static server.</p></li>
 <li><p>The issuance server and PID issuer now require an internal server to be
 configured. The requester server configuration in the verification server is
@@ -295,7 +295,7 @@ determine the revocation status of an attestation.</p></li>
 attestation having an attestation type that is extending the requested
 attestation type. The verification server should be configured to accept such
 attestations.</p></li>
-<li><p>The Wallet Provider now keeps track of the issued WUAs and their revocation
+<li><p>The Wallet Provider now keeps track of the issued WIAs and their revocation
 status.</p></li>
 <li><p>The PID can now be renewed in the wallet from the PID card detail screen.</p></li>
 <li><p>The revocation status of attestations is checked in the Verification Server.</p></li>

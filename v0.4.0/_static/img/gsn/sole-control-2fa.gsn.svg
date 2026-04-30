@@ -203,7 +203,7 @@
 <title>Sn_WbRevokesOnVulnerability</title>
 <path class="border" d="M2092,871 a105,105,0,1,0,210,0 a105,105,0,1,0,-210,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="2108" y="856">Sn_WbRevokesOnVulnerability</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="2108" y="874">WB revokes keys &amp; blocks WUA</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="2108" y="874">WB revokes keys &amp; blocks WIA</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="2108" y="887">on detected vulnerability</text>
 </g>
 <g class="gsn_module_sole_control_2fa gsnelem gsnsltn" id="node_sn_walletsignsnonce">

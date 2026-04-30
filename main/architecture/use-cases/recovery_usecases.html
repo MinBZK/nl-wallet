@@ -605,8 +605,8 @@ PID Renewal allows the user to fetch a new PID attestation in case the current P
     Wallet -&gt;&gt; User: Request new PIN
     User -&gt;&gt; Wallet: Give new PIN (including confirmation)
     Wallet -&gt;&gt; WP: Send start_pin_recovery(new PIN public key, c_nonce for PID issuance)
-    WP -&gt;&gt; WP: Update PIN public key for account&lt;br/&gt; sign Wallet Certificate&lt;br/&gt;genereate new keys (blocked for regular use)&lt;br/&gt; sign PoP's&lt;br/&gt; issue WUA&lt;br/&gt;set account in 'recovery' state
-    WP -&gt;&gt; Wallet: New PIN OK, return new Wallet Certificate, WUA, signed PoP's
+    WP -&gt;&gt; WP: Update PIN public key for account&lt;br/&gt; sign Wallet Certificate&lt;br/&gt;genereate new keys (blocked for regular use)&lt;br/&gt; sign PoP's&lt;br/&gt; issue WIA&lt;br/&gt;set account in 'recovery' state
+    WP -&gt;&gt; Wallet: New PIN OK, return new Wallet Certificate, WIA, signed PoP's
     Wallet -&gt;&gt; Wallet: Delete previous Wallet Certificate,&lt;br/&gt; store new Wallet Certificate    
     note over Wallet, PID: Steps 22-24 from PID-issuance flow. &lt;br/&gt; Wallet has requested and received attestations from PID-issuer. 
     Wallet -&gt;&gt; WP: Send DiscloseRecoveryCodePinRecovery(new PID, with recovery code) instruction
@@ -753,7 +753,7 @@ The Wallet Transfer record can have the following states:</p>
     User -&gt;&gt; Wallet : Start PID renewal
     note over Wallet, PID:Steps 2-17 from DigiD authentication / PID-issuance flow. &lt;br/&gt; Wallet has received access token from PID Issuer (and PID-preview)
     Wallet -&gt;&gt; Wallet: Check Recovery code in stored PID against recovery code in PID-preview    
-    note over Wallet, PID: Steps 20-23 from PID-issuance flow. &lt;br/&gt; Wallet has requested and received attestations from PID-issuer. Wallet Backend creates PoPs and new WUA. &lt;br/&gt;Issuance of new WUA will put account into 'recovery' and disable existing keys except the newly created keys for PID issuance.
+    note over Wallet, PID: Steps 20-23 from PID-issuance flow. &lt;br/&gt; Wallet has requested and received attestations from PID-issuer. Wallet Backend creates PoPs and new WIA. &lt;br/&gt;Issuance of new WIA will put account into 'recovery' and disable existing keys except the newly created keys for PID issuance.
     Wallet -&gt;&gt; WP: Call DiscloseRecoveryCode(recovery_code) (Recovery Code from new PID is used) to Wallet Backend.
     WP -&gt;&gt; WP: Check recovery code with account (fail if not matching) &lt;br/&gt; and update account to 'active'
     WP -&gt;&gt; Wallet: New PID accepted

@@ -3,11 +3,11 @@ module:
 
 G_SoleControl:
   text: WB offers PID issuer assurance that User will have sole control over the PID
-  supportedBy: [G_WbIssuesWua, G_WbEnforcesSoleControl]
+  supportedBy: [G_WbIssuesWia, G_WbEnforcesSoleControl]
   inContextOf: A_PidIssuerTrustsWb
 
 A_PidIssuerTrustsWb:
-  text: PID issuer trusts WB to issue WUA only to wallets implementing Sole Control
+  text: PID issuer trusts WB to issue WIA only to wallets implementing Sole Control
 
 G_WbEnforcesSoleControl:
   text: WB enforces that the User has sole control over all attestations managed in Wallet
@@ -55,19 +55,19 @@ A_WbTrustsHsmVendor:
 
 
 # =========================================================
-# WUA ISSUANCE
+# WIA ISSUANCE
 # =========================================================
 
-G_WbIssuesWua:
-  text: WB issues WUA to Wallet
+G_WbIssuesWia:
+  text: WB issues WIA to Wallet
   supportedBy:
     - G_WbGeneratesAttestationPrivKey
-    - Sn_WbIssuesWua
+    - Sn_WbIssuesWia
 
 G_WbGeneratesAttestationPrivKey:
-  text: WB generates a fresh WUA private key
+  text: WB generates a fresh WIA private key
   supportedBy:
     - S_EnsurePrivKeySecure
 
-Sn_WbIssuesWua:
-  text: WB constructs & signs WUA containing the corresponding public key and issues it to the wallet
+Sn_WbIssuesWia:
+  text: WB constructs & signs WIA containing the corresponding public key and issues it to the wallet

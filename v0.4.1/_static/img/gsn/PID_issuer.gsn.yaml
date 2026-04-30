@@ -48,7 +48,7 @@ Sn_ManageAttributeValidity:
 
 
 S_AssureIssuanceToCorrectWallet:
-  text: Assure that the PID is issued to the same wallet that authenticated the user and disclosed the WUA
+  text: Assure that the PID is issued to the same wallet that authenticated the user and disclosed the WIA
   supportedBy:
     - G_ProveWalletIssuanceAssociation
     - G_ProveWalletAuthenticationAssociation
@@ -62,19 +62,19 @@ Sn_DpopPkce:
 
 
 G_ProveWalletIssuanceAssociation:
-  text: PID issuer ensures that the PID is issued to the same wallet that disclosed the WUA
+  text: PID issuer ensures that the PID is issued to the same wallet that disclosed the WIA
   supportedBy: [Sn_VerifyProofOfAssociation]
 
 Sn_VerifyProofOfAssociation:
-  text: PID issuer requires a valid Proof of Association (PoA) that proves that the WUA disclosure public key and the fresh PID public key come from the same wallet
+  text: PID issuer requires a valid Proof of Association (PoA) that proves that the WIA disclosure public key and the fresh PID public key come from the same wallet
 
 
 S_AssuranceWalletSoleControl:
   text: PID issuer enforces that the PID is issued to a wallet implementing Sole Control
   horizontalIndex:
     relative: +1
-  supportedBy: [Sn_EnforceWUA]
+  supportedBy: [Sn_EnforceWIA]
   inContextOf: [A_PidIssuerTrustsWb]
 
-Sn_EnforceWUA:
-  text: PID issuer requires WUA disclosure before issuance
+Sn_EnforceWIA:
+  text: PID issuer requires WIA disclosure before issuance

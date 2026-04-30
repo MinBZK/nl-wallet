@@ -75,7 +75,7 @@ Sn_WbBlocksOnRevocationCode:
   text: WB blocks wallet upon valid revocation code
 
 Sn_WbRevokesOnVulnerability:
-  text: WB revokes keys & blocks WUA on detected vulnerability
+  text: WB revokes keys & blocks WIA on detected vulnerability
 
 G_UserProvesHwKeyControl:
   text: User proves control of device-bound hardware key

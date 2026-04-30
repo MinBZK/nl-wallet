@@ -238,11 +238,11 @@ Technology: sqlite (on Android/iOS)</p>
 <p>Relations:</p>
 <ul class="simple">
 <li><p>Used by Wallet App [I-103]</p></li>
-<li><p>[I-401] Reads from and writes to database (account data and WUA Status)</p></li>
-<li><p>[I-402] Generates and publishes WUA status list</p></li>
+<li><p>[I-401] Reads from and writes to database (account data and WIA Status)</p></li>
+<li><p>[I-402] Generates and publishes WIA status list</p></li>
 <li><p>[I-403] Sends cryptographic instructions to HSM device to generate keys and perform signing operations</p></li>
 <li><p>[I-405] Request app integrity verdict from Google Play Integrity (Android only)</p></li>
-<li><p>[I-406] Issue WUA to Wallet on activation</p></li>
+<li><p>[I-406] Issue WIA to Wallet on activation</p></li>
 <li><p>[I-407] Called by Wallet Revocation portal for wallet revocation</p></li>
 <li><p>[A-103] Wallet Unit management functions for Wallet User Support</p></li>
 <li><p>[A-104] Manage vulnerable devices</p></li>
@@ -268,9 +268,9 @@ Technology: sqlite (on Android/iOS)</p>
 <li><p>Update policy is maintained by Wallet Technical Support [A-102]</p></li>
 </ul>
 </section>
-<section id="wua-status-list">
-<h2>7. WUA status list<a class="headerlink" href="#wua-status-list" title="Link to this heading"></a></h2>
-<p>The WUA Status list container contains the WUA Status List(s) that provide information about the validity of Wallet Unit Attestations to consumers (Wallet app and PID-issuer). The WUA Status Lists are published by the WalletBackend.</p>
+<section id="wia-status-list">
+<h2>7. WIA status list<a class="headerlink" href="#wia-status-list" title="Link to this heading"></a></h2>
+<p>The WIA Status list container contains the WIA Status List(s) that provide information about the validity of Wallet Unit Attestations to consumers (Wallet app and PID-issuer). The WIA Status Lists are published by the WalletBackend.</p>
 <p>Technology: nginx (static content, Token Status List)</p>
 <p>Relations:</p>
 <ul class="simple">
@@ -278,8 +278,8 @@ Technology: sqlite (on Android/iOS)</p>
 <li><p>Status List is consumed by PID Issuer [E-102]</p></li>
 </ul>
 </section>
-<section id="wb-database-accounts-wua-status">
-<h2>8. WB database (accounts, WUA status)<a class="headerlink" href="#wb-database-accounts-wua-status" title="Link to this heading"></a></h2>
+<section id="wb-database-accounts-wia-status">
+<h2>8. WB database (accounts, WIA status)<a class="headerlink" href="#wb-database-accounts-wia-status" title="Link to this heading"></a></h2>
 <p>The WB database contains user account data, and the statuses for issued Wallet Unit Attestations.</p>
 <p>Technology: postgres
 Relations:</p>

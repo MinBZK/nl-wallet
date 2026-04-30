@@ -83,7 +83,7 @@
 <path class="border" d="M1331,521 V444 A77,38,0,0,1,1485,444 V521" fill-opacity="0" stroke="black" stroke-width="1"/>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1338" y="464">A_PidIssuerTrustsWb</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1338" y="482">PID issuer trusts WB to</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1338" y="495">issue WUA only to wallets</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1338" y="495">issue WIA only to wallets</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1338" y="508">implementing Sole Control</text>
 <a href="sole-control.gsn.svg#node_a_pidissuertrustswb">
 <path class="border" d="M1331,521 H1485 v27 H1331 z" fill-opacity="0" stroke="black" stroke-width="1"/>
@@ -100,7 +100,7 @@
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1538" y="473">Assure that the PID is issued to</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1536" y="486">the same wallet that</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1534" y="499">authenticated the user and</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1532" y="512">disclosed the WUA</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1532" y="512">disclosed the WIA</text>
 </g>
 <g class="gsn_module_pid_issuer gsnelem gsngoal" id="node_g_determineattributesfromauthoritativesources">
 <title>G_DetermineAttributesFromAuthoritativeSources</title>
@@ -127,11 +127,11 @@
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="729" y="692">validity during attestation</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="729" y="705">lifetime</text>
 </g>
-<g class="gsn_module_pid_issuer gsnelem gsnsltn" id="node_sn_enforcewua">
-<title>Sn_EnforceWUA</title>
+<g class="gsn_module_pid_issuer gsnelem gsnsltn" id="node_sn_enforcewia">
+<title>Sn_EnforceWIA</title>
 <path class="border" d="M1099,676 a88,88,0,1,0,176,0 a88,88,0,1,0,-176,0 z" fill-opacity="0" stroke="black" stroke-width="1"/>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1116" y="661">Sn_EnforceWUA</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1116" y="679">PID issuer requires WUA</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1116" y="661">Sn_EnforceWIA</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1116" y="679">PID issuer requires WIA</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1116" y="692">disclosure before issuance</text>
 </g>
 <g class="gsn_module_pid_issuer gsnelem gsngoal" id="node_g_provewalletauthenticationassociation">
@@ -149,7 +149,7 @@
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1612" y="661">G_ProveWalletIssuanceAssociation</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1612" y="679">PID issuer ensures that the PID</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1612" y="692">is issued to the same wallet that</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1612" y="705">disclosed the WUA</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1612" y="705">disclosed the WIA</text>
 </g>
 <g class="gsn_module_pid_issuer gsnelem gsnsltn" id="node_sn_useauthoritativeregisters">
 <title>Sn_UseAuthoritativeRegisters</title>
@@ -181,7 +181,7 @@
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" font-weight="bold" x="1630" y="873">Sn_VerifyProofOfAssociation</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1630" y="891">PID issuer requires a valid</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1630" y="904">Proof of Association (PoA)</text>
-<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1630" y="917">that proves that the WUA</text>
+<text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1630" y="917">that proves that the WIA</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1630" y="930">disclosure public key and</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1630" y="943">the fresh PID public key</text>
 <text font-family="Liberation Sans, Arial, sans-serif" font-size="12px" x="1630" y="956">come from the same wallet</text>
