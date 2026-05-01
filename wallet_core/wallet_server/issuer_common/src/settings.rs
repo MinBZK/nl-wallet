@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::num::NonZeroU8;
-use std::path::Path;
+use std::path::PathBuf;
 
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
@@ -27,8 +27,8 @@ use rustls_pki_types::TrustAnchor;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use serde::Deserialize;
-use serde::Deserializer;
-use serde::de;
+use serde_with::TryFromInto;
+use serde_with::serde_as;
 use server_utils::keys::PrivateKeySettingsError;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::CertificateVerificationError;
@@ -43,8 +43,7 @@ use status_lists::settings::StatusListsSettings;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 
-pub type TypeMetadataByVct = HashMap<String, (UncheckedTypeMetadata, Vec<u8>)>;
-
+#[serde_as]
 #[derive(Debug, Clone, Deserialize)]
 pub struct IssuerSettings {
     /// Publicly reachable URL used by the wallet during sessions, which should be a valid Credential Issuer
@@ -53,8 +52,8 @@ pub struct IssuerSettings {
 
     pub credential_configurations: CredentialConfigurationsSettings,
 
-    #[serde(deserialize_with = "deserialize_type_metadata")]
     #[debug(skip)]
+    #[serde_as(as = "TryFromInto<Vec<String>>")]
     pub metadata: TypeMetadataByVct,
 
     /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
@@ -68,6 +67,9 @@ pub struct IssuerSettings {
     #[debug(skip)]
     pub server_settings: Settings,
 }
+
+#[derive(Debug, Clone, AsRef)]
+pub struct TypeMetadataByVct(HashMap<String, (UncheckedTypeMetadata, Vec<u8>)>);
 
 #[derive(Debug, Clone, Deserialize, From, IntoIterator, AsRef)]
 pub struct CredentialConfigurationsSettings(
@@ -93,27 +95,35 @@ pub struct CredentialConfigurationSettings {
     pub certificate_san: Option<HttpsUri>,
 }
 
-fn deserialize_type_metadata<'de, D>(deserializer: D) -> Result<TypeMetadataByVct, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let path = Vec::<String>::deserialize(deserializer)?;
+#[derive(Debug, thiserror::Error)]
+pub enum TypeMetadataParseError {
+    #[error("could not read \"{0}\": {1}")]
+    Read(PathBuf, #[source] std::io::Error),
 
-    // Map the contents of each JSON file by the `vct` field by decoding the JSON and extracting just that field.
-    let documents = path
-        .iter()
-        .map(|path| {
-            let path = prefix_local_path(Path::new(path));
-            let json = fs::read(&path)
-                .map_err(|err| de::Error::custom(format!("could not read `{}`: {}", path.display(), err)))?;
-            let metadata = serde_json::from_slice::<UncheckedTypeMetadata>(json.as_slice())
-                .map_err(|err| de::Error::custom(format!("could not deserialize `{}`: {}", path.display(), err)))?;
+    #[error("could not deserialize \"{0}\": {1}")]
+    Deserialize(PathBuf, #[source] serde_json::Error),
+}
 
-            Ok((metadata.vct.clone(), (metadata, json)))
-        })
-        .collect::<Result<_, _>>()?;
+impl TryFrom<Vec<String>> for TypeMetadataByVct {
+    type Error = TypeMetadataParseError;
 
-    Ok(documents)
+    fn try_from(value: Vec<String>) -> Result<Self, Self::Error> {
+        // Map the contents of each JSON file by the `vct` field by decoding the JSON and extracting just that field.
+        let documents = value
+            .into_iter()
+            .map(|path| {
+                let path = prefix_local_path(PathBuf::from(path));
+                let json =
+                    fs::read(&path).map_err(|error| TypeMetadataParseError::Read(path.clone().into_owned(), error))?;
+                let metadata = serde_json::from_slice::<UncheckedTypeMetadata>(&json)
+                    .map_err(|error| TypeMetadataParseError::Deserialize(path.into_owned(), error))?;
+
+                Ok((metadata.vct.clone(), (metadata, json)))
+            })
+            .try_collect()?;
+
+        Ok(Self(documents))
+    }
 }
 
 impl CredentialConfigurationsSettings {
@@ -138,6 +148,7 @@ impl CredentialConfigurationsSettings {
 
                 while let Some(chain_typ) = iter_typ {
                     let (metadata_document, metadata_json) = metadata
+                        .as_ref()
                         .get(chain_typ)
                         .ok_or_else(|| PrivateKeySettingsError::MissingMetadata(chain_typ.to_string()))?;
 
@@ -359,6 +370,7 @@ mod tests {
     use super::CredentialConfigurationSettings;
     use super::IssuerSettings;
     use super::StatusListAttestationSettings;
+    use super::TypeMetadataByVct;
     use crate::settings::IssuerSettingsError;
 
     fn mock_settings(issuer_ca: &Ca) -> IssuerSettings {
@@ -390,12 +402,12 @@ mod tests {
                 },
             )])
             .into(),
-            metadata: HashMap::from([{
+            metadata: TypeMetadataByVct(HashMap::from([{
                 let metadata = UncheckedTypeMetadata::pid_example();
                 let vct = metadata.vct.clone();
                 let metadata_bytes = serde_json::to_vec(&metadata).unwrap();
                 (vct, (metadata, metadata_bytes))
-            }]),
+            }])),
             wallet_client_ids: vec![MOCK_WALLET_CLIENT_ID.to_string()],
             server_settings: Settings {
                 wallet_server: Server {
@@ -480,13 +492,13 @@ mod tests {
         let pid_metadata = TypeMetadata::pid_example().into_inner();
         let pid_metadata_serialized = serde_json::to_vec(&pid_metadata).unwrap();
 
-        settings.metadata = HashMap::from([
+        settings.metadata = TypeMetadataByVct(HashMap::from([
             (
                 no_registration_metadata.vct.clone(),
                 (no_registration_metadata, no_registration_metadata_serialized),
             ),
             (pid_metadata.vct.clone(), (pid_metadata, pid_metadata_serialized)),
-        ]);
+        ]));
 
         assert_matches!(
             settings.validate().expect_err("should fail"),

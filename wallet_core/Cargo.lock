@@ -4026,6 +4026,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+ "serde_with",
  "server_utils",
  "status_lists",
  "thiserror 2.0.17",
