@@ -4,13 +4,12 @@ extension CloseProximityDisclosure {
 
     func sendDeviceResponse(
         session: CloseProximityDisclosureActiveSession,
-        establishedSessionContext: CloseProximityDisclosureEstablishedSessionContext,
         deviceResponse: [UInt8]
     ) async throws {
         do {
-            try await establishedSessionContext.transport.sendMessage(
+            try await session.transport.sendMessage(
                 message: buildEncryptedDeviceResponse(
-                    sessionCrypto: establishedSessionContext.sessionCrypto,
+                    session: session,
                     deviceResponse: deviceResponse
                 )
             )
@@ -40,10 +39,10 @@ extension CloseProximityDisclosure {
     }
 
     private func buildEncryptedDeviceResponse(
-        sessionCrypto: CloseProximitySessionCrypto,
+        session: CloseProximityDisclosureActiveSession,
         deviceResponse: [UInt8]
     ) throws -> [UInt8] {
-        try sessionCrypto.encrypt(
+        try sessionCryptoOrFail(for: session).encrypt(
             plaintext: deviceResponse,
             statusCode: CloseProximitySessionStatusCode.termination
         )

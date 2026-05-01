@@ -2,40 +2,31 @@ import Foundation
 
 extension CloseProximityDisclosure {
     internal func isBleServerActiveForTesting() -> Bool {
-        activeSessionState != nil
+        activeSession != nil
     }
 
     func setActiveSession(_ session: CloseProximityDisclosureActiveSession?) {
-        activeSessionState = session.map(CloseProximityDisclosureActiveSessionState.init)
+        activeSession = session
     }
 
-    func takeActiveSessionState() -> CloseProximityDisclosureActiveSessionState? {
-        let sessionState = activeSessionState
-        activeSessionState = nil
-        return sessionState
+    func takeActiveSession() -> CloseProximityDisclosureActiveSession? {
+        let session = activeSession
+        activeSession = nil
+        return session
     }
 
     func clearActiveSessionIfCurrent(_ session: CloseProximityDisclosureActiveSession) -> Bool {
-        guard let activeSessionState, activeSessionState.session === session else { return false }
-        self.activeSessionState = nil
+        guard let activeSession, activeSession === session else { return false }
+        self.activeSession = nil
         return true
     }
 
     func isActiveSession(_ session: CloseProximityDisclosureActiveSession) -> Bool {
-        activeSessionState?.session === session
+        activeSession === session
     }
     
-    func requireActiveSessionState() throws -> CloseProximityDisclosureActiveSessionState {
-        guard let sessionState = activeSessionState else {
-            throw CloseProximityDisclosureError.PlatformError(
-                reason: "No active close proximity disclosure session"
-            )
-        }
-        return sessionState
-    }
-
     func requireActiveSession() throws -> CloseProximityDisclosureActiveSession {
-        guard let session = activeSessionState?.session else {
+        guard let session = activeSession else {
             throw CloseProximityDisclosureError.PlatformError(
                 reason: "No active close proximity disclosure session"
             )
@@ -55,51 +46,64 @@ extension CloseProximityDisclosure {
         _ connectionTask: Task<Void, Never>,
         for session: CloseProximityDisclosureActiveSession
     ) {
-        mutateActiveSessionState(session) { sessionState in
-            sessionState.connectionTask = connectionTask
+        mutateActiveSession(session) { session in
+            session.connectionTask = connectionTask
         }
     }
 
-    func readerSessionContext(
+    func sessionCrypto(
         for session: CloseProximityDisclosureActiveSession
-    ) -> CloseProximityDisclosureReaderSessionContext? {
-        guard let activeSessionState, activeSessionState.session === session else { return nil }
-        return activeSessionState.readerSessionContext
+    ) -> CloseProximitySessionCrypto? {
+        guard let activeSession, activeSession === session else { return nil }
+        return activeSession.sessionCrypto
     }
 
-    func setReaderSessionContext(
-        _ readerSessionContext: CloseProximityDisclosureReaderSessionContext,
+    func encodedSessionTranscript(
+        for session: CloseProximityDisclosureActiveSession
+    ) -> [UInt8]? {
+        guard let activeSession, activeSession === session else { return nil }
+        return activeSession.encodedSessionTranscript
+    }
+
+    func setSessionCrypto(
+        _ sessionCrypto: CloseProximitySessionCrypto,
+        encodedSessionTranscript: [UInt8],
         for session: CloseProximityDisclosureActiveSession
     ) {
-        mutateActiveSessionState(session) { sessionState in
-            sessionState.sessionCrypto = readerSessionContext.sessionCrypto
-            sessionState.encodedSessionTranscript = readerSessionContext.encodedSessionTranscript
+        mutateActiveSession(session) { session in
+            session.sessionCrypto = sessionCrypto
+            session.encodedSessionTranscript = encodedSessionTranscript
         }
-    }
-
-    func establishedSessionContext(
-        for session: CloseProximityDisclosureActiveSession
-    ) -> CloseProximityDisclosureEstablishedSessionContext? {
-        guard let activeSessionState, activeSessionState.session === session else { return nil }
-        return activeSessionState.establishedSessionContext
     }
 
     // Assumes the session is active
-    func establishedSessionContextOrFail(
-        _ session: CloseProximityDisclosureActiveSession
-    ) throws -> CloseProximityDisclosureEstablishedSessionContext {
-        guard let establishedSessionContext = establishedSessionContext(for: session) else {
+    func sessionCryptoOrFail(
+        for session: CloseProximityDisclosureActiveSession
+    ) throws -> CloseProximitySessionCrypto {
+        guard let sessionCrypto = sessionCrypto(for: session) else {
             throw CloseProximityDisclosureError.PlatformError(
                 reason: "Session has not been established yet"
             )
         }
-        return establishedSessionContext
+        return sessionCrypto
     }
 
-    func cancelBackgroundTasks(_ sessionState: CloseProximityDisclosureActiveSessionState) async {
-        sessionState.connectionTask?.cancel()
+    // Assumes the session is active
+    func encodedSessionTranscriptOrFail(
+        for session: CloseProximityDisclosureActiveSession
+    ) throws -> [UInt8] {
+        guard let encodedSessionTranscript = encodedSessionTranscript(for: session) else {
+            throw CloseProximityDisclosureError.PlatformError(
+                reason: "Session transcript missing after session establishment"
+            )
+        }
+        return encodedSessionTranscript
+    }
 
-        if let connectionTask = sessionState.connectionTask {
+    func cancelBackgroundTasks(_ session: CloseProximityDisclosureActiveSession) async {
+        session.connectionTask?.cancel()
+
+        if let connectionTask = session.connectionTask {
             _ = await connectionTask.value
         }
     }
@@ -134,13 +138,12 @@ extension CloseProximityDisclosure {
         try? session.transport.close()
     }
 
-    private func mutateActiveSessionState(
+    private func mutateActiveSession(
         _ session: CloseProximityDisclosureActiveSession,
-        mutation: (inout CloseProximityDisclosureActiveSessionState) -> Void
+        mutation: (CloseProximityDisclosureActiveSession) -> Void
     ) {
-        guard var activeSessionState, activeSessionState.session === session else { return }
-        mutation(&activeSessionState)
-        self.activeSessionState = activeSessionState
+        guard let activeSession, activeSession === session else { return }
+        mutation(activeSession)
     }
 }
 

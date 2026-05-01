@@ -60,13 +60,13 @@ extension CloseProximityDisclosure {
     }
 
     func stopBleServerLocked() async {
-        guard let sessionState = takeActiveSessionState() else { return }
+        guard let session = takeActiveSession() else { return }
 
         // Take and clear the session first so any already-running background work immediately
         // observes itself as stale before we start canceling tasks and closing transports.
-        await cancelBackgroundTasks(sessionState)
-        closeSessionTransports(sessionState.session)
-        try? await sessionState.session.channel.sendUpdate(
+        await cancelBackgroundTasks(session)
+        closeSessionTransports(session)
+        try? await session.channel.sendUpdate(
             update: CloseProximityDisclosureUpdate.closed
         )
     }

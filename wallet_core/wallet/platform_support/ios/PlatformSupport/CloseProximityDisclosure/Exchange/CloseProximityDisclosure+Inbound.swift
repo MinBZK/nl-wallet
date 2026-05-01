@@ -13,7 +13,7 @@ extension CloseProximityDisclosure {
             guard isActiveSession(session) else { return }
             // According to the ISO-18013-5 protocol, the reader will send the eReader public key as the first payload.
             // This is the last ingredient needed for the session transcript.
-            guard let readerSessionContext = await ensureReaderSessionContext(
+            guard await ensureSessionCrypto(
                 session: session,
                 message: message
             ) else {
@@ -24,36 +24,39 @@ extension CloseProximityDisclosure {
 
             if try await handleReaderMessage(
                 session: session,
-                message: message,
-                readerSessionContext: readerSessionContext
+                message: message
             ) {
                 return
             }
         }
     }
 
-    private func ensureReaderSessionContext(
+    private func ensureSessionCrypto(
         session: CloseProximityDisclosureActiveSession,
         message: [UInt8]
-    ) async -> CloseProximityDisclosureReaderSessionContext? {
-        if let readerSessionContext = readerSessionContext(for: session) {
-            return readerSessionContext
+    ) async -> Bool {
+        if sessionCrypto(for: session) != nil {
+            return true
         }
 
         do {
-            let establishedReaderSessionContext = try createReaderSessionContextFromFirstReaderMessage(
+            let (sessionCrypto, encodedSessionTranscript) = try createSessionCryptoFromFirstReaderMessage(
                 session: session,
                 message: message
             )
-            setReaderSessionContext(establishedReaderSessionContext, for: session)
-            return self.readerSessionContext(for: session)
+            setSessionCrypto(
+                sessionCrypto,
+                encodedSessionTranscript: encodedSessionTranscript,
+                for: session
+            )
+            return true
         } catch {
             if let status = sessionEstablishmentFailureStatus(for: error) {
                 await failSessionWithStatus(session, status: status, error: error)
             } else {
                 await failSession(session, error: error)
             }
-            return nil
+            return false
         }
     }
 
@@ -81,34 +84,35 @@ extension CloseProximityDisclosure {
         }
     }
 
-    private func createReaderSessionContextFromFirstReaderMessage(
+    private func createSessionCryptoFromFirstReaderMessage(
         session: CloseProximityDisclosureActiveSession,
         message: [UInt8]
-    ) throws -> CloseProximityDisclosureReaderSessionContext {
+    ) throws -> (CloseProximitySessionCrypto, [UInt8]) {
         let eReaderKey = try closeProximityGetEReaderKey(sessionEstablishmentMessage: message)
         let encodedSessionTranscript = try buildEncodedSessionTranscript(
             encodedDeviceEngagement: session.encodedDeviceEngagement,
             encodedReaderKey: eReaderKey.encodedCoseKey
         )
-        return CloseProximityDisclosureReaderSessionContext(
-            sessionCrypto: try CloseProximitySessionCrypto(
+        return (
+            try CloseProximitySessionCrypto(
                 eDevicePrivateKey: session.eDevicePrivateKey,
                 encodedReaderKey: eReaderKey.encodedCoseKey,
                 encodedSessionTranscript: encodedSessionTranscript
             ),
-            encodedSessionTranscript: encodedSessionTranscript
+            encodedSessionTranscript
         )
     }
 
     private func handleReaderMessage(
         session: CloseProximityDisclosureActiveSession,
-        message: [UInt8],
-        readerSessionContext: CloseProximityDisclosureReaderSessionContext
+        message: [UInt8]
     ) async throws -> Bool {
+        let sessionCrypto = try sessionCryptoOrFail(for: session)
+        let encodedSessionTranscript = try encodedSessionTranscriptOrFail(for: session)
         let deviceRequest: [UInt8]?
         let status: Int64?
         do {
-            let decryptedMessage = try readerSessionContext.sessionCrypto.decrypt(message: message)
+            let decryptedMessage = try sessionCrypto.decrypt(message: message)
             deviceRequest = decryptedMessage.data
             status = decryptedMessage.status
         } catch {
@@ -132,7 +136,7 @@ extension CloseProximityDisclosure {
             if isActiveSession(session) {
                 try await session.channel.sendUpdate(
                     update: CloseProximityDisclosureUpdate.sessionEstablished(
-                        sessionTranscript: readerSessionContext.encodedSessionTranscript,
+                        sessionTranscript: encodedSessionTranscript,
                         deviceRequest: deviceRequest
                     )
                 )
