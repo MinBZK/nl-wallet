@@ -5,6 +5,7 @@
 //  Created by The Wallet Developers on 06/03/2026.
 //
 
+import CoreBluetooth
 import CryptoKit
 import Foundation
 @preconcurrency import Multipaz
@@ -13,6 +14,126 @@ import XCTest
 @testable import PlatformSupport
 
 final class CloseProximityDisclosureTests: XCTestCase {
+    private enum RawCleanupAction: String, Sendable {
+        case stopAdvertising = "stopAdvertising"
+        case removeAllServices = "removeAllServices"
+    }
+
+    private final class RawPeripheralManagerCharacterizer: NSObject, CBPeripheralManagerDelegate {
+        private actor State {
+            private var isPoweredOn = false
+            private var events: [String] = []
+
+            func recordState(_ state: CBManagerState) {
+                isPoweredOn = state == .poweredOn
+                events.append("state=\(state.summary)")
+            }
+
+            func recordEvent(_ event: String) {
+                events.append(event)
+            }
+
+            func poweredOn() -> Bool {
+                isPoweredOn
+            }
+
+            func eventCount() -> Int {
+                events.count
+            }
+
+            func snapshot() -> [String] {
+                events
+            }
+        }
+
+        private enum Constants {
+            static let characteristicUuid = CBUUID(
+                string: "00000010-a123-48ce-896b-4c76973373e6"
+            )
+        }
+
+        private let state = State()
+        private(set) var peripheralManager: CBPeripheralManager!
+
+        override init() {
+            super.init()
+            peripheralManager = CBPeripheralManager(delegate: self, queue: nil, options: nil)
+        }
+
+        func makeService(serviceUuid: CBUUID) -> CBMutableService {
+            let characteristic = CBMutableCharacteristic(
+                type: Constants.characteristicUuid,
+                properties: [.read, .writeWithoutResponse],
+                value: nil,
+                permissions: [.readable, .writeable]
+            )
+
+            let service = CBMutableService(type: serviceUuid, primary: true)
+            service.characteristics = [characteristic]
+            return service
+        }
+
+        func isPoweredOn() async -> Bool {
+            await state.poweredOn()
+        }
+
+        func eventCount() async -> Int {
+            await state.eventCount()
+        }
+
+        func events() async -> [String] {
+            await state.snapshot()
+        }
+
+        func stop() {
+            peripheralManager.stopAdvertising()
+            peripheralManager.removeAllServices()
+        }
+
+        func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
+            Task {
+                await state.recordState(peripheral.state)
+            }
+        }
+
+        func peripheralManager(
+            _ peripheral: CBPeripheralManager,
+            didAdd service: CBService,
+            error: Error?
+        ) {
+            Task {
+                await state.recordEvent(
+                    "didAdd service=\(service.uuid.uuidString) error=\(error?.localizedDescription ?? "nil")"
+                )
+            }
+        }
+
+        func peripheralManagerDidStartAdvertising(
+            _ peripheral: CBPeripheralManager,
+            error: Error?
+        ) {
+            Task {
+                await state.recordEvent(
+                    "didStartAdvertising error=\(error?.localizedDescription ?? "nil") isAdvertising=\(peripheral.isAdvertising)"
+                )
+            }
+        }
+    }
+
+    private enum AdvertiseAttemptResult: Equatable, Sendable {
+        case started
+        case failed(String)
+
+        var summary: String {
+            switch self {
+            case .started:
+                return "started"
+            case .failed(let message):
+                return "failed(\(message))"
+            }
+        }
+    }
+
     private enum RecordedUpdate: Equatable, Sendable {
         case connected
         case sessionEstablished(sessionTranscript: [UInt8], deviceRequest: [UInt8])
@@ -182,6 +303,212 @@ final class CloseProximityDisclosureTests: XCTestCase {
         XCTAssertTrue(hasReceivedClosedUpdate)
         let isBleServerActiveAfterStop = await closeProximityDisclosure.isBleServerActiveForTesting()
         XCTAssertFalse(isBleServerActiveAfterStop)
+    }
+
+    func testConcurrentAdvertiseCallsOnSameTransportRejectSecondCaller() async throws {
+        #if targetEnvironment(simulator)
+            throw XCTSkip("CBPeripheralManager peripheral mode is not supported on the iOS Simulator")
+        #endif
+
+        let transport = CloseProximityBleTransport(
+            serviceUuid: CBUUID(string: UUID().uuidString)
+        )
+        let startGate = StartGate(parties: 2)
+
+        // Characterize the race around peripheralManager.add/startAdvertising. Only one caller
+        // should flip the transport from .idle to .advertising; the other must fail before it can
+        // issue a second CoreBluetooth advertise sequence on the same transport.
+        async let firstAttempt = advertiseAfterGate(transport: transport, startGate: startGate)
+        async let secondAttempt = advertiseAfterGate(transport: transport, startGate: startGate)
+
+        let firstResult = await firstAttempt
+        let secondResult = await secondAttempt
+        let results = [firstResult, secondResult]
+        let resultSummary = results.map(\.summary).joined(separator: ", ")
+
+        NSLog("Concurrent advertise() results: %@", resultSummary)
+
+        let startedCount = results.filter { result in
+            if case .started = result {
+                return true
+            }
+            return false
+        }.count
+        let failureMessages = results.compactMap { result in
+            if case .failed(let message) = result {
+                return message
+            }
+            return nil
+        }
+
+        XCTAssertEqual(
+            startedCount,
+            1,
+            "Expected exactly one advertise() call to start advertising, got \(resultSummary)"
+        )
+        XCTAssertEqual(
+            failureMessages.count,
+            1,
+            "Expected exactly one advertise() failure, got \(resultSummary)"
+        )
+        XCTAssertTrue(
+            failureMessages.first?.contains(
+                "Expected close proximity BLE transport state .idle on advertise, got startingAdvertising"
+            ) == true
+                || failureMessages.first?.contains(
+                    "Expected close proximity BLE transport state .idle on advertise, got advertising"
+                ) == true,
+            "Expected the losing caller to be rejected because the transport is already starting or already advertising, got \(resultSummary)"
+        )
+
+        try transport.close()
+    }
+
+    @MainActor
+    func testRawPeripheralManagerRepeatedAddAndStartAdvertisingCharacterization() async throws {
+        #if targetEnvironment(simulator)
+            throw XCTSkip("CBPeripheralManager peripheral mode is not supported on the iOS Simulator")
+        #endif
+
+        let characterizer = RawPeripheralManagerCharacterizer()
+        let didPowerOn = await waitUntil(timeoutNanoseconds: 5_000_000_000) {
+            await characterizer.isPoweredOn()
+        }
+        let startupEvents = await characterizer.events()
+
+        XCTAssertTrue(
+            didPowerOn,
+            "Expected CBPeripheralManager to become powered on, got \(startupEvents)"
+        )
+
+        let serviceUuid = CBUUID(string: UUID().uuidString)
+        let firstService = characterizer.makeService(serviceUuid: serviceUuid)
+        let secondService = characterizer.makeService(serviceUuid: serviceUuid)
+
+        NSLog(
+            "Raw CBPeripheralManager repeated add/start begin service=%@",
+            serviceUuid.uuidString
+        )
+
+        characterizer.peripheralManager.add(firstService)
+        characterizer.peripheralManager.startAdvertising([
+            CBAdvertisementDataServiceUUIDsKey: [serviceUuid],
+        ])
+        let isAdvertisingAfterFirstStart = characterizer.peripheralManager.isAdvertising
+
+        characterizer.peripheralManager.add(secondService)
+        characterizer.peripheralManager.startAdvertising([
+            CBAdvertisementDataServiceUUIDsKey: [serviceUuid],
+        ])
+        let isAdvertisingAfterSecondStart = characterizer.peripheralManager.isAdvertising
+
+        NSLog(
+            "Raw CBPeripheralManager immediate isAdvertising after first start call: %@",
+            String(isAdvertisingAfterFirstStart)
+        )
+        NSLog(
+            "Raw CBPeripheralManager immediate isAdvertising after second start call: %@",
+            String(isAdvertisingAfterSecondStart)
+        )
+
+        _ = await waitUntil(timeoutNanoseconds: 2_000_000_000) {
+            await characterizer.eventCount() >= 4
+        }
+
+        let events = await characterizer.events()
+        for event in events {
+            NSLog("Raw CBPeripheralManager event: %@", event)
+        }
+
+        let didAddCount = events.filter { $0.contains("didAdd") }.count
+        let didStartAdvertisingCount = events.filter { $0.contains("didStartAdvertising") }.count
+
+        XCTAssertGreaterThanOrEqual(
+            didAddCount,
+            1,
+            "Expected at least one didAdd callback, got \(events)"
+        )
+        XCTAssertGreaterThanOrEqual(
+            didStartAdvertisingCount,
+            1,
+            "Expected at least one didStartAdvertising callback, got \(events)"
+        )
+
+        characterizer.stop()
+    }
+
+    @MainActor
+    func testRawPeripheralManagerStopThenRemoveAllServicesCharacterization() async throws {
+        try await runRawPeripheralManagerCleanupPermutationTest(
+            name: "stop->remove",
+            actions: [.stopAdvertising, .removeAllServices]
+        )
+    }
+
+    @MainActor
+    func testRawPeripheralManagerRemoveAllServicesThenStopAdvertisingCharacterization() async throws {
+        try await runRawPeripheralManagerCleanupPermutationTest(
+            name: "remove->stop",
+            actions: [.removeAllServices, .stopAdvertising]
+        )
+    }
+
+    @MainActor
+    func testRawPeripheralManagerRepeatedStopAndRemoveCharacterization() async throws {
+        try await runRawPeripheralManagerCleanupPermutationTest(
+            name: "stop->stop->remove->remove",
+            actions: [
+                .stopAdvertising,
+                .stopAdvertising,
+                .removeAllServices,
+                .removeAllServices,
+            ]
+        )
+    }
+
+    @MainActor
+    func testRawPeripheralManagerStopAndRemoveWhileIdleCharacterization() async throws {
+        #if targetEnvironment(simulator)
+            throw XCTSkip("CBPeripheralManager peripheral mode is not supported on the iOS Simulator")
+        #endif
+
+        let characterizer = RawPeripheralManagerCharacterizer()
+        try await waitForRawPeripheralManagerPoweredOn(characterizer)
+
+        NSLog(
+            "Raw idle cleanup begin isAdvertising=%@",
+            String(characterizer.peripheralManager.isAdvertising)
+        )
+
+        characterizer.peripheralManager.stopAdvertising()
+        NSLog(
+            "Raw idle cleanup immediate isAdvertising after stopAdvertising: %@",
+            String(characterizer.peripheralManager.isAdvertising)
+        )
+
+        characterizer.peripheralManager.removeAllServices()
+        NSLog(
+            "Raw idle cleanup immediate isAdvertising after removeAllServices: %@",
+            String(characterizer.peripheralManager.isAdvertising)
+        )
+
+        try await Task.sleep(nanoseconds: 200_000_000)
+        NSLog(
+            "Raw idle cleanup isAdvertising after 200ms: %@",
+            String(characterizer.peripheralManager.isAdvertising)
+        )
+
+        let restartEvents = await startRawPeripheralManagerAdvertising(
+            characterizer: characterizer,
+            label: "idle cleanup restart"
+        )
+
+        XCTAssertTrue(
+            restartEvents.contains(where: { $0.contains("didStartAdvertising error=nil") }),
+            "Expected advertising to start cleanly after idle stop/remove cleanup, got \(restartEvents)"
+        )
+
+        characterizer.stop()
     }
 
     func testKotlinByteArrayBase64UrlEncodedStringUsesUnsignedBytesAndOmitsPadding() {
@@ -415,6 +742,141 @@ final class CloseProximityDisclosureTests: XCTestCase {
         return try await closeProximityDisclosure.startQrHandover(channel: channel)
     }
 
+    private func advertiseAfterGate(
+        transport: CloseProximityBleTransport,
+        startGate: StartGate
+    ) async -> AdvertiseAttemptResult {
+        await startGate.wait()
+
+        do {
+            try await transport.advertise()
+            return .started
+        } catch {
+            return .failed(error.localizedDescription)
+        }
+    }
+
+    @MainActor
+    private func runRawPeripheralManagerCleanupPermutationTest(
+        name: String,
+        actions: [RawCleanupAction]
+    ) async throws {
+        #if targetEnvironment(simulator)
+            throw XCTSkip("CBPeripheralManager peripheral mode is not supported on the iOS Simulator")
+        #endif
+
+        let characterizer = RawPeripheralManagerCharacterizer()
+        try await waitForRawPeripheralManagerPoweredOn(characterizer)
+
+        let initialEvents = await startRawPeripheralManagerAdvertising(
+            characterizer: characterizer,
+            label: "\(name) initial start"
+        )
+
+        XCTAssertTrue(
+            initialEvents.contains(where: { $0.contains("didStartAdvertising error=nil") }),
+            "Expected initial advertising to start cleanly for permutation \(name), got \(initialEvents)"
+        )
+
+        NSLog(
+            "Raw %@ cleanup begin isAdvertising=%@",
+            name,
+            String(characterizer.peripheralManager.isAdvertising)
+        )
+
+        for action in actions {
+            switch action {
+            case .stopAdvertising:
+                characterizer.peripheralManager.stopAdvertising()
+            case .removeAllServices:
+                characterizer.peripheralManager.removeAllServices()
+            }
+
+            NSLog(
+                "Raw %@ immediate isAdvertising after %@: %@",
+                name,
+                action.rawValue,
+                String(characterizer.peripheralManager.isAdvertising)
+            )
+        }
+
+        try await Task.sleep(nanoseconds: 200_000_000)
+        NSLog(
+            "Raw %@ isAdvertising after 200ms: %@",
+            name,
+            String(characterizer.peripheralManager.isAdvertising)
+        )
+
+        let restartEvents = await startRawPeripheralManagerAdvertising(
+            characterizer: characterizer,
+            label: "\(name) restart"
+        )
+
+        XCTAssertTrue(
+            restartEvents.contains(where: { $0.contains("didStartAdvertising") }),
+            "Expected a didStartAdvertising callback after cleanup permutation \(name), got \(restartEvents)"
+        )
+
+        characterizer.stop()
+    }
+
+    @MainActor
+    private func waitForRawPeripheralManagerPoweredOn(
+        _ characterizer: RawPeripheralManagerCharacterizer
+    ) async throws {
+        let didPowerOn = await waitUntil(timeoutNanoseconds: 5_000_000_000) {
+            await characterizer.isPoweredOn()
+        }
+
+        guard didPowerOn else {
+            let startupEvents = await characterizer.events()
+            XCTFail("Expected CBPeripheralManager to become powered on, got \(startupEvents)")
+            throw NSError(
+                domain: "CloseProximityDisclosureTests",
+                code: 10,
+                userInfo: [NSLocalizedDescriptionKey: "CBPeripheralManager did not power on"]
+            )
+        }
+    }
+
+    @MainActor
+    private func startRawPeripheralManagerAdvertising(
+        characterizer: RawPeripheralManagerCharacterizer,
+        label: String
+    ) async -> [String] {
+        let serviceUuid = CBUUID(string: UUID().uuidString)
+        let service = characterizer.makeService(serviceUuid: serviceUuid)
+        let baselineEventCount = await characterizer.eventCount()
+
+        NSLog(
+            "Raw CBPeripheralManager %@ begin service=%@",
+            label,
+            serviceUuid.uuidString
+        )
+
+        characterizer.peripheralManager.add(service)
+        characterizer.peripheralManager.startAdvertising([
+            CBAdvertisementDataServiceUUIDsKey: [serviceUuid],
+        ])
+
+        NSLog(
+            "Raw CBPeripheralManager %@ immediate isAdvertising after start call: %@",
+            label,
+            String(characterizer.peripheralManager.isAdvertising)
+        )
+
+        _ = await waitUntil(timeoutNanoseconds: 2_000_000_000) {
+            await characterizer.eventCount() >= baselineEventCount + 2
+        }
+
+        let events = Array((await characterizer.events()).dropFirst(baselineEventCount))
+        for event in events {
+            NSLog("Raw CBPeripheralManager %@ event: %@", label, event)
+        }
+
+        return events
+    }
+
     private static func macBleReaderMarkerPayload(
         qrCode: String,
         expectedDeviceResponseHex: String? = nil
@@ -593,6 +1055,27 @@ final class CloseProximityDisclosureTests: XCTestCase {
                 UInt8((value >> 8) & 0xFF),
                 UInt8(value & 0xFF),
             ])
+        }
+    }
+}
+
+private extension CBManagerState {
+    var summary: String {
+        switch self {
+        case .unknown:
+            return "unknown"
+        case .resetting:
+            return "resetting"
+        case .unsupported:
+            return "unsupported"
+        case .unauthorized:
+            return "unauthorized"
+        case .poweredOff:
+            return "poweredOff"
+        case .poweredOn:
+            return "poweredOn"
+        @unknown default:
+            return "unknownDefault(\(rawValue))"
         }
     }
 }

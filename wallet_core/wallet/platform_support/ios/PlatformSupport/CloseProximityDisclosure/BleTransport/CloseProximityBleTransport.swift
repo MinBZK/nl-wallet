@@ -24,6 +24,7 @@ private enum CloseProximityBleTransportError: LocalizedError {
 final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
     enum State {
         case idle
+        case startingAdvertising
         case advertising
         case connected
         case readerClosed
@@ -42,10 +43,21 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
         case throwError(Error)
     }
 
+    private enum WaitForAdvertisingAction {
+        case started
+        case wait
+        case throwError(Error)
+    }
+
     private enum MarkConnectedAction {
         case ignore
         case fail(Error)
         case connect(Int)
+    }
+
+    private struct AdvertisingStartup {
+        var didAddService = false
+        var didStartAdvertising = false
     }
 
     private enum Constants {
@@ -55,6 +67,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
         static let startByte: UInt8 = 0x01
         static let endByte: UInt8 = 0x02
         static let pollIntervalNanoseconds: UInt64 = 10_000_000
+        static let advertisingStartupTimeoutNanoseconds: UInt64 = 2_000_000_000
         static let postSendSleepNanoseconds: UInt64 = 1_000_000_000
         static let maxCharacteristicSize = 512
     }
@@ -80,6 +93,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
     private var state: State = .idle
     private var failure: Error?
     private var maximumCharacteristicSize = Constants.maxCharacteristicSize
+    private var advertisingStartup: AdvertisingStartup?
     // Incoming message buffer, aggregating bytes before they are passed to the queuedMessages as full messages 
     private var incomingMessageBuffer = Data()
     // Hand-off buffer between CB delegate and the consumer
@@ -130,14 +144,41 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
             self.stateCharacteristic = stateCharacteristic
             self.clientToServerCharacteristic = clientToServerCharacteristic
             self.serverToClientCharacteristic = serverToClientCharacteristic
-            state = .advertising
+            advertisingStartup = AdvertisingStartup()
+            state = .startingAdvertising
         }
 
         log("Starting advertising for service \(serviceUuid.uuidString)")
+        // This is outside of the lock to prevent re-entrancy issues on callbacks.
+        // It's impossible for 2 threads to reach this code because the 2nd thread
+        // would fail the state check in the lock above.
         peripheralManager.add(service)
         peripheralManager.startAdvertising([
             CBAdvertisementDataServiceUUIDsKey: [serviceUuid],
         ])
+        let startupBeganAt = DispatchTime.now().uptimeNanoseconds
+
+        while true {
+            try Task.checkCancellation()
+
+            switch withLock(body: nextWaitForAdvertisingActionLocked) {
+            case .started:
+                return
+            case .throwError(let error):
+                throw error
+            case .wait:
+                if DispatchTime.now().uptimeNanoseconds - startupBeganAt
+                    >= Constants.advertisingStartupTimeoutNanoseconds
+                {
+                    let error = CloseProximityBleTransportError.transportFailed(
+                        "Timed out waiting for BLE advertising startup callbacks"
+                    )
+                    fail(error)
+                    throw error
+                }
+                try await Task.sleep(nanoseconds: Constants.pollIntervalNanoseconds)
+            }
+        }
     }
 
     func waitForConnection() async throws {
@@ -153,7 +194,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
                 throw currentFailure()
             case .readerClosed, .closed:
                 throw CloseProximityBleTransportError.transportClosed
-            case .idle, .advertising:
+            case .idle, .startingAdvertising, .advertising:
                 try await Task.sleep(nanoseconds: Constants.pollIntervalNanoseconds)
             }
         }
@@ -210,8 +251,9 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
             switch state {
             case .closed:
                 return false
-            case .failed, .idle, .advertising, .connected, .readerClosed:
+            case .failed, .idle, .startingAdvertising, .advertising, .connected, .readerClosed:
                 state = .closed
+                advertisingStartup = nil
                 queuedMessages.removeAll()
                 incomingMessageBuffer.removeAll(keepingCapacity: false)
                 return true
@@ -221,6 +263,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
         guard shouldClose else { return }
 
         log("Closing BLE transport")
+        // This is a confirmed no-op when called multiple times
         peripheralManager.stopAdvertising()
         peripheralManager.removeAllServices()
 
@@ -290,7 +333,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
                 throw CloseProximityBleTransportError.invalidIncomingChunk(
                     "Received client-to-server BLE chunk after reader termination"
                 )
-            case .idle, .advertising, .closed, .failed:
+            case .idle, .startingAdvertising, .advertising, .closed, .failed:
                 return false
             }
 
@@ -372,8 +415,9 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
             switch state {
             case .failed, .closed:
                 return false
-            case .idle, .advertising, .connected, .readerClosed:
+            case .idle, .startingAdvertising, .advertising, .connected, .readerClosed:
                 failure = error
+                advertisingStartup = nil
                 state = .failed
                 queuedMessages.removeAll()
                 incomingMessageBuffer.removeAll(keepingCapacity: false)
@@ -384,6 +428,7 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
         guard shouldFail else { return }
 
         log("BLE transport failed: \(error.localizedDescription)")
+        // This is a confirmed no-op when called multiple times
         peripheralManager.stopAdvertising()
         peripheralManager.removeAllServices()
     }
@@ -434,11 +479,85 @@ final class CloseProximityBleTransport: NSObject, @unchecked Sendable {
                 return .message(queuedMessage)
             }
             return .throwError(CloseProximityBleTransportError.transportClosed)
-        case .idle, .advertising, .connected:
+        case .idle, .startingAdvertising, .advertising, .connected:
             if let queuedMessage = popQueuedMessageLocked() {
                 return .message(queuedMessage)
             }
             return .wait
+        }
+    }
+
+    private func nextWaitForAdvertisingActionLocked() -> WaitForAdvertisingAction {
+        switch state {
+        case .advertising, .connected:
+            return .started
+        case .startingAdvertising:
+            return .wait
+        case .failed:
+            return .throwError(currentFailureLocked())
+        case .readerClosed, .closed:
+            return .throwError(CloseProximityBleTransportError.transportClosed)
+        case .idle:
+            return .throwError(
+                CloseProximityBleTransportError.invalidState(
+                    "Advertising startup unexpectedly returned to .idle"
+                )
+            )
+        }
+    }
+
+    private func didAddService(_ service: CBService, error: Error?) {
+        if let error {
+            fail(
+                CloseProximityBleTransportError.transportFailed(
+                    "Failed to add BLE service \(service.uuid.uuidString): \(error.localizedDescription)"
+                )
+            )
+            return
+        }
+
+        advanceAdvertisingStartup(markServiceAdded: true)
+    }
+
+    private func didStartAdvertising(error: Error?) {
+        if let error {
+            fail(
+                CloseProximityBleTransportError.transportFailed(
+                    "Failed to start BLE advertising for service \(serviceUuid.uuidString): \(error.localizedDescription)"
+                )
+            )
+            return
+        }
+
+        advanceAdvertisingStartup(markAdvertisingStarted: true)
+    }
+
+    private func advanceAdvertisingStartup(
+        markServiceAdded: Bool = false,
+        markAdvertisingStarted: Bool = false
+    ) {
+        let didFinishStarting = withLock {
+            guard state == .startingAdvertising, var advertisingStartup else { return false }
+
+            if markServiceAdded {
+                advertisingStartup.didAddService = true
+            }
+            if markAdvertisingStarted {
+                advertisingStartup.didStartAdvertising = true
+            }
+
+            guard advertisingStartup.didAddService && advertisingStartup.didStartAdvertising else {
+                self.advertisingStartup = advertisingStartup
+                return false
+            }
+
+            self.advertisingStartup = nil
+            state = .advertising
+            return true
+        }
+
+        if didFinishStarting {
+            log("Advertising started for service \(serviceUuid.uuidString)")
         }
     }
 
@@ -503,5 +622,20 @@ extension CloseProximityBleTransport: CBPeripheralManagerDelegate {
 
             log("Ignoring unexpected write to characteristic \(request.characteristic.uuid.uuidString)")
         }
+    }
+
+    func peripheralManager(
+        _ peripheral: CBPeripheralManager,
+        didAdd service: CBService,
+        error: Error?
+    ) {
+        didAddService(service, error: error)
+    }
+
+    func peripheralManagerDidStartAdvertising(
+        _ peripheral: CBPeripheralManager,
+        error: Error?
+    ) {
+        didStartAdvertising(error: error)
     }
 }
