@@ -170,6 +170,11 @@ dictionary CloseProximityReaderKey {
     sequence<u8> encoded_cose_key;
 };
 
+dictionary CloseProximityQrSessionSetup {
+    sequence<u8> e_device_private_key;
+    sequence<u8> encoded_device_engagement;
+};
+
 dictionary CloseProximityDecryptedMessage {
     sequence<u8>? data;
     i64? status;
@@ -205,4 +210,16 @@ namespace platform_support {
 
     [Throws=CloseProximitySessionCryptoError]
     CloseProximityReaderKey close_proximity_get_e_reader_key(sequence<u8> session_establishment_message);
+
+    [Throws=CloseProximitySessionCryptoError]
+    CloseProximityQrSessionSetup close_proximity_create_qr_session_setup(sequence<u8> peripheral_server_uuid);
+
+    [Throws=CloseProximitySessionCryptoError]
+    sequence<u8> close_proximity_build_session_transcript(
+        sequence<u8> encoded_device_engagement,
+        sequence<u8> encoded_reader_key
+    );
+
+    [Throws=CloseProximitySessionCryptoError]
+    sequence<u8> close_proximity_encode_session_status(i64 status_code);
 };
