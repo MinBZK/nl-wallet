@@ -1,11 +1,11 @@
 import Foundation
-@preconcurrency import Multipaz
 
 struct CloseProximityDisclosureActiveSessionState {
     let session: CloseProximityDisclosureActiveSession
     var connectionTask: Task<Void, Never>?
-    var sessionEncryption: SessionEncryption?
-    var encodedSessionTranscript: KotlinByteArray?
+    var readMessagesTask: Task<Void, Never>?
+    var sessionCrypto: CloseProximitySessionCrypto?
+    var encodedSessionTranscript: [UInt8]?
 
     init(session: CloseProximityDisclosureActiveSession) {
         self.session = session
@@ -14,46 +14,52 @@ struct CloseProximityDisclosureActiveSessionState {
 
 struct CloseProximityDisclosureEstablishedSessionContext {
     let transport: CloseProximityBleTransport
-    let sessionEncryption: SessionEncryption
+    let sessionCrypto: CloseProximitySessionCrypto
 }
 
 struct CloseProximityDisclosureReaderSessionContext {
-    let sessionEncryption: SessionEncryption
-    let encodedSessionTranscript: KotlinByteArray
+    let sessionCrypto: CloseProximitySessionCrypto
+    let encodedSessionTranscript: [UInt8]
+}
+
+enum CloseProximitySessionStatusCode {
+    static let sessionEncryptionError: Int64 = 10
+    static let cborDecodingError: Int64 = 11
+    static let termination: Int64 = 20
 }
 
 final class CloseProximityDisclosureActiveSession {
     let channel: CloseProximityDisclosureChannel
     let transport: CloseProximityBleTransport
-    let eDeviceKey: EcPrivateKey
-    let encodedDeviceEngagement: KotlinByteArray
+    let eDevicePrivateKey: [UInt8]
+    let encodedDeviceEngagement: [UInt8]
 
     init(
         channel: CloseProximityDisclosureChannel,
         transport: CloseProximityBleTransport,
-        eDeviceKey: EcPrivateKey,
-        encodedDeviceEngagement: KotlinByteArray
+        eDevicePrivateKey: [UInt8],
+        encodedDeviceEngagement: [UInt8]
     ) {
         self.channel = channel
         self.transport = transport
-        self.eDeviceKey = eDeviceKey
+        self.eDevicePrivateKey = eDevicePrivateKey
         self.encodedDeviceEngagement = encodedDeviceEngagement
     }
 }
 
 extension CloseProximityDisclosureActiveSessionState {
     var establishedSessionContext: CloseProximityDisclosureEstablishedSessionContext? {
-        guard let sessionEncryption else { return nil }
+        guard let sessionCrypto else { return nil }
         return CloseProximityDisclosureEstablishedSessionContext(
             transport: session.transport,
-            sessionEncryption: sessionEncryption
+            sessionCrypto: sessionCrypto
         )
     }
 
     var readerSessionContext: CloseProximityDisclosureReaderSessionContext? {
-        guard let sessionEncryption, let encodedSessionTranscript else { return nil }
+        guard let sessionCrypto, let encodedSessionTranscript else { return nil }
         return CloseProximityDisclosureReaderSessionContext(
-            sessionEncryption: sessionEncryption,
+            sessionCrypto: sessionCrypto,
             encodedSessionTranscript: encodedSessionTranscript
         )
     }

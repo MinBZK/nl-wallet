@@ -1,5 +1,4 @@
 import Foundation
-@preconcurrency import Multipaz
 
 extension CloseProximityDisclosure {
     internal func isBleServerActiveForTesting() -> Bool {
@@ -73,7 +72,7 @@ extension CloseProximityDisclosure {
         for session: CloseProximityDisclosureActiveSession
     ) {
         mutateActiveSessionState(session) { sessionState in
-            sessionState.sessionEncryption = readerSessionContext.sessionEncryption
+            sessionState.sessionCrypto = readerSessionContext.sessionCrypto
             sessionState.encodedSessionTranscript = readerSessionContext.encodedSessionTranscript
         }
     }
@@ -154,19 +153,9 @@ extension Error {
     }
 }
 
-extension KotlinByteArray {
-    var isEmpty: Bool {
-        size == 0
-    }
-
-    func uint8Array() -> [UInt8] {
-        (0..<Int(size)).map { index in
-            UInt8(bitPattern: get(index: Int32(index)))
-        }
-    }
-
+extension Array where Element == UInt8 {
     func base64UrlEncodedString() -> String {
-        Data(uint8Array())
+        Data(self)
             .base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")
@@ -174,32 +163,28 @@ extension KotlinByteArray {
     }
 }
 
-extension Array where Element == UInt8 {
-    func kotlinByteArray() -> KotlinByteArray {
-        let byteArray = KotlinByteArray(size: Int32(count))
-        for (index, byte) in enumerated() {
-            byteArray.set(index: Int32(index), value: Int8(bitPattern: byte))
-        }
-        return byteArray
+extension UUID {
+    var uint8Array: [UInt8] {
+        withUnsafeBytes(of: uuid) { Array($0) }
     }
 }
 
-extension NSNumber {
+extension Int64 {
     var asCloseProximityDisclosureUpdate: CloseProximityDisclosureUpdate {
-        switch int64Value {
-        case Constants.shared.SESSION_DATA_STATUS_SESSION_TERMINATION:
+        switch self {
+        case CloseProximitySessionStatusCode.termination:
             return .closed
-        case Constants.shared.SESSION_DATA_STATUS_ERROR_SESSION_ENCRYPTION:
+        case CloseProximitySessionStatusCode.sessionEncryptionError:
             return errorUpdate(
                 "Reader terminated the session with status 10 (session encryption error)"
             )
-        case Constants.shared.SESSION_DATA_STATUS_ERROR_CBOR_DECODING:
+        case CloseProximitySessionStatusCode.cborDecodingError:
             return errorUpdate(
                 "Reader terminated the session with status 11 (CBOR decoding error)"
             )
         default:
             return errorUpdate(
-                "Reader terminated the session with unexpected status \(int64Value)"
+                "Reader terminated the session with unexpected status \(self)"
             )
         }
     }

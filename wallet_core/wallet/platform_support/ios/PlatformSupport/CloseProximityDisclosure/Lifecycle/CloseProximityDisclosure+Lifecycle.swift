@@ -1,6 +1,5 @@
 import CoreBluetooth
 import Foundation
-@preconcurrency import Multipaz
 
 extension CloseProximityDisclosure {
     func startQrHandoverLocked(channel: CloseProximityDisclosureChannel) async throws -> String {
@@ -21,50 +20,20 @@ extension CloseProximityDisclosure {
     func createSession(
         channel: CloseProximityDisclosureChannel
     ) async throws -> CloseProximityDisclosureActiveSession {
-        let eDeviceKey = Crypto.shared.createEcPrivateKey(curve: .p256)
-        let connectionMethod = buildConnectionMethod()
+        let serviceUuid = testingPeripheralServerModeUuid ?? UUID()
+        let qrSessionSetup = try closeProximityCreateQrSessionSetup(
+            peripheralServerUuid: serviceUuid.uint8Array
+        )
         let transport = CloseProximityBleTransport(
-            serviceUuid: CBUUID(
-                string: String(describing: connectionMethod.peripheralServerModeUuid!)
-            )
+            serviceUuid: CBUUID(string: serviceUuid.uuidString)
         )
         try await transport.advertise()
-        let encodedDeviceEngagement = createEncodedDeviceEngagement(
-            eDeviceKey: eDeviceKey,
-            connectionMethod: connectionMethod
-        )
         return CloseProximityDisclosureActiveSession(
             channel: channel,
             transport: transport,
-            eDeviceKey: eDeviceKey,
-            encodedDeviceEngagement: encodedDeviceEngagement
+            eDevicePrivateKey: qrSessionSetup.eDevicePrivateKey,
+            encodedDeviceEngagement: qrSessionSetup.encodedDeviceEngagement
         )
-    }
-
-    func buildConnectionMethod() -> MdocConnectionMethodBle {
-        MdocConnectionMethodBle(
-            supportsPeripheralServerMode: true,
-            supportsCentralClientMode: false,
-            peripheralServerModeUuid: testingPeripheralServerModeUuid
-                ?? Multipaz.UUID.companion.randomUUID(),
-            centralClientModeUuid: nil,
-            peripheralServerModePsm: nil,
-            // iOS does not expose the local BLE MAC address to apps.
-            peripheralServerModeMacAddress: nil
-        )
-    }
-
-    func createEncodedDeviceEngagement(
-        eDeviceKey: EcPrivateKey,
-        connectionMethod: MdocConnectionMethodBle
-    ) -> KotlinByteArray {
-        let deviceEngagement = buildDeviceEngagement(
-            eDeviceKey: eDeviceKey.publicKey,
-            version: "1.0"
-        ) { builder in
-            builder.addConnectionMethod(connectionMethod: connectionMethod)
-        }
-        return Cbor.shared.encode(item: deviceEngagement.toDataItem())
     }
 
     func startConnectionTask(_ session: CloseProximityDisclosureActiveSession) {

@@ -1,5 +1,4 @@
 import Foundation
-@preconcurrency import Multipaz
 
 extension CloseProximityDisclosure {
     func receiveMessages(
@@ -35,7 +34,7 @@ extension CloseProximityDisclosure {
 
     private func ensureReaderSessionContext(
         session: CloseProximityDisclosureActiveSession,
-        message: KotlinByteArray
+        message: [UInt8]
     ) async -> CloseProximityDisclosureReaderSessionContext? {
         if let readerSessionContext = readerSessionContext(for: session) {
             return readerSessionContext
@@ -59,36 +58,23 @@ extension CloseProximityDisclosure {
     }
 
     private func buildEncodedSessionTranscript(
-        encodedDeviceEngagement: KotlinByteArray,
-        encodedReaderKey: KotlinByteArray
-    ) -> KotlinByteArray {
-        Cbor.shared.encode(
-            item: CborArrayKt.buildCborArray { builder in
-                builder.add(
-                    item: Tagged(
-                        tagNumber: Tagged.companion.ENCODED_CBOR,
-                        taggedItem: Bstr(value: encodedDeviceEngagement)
-                    )
-                )
-                builder.add(
-                    item: Tagged(
-                        tagNumber: Tagged.companion.ENCODED_CBOR,
-                        taggedItem: Bstr(value: encodedReaderKey)
-                    )
-                )
-                builder.add(item: Simple.companion.NULL)
-            }
+        encodedDeviceEngagement: [UInt8],
+        encodedReaderKey: [UInt8]
+    ) throws -> [UInt8] {
+        try closeProximityBuildSessionTranscript(
+            encodedDeviceEngagement: encodedDeviceEngagement,
+            encodedReaderKey: encodedReaderKey
         )
     }
 
     private func waitForSessionMessage(
         session: CloseProximityDisclosureActiveSession
-    ) async throws -> KotlinByteArray? {
+    ) async throws -> [UInt8]? {
         let incomingMessage = try await session.transport.waitForMessage()
 
         switch incomingMessage {
         case .payload(let message):
-            return message.kotlinByteArray()
+            return message
         case .endOfStream:
             await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
             return nil
@@ -97,18 +83,17 @@ extension CloseProximityDisclosure {
 
     private func createReaderSessionContextFromFirstReaderMessage(
         session: CloseProximityDisclosureActiveSession,
-        message: KotlinByteArray
+        message: [UInt8]
     ) throws -> CloseProximityDisclosureReaderSessionContext {
-        let eReaderKey = try SessionEncryption.companion.getEReaderKey(sessionEstablishmentMessage: message)
-        let encodedSessionTranscript = buildEncodedSessionTranscript(
+        let eReaderKey = try closeProximityGetEReaderKey(sessionEstablishmentMessage: message)
+        let encodedSessionTranscript = try buildEncodedSessionTranscript(
             encodedDeviceEngagement: session.encodedDeviceEngagement,
             encodedReaderKey: eReaderKey.encodedCoseKey
         )
         return CloseProximityDisclosureReaderSessionContext(
-            sessionEncryption: SessionEncryption(
-                role: .mdoc,
-                eSelfKey: session.eDeviceKey,
-                remotePublicKey: eReaderKey.publicKey,
+            sessionCrypto: try CloseProximitySessionCrypto(
+                eDevicePrivateKey: session.eDevicePrivateKey,
+                encodedReaderKey: eReaderKey.encodedCoseKey,
                 encodedSessionTranscript: encodedSessionTranscript
             ),
             encodedSessionTranscript: encodedSessionTranscript
@@ -117,17 +102,15 @@ extension CloseProximityDisclosure {
 
     private func handleReaderMessage(
         session: CloseProximityDisclosureActiveSession,
-        message: KotlinByteArray,
+        message: [UInt8],
         readerSessionContext: CloseProximityDisclosureReaderSessionContext
     ) async throws -> Bool {
-        let deviceRequest: KotlinByteArray?
-        let status: NSNumber?
+        let deviceRequest: [UInt8]?
+        let status: Int64?
         do {
-            let decryptedMessage = readerSessionContext.sessionEncryption.decryptMessage(
-                messageData: message
-            )
-            deviceRequest = decryptedMessage.first
-            status = decryptedMessage.second
+            let decryptedMessage = try readerSessionContext.sessionCrypto.decrypt(message: message)
+            deviceRequest = decryptedMessage.data
+            status = decryptedMessage.status
         } catch {
             if let status = sessionMessageFailureStatus(for: error) {
                 await failSessionWithStatus(
@@ -149,8 +132,8 @@ extension CloseProximityDisclosure {
             if isActiveSession(session) {
                 try await session.channel.sendUpdate(
                     update: CloseProximityDisclosureUpdate.sessionEstablished(
-                        sessionTranscript: readerSessionContext.encodedSessionTranscript.uint8Array(),
-                        deviceRequest: deviceRequest.uint8Array()
+                        sessionTranscript: readerSessionContext.encodedSessionTranscript,
+                        deviceRequest: deviceRequest
                     )
                 )
             }
@@ -171,7 +154,7 @@ extension CloseProximityDisclosure {
         // wallet core both observe a deterministic close proximity failure.
         if isActiveSession(session) {
             try? await session.transport.sendMessage(
-                message: SessionEncryption.companion.encodeStatus(statusCode: status).uint8Array()
+                message: try closeProximityEncodeSessionStatus(statusCode: status)
             )
         }
         await failSession(session, error: error)
@@ -179,21 +162,20 @@ extension CloseProximityDisclosure {
 }
 
 private func sessionEstablishmentFailureStatus(for error: Error) -> Int64? {
-    switch error {
-    case is KotlinIllegalArgumentException, is KotlinIllegalStateException:
-        return Int64(Constants.shared.SESSION_DATA_STATUS_ERROR_CBOR_DECODING)
-    default:
-        return nil
-    }
+    (error as? CloseProximitySessionCryptoError)?.closeProximityStatusCode
 }
 
 private func sessionMessageFailureStatus(for error: Error) -> Int64? {
-    switch error {
-    case is KotlinIllegalArgumentException:
-        return Int64(Constants.shared.SESSION_DATA_STATUS_ERROR_CBOR_DECODING)
-    case is KotlinIllegalStateException:
-        return Int64(Constants.shared.SESSION_DATA_STATUS_ERROR_SESSION_ENCRYPTION)
-    default:
-        return nil
+    (error as? CloseProximitySessionCryptoError)?.closeProximityStatusCode
+}
+
+private extension CloseProximitySessionCryptoError {
+    var closeProximityStatusCode: Int64 {
+        switch self {
+        case .CborDecoding:
+            CloseProximitySessionStatusCode.cborDecodingError
+        case .SessionEncryption, .Other:
+            CloseProximitySessionStatusCode.sessionEncryptionError
+        }
     }
 }
