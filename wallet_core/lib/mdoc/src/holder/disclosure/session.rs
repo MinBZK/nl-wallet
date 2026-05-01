@@ -354,15 +354,14 @@ mod tests {
     use p256::ecdsa::VerifyingKey;
     use p256::elliptic_curve::sec1::ToEncodedPoint;
 
-    use crate::iso::engagement::SessionTranscript;
-    use crate::utils::cose::CoseKey;
-    use crate::utils::serialization::TaggedBytes;
-
     use super::EReaderKeyBytes;
     use super::SessionEncryption;
     use super::SessionRole;
     use super::SessionStatus;
     use super::extract_e_reader_key;
+    use crate::iso::engagement::SessionTranscript;
+    use crate::utils::cose::CoseKey;
+    use crate::utils::serialization::TaggedBytes;
 
     fn secret_key(byte: u8) -> p256::SecretKey {
         p256::SecretKey::from_slice(&[byte; 32]).unwrap()

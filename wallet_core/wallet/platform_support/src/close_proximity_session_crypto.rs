@@ -7,6 +7,8 @@
 //! - translate between raw bytes and typed `mdoc` values
 //! - map `mdoc` errors onto the stable FFI error surface expected by native code
 
+use std::fmt::Display;
+
 use mdoc::holder::disclosure::SessionEncryption;
 use mdoc::holder::disclosure::SessionEncryptionError;
 use mdoc::holder::disclosure::SessionRole;
@@ -33,7 +35,6 @@ use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::sec1::ToEncodedPoint;
 use rand::rngs::OsRng;
 use serde_bytes::ByteBuf;
-use std::fmt::Display;
 
 const BLE_RETRIEVAL_METHOD_TYPE: u64 = 2;
 const BLE_UUID_LEN: usize = 16;
