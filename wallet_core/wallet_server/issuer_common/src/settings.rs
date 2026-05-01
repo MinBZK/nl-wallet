@@ -24,6 +24,7 @@ use openid4vc::issuer::CredentialConfiguration;
 use openid4vc::issuer::CredentialConfigurations;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use rustls_pki_types::TrustAnchor;
+use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use serde::Deserialize;
@@ -126,58 +127,121 @@ impl TryFrom<Vec<String>> for TypeMetadataByVct {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum TypeMetadataDocumentsError {
+    #[error("maximum chain length exceeded")]
+    MaximumLengthExceeded,
+
+    #[error("missing metadata document for vct: {0}")]
+    MissingDocument(String),
+}
+
+impl TypeMetadataByVct {
+    /// Collect a chain of SD-JWT VC type metadata JSON from the configured files.
+    fn to_metadata_documents(&self, vct: &str) -> Result<TypeMetadataDocuments, TypeMetadataDocumentsError> {
+        const MAX_CHAIN_LENGTH: usize = 100;
+
+        let Self(metadata_by_vct) = self;
+
+        let mut documents = Vec::with_capacity(1);
+        let mut chain_length = 0;
+        let mut next_vct = Some(vct);
+
+        while let Some(vct) = next_vct {
+            chain_length += 1;
+            if chain_length == MAX_CHAIN_LENGTH {
+                return Err(TypeMetadataDocumentsError::MaximumLengthExceeded);
+            }
+
+            let (metadata_document, metadata_json) = metadata_by_vct
+                .get(vct)
+                .ok_or_else(|| TypeMetadataDocumentsError::MissingDocument(vct.to_string()))?;
+
+            documents.push(metadata_json.clone());
+
+            next_vct = metadata_document
+                .extends
+                .as_ref()
+                .map(|extends| extends.extends.as_str());
+        }
+
+        // This `.unwrap()` is guaranteed to succeed as the `while` loop above runs at least once.
+        let metadata_documents = TypeMetadataDocuments::new(documents.try_into().unwrap());
+
+        Ok(metadata_documents)
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum CredentialConfigurationsSettingsError {
+    #[error("invalid certificate: {0}")]
+    CertificateSanDns(#[from] CertificateError),
+
+    #[error("invalid private key: {0}")]
+    PrivateKey(#[source] PrivateKeySettingsError),
+
+    #[error("could not compile SD-JWT VC Type Metadata chain: {0}")]
+    TypeMetadataChain(#[source] TypeMetadataDocumentsError),
+
+    #[error("type metadata is not valid for normalization: {0}")]
+    TypeMetadataNormalization(#[source] TypeMetadataChainError),
+}
+
 impl CredentialConfigurationsSettings {
     pub async fn parse(
         self,
         hsm: &Option<Pkcs11Hsm>,
-        metadata: &TypeMetadataByVct,
-    ) -> Result<CredentialConfigurations<PrivateKeyVariant>, PrivateKeySettingsError> {
-        let issuer_keys = join_all(self.0.into_iter().map(|(typ, attestation)| {
-            async move {
-                // Take the SAN from the settings if specified, or otherwise take the first SAN from the certificate.
-                // NB: the settings validation function will have verified before this that the certificate contains
-                // just one SAN.
-                let issuer_uri = attestation
-                    .certificate_san
-                    .map(Ok::<_, CertificateError>) // Make it a result as the next closure is fallible
-                    .unwrap_or_else(|| Ok(attestation.keypair.certificate.san_dns_name_or_uris()?.first().clone()))?;
+        metadata_by_vct: &TypeMetadataByVct,
+    ) -> Result<CredentialConfigurations<PrivateKeyVariant>, CredentialConfigurationsSettingsError> {
+        let issuer_keys =
+            join_all(self.0.into_iter().map(|(typ, attestation)| {
+                async move {
+                    // Take the SAN from the settings if specified, or otherwise take the first SAN from the
+                    // certificate. NB: the settings validation function will have verified before
+                    // this that the certificate contains just one SAN.
+                    let issuer_uri = match attestation.certificate_san {
+                        Some(san) => san,
+                        None => {
+                            let san_dns_name_or_uris = attestation
+                                .keypair
+                                .certificate
+                                .san_dns_name_or_uris()
+                                .map_err(CredentialConfigurationsSettingsError::CertificateSanDns)?;
 
-                // Collect the chain of SD-JWT VC type metadata JSON from the configured files.
-                let mut documents = Vec::with_capacity(1);
-                let mut iter_typ = Some(typ.as_str());
+                            san_dns_name_or_uris.first().clone()
+                        }
+                    };
 
-                while let Some(chain_typ) = iter_typ {
-                    let (metadata_document, metadata_json) = metadata
-                        .as_ref()
-                        .get(chain_typ)
-                        .ok_or_else(|| PrivateKeySettingsError::MissingMetadata(chain_typ.to_string()))?;
+                    let metadata_documents = metadata_by_vct
+                        .to_metadata_documents(&typ)
+                        .map_err(CredentialConfigurationsSettingsError::TypeMetadataChain)?;
 
-                    documents.push(metadata_json.clone());
-                    iter_typ = metadata_document
-                        .extends
-                        .as_ref()
-                        .map(|extends| extends.extends.as_str());
+                    let key_pair = attestation
+                        .keypair
+                        .parse(hsm.clone())
+                        .await
+                        .map_err(CredentialConfigurationsSettingsError::PrivateKey)?;
+
+                    let config = CredentialConfiguration::try_new(
+                        &typ,
+                        key_pair,
+                        Days::new(attestation.valid_days),
+                        attestation.copies_per_format,
+                        issuer_uri,
+                        attestation.attestation_qualification,
+                        metadata_documents,
+                    )
+                    .map_err(CredentialConfigurationsSettingsError::TypeMetadataNormalization)?;
+
+                    Ok((typ, config))
                 }
-
-                // This `.unwrap()` is guaranteed to succeed because we are supplying at least one entry.
-                let metadata_documents = TypeMetadataDocuments::new(documents.try_into().unwrap());
-
-                let config = CredentialConfiguration::try_new(
-                    &typ,
-                    attestation.keypair.parse(hsm.clone()).await?,
-                    Days::new(attestation.valid_days),
-                    attestation.copies_per_format,
-                    issuer_uri,
-                    attestation.attestation_qualification,
-                    metadata_documents,
-                )?;
-
-                Ok((typ, config))
-            }
-        }))
-        .await
-        .into_iter()
-        .collect::<Result<HashMap<String, CredentialConfiguration<PrivateKeyVariant>>, PrivateKeySettingsError>>()?;
+            }))
+            .await
+            .into_iter()
+            .collect::<Result<
+                HashMap<String, CredentialConfiguration<PrivateKeyVariant>>,
+                CredentialConfigurationsSettingsError,
+            >>()?;
 
         Ok(issuer_keys.into())
     }
