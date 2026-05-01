@@ -75,9 +75,12 @@ async-trait.workspace = true
 derive_more = { workspace = true, features = ["debug"] }
 p256 = { workspace = true, features = ["pkcs8"] }
 parking_lot.workspace = true
+rand.workspace = true
+serde_bytes.workspace = true
 thiserror.workspace = true
 trait-variant.workspace = true
 uniffi.workspace = true
+mdoc.path = "../../lib/mdoc"
 
 aes-gcm = { workspace = true, optional = true }
 assert_matches = { workspace = true, optional = true }

@@ -4492,6 +4492,7 @@ dependencies = [
 name = "mdoc"
 version = "0.6.0-dev"
 dependencies = [
+ "aes-gcm",
  "assert_matches",
  "attestation_types",
  "base64 0.22.1",
@@ -4512,6 +4513,7 @@ dependencies = [
  "nom 8.0.0",
  "nutype",
  "p256",
+ "parking_lot",
  "rand_core 0.6.4",
  "regex",
  "ring",
@@ -5774,12 +5776,15 @@ dependencies = [
  "futures",
  "jni",
  "log",
+ "mdoc",
  "mockall",
  "p256",
  "parking_lot",
+ "rand 0.8.5",
  "rand_core 0.6.4",
  "rustls-pki-types",
  "serde",
+ "serde_bytes",
  "serde_json",
  "serde_with",
  "thiserror 2.0.17",
