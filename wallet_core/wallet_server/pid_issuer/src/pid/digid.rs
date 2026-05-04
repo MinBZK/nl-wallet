@@ -11,16 +11,18 @@ use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweRsaPrivateKey;
 use jwe::error::RsaPrivateJwkError;
 use jwk_simple::Key;
+use jwt::nonce::Nonce;
+use openid4vc::authorization::AuthorizationRequest;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::oauth_metadata::OidcProviderMetadata;
 use openid4vc::metadata::well_known;
 use openid4vc::metadata::well_known::WellKnownError;
 use openid4vc::metadata::well_known::WellKnownPath;
 use openid4vc::token::TokenRequest;
-use openid4vc_server::issuer::UpstreamAuthorizationContext;
-use openid4vc_server::issuer::UpstreamAuthorizationEndpointResolver;
+use openid4vc_server::issuer::UpstreamAuthorizationAdapter;
 use openid4vc_server::issuer::UpstreamResolveError;
 use tokio::sync::OnceCell;
+use url::Url;
 
 use crate::pid::userinfo;
 use crate::pid::userinfo::UserInfo;
@@ -83,15 +85,15 @@ impl DigidMetadataCache {
     }
 }
 
-/// Implements [`UpstreamAuthorizationEndpointResolver`] by performing OIDC discovery against the configured
+/// Implements [`UpstreamAuthorizationAdapter`] by performing OIDC discovery against the configured
 /// upstream issuer on the first call. The discovery result is cached in the shared
 /// [`DigidMetadataCache`] for the lifetime of the process.
-pub struct DigidAuthorizationEndpointResolver {
+pub struct DigidAuthorizationAdapter {
     cache: Arc<DigidMetadataCache>,
     client_id: String,
 }
 
-impl DigidAuthorizationEndpointResolver {
+impl DigidAuthorizationAdapter {
     pub fn new(cache: Arc<DigidMetadataCache>, client_id: impl Into<String>) -> Self {
         Self {
             cache,
@@ -101,22 +103,29 @@ impl DigidAuthorizationEndpointResolver {
 }
 
 #[async_trait]
-impl UpstreamAuthorizationEndpointResolver for DigidAuthorizationEndpointResolver {
-    async fn resolve(&self) -> Result<UpstreamAuthorizationContext, UpstreamResolveError> {
+impl UpstreamAuthorizationAdapter for DigidAuthorizationAdapter {
+    async fn adapt(
+        &self,
+        mut request: AuthorizationRequest,
+    ) -> Result<(Url, AuthorizationRequest), UpstreamResolveError> {
         let metadata = self
             .cache
             .metadata()
             .await
             .map_err(|e| UpstreamResolveError::Discovery(Box::new(e)))?;
+
         let authorization_endpoint = metadata
             .authorization_endpoint
             .clone()
             .ok_or(UpstreamResolveError::NoAuthorizationEndpoint)?;
-        Ok(UpstreamAuthorizationContext {
-            authorization_endpoint,
-            client_id: self.client_id.clone(),
-            scopes: IndexSet::from_iter([String::from("openid")]),
-        })
+
+        request.client_id = self.client_id.clone();
+        request.scope = Some(IndexSet::from_iter([String::from("openid")]));
+        // nl-rdo-max requires a `nonce` on the upstream authorization request, although it is not
+        // mandated by the OAuth/OIDC spec.
+        request.nonce = Some(Nonce::new_random());
+
+        Ok((authorization_endpoint, request))
     }
 }
 

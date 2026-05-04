@@ -21,7 +21,7 @@ The `PID Issuer` process is assembled from three crates:
     - `issuer::AttributeService` — the trait that produces the attributes to be
       issued given a `TokenRequest`.
     - `issuer::Issuer` — the protocol state machine: verifies token/credential
-      requests, drives the session, calls into the `AttributeService`, mints
+      requests, drives the session, calls into the `AttributeService`, generates
       access tokens, etc. With decoupled PKCE, `process_token_request` accepts
       an `upstream_creds` parameter that it forwards verbatim to the
       `AttributeService` — the `Issuer` never inspects or interprets the value.
@@ -41,23 +41,26 @@ The `PID Issuer` process is assembled from three crates:
       `/issuance/credential`, and `/issuance/credential_preview` (an extension
       we support on top of the spec).
     - `issuer::ApplicationState` bundles the `Issuer`, the `ParStore`, the
-      `PkceFlowStore`, the optional upstream resolver, and the accepted wallet
+      `PkceFlowStore`, the optional upstream adapter, and the accepted wallet
       `client_id`s. Both `/authorize` (write) and `/token` (consume) consult the
       `PkceFlowStore` to bridge the decoupled wallet/upstream PKCE pairs.
-    - `issuer::UpstreamAuthorizationEndpointResolver` +
-      `issuer::UpstreamAuthorizationContext` — the extension point the
-      `/authorize` handler uses to find the upstream OIDC provider and which
-      `client_id` to present to it.
+    - `issuer::UpstreamAuthorizationAdapter` — the extension point the
+      `/authorize` handler uses to resolve the upstream authorization endpoint
+      and rewrite the wallet's `AuthorizationRequest` into one the upstream
+      provider accepts. Letting the implementer own the full request mutation
+      keeps non-standard quirks (e.g. nl-rdo-max requires a `nonce`) out of the
+      generic handler.
 
 - **`wallet_core/wallet_server/pid_issuer`** — the PID-specific concretions:
     - `pid::attributes::BrpPidAttributeService` — implements `AttributeService`
       by obtaining the BSN via DigiD and then looking up attributes in the BRP.
     - `pid::digid::DigidMetadataCache` — fetches and holds the upstream OIDC
-      discovery document; shared between the resolver and `OpenIdClient`.
-    - `pid::digid::DigidAuthorizationEndpointResolver` — implements
-      `UpstreamAuthorizationEndpointResolver`; consults the `DigidMetadataCache`
-      to resolve the upstream `authorization_endpoint` and returns the DigiD
-      `client_id`.
+      discovery document; shared between the adapter and `OpenIdClient`.
+    - `pid::digid::DigidAuthorizationAdapter` — implements
+      `UpstreamAuthorizationAdapter`; consults the `DigidMetadataCache` to
+      resolve the upstream `authorization_endpoint`, rewrites the wallet's
+      `client_id` to the DigiD `client_id`, sets `scope=openid`, and adds a
+      fresh random `nonce` (required by nl-rdo-max).
     - `pid::digid::OpenIdClient` — drives the upstream token + userinfo exchange
       via `pid::userinfo::request_userinfo`: POST to RDO Max's `/token`, GET
       `/userinfo` as a signed-and-encrypted JWT, fetch the JWKS in parallel (via
@@ -84,12 +87,12 @@ flowchart TB
     subgraph ovcs["openid4vc_server (HTTP wiring)"]
         Router["create_issuance_router<br/>axum handlers for<br/>/par, /authorize, /token,<br/>/nonce, /credential,<br/>/.well-known/*"]
         AppState["ApplicationState"]
-        Upstream_trait["trait UpstreamAuthorizationEndpointResolver"]
+        Upstream_trait["trait UpstreamAuthorizationAdapter"]
     end
 
     subgraph pidi["pid_issuer (PID-specific)"]
         BrpAttr["BrpPidAttributeService"]
-        DigidResolver["DigidAuthorizationEndpointResolver"]
+        DigidAdapter["DigidAuthorizationAdapter"]
         OpenIdClient["OpenIdClient"]
         DigidCache["DigidMetadataCache<br/>(holds OIDC metadata)"]
         BrpClient["HttpBrpClient"]
@@ -112,12 +115,12 @@ flowchart TB
     MemPkce -.implements.-> PkceStore_trait
 
     BrpAttr -.implements.-> AS_trait
-    DigidResolver -.implements.-> Upstream_trait
+    DigidAdapter -.implements.-> Upstream_trait
 
     BrpAttr -->|owns| OpenIdClient
     BrpAttr -->|owns| BrpClient
     OpenIdClient -->|shares Arc| DigidCache
-    DigidResolver -->|shares Arc| DigidCache
+    DigidAdapter -->|shares Arc| DigidCache
 
     DigidCache -->|GET /.well-known/<br/>openid-configuration| RDO
     OpenIdClient -->|POST /token,<br/>GET /userinfo,<br/>GET jwks_uri| RDO
@@ -130,9 +133,9 @@ Two extension points are worth noting:
   implementation is how the generic `issuance_server` (disclosure-based
   issuance) reuses the same `openid4vc_server` handlers. The `/token` handler
   doesn't know what a BSN is.
-- `UpstreamAuthorizationEndpointResolver` — plugs in the upstream OIDC provider.
-  Today the only implementor is `DigidAuthorizationEndpointResolver`; a
-  different IdP would get a sibling implementation here.
+- `UpstreamAuthorizationAdapter` — plugs in the upstream OIDC provider. Today
+  the only implementor is `DigidAuthorizationAdapter`; a different IdP would get
+  a sibling implementation here.
 
 State lives behind the four `*Store` traits. The in-memory variants shown here
 can all be replaced by stateful variants.
@@ -150,7 +153,7 @@ sequenceDiagram
 
     participant W as Wallet
     participant H as handler<br/>(openid4vc_server)
-    participant R as DigidAuthorizationEndpointResolver
+    participant R as DigidAuthorizationAdapter
     participant P as ParStore
     participant F as PkceFlowStore
     participant I as Issuer<br/>(openid4vc)
@@ -171,16 +174,16 @@ sequenceDiagram
 
     W->>H: GET /authorize?client_id,request_uri
     H->>H: validate client_id
-    H->>R: resolve()
-    R->>RDO: GET /.well-known/openid-configuration
-    RDO->>R: OidcProviderMetadata
-    R->>H: UpstreamAuthorizationContext<br/>(authorization_endpoint,<br/>DigiD client_id)
     H->>P: consume(request_uri)
     P->>H: AuthorizationRequest<br/>(including wallet code_challenge c1)
-    H->>H: rewrite authorization_request.client_id<br/>to DigiD client_id
     H->>H: generate upstream PKCE pair (v2, c2),<br/>rewrite code_challenge and<br/>code_challenge_method to (c2, S256)
     H->>F: store(c1, v2)
     F->>H: ok
+    H->>R: adapt(authorization_request)
+    R->>RDO: GET /.well-known/openid-configuration<br/>(cached after first call)
+    RDO->>R: OidcProviderMetadata
+    R->>R: rewrite client_id to DigiD client_id,<br/>set scope=openid,<br/>add fresh random nonce
+    R->>H: (authorization_endpoint,<br/>rewritten AuthorizationRequest)
     H->>W: 302 Location: upstream /authorize?...
 
     Note over W,BRP: POST /issuance/token
@@ -220,11 +223,16 @@ A few things the extended diagram makes visible:
   called on `/authorize`, `PkceFlowStore::consume` is called on `/token`, and
   the `SessionStore<IssuanceData>` load happens only inside the `Issuer` on
   `/token`.
+- **Where the upstream-specific request mutation lives.** Everything the
+  upstream provider needs that the wallet's request doesn't carry — DigiD's
+  `client_id`, `scope=openid`, and the random `nonce` nl-rdo-max requires — is
+  applied inside `DigidAuthorizationAdapter::adapt`, not in the
+  `openid4vc_server` handler. The handler only validates the wallet's
+  `client_id`, drives PAR consumption, and forwards what the adapter returns.
 - **How the upstream `client_id` is set in each phase.** On `/authorize` the
-  `openid4vc_server` handler rewrites the wallet's `client_id` to the upstream's
-  (`authorization_request.client_id = upstream_context.client_id`). On `/token`
-  there is no rewrite: `OpenIdClient` is constructed with the DigiD `client_id`
-  and uses it when building its own upstream `TokenRequest`. The wallet's
+  adapter rewrites the wallet's `client_id` to DigiD's. On `/token` there is
+  no rewrite: `OpenIdClient` is constructed with the DigiD `client_id` and
+  uses it when building its own upstream `TokenRequest`. The wallet's
   `TokenRequest.client_id` never reaches RDO Max.
 - **The PKCE decoupling** is symmetric with the `client_id` rewrite but flipped
   in ownership, and lives entirely in `openid4vc_server`. At `/authorize` the

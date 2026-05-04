@@ -62,6 +62,7 @@ health_checkers.path = "../../lib/health_checkers"
 hsm.path = "../../lib/hsm"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 jwe = { path = "../../lib/jwe", features = ["rsa"] }
+jwt.path = "../../lib/jwt"
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["issuance"] }
 utils.path = "../../lib/utils"

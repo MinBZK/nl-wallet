@@ -11,7 +11,7 @@ use issuer_common::nonce_store::ProofNonceStore;
 use issuer_common::settings::StatusListAttestationSettings;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
-use pid_issuer::pid::digid::DigidAuthorizationEndpointResolver;
+use pid_issuer::pid::digid::DigidAuthorizationAdapter;
 use pid_issuer::pid::digid::DigidMetadataCache;
 use pid_issuer::server;
 use pid_issuer::settings::PidIssuerSettings;
@@ -53,7 +53,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
 
     let digid_metadata_cache =
         Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings).map_err(anyhow::Error::from)?);
-    let upstream_authorization_resolver = Arc::new(DigidAuthorizationEndpointResolver::new(
+    let upstream_authorization_adapter = Arc::new(DigidAuthorizationAdapter::new(
         Arc::clone(&digid_metadata_cache),
         settings.digid.client_id.clone(),
     ));
@@ -119,7 +119,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     // This will block until the server shuts down.
     server::serve(
         pid_attr_service,
-        upstream_authorization_resolver,
+        upstream_authorization_adapter,
         issuer_settings,
         hsm,
         sessions,

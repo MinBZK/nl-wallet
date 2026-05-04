@@ -27,7 +27,6 @@ use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::authorization::Credentials;
 use chrono::Utc;
 use crypto::keys::EcdsaKeySend;
-use indexmap::IndexSet;
 use openid4vc::CredentialErrorCode;
 use openid4vc::CredentialPreviewErrorCode;
 use openid4vc::ErrorResponse;
@@ -64,7 +63,7 @@ use token_status_list::status_list_service::StatusListServices;
 use tracing::warn;
 use url::Url;
 
-/// Error returned by [`UpstreamAuthorizationEndpointResolver::resolve`].
+/// Error returned by [`UpstreamAuthorizationAdapter::adapt`].
 #[derive(Debug, thiserror::Error)]
 pub enum UpstreamResolveError {
     #[error("upstream metadata discovery failed: {0}")]
@@ -74,28 +73,19 @@ pub enum UpstreamResolveError {
     NoAuthorizationEndpoint,
 }
 
-/// Returned by [`UpstreamAuthorizationEndpointResolver::resolve`].
-pub struct UpstreamAuthorizationContext {
-    /// Resolved upstream authorization endpoint URL, e.g. by performing OIDC discovery.
-    pub authorization_endpoint: Url,
-
-    /// The `client_id` used when forwarding the authorization request upstream.
-    pub client_id: String,
-
-    /// The `scopes` used when forwarding the authorization request upstream.
-    pub scopes: IndexSet<String>,
-}
-
-/// Resolves the upstream authorization endpoint URL and client_id, e.g. by performing OIDC discovery.
+/// Adapts the wallet's authorization request to what the upstream OIDC provider expects.
+///
+/// The implementer resolves the upstream authorization endpoint (e.g. via OIDC discovery)
+/// and rewrites the request.
 #[async_trait]
-pub trait UpstreamAuthorizationEndpointResolver: Send + Sync {
-    async fn resolve(&self) -> Result<UpstreamAuthorizationContext, UpstreamResolveError>;
+pub trait UpstreamAuthorizationAdapter: Send + Sync {
+    async fn adapt(&self, request: AuthorizationRequest) -> Result<(Url, AuthorizationRequest), UpstreamResolveError>;
 }
 
 struct ApplicationState<K, A, S, N, L, P> {
     issuer: Arc<Issuer<K, A, S, N, L>>,
     par_store: Arc<P>,
-    upstream_authorization_resolver: Option<Arc<dyn UpstreamAuthorizationEndpointResolver>>,
+    upstream_authorization_adapter: Option<Arc<dyn UpstreamAuthorizationAdapter>>,
     accepted_wallet_client_ids: Vec<String>,
 }
 
@@ -106,7 +96,7 @@ impl<K, A, S, N, L, P> Clone for ApplicationState<K, A, S, N, L, P> {
         Self {
             issuer: self.issuer.clone(),
             par_store: self.par_store.clone(),
-            upstream_authorization_resolver: self.upstream_authorization_resolver.clone(),
+            upstream_authorization_adapter: self.upstream_authorization_adapter.clone(),
             accepted_wallet_client_ids: self.accepted_wallet_client_ids.clone(),
         }
     }
@@ -115,7 +105,7 @@ impl<K, A, S, N, L, P> Clone for ApplicationState<K, A, S, N, L, P> {
 pub fn create_issuance_router<K, A, S, N, L, P>(
     issuer: Arc<Issuer<K, A, S, N, L>>,
     par_store: Arc<P>,
-    upstream_authorization_resolver: Option<Arc<dyn UpstreamAuthorizationEndpointResolver>>,
+    upstream_authorization_adapter: Option<Arc<dyn UpstreamAuthorizationAdapter>>,
     accepted_wallet_client_ids: Vec<String>,
 ) -> Router
 where
@@ -129,7 +119,7 @@ where
     let application_state = ApplicationState {
         issuer,
         par_store,
-        upstream_authorization_resolver,
+        upstream_authorization_adapter,
         accepted_wallet_client_ids,
     };
 
@@ -428,26 +418,16 @@ where
         });
     }
 
-    let upstream_authorization_resolver =
-        state
-            .upstream_authorization_resolver
-            .clone()
-            .ok_or_else(|| ErrorResponse {
-                error: AuthorizeError::ServerError,
-                error_description: Some("no upstream authorization endpoint configured".to_string()),
-                error_uri: None,
-            })?;
-
-    let upstream_context = upstream_authorization_resolver.resolve().await.map_err(|error| {
-        warn!("resolving upstream authorization endpoint failed: {}", error);
-        ErrorResponse {
+    let upstream_authorization_adapter = state
+        .upstream_authorization_adapter
+        .clone()
+        .ok_or_else(|| ErrorResponse {
             error: AuthorizeError::ServerError,
-            error_description: Some(error.to_string()),
+            error_description: Some("no upstream authorization adapter configured".to_string()),
             error_uri: None,
-        }
-    })?;
+        })?;
 
-    let mut authorization_request = state
+    let authorization_request = state
         .par_store
         .consume(&request_uri)
         .await
@@ -465,11 +445,17 @@ where
             error_uri: None,
         })?;
 
-    // Rewrite the wallet client_id to the upstream (DigiD) client_id before forwarding.
-    authorization_request.client_id = upstream_context.client_id;
-
-    // Rwrite scopes to what the upstream expects.
-    authorization_request.scope = Some(upstream_context.scopes);
+    let (authorization_endpoint, authorization_request) = upstream_authorization_adapter
+        .adapt(authorization_request)
+        .await
+        .map_err(|error| {
+            warn!("adapting authorization request for upstream failed: {}", error);
+            ErrorResponse {
+                error: AuthorizeError::ServerError,
+                error_description: Some(error.to_string()),
+                error_uri: None,
+            }
+        })?;
 
     let query_string = serde_urlencoded::to_string(&authorization_request).map_err(|error| {
         warn!("encoding authorization request as query string failed: {}", error);
@@ -480,7 +466,7 @@ where
         }
     })?;
 
-    let mut redirect_url = upstream_context.authorization_endpoint;
+    let mut redirect_url = authorization_endpoint;
     redirect_url.set_query(Some(&query_string));
 
     Ok((StatusCode::FOUND, [(header::LOCATION, redirect_url.to_string())]).into_response())

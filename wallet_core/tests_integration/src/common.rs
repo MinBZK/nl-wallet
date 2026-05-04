@@ -52,7 +52,7 @@ use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
-use pid_issuer::pid::digid::DigidAuthorizationEndpointResolver;
+use pid_issuer::pid::digid::DigidAuthorizationAdapter;
 use pid_issuer::pid::digid::DigidMetadataCache;
 use pid_issuer::pid::mock::MockAttributeService;
 use pid_issuer::pid::mock::mock_issuable_document_pid;
@@ -912,7 +912,7 @@ pub async fn start_pid_issuer_server(
                 public_listener,
                 internal_listener,
                 attr_service,
-                Arc::new(DigidAuthorizationEndpointResolver::new(
+                Arc::new(DigidAuthorizationAdapter::new(
                     Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings).unwrap()),
                     settings.digid.client_id,
                 )),

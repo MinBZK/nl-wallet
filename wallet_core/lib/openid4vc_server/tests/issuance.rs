@@ -10,6 +10,7 @@ use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
 use indexmap::IndexSet;
+use openid4vc::authorization::AuthorizationRequest;
 use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
@@ -33,8 +34,7 @@ use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredential;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
-use openid4vc_server::issuer::UpstreamAuthorizationContext;
-use openid4vc_server::issuer::UpstreamAuthorizationEndpointResolver;
+use openid4vc_server::issuer::UpstreamAuthorizationAdapter;
 use openid4vc_server::issuer::UpstreamResolveError;
 use openid4vc_server::issuer::create_issuance_router;
 use p256::ecdsa::SigningKey;
@@ -49,13 +49,13 @@ use wscd::mock_remote::MockRemoteWscd;
 
 const MOCK_UPSTREAM_CLIENT_ID: &str = "mock_upstream_client_id";
 
-struct StaticAuthorizationEndpointResolver {
+struct StaticAuthorizationAdapter {
     url: Url,
     client_id: String,
     scopes: IndexSet<String>,
 }
 
-impl StaticAuthorizationEndpointResolver {
+impl StaticAuthorizationAdapter {
     fn new(url: Url) -> Self {
         Self {
             url,
@@ -66,13 +66,14 @@ impl StaticAuthorizationEndpointResolver {
 }
 
 #[async_trait::async_trait]
-impl UpstreamAuthorizationEndpointResolver for StaticAuthorizationEndpointResolver {
-    async fn resolve(&self) -> Result<UpstreamAuthorizationContext, UpstreamResolveError> {
-        Ok(UpstreamAuthorizationContext {
-            authorization_endpoint: self.url.clone(),
-            client_id: self.client_id.clone(),
-            scopes: self.scopes.clone(),
-        })
+impl UpstreamAuthorizationAdapter for StaticAuthorizationAdapter {
+    async fn adapt(
+        &self,
+        mut request: AuthorizationRequest,
+    ) -> Result<(Url, AuthorizationRequest), UpstreamResolveError> {
+        request.client_id = self.client_id.clone();
+        request.scope = Some(self.scopes.clone());
+        Ok((self.url.clone(), request))
     }
 }
 
@@ -118,13 +119,12 @@ async fn start_server(
     );
     let issuer = Arc::new(issuer);
 
-    let resolver = upstream_authorization_endpoint.map(|url| {
-        Arc::new(StaticAuthorizationEndpointResolver::new(url)) as Arc<dyn UpstreamAuthorizationEndpointResolver>
-    });
+    let adapter = upstream_authorization_endpoint
+        .map(|url| Arc::new(StaticAuthorizationAdapter::new(url)) as Arc<dyn UpstreamAuthorizationAdapter>);
     let router = create_issuance_router(
         Arc::clone(&issuer),
         par_store,
-        resolver,
+        adapter,
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
     );
     tokio::spawn(async move {

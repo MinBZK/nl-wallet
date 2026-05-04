@@ -2,7 +2,6 @@ use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use error_category::ErrorCategory;
 use http_utils::reqwest::HttpJsonClient;
-use jwt::nonce::Nonce;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use url::Url;
@@ -106,7 +105,6 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
     ) -> Result<Self, WalletIssuanceError> {
         let pkce_pair = P::generate();
         let state = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
-        let nonce = Nonce::new_random();
 
         let par_request = AuthorizationRequest {
             response_type: ResponseType::Code.into(),
@@ -118,7 +116,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
                 code_challenge: pkce_pair.code_challenge().to_string(),
             }),
             scope: None,
-            nonce: Some(nonce), // TODO (PVW-5572): remove. Is not part of openid4vci spec
+            nonce: None,
             response_mode: None,
         };
 

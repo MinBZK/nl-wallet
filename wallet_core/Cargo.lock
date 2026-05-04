@@ -5669,6 +5669,7 @@ dependencies = [
  "jsonwebtoken",
  "jwe",
  "jwk-simple",
+ "jwt",
  "openid4vc",
  "openid4vc_server",
  "p256",
