@@ -47,11 +47,7 @@ impl CloseProximitySessionCrypto {
         ios_session_crypto_unimplemented()
     }
 
-    pub fn encrypt(
-        &self,
-        _plaintext: Vec<u8>,
-        _status_code: i64,
-    ) -> Result<Vec<u8>, CloseProximitySessionCryptoError> {
+    pub fn encrypt(&self, _plaintext: Vec<u8>, _status_code: i64) -> Result<Vec<u8>, CloseProximitySessionCryptoError> {
         ios_session_crypto_unimplemented()
     }
 }

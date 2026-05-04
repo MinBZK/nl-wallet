@@ -31,6 +31,7 @@ use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_repr::Deserialize_repr;
 use serde_repr::Serialize_repr;
+use serde_with::skip_serializing_none;
 
 use crate::iso::engagement::EReaderKeyBytes;
 use crate::iso::engagement::SessionTranscript;
@@ -62,14 +63,14 @@ pub enum SessionRole {
 }
 
 impl SessionRole {
-    fn encryption_iv_identifier(self) -> u32 {
+    fn encryption_iv_identifier(&self) -> u32 {
         match self {
             SessionRole::Mdoc => 1,
             SessionRole::Reader => 0,
         }
     }
 
-    fn decryption_iv_identifier(self) -> u32 {
+    fn decryption_iv_identifier(&self) -> u32 {
         match self {
             SessionRole::Mdoc => 0,
             SessionRole::Reader => 1,
@@ -136,12 +137,13 @@ pub enum SessionEncryptionError {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[skip_serializing_none]
 struct SessionData {
-    #[serde(default, rename = "eReaderKey", skip_serializing_if = "Option::is_none")]
+    #[serde(default, rename = "eReaderKey")]
     e_reader_key: Option<EReaderKeyBytes>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     data: Option<ByteBuf>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     status: Option<SessionStatus>,
 }
 
