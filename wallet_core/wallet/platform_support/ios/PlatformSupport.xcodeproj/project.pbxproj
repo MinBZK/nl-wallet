@@ -15,7 +15,6 @@
 		4FBB41E42F9A0DBD0016E96E /* CloseProximityBleTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FBB41D32F9A0DBD0016E96E /* CloseProximityBleTransport.swift */; };
 		4FBB41E52F9A0DBD0016E96E /* CloseProximityDisclosure.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FBB41D52F9A0DBD0016E96E /* CloseProximityDisclosure.swift */; };
 		4FBB41E62F9A0DBD0016E96E /* CloseProximityDisclosure+Lifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FBB41D92F9A0DBD0016E96E /* CloseProximityDisclosure+Lifecycle.swift */; };
-		611A828A2F62DE7B00DDB6B5 /* Multipaz in Frameworks */ = {isa = PBXBuildFile; productRef = 611A82892F62DE7B00DDB6B5 /* Multipaz */; };
 		6133004629A8E350004D9CC7 /* libPlatformSupport.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 61F5335E29A8AB4100624E46 /* libPlatformSupport.a */; };
 		6133004D29A8E38B004D9CC7 /* SecureEnclaveKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6133004C29A8E38B004D9CC7 /* SecureEnclaveKeyTests.swift */; };
 		6150E5F129A8B7E60036E736 /* SigningKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6150E5F029A8B7E60036E736 /* SigningKey.swift */; };
@@ -39,7 +38,6 @@
 		D46B26272F5EE0B60065FF12 /* CloseProximityDisclosureError+From.swift in Sources */ = {isa = PBXBuildFile; fileRef = D46B26232F5EE0B60065FF12 /* CloseProximityDisclosureError+From.swift */; };
 		D46B262B2F5EE0C70065FF12 /* CloseProximityDisclosureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D46B26292F5EE0C70065FF12 /* CloseProximityDisclosureTests.swift */; };
 		D4F100012F8A000100000001 /* CloseProximityDisclosure+Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F100012F8A000100000002 /* CloseProximityDisclosure+Bridge.swift */; };
-		D9BCD5252F92515100C0D5D1 /* Multipaz in Frameworks */ = {isa = PBXBuildFile; productRef = 611A82892F62DE7B00DDB6B5 /* Multipaz */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -142,7 +140,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D9BCD5252F92515100C0D5D1 /* Multipaz in Frameworks */,
 				6133004629A8E350004D9CC7 /* libPlatformSupport.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -158,7 +155,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				611A828A2F62DE7B00DDB6B5 /* Multipaz in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -428,7 +424,6 @@
 			);
 			name = "Integration Tests";
 			packageProductDependencies = (
-				611A82892F62DE7B00DDB6B5 /* Multipaz */,
 			);
 			productName = "Integration Tests";
 			productReference = 6133004229A8E350004D9CC7 /* Integration Tests.xctest */;
@@ -466,7 +461,6 @@
 			);
 			name = PlatformSupport;
 			packageProductDependencies = (
-				611A82892F62DE7B00DDB6B5 /* Multipaz */,
 			);
 			productName = PlatformSupport;
 			productReference = 61F5335E29A8AB4100624E46 /* libPlatformSupport.a */;
@@ -504,7 +498,6 @@
 			);
 			mainGroup = 61F5335529A8AB4100624E46;
 			packageReferences = (
-				611A82882F62DE7B00DDB6B5 /* XCRemoteSwiftPackageReference "multipaz" */,
 			);
 			productRefGroup = 61F5335F29A8AB4100624E46 /* Products */;
 			projectDirPath = "";
@@ -1077,25 +1070,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		611A82882F62DE7B00DDB6B5 /* XCRemoteSwiftPackageReference "multipaz" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/openwallet-foundation/multipaz";
-			requirement = {
-				kind = upToNextMinorVersion;
-				minimumVersion = 0.96.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		611A82892F62DE7B00DDB6B5 /* Multipaz */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 611A82882F62DE7B00DDB6B5 /* XCRemoteSwiftPackageReference "multipaz" */;
-			productName = Multipaz;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 61F5335629A8AB4100624E46 /* Project object */;
 }
