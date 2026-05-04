@@ -48,29 +48,31 @@ oidc_identifier = "https://localhost:8006"
 # the same host in practice.
 trust_anchors = [""]
 
-[credential_configurations."com.example.pid"]
+[credential_configurations."com.example.pid_sdjwt"]
+format = "dc+sd-jwt"
+attestation_type = "com.example.pid"
 valid_days = 365
-copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
-attestation_qualification = "QEAA"                      # QEAA, PuB-EAA or EAA (default)
+attestation_qualification = "QEAA"   # QEAA, PuB-EAA or EAA (default)
 private_key_type = "hsm"
-private_key = "pid_issuer_key"                          # label for the private key in the HSM
+private_key = "pid_issuer_key"       # label for the private key in the HSM
 certificate = "MIJ..."
 
-[credential_configurations."com.example.address"]
+[credential_configurations."com.example.pid_mdoc"]
+format = "mso_mdoc"
+attestation_type = "com.example.pid"
 valid_days = 365
-copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"
-private_key = "MIG..."                                  # DER-encoded private key
+private_key = "MIG..."               # DER-encoded private key
 certificate = "MIJ..."
 
-[credential_configurations."com.example.pid".status_list]
+[credential_configurations."com.example.pid_sdjwt".status_list]
 context_path = "/tsl"
 publish_dir = "/srv/html/tsl"
 private_key_type = "software"
 private_key = "MIG..."
 certificate = "MIJ..."
 
-[credential_configurations."com.example.address".status_list]
+[credential_configurations."com.example.pid_mdoc".status_list]
 context_path = "/tsl"
 publish_dir = "/srv/html/tsl"
 private_key_type = "software"

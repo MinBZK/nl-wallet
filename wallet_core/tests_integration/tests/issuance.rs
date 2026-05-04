@@ -1,7 +1,9 @@
 use assert_matches::assert_matches;
 use attestation_data::attributes::Attributes;
 use attestation_data::issuable_document::IssuableDocument;
+use attestation_data::issuable_document::IssuableDocumentFormat;
 use db_test::DbSetup;
+use itertools::Itertools;
 use openid4vc::ErrorResponse;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use pid_issuer::pid::constants::PID_ADDRESS_GROUP;
@@ -18,7 +20,7 @@ use pid_issuer::pid::constants::PID_RESIDENT_POSTAL_CODE;
 use pid_issuer::pid::constants::PID_RESIDENT_STREET;
 use serial_test::serial;
 use tests_integration::common::*;
-use utils::vec_nonempty;
+use utils::vec_at_least::VecNonEmpty;
 use wallet::AttestationAttributeValue;
 use wallet::PidIssuancePurpose;
 use wallet::attestation_data::AttributeValue;
@@ -74,79 +76,95 @@ async fn ltc1_test_pid_ok() {
     );
 }
 
-fn pid_without_optionals_with_address() -> IssuableDocument {
-    IssuableDocument::try_new_with_random_id(
-        PID_ATTESTATION_TYPE.to_string(),
-        Attributes::example([
-            (vec![PID_FAMILY_NAME], AttributeValue::Text("De Bruijn".to_string())),
-            (
-                vec![PID_GIVEN_NAME],
-                AttributeValue::Text("Willeke Liselotte".to_string()),
-            ),
-            (vec![PID_BIRTH_DATE], AttributeValue::Text("1997-05-10".to_string())),
-            // only age_over_18 is optional in `eudi:pid:nl:1`
-            (vec![PID_BSN], AttributeValue::Text("999991772".to_string())),
-            (vec![PID_RECOVERY_CODE], AttributeValue::Text("123".to_string())),
-            (
-                vec![PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
-                AttributeValue::Text("Turfmarkt".to_string()),
-            ),
-            (
-                vec![PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER],
-                AttributeValue::Text("147".to_string()),
-            ),
-            (
-                vec![PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE],
-                AttributeValue::Text("2511 DP".to_string()),
-            ),
-            (
-                vec![PID_ADDRESS_GROUP, PID_RESIDENT_CITY],
-                AttributeValue::Text("Den Haag".to_string()),
-            ),
-            (
-                vec![PID_ADDRESS_GROUP, PID_RESIDENT_COUNTRY],
-                AttributeValue::Text("Nederland".to_string()),
-            ),
-        ]),
-    )
-    .unwrap()
+fn pid_without_optionals_with_address() -> VecNonEmpty<IssuableDocument> {
+    [IssuableDocumentFormat::MsoMdoc, IssuableDocumentFormat::SdJwt]
+        .into_iter()
+        .map(|format| {
+            IssuableDocument::try_new_with_random_id(
+                format,
+                PID_ATTESTATION_TYPE.to_string(),
+                Attributes::example([
+                    (vec![PID_FAMILY_NAME], AttributeValue::Text("De Bruijn".to_string())),
+                    (
+                        vec![PID_GIVEN_NAME],
+                        AttributeValue::Text("Willeke Liselotte".to_string()),
+                    ),
+                    (vec![PID_BIRTH_DATE], AttributeValue::Text("1997-05-10".to_string())),
+                    // only age_over_18 is optional in `eudi:pid:nl:1`
+                    (vec![PID_BSN], AttributeValue::Text("999991772".to_string())),
+                    (vec![PID_RECOVERY_CODE], AttributeValue::Text("123".to_string())),
+                    (
+                        vec![PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
+                        AttributeValue::Text("Turfmarkt".to_string()),
+                    ),
+                    (
+                        vec![PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER],
+                        AttributeValue::Text("147".to_string()),
+                    ),
+                    (
+                        vec![PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE],
+                        AttributeValue::Text("2511 DP".to_string()),
+                    ),
+                    (
+                        vec![PID_ADDRESS_GROUP, PID_RESIDENT_CITY],
+                        AttributeValue::Text("Den Haag".to_string()),
+                    ),
+                    (
+                        vec![PID_ADDRESS_GROUP, PID_RESIDENT_COUNTRY],
+                        AttributeValue::Text("Nederland".to_string()),
+                    ),
+                ]),
+            )
+            .unwrap()
+        })
+        .collect_vec()
+        .try_into()
+        .unwrap()
 }
 
-fn pid_missing_required_with_address() -> IssuableDocument {
-    IssuableDocument::try_new_with_random_id(
-        PID_ATTESTATION_TYPE.to_string(),
-        Attributes::example([
-            (vec![PID_FAMILY_NAME], AttributeValue::Text("De Bruijn".to_string())),
-            (
-                vec![PID_GIVEN_NAME],
-                AttributeValue::Text("Willeke Liselotte".to_string()),
-            ),
-            (vec![PID_BIRTH_DATE], AttributeValue::Text("1997-05-10".to_string())),
-            // bsn is missing, which is required
-            (vec![PID_RECOVERY_CODE], AttributeValue::Text("123".to_string())),
-            (
-                vec![PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
-                AttributeValue::Text("Turfmarkt".to_string()),
-            ),
-            (
-                vec![PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER],
-                AttributeValue::Text("147".to_string()),
-            ),
-            (
-                vec![PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE],
-                AttributeValue::Text("2511 DP".to_string()),
-            ),
-            (
-                vec![PID_ADDRESS_GROUP, PID_RESIDENT_CITY],
-                AttributeValue::Text("Den Haag".to_string()),
-            ),
-            (
-                vec![PID_ADDRESS_GROUP, PID_RESIDENT_COUNTRY],
-                AttributeValue::Text("Nederland".to_string()),
-            ),
-        ]),
-    )
-    .unwrap()
+fn pid_missing_required_with_address() -> VecNonEmpty<IssuableDocument> {
+    [IssuableDocumentFormat::MsoMdoc, IssuableDocumentFormat::SdJwt]
+        .into_iter()
+        .map(|format| {
+            IssuableDocument::try_new_with_random_id(
+                format,
+                PID_ATTESTATION_TYPE.to_string(),
+                Attributes::example([
+                    (vec![PID_FAMILY_NAME], AttributeValue::Text("De Bruijn".to_string())),
+                    (
+                        vec![PID_GIVEN_NAME],
+                        AttributeValue::Text("Willeke Liselotte".to_string()),
+                    ),
+                    (vec![PID_BIRTH_DATE], AttributeValue::Text("1997-05-10".to_string())),
+                    // bsn is missing, which is required
+                    (vec![PID_RECOVERY_CODE], AttributeValue::Text("123".to_string())),
+                    (
+                        vec![PID_ADDRESS_GROUP, PID_RESIDENT_STREET],
+                        AttributeValue::Text("Turfmarkt".to_string()),
+                    ),
+                    (
+                        vec![PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER],
+                        AttributeValue::Text("147".to_string()),
+                    ),
+                    (
+                        vec![PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE],
+                        AttributeValue::Text("2511 DP".to_string()),
+                    ),
+                    (
+                        vec![PID_ADDRESS_GROUP, PID_RESIDENT_CITY],
+                        AttributeValue::Text("Den Haag".to_string()),
+                    ),
+                    (
+                        vec![PID_ADDRESS_GROUP, PID_RESIDENT_COUNTRY],
+                        AttributeValue::Text("Nederland".to_string()),
+                    ),
+                ]),
+            )
+            .unwrap()
+        })
+        .collect_vec()
+        .try_into()
+        .unwrap()
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -162,7 +180,7 @@ async fn ltc1_test_pid_optional_attributes() {
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
         (
             pid_issuer_settings(db_setup.pid_issuer_url()).0,
-            vec_nonempty![pid_without_optionals_with_address()],
+            pid_without_optionals_with_address(),
         ),
         issuance_server_settings(db_setup.issuance_server_url()),
     )
@@ -207,7 +225,7 @@ async fn ltc2_test_pid_missing_required_attributes() {
         wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
         (
             pid_issuer_settings(db_setup.pid_issuer_url()).0,
-            vec_nonempty![pid_missing_required_with_address()],
+            pid_missing_required_with_address(),
         ),
         issuance_server_settings(db_setup.issuance_server_url()),
     )

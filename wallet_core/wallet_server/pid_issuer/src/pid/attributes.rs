@@ -3,6 +3,7 @@ use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesHandlingError;
 use attestation_data::issuable_document::IssuableDocument;
+use attestation_data::issuable_document::IssuableDocumentFormat;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
 use hsm::service::HsmError;
@@ -84,10 +85,18 @@ impl AttributeService for BrpPidAttributeService {
 
         let attributes = Self::insert_recovery_code(person.into_attributes(), &self.recovery_code_secret_key).await?;
 
-        let issuable_document = IssuableDocument::try_new_with_random_id(PID_ATTESTATION_TYPE.to_string(), attributes)
-            .map_err(|_| Error::InvalidIssuableDocuments)?;
+        let issuable_documents = [IssuableDocumentFormat::SdJwt, IssuableDocumentFormat::MsoMdoc]
+            .into_iter()
+            .zip(itertools::repeat_n(attributes, 2))
+            .map(|(format, attributes)| {
+                IssuableDocument::try_new_with_random_id(format, PID_ATTESTATION_TYPE.to_string(), attributes)
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|_| Error::InvalidIssuableDocuments)?
+            .try_into()
+            .unwrap();
 
-        Ok(vec_nonempty![issuable_document])
+        Ok(issuable_documents)
     }
 }
 

@@ -140,12 +140,13 @@ fn verify_issued_credentials(
                 .into_inner()
                 .into_iter()
                 .for_each(|issued_credential| match issued_credential {
-                    IssuedCredential::MsoMdoc { mdoc } => {
-                        let payload = CredentialPayload::from_mdoc(mdoc, &preview_data.normalized_metadata).unwrap();
-                        assert_eq!(payload.previewable_payload, preview_data.content.credential_payload);
+                    IssuedCredential::MsoMdoc { .. } => {
+                        panic!("mdoc should not be issued");
                     }
-                    IssuedCredential::SdJwt { .. } => {
-                        panic!("SdJwt should not be issued");
+                    IssuedCredential::SdJwt { sd_jwt, .. } => {
+                        let payload =
+                            CredentialPayload::from_sd_jwt(sd_jwt, &preview_data.normalized_metadata).unwrap();
+                        assert_eq!(payload.previewable_payload, preview_data.content.credential_payload);
                     }
                 })
         });

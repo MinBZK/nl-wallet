@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 
@@ -6,6 +5,7 @@ use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::issuable_document::IssuableDocument;
+use attestation_data::issuable_document::IssuableDocumentFormat;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
@@ -32,8 +32,9 @@ use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
 use crate::Format;
+use crate::credential_configurations::CredentialConfigurationParameters;
+use crate::credential_configurations::CredentialConfigurations;
 use crate::issuer::AttributeService;
-use crate::issuer::CredentialConfiguration;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
 use crate::issuer::WiaConfig;
@@ -74,6 +75,7 @@ pub fn mock_issuable_documents(document_count: NonZeroUsize) -> VecNonEmpty<Issu
     (0..document_count.get())
         .map(|i| {
             IssuableDocument::try_new_with_random_id(
+                IssuableDocumentFormat::SdJwt,
                 MOCK_ATTESTATION_TYPES[i].to_string(),
                 IndexMap::from_iter(MOCK_ATTRS.iter().map(|(key, val)| {
                     (
@@ -117,36 +119,34 @@ where
     let trust_anchor = ca.to_trust_anchor().to_owned();
     let wia_issuer_privkey = SigningKey::random(&mut OsRng);
 
-    let attestation_config = MOCK_ATTESTATION_TYPES[..attestation_count.get()]
+    let configurations = MOCK_ATTESTATION_TYPES[..attestation_count.get()]
         .iter()
+        .copied()
         .map(|attestation_type| {
             let (_, _, metadata_documents) =
                 TypeMetadataDocuments::from_single_example(mock_type_metadata(attestation_type));
 
-            (
-                attestation_type.to_string(),
-                CredentialConfiguration::try_new(
-                    attestation_type,
-                    KeyPair::new_from_signing_key(
-                        issuance_keypair.private_key().clone(),
-                        issuance_keypair.certificate().clone(),
-                    )
-                    .unwrap(),
-                    Days::new(365),
-                    IndexMap::from([(Format::MsoMdoc, 4.try_into().unwrap())]),
-                    issuance_keypair
-                        .certificate()
-                        .san_dns_name_or_uris()
-                        .unwrap()
-                        .into_first(),
-                    AttestationQualification::default(),
-                    metadata_documents,
+            let params = CredentialConfigurationParameters {
+                format: Format::SdJwt,
+                attestation_type: attestation_type.to_string(),
+                key_pair: KeyPair::new_from_signing_key(
+                    issuance_keypair.private_key().clone(),
+                    issuance_keypair.certificate().clone(),
                 )
                 .unwrap(),
-            )
-        })
-        .collect::<HashMap<_, _>>()
-        .into();
+                valid_days: Days::new(365),
+                issuer_uri: issuance_keypair
+                    .certificate()
+                    .san_dns_name_or_uris()
+                    .unwrap()
+                    .into_first(),
+                attestation_qualification: AttestationQualification::default(),
+                metadata_documents,
+            };
+
+            (attestation_type.to_string(), params)
+        });
+    let credential_configs = CredentialConfigurations::try_new(configurations).unwrap();
 
     let mut status_list_service = MockStatusListServices::default();
     status_list_service
@@ -161,7 +161,7 @@ where
     let issuer = MockIssuer::new(
         issuer_identifier,
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
-        attestation_config,
+        credential_configs,
         Some(WiaConfig {
             wia_issuer_pubkey: wia_issuer_privkey.verifying_key().into(),
         }),

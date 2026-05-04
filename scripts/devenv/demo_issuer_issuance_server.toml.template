@@ -63,8 +63,9 @@ base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/university_sd_jwt/"
 trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
 [credential_configurations."com.example.degree"]
+format = "dc+sd-jwt"
+attestation_type = "com.example.degree"
 valid_days = 365
-copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_ISSUER}"
 certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_ISSUER}"
@@ -94,8 +95,9 @@ base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/insurance/"
 trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
 [credential_configurations."com.example.insurance"]
+format = "mso_mdoc"
+attestation_type = "com.example.insurance"
 valid_days = 365
-copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_INSURANCE_ISSUER}"
 certificate = "${DEMO_ISSUER_CRT_INSURANCE_ISSUER}"
@@ -108,8 +110,9 @@ private_key = "${DEMO_ISSUER_KEY_INSURANCE_TSL}"
 certificate = "${DEMO_ISSUER_CRT_INSURANCE_TSL}"
 
 [credential_configurations."com.example.housing"]
+format = "dc+sd-jwt"
+attestation_type = "com.example.housing"
 valid_days = 365
-copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_HOUSING_ISSUER}"
 certificate = "${DEMO_ISSUER_CRT_HOUSING_ISSUER}"

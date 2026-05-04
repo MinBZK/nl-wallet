@@ -3,11 +3,14 @@ use std::convert::Infallible;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::issuable_document::IssuableDocument;
+use attestation_data::issuable_document::IssuableDocumentFormat;
 use derive_more::Constructor;
 use openid4vc::issuer::AttributeService;
 use openid4vc::token::TokenRequest;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
+use uuid::Uuid;
 
 use crate::pid::constants::PID_ADDRESS_GROUP;
 use crate::pid::constants::PID_AGE_OVER_18;
@@ -26,13 +29,26 @@ use crate::pid::constants::PID_RESIDENT_STREET;
 #[derive(Debug, Constructor)]
 pub struct MockAttributeService(VecNonEmpty<IssuableDocument>);
 
-pub fn mock_issuable_document_pid() -> IssuableDocument {
-    IssuableDocument::try_new_with_random_id(PID_ATTESTATION_TYPE.to_string(), eudi_nl_pid_example()).unwrap()
+pub fn mock_issuable_documents_pid() -> VecNonEmpty<IssuableDocument> {
+    vec_nonempty![
+        IssuableDocument::try_new_with_random_id(
+            IssuableDocumentFormat::SdJwt,
+            PID_ATTESTATION_TYPE.to_string(),
+            eudi_nl_pid_example()
+        )
+        .unwrap(),
+        IssuableDocument::try_new_with_random_id(
+            IssuableDocumentFormat::MsoMdoc,
+            PID_ATTESTATION_TYPE.to_string(),
+            eudi_nl_pid_example()
+        )
+        .unwrap(),
+    ]
 }
 
 impl Default for MockAttributeService {
     fn default() -> Self {
-        Self::new(vec![mock_issuable_document_pid()].try_into().unwrap())
+        Self::new(mock_issuable_documents_pid())
     }
 }
 
@@ -45,9 +61,11 @@ impl AttributeService for MockAttributeService {
         // Create a copy of the document having a new random id, ensuring unique batch_ids
         let documents = documents
             .nonempty_iter()
-            .map(|document| {
-                let (attestation_id, attributes, _) = document.clone().into();
-                IssuableDocument::try_new_with_random_id(attestation_id, attributes).unwrap()
+            .cloned()
+            .map(|mut document| {
+                document.id = Uuid::new_v4();
+
+                document
             })
             .collect();
 

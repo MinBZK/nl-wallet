@@ -23,7 +23,6 @@ db_test = ["dep:db_test", "openid4vc/test", "tokio/macros", "tokio/rt-multi-thre
 chrono.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into_iterator"] }
 futures.workspace = true
-indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 rustls-pki-types.workspace = true
 sea-orm = { workspace = true, features = [

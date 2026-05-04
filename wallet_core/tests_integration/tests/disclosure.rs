@@ -12,6 +12,7 @@ use dcql::normalized::NormalizedCredentialRequests;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::error::HttpJsonErrorBody;
 use itertools::Itertools;
+use openid4vc::Format;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
@@ -395,7 +396,9 @@ async fn test_disclosure_aki_ok() {
         .issuer_settings
         .credential_configurations
         .into_iter()
-        .find(|(vct, _)| *vct == PID_ATTESTATION_TYPE)
+        .find(|(_, config_settings)| {
+            config_settings.format == Format::SdJwt && config_settings.attestation_type == *PID_ATTESTATION_TYPE
+        })
         .unwrap()
         .1
         .keypair

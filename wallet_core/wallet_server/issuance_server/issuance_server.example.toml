@@ -101,6 +101,8 @@ error_ttl_in_sec = 0
 #
 
 # Configuration fields for credential_configurations
+# * format: Credential format, either "dc+sd-jwt" or "mso_mdoc"
+# * attestation_type: The "vct" or "doc_type" value respectively
 # * private_key_type: Can be hsm or software, when hsm private_key
 #   should contain a string identifying the private key in the HSM
 # * private_key: Base64 encoded DER format private key, or string
@@ -138,6 +140,8 @@ trust_anchors = ["MIJ..."]
 
 # Example attestation settings for a "com.example.degree"
 [credential_configurations."com.example.degree"]
+format = "dc+sd-jwt"
+attestation_type = "com.example.degree"
 valid_days = 365
 copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"

@@ -53,7 +53,7 @@ use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use pid_issuer::pid::mock::MockAttributeService;
-use pid_issuer::pid::mock::mock_issuable_document_pid;
+use pid_issuer::pid::mock::mock_issuable_documents_pid;
 use pid_issuer::settings::PidIssuerSettings;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use reqwest::Certificate;
@@ -659,7 +659,7 @@ pub fn pid_issuer_settings(db_url: Url) -> (PidIssuerSettings, VecNonEmpty<Issua
     settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.issuer_settings.server_settings.wallet_server.port = 0;
 
-    (settings, vec_nonempty![mock_issuable_document_pid()])
+    (settings, mock_issuable_documents_pid())
 }
 
 pub fn issuance_server_settings(

@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::fs;
-use std::num::NonZeroU8;
 use std::path::PathBuf;
 
 use attestation_types::qualification::AttestationQualification;
@@ -12,19 +11,17 @@ use derive_more::AsRef;
 use derive_more::Debug;
 use derive_more::From;
 use derive_more::IntoIterator;
-use futures::future::join_all;
 use futures::future::try_join_all;
 use hsm::service::Pkcs11Hsm;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::HttpsUri;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use openid4vc::Format;
-use openid4vc::issuer::CredentialConfiguration;
-use openid4vc::issuer::CredentialConfigurations;
+use openid4vc::credential_configurations::CredentialConfigurationParameters;
+use openid4vc::credential_configurations::CredentialConfigurations;
+use openid4vc::credential_configurations::CredentialConfigurationsError;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use rustls_pki_types::TrustAnchor;
-use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use serde::Deserialize;
@@ -79,12 +76,14 @@ pub struct CredentialConfigurationsSettings(
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct CredentialConfigurationSettings {
+    pub format: Format,
+    pub attestation_type: String,
+
     #[serde(flatten)]
     #[debug(skip)]
     pub keypair: KeyPair,
 
     pub valid_days: u64,
-    pub copies_per_format: IndexMap<Format, NonZeroU8>,
 
     pub status_list: StatusListAttestationSettings,
 
@@ -183,8 +182,8 @@ pub enum CredentialConfigurationsSettingsError {
     #[error("could not compile SD-JWT VC Type Metadata chain: {0}")]
     TypeMetadataChain(#[source] TypeMetadataDocumentsError),
 
-    #[error("type metadata is not valid for normalization: {0}")]
-    TypeMetadataNormalization(#[source] TypeMetadataChainError),
+    #[error("could not set up credential configurations: {0}")]
+    CredentialConfigurations(#[source] CredentialConfigurationsError),
 }
 
 impl CredentialConfigurationsSettings {
@@ -193,57 +192,55 @@ impl CredentialConfigurationsSettings {
         hsm: &Option<Pkcs11Hsm>,
         metadata_by_vct: &TypeMetadataByVct,
     ) -> Result<CredentialConfigurations<PrivateKeyVariant>, CredentialConfigurationsSettingsError> {
-        let issuer_keys =
-            join_all(self.0.into_iter().map(|(typ, attestation)| {
-                async move {
-                    // Take the SAN from the settings if specified, or otherwise take the first SAN from the
-                    // certificate. NB: the settings validation function will have verified before
-                    // this that the certificate contains just one SAN.
-                    let issuer_uri = match attestation.certificate_san {
-                        Some(san) => san,
-                        None => {
-                            let san_dns_name_or_uris = attestation
-                                .keypair
-                                .certificate
-                                .san_dns_name_or_uris()
-                                .map_err(CredentialConfigurationsSettingsError::CertificateSanDns)?;
+        let Self(inner) = self;
 
-                            san_dns_name_or_uris.first().clone()
-                        }
-                    };
+        let config_params = try_join_all(inner.into_iter().map(|(config_id, settings)| {
+            async move {
+                // Take the SAN from the settings if specified, or otherwise take the first SAN from the
+                // certificate. NB: the settings validation function will have verified before
+                // this that the certificate contains just one SAN.
+                let issuer_uri = match settings.certificate_san {
+                    Some(san) => san,
+                    None => {
+                        let san_dns_name_or_uris = settings
+                            .keypair
+                            .certificate
+                            .san_dns_name_or_uris()
+                            .map_err(CredentialConfigurationsSettingsError::CertificateSanDns)?;
 
-                    let metadata_documents = metadata_by_vct
-                        .to_metadata_documents(&typ)
-                        .map_err(CredentialConfigurationsSettingsError::TypeMetadataChain)?;
+                        san_dns_name_or_uris.first().clone()
+                    }
+                };
 
-                    let key_pair = attestation
-                        .keypair
-                        .parse(hsm.clone())
-                        .await
-                        .map_err(CredentialConfigurationsSettingsError::PrivateKey)?;
+                let metadata_documents = metadata_by_vct
+                    .to_metadata_documents(&settings.attestation_type)
+                    .map_err(CredentialConfigurationsSettingsError::TypeMetadataChain)?;
 
-                    let config = CredentialConfiguration::try_new(
-                        &typ,
-                        key_pair,
-                        Days::new(attestation.valid_days),
-                        attestation.copies_per_format,
-                        issuer_uri,
-                        attestation.attestation_qualification,
-                        metadata_documents,
-                    )
-                    .map_err(CredentialConfigurationsSettingsError::TypeMetadataNormalization)?;
+                let key_pair = settings
+                    .keypair
+                    .parse(hsm.clone())
+                    .await
+                    .map_err(CredentialConfigurationsSettingsError::PrivateKey)?;
 
-                    Ok((typ, config))
-                }
-            }))
-            .await
-            .into_iter()
-            .collect::<Result<
-                HashMap<String, CredentialConfiguration<PrivateKeyVariant>>,
-                CredentialConfigurationsSettingsError,
-            >>()?;
+                let params = CredentialConfigurationParameters {
+                    format: settings.format,
+                    attestation_type: settings.attestation_type,
+                    key_pair,
+                    valid_days: Days::new(settings.valid_days),
+                    issuer_uri,
+                    attestation_qualification: settings.attestation_qualification,
+                    metadata_documents,
+                };
 
-        Ok(issuer_keys.into())
+                Ok::<_, CredentialConfigurationsSettingsError>((config_id, params))
+            }
+        }))
+        .await?;
+
+        let configurations = CredentialConfigurations::try_new(config_params)
+            .map_err(CredentialConfigurationsSettingsError::CredentialConfigurations)?;
+
+        Ok(configurations)
     }
 }
 
@@ -419,7 +416,6 @@ mod tests {
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
     use http_utils::urls::HttpsUri;
-    use indexmap::IndexMap;
     use openid4vc::Format;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use sd_jwt_vc_metadata::TypeMetadata;
@@ -450,11 +446,12 @@ mod tests {
         IssuerSettings {
             public_url: "https://example.com".parse().unwrap(),
             credential_configurations: HashMap::from([(
-                "com.example.pid".to_string(),
+                "pid_sdjwt".to_string(),
                 CredentialConfigurationSettings {
+                    attestation_type: "com.example.pid".to_string(),
+                    format: Format::SdJwt,
                     keypair,
                     valid_days: 365,
-                    copies_per_format: IndexMap::from([(Format::MsoMdoc, 10.try_into().unwrap())]),
                     status_list: StatusListAttestationSettings {
                         base_url: None,
                         context_path: "tsl".to_string(),
@@ -531,11 +528,12 @@ mod tests {
 
         settings.server_settings.issuer_trust_anchors = vec![issuer_ca.borrowing_trust_anchor().clone()];
         settings.credential_configurations = HashMap::from([(
-            "com.example.no_registration".to_string(),
+            "no_registration_sdjwt".to_string(),
             CredentialConfigurationSettings {
+                attestation_type: "com.example.no_registration".to_string(),
+                format: Format::SdJwt,
                 keypair: issuer_cert_no_registration.into(),
                 valid_days: 365,
-                copies_per_format: IndexMap::from([(Format::MsoMdoc, 4.try_into().unwrap())]),
                 status_list: StatusListAttestationSettings {
                     base_url: None,
                     context_path: "tsl".to_string(),
@@ -566,8 +564,9 @@ mod tests {
 
         assert_matches!(
             settings.validate().expect_err("should fail"),
-            IssuerSettingsError::CertificateVerification(CertificateVerificationError::NoCertificateType(CertificateTypeError::IssuerRegistrationNotFound, key))
-                if key == "com.example.no_registration"
+            IssuerSettingsError::CertificateVerification(
+                CertificateVerificationError::NoCertificateType(CertificateTypeError::IssuerRegistrationNotFound, key)
+            ) if key == "no_registration_sdjwt"
         );
     }
 
@@ -598,7 +597,12 @@ mod tests {
         settings.credential_configurations = HashMap::from([(typ.clone(), attestation_settings)]).into();
 
         let error = settings.validate().expect_err("should fail");
-        assert_matches!(error, IssuerSettingsError::CertificateVerification(CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key)) if key == "com.example.pid");
+        assert_matches!(
+            error,
+            IssuerSettingsError::CertificateVerification(
+                CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key)
+            ) if key == "pid_sdjwt"
+        );
     }
 
     #[test]
@@ -620,6 +624,12 @@ mod tests {
         settings.credential_configurations = HashMap::from([(typ.clone(), attestation_settings)]).into();
 
         let error = settings.validate().expect_err("should fail");
-        assert_matches!(error, IssuerSettingsError::CertificatesSubjectNameMismatch { typ, attestation, status_list } if typ == "com.example.pid" && attestation == "CN=cert.issuer.example.com" && status_list == "CN=different.example.com");
+        assert_matches!(
+            error,
+            IssuerSettingsError::CertificatesSubjectNameMismatch { typ, attestation, status_list }
+                if typ == "pid_sdjwt" &&
+                    attestation == "CN=cert.issuer.example.com" &&
+                    status_list == "CN=different.example.com"
+        );
     }
 }

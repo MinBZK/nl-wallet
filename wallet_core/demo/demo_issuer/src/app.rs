@@ -247,8 +247,8 @@ async fn attestation(
             docs.iter()
                 .cloned()
                 .map(|doc| {
-                    let (attestation_type, attribute) = doc.into();
-                    IssuableDocument::try_new_with_random_id(attestation_type, attribute)
+                    let (format, attestation_type, attribute) = doc.into();
+                    IssuableDocument::try_new_with_random_id(format, attestation_type, attribute)
                         .map_err(|err| web_utils::error::Error::from(anyhow::Error::from(err)))
                 })
                 .collect::<Result<Vec<_>>>()

@@ -197,7 +197,7 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
                 TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
                 | TokenRequestError::AttributesError(_)
                 | TokenRequestError::AttributeService(_)
-                | TokenRequestError::CredentialTypeNotOffered(_) => TokenErrorCode::ServerError,
+                | TokenRequestError::CredentialTypeNotOffered(_, _) => TokenErrorCode::ServerError,
                 TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
                 TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
             },
