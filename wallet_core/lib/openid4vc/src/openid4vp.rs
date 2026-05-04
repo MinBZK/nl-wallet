@@ -157,7 +157,9 @@ pub struct VpAuthorizationRequest {
     pub transaction_data: Option<VecNonEmpty<serde_json::Map<String, serde_json::Value>>>,
 }
 
-impl JwtTyp for VpAuthorizationRequest {}
+impl JwtTyp for VpAuthorizationRequest {
+    const TYP: &'static str = "oauth-authz-req+jwt";
+}
 
 /// JsonBase64, a base64url-encoded JSON object. Used currently for transaction_data.
 /// See: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#section-5.1
