@@ -12,6 +12,9 @@ crate-type = ["staticlib", "cdylib", "lib"]
 doctest = false
 
 [features]
+# Compile the Rust close-proximity session-crypto helpers that depend on `mdoc`.
+# These helpers are only used from the iOS UniFFI bindings.
+ios_session_crypto = ["dep:mdoc"]
 # Implement the mock hardware key types
 mock_hw_keystore = ["dep:aes-gcm", "dep:rand_core"]
 # Include the MockCloseProximityDisclosureClient
@@ -80,7 +83,7 @@ serde_bytes.workspace = true
 thiserror.workspace = true
 trait-variant.workspace = true
 uniffi.workspace = true
-mdoc.path = "../../lib/mdoc"
+mdoc = { path = "../../lib/mdoc", optional = true }
 
 aes-gcm = { workspace = true, optional = true }
 assert_matches = { workspace = true, optional = true }
