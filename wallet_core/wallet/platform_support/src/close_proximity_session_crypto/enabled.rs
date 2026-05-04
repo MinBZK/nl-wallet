@@ -253,7 +253,6 @@ fn map_session_encryption_error(error: SessionEncryptionError) -> CloseProximity
             reason: error.to_string(),
         },
         SessionEncryptionError::Crypto(_)
-        | SessionEncryptionError::EmptyInitialMessage
         | SessionEncryptionError::InvalidSessionKeyLength
         | SessionEncryptionError::EncryptionFailed
         | SessionEncryptionError::DecryptionFailed
