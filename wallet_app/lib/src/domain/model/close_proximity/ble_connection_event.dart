@@ -20,11 +20,6 @@ class BleAdvertising extends BleConnectionEvent {
   List<Object?> get props => [...super.props, engagement];
 }
 
-/// A remote device is connecting.
-class BleConnecting extends BleConnectionEvent {
-  const BleConnecting();
-}
-
 /// A remote device has connected.
 class BleConnected extends BleConnectionEvent {
   const BleConnected();

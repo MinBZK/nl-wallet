@@ -37,7 +37,7 @@ import uniffi.platform_support.NoHandle
 @RequiresDevice
 class CloseProximityDisclosureBridgeInstrumentedTest {
     private sealed interface RecordedUpdate {
-        data object Connecting : RecordedUpdate
+        data object Connected : RecordedUpdate
         data class SessionEstablished(
             val sessionTranscript: List<UByte>,
             val deviceRequest: List<UByte>,
@@ -54,15 +54,15 @@ class CloseProximityDisclosureBridgeInstrumentedTest {
 
     private class TestChannel : CloseProximityDisclosureChannel(NoHandle) {
         private val updates = CopyOnWriteArrayList<RecordedUpdate>()
-        private val connectingLatch = CountDownLatch(1)
+        private val connectedLatch = CountDownLatch(1)
         private val sessionEstablishedLatch = CountDownLatch(1)
         private val closedLatch = CountDownLatch(1)
 
         override suspend fun sendUpdate(update: CloseProximityDisclosureUpdate) {
             when (update) {
-                is CloseProximityDisclosureUpdate.Connecting -> {
-                    updates.add(RecordedUpdate.Connecting)
-                    connectingLatch.countDown()
+                is CloseProximityDisclosureUpdate.Connected -> {
+                    updates.add(RecordedUpdate.Connected)
+                    connectedLatch.countDown()
                 }
                 is CloseProximityDisclosureUpdate.SessionEstablished -> {
                     updates.add(
@@ -81,8 +81,8 @@ class CloseProximityDisclosureBridgeInstrumentedTest {
             }
         }
 
-        fun awaitConnectingUpdate(timeoutSeconds: Long = 20): Boolean =
-            connectingLatch.await(timeoutSeconds, TimeUnit.SECONDS)
+        fun awaitConnectedUpdate(timeoutSeconds: Long = 20): Boolean =
+            connectedLatch.await(timeoutSeconds, TimeUnit.SECONDS)
 
         fun awaitSessionEstablishedUpdate(timeoutSeconds: Long = 30): Boolean =
             sessionEstablishedLatch.await(timeoutSeconds, TimeUnit.SECONDS)
@@ -90,7 +90,7 @@ class CloseProximityDisclosureBridgeInstrumentedTest {
         fun awaitClosedUpdate(timeoutSeconds: Long = 1): Boolean =
             closedLatch.await(timeoutSeconds, TimeUnit.SECONDS)
 
-        fun hasReceivedConnectingUpdate(): Boolean = connectingLatch.count == 0L
+        fun hasReceivedConnectedUpdate(): Boolean = connectedLatch.count == 0L
 
         fun hasReceivedSessionEstablishedUpdate(): Boolean = sessionEstablishedLatch.count == 0L
 
@@ -250,15 +250,15 @@ class CloseProximityDisclosureBridgeInstrumentedTest {
             assertTrue(channel.hasReceivedClosedUpdate())
 
             val updatesAfterClose = channel.receivedUpdates()
-            val connectingIndex = updatesAfterClose.indexOf(RecordedUpdate.Connecting)
+            val connectedIndex = updatesAfterClose.indexOf(RecordedUpdate.Connected)
             val sessionEstablishedIndex = updatesAfterClose.indexOfFirst {
                 it is RecordedUpdate.SessionEstablished
             }
             val closedIndex = updatesAfterClose.indexOf(RecordedUpdate.Closed)
-            assertTrue(connectingIndex >= 0)
+            assertTrue(connectedIndex >= 0)
             assertTrue(sessionEstablishedIndex >= 0)
             assertTrue(closedIndex >= 0)
-            assertTrue(connectingIndex < sessionEstablishedIndex)
+            assertTrue(connectedIndex < sessionEstablishedIndex)
             assertTrue(sessionEstablishedIndex < closedIndex)
             assertFalse(closeProximityDisclosureBridge.isBleServerActiveForTesting())
         } finally {

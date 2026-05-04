@@ -155,7 +155,6 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
     switch (event.event) {
       case BleAdvertising():
-      case BleConnecting():
       case BleConnected():
       case BleDeviceRequestReceived():
         Fimber.i('Ignored ble event: ${event.event}');

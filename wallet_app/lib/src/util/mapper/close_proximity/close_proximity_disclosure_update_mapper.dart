@@ -13,7 +13,6 @@ class CloseProximityDisclosureUpdateMapper
   @override
   BleConnectionEvent map(core.CloseProximityDisclosureFlutterUpdate input) {
     return switch (input) {
-      core.CloseProximityDisclosureFlutterUpdate_Connecting() => const BleConnecting(),
       core.CloseProximityDisclosureFlutterUpdate_Connected() => const BleConnected(),
       core.CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived() => const BleDeviceRequestReceived(),
       core.CloseProximityDisclosureFlutterUpdate_Disconnected() => const BleDisconnected(),

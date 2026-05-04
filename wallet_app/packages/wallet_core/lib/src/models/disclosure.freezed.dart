@@ -356,11 +356,10 @@ extension CloseProximityDisclosureFlutterUpdatePatterns on CloseProximityDisclos
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( CloseProximityDisclosureFlutterUpdate_Connecting value)?  connecting,TResult Function( CloseProximityDisclosureFlutterUpdate_Connected value)?  connected,TResult Function( CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived value)?  deviceRequestReceived,TResult Function( CloseProximityDisclosureFlutterUpdate_Disconnected value)?  disconnected,TResult Function( CloseProximityDisclosureFlutterUpdate_Errored value)?  errored,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( CloseProximityDisclosureFlutterUpdate_Connected value)?  connected,TResult Function( CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived value)?  deviceRequestReceived,TResult Function( CloseProximityDisclosureFlutterUpdate_Disconnected value)?  disconnected,TResult Function( CloseProximityDisclosureFlutterUpdate_Errored value)?  errored,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case CloseProximityDisclosureFlutterUpdate_Connecting() when connecting != null:
-return connecting(_that);case CloseProximityDisclosureFlutterUpdate_Connected() when connected != null:
+case CloseProximityDisclosureFlutterUpdate_Connected() when connected != null:
 return connected(_that);case CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived() when deviceRequestReceived != null:
 return deviceRequestReceived(_that);case CloseProximityDisclosureFlutterUpdate_Disconnected() when disconnected != null:
 return disconnected(_that);case CloseProximityDisclosureFlutterUpdate_Errored() when errored != null:
@@ -382,11 +381,10 @@ return errored(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( CloseProximityDisclosureFlutterUpdate_Connecting value)  connecting,required TResult Function( CloseProximityDisclosureFlutterUpdate_Connected value)  connected,required TResult Function( CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived value)  deviceRequestReceived,required TResult Function( CloseProximityDisclosureFlutterUpdate_Disconnected value)  disconnected,required TResult Function( CloseProximityDisclosureFlutterUpdate_Errored value)  errored,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( CloseProximityDisclosureFlutterUpdate_Connected value)  connected,required TResult Function( CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived value)  deviceRequestReceived,required TResult Function( CloseProximityDisclosureFlutterUpdate_Disconnected value)  disconnected,required TResult Function( CloseProximityDisclosureFlutterUpdate_Errored value)  errored,}){
 final _that = this;
 switch (_that) {
-case CloseProximityDisclosureFlutterUpdate_Connecting():
-return connecting(_that);case CloseProximityDisclosureFlutterUpdate_Connected():
+case CloseProximityDisclosureFlutterUpdate_Connected():
 return connected(_that);case CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived():
 return deviceRequestReceived(_that);case CloseProximityDisclosureFlutterUpdate_Disconnected():
 return disconnected(_that);case CloseProximityDisclosureFlutterUpdate_Errored():
@@ -404,11 +402,10 @@ return errored(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( CloseProximityDisclosureFlutterUpdate_Connecting value)?  connecting,TResult? Function( CloseProximityDisclosureFlutterUpdate_Connected value)?  connected,TResult? Function( CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived value)?  deviceRequestReceived,TResult? Function( CloseProximityDisclosureFlutterUpdate_Disconnected value)?  disconnected,TResult? Function( CloseProximityDisclosureFlutterUpdate_Errored value)?  errored,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( CloseProximityDisclosureFlutterUpdate_Connected value)?  connected,TResult? Function( CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived value)?  deviceRequestReceived,TResult? Function( CloseProximityDisclosureFlutterUpdate_Disconnected value)?  disconnected,TResult? Function( CloseProximityDisclosureFlutterUpdate_Errored value)?  errored,}){
 final _that = this;
 switch (_that) {
-case CloseProximityDisclosureFlutterUpdate_Connecting() when connecting != null:
-return connecting(_that);case CloseProximityDisclosureFlutterUpdate_Connected() when connected != null:
+case CloseProximityDisclosureFlutterUpdate_Connected() when connected != null:
 return connected(_that);case CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived() when deviceRequestReceived != null:
 return deviceRequestReceived(_that);case CloseProximityDisclosureFlutterUpdate_Disconnected() when disconnected != null:
 return disconnected(_that);case CloseProximityDisclosureFlutterUpdate_Errored() when errored != null:
@@ -429,10 +426,9 @@ return errored(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  connecting,TResult Function()?  connected,TResult Function()?  deviceRequestReceived,TResult Function()?  disconnected,TResult Function( String error)?  errored,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  connected,TResult Function()?  deviceRequestReceived,TResult Function()?  disconnected,TResult Function( String error)?  errored,required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case CloseProximityDisclosureFlutterUpdate_Connecting() when connecting != null:
-return connecting();case CloseProximityDisclosureFlutterUpdate_Connected() when connected != null:
+case CloseProximityDisclosureFlutterUpdate_Connected() when connected != null:
 return connected();case CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived() when deviceRequestReceived != null:
 return deviceRequestReceived();case CloseProximityDisclosureFlutterUpdate_Disconnected() when disconnected != null:
 return disconnected();case CloseProximityDisclosureFlutterUpdate_Errored() when errored != null:
@@ -454,10 +450,9 @@ return errored(_that.error);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  connecting,required TResult Function()  connected,required TResult Function()  deviceRequestReceived,required TResult Function()  disconnected,required TResult Function( String error)  errored,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  connected,required TResult Function()  deviceRequestReceived,required TResult Function()  disconnected,required TResult Function( String error)  errored,}) {final _that = this;
 switch (_that) {
-case CloseProximityDisclosureFlutterUpdate_Connecting():
-return connecting();case CloseProximityDisclosureFlutterUpdate_Connected():
+case CloseProximityDisclosureFlutterUpdate_Connected():
 return connected();case CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived():
 return deviceRequestReceived();case CloseProximityDisclosureFlutterUpdate_Disconnected():
 return disconnected();case CloseProximityDisclosureFlutterUpdate_Errored():
@@ -475,10 +470,9 @@ return errored(_that.error);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  connecting,TResult? Function()?  connected,TResult? Function()?  deviceRequestReceived,TResult? Function()?  disconnected,TResult? Function( String error)?  errored,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  connected,TResult? Function()?  deviceRequestReceived,TResult? Function()?  disconnected,TResult? Function( String error)?  errored,}) {final _that = this;
 switch (_that) {
-case CloseProximityDisclosureFlutterUpdate_Connecting() when connecting != null:
-return connecting();case CloseProximityDisclosureFlutterUpdate_Connected() when connected != null:
+case CloseProximityDisclosureFlutterUpdate_Connected() when connected != null:
 return connected();case CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived() when deviceRequestReceived != null:
 return deviceRequestReceived();case CloseProximityDisclosureFlutterUpdate_Disconnected() when disconnected != null:
 return disconnected();case CloseProximityDisclosureFlutterUpdate_Errored() when errored != null:
@@ -489,38 +483,6 @@ return errored(_that.error);case _:
 }
 
 }
-
-/// @nodoc
-
-
-class CloseProximityDisclosureFlutterUpdate_Connecting extends CloseProximityDisclosureFlutterUpdate {
-  const CloseProximityDisclosureFlutterUpdate_Connecting(): super._();
-  
-
-
-
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseProximityDisclosureFlutterUpdate_Connecting);
-}
-
-
-@override
-int get hashCode => runtimeType.hashCode;
-
-@override
-String toString() {
-  return 'CloseProximityDisclosureFlutterUpdate.connecting()';
-}
-
-
-}
-
-
-
 
 /// @nodoc
 

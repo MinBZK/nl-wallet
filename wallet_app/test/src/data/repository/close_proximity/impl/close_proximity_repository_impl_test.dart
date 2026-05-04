@@ -48,14 +48,14 @@ void main() {
       expect(observedEvents, contains(const BleAdvertising(engagement)));
 
       // Simulate core update
-      const update = core.CloseProximityDisclosureFlutterUpdate.connecting();
-      const mappedEvent = BleConnecting();
+      const update = core.CloseProximityDisclosureFlutterUpdate.connected();
+      const mappedEvent = BleConnected();
       when(mockMapper.map(update)).thenReturn(mappedEvent);
 
-      // Push Connecting into the captured callback
+      // Push Connected into the captured callback
       await capturedCallback(update);
 
-      // Verify (mapped) Connecting event is emitted
+      // Verify the mapped update is emitted
       expect(observedEvents, contains(mappedEvent));
 
       await subscription.cancel();
@@ -88,7 +88,6 @@ void main() {
       const genericError = CoreGenericError('test');
       const genericJsonError = '{"type":"Generic", "description":"test"}';
       final updates = [
-        (const core.CloseProximityDisclosureFlutterUpdate.connecting(), const BleConnecting()),
         (const core.CloseProximityDisclosureFlutterUpdate.connected(), const BleConnected()),
         (const core.CloseProximityDisclosureFlutterUpdate.deviceRequestReceived(), const BleDeviceRequestReceived()),
         (const core.CloseProximityDisclosureFlutterUpdate.disconnected(), const BleDisconnected()),
@@ -108,7 +107,6 @@ void main() {
       await Future.microtask(() {});
       expect(observedEvents, [
         const BleAdvertising(engagement),
-        const BleConnecting(),
         const BleConnected(),
         const BleDeviceRequestReceived(),
         const BleDisconnected(),

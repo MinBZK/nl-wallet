@@ -1918,18 +1918,15 @@ impl SseDecode for crate::models::disclosure::CloseProximityDisclosureFlutterUpd
         let mut tag_ = <i32>::sse_decode(deserializer);
         match tag_ {
             0 => {
-                return crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connecting;
-            }
-            1 => {
                 return crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connected;
             }
-            2 => {
+            1 => {
                 return crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::DeviceRequestReceived;
             }
-            3 => {
+            2 => {
                 return crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Disconnected;
             }
-            4 => {
+            3 => {
                 let mut var_error = <String>::sse_decode(deserializer);
                 return crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Errored { error: var_error };
             }
@@ -3202,16 +3199,15 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::ClaimDisplayM
 impl flutter_rust_bridge::IntoDart for crate::models::disclosure::CloseProximityDisclosureFlutterUpdate {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
-            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connecting => [0.into_dart()].into_dart(),
-            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connected => [1.into_dart()].into_dart(),
+            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connected => [0.into_dart()].into_dart(),
             crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::DeviceRequestReceived => {
-                [2.into_dart()].into_dart()
+                [1.into_dart()].into_dart()
             }
             crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Disconnected => {
-                [3.into_dart()].into_dart()
+                [2.into_dart()].into_dart()
             }
             crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Errored { error } => {
-                [4.into_dart(), error.into_into_dart().into_dart()].into_dart()
+                [3.into_dart(), error.into_into_dart().into_dart()].into_dart()
             }
             _ => {
                 unimplemented!("");
@@ -4224,20 +4220,17 @@ impl SseEncode for crate::models::disclosure::CloseProximityDisclosureFlutterUpd
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         match self {
-            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connecting => {
+            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connected => {
                 <i32>::sse_encode(0, serializer);
             }
-            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connected => {
+            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::DeviceRequestReceived => {
                 <i32>::sse_encode(1, serializer);
             }
-            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::DeviceRequestReceived => {
+            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Disconnected => {
                 <i32>::sse_encode(2, serializer);
             }
-            crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Disconnected => {
-                <i32>::sse_encode(3, serializer);
-            }
             crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Errored { error } => {
-                <i32>::sse_encode(4, serializer);
+                <i32>::sse_encode(3, serializer);
                 <String>::sse_encode(error, serializer);
             }
             _ => {
@@ -5503,11 +5496,10 @@ mod io {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::disclosure::CloseProximityDisclosureFlutterUpdate {
             match self.tag {
-                0 => crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connecting,
-                1 => crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connected,
-                2 => crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::DeviceRequestReceived,
-                3 => crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Disconnected,
-                4 => {
+                0 => crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Connected,
+                1 => crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::DeviceRequestReceived,
+                2 => crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Disconnected,
+                3 => {
                     let ans = unsafe { self.kind.Errored };
                     crate::models::disclosure::CloseProximityDisclosureFlutterUpdate::Errored {
                         error: ans.error.cst_decode(),

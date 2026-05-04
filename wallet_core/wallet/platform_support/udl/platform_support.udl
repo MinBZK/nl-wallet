@@ -143,7 +143,6 @@ interface CloseProximityDisclosureError {
 
 [Enum]
 interface CloseProximityDisclosureUpdate {
-    Connecting();
     Connected();
     SessionEstablished(sequence<u8> session_transcript, sequence<u8> device_request);
     Closed();
