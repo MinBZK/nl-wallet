@@ -37,7 +37,7 @@ use rand::rngs::OsRng;
 use serde_bytes::ByteBuf;
 
 const BLE_RETRIEVAL_METHOD_TYPE: u64 = 2;
-const BLE_UUID_LEN: usize = 16;
+const BLE_UUID_BYTE_LEN: usize = 16;
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum CloseProximitySessionCryptoError {
@@ -153,9 +153,9 @@ pub fn close_proximity_get_e_reader_key(
 pub fn close_proximity_create_qr_session_setup(
     peripheral_server_uuid: Vec<u8>,
 ) -> Result<CloseProximityQrSessionSetup, CloseProximitySessionCryptoError> {
-    if peripheral_server_uuid.len() != BLE_UUID_LEN {
+    if peripheral_server_uuid.len() != BLE_UUID_BYTE_LEN {
         return Err(other_error(format!(
-            "peripheral server UUID must be {BLE_UUID_LEN} bytes, got {}",
+            "peripheral server UUID must be {BLE_UUID_BYTE_LEN} bytes, got {}",
             peripheral_server_uuid.len()
         )));
     }
