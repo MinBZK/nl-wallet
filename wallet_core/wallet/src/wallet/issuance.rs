@@ -674,7 +674,7 @@ where
         let (pid, claim_path) = issued_credentials_with_metadata
             .iter()
             .find_map(|cred| {
-                pid_attributes.sd_jwt.get(&cred.attestation_type).map(|pid_paths| {
+                pid_attributes.sd_jwt.get(&cred.attestation_type).and_then(|pid_paths| {
                     cred.copies.as_ref().iter().find_map(|copy| match copy {
                         IssuedCredential::MsoMdoc { .. } => None,
                         IssuedCredential::SdJwt { sd_jwt, .. } => {
@@ -688,7 +688,6 @@ where
                     })
                 })
             })
-            .flatten()
             .ok_or(IssuanceError::MissingPidSdJwt)?;
 
         let recovery_code_disclosure = pid
