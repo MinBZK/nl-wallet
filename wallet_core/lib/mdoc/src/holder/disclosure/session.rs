@@ -340,6 +340,7 @@ fn session_iv(identifier: u32, counter: u32) -> [u8; 12] {
 
 #[cfg(test)]
 mod tests {
+    use p256::SecretKey;
     use p256::ecdsa::VerifyingKey;
     use p256::elliptic_curve::sec1::ToEncodedPoint;
 
@@ -353,7 +354,7 @@ mod tests {
     use crate::utils::serialization::TaggedBytes;
 
     fn secret_key(byte: u8) -> p256::SecretKey {
-        p256::SecretKey::from_slice(&[byte; 32]).unwrap()
+        SecretKey::from_slice(&[byte; 32]).unwrap()
     }
 
     fn reader_key_bytes(secret_key: &p256::SecretKey) -> EReaderKeyBytes {
