@@ -122,8 +122,6 @@ pub enum SessionEncryptionError {
     Crypto(#[from] CryptoError),
     #[error("session establishment message did not contain eReaderKey")]
     MissingReaderKey,
-    #[error("data cannot be empty in initial message")]
-    EmptyInitialMessage,
     #[error("invalid session key length")]
     InvalidSessionKeyLength,
     #[error("failed to encrypt session message")]
@@ -219,7 +217,7 @@ impl SessionEncryption {
     }
 
     pub fn encrypt(&self, plaintext: &[u8], status: SessionStatus) -> Result<Vec<u8>, SessionEncryptionError> {
-        self.encode_message(Some(plaintext), Some(status), None)
+        self.encode_data_message(plaintext, status)
     }
 
     /// Encode the reader's first encrypted message, which also carries the tagged `eReaderKey`
@@ -229,7 +227,7 @@ impl SessionEncryption {
         plaintext: &[u8],
         e_reader_key: &EReaderKeyBytes,
     ) -> Result<Vec<u8>, SessionEncryptionError> {
-        self.encode_message(Some(plaintext), None, Some(e_reader_key.clone()))
+        self.encode_initial_message_payload(plaintext, e_reader_key.clone())
     }
 
     pub fn decrypt(&self, message: &[u8]) -> Result<SessionDecryptedMessage, SessionEncryptionError> {
@@ -252,34 +250,37 @@ impl SessionEncryption {
         })
     }
 
-    fn encode_message(
-        &self,
-        plaintext: Option<&[u8]>,
-        status: Option<SessionStatus>,
-        e_reader_key: Option<EReaderKeyBytes>,
-    ) -> Result<Vec<u8>, SessionEncryptionError> {
-        if e_reader_key.is_some() && plaintext.is_none() {
-            return Err(SessionEncryptionError::EmptyInitialMessage);
-        }
-
-        let data = match plaintext {
-            Some(plaintext) => {
-                let mut counters = self.counters.lock();
-                let iv = session_iv(self.role.encryption_iv_identifier(), counters.encrypted_counter);
-                let ciphertext = encrypt_session_data(&self.sk_self, iv, plaintext)?;
-                counters.encrypted_counter += 1;
-                Some(ByteBuf::from(ciphertext))
-            }
-            None => None,
-        };
-
+    fn encode_data_message(&self, plaintext: &[u8], status: SessionStatus) -> Result<Vec<u8>, SessionEncryptionError> {
         let payload = SessionData {
-            e_reader_key,
-            data,
-            status,
+            e_reader_key: None,
+            data: Some(self.encrypt_payload(plaintext)?),
+            status: Some(status),
         };
 
-        Ok(cbor_serialize(&payload)?)
+        serialize_message(&payload)
+    }
+
+    fn encode_initial_message_payload(
+        &self,
+        plaintext: &[u8],
+        e_reader_key: EReaderKeyBytes,
+    ) -> Result<Vec<u8>, SessionEncryptionError> {
+        let payload = SessionData {
+            e_reader_key: Some(e_reader_key),
+            data: Some(self.encrypt_payload(plaintext)?),
+            status: None,
+        };
+
+        serialize_message(&payload)
+    }
+
+    fn encrypt_payload(&self, plaintext: &[u8]) -> Result<ByteBuf, SessionEncryptionError> {
+        let mut counters = self.counters.lock();
+        let iv = session_iv(self.role.encryption_iv_identifier(), counters.encrypted_counter);
+        let ciphertext = encrypt_session_data(&self.sk_self, iv, plaintext)?;
+        counters.encrypted_counter += 1;
+
+        Ok(ByteBuf::from(ciphertext))
     }
 }
 
@@ -298,12 +299,15 @@ pub fn extract_e_reader_key(session_establishment_message: &[u8]) -> Result<ERea
 /// field. This helper keeps that wire detail in `mdoc` so native code does not need to duplicate
 /// the payload shape.
 pub fn encode_status(status: SessionStatus) -> Result<Vec<u8>, SessionEncryptionError> {
-    cbor_serialize(&SessionData {
+    serialize_message(&SessionData {
         e_reader_key: None,
         data: None,
         status: Some(status),
     })
-    .map_err(Into::into)
+}
+
+fn serialize_message(payload: &SessionData) -> Result<Vec<u8>, SessionEncryptionError> {
+    cbor_serialize(payload).map_err(Into::into)
 }
 
 fn session_transcript_salt(session_transcript: &SessionTranscript) -> Result<Vec<u8>, SessionEncryptionError> {
@@ -439,7 +443,7 @@ mod tests {
             &session_transcript,
         )
         .unwrap();
-        let reader_session = SessionEncryption::new(
+        let _ = SessionEncryption::new(
             SessionRole::Reader,
             &e_reader_key,
             &e_device_key.public_key(),
@@ -447,9 +451,7 @@ mod tests {
         )
         .unwrap();
 
-        let status_only_message = reader_session
-            .encode_message(None, Some(SessionStatus::Termination), None)
-            .unwrap();
+        let status_only_message = super::encode_status(SessionStatus::Termination).unwrap();
         let decrypted_message = holder_session.decrypt(&status_only_message).unwrap();
         assert_eq!(decrypted_message.data, None);
         assert_eq!(decrypted_message.status, Some(SessionStatus::Termination));
