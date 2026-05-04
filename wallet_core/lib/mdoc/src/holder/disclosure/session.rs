@@ -50,7 +50,7 @@ use crate::utils::serialization::cbor_serialize;
 // directional rather than "one symmetric key for the whole session".
 const SESSION_KEY_INFO_DEVICE: &str = "SKDevice";
 const SESSION_KEY_INFO_READER: &str = "SKReader";
-const SESSION_KEY_LEN: usize = 32;
+const SESSION_KEY_BYTE_LEN: usize = 32;
 
 /// Identifies which side of the close-proximity session this helper represents.
 ///
@@ -194,14 +194,14 @@ impl SessionEncryption {
             shared_secret.raw_secret_bytes().as_ref(),
             salt.as_slice(),
             SESSION_KEY_INFO_DEVICE,
-            SESSION_KEY_LEN,
+            SESSION_KEY_BYTE_LEN,
         )
         .map_err(|_| SessionEncryptionError::Crypto(CryptoError::Hkdf))?;
         let reader_sk = hkdf(
             shared_secret.raw_secret_bytes().as_ref(),
             salt.as_slice(),
             SESSION_KEY_INFO_READER,
-            SESSION_KEY_LEN,
+            SESSION_KEY_BYTE_LEN,
         )
         .map_err(|_| SessionEncryptionError::Crypto(CryptoError::Hkdf))?;
 
