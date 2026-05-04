@@ -215,7 +215,7 @@ class CloseProximityDisclosureBridge(
         advertisedTransports: List<MdocTransport>,
     ): ByteArray =
         Cbor.encode(
-            buildDeviceEngagement(eDeviceKey = eDeviceKey.publicKey) {
+            buildDeviceEngagement(eDeviceKey = eDeviceKey.publicKey, version = "1.0") {
                 advertisedTransports.forEach { addConnectionMethod(it.connectionMethod) }
             }.toDataItem()
         )
@@ -245,7 +245,6 @@ class CloseProximityDisclosureBridge(
             closeStaleTransport(transport)
             return
         }
-        session.channel.sendUpdate(update = CloseProximityDisclosureUpdate.Connecting)
         session.setTransport(transport)
         bridgeScope.launch {
             observeTransportState(session = session, transport = transport)

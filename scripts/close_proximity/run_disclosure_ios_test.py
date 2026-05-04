@@ -13,7 +13,7 @@ from typing import Optional
 
 
 # Example usage from the nl_wallet root:
-# scripts/close_proximity/run_disclosure_ios_test.py -- xcodebuild test -project wallet_core/wallet/platform_support/ios/PlatformSupport.xcodeproj -scheme PlatformSupport -only-testing:'Integration Tests/CloseProximityDisclosureTests/testCloseProximityDisclosureFullFlowWithMacReader'
+# scripts/close_proximity/run_disclosure_ios_test.py -- xcodebuild test -project wallet_core/wallet/platform_support/ios/PlatformSupport.xcodeproj -scheme PlatformSupport -testPlan LocalRealDevice -only-testing:'Integration Tests/CloseProximityDisclosureTests/testCloseProximityDisclosureFullFlowWithMacReader'
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
