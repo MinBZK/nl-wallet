@@ -301,14 +301,13 @@ where
         &mut self,
         error: &CloseProximityDisclosureError,
     ) -> Result<(), DisclosureError> {
-        let Some(status) = error_device_response_status(error) else {
-            return Ok(());
+        let send_result = match error_device_response_status(error) {
+            Some(status) => {
+                let response = encode_error_device_response(status)?;
+                Some(CPC::send_device_response(response).await)
+            }
+            None => None,
         };
-
-        // After sending the error DeviceResponse, always stop BLE and clear the
-        // close proximity session so the verifier is not left waiting on a dead session.
-        let response = encode_error_device_response(status)?;
-        let send_result = CPC::send_device_response(response).await;
 
         match self.session.take() {
             Some(Session::CloseProximityDisclosure(session)) => {
@@ -319,10 +318,25 @@ where
             }
         }
 
-        let stop_result = CPC::stop_ble_server().await;
+        let should_stop_ble_server = match &send_result {
+            Some(Ok(())) => false, // response sent successfully, do not stop here
+            Some(Err(_)) => true,  // attempted send failed, stop
+            None => true,          // no response was sent, stop
+        };
 
-        send_result?;
-        stop_result?;
+        let stop_result = if should_stop_ble_server {
+            Some(CPC::stop_ble_server().await)
+        } else {
+            None
+        };
+
+        if let Some(send_result) = send_result {
+            send_result?;
+        }
+
+        if let Some(stop_result) = stop_result {
+            stop_result?;
+        }
 
         Ok(())
     }
@@ -609,23 +623,37 @@ where
         session.listener.abort();
 
         let state = session.session_state.lock().to_owned();
-        let (event, send_result) = match state {
+
+        let (event, send_result, sent_termination) = match state {
             CloseProximityDisclosureSessionState::DisclosureProposed {
                 verifier_certificate, ..
             } => (
                 Some((verifier_certificate, EventStatus::Cancelled)),
                 CPC::send_session_termination().await,
+                true,
             ),
+
             CloseProximityDisclosureSessionState::Errored {
                 verifier_certificate: Some(verifier_certificate),
                 ..
-            } => (Some((verifier_certificate, EventStatus::Error)), Ok(())),
-            _ => (None, Ok(())),
+            } => (Some((verifier_certificate, EventStatus::Error)), Ok(()), false),
+
+            _ => (None, Ok(()), false),
         };
 
-        let stop_result = CPC::stop_ble_server().await;
+        let should_stop_ble_server = !sent_termination || send_result.is_err();
+
+        let stop_result = if should_stop_ble_server {
+            Some(CPC::stop_ble_server().await)
+        } else {
+            None
+        };
+
         send_result?;
-        stop_result?;
+
+        if let Some(stop_result) = stop_result {
+            stop_result?;
+        }
 
         // Only store the event if the session is past SessionEstablished state (i.e. DisclosureProposed or later)
         if let Some((certificate, status)) = event {
