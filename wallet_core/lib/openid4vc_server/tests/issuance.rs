@@ -9,6 +9,7 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
+use indexmap::IndexSet;
 use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
@@ -51,6 +52,7 @@ const MOCK_UPSTREAM_CLIENT_ID: &str = "mock_upstream_client_id";
 struct StaticAuthorizationEndpointResolver {
     url: Url,
     client_id: String,
+    scopes: IndexSet<String>,
 }
 
 impl StaticAuthorizationEndpointResolver {
@@ -58,6 +60,7 @@ impl StaticAuthorizationEndpointResolver {
         Self {
             url,
             client_id: MOCK_UPSTREAM_CLIENT_ID.to_string(),
+            scopes: IndexSet::from_iter([String::from("openid")]),
         }
     }
 }
@@ -68,6 +71,7 @@ impl UpstreamAuthorizationEndpointResolver for StaticAuthorizationEndpointResolv
         Ok(UpstreamAuthorizationContext {
             authorization_endpoint: self.url.clone(),
             client_id: self.client_id.clone(),
+            scopes: self.scopes.clone(),
         })
     }
 }

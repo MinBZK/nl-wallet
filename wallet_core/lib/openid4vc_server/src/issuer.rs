@@ -27,6 +27,7 @@ use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::authorization::Credentials;
 use chrono::Utc;
 use crypto::keys::EcdsaKeySend;
+use indexmap::IndexSet;
 use openid4vc::CredentialErrorCode;
 use openid4vc::CredentialPreviewErrorCode;
 use openid4vc::ErrorResponse;
@@ -77,8 +78,12 @@ pub enum UpstreamResolveError {
 pub struct UpstreamAuthorizationContext {
     /// Resolved upstream authorization endpoint URL, e.g. by performing OIDC discovery.
     pub authorization_endpoint: Url,
+
     /// The `client_id` used when forwarding the authorization request upstream.
     pub client_id: String,
+
+    /// The `scopes` used when forwarding the authorization request upstream.
+    pub scopes: IndexSet<String>,
 }
 
 /// Resolves the upstream authorization endpoint URL and client_id, e.g. by performing OIDC discovery.
@@ -462,6 +467,9 @@ where
 
     // Rewrite the wallet client_id to the upstream (DigiD) client_id before forwarding.
     authorization_request.client_id = upstream_context.client_id;
+
+    // Rwrite scopes to what the upstream expects.
+    authorization_request.scope = Some(upstream_context.scopes);
 
     let query_string = serde_urlencoded::to_string(&authorization_request).map_err(|error| {
         warn!("encoding authorization request as query string failed: {}", error);

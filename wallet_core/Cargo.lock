@@ -5194,6 +5194,7 @@ dependencies = [
  "dcql",
  "http",
  "http_utils",
+ "indexmap 2.12.1",
  "jwt",
  "openid4vc",
  "p256",

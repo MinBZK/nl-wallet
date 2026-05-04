@@ -27,6 +27,7 @@ async-trait.workspace = true
 axum = { workspace = true, features = ["form", "json"] }
 chrono = { workspace = true, features = ["now"] }
 http.workspace = true
+indexmap.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_urlencoded.workspace = true

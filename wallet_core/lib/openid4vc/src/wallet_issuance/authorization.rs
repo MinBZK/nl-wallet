@@ -2,7 +2,6 @@ use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use error_category::ErrorCategory;
 use http_utils::reqwest::HttpJsonClient;
-use indexmap::IndexSet;
 use jwt::nonce::Nonce;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
@@ -109,9 +108,6 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         let state = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
         let nonce = Nonce::new_random();
 
-        let mut scopes = IndexSet::with_capacity(1);
-        scopes.insert("openid".to_string());
-
         let par_request = AuthorizationRequest {
             response_type: ResponseType::Code.into(),
             client_id: client_id.clone(),
@@ -121,8 +117,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             code_challenge: Some(PkceCodeChallenge::S256 {
                 code_challenge: pkce_pair.code_challenge().to_string(),
             }),
-            scope: Some(scopes), /* TODO (PVW-5572): remove. "openid" scope should be an implementation detail of the
-                                  * pid_issuer. Currently necessary because nl-rdo-max requires it. */
+            scope: None,
             nonce: Some(nonce), // TODO (PVW-5572): remove. Is not part of openid4vci spec
             response_mode: None,
         };

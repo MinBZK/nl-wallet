@@ -3,6 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::tls_pinned_client_builder;
+use indexmap::IndexSet;
 use jsonwebtoken::Algorithm;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::algorithm::RsaAlgorithm;
@@ -114,6 +115,7 @@ impl UpstreamAuthorizationEndpointResolver for DigidAuthorizationEndpointResolve
         Ok(UpstreamAuthorizationContext {
             authorization_endpoint,
             client_id: self.client_id.clone(),
+            scopes: IndexSet::from_iter([String::from("openid")]),
         })
     }
 }
