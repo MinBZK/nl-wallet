@@ -63,14 +63,14 @@ pub enum SessionRole {
 }
 
 impl SessionRole {
-    fn encryption_iv_identifier(&self) -> u32 {
+    fn encryption_iv_identifier(self) -> u32 {
         match self {
             SessionRole::Mdoc => 1,
             SessionRole::Reader => 0,
         }
     }
 
-    fn decryption_iv_identifier(&self) -> u32 {
+    fn decryption_iv_identifier(self) -> u32 {
         match self {
             SessionRole::Mdoc => 0,
             SessionRole::Reader => 1,
@@ -156,11 +156,6 @@ struct SessionCounters {
 impl Default for SessionCounters {
     fn default() -> Self {
         Self {
-            // ISO message counters start at one. The pre-removal `mdoc` implementation hard-coded
-            // the first-message nonce only:
-            // SSSS/wallet/nl-wallet/-/blob/c325671fd423ce111587fcf8bede4acb63c3ba8a/wallet_core/lib/mdoc/src/utils/crypto.rs
-            // This keeps first-message compatibility while supporting subsequent messages in the
-            // same session as well.
             encrypted_counter: 1,
             decrypted_counter: 1,
         }
@@ -316,10 +311,6 @@ fn session_transcript_salt(session_transcript: &SessionTranscript) -> Result<Vec
     // `#6.24(bstr .cbor SessionTranscript)`, not from the raw `SessionTranscript` CBOR itself.
     // Hashing the wrong representation would produce different session keys.
     //
-    // The pre-removal `mdoc` implementation did the same thing because it was already following
-    // the final 2021 rule rather than the earlier draft-era derivation:
-    // SSSS/wallet/nl-wallet/-/blob/c325671fd423ce111587fcf8bede4acb63c3ba8a/wallet_core/lib/mdoc/src/utils/crypto.rs
-    //
     // Multipaz takes encoded transcript bytes at its API boundary. We keep the typed conversion
     // here so the ISO-required `SessionTranscriptBytes` representation stays explicit in `mdoc`.
     let transcript_bytes = SessionTranscriptBytes::from(session_transcript.clone());
@@ -342,10 +333,6 @@ fn decrypt_session_data(key: &[u8], iv: [u8; 12], ciphertext: &[u8]) -> Result<V
 
 fn session_iv(identifier: u32, counter: u32) -> [u8; 12] {
     let mut iv = [0u8; 12];
-    // The nonce layout follows the same scheme used by the pre-removal `mdoc` implementation:
-    // SSSS/wallet/nl-wallet/-/blob/c325671fd423ce111587fcf8bede4acb63c3ba8a/wallet_core/lib/mdoc/src/utils/crypto.rs
-    // The difference is that we keep an explicit counter instead of assuming each side sends at
-    // most one message.
     iv[4..8].copy_from_slice(&identifier.to_be_bytes());
     iv[8..12].copy_from_slice(&counter.to_be_bytes());
     iv
