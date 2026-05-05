@@ -9,6 +9,7 @@ use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WiaConfig;
 use openid4vc::nonce::store::NonceStore;
 use openid4vc::par::MemoryParStore;
+use openid4vc::pkce::store::MemoryPkceFlowStore;
 use openid4vc::server_state::SessionStore;
 use openid4vc_server::issuer::UpstreamAuthorizationAdapter;
 use openid4vc_server::issuer::create_issuance_router;
@@ -86,6 +87,7 @@ where
 
     let status_list_services = Arc::new(status_list_services);
     let par_store = Arc::new(MemoryParStore::default());
+    let pkce_store = Arc::new(MemoryPkceFlowStore::default());
     let wallet_client_ids = settings.wallet_client_ids;
     let wallet_issuance_router = create_issuance_router(
         Arc::new(Issuer::new(
@@ -101,6 +103,7 @@ where
             Arc::clone(&status_list_services),
         )),
         Arc::clone(&par_store),
+        Arc::clone(&pkce_store),
         Some(upstream_authorization_adapter),
         wallet_client_ids,
     );

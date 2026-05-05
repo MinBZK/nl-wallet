@@ -19,6 +19,7 @@ use openid4vc::credential::Grants;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::par::MemoryParStore;
+use openid4vc::pkce::store::MemoryPkceFlowStore;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionToken;
 use openid4vc::test::MOCK_ATTESTATION_TYPES;
@@ -108,6 +109,7 @@ async fn start_server(
 
     let sessions = Arc::new(MemorySessionStore::default());
     let par_store = Arc::new(MemoryParStore::default());
+    let pkce_store = Arc::new(MemoryPkceFlowStore::default());
 
     let (issuer, trust_anchor, wia_issuer_privkey) = setup_mock_issuer(
         issuer_identifier.clone(),
@@ -124,6 +126,7 @@ async fn start_server(
     let router = create_issuance_router(
         Arc::clone(&issuer),
         par_store,
+        pkce_store,
         adapter,
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
     );
@@ -208,7 +211,10 @@ async fn authorization_code_flow(
 
     let redirect_uri: Url = "https://wallet.example.com/callback".parse().unwrap();
     let discovery = HttpIssuanceDiscovery::new(
-        HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
+        HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor
+            .clone()
+            .into_certificate()]))
+        .unwrap(),
     );
 
     // Start authorization code flow — fetches metadata and creates an auth session.
@@ -236,6 +242,20 @@ async fn authorization_code_flow(
 
     // State is inside the PAR-stored request; read it from the session to craft the redirect.
     let state = auth_session.state().to_owned();
+
+    // Simulate the user agent following the auth_url. The /authorize handler bridges PKCE
+    // (substituting the wallet's challenge with one it holds the verifier for) and stores
+    // that bridge entry, so /token can consume it later. We don't follow the upstream redirect.
+    let browser_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .redirect(Policy::none())
+        .build()
+        .unwrap();
+    let authorize_response = browser_client
+        .get(auth_session.auth_url().clone())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(authorize_response.status(), StatusCode::FOUND);
 
     // Simulate the authorization server redirecting back with a code and the matching state.
     // The issuer will treat any unknown code as a new (authorization-code-flow) session and
@@ -356,10 +376,16 @@ async fn authorize_rewrites_client_id_for_upstream() {
 
     let base = issuer_identifier.as_base_url().as_ref().as_str().to_string();
 
-    // Step 1: PAR with the wallet client_id.
+    // Step 1: PAR with the wallet client_id and an S256 PKCE challenge (required by /authorize).
+    let wallet_code_challenge = "wallet-c1-challenge-value";
     let par_resp: PushedAuthorizationResponse = http_client
         .post(format!("{base}issuance/par"))
-        .form(&[("response_type", "code"), ("client_id", MOCK_WALLET_CLIENT_ID)])
+        .form(&[
+            ("response_type", "code"),
+            ("client_id", MOCK_WALLET_CLIENT_ID),
+            ("code_challenge", wallet_code_challenge),
+            ("code_challenge_method", "S256"),
+        ])
         .send()
         .await
         .unwrap()
@@ -386,6 +412,9 @@ async fn authorize_rewrites_client_id_for_upstream() {
 
     // The forwarded request must carry the upstream (DigiD) client_id, not the wallet client_id.
     assert_eq!(params.get("client_id").unwrap(), MOCK_UPSTREAM_CLIENT_ID);
+    // The wallet's code_challenge must NOT be forwarded — handler substitutes its own (v2,c2).
+    assert_eq!(params.get("code_challenge_method").unwrap(), "S256");
+    assert_ne!(params.get("code_challenge").unwrap(), wallet_code_challenge);
     assert_ne!(params.get("client_id").unwrap(), MOCK_WALLET_CLIENT_ID);
     assert!(location.starts_with(upstream_endpoint.as_str()));
 }

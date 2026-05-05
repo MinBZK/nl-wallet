@@ -77,9 +77,12 @@ impl AttributeService for BrpPidAttributeService {
 
     async fn attributes(
         &self,
-        token_request: TokenRequest,
-        _upstream_code_verifier: Option<UpstreamCodeVerifier>,
+        mut token_request: TokenRequest,
+        upstream_code_verifier: Option<UpstreamCodeVerifier>,
     ) -> Result<VecNonEmpty<IssuableDocument>, Error> {
+        // Replace the wallet-facing PKCE verifier with the upstream-facing one before
+        // forwarding to RDO Max. The handler bridged the two pairs in /authorize and /token.
+        token_request.code_verifier = upstream_code_verifier.map(String::from);
         let bsn = self.openid_client.bsn(token_request).await?;
         let mut persons = self.brp_client.get_person_by_bsn(&bsn).await?;
 

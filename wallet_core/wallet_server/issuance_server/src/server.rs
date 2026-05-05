@@ -138,6 +138,7 @@ where
     let issuance_router = create_issuance_router(
         Arc::clone(&issuer),
         Arc::new(()),
+        Arc::new(()),
         None,
         issuer_settings.wallet_client_ids.clone(),
     );
