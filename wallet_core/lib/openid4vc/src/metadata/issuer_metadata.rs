@@ -191,9 +191,9 @@ pub struct NonZeroOrOneU64Error(NonZeroU64);
 
 #[derive(Debug, Clone, Copy, Into, Serialize, Deserialize)]
 #[serde(try_from = "NonZeroU64", into = "NonZeroU64")]
-pub struct NonZeroOrOneU64(NonZeroU64);
+pub struct NonZeroNorOneU64(NonZeroU64);
 
-impl NonZeroOrOneU64 {
+impl NonZeroNorOneU64 {
     pub fn try_new(size: NonZeroU64) -> Result<Self, NonZeroOrOneU64Error> {
         if size.get() < 2 {
             return Err(NonZeroOrOneU64Error(size));
@@ -203,7 +203,7 @@ impl NonZeroOrOneU64 {
     }
 }
 
-impl TryFrom<NonZeroU64> for NonZeroOrOneU64 {
+impl TryFrom<NonZeroU64> for NonZeroNorOneU64 {
     type Error = NonZeroOrOneU64Error;
 
     fn try_from(value: NonZeroU64) -> Result<Self, Self::Error> {
@@ -219,7 +219,7 @@ impl TryFrom<NonZeroU64> for NonZeroOrOneU64 {
 pub struct BatchCredentialIssuance {
     // Integer value specifying the maximum array size for the proofs parameter in a Credential Request. It MUST be 2
     // or greater.
-    pub batch_size: NonZeroOrOneU64,
+    pub batch_size: NonZeroNorOneU64,
 }
 
 /// Display properties of a Credential Issuer for a certain language.
