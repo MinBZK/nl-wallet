@@ -54,8 +54,8 @@ pub struct CredentialConfigurationParameters<K> {
 /// the attestation.
 #[derive(Debug)]
 pub struct CredentialConfiguration<K> {
-    format: Format,
-    attestation_type: String,
+    pub format: Format,
+    pub attestation_type: String,
     #[debug(skip)]
     pub key_pair: KeyPair<K>,
     pub valid_days: Days,

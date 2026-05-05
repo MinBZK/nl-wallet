@@ -7,7 +7,6 @@ pub mod preview;
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;
 
-use std::collections::HashSet;
 use std::fmt::Debug;
 
 use attestation_data::attributes::AttributesError;
@@ -16,7 +15,6 @@ use attestation_data::credential_payload::MdocCredentialPayloadError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use error_category::ErrorCategory;
-use itertools::Itertools;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
@@ -179,9 +177,9 @@ pub enum WalletIssuanceError {
     #[error("error converting SD-JWT to a CredentialPayload: {0}")]
     SdJwtCredentialPayloadError(#[from] SdJwtCredentialPayloadError),
 
-    #[error("unsupported credential format(s) proposed for credential \"{}\": {}", .0, .1.iter().join(", "))]
+    #[error("unsupported credential format proposed for credential \"{0}\": {1}")]
     #[category(pd)]
-    UnsupportedCredentialFormat(String, HashSet<Format>),
+    UnsupportedCredentialFormat(String, Format),
 
     #[error("different issuer registrations found in credential previews")]
     #[category(critical)]

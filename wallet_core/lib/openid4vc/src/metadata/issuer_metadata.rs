@@ -126,7 +126,7 @@ impl IssuerMetadata {
     }
 
     /// Returns the maximum batch size that issuer supports. If it does not support batch issuance, this returns 1.
-    // TODO (PVW-5554): Use this value for determining the amount of proofs to include.
+    // TODO (PVW-5634): Use this value for determining the amount of proofs to include.
     pub fn batch_size(&self) -> NonZeroU64 {
         self.batch_credential_issuance
             .map(|batch_issuance| batch_issuance.batch_size.into())

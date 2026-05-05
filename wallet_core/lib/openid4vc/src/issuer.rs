@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::convert::Infallible;
-use std::num::NonZero;
+use std::num::NonZeroU8;
+use std::num::NonZeroUsize;
 use std::ops::Add;
 use std::sync::Arc;
 use std::time::Duration;
@@ -23,7 +24,6 @@ use futures::TryFutureExt;
 use futures::future::try_join_all;
 use futures::join;
 use http_utils::urls::BaseUrl;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use jwt::Algorithm;
 use jwt::EcdsaDecodingKey;
@@ -83,7 +83,7 @@ use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
 
 // TODO (PVW-5727): Add this to issuer configuration.
-const BATCH_SIZE: NonZero<u8> = NonZero::new(4).unwrap();
+const BATCH_SIZE: NonZeroU8 = NonZeroU8::new(4).unwrap();
 
 /// The cleanup task that removes stale sessions runs every so often.
 const CLEANUP_INTERVAL: Duration = Duration::from_secs(120);
@@ -242,10 +242,8 @@ pub struct WaitingForResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialPreviewState {
     pub credential_configuration_id: String,
-    /// The amount of copies of this attestation that the holder will receive per credential format. This is serialized
-    /// as a list of pairs in order to guarantee the order across system boundaries.
-    #[serde(with = "indexmap::map::serde_seq")]
-    pub copies_per_format: IndexMap<Format, NonZero<u8>>,
+    pub format: Format,
+    pub batch_size: NonZeroU8,
     pub credential_payload: PreviewableCredentialPayload,
     pub batch_id: Uuid,
 }
@@ -354,6 +352,22 @@ pub struct IssuerData<K> {
 
     /// The upstream OAuth identifier, if any.
     upstream_oauth_identifier: Option<IssuerIdentifier>,
+}
+
+impl<K> IssuerData<K> {
+    fn credential_configuration_for_preview_state(
+        &self,
+        preview_state: &CredentialPreviewState,
+    ) -> Option<&CredentialConfiguration<K>> {
+        self.credential_configs
+            .get_by_configuration_id(&preview_state.credential_configuration_id)
+            .and_then(|config| {
+                // Do a sanity check to see if the credential configuration has changed from the stored preview state.
+                (preview_state.format == config.format
+                    && preview_state.credential_payload.attestation_type == config.attestation_type)
+                    .then_some(config)
+            })
+    }
 }
 
 pub struct WiaConfig {
@@ -577,15 +591,15 @@ where
     ) -> Result<CredentialPreview, CredentialPreviewError> {
         let credential_config = self
             .issuer_data
-            .credential_configs
-            .get_by_configuration_id(&state.credential_configuration_id)
+            .credential_configuration_for_preview_state(state)
             .ok_or_else(|| {
                 CredentialPreviewError::MissingCredentialConfiguration(state.credential_configuration_id.clone())
             })?;
 
         let preview = CredentialPreview {
             content: CredentialPreviewContent {
-                copies_per_format: state.copies_per_format.clone(),
+                format: state.format,
+                batch_size: state.batch_size,
                 credential_payload: state.credential_payload.clone(),
                 issuer_certificate: credential_config.key_pair.certificate().clone(),
             },
@@ -870,7 +884,7 @@ impl Session<Created> {
         let now = utc_now_truncated_to_days();
         let valid_until = now.add(credential_config.valid_days);
 
-        let copies_per_format = IndexMap::from([(document.format.into(), BATCH_SIZE)]);
+        let format = document.format.into();
 
         let (batch_id, credential_payload) = document.into_id_and_previewable_credential_payload(
             now,
@@ -881,7 +895,8 @@ impl Session<Created> {
 
         let state = CredentialPreviewState {
             credential_configuration_id: credential_config_id.to_string(),
-            copies_per_format,
+            format,
+            batch_size: BATCH_SIZE,
             credential_payload,
             batch_id,
         };
@@ -1083,7 +1098,7 @@ impl Session<WaitingForResponse> {
         let offered_creds = session_data
             .credential_previews
             .iter()
-            .filter(|preview| preview.copies_per_format.contains_key(&requested_format))
+            .filter(|preview| preview.format == requested_format)
             .collect_vec();
 
         let preview = match (offered_creds.first(), offered_creds.len()) {
@@ -1115,8 +1130,7 @@ impl Session<WaitingForResponse> {
         }
 
         let credential_config = issuer_data
-            .credential_configs
-            .get_by_configuration_id(&preview.credential_configuration_id)
+            .credential_configuration_for_preview_state(preview)
             .ok_or_else(|| {
                 CredentialRequestError::MissingCredentialConfiguration(preview.credential_configuration_id.clone())
             })?;
@@ -1127,7 +1141,7 @@ impl Session<WaitingForResponse> {
                 &preview.credential_configuration_id,
                 preview.batch_id,
                 preview.credential_payload.expires,
-                NonZero::<usize>::MIN,
+                NonZeroUsize::MIN,
             )
             .await
             .map_err(|err| CredentialRequestError::ObtainStatusClaim(Box::new(err)))?
@@ -1198,12 +1212,9 @@ impl Session<WaitingForResponse> {
             .credential_previews
             .iter()
             .map(|preview| {
-                // For every preview collect for every copy the verified key and the format
-                let format_pubkeys: VecNonEmpty<_> = preview
-                    .copies_per_format
-                    .iter()
-                    .flat_map(|(format, copies)| itertools::repeat_n(*format, copies.get().into()))
-                    .map(|format| {
+                // For every preview collect for every copy the verified key
+                let format_pubkeys: VecNonEmpty<_> = (0..preview.batch_size.get())
+                    .map(|_| {
                         let cred_req = credential_requests
                             .credential_requests
                             .as_ref()
@@ -1212,9 +1223,9 @@ impl Session<WaitingForResponse> {
 
                         // Verify the assumption that the order of the incoming requests matches exactly
                         // that of the flattened copies_per_format by matching the requested format.
-                        if format != cred_req.credential_type.as_ref().format() {
+                        if preview.format != cred_req.credential_type.as_ref().format() {
                             return Err(CredentialRequestError::CredentialTypeMismatch {
-                                offered: format,
+                                offered: preview.format,
                                 requested: cred_req.credential_type.as_ref().format(),
                             });
                         }
@@ -1226,15 +1237,14 @@ impl Session<WaitingForResponse> {
 
                         request_nonces.push(nonce);
 
-                        Ok((format, key))
+                        Ok(key)
                     })
                     .collect::<Result<Vec<_>, _>>()?
                     .try_into()
                     .unwrap(); // ok because copies_per_format has a NonZeroU8 value in AttestationConfig (source)
 
                 let credential_config = issuer_data
-                    .credential_configs
-                    .get_by_configuration_id(&preview.credential_configuration_id)
+                    .credential_configuration_for_preview_state(preview)
                     .ok_or_else(|| {
                         CredentialRequestError::MissingCredentialConfiguration(
                             preview.credential_configuration_id.clone(),
@@ -1294,19 +1304,16 @@ impl Session<WaitingForResponse> {
                 // The claims size is explicitly checked to be equal to the number of copies
                 .zip_eq(status_claims)
                 .flat_map(|((preview, credential_config, format_pubkeys), claims)| {
-                    format_pubkeys
-                        .into_iter()
-                        .zip(claims.into_inner())
-                        .map(|((format, key), claim)| {
-                            CredentialResponse::new(
-                                *format,
-                                preview.credential_payload.clone(),
-                                issued_at,
-                                key,
-                                credential_config,
-                                claim,
-                            )
-                        })
+                    format_pubkeys.into_iter().zip(claims.into_inner()).map(|(key, claim)| {
+                        CredentialResponse::new(
+                            preview.format,
+                            preview.credential_payload.clone(),
+                            issued_at,
+                            key,
+                            credential_config,
+                            claim,
+                        )
+                    })
                 }),
         )
         .await?;

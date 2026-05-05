@@ -127,7 +127,6 @@ mod test {
     use httpmock::Method::GET;
     use httpmock::Method::POST;
     use httpmock::MockServer;
-    use indexmap::IndexMap;
     use rustls_pki_types::TrustAnchor;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
@@ -181,7 +180,8 @@ mod test {
 
         let preview = CredentialPreview {
             content: CredentialPreviewContent {
-                copies_per_format: IndexMap::from([(Format::MsoMdoc, NonZeroU8::new(4).unwrap())]),
+                format: Format::MsoMdoc,
+                batch_size: NonZeroU8::new(4).unwrap(),
                 credential_payload,
                 issuer_certificate: issuance_keypair.certificate().clone(),
             },

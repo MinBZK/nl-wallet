@@ -26,7 +26,6 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::BorrowingCertificateExtension;
 use dcql::CredentialFormat;
 use futures::future::FutureExt;
-use indexmap::IndexMap;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
@@ -226,7 +225,8 @@ pub fn create_example_preview_data(
 
     NormalizedCredentialPreview {
         content: CredentialPreviewContent {
-            copies_per_format: IndexMap::from([(format, NonZeroU8::MIN)]),
+            format,
+            batch_size: NonZeroU8::MIN,
             credential_payload: credential_payload.previewable_payload,
             issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
         },
