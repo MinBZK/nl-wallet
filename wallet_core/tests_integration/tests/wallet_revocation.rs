@@ -201,17 +201,13 @@ async fn test_revoke_wallets_by_recovery_code() {
     .await;
     wallet = do_wallet_registration(wallet, pin).await;
 
-    wallet
+    let redirect_uri = wallet
         .create_pid_issuance_auth_url(PidIssuancePurpose::Enrollment)
         .await
         .expect("Could not create pid issuance auth url");
 
-    let state = wallet
-        .current_oauth_state()
-        .expect("wallet should have active OAuth state")
-        .to_owned();
     let _attestations = wallet
-        .continue_pid_issuance(fake_oidc_redirect(&state))
+        .continue_pid_issuance(fake_oidc_redirect(redirect_uri).await)
         .await
         .expect("Could not continue pid issuance");
     let err = wallet

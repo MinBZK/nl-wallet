@@ -299,8 +299,6 @@ where
         code_challenge: upstream_pkce.code_challenge().to_string(),
     });
 
-    dbg!("storing wallet_code_challenge: {}", &wallet_code_challenge);
-
     state
         .pkce_store
         .store(
@@ -368,8 +366,6 @@ where
                 error_uri: None,
             })?;
             let wallet_code_challenge = BASE64_URL_SAFE_NO_PAD.encode(sha256(wallet_code_verifier.as_bytes()));
-
-            dbg!("consume wallet_code_challenge: {}", &wallet_code_challenge);
 
             let code_verifier = state
                 .pkce_store

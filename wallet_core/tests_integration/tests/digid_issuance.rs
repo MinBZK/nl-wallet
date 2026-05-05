@@ -21,6 +21,7 @@ use pid_issuer::pid::constants::PID_BSN;
 use pid_issuer::pid::constants::PID_FAMILY_NAME;
 use pid_issuer::pid::constants::PID_GIVEN_NAME;
 use pid_issuer::pid::constants::PID_RESIDENT_COUNTRY;
+use pid_issuer::pid::digid::DigidAuthorizationAdapter;
 use pid_issuer::pid::digid::DigidMetadataCache;
 use serial_test::serial;
 use server_utils::keys::SecretKeyVariant;
@@ -61,6 +62,12 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .transpose()
         .unwrap();
 
+    let digid_metadata_cache = Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings.clone()).unwrap());
+    let upstream_authorization_adapter = Arc::new(DigidAuthorizationAdapter::new(
+        Arc::clone(&digid_metadata_cache),
+        settings.digid.client_id.clone(),
+    ));
+
     let issuer_url = start_pid_issuer_server(
         settings.clone(),
         hsm,
@@ -68,7 +75,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             HttpBrpClient::new(settings.brp_server.clone()),
             &settings.digid.bsn_privkey,
             settings.digid.client_id.clone(),
-            Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings.clone()).unwrap()),
+            digid_metadata_cache,
             SecretKeyVariant::from_settings(
                 SecretKey::Software {
                     secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
@@ -78,6 +85,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             .unwrap(),
         )
         .unwrap(),
+        upstream_authorization_adapter,
     )
     .await;
 

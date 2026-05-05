@@ -31,7 +31,6 @@ use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use http_utils::urls::disclosure_based_issuance_base_uri;
-use http_utils::urls::issuance_base_uri;
 use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
@@ -39,6 +38,7 @@ use issuer_common::nonce_store::ProofNonceStore;
 use issuer_common::settings::IssuerSettings;
 use issuer_common::settings::StatusListAttestationSettings;
 use jwt::SignedJwt;
+use openid4vc::authorization::AuthorizationRequest;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuer::AttributeService;
@@ -50,15 +50,17 @@ use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
+use openid4vc_server::issuer::UpstreamAuthorizationAdapter;
+use openid4vc_server::issuer::UpstreamResolveError;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
-use pid_issuer::pid::digid::DigidAuthorizationAdapter;
-use pid_issuer::pid::digid::DigidMetadataCache;
 use pid_issuer::pid::mock::MockAttributeService;
 use pid_issuer::pid::mock::mock_issuable_document_pid;
 use pid_issuer::settings::PidIssuerSettings;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use reqwest::Certificate;
+use reqwest::header;
+use reqwest::redirect::Policy;
 use rustls::crypto::CryptoProvider;
 use rustls::crypto::ring;
 use sea_orm::DatabaseConnection;
@@ -357,6 +359,7 @@ pub async fn setup_env(
         issuer_settings,
         Some(hsm),
         MockAttributeService::new(pid_issuable_documents),
+        Arc::new(StaticUpstreamAuthorizationAdapter::default()),
     )
     .await;
 
@@ -873,10 +876,34 @@ pub async fn start_issuance_server(
     }
 }
 
+/// Stand-in for [`pid_issuer::pid::digid::DigidAuthorizationAdapter`] in tests that don't need to
+/// reach a real upstream OIDC provider. The wallet-side `fake_oidc_redirect` helper only needs the
+/// `redirect_uri` and `state` query parameters from the issuer's `/authorize` redirect, so the
+/// concrete authorization endpoint URL is irrelevant — it is never fetched.
+pub struct StaticUpstreamAuthorizationAdapter {
+    authorization_endpoint: Url,
+}
+
+impl Default for StaticUpstreamAuthorizationAdapter {
+    fn default() -> Self {
+        Self {
+            authorization_endpoint: Url::parse("https://upstream.example.com/authorize").unwrap(),
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl UpstreamAuthorizationAdapter for StaticUpstreamAuthorizationAdapter {
+    async fn adapt(&self, request: AuthorizationRequest) -> Result<(Url, AuthorizationRequest), UpstreamResolveError> {
+        Ok((self.authorization_endpoint.clone(), request))
+    }
+}
+
 pub async fn start_pid_issuer_server(
     mut settings: PidIssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     attr_service: impl AttributeService + Sync + 'static,
+    upstream_authorization_adapter: Arc<dyn UpstreamAuthorizationAdapter>,
 ) -> IssuerUrl {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
@@ -912,10 +939,7 @@ pub async fn start_pid_issuer_server(
                 public_listener,
                 internal_listener,
                 attr_service,
-                Arc::new(DigidAuthorizationAdapter::new(
-                    Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings).unwrap()),
-                    settings.digid.client_id,
-                )),
+                upstream_authorization_adapter,
                 settings.issuer_settings,
                 hsm,
                 issuance_sessions,
@@ -1070,15 +1094,39 @@ pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: &str) ->
 /// content, any authorization code works. We only need the correct `state` parameter
 /// (to pass the CSRF check) and a redirect URI that starts with the wallet's issuance base URI.
 /// A random code ensures each call gets a fresh session in the pid issuer's session store.
-pub fn fake_oidc_redirect(state: &str) -> Url {
+pub async fn fake_oidc_redirect(authorization_url: Url) -> Url {
     let code = crypto::utils::random_string(32);
 
-    let redirect_base: BaseUrl = DEFAULT_UNIVERSAL_LINK_BASE
-        .parse()
-        .expect("DEFAULT_UNIVERSAL_LINK_BASE should be a valid BaseUrl");
-    let mut redirect_url = issuance_base_uri(&redirect_base).as_ref().clone();
-    redirect_url.set_query(Some(&format!("code={code}&state={state}")));
-    redirect_url
+    let http_client = default_reqwest_client_builder()
+        .redirect(Policy::none())
+        .build()
+        .unwrap();
+
+    // Follow the PAR redirect to the DigiD authorization endpoint.
+    let redirect_auth_url = http_client.get(authorization_url).send().await.unwrap();
+    let digid_auth_url = redirect_auth_url
+        .headers()
+        .get(header::LOCATION)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .parse::<Url>()
+        .unwrap();
+
+    let redirect_uri = digid_auth_url
+        .query_pairs()
+        .find(|(key, _)| key == "redirect_uri")
+        .map(|(_, value)| value.into_owned())
+        .unwrap();
+    let state = digid_auth_url
+        .query_pairs()
+        .find(|(key, _)| key == "state")
+        .map(|(_, value)| value.into_owned())
+        .unwrap();
+
+    let mut redirect_uri = Url::parse(&redirect_uri).unwrap();
+    redirect_uri.set_query(Some(&format!("code={code}&state={state}")));
+    redirect_uri
 }
 
 pub async fn do_pid_issuance(wallet: WalletWithStorage, pin: String) -> WalletWithStorage {
@@ -1094,16 +1142,12 @@ pub async fn do_pid_issuance_with_purpose(
     pin: String,
     purpose: PidIssuancePurpose,
 ) -> WalletWithStorage {
-    wallet
+    let redirect_uri = wallet
         .create_pid_issuance_auth_url(purpose)
         .await
         .expect("Could not create pid issuance auth url");
 
-    let state = wallet
-        .current_oauth_state()
-        .expect("wallet should have an active OAuth state after creating auth URL")
-        .to_owned();
-    let redirect_url = fake_oidc_redirect(&state);
+    let redirect_url = fake_oidc_redirect(redirect_uri).await;
 
     let _attestations = wallet
         .continue_pid_issuance(redirect_url)
@@ -1117,16 +1161,12 @@ pub async fn do_pid_issuance_with_purpose(
 }
 
 pub async fn do_pin_recovery(mut wallet: WalletWithStorage, new_pin: String) -> WalletWithStorage {
-    wallet
+    let redirect_uri = wallet
         .create_pin_recovery_redirect_uri()
         .await
         .expect("Could not create pin recovery redirect URI");
 
-    let state = wallet
-        .current_oauth_state()
-        .expect("wallet should have an active OAuth state after creating pin recovery redirect URI")
-        .to_owned();
-    let redirect_url = fake_oidc_redirect(&state);
+    let redirect_url = fake_oidc_redirect(redirect_uri).await;
 
     wallet
         .continue_pin_recovery(redirect_url)
