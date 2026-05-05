@@ -34,6 +34,7 @@ use crate::openid4vp::VpRequestUri;
 use crate::openid4vp::VpRequestUriMethod;
 use crate::openid4vp::VpRequestUriObject;
 use crate::verifier::SessionType;
+use crate::verifier::VerifierUrlParameters;
 
 #[derive(Debug, Constructor)]
 pub struct VpDisclosureClient<H = HttpVpMessageClient> {
@@ -64,8 +65,7 @@ impl<H> VpDisclosureClient<H> {
             )),
 
             // Invalid request.
-            VpVerifierError::MalformedSessionType(_)
-            | VpVerifierError::AuthRequestValidation(_)
+            VpVerifierError::AuthRequestValidation(_)
             | VpVerifierError::IncorrectClientId { .. }
             | VpVerifierError::RpCertificate(_)
             | VpVerifierError::NoReaderCertificate
@@ -151,25 +151,37 @@ where
 
         #[derive(Deserialize)]
         struct UrlSessionType {
-            session_type: Option<SessionType>,
+            session_type: SessionType,
         }
 
-        // Parse the `SessionType` from the verifier URL, if present.
-        let UrlSessionType {
-            session_type: url_session_type,
-        } = serde_urlencoded::from_str(request_uri.as_ref().query().unwrap_or_default())
-            .map_err(VpVerifierError::MalformedSessionType)?;
+        // Parse the `SessionType` from the verifier URL.
+        // If it is not present, or if it does not contain one of the two expected values, we simply ignore it.
+        let url_session_type = request_uri
+            .as_ref()
+            .query()
+            .and_then(|query| serde_urlencoded::from_str(query).ok()) // discard the error: see comment below
+            .map(|params: UrlSessionType| params.session_type);
 
-        // Check the `SessionType` that was contained in the verifier URL against the source of the URI.
-        // A same-device session is expected to come from a Universal Link,
-        // while a cross-device session should come from a scanned QR code.
+        let source_session_type = uri_source.session_type();
+
+        // If the verifier URL contained a `session_type` parameter of one of the two allowed values,
+        // (i.e., `same_device` or `cross_device`), check it against the source of the URI.
+        // A `same_device` session is expected to come from a Universal Link, while a `cross_device` session
+        // should come from a scanned QR code.
+        //
+        // The `verification_server` will always use the `session_type` parameters. In case of other verifiers:
+        // - If they don't use it, or if they do but with values other than `same_device` or `cross_device`,
+        //   the deserialization above maps it to `None`. (This does not break the downgrade attack prevention
+        //   that this mechanism realizes for the `verification_server`.)
+        // - If they use it in the correct manner (e.g. `same_device` for a UL), this will work fine.
+        // - If they use it incorrectly (e.g. `same_device` for a QR code) this will break the session and
+        //   therefore compatibility with that verifier, but such a situation would be bizarre and is not to
+        //   be expected.
         if let Some(session_type) = url_session_type
-            && uri_source.session_type() != session_type
+            && source_session_type != session_type
         {
             return Err(VpClientError::DisclosureUriSourceMismatch(session_type, uri_source).into());
         }
-
-        let session_type = uri_source.session_type();
 
         // If the server supports it, require it to include a nonce in the Authorization Request JWT
         let request_method = request_uri_method.unwrap_or_default();
@@ -260,7 +272,7 @@ where
 
         let session = VpDisclosureSession::new(
             self.client.clone(),
-            session_type,
+            source_session_type,
             verifier_certificate,
             auth_request,
             selected_encryption_algorithm,
@@ -706,33 +718,6 @@ mod tests {
                 UnsupportedRequestUriVariant::RequestObjectAsQueryParameters
             ))
         );
-    }
-
-    #[test]
-    fn test_vp_disclosure_client_start_error_malformed_session_type() {
-        // Calling `VpDisclosureClient::start()` with a request URI object that contains
-        // a request URI with an invalid session_type should result in an error.
-        let (error, verifier_session) = start_disclosure_session_format(
-            SessionType::SameDevice,
-            DisclosureUriSource::Link,
-            VpRequestUriMethod::POST,
-            None,
-            CredentialFormat::MsoMdoc,
-            |mut verifier_session| {
-                verifier_session.request_uri = format!("{}?session_type=invalid", LazyLock::force(&VERIFIER_URL))
-                    .parse()
-                    .unwrap();
-
-                verifier_session
-            },
-        )
-        .expect_err("starting a new disclosure session with a malformed session type should not succeed");
-
-        assert_matches!(
-            *error,
-            VpSessionError::Verifier(VpVerifierError::MalformedSessionType(_))
-        );
-        assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
     }
 
     #[rstest]

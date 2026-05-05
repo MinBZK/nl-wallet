@@ -77,11 +77,6 @@ pub enum VpClientError {
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum VpVerifierError {
-    #[error("malformed session_type query parameter in request URI: {0}")]
-    // we cannot be sure that the URL is not included in the error
-    #[category(pd)]
-    MalformedSessionType(#[source] serde_urlencoded::de::Error),
-
     #[error("error sending OpenID4VP message: {0}")]
     Request(#[source] VpMessageClientError),
 
