@@ -1867,6 +1867,34 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_wallet_start_disclosure_error_vp_verifier_server() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Set up `DisclosureSession` start to return the following error.
+        wallet
+            .disclosure_client
+            .expect_start()
+            .times(1)
+            .return_once(|_, _, _| Err(VpVerifierError::NoReaderCertificate.into()));
+
+        // Starting disclosure which returns an error should forward that error.
+        let error = wallet
+            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
+            .await
+            .expect_err("starting disclosure should not succeed");
+
+        assert_matches!(
+            error,
+            DisclosureError::VpVerifierServer {
+                error: VpVerifierError::NoReaderCertificate,
+                organization: None,
+            }
+        );
+        assert!(error.return_url().is_none());
+        assert!(wallet.session.is_none());
+    }
+
+    #[tokio::test]
     async fn test_wallet_start_disclosure_error_attestation_retrieval() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
