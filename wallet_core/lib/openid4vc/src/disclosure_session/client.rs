@@ -34,7 +34,6 @@ use crate::openid4vp::VpRequestUri;
 use crate::openid4vp::VpRequestUriMethod;
 use crate::openid4vp::VpRequestUriObject;
 use crate::verifier::SessionType;
-use crate::verifier::VerifierUrlParameters;
 
 #[derive(Debug, Constructor)]
 pub struct VpDisclosureClient<H = HttpVpMessageClient> {
@@ -749,6 +748,50 @@ mod tests {
                 source
             )) if typ == session_type && source == uri_source);
         assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
+    }
+
+    #[test]
+    fn test_vp_disclosure_client_start_missing_session_type_is_allowed() {
+        // A request URI without a session_type query parameter should succeed: the wallet
+        // falls back to the URI source to determine the session type.
+        let (disclosure_session, _) = start_disclosure_session_format(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            VpRequestUriMethod::POST,
+            None,
+            CredentialFormat::MsoMdoc,
+            |mut verifier_session| {
+                let mut request_uri = verifier_session.request_uri.clone().into_inner();
+                request_uri.set_query(None);
+                verifier_session.request_uri = request_uri.try_into().unwrap();
+                verifier_session
+            },
+        )
+        .expect("starting a new disclosure session without a session_type parameter should succeed");
+
+        assert_eq!(disclosure_session.session_type(), SessionType::SameDevice);
+    }
+
+    #[test]
+    fn test_vp_disclosure_client_start_unrecognized_session_type_is_allowed() {
+        // A request URI with an unrecognized session_type value should succeed: the wallet
+        // ignores the unrecognized value and falls back to the URI source.
+        let (disclosure_session, _) = start_disclosure_session_format(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            VpRequestUriMethod::POST,
+            None,
+            CredentialFormat::MsoMdoc,
+            |mut verifier_session| {
+                let mut request_uri = verifier_session.request_uri.clone().into_inner();
+                request_uri.set_query(Some("session_type=unrecognized_value"));
+                verifier_session.request_uri = request_uri.try_into().unwrap();
+                verifier_session
+            },
+        )
+        .expect("starting a new disclosure session with an unrecognized session_type value should succeed");
+
+        assert_eq!(disclosure_session.session_type(), SessionType::SameDevice);
     }
 
     #[test]
