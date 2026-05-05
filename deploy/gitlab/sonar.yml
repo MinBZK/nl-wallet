@@ -53,7 +53,7 @@ sonar-flutter:
     - flutter pub get --enforce-lockfile
     - sonar-scanner -Dsonar.scanner.skipJreProvisioning=true -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT -Dsonar.sources=.
-      -Dsonar.exclusions=android/**,ios/**,test/**,packages/wallet_core/lib/src/**,**/*.freezed.dart,**/*.g.dart,**/*.yaml
+      -Dsonar.exclusions=**/android/**,**/ios/**,test/**,packages/wallet_core/lib/src/**,**/*.freezed.dart,**/*.g.dart,**/*.yaml
       -Dsonar.coverage.exclusions=packages/wallet_mock/** -Dsonar.tests=test/
       -Dsonar.dependencyCheck.htmlReportPath=../dependency-check-report.html
       -Dsonar.dependencyCheck.jsonReportPath=../dependency-check-report.json
