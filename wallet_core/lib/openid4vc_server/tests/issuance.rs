@@ -16,6 +16,8 @@ use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::GrantPreAuthorizedCode;
 use openid4vc::credential::Grants;
+use openid4vc::dpop::DPOP_HEADER_NAME;
+use openid4vc::dpop::Dpop;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::par::MemoryParStore;
@@ -28,6 +30,8 @@ use openid4vc::test::MockIssuer;
 use openid4vc::test::mock_issuable_documents;
 use openid4vc::test::setup_mock_issuer;
 use openid4vc::token::AuthorizationCode;
+use openid4vc::token::TokenRequest;
+use openid4vc::token::TokenRequestGrantType;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::IssuanceSession;
@@ -40,6 +44,8 @@ use openid4vc_server::issuer::UpstreamResolveError;
 use openid4vc_server::issuer::create_issuance_router;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePrivateKey;
+use rand_core::OsRng;
+use reqwest::Method;
 use reqwest::StatusCode;
 use reqwest::redirect::Policy;
 use rstest::rstest;
@@ -417,4 +423,221 @@ async fn authorize_rewrites_client_id_for_upstream() {
     assert_ne!(params.get("code_challenge").unwrap(), wallet_code_challenge);
     assert_ne!(params.get("client_id").unwrap(), MOCK_WALLET_CLIENT_ID);
     assert!(location.starts_with(upstream_endpoint.as_str()));
+}
+
+#[tokio::test]
+async fn authorize_rejects_missing_code_challenge() {
+    let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
+    let (_, _, issuer_identifier, _, tls_trust_anchor) = start_server(NonZeroUsize::MIN, Some(upstream_endpoint)).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .redirect(Policy::none())
+        .build()
+        .unwrap();
+
+    let base = issuer_identifier.as_base_url().as_ref().as_str().to_string();
+
+    // PAR with no code_challenge — accepted by /par (it doesn't validate this), but /authorize
+    // refuses to bridge a request that has no challenge.
+    let par_resp: PushedAuthorizationResponse = http_client
+        .post(format!("{base}issuance/par"))
+        .form(&[("response_type", "code"), ("client_id", MOCK_WALLET_CLIENT_ID)])
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+
+    let mut authorize_url: Url = format!("{base}issuance/authorize").parse().unwrap();
+    authorize_url
+        .query_pairs_mut()
+        .append_pair("client_id", MOCK_WALLET_CLIENT_ID)
+        .append_pair("request_uri", &par_resp.request_uri);
+    let response = http_client.get(authorize_url).send().await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("invalid_request"), "unexpected body: {body}");
+    assert!(body.contains("missing code_challenge"), "unexpected body: {body}");
+}
+
+#[tokio::test]
+async fn authorize_rejects_plain_code_challenge_method() {
+    let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
+    let (_, _, issuer_identifier, _, tls_trust_anchor) = start_server(NonZeroUsize::MIN, Some(upstream_endpoint)).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .redirect(Policy::none())
+        .build()
+        .unwrap();
+
+    let base = issuer_identifier.as_base_url().as_ref().as_str().to_string();
+
+    // PAR with `code_challenge_method=plain` — the handler bridges PKCE only when S256 is used.
+    let par_resp: PushedAuthorizationResponse = http_client
+        .post(format!("{base}issuance/par"))
+        .form(&[
+            ("response_type", "code"),
+            ("client_id", MOCK_WALLET_CLIENT_ID),
+            ("code_challenge", "wallet-c1-challenge-value"),
+            ("code_challenge_method", "plain"),
+        ])
+        .send()
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+
+    let mut authorize_url: Url = format!("{base}issuance/authorize").parse().unwrap();
+    authorize_url
+        .query_pairs_mut()
+        .append_pair("client_id", MOCK_WALLET_CLIENT_ID)
+        .append_pair("request_uri", &par_resp.request_uri);
+    let response = http_client.get(authorize_url).send().await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("invalid_request"), "unexpected body: {body}");
+    assert!(body.contains("S256"), "unexpected body: {body}");
+}
+
+#[tokio::test]
+async fn authorize_rejects_unknown_request_uri() {
+    let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
+    let (_, _, issuer_identifier, _, tls_trust_anchor) = start_server(NonZeroUsize::MIN, Some(upstream_endpoint)).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .redirect(Policy::none())
+        .build()
+        .unwrap();
+
+    let mut authorize_url: Url = format!(
+        "{}issuance/authorize",
+        issuer_identifier.as_base_url().as_ref().as_str()
+    )
+    .parse()
+    .unwrap();
+    authorize_url
+        .query_pairs_mut()
+        .append_pair("client_id", MOCK_WALLET_CLIENT_ID)
+        .append_pair("request_uri", "urn:ietf:params:oauth:request_uri:not-stored");
+    let response = http_client.get(authorize_url).send().await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("invalid_request"), "unexpected body: {body}");
+    assert!(body.contains("request_uri not found"), "unexpected body: {body}");
+}
+
+#[tokio::test]
+async fn authorize_rejects_unknown_client_id() {
+    let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
+    let (_, _, issuer_identifier, _, tls_trust_anchor) = start_server(NonZeroUsize::MIN, Some(upstream_endpoint)).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .redirect(Policy::none())
+        .build()
+        .unwrap();
+
+    let mut authorize_url: Url = format!(
+        "{}issuance/authorize",
+        issuer_identifier.as_base_url().as_ref().as_str()
+    )
+    .parse()
+    .unwrap();
+    authorize_url
+        .query_pairs_mut()
+        .append_pair("client_id", "definitely-not-the-wallet")
+        .append_pair("request_uri", "urn:ietf:params:oauth:request_uri:doesnt-matter");
+    let response = http_client.get(authorize_url).send().await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("invalid_client"), "unexpected body: {body}");
+}
+
+/// Builds a parseable DPoP header for `POST {token_url}`. The PKCE check in the `/token`
+/// handler runs before DPoP semantic verification, so the value just has to deserialize —
+/// the URL/method don't need to match what the handler will later try to verify against.
+fn dpop_header_for(token_url: &Url) -> String {
+    let signing_key = SigningKey::random(&mut OsRng);
+    Dpop::new(&signing_key, token_url.clone(), &Method::POST, None, None)
+        .unwrap()
+        .to_string()
+}
+
+#[tokio::test]
+async fn token_rejects_missing_code_verifier() {
+    let (_, _, issuer_identifier, _, tls_trust_anchor) = start_server(NonZeroUsize::MIN, None).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .build()
+        .unwrap();
+
+    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
+        .parse()
+        .unwrap();
+
+    // AuthorizationCode grant without a code_verifier — the handler must reject before
+    // ever consulting `PkceFlowStore` or `process_token_request`.
+    let token_request = TokenRequest {
+        grant_type: TokenRequestGrantType::AuthorizationCode {
+            code: "any-code".to_string().into(),
+        },
+        code_verifier: None,
+        client_id: None,
+        redirect_uri: None,
+    };
+
+    let response = http_client
+        .post(token_url.clone())
+        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .form(&token_request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("invalid_grant"), "unexpected body: {body}");
+    assert!(body.contains("missing code_verifier"), "unexpected body: {body}");
+}
+
+#[tokio::test]
+async fn token_rejects_unknown_code_verifier() {
+    let (_, _, issuer_identifier, _, tls_trust_anchor) = start_server(NonZeroUsize::MIN, None).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .build()
+        .unwrap();
+
+    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
+        .parse()
+        .unwrap();
+
+    // AuthorizationCode grant with a `code_verifier` whose SHA256 hash is not in `PkceFlowStore`
+    // (since we skipped /authorize, the store is empty). The handler must return invalid_grant.
+    let token_request = TokenRequest {
+        grant_type: TokenRequestGrantType::AuthorizationCode {
+            code: "any-code".to_string().into(),
+        },
+        code_verifier: Some("a-verifier-no-one-stored".to_string()),
+        client_id: None,
+        redirect_uri: None,
+    };
+
+    let response = http_client
+        .post(token_url.clone())
+        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .form(&token_request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("invalid_grant"), "unexpected body: {body}");
+    assert!(body.contains("PKCE verification failed"), "unexpected body: {body}");
 }

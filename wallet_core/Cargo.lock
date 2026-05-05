@@ -5199,6 +5199,7 @@ dependencies = [
  "jwt",
  "openid4vc",
  "p256",
+ "rand_core 0.6.4",
  "reqwest",
  "ring",
  "rstest",

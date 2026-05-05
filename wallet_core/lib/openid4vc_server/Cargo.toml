@@ -52,6 +52,7 @@ utils.path = "../utils"
 [dev-dependencies]
 axum-server.workspace = true
 p256.workspace = true
+rand_core.workspace = true
 reqwest.workspace = true
 rstest.workspace = true
 serde_urlencoded.workspace = true
