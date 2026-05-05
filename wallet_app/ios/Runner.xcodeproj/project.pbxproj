@@ -297,9 +297,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -339,7 +343,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "PATH=\"/usr/bin:/bin:/usr/sbin:/sbin\"\nsource \"${HOME}/.cargo/env\"\n\nexec > >(tee ${PROJECT_DIR}/compile_rust_core.log) 2>&1\n\nfunction get_dart_define {\n    IFS=\",\"\n\n    for DART_DEFINE in $DART_DEFINES\n    do\n        local DECODED=$(echo ${DART_DEFINE} | base64 -d)\n        local KEY=`echo ${DECODED} | cut -d = -f1`\n        local VALUE=`echo ${DECODED} | cut -d = -f2-`\n\n        if [ $KEY == $1 ]\n        then\n            echo $VALUE\n        fi\n    done\n}\n\nALLOW_INSECURE_URL=$(get_dart_define \"ALLOW_INSECURE_URL\")\nFAKE_ATTESTATION=$(get_dart_define \"FAKE_ATTESTATION\")\n\nCARGO_FLAGS=\"--package flutter_api\"\n\nif [ \"$ALLOW_INSECURE_URL\" == \"true\" ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --features wallet/allow_insecure_url\"\nfi\n\nif [ \"$PLATFORM_NAME\" == \"iphoneos\" ] || [ \"$PLATFORM_NAME\" == \"iphonesimulator\" ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --features wallet/ios_session_crypto\"\nfi\n\nif [ \"$FAKE_ATTESTATION\" == \"true\" ] || [ \"$PLATFORM_NAME\" == \"iphonesimulator\" ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --features wallet/fake_attestation\"\nfi\n\nif [ \"$CARGO_BUILD_MODE\" == release ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --locked --release\"\nfi\n\nfor TARGET in $CARGO_TARGETS; do\n    CARGO_FLAGS=\"${CARGO_FLAGS} --target ${TARGET}\"\ndone\n\ncargo build --manifest-path \"${PROJECT_DIR}/../../wallet_core/Cargo.toml\" ${CARGO_FLAGS}\n";
+			shellScript = "PATH=\"/usr/bin:/bin:/usr/sbin:/sbin\"\nsource \"${HOME}/.cargo/env\"\n\nexec > >(tee ${PROJECT_DIR}/compile_rust_core.log) 2>&1\n\nfunction get_dart_define {\n    IFS=\",\"\n\n    for DART_DEFINE in $DART_DEFINES\n    do\n        local DECODED=$(echo ${DART_DEFINE} | base64 -d)\n        local KEY=`echo ${DECODED} | cut -d = -f1`\n        local VALUE=`echo ${DECODED} | cut -d = -f2-`\n\n        if [ $KEY == $1 ]\n        then\n            echo $VALUE\n        fi\n    done\n}\n\nALLOW_INSECURE_URL=$(get_dart_define \"ALLOW_INSECURE_URL\")\nFAKE_ATTESTATION=$(get_dart_define \"FAKE_ATTESTATION\")\n\nCARGO_FLAGS=\"--package flutter_api\"\n\nif [ \"$ALLOW_INSECURE_URL\" == \"true\" ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --features wallet/allow_insecure_url\"\nfi\n\nCARGO_FLAGS=\"${CARGO_FLAGS} --features wallet/ios_session_crypto\"\n\nif [ \"$FAKE_ATTESTATION\" == \"true\" ] || [ \"$PLATFORM_NAME\" == \"iphonesimulator\" ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --features wallet/fake_attestation\"\nfi\n\nif [ \"$CARGO_BUILD_MODE\" == release ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --locked --release\"\nfi\n\nfor TARGET in $CARGO_TARGETS; do\n    CARGO_FLAGS=\"${CARGO_FLAGS} --target ${TARGET}\"\ndone\n\ncargo build --manifest-path \"${PROJECT_DIR}/../../wallet_core/Cargo.toml\" ${CARGO_FLAGS}\n";
 		};
 		6C455936181F94502FED24CA /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -349,9 +353,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -501,8 +509,14 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios/release/libwallet_core.a",
 				);
-				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = "$(inherited) $(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios-sim/release/libwallet_core.a";
-				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/release/libwallet_core.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios-sim/release/libwallet_core.a",
+				);
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/release/libwallet_core.a",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = nl.ictu.edi.wallet.latest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -643,8 +657,14 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios/debug/libwallet_core.a",
 				);
-				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = "$(inherited) $(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios-sim/debug/libwallet_core.a";
-				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/debug/libwallet_core.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios-sim/debug/libwallet_core.a",
+				);
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/debug/libwallet_core.a",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = nl.ictu.edi.wallet.latest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -680,8 +700,14 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios/release/libwallet_core.a",
 				);
-				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = "$(inherited) $(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios-sim/release/libwallet_core.a";
-				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/release/libwallet_core.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios-sim/release/libwallet_core.a",
+				);
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/release/libwallet_core.a",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = nl.ictu.edi.wallet.latest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -717,7 +743,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
 	};
 	rootObject = 97C146E61CF9000F007C117D /* Project object */;
 }
