@@ -13,7 +13,7 @@ extension CloseProximityDisclosure {
             guard isActiveSession(session) else { return }
             // According to the ISO-18013-5 protocol, the reader will send the eReader public key as the first payload.
             // This is the last ingredient needed for the session transcript.
-            guard await ensureSessionCrypto(
+            guard await handleFirstReaderMessage(
                 session: session,
                 message: message
             ) else {
@@ -31,14 +31,16 @@ extension CloseProximityDisclosure {
         }
     }
 
-    private func ensureSessionCrypto(
+    private func handleFirstReaderMessage(
         session: CloseProximityDisclosureActiveSession,
         message: [UInt8]
     ) async -> Bool {
+        // If there is session encryption, then this is not the first reader message so skip
         if sessionCrypto(for: session) != nil {
             return true
         }
-
+        // If there is no session encryption, try to treat this message as the reader setting up the session,
+        // and fail the whole session if this doesn't work as we won't get this message again
         do {
             let (sessionCrypto, encodedSessionTranscript) = try createSessionCryptoFromFirstReaderMessage(
                 session: session,
@@ -51,23 +53,13 @@ extension CloseProximityDisclosure {
             )
             return true
         } catch {
-            if let status = sessionEstablishmentFailureStatus(for: error) {
+            if let status = mapErrorToSessionStatus(for: error) {
                 await failSessionWithStatus(session, status: status, error: error)
             } else {
                 await failSession(session, error: error)
             }
             return false
         }
-    }
-
-    private func buildEncodedSessionTranscript(
-        encodedDeviceEngagement: [UInt8],
-        encodedReaderKey: [UInt8]
-    ) throws -> [UInt8] {
-        try closeProximityBuildSessionTranscript(
-            encodedDeviceEngagement: encodedDeviceEngagement,
-            encodedReaderKey: encodedReaderKey
-        )
     }
 
     private func waitForSessionMessage(
@@ -89,7 +81,7 @@ extension CloseProximityDisclosure {
         message: [UInt8]
     ) throws -> (CloseProximitySessionCrypto, [UInt8]) {
         let eReaderKey = try closeProximityGetEReaderKey(sessionEstablishmentMessage: message)
-        let encodedSessionTranscript = try buildEncodedSessionTranscript(
+        let encodedSessionTranscript = try closeProximityBuildSessionTranscript(
             encodedDeviceEngagement: session.encodedDeviceEngagement,
             encodedReaderKey: eReaderKey.encodedCoseKey
         )
@@ -116,7 +108,7 @@ extension CloseProximityDisclosure {
             deviceRequest = decryptedMessage.data
             status = decryptedMessage.status
         } catch {
-            if let status = sessionMessageFailureStatus(for: error) {
+            if let status = mapErrorToSessionStatus(for: error) {
                 await failSessionWithStatus(
                     session,
                     status: status,
@@ -165,11 +157,7 @@ extension CloseProximityDisclosure {
     }
 }
 
-private func sessionEstablishmentFailureStatus(for error: Error) -> Int64? {
-    (error as? CloseProximitySessionCryptoError)?.closeProximityStatusCode
-}
-
-private func sessionMessageFailureStatus(for error: Error) -> Int64? {
+private func mapErrorToSessionStatus(for error: Error) -> Int64? {
     (error as? CloseProximitySessionCryptoError)?.closeProximityStatusCode
 }
 
