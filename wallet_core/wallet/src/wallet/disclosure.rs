@@ -1875,7 +1875,7 @@ mod tests {
             .disclosure_client
             .expect_start()
             .times(1)
-            .return_once(|_, _, _| Err(VpVerifierError::MissingSessionType.into()));
+            .return_once(|_, _, _| Err(VpVerifierError::NoReaderCertificate.into()));
 
         // Starting disclosure which returns an error should forward that error.
         let error = wallet
@@ -1886,7 +1886,7 @@ mod tests {
         assert_matches!(
             error,
             DisclosureError::VpVerifierServer {
-                error: VpVerifierError::MissingSessionType,
+                error: VpVerifierError::NoReaderCertificate,
                 organization: None,
             }
         );
