@@ -28,9 +28,3 @@ pub struct IssuanceResult {
     pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>,
     pub wia: Option<WiaDisclosure>,
 }
-
-#[derive(Debug, Constructor)]
-pub struct JwtPoaInput {
-    pub nonce: Option<Nonce>,
-    pub aud: String,
-}

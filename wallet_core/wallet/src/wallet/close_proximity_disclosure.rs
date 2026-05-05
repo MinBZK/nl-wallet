@@ -50,7 +50,7 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wscd::Poa;
-use wscd::wscd::JwtPoaInput;
+use wscd::poa::JwtPoaInput;
 
 use crate::AttributesNotAvailable;
 use crate::DisclosureProposalPresentation;

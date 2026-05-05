@@ -17,7 +17,7 @@ use tracing::info;
 use tracing::warn;
 use utils::generator::Generator;
 use wscd::Poa;
-use wscd::wscd::JwtPoaInput;
+use wscd::poa::JwtPoaInput;
 
 use super::DisclosableAttestations;
 use super::DisclosureSession;
