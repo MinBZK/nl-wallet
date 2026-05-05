@@ -474,7 +474,6 @@ mod tests {
     use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::registration::WalletCertificateClaims;
-    use wscd::Poa;
     use wscd::wscd::IssuanceWscd;
 
     use super::PinRecoveryError;
@@ -923,7 +922,6 @@ mod tests {
 
     impl IssuanceWscd for MockPinWscd {
         type Error = Infallible;
-        type Poa = Poa;
 
         async fn perform_issuance(
             &self,
@@ -931,7 +929,7 @@ mod tests {
             _aud: String,
             _nonce: Option<Nonce>,
             _include_wia: bool,
-        ) -> Result<wscd::wscd::IssuanceResult<Self::Poa>, Self::Error> {
+        ) -> Result<wscd::wscd::IssuanceResult, Self::Error> {
             unimplemented!()
         }
     }

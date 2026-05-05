@@ -129,7 +129,6 @@ impl DisclosureWscd for MockRemoteWscd {
 
 impl IssuanceWscd for MockRemoteWscd {
     type Error = MockRemoteWscdError;
-    type Poa = Poa;
 
     async fn perform_issuance(
         &self,
@@ -137,7 +136,7 @@ impl IssuanceWscd for MockRemoteWscd {
         aud: String,
         nonce: Option<Nonce>,
         include_wia: bool,
-    ) -> Result<IssuanceResult<Poa>, Self::Error> {
+    ) -> Result<IssuanceResult, Self::Error> {
         let claims = JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud);
 
         let mut keys = self.disclosure.signing_keys.lock();
@@ -190,22 +189,6 @@ impl IssuanceWscd for MockRemoteWscd {
             (WiaDisclosure::new(wia, wia_disclosure.into()), wia_key)
         });
 
-        let count_including_wia = if include_wia { count.get() + 1 } else { count.get() };
-        let poa = (count_including_wia > 1).then(|| {
-            Poa::new(
-                attestation_keys
-                    .iter()
-                    .chain(wia_and_key.as_ref().map(|(_, key)| key))
-                    .collect_vec()
-                    .try_into()
-                    .unwrap(),
-                claims,
-            )
-            .now_or_never()
-            .unwrap()
-            .unwrap()
-        });
-
         Ok(IssuanceResult {
             key_identifiers: attestation_keys
                 .into_nonempty_iter()
@@ -213,7 +196,6 @@ impl IssuanceWscd for MockRemoteWscd {
                 .collect(),
             pops,
             wia: wia_and_key.map(|(wia, _)| wia),
-            poa,
         })
     }
 }

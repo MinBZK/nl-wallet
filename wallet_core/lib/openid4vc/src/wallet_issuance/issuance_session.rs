@@ -35,7 +35,6 @@ use url::Url;
 use utils::generator::TimeGenerator;
 use utils::single_unique::SingleUnique;
 use utils::vec_at_least::VecNonEmpty;
-use wscd::Poa;
 use wscd::wscd::IssuanceWscd;
 
 use crate::CredentialErrorCode;
@@ -460,7 +459,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         include_wia: bool,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
     where
-        W: IssuanceWscd<Poa = Poa>,
+        W: IssuanceWscd,
     {
         let issuer_metadata = &self.session_state.issuer_metadata;
         let key_count = self.session_state.credential_request_types.len();
