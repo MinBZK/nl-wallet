@@ -1,7 +1,7 @@
 # PID Issuer architecture
 
 This page is a code-oriented companion to the protocol-level sequence diagram at
-[Issuance with OpenID4VCI](../architecture/use-cases/issuance-with-openid4vci.md#openid4vci-10-haip-authorization-code-flow).
+[Issuance with OpenID4VCI](../architecture/use-cases/issuance-with-openid4vci.md#pid-issuance).
 That diagram treats the `PID Issuer` as a black box and shows what goes over the
 wire between the wallet, the `PID Issuer` and RDO Max. This page opens that box:
 which crates contribute which pieces, where state lives, and which traits are
@@ -22,8 +22,8 @@ The `PID Issuer` process is assembled from three crates:
       issued given a `TokenRequest`.
     - `issuer::Issuer` — the protocol state machine: verifies token/credential
       requests, drives the session, calls into the `AttributeService`, generates
-      access tokens, etc. With decoupled PKCE, `process_token_request` accepts
-      an optional `UpstreamCodeVerifier` that it forwards verbatim to the
+      access tokens, etc. `process_token_request` accepts an optional
+      `UpstreamCodeVerifier` that it forwards verbatim to the
       `AttributeService` — the `Issuer` never inspects or interprets the value.
     - `par::ParStore`, `nonce::store::NonceStore`,
       `server_state::SessionStore<IssuanceData>`, `pkce::PkceFlowStore` —
@@ -74,53 +74,52 @@ The `PID Issuer` process is assembled from three crates:
 ## Component diagram
 
 ```{mermaid}
-flowchart TB
-    subgraph ovc["openid4vc (protocol types)"]
-        Issuer["struct Issuer"]
-        NonceStore_trait["trait NonceStore"]
-        SessionStore_trait["trait SessionStore of IssuanceData"]
-        AS_trait["trait AttributeService"]
-        ParStore_trait["trait ParStore"]
-        PkceStore_trait["trait PkceFlowStore"]
+flowchart LR
+    subgraph ovcs["openid4vc_server (HTTP wiring)"]
+        direction TB
+        Router["create_issuance_router<br/>axum handlers"]
+        AppState["ApplicationState"]
+        UpAd_trait["trait<br/>UpstreamAuthorizationAdapter"]
     end
 
-    subgraph ovcs["openid4vc_server (HTTP wiring)"]
-        Router["create_issuance_router<br/>axum handlers for<br/>/par, /authorize, /token,<br/>/nonce, /credential,<br/>/.well-known/*"]
-        AppState["ApplicationState"]
-        Upstream_trait["trait UpstreamAuthorizationAdapter"]
+    subgraph ovc["openid4vc (protocol types)"]
+        direction TB
+        Issuer["struct Issuer"]
+        AS_trait["trait AttributeService"]
+        Store_traits["trait ParStore<br/>trait PkceFlowStore<br/>trait SessionStore of IssuanceData<br/>trait NonceStore"]
+        MemStores["MemoryParStore<br/>MemoryPkceFlowStore"]
     end
 
     subgraph pidi["pid_issuer (PID-specific)"]
+        direction TB
         BrpAttr["BrpPidAttributeService"]
         DigidAdapter["DigidAuthorizationAdapter"]
         OpenIdClient["OpenIdClient"]
         DigidCache["DigidMetadataCache<br/>(holds OIDC metadata)"]
         BrpClient["HttpBrpClient"]
-        MemPar["MemoryParStore"]
-        MemPkce["MemoryPkceFlowStore"]
     end
 
-    RDO[("RDO Max<br/>DigiD")]
-    BRP[("BRP")]
+    subgraph ext["external"]
+        direction TB
+        RDO[("RDO Max / DigiD")]
+        BRP[("BRP")]
+    end
 
     Router --> AppState
     AppState -->|holds| Issuer
-    AppState -->|holds| MemPar
-    AppState -->|holds| MemPkce
-    AppState -->|holds| Upstream_trait
+    AppState -->|holds| MemStores
+    AppState -->|holds| UpAd_trait
     Issuer -->|calls| AS_trait
-    Issuer -->|reads/writes| SessionStore_trait
-    Issuer -->|reads/writes| NonceStore_trait
-    MemPar -.implements.-> ParStore_trait
-    MemPkce -.implements.-> PkceStore_trait
+    Issuer -->|reads/writes| Store_traits
 
+    MemStores -.implements.-> Store_traits
     BrpAttr -.implements.-> AS_trait
-    DigidAdapter -.implements.-> Upstream_trait
+    DigidAdapter -.implements.-> UpAd_trait
 
     BrpAttr -->|owns| OpenIdClient
     BrpAttr -->|owns| BrpClient
-    OpenIdClient -->|shares Arc| DigidCache
-    DigidAdapter -->|shares Arc| DigidCache
+    OpenIdClient -. shares Arc .-> DigidCache
+    DigidAdapter -. shares Arc .-> DigidCache
 
     DigidCache -->|GET /.well-known/<br/>openid-configuration| RDO
     OpenIdClient -->|POST /token,<br/>GET /userinfo,<br/>GET jwks_uri| RDO
@@ -245,4 +244,4 @@ A few things the extended diagram makes visible:
 
 The protocol-level view of the same exchange — including which parameters the
 `PID Issuer` rewrites on the way to RDO Max — is in
-[Issuance with OpenID4VCI](../architecture/use-cases/issuance-with-openid4vci.md#openid4vci-10-haip-authorization-code-flow).
+[Issuance with OpenID4VCI](../architecture/use-cases/issuance-with-openid4vci.md#pid-issuance).
