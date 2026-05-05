@@ -169,13 +169,12 @@ where
         // should come from a scanned QR code.
         //
         // The `verification_server` will always use the `session_type` parameters. In case of other verifiers:
-        // - If they don't use it, or if they do but with values other than `same_device` or `cross_device`,
-        //   the deserialization above maps it to `None`. (This does not break the downgrade attack prevention
-        //   that this mechanism realizes for the `verification_server`.)
+        // - If they don't use it, or if they do but with values other than `same_device` or `cross_device`, the
+        //   deserialization above maps it to `None`. (This does not break the downgrade attack prevention that this
+        //   mechanism realizes for the `verification_server`.)
         // - If they use it in the correct manner (e.g. `same_device` for a UL), this will work fine.
-        // - If they use it incorrectly (e.g. `same_device` for a QR code) this will break the session and
-        //   therefore compatibility with that verifier, but such a situation would be bizarre and is not to
-        //   be expected.
+        // - If they use it incorrectly (e.g. `same_device` for a QR code) this will break the session and therefore
+        //   compatibility with that verifier, but such a situation would be bizarre and is not to be expected.
         if let Some(session_type) = url_session_type
             && source_session_type != session_type
         {
