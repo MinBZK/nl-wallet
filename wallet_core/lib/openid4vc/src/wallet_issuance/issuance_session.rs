@@ -533,7 +533,6 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
                         credential_type: credential_request_type.into(),
                         proof: Some(proof),
                         attestations: None, // We set this field below if necessary
-                        poa: None,          // We set this field below if necessary
                     };
 
                     Ok::<_, WalletIssuanceError>(((pubkey, id), cred_request))
@@ -548,7 +547,6 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             1 => {
                 let mut credential_request = credential_requests.pop().unwrap();
                 credential_request.attestations = issuance_data.wia.take();
-                credential_request.poa = issuance_data.poa.take();
                 vec![
                     self.request_credential(credential_endpoint_url, &credential_request)
                         .await?,
@@ -556,13 +554,8 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             }
             _ => {
                 let credential_requests = VecNonEmpty::try_from(credential_requests).unwrap();
-                self.request_batch_credentials(
-                    credential_endpoint_url,
-                    credential_requests,
-                    issuance_data.wia.take(),
-                    issuance_data.poa.take(),
-                )
-                .await?
+                self.request_batch_credentials(credential_endpoint_url, credential_requests, issuance_data.wia.take())
+                    .await?
             }
         };
         let mut responses_and_pubkeys: VecDeque<_> = responses.into_iter().zip(pubkeys).collect();
@@ -695,7 +688,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         url: &Url,
         credential_requests: VecNonEmpty<CredentialRequest>,
         wia_disclosure: Option<WiaDisclosure>,
-        poa: Option<Poa>,
     ) -> Result<Vec<CredentialResponse>, WalletIssuanceError> {
         let (dpop_header, access_token_header) = self.session_state.auth_headers(url.clone(), &Method::POST)?;
 
@@ -707,7 +699,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 &CredentialRequests {
                     credential_requests,
                     attestations: wia_disclosure,
-                    poa,
                 },
                 &dpop_header,
                 &access_token_header,

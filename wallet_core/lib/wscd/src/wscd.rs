@@ -28,7 +28,7 @@ pub trait IssuanceWscd {
 pub struct IssuanceResult<P> {
     pub key_identifiers: VecNonEmpty<String>,
     pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>,
-    pub poa: Option<P>,
+    pub poa: Option<P>, // TODO remove
     pub wia: Option<WiaDisclosure>,
 }
 

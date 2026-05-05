@@ -23,7 +23,6 @@ use serde_with::skip_serializing_none;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
-use wscd::Poa;
 
 use crate::Format;
 use crate::issuer_identifier::IssuerIdentifier;
@@ -36,7 +35,6 @@ use crate::token::AuthorizationCode;
 pub struct CredentialRequests {
     pub credential_requests: VecNonEmpty<CredentialRequest>,
     pub attestations: Option<WiaDisclosure>,
-    pub poa: Option<Poa>,
 }
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-7.2>.
@@ -48,7 +46,6 @@ pub struct CredentialRequest {
     pub credential_type: SpecOptional<CredentialRequestType>,
     pub proof: Option<CredentialRequestProof>,
     pub attestations: Option<WiaDisclosure>,
-    pub poa: Option<Poa>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
