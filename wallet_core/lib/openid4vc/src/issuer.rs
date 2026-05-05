@@ -25,6 +25,7 @@ use crypto::utils::random_string;
 use derive_more::AsRef;
 use derive_more::Debug;
 use derive_more::From;
+use derive_more::Into;
 use futures::TryFutureExt;
 use futures::future::try_join_all;
 use futures::join;
@@ -338,19 +339,34 @@ pub struct Session<S: IssuanceState> {
     pub state: SessionState<S>,
 }
 
+/// A PKCE `code_verifier` that the `/token` handler decoupled from the wallet's pair, forwarded
+/// through the [`Issuer`] to the [`AttributeService`] for use against the upstream OIDC provider.
+///
+/// The [`Issuer`] never inspects this value — it is an opaque pass-through.
+#[derive(Debug, Clone, From, AsRef, Into)]
+pub struct UpstreamCodeVerifier(String);
+
 /// Implementations of this trait are responsible for determining the attributes to be issued, given the session and
 /// the token request. See for example the [`BrpPidAttributeService`].
 #[trait_variant::make(Send)]
 pub trait AttributeService {
     type Error: std::error::Error + Send + Sync + 'static;
 
-    async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error>;
+    async fn attributes(
+        &self,
+        token_request: TokenRequest,
+        upstream_code_verifier: Option<UpstreamCodeVerifier>,
+    ) -> Result<VecNonEmpty<IssuableDocument>, Self::Error>;
 }
 
 impl AttributeService for () {
     type Error = Infallible;
 
-    async fn attributes(&self, _: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Infallible> {
+    async fn attributes(
+        &self,
+        _: TokenRequest,
+        _: Option<UpstreamCodeVerifier>,
+    ) -> Result<VecNonEmpty<IssuableDocument>, Infallible> {
         unimplemented!("() AttributeService does not provide attributes")
     }
 }
@@ -719,6 +735,7 @@ where
         &self,
         token_request: TokenRequest,
         dpop: Dpop,
+        upstream_code_verifier: Option<UpstreamCodeVerifier>,
     ) -> Result<(TokenResponse, String), TokenRequestError> {
         let session_token = token_request.code().clone().into();
 
@@ -754,6 +771,7 @@ where
                 &self.issuer_data.server_url,
                 &self.issuer_data.attestation_config,
                 is_new_session,
+                upstream_code_verifier,
             )
             .await;
 
@@ -934,6 +952,7 @@ impl Session<Created> {
         server_url: &BaseUrl,
         attestation_settings: &AttestationTypesConfig<impl EcdsaKeySend>,
         is_new_session: bool,
+        upstream_code_verifier: Option<UpstreamCodeVerifier>,
     ) -> Result<(TokenResponse, String, Session<WaitingForResponse>), (TokenRequestError, Session<Done>)> {
         let result = self
             .process_token_request_inner(
@@ -943,6 +962,7 @@ impl Session<Created> {
                 server_url,
                 attestation_settings,
                 is_new_session,
+                upstream_code_verifier,
             )
             .await;
 
@@ -1005,6 +1025,7 @@ impl Session<Created> {
         server_url: &BaseUrl,
         attestation_settings: &AttestationTypesConfig<impl EcdsaKeySend>,
         is_new_session: bool,
+        upstream_code_verifier: Option<UpstreamCodeVerifier>,
     ) -> Result<
         (
             TokenResponse,
@@ -1043,7 +1064,7 @@ impl Session<Created> {
         let issuables = match &self.session_data().issuable_documents {
             Some(docs) => docs.clone(),
             None => attr_service
-                .attributes(token_request)
+                .attributes(token_request, upstream_code_verifier)
                 .await
                 .map_err(|e| TokenRequestError::AttributeService(Box::new(e)))?,
         };
@@ -1860,7 +1881,7 @@ mod tests {
         ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError> {
             let (token_response, dpop_nonce) = self
                 .issuer
-                .process_token_request(token_request.clone(), dpop_header.clone())
+                .process_token_request(token_request.clone(), dpop_header.clone(), None)
                 .await
                 .map_err(|err| WalletIssuanceError::TokenRequest(Box::new(err.into())))?;
             Ok((token_response, Some(dpop_nonce)))

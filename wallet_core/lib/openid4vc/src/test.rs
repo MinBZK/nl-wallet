@@ -36,6 +36,7 @@ use crate::issuer::AttestationTypeConfig;
 use crate::issuer::AttributeService;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
+use crate::issuer::UpstreamCodeVerifier;
 use crate::issuer::WiaConfig;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
@@ -97,7 +98,11 @@ pub struct MockAttrService {
 impl AttributeService for MockAttrService {
     type Error = std::convert::Infallible;
 
-    async fn attributes(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
+    async fn attributes(
+        &self,
+        _token_request: TokenRequest,
+        _upstream_code_verifier: Option<UpstreamCodeVerifier>,
+    ) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
         Ok(self.documents.clone())
     }
 }

@@ -173,7 +173,7 @@ where
 {
     let (response, dpop_nonce) = state
         .issuer
-        .process_token_request(token_request, dpop)
+        .process_token_request(token_request, dpop, None)
         .await
         .inspect_err(|error| {
             warn!("processing token request failed: {}", error);

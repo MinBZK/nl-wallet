@@ -23,7 +23,7 @@ The `PID Issuer` process is assembled from three crates:
     - `issuer::Issuer` — the protocol state machine: verifies token/credential
       requests, drives the session, calls into the `AttributeService`, generates
       access tokens, etc. With decoupled PKCE, `process_token_request` accepts
-      an `upstream_creds` parameter that it forwards verbatim to the
+      an optional `UpstreamCodeVerifier` that it forwards verbatim to the
       `AttributeService` — the `Issuer` never inspects or interprets the value.
     - `par::ParStore`, `nonce::store::NonceStore`,
       `server_state::SessionStore<IssuanceData>`, `pkce::PkceFlowStore` —
@@ -150,7 +150,6 @@ to the protocol state machine.
 ```{mermaid}
 sequenceDiagram
     autonumber
-
     participant W as Wallet
     participant H as handler<br/>(openid4vc_server)
     participant R as DigidAuthorizationAdapter
@@ -161,59 +160,53 @@ sequenceDiagram
     participant O as OpenIdClient
     participant RDO as RDO Max
     participant BRP
-
-    Note over W,F: POST /issuance/par
-
-    W->>H: POST /par (AuthorizationRequest)
-    H->>H: validate client_id against<br/>accepted_wallet_client_ids
-    H->>P: store(request_uri,<br/>authorization_request, expires_at)
-    P->>H: ok
-    H->>W: 201 PushedAuthorizationResponse<br/>(request_uri, expires_in)
-
-    Note over W,F: GET /issuance/authorize
-
-    W->>H: GET /authorize?client_id,request_uri
-    H->>H: validate client_id
-    H->>P: consume(request_uri)
-    P->>H: AuthorizationRequest<br/>(including wallet code_challenge c1)
-    H->>H: generate upstream PKCE pair (v2, c2),<br/>rewrite code_challenge and<br/>code_challenge_method to (c2, S256)
-    H->>F: store(c1, v2)
-    F->>H: ok
-    H->>R: adapt(authorization_request)
-    R->>RDO: GET /.well-known/openid-configuration<br/>(cached after first call)
-    RDO->>R: OidcProviderMetadata
-    R->>R: rewrite client_id to DigiD client_id,<br/>set scope=openid,<br/>add fresh random nonce
-    R->>H: (authorization_endpoint,<br/>rewritten AuthorizationRequest)
-    H->>W: 302 Location: upstream /authorize?...
-
-    Note over W,BRP: POST /issuance/token
-
-    W->>H: POST /token<br/>(TokenRequest with code_verifier v1)
-    H->>H: derive c1 = SHA256(v1)
-    H->>F: consume(c1)
-    F->>H: upstream code_verifier v2
-    H->>H: verify wallet code_verifier v1<br/>against c1 (PKCE check)
-    H->>I: process_token_request(token_request,<br/>upstream_creds=v2)
-    I->>A: attributes(token_request, upstream_creds)
-    A->>O: bsn(code, code_verifier, redirect_uri)
+    Note over W, F: POST /issuance/par
+    W ->> H: POST /par (AuthorizationRequest)
+    H ->> H: validate client_id against<br/>accepted_wallet_client_ids
+    H ->> P: store(request_uri,<br/>authorization_request, expires_at)
+    P ->> H: ok
+    H ->> W: 201 PushedAuthorizationResponse<br/>(request_uri, expires_in)
+    Note over W, F: GET /issuance/authorize
+    W ->> H: GET /authorize?client_id,request_uri
+    H ->> H: validate client_id
+    H ->> P: consume(request_uri)
+    P ->> H: AuthorizationRequest<br/>(including wallet code_challenge c1)
+    H ->> H: generate upstream PKCE pair (v2, c2),<br/>rewrite code_challenge and<br/>code_challenge_method to (c2, S256)
+    H ->> F: store(c1, v2)
+    F ->> H: ok
+    H ->> R: adapt(authorization_request)
+    R ->> RDO: GET /.well-known/openid-configuration<br/>(cached after first call)
+    RDO ->> R: OidcProviderMetadata
+    R ->> R: rewrite client_id to DigiD client_id,<br/>set scope=openid,<br/>add fresh random nonce
+    R ->> H: (authorization_endpoint,<br/>rewritten AuthorizationRequest)
+    H ->> W: 302 Location: upstream /authorize?...
+    Note over W, BRP: POST /issuance/token
+    W ->> H: POST /token<br/>(TokenRequest with code_verifier v1)
+    H ->> H: derive c1 = SHA256(v1)
+    H ->> F: consume(c1)
+    F ->> H: upstream code_verifier v2
+    H ->> H: verify wallet code_verifier v1<br/>against c1 (PKCE check)
+    H ->> I: process_token_request(token_request,<br/>upstream_code_verifier=Some(v2))
+    I ->> A: attributes(token_request,<br/>upstream_code_verifier)
+    A ->> O: bsn(code, code_verifier, redirect_uri)
     par fetch userinfo JWE
-        O->>RDO: POST {token_endpoint}<br/>(grant_type, code,<br/>redirect_uri, code_verifier,<br/>client_id)
-        RDO->>O: access_token (upstream)
-        O->>RDO: GET {userinfo_endpoint}<br/>Accept: application/jwt,<br/>Bearer (upstream_at)
-        RDO->>O: userinfo JWE (JWT)
+        O ->> RDO: POST {token_endpoint}<br/>(grant_type, code,<br/>redirect_uri, code_verifier,<br/>client_id)
+        RDO ->> O: access_token (upstream)
+        O ->> RDO: GET {userinfo_endpoint}<br/>Accept: application/jwt,<br/>Bearer (upstream_at)
+        RDO ->> O: userinfo JWE (JWT)
     and fetch JWKS
-        O->>RDO: GET {jwks_uri}
-        RDO->>O: JwkSet
+        O ->> RDO: GET {jwks_uri}
+        RDO ->> O: JwkSet
     end
-    O->>O: JWE-decrypt to JWS,<br/>verify JWS signature<br/>against JwkSet,<br/>extract BSN claim
-    O->>A: BSN
-    A->>BRP: get_person_by_bsn(bsn)
-    BRP->>A: person data
-    A->>A: build IssuableDocument<br/>(PID attestation,<br/>with recovery_code attribute)
-    A->>I: VecNonEmpty of IssuableDocument
-    I->>I: persist session,<br/>generate access_token and c_nonce
-    I->>H: TokenResponse
-    H->>W: TokenResponse
+    O ->> O: JWE-decrypt to JWS,<br/>verify JWS signature<br/>against JwkSet,<br/>extract BSN claim
+    O ->> A: BSN
+    A ->> BRP: get_person_by_bsn(bsn)
+    BRP ->> A: person data
+    A ->> A: build IssuableDocument<br/>(PID attestation,<br/>with recovery_code attribute)
+    A ->> I: VecNonEmpty of IssuableDocument
+    I ->> I: persist session,<br/>generate access_token and c_nonce
+    I ->> H: TokenResponse
+    H ->> W: TokenResponse
 ```
 
 A few things the extended diagram makes visible:
@@ -230,9 +223,9 @@ A few things the extended diagram makes visible:
   `openid4vc_server` handler. The handler only validates the wallet's
   `client_id`, drives PAR consumption, and forwards what the adapter returns.
 - **How the upstream `client_id` is set in each phase.** On `/authorize` the
-  adapter rewrites the wallet's `client_id` to DigiD's. On `/token` there is
-  no rewrite: `OpenIdClient` is constructed with the DigiD `client_id` and
-  uses it when building its own upstream `TokenRequest`. The wallet's
+  adapter rewrites the wallet's `client_id` to DigiD's. On `/token` there is no
+  rewrite: `OpenIdClient` is constructed with the DigiD `client_id` and uses it
+  when building its own upstream `TokenRequest`. The wallet's
   `TokenRequest.client_id` never reaches RDO Max.
 - **The PKCE decoupling** is symmetric with the `client_id` rewrite but flipped
   in ownership, and lives entirely in `openid4vc_server`. At `/authorize` the
@@ -241,14 +234,14 @@ A few things the extended diagram makes visible:
   dedicated `PkceFlowStore` (mirror of `ParStore`). At `/token` the handler
   recomputes `c1` from the wallet's `code_verifier`, looks up `v2`, verifies the
   wallet's verifier against `c1` (wallet-facing PKCE check), and delegates to
-  `Issuer` — passing `v2` (`upstream_creds`) alongside the unmodified
-  `TokenRequest`. The `Issuer` accepts `upstream_creds` only as an opaque
-  pass-through to the `AttributeService`; it never inspects or interprets the
-  value. `BrpPidAttributeService` then extracts `code_verifier` from
-  `upstream_creds.v2` (and `code` / `redirect_uri` from the `TokenRequest`)
-  before calling `OpenIdClient::bsn`. The upstream PKCE check is then done by
-  RDO Max. Result: wallet and RDO Max each see their own PKCE pair; neither sees
-  the other's.
+  `Issuer` — passing `v2` wrapped in an `UpstreamCodeVerifier` alongside the
+  unmodified `TokenRequest`. The `Issuer` accepts the `UpstreamCodeVerifier`
+  only as an opaque pass-through to the `AttributeService`; it never inspects or
+  interprets the value. `BrpPidAttributeService` then unwraps `v2` from the
+  `UpstreamCodeVerifier` (and reads `code` / `redirect_uri` from the
+  `TokenRequest`) before calling `OpenIdClient::bsn`. The upstream PKCE check is
+  then done by RDO Max. Result: wallet and RDO Max each see their own PKCE pair;
+  neither sees the other's.
 
 The protocol-level view of the same exchange — including which parameters the
 `PID Issuer` rewrites on the way to RDO Max — is in
