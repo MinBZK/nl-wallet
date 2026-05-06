@@ -49,6 +49,7 @@ use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_account::messages::instructions::InstructionResultMessage;
+use wallet_account::messages::instructions::IssueWia;
 use wallet_account::messages::instructions::PairTransfer;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWia;
@@ -168,6 +169,10 @@ where
                 .route(
                     &format!("/instructions/{}", PerformIssuanceWithWia::NAME),
                     post(handle_instruction::<PerformIssuanceWithWia, _, _, _>),
+                )
+                .route(
+                    &format!("/instructions/{}", IssueWia::NAME),
+                    post(handle_instruction::<IssueWia, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/{}", DiscloseRecoveryCode::NAME),

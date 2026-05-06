@@ -201,6 +201,23 @@ impl InstructionAndResult for PerformIssuanceWithWia {
     type Result = PerformIssuanceWithWiaResult;
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IssueWia {
+    pub nonce: Option<Nonce>,
+    pub aud: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IssueWiaResult {
+    pub wia_disclosure: WiaDisclosure,
+}
+
+impl InstructionAndResult for IssueWia {
+    const NAME: &'static str = "issue_wia";
+
+    type Result = IssueWiaResult;
+}
+
 // Sign instruction.
 
 #[serde_as]

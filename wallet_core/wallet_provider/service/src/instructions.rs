@@ -46,6 +46,8 @@ use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
 use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
 use wallet_account::messages::instructions::GetTransferStatus;
+use wallet_account::messages::instructions::IssueWia;
+use wallet_account::messages::instructions::IssueWiaResult;
 use wallet_account::messages::instructions::PairTransfer;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceResult;
@@ -159,6 +161,7 @@ fn validate_transfer_instruction(wallet_user: &WalletUser) -> Result<(), Instruc
 impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for PerformIssuance {}
 impl ValidateInstruction for PerformIssuanceWithWia {}
+impl ValidateInstruction for IssueWia {}
 impl ValidateInstruction for DiscloseRecoveryCode {}
 impl ValidateInstruction for DeleteKeys {}
 
@@ -317,6 +320,7 @@ pub trait PinChecks {
 impl PinChecks for ChangePinStart {}
 impl PinChecks for PerformIssuance {}
 impl PinChecks for PerformIssuanceWithWia {}
+impl PinChecks for IssueWia {}
 impl PinChecks for DiscloseRecoveryCode {}
 impl PinChecks for DiscloseRecoveryCodePinRecovery {}
 impl PinChecks for ChangePinCommit {}
@@ -661,6 +665,57 @@ impl HandleInstruction for PerformIssuanceWithWia {
         tx.commit().await?;
 
         Ok(issuance_with_wia_result)
+    }
+}
+
+impl HandleInstruction for IssueWia {
+    type Result = IssueWiaResult;
+
+    async fn handle<T, R, H, G>(
+        self,
+        wallet_user: &WalletUser,
+        generators: &G,
+        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
+        _recovery_code_config: &RecoveryCodeConfig,
+    ) -> Result<Self::Result, InstructionError>
+    where
+        T: Committable,
+        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
+        G: Generator<Uuid> + Generator<DateTime<Utc>>,
+    {
+        // The JWT claims to be signed in the PoPs.
+        let claims = JwtPopClaims::new(self.nonce, NL_WALLET_CLIENT_ID.to_string(), self.aud);
+
+        let (wia_wrapped_key, wia_disclosure) = wia(&claims, wallet_user, user_state).await?;
+
+        let tx = user_state.repositories.begin_transaction().await?;
+
+        // Delete blocked keys from any previous PID renewal or PIN recovery, but not during an
+        // active PIN recovery (where the current StartPinRecovery instruction stored the new
+        // issuance keys as blocked, and DiscloseRecoveryCodePinRecovery must still find them).
+        if wallet_user.state != WalletUserState::RecoveringPin {
+            user_state
+                .repositories
+                .delete_all_blocked_keys(&tx, wallet_user.id)
+                .await?;
+        }
+
+        persist_keys(
+            &tx,
+            wallet_user,
+            user_state,
+            vec![WalletUserKey {
+                wallet_user_key_id: generators.generate(),
+                key: wia_wrapped_key,
+                is_blocked: false,
+            }],
+            generators,
+        )
+        .await?;
+        tx.commit().await?;
+
+        Ok(IssueWiaResult { wia_disclosure })
     }
 }
 
@@ -1469,6 +1524,7 @@ mod tests {
     use wallet_account::messages::instructions::DiscloseRecoveryCode;
     use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
     use wallet_account::messages::instructions::GetTransferStatus;
+    use wallet_account::messages::instructions::IssueWia;
     use wallet_account::messages::instructions::PairTransfer;
     use wallet_account::messages::instructions::PerformIssuance;
     use wallet_account::messages::instructions::PerformIssuanceWithWia;
@@ -2257,6 +2313,17 @@ mod tests {
         .await;
 
         validate_issuance(result.issuance_result.pops.as_slice(), Some(&result.wia_disclosure));
+    }
+
+    #[tokio::test]
+    async fn should_handle_issue_wia() {
+        let result = perform_issuance(IssueWia {
+            nonce: Some(Nonce::from(POP_NONCE.to_string())),
+            aud: POP_AUD.to_string(),
+        })
+        .await;
+
+        validate_issuance(&[], Some(&result.wia_disclosure));
     }
 
     fn mock_change_pin_start_instruction() -> ChangePinStart {
