@@ -231,6 +231,7 @@ impl CredentialConfigurationsSettings {
                     attestation_type: settings.attestation_type,
                     key_pair,
                     valid_days: Days::new(settings.valid_days),
+                    status_list_group: settings.status_list.group_name,
                     issuer_uri,
                     attestation_qualification: settings.attestation_qualification,
                     metadata_documents,
@@ -349,6 +350,9 @@ pub enum StatusListAttestationSettingsError {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct StatusListAttestationSettings {
+    /// The attestation group name, which should remain the same for the same credential over time.
+    pub group_name: String,
+
     /// Base url for the status list if different from public url of the server
     pub base_url: Option<BaseUrl>,
 
@@ -366,33 +370,31 @@ pub struct StatusListAttestationSettings {
 
 impl StatusListAttestationSettings {
     pub async fn settings_into_configs(
-        attestation_settings_pairs: impl IntoIterator<Item = (String, StatusListAttestationSettings)>,
+        attestation_settings: Vec<StatusListAttestationSettings>,
         status_list_settings: &StatusListsSettings,
         public_url: &BaseUrl,
         hsm: Option<Pkcs11Hsm>,
     ) -> Result<StatusListConfigs<PrivateKeyVariant>, StatusListAttestationSettingsError> {
-        let (types, attestation_settings): (Vec<_>, Vec<_>) = attestation_settings_pairs.into_iter().unzip();
-
         let attestation_count = attestation_settings.len();
-        let configs = try_join_all(
+        let group_names_and_config = try_join_all(
             attestation_settings
                 .into_iter()
                 .zip_eq(itertools::repeat_n(hsm, attestation_count))
-                .map(|(attestation, hsm)| attestation.into_config(status_list_settings, public_url, hsm)),
+                .map(|(attestation, hsm)| {
+                    attestation.into_group_name_and_config(status_list_settings, public_url, hsm)
+                }),
         )
         .await?;
 
-        let map = types.into_iter().zip_eq(configs).collect::<HashMap<_, _>>();
-
-        Ok(map.into())
+        Ok(group_names_and_config.into_iter().collect::<HashMap<_, _>>().into())
     }
 
-    async fn into_config(
+    async fn into_group_name_and_config(
         self,
         status_list_settings: &StatusListsSettings,
         public_url: &BaseUrl,
         hsm: Option<Pkcs11Hsm>,
-    ) -> Result<StatusListConfig<PrivateKeyVariant>, StatusListAttestationSettingsError> {
+    ) -> Result<(String, StatusListConfig<PrivateKeyVariant>), StatusListAttestationSettingsError> {
         let base_url = self
             .base_url
             .as_ref()
@@ -402,7 +404,7 @@ impl StatusListAttestationSettings {
 
         let config = status_list_settings.to_config(base_url, self.publish_dir, key_pair)?;
 
-        Ok(config)
+        Ok((self.group_name, config))
     }
 }
 
@@ -458,6 +460,7 @@ mod tests {
                     keypair,
                     valid_days: 365,
                     status_list: StatusListAttestationSettings {
+                        group_name: "pid_sdjwt".to_string(),
                         base_url: None,
                         context_path: "tsl".to_string(),
                         keypair: status_list_keypair,
@@ -541,6 +544,7 @@ mod tests {
                 keypair: issuer_cert_no_registration.into(),
                 valid_days: 365,
                 status_list: StatusListAttestationSettings {
+                    group_name: "no_registration_sdjwt".to_string(),
                     base_url: None,
                     context_path: "tsl".to_string(),
                     keypair: status_list_keypair,

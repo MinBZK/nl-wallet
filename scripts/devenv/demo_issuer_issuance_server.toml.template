@@ -73,6 +73,7 @@ private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_ISSUER}"
 certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_ISSUER}"
 
 [credential_configurations."com.example.degree".status_list]
+group_name = "com.example.degree"
 context_path = "/tsl"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 private_key_type = "software"
@@ -105,6 +106,7 @@ private_key = "${DEMO_ISSUER_KEY_INSURANCE_ISSUER}"
 certificate = "${DEMO_ISSUER_CRT_INSURANCE_ISSUER}"
 
 [credential_configurations."com.example.insurance".status_list]
+group_name = "com.example.insurance"
 context_path = "/tsl"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 private_key_type = "software"
@@ -137,6 +139,7 @@ base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/housing/"
 trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
 [credential_configurations."com.example.housing".status_list]
+group_name = "com.example.housing"
 context_path = "/tsl"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 private_key_type = "software"

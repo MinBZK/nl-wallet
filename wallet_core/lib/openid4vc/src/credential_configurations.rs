@@ -40,6 +40,7 @@ pub struct CredentialConfigurationParameters<K> {
     pub attestation_type: String,
     #[debug(skip)]
     pub key_pair: KeyPair<K>,
+    pub status_list_group: String,
     pub valid_days: Days,
     pub issuer_uri: HttpsUri,
     pub attestation_qualification: AttestationQualification,
@@ -58,6 +59,8 @@ pub struct CredentialConfiguration<K> {
     pub attestation_type: String,
     #[debug(skip)]
     pub key_pair: KeyPair<K>,
+    // TODO (PVW-5918): Hold a `PostgresStatusListService` here instead of a group name.
+    pub status_list_group: String,
     pub valid_days: Days,
     pub issuer_uri: HttpsUri,
     pub attestation_qualification: AttestationQualification,
@@ -79,6 +82,7 @@ impl<K> CredentialConfiguration<K> {
             format,
             attestation_type,
             key_pair,
+            status_list_group,
             valid_days,
             issuer_uri,
             attestation_qualification,
@@ -90,6 +94,7 @@ impl<K> CredentialConfiguration<K> {
         let config = Self {
             format,
             attestation_type,
+            status_list_group,
             key_pair,
             valid_days,
             issuer_uri,

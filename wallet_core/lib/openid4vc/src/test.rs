@@ -136,6 +136,7 @@ where
                 )
                 .unwrap(),
                 valid_days: Days::new(365),
+                status_list_group: attestation_type.to_string(),
                 issuer_uri: issuance_keypair
                     .certificate()
                     .san_dns_name_or_uris()

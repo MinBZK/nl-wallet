@@ -318,6 +318,7 @@ mod tests {
             )
             .unwrap(),
             valid_days: Days::new(1),
+            status_list_group: "status_list_group".to_string(),
             issuer_uri: "https://example.com".parse().unwrap(),
             attestation_qualification: AttestationQualification::default(),
             metadata_documents: TypeMetadataDocuments::degree_example().1,

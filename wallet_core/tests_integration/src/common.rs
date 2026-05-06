@@ -756,8 +756,9 @@ async fn get_status_list_service_and_router(
         issuer_settings
             .credential_configurations
             .as_ref()
-            .iter()
-            .map(|(id, settings)| (id.clone(), settings.status_list.clone())),
+            .values()
+            .map(|settings| settings.status_list.clone())
+            .collect(),
         status_lists_settings,
         issuer_settings.public_url.as_base_url(),
         hsm,

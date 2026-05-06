@@ -1151,7 +1151,7 @@ impl Session<WaitingForResponse> {
         let status_claim = services
             .status_list_services
             .obtain_status_claims(
-                &preview.credential_configuration_id,
+                &credential_config.status_list_group,
                 preview.batch_id,
                 preview.credential_payload.expires,
                 NonZeroUsize::MIN,
@@ -1288,11 +1288,11 @@ impl Session<WaitingForResponse> {
 
         // Obtain a status claim for every attestation copy, linked to a single batch id per preview
         let status_claims = try_join_all(previews_and_holder_pubkeys.iter().map(
-            |(preview, _, format_pubkeys)| async move {
+            |(preview, credential_config, format_pubkeys)| async move {
                 let claims = services
                     .status_list_services
                     .obtain_status_claims(
-                        &preview.credential_configuration_id,
+                        &credential_config.status_list_group,
                         preview.batch_id,
                         preview.credential_payload.expires,
                         format_pubkeys.len(),
@@ -1530,6 +1530,7 @@ mod tests {
                 issuance_keypair.certificate().to_owned(),
             )
             .unwrap(),
+            status_list_group: "status_list_group".to_string(),
             valid_days: Days::new(1),
             issuer_uri: "https://example.com".parse().unwrap(),
             attestation_qualification: AttestationQualification::default(),

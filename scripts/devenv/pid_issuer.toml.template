@@ -53,6 +53,7 @@ private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"
 
 [credential_configurations."pid_nl_mdoc".status_list]
+group_name = "pid_nl_mdoc"
 context_path = "/tsl"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
 private_key_type = "software"
@@ -69,6 +70,7 @@ private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"
 
 [credential_configurations."pid_nl_sd_jwt".status_list]
+group_name = "pid_nl_sd_jwt"
 context_path = "/tsl"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
 private_key_type = "software"

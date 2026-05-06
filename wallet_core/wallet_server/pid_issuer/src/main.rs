@@ -78,8 +78,9 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         issuer_settings
             .credential_configurations
             .as_ref()
-            .iter()
-            .map(|(id, settings)| (id.clone(), settings.status_list.clone())),
+            .values()
+            .map(|settings| settings.status_list.clone())
+            .collect(),
         &settings.status_lists,
         issuer_settings.public_url.as_base_url(),
         hsm.clone(),
