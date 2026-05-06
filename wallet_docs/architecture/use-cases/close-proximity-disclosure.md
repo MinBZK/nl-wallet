@@ -53,7 +53,7 @@ sequenceDiagram
 sequenceDiagram
     %% Force ordering by explicitly setting up participants
     actor user
-    box rgb(64,64,64) NL Wallet app
+    box rgb(211,211,211) NL Wallet app
         participant wallet_app
         participant wallet_core
         participant platform_support
