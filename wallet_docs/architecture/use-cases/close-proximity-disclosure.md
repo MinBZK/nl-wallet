@@ -1,3 +1,5 @@
+.. :orphan:
+
 # Disclosure with ISO 18013-5 (close proximity)
 
 ## High level overview
