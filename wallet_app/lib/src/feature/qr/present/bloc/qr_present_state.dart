@@ -23,11 +23,6 @@ class QrPresentServerStarted extends QrPresentState {
   List<Object> get props => [...super.props, qrContents];
 }
 
-/// A remote device is initiating a connection.
-class QrPresentConnecting extends QrPresentState {
-  const QrPresentConnecting();
-}
-
 /// A remote device is connected; [deviceRequestReceived] signals readiness to navigate.
 class QrPresentConnected extends QrPresentState {
   final bool deviceRequestReceived;

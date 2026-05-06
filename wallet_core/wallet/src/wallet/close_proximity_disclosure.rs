@@ -74,7 +74,6 @@ use crate::wallet::disclosure::requested_attribute_paths;
 
 #[derive(Debug)]
 pub enum CloseProximityDisclosureUpdate {
-    Connecting,
     Connected,
     DeviceRequestReceived,
     Disconnected,
@@ -125,7 +124,6 @@ fn spawn_listener(
     tokio::spawn(async move {
         while let Some(update) = receiver.recv().await {
             let wallet_update = match update {
-                PlatformUpdate::Connecting => CloseProximityDisclosureUpdate::Connecting,
                 PlatformUpdate::Connected => CloseProximityDisclosureUpdate::Connected,
                 PlatformUpdate::SessionEstablished {
                     session_transcript,

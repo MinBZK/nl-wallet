@@ -48,16 +48,6 @@ void main() {
       await screenMatchesGolden('qr_present_server_started.dark.landscape');
     });
 
-    testGoldens('QrPresentConnecting', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const QrPresentScreen().withState<QrPresentBloc, QrPresentState>(
-          MockQrPresentBloc(),
-          const QrPresentConnecting(),
-        ),
-      );
-      await screenMatchesGolden('qr_present_connecting.light');
-    });
-
     testGoldens('QrPresentConnected', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const QrPresentScreen().withState<QrPresentBloc, QrPresentState>(

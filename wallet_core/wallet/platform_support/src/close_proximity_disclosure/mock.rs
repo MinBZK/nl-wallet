@@ -15,8 +15,6 @@ impl CloseProximityDisclosureClient for MockCloseProximityDisclosureClient {
         let (channel, receiver) = CloseProximityDisclosureChannelImpl::new();
 
         tokio::spawn(async move {
-            let _ = channel.send_update(CloseProximityDisclosureUpdate::Connecting).await;
-
             let _ = channel.send_update(CloseProximityDisclosureUpdate::Connected).await;
 
             let _ = channel

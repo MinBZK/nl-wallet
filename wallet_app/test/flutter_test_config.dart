@@ -216,7 +216,7 @@ void _setupMockitoDummies() {
   );
   provideDummy<NotificationType>(.cardExpired(card: WalletMockData.card));
   provideDummy<core.NotificationType>(const core.NotificationType.cardExpired(card: CoreMockData.attestation));
-  provideDummy<BleConnectionEvent>(const BleConnecting());
+  provideDummy<BleConnectionEvent>(const BleConnected());
 }
 
 /// Overrides the default [LocalFileComparator] with our [GoldenDiffComparator] that has

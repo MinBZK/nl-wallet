@@ -41,7 +41,6 @@ class QrPresentScreen extends StatelessWidget {
     final content = switch (state) {
       QrPresentInitial() => _buildInitial(context),
       QrPresentServerStarted(:final qrContents) => _buildServerStarted(context, qrContents),
-      QrPresentConnecting() => _buildConnecting(context),
       QrPresentConnected() => _buildConnected(context),
       QrPresentConnectionFailed() => _buildConnectionFailed(context),
       QrPresentError(:final error) => _buildError(context, error),
@@ -85,7 +84,6 @@ class QrPresentScreen extends StatelessWidget {
   bool _fadeInTitleOnScroll(QrPresentState state) => switch (state) {
     QrPresentInitial() => false,
     QrPresentServerStarted() => false,
-    QrPresentConnecting() => true,
     QrPresentConnected() => true,
     QrPresentConnectionFailed() => true,
     QrPresentError() => true,
@@ -96,7 +94,6 @@ class QrPresentScreen extends StatelessWidget {
     return switch (state) {
       QrPresentInitial() => const BackIconButton(),
       QrPresentServerStarted() => const BackIconButton(),
-      QrPresentConnecting() => null,
       QrPresentConnected() => null,
       QrPresentConnectionFailed() => null,
       QrPresentError() => const BackIconButton(),
@@ -117,7 +114,6 @@ class QrPresentScreen extends StatelessWidget {
     return switch (state) {
       QrPresentInitial() => context.l10n.qrPresentScreenTitle,
       QrPresentServerStarted() => context.l10n.qrPresentScreenTitle,
-      QrPresentConnecting() => '',
       QrPresentConnected() => '',
       QrPresentConnectionFailed() => context.l10n.qrPresentScreenConnectionFailedPageTitle,
       QrPresentError(:final error) => _buildError(context, error).title,
@@ -174,15 +170,6 @@ class QrPresentScreen extends StatelessWidget {
       error,
       onPrimaryActionPressed: () => Navigator.pop(context),
       style: .close,
-    );
-  }
-
-  Widget _buildConnecting(BuildContext context) {
-    return GenericLoadingPage(
-      title: context.l10n.qrPresentScreenConnectingTitle,
-      description: '',
-      cancelCta: context.l10n.generalStop,
-      onCancel: () => Navigator.pop(context),
     );
   }
 

@@ -84,8 +84,6 @@ class QrPresentBloc extends Bloc<QrPresentEvent, QrPresentState> {
     switch (event.event) {
       case BleAdvertising():
         Fimber.i('Ble server started');
-      case BleConnecting():
-        emit(const QrPresentConnecting());
       case BleConnected():
         emit(const QrPresentConnected(deviceRequestReceived: false));
       case BleDeviceRequestReceived():

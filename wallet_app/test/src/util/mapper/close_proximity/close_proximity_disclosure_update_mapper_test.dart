@@ -12,11 +12,6 @@ void main() {
   });
 
   group('CloseProximityDisclosureUpdateMapper', () {
-    test('maps Connecting to BleConnecting', () {
-      final result = mapper.map(const core.CloseProximityDisclosureFlutterUpdate.connecting());
-      expect(result, isA<BleConnecting>());
-    });
-
     test('maps Connected to BleConnected', () {
       final result = mapper.map(const core.CloseProximityDisclosureFlutterUpdate.connected());
       expect(result, isA<BleConnected>());

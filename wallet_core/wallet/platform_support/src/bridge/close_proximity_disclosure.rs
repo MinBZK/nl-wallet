@@ -32,7 +32,6 @@ pub trait CloseProximityDisclosureBridge: Send + Sync + Debug {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CloseProximityDisclosureUpdate {
-    Connecting,
     Connected,
     SessionEstablished {
         session_transcript: Vec<u8>,
