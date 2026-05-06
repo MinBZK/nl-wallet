@@ -1,5 +1,9 @@
 build-documentation:
-  rules: !reference [.default-or-merge-request, rules]
+  rules:
+    - !reference [.default-or-merge-request, rules]
+    - if: $CI_COMMIT_REF_NAME == "main"
+      allow_failure: true
+    - when: on_success
   script:
     - cd wallet_docs
     - python3 -m venv .venv
@@ -43,7 +47,6 @@ build-documentation:
     when: always
     paths:
       - wallet_docs/_build/html
-  allow_failure: true
 
 publish-documentation:
   rules: !reference [.default-branch, rules]
