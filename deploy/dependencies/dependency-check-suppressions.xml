@@ -13,14 +13,21 @@
 
   <suppress>
     <notes><![CDATA[
-    Reports issue in Dart 2.18 and Flutter 3.30, but we use Dart ^3.10.0 and Flutter ^3.38.1
+    Reports issue in Dart 2.18 and Flutter 3.30, but we use Dart ^3.11.0 and Flutter ^3.41.2
+    ]]></notes>
+    <packageUrl regex="true">^pkg:cocoapods/bluetooth@.*$</packageUrl>
+    <cve>CVE-2022-3095</cve>
+  </suppress>
+  <suppress>
+    <notes><![CDATA[
+    Reports issue in Dart 2.18 and Flutter 3.30, but we use Dart ^3.11.0 and Flutter ^3.41.2
     ]]></notes>
     <packageUrl regex="true">^pkg:cocoapods/flutter_local_notifications@.*$</packageUrl>
     <cve>CVE-2022-3095</cve>
   </suppress>
   <suppress>
     <notes><![CDATA[
-    Reports issue in Dart 2.18 and Flutter 3.30, but we use Dart ^3.10.0 and Flutter ^3.38.1
+    Reports issue in Dart 2.18 and Flutter 3.30, but we use Dart ^3.11.0 and Flutter ^3.41.2
     ]]></notes>
     <packageUrl regex="true">^pkg:cocoapods/flutter_native_splash@.*$</packageUrl>
     <cve>CVE-2022-3095</cve>
@@ -44,6 +51,13 @@
   <!-- End group: [CRITICAL] -->
 
   <!-- Start group: [MEDIUM] -->
+  <suppress>
+    <notes><![CDATA[
+    Reports issue in Dart < 3.11 and Flutter < 3.41, but we use Dart ^3.11.0 and Flutter ^3.41.2
+    ]]></notes>
+    <packageUrl regex="true">^pkg:cocoapods/bluetooth@.*$</packageUrl>
+    <cve>CVE-2026-27704</cve>
+  </suppress>
   <suppress>
     <notes><![CDATA[
     Reports issue in Dart < 3.11 and Flutter < 3.41, but we use Dart ^3.11.0 and Flutter ^3.41.2
