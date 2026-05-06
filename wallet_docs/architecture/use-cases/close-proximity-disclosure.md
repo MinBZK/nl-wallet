@@ -161,4 +161,4 @@ wallet_app-->>-user: Render "attributes disclosed"
 ## Key usage during disclosure
 
 Key usage is the same as in
-[disclosure with OpenID4VP](../disclosure-with-openid4vp).
+[disclosure with OpenID4VP](disclosure-with-openid4vp).
