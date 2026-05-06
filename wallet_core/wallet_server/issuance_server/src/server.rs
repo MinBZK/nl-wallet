@@ -129,6 +129,7 @@ where
     let status_list_services = Arc::new(status_list_services);
     let issuer = Arc::new(Issuer::new(
         issuer_settings.public_url.clone(),
+        issuer_settings.batch_size,
         issuer_settings.wallet_client_ids.clone(),
         attestation_config,
         None,

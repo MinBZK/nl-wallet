@@ -200,6 +200,7 @@ where
 #[cfg(test)]
 mod tests {
     use std::convert::Infallible;
+    use std::num::NonZeroU8;
     use std::sync::Arc;
 
     use attestation_data::attributes::Attribute;
@@ -324,6 +325,7 @@ mod tests {
 
         Issuer::new(
             "https://example.com".parse().unwrap(),
+            NonZeroU8::MIN,
             vec![],
             CredentialConfigurations::try_new([("credential_config_id".to_string(), config_params)]).unwrap(),
             None,

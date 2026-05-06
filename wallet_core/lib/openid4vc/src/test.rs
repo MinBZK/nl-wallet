@@ -1,3 +1,4 @@
+use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 
@@ -160,6 +161,7 @@ where
 
     let issuer = MockIssuer::new(
         issuer_identifier,
+        NonZeroU8::new(4).unwrap(),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
         credential_configs,
         Some(WiaConfig {

@@ -58,7 +58,9 @@ use crate::credential_configurations::CredentialConfigurations;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::metadata::issuer_metadata::BatchCredentialIssuance;
 use crate::metadata::issuer_metadata::IssuerMetadata;
+use crate::metadata::issuer_metadata::NonZeroNorOneU64;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::nonce::store::NonceStatus;
 use crate::nonce::store::NonceStore;
@@ -81,9 +83,6 @@ use crate::token::CredentialPreviewContent;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
-
-// TODO (PVW-5727): Add this to issuer configuration.
-const BATCH_SIZE: NonZeroU8 = NonZeroU8::new(4).unwrap();
 
 /// The cleanup task that removes stale sessions runs every so often.
 const CLEANUP_INTERVAL: Duration = Duration::from_secs(120);
@@ -348,6 +347,9 @@ pub struct IssuerData<K> {
     /// URL prefix of the `/token`, `/credential` and `/batch_crededential` endpoints.
     server_url: BaseUrl,
 
+    /// The maximum amount of copies of a credential that the holder can request.
+    batch_size: NonZeroU8,
+
     metadata: IssuerMetadata,
 
     /// The upstream OAuth identifier, if any.
@@ -400,6 +402,7 @@ where
     #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn new(
         issuer_identifier: IssuerIdentifier,
+        batch_size: NonZeroU8,
         wallet_client_ids: Vec<String>,
         credential_configs: CredentialConfigurations<K>,
         wia_config: Option<WiaConfig>,
@@ -415,6 +418,9 @@ where
         let nonce_endpoint = server_url.join_issuer_url("/nonce");
         let credential_preview_endpoint = server_url.join_issuer_url("/credential_preview");
 
+        let batch_credential_issuance = NonZeroNorOneU64::try_new(batch_size.into())
+            .ok()
+            .map(|batch_size| BatchCredentialIssuance { batch_size });
         let metadata = IssuerMetadata {
             credential_issuer: issuer_identifier,
             authorization_servers: None,
@@ -425,8 +431,7 @@ where
             notification_endpoint: None,
             credential_request_encryption: None,
             credential_response_encryption: None,
-            // TODO (PVW-5554): Configure batch size globally for the issuer and include it here.
-            batch_credential_issuance: None,
+            batch_credential_issuance,
             display: None,
             credential_configurations_supported: credential_configs.to_credential_configurations_supported(),
             credential_preview_endpoint: Some(credential_preview_endpoint),
@@ -441,6 +446,7 @@ where
             // In this implementation, the public server URL is composed of the
             // Credential Issuer Identifier appended with the "/issuance/" path.
             server_url: server_url.into_inner(),
+            batch_size,
             metadata,
         };
 
@@ -654,6 +660,7 @@ where
                 &self.attr_service,
                 &self.issuer_data.server_url,
                 &self.issuer_data.credential_configs,
+                self.issuer_data.batch_size,
                 is_new_session,
             )
             .await;
@@ -837,6 +844,7 @@ impl Session<Created> {
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
         credential_configurations: &CredentialConfigurations<K>,
+        batch_size: NonZeroU8,
         is_new_session: bool,
     ) -> Result<(TokenResponse, String, Session<WaitingForResponse>), (TokenRequestError, Session<Done>)> {
         let result = self
@@ -846,6 +854,7 @@ impl Session<Created> {
                 attr_service,
                 server_url,
                 credential_configurations,
+                batch_size,
                 is_new_session,
             )
             .await;
@@ -871,6 +880,7 @@ impl Session<Created> {
     fn credential_preview_state_for_issuable_document<K>(
         credential_configurations: &CredentialConfigurations<K>,
         document: IssuableDocument,
+        batch_size: NonZeroU8,
     ) -> Result<CredentialPreviewState, TokenRequestError> {
         let format = document.format.into();
         let (credential_config_id, credential_config) = credential_configurations
@@ -896,7 +906,7 @@ impl Session<Created> {
         let state = CredentialPreviewState {
             credential_configuration_id: credential_config_id.to_string(),
             format,
-            batch_size: BATCH_SIZE,
+            batch_size,
             credential_payload,
             batch_id,
         };
@@ -912,6 +922,7 @@ impl Session<Created> {
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
         credential_configurations: &CredentialConfigurations<K>,
+        batch_size: NonZeroU8,
         is_new_session: bool,
     ) -> Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError> {
         // Pre-populated sessions (e.g. disclosure-based issuance) must use PreAuthorizedCode.
@@ -949,7 +960,9 @@ impl Session<Created> {
 
         let preview_states = issuables
             .into_nonempty_iter()
-            .map(|document| Self::credential_preview_state_for_issuable_document(credential_configurations, document))
+            .map(|document| {
+                Self::credential_preview_state_for_issuable_document(credential_configurations, document, batch_size)
+            })
             .collect::<Result<VecNonEmpty<_>, TokenRequestError>>()?;
 
         let dpop_nonce = random_string(32);
@@ -1526,8 +1539,12 @@ mod tests {
             CredentialConfigurations::try_new([("credential_config_id".to_string(), config_params)]).unwrap();
 
         let CredentialPreviewState { credential_payload, .. } =
-            Session::<Created>::credential_preview_state_for_issuable_document(&credential_configs, document)
-                .expect("creating credential preview for issuable document should succeed");
+            Session::<Created>::credential_preview_state_for_issuable_document(
+                &credential_configs,
+                document,
+                NonZeroU8::MIN,
+            )
+            .expect("creating credential preview for issuable document should succeed");
 
         assert_eq!(credential_payload.not_before.unwrap().as_ref().second(), 0);
         assert_eq!(credential_payload.not_before.unwrap().as_ref().minute(), 0);

@@ -9,6 +9,9 @@ wua_issuer_pubkey = ""            # Public key of the WUA issuer
 # Files containing SD-JWT Type Metadata documents
 metadata = ["com_example_pid_metadata.json", "com_example_address_metadata.json"]
 
+# The maximum amount of credentials a holder will be able to request, in the range 1-255
+batch_size = 10
+
 [storage]
 url = 'postgres://postgres:postgres@localhost:5432/pid_issuer' # or 'memory://'
 

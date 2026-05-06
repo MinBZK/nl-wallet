@@ -9,6 +9,8 @@ metadata = [
     "${ISSUER_METADATA_PID_NL_PATH}",
 ]
 
+batch_size = 4
+
 [storage]
 url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/pid_issuer'
 

@@ -89,6 +89,7 @@ where
     let status_list_services = Arc::new(status_list_services);
     let wallet_issuance_router = create_issuance_router(Arc::new(Issuer::new(
         settings.public_url,
+        settings.batch_size,
         settings.wallet_client_ids,
         attestation_config,
         Some(WiaConfig {

@@ -28,6 +28,9 @@ wallet_client_ids = ["https://wallet.edi.rijksoverheid.nl"]
 # Files containing SD-JWT Type Metadata documents for issued attestations
 metadata = ["com_example_address_metadata.json"]
 
+# The maximum amount of credentials a holder will be able to request, in the range 1-255
+batch_size = 10
+
 # Public and private endpoint for the issuer
 [wallet_server]
 ip = "127.0.0.1"

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
+use std::num::NonZeroU8;
 use std::path::PathBuf;
 
 use attestation_types::qualification::AttestationQualification;
@@ -60,6 +61,9 @@ pub struct IssuerSettings {
     /// The wallet sends this value in the authorization request and as the `iss` claim of its Proof of Possession
     /// JWTs.
     pub wallet_client_ids: Vec<String>,
+
+    /// The maximum amount of copies of a credential that the holder can request.
+    pub batch_size: NonZeroU8,
 
     #[serde(flatten)]
     #[debug(skip)]
@@ -405,6 +409,7 @@ impl StatusListAttestationSettings {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::num::NonZeroU8;
 
     use assert_matches::assert_matches;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -470,6 +475,7 @@ mod tests {
                 (vct, (metadata, metadata_bytes))
             }])),
             wallet_client_ids: vec![MOCK_WALLET_CLIENT_ID.to_string()],
+            batch_size: NonZeroU8::MIN,
             server_settings: Settings {
                 wallet_server: Server {
                     ip: "127.0.0.1".parse().unwrap(),
