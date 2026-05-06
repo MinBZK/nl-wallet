@@ -13,20 +13,21 @@ extension CloseProximityDisclosure {
             guard isActiveSession(session) else { return }
             // According to the ISO-18013-5 protocol, the reader will send the eReader public key as the first payload.
             // This is the last ingredient needed for the session transcript.
-            guard await handleFirstReaderMessage(
+            let sessionCryptoBundle = await handleFirstReaderMessage(
                 session: session,
                 message: message
-            ) else {
-                return
-            }
-            
-            guard isActiveSession(session) else { return }
+            )
+            if let sessionCryptoBundle {
+                guard isActiveSession(session) else { return }
 
-            if try await handleReaderMessage(
-                session: session,
-                message: message
-            ) {
-                return
+                if try await handleReaderMessage(
+                    session: session,
+                    message: message,
+                    sessionCrypto: sessionCryptoBundle.0,
+                    encodedSessionTranscript: sessionCryptoBundle.1
+                ) {
+                    return
+                }
             }
         }
     }
@@ -34,10 +35,12 @@ extension CloseProximityDisclosure {
     private func handleFirstReaderMessage(
         session: CloseProximityDisclosureActiveSession,
         message: [UInt8]
-    ) async -> Bool {
+    ) async -> (CloseProximitySessionCrypto, [UInt8])? {
         // If there is session encryption, then this is not the first reader message so skip
-        if sessionCrypto(for: session) != nil {
-            return true
+        let existingSessionCrypto = sessionCrypto(for: session)
+        let existingSessionTranscript = session.encodedSessionTranscript
+        if let existingSessionCrypto, let existingSessionTranscript {
+            return (existingSessionCrypto, existingSessionTranscript)
         }
         // If there is no session encryption, try to treat this message as the reader setting up the session,
         // and fail the whole session if this doesn't work as we won't get this message again
@@ -51,14 +54,14 @@ extension CloseProximityDisclosure {
                 encodedSessionTranscript: encodedSessionTranscript,
                 for: session
             )
-            return true
+            return (sessionCrypto, encodedSessionTranscript)
         } catch {
             if let status = mapErrorToSessionStatus(for: error) {
                 await failSessionWithStatus(session, status: status, error: error)
             } else {
                 await failSession(session, error: error)
             }
-            return false
+            return nil
         }
     }
 
@@ -97,10 +100,10 @@ extension CloseProximityDisclosure {
 
     private func handleReaderMessage(
         session: CloseProximityDisclosureActiveSession,
-        message: [UInt8]
+        message: [UInt8],
+        sessionCrypto: CloseProximitySessionCrypto,
+        encodedSessionTranscript: [UInt8]
     ) async throws -> Bool {
-        let sessionCrypto = try sessionCryptoOrFail(for: session)
-        let encodedSessionTranscript = try encodedSessionTranscriptOrFail(for: session)
         let deviceRequest: [UInt8]?
         let status: Int64?
         do {
