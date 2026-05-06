@@ -161,9 +161,19 @@ fn validate_transfer_instruction(wallet_user: &WalletUser) -> Result<(), Instruc
 impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for PerformIssuance {}
 impl ValidateInstruction for PerformIssuanceWithWia {}
-impl ValidateInstruction for IssueWia {}
 impl ValidateInstruction for DiscloseRecoveryCode {}
 impl ValidateInstruction for DeleteKeys {}
+
+impl ValidateInstruction for IssueWia {
+    fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
+        // Allow during PIN recovery
+
+        validate_wallet_user_not_revoked(wallet_user)?;
+        validate_wallet_user_not_transferred(wallet_user)?;
+        validate_no_pin_change_in_progress(wallet_user)?;
+        validate_no_transfer_in_progress(wallet_user)
+    }
+}
 
 impl ValidateInstruction for Sign {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
@@ -320,7 +330,6 @@ pub trait PinChecks {
 impl PinChecks for ChangePinStart {}
 impl PinChecks for PerformIssuance {}
 impl PinChecks for PerformIssuanceWithWia {}
-impl PinChecks for IssueWia {}
 impl PinChecks for DiscloseRecoveryCode {}
 impl PinChecks for DiscloseRecoveryCodePinRecovery {}
 impl PinChecks for ChangePinCommit {}
@@ -329,6 +338,15 @@ impl PinChecks for CheckPin {}
 impl PinChecks for Sign {}
 impl PinChecks for ConfirmTransfer {}
 impl PinChecks for DeleteKeys {}
+
+impl PinChecks for IssueWia {
+    fn pin_checks_options() -> PinCheckOptions {
+        PinCheckOptions {
+            allow_for_blocked_users: false,
+            key_checks: PinKeyChecks::SkipCertificateMatching,
+        }
+    }
+}
 
 impl PinChecks for StartPinRecovery {
     fn pin_checks_options() -> PinCheckOptions {

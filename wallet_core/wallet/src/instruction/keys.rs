@@ -221,12 +221,8 @@ where
         key_count: std::num::NonZeroUsize,
         aud: String,
         nonce: Option<Nonce>,
-        include_wia: bool,
+        _include_wia: bool,
     ) -> Result<IssuanceResult, Self::Error> {
-        if !include_wia {
-            panic!("include_wia must always be true for PinRecoveryRemoteEcdsaWscd")
-        }
-
         let result = self
             .instruction_client
             .send(StartPinRecovery {

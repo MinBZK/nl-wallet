@@ -100,6 +100,10 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
+    #[error("WIA issuance failed: {0}")]
+    #[category(pd)]
+    WiaIssuance(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
     #[error("public key contained in mdoc not equal to expected value")]
     #[category(critical)]
     PublicKeyMismatch,

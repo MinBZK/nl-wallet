@@ -493,17 +493,15 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             }
         };
 
-        let mut issuance_data = wscd
-            .perform_issuance(
-                key_count,
-                self.session_state
-                    .issuer_metadata
-                    .credential_issuer
-                    .as_ref()
-                    .to_string(),
-                c_nonce,
-                include_wia,
-            )
+        let aud = self
+            .session_state
+            .issuer_metadata
+            .credential_issuer
+            .as_ref()
+            .to_string();
+
+        let issuance_data = wscd
+            .perform_issuance(key_count, aud.clone(), c_nonce.clone(), false)
             .await
             .map_err(|e| WalletIssuanceError::PrivateKeyGeneration(e.into()))?;
 
@@ -541,11 +539,21 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         .into_iter()
         .unzip();
 
+        let mut wia = if include_wia {
+            Some(
+                wscd.issue_wia(aud, c_nonce)
+                    .await
+                    .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?,
+            )
+        } else {
+            None
+        };
+
         // The following two unwraps are safe because N > 0, see above.
         let responses = match credential_requests.len() {
             1 => {
                 let mut credential_request = credential_requests.pop().unwrap();
-                credential_request.attestations = issuance_data.wia.take();
+                credential_request.attestations = wia.take();
                 vec![
                     self.request_credential(credential_endpoint_url, &credential_request)
                         .await?,
@@ -553,7 +561,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             }
             _ => {
                 let credential_requests = VecNonEmpty::try_from(credential_requests).unwrap();
-                self.request_batch_credentials(credential_endpoint_url, credential_requests, issuance_data.wia.take())
+                self.request_batch_credentials(credential_endpoint_url, credential_requests, wia.take())
                     .await?
             }
         };
