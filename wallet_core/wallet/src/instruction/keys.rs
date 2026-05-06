@@ -12,11 +12,13 @@ use crypto::wscd::WscdPoa;
 use derive_more::Constructor;
 use jwt::UnverifiedJwt;
 use jwt::nonce::Nonce;
+use jwt::wia::WiaDisclosure;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature;
 use parking_lot::Mutex;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
+use wallet_account::messages::instructions::IssueWia;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceWithWia;
 use wallet_account::messages::instructions::PerformIssuanceWithWiaResult;
@@ -153,6 +155,14 @@ where
             wia,
         ))
     }
+
+    async fn issue_wia(&self, aud: String, nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
+        Ok(self
+            .instruction_client
+            .send(IssueWia { nonce, aud })
+            .await?
+            .wia_disclosure)
+    }
 }
 
 impl WithIdentifier for RemoteEcdsaKey {
@@ -235,6 +245,14 @@ where
             issuance_result.pops,
             Some(result.issuance_with_wia_result.wia_disclosure),
         ))
+    }
+
+    async fn issue_wia(&self, aud: String, nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
+        Ok(self
+            .instruction_client
+            .send(IssueWia { nonce, aud })
+            .await?
+            .wia_disclosure)
     }
 }
 

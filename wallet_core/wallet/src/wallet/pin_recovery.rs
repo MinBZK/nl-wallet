@@ -458,6 +458,7 @@ mod tests {
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use jwt::UnverifiedJwt;
     use jwt::nonce::Nonce;
+    use jwt::wia::WiaDisclosure;
     use openid4vc::Format;
     use openid4vc::wallet_issuance::WalletIssuanceError;
     use openid4vc::wallet_issuance::authorization::OAuthError;
@@ -930,6 +931,10 @@ mod tests {
             _nonce: Option<Nonce>,
             _include_wia: bool,
         ) -> Result<wscd::wscd::IssuanceResult, Self::Error> {
+            unimplemented!()
+        }
+
+        async fn issue_wia(&self, _aud: String, _nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
             unimplemented!()
         }
     }

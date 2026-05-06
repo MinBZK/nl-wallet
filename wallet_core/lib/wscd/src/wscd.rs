@@ -20,6 +20,8 @@ pub trait IssuanceWscd {
         nonce: Option<Nonce>,
         include_wia: bool,
     ) -> Result<IssuanceResult, Self::Error>;
+
+    async fn issue_wia(&self, aud: String, nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error>;
 }
 
 #[derive(Debug, Constructor)]
