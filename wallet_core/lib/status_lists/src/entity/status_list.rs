@@ -7,7 +7,7 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
-    pub attestation_type_id: i16,
+    pub attestation_group_id: i16,
     #[sea_orm(unique)]
     pub external_id: String,
     pub available: i32,
@@ -20,13 +20,13 @@ pub enum Relation {
     #[sea_orm(has_many = "super::attestation_batch_list_indices::Entity")]
     AttestationBatchListIndices,
     #[sea_orm(
-        belongs_to = "super::attestation_type::Entity",
-        from = "Column::AttestationTypeId",
-        to = "super::attestation_type::Column::Id",
+        belongs_to = "super::attestation_group::Entity",
+        from = "Column::AttestationGroupId",
+        to = "super::attestation_group::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    AttestationType,
+    AttestationGroup,
 }
 
 impl Related<super::attestation_batch_list_indices::Entity> for Entity {
@@ -35,9 +35,9 @@ impl Related<super::attestation_batch_list_indices::Entity> for Entity {
     }
 }
 
-impl Related<super::attestation_type::Entity> for Entity {
+impl Related<super::attestation_group::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::AttestationType.def()
+        Relation::AttestationGroup.def()
     }
 }
 

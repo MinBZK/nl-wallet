@@ -11,16 +11,16 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(AttestationType::Table)
+                    .table(AttestationGroup::Table)
                     .if_not_exists()
-                    .col(small_integer(AttestationType::Id).primary_key().auto_increment())
-                    .col(string(AttestationType::Name))
-                    .col(big_integer(AttestationType::NextSequenceNo))
+                    .col(small_integer(AttestationGroup::Id).primary_key().auto_increment())
+                    .col(string(AttestationGroup::Name))
+                    .col(big_integer(AttestationGroup::NextSequenceNo))
                     .index(
                         Index::create()
                             .unique()
-                            .name("attestation_type_unique_name")
-                            .col(AttestationType::Name),
+                            .name("attestation_group_unique_name")
+                            .col(AttestationGroup::Name),
                     )
                     .to_owned(),
             )
@@ -31,7 +31,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-pub enum AttestationType {
+pub enum AttestationGroup {
     Table,
     Id,
     Name,
