@@ -6,7 +6,6 @@
 //
 
 import Foundation
-@preconcurrency import Multipaz
 
 actor CloseProximityDisclosure {
     // Serializes lifecycle transactions such as startQrHandover() and stopBleServer() across
@@ -15,13 +14,12 @@ actor CloseProximityDisclosure {
     // stopBleServer() is still canceling and closing the previous BLE transport, causing the new
     // handover to inherit teardown work from the old one.
     let lifecycleLock = CloseProximityDisclosureLifecycleLock()
-    let testingPeripheralServerModeUuid: Multipaz.UUID?
-    // The actor owns the current session and all mutable runtime state associated with it:
-    // background task handles plus the session-encryption/transcript derived from the reader's
-    // first message. Background work hops back into the actor to touch this state.
-    var activeSessionState: CloseProximityDisclosureActiveSessionState?
+    let testingPeripheralServerModeUuid: UUID?
+    // The actor owns the current session, including the mutable runtime state derived while the
+    // BLE exchange is active. Background work hops back into the actor to touch this state.
+    var activeSession: CloseProximityDisclosureActiveSession?
 
-    init(testingPeripheralServerModeUuid: Multipaz.UUID? = nil) {
+    init(testingPeripheralServerModeUuid: UUID? = nil) {
         self.testingPeripheralServerModeUuid = testingPeripheralServerModeUuid
     }
 }

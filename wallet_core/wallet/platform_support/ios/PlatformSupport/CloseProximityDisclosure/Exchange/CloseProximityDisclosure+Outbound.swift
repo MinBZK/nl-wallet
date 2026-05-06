@@ -1,19 +1,17 @@
 import Foundation
-@preconcurrency import Multipaz
 
 extension CloseProximityDisclosure {
 
     func sendDeviceResponse(
         session: CloseProximityDisclosureActiveSession,
-        establishedSessionContext: CloseProximityDisclosureEstablishedSessionContext,
         deviceResponse: [UInt8]
     ) async throws {
         do {
-            try await establishedSessionContext.transport.sendMessage(
+            try await session.transport.sendMessage(
                 message: buildEncryptedDeviceResponse(
-                    sessionEncryption: establishedSessionContext.sessionEncryption,
+                    session: session,
                     deviceResponse: deviceResponse
-                ).uint8Array()
+                )
             )
         } catch {
             if isActiveSession(session) {
@@ -28,9 +26,9 @@ extension CloseProximityDisclosure {
     ) async throws {
         do {
             try await session.transport.sendMessage(
-                message: SessionEncryption.companion.encodeStatus(
-                    statusCode: Int64(Constants.shared.SESSION_DATA_STATUS_SESSION_TERMINATION)
-                ).uint8Array()
+                message: try closeProximityEncodeSessionStatus(
+                    statusCode: CloseProximitySessionStatusCode.termination
+                )
             )
         } catch {
             if isActiveSession(session) {
@@ -41,14 +39,12 @@ extension CloseProximityDisclosure {
     }
 
     private func buildEncryptedDeviceResponse(
-        sessionEncryption: SessionEncryption,
+        session: CloseProximityDisclosureActiveSession,
         deviceResponse: [UInt8]
-    ) -> KotlinByteArray {
-        sessionEncryption.encryptMessage(
-            messagePlaintext: deviceResponse.kotlinByteArray(),
-            statusCode: KotlinLong(
-                longLong: Int64(Constants.shared.SESSION_DATA_STATUS_SESSION_TERMINATION)
-            )
+    ) throws -> [UInt8] {
+        try sessionCryptoOrFail(for: session).encrypt(
+            plaintext: deviceResponse,
+            statusCode: CloseProximitySessionStatusCode.termination
         )
     }
 }
