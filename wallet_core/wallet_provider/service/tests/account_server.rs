@@ -86,8 +86,8 @@ async fn do_registration(
 
     let flags = StubWalletFlags::default();
     let status_list_service = PostgresStatusListService::try_new(
-        db_connection,
         WIA_ATTESTATION_TYPE_IDENTIFIER,
+        db_connection,
         wia_status_list_config,
         flags.clone(),
     )

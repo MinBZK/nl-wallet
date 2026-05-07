@@ -70,7 +70,7 @@ async fn setup_revocation_test(
     };
 
     let connection = connection_from_url(db_setup.status_lists_url()).await;
-    let service = PostgresStatusListService::try_new(connection.clone(), &random_string(20), config, NoRevokeAll)
+    let service = PostgresStatusListService::try_new(&random_string(20), connection.clone(), config, NoRevokeAll)
         .await
         .unwrap();
     try_join_all(service.initialize_lists().await.unwrap()).await.unwrap();

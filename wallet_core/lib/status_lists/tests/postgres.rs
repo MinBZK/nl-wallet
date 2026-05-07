@@ -105,8 +105,8 @@ async fn create_status_list_service(
     };
     let revoke_all = RevokeAllBool::default();
     let service = PostgresStatusListService::try_new(
-        connection.clone(),
         &attestation_group,
+        connection.clone(),
         config.clone(),
         revoke_all.clone(),
     )
@@ -122,7 +122,7 @@ async fn recreate_status_list_service(
     config: StatusListConfig<SigningKey>,
     revoke_all: RevokeAllBool,
 ) -> anyhow::Result<PostgresStatusListService<SigningKey, RevokeAllBool>> {
-    let service = PostgresStatusListService::try_new(connection.clone(), attestation_group, config, revoke_all).await?;
+    let service = PostgresStatusListService::try_new(attestation_group, connection.clone(), config, revoke_all).await?;
     try_join_all(service.initialize_lists().await?).await?;
 
     Ok(service)

@@ -137,8 +137,8 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         let flags = WalletRepoFlags::try_new(repositories.clone(), settings.flags_refresh_delay).await?;
         flags.start_refresh_job();
         let status_list_service = PostgresStatusListService::try_new(
-            db.to_connection(),
             WIA_ATTESTATION_TYPE_IDENTIFIER,
+            db.to_connection(),
             settings.wua_status_list.into_config(wallet_user_hsm.clone()).await?,
             flags.clone(),
         )

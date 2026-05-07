@@ -484,8 +484,8 @@ where
 
 impl<K, R> PostgresStatusListService<K, R> {
     pub async fn try_new(
-        connection: DatabaseConnection,
         attestation_group: &str,
+        connection: DatabaseConnection,
         config: StatusListConfig<K>,
         revoke_all: R,
     ) -> Result<Self, StatusListServiceError> {
