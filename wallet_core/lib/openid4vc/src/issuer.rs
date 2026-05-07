@@ -17,7 +17,7 @@ use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::DurationRound;
 use chrono::Utc;
-use crypto::EcdsaKeySend;
+use crypto::EcdsaKey;
 use crypto::utils::random_string;
 use derive_more::Debug;
 use futures::TryFutureExt;
@@ -619,7 +619,7 @@ where
 
 impl<K, A, S, N, L> Issuer<K, A, S, N, L>
 where
-    K: EcdsaKeySend,
+    K: EcdsaKey,
     A: AttributeService,
     S: SessionStore<IssuanceData>,
 {
@@ -682,7 +682,7 @@ where
 
 impl<K, A, S, N, L> Issuer<K, A, S, N, L>
 where
-    K: EcdsaKeySend,
+    K: EcdsaKey,
     A: AttributeService,
     N: NonceStore,
     S: SessionStore<IssuanceData>,
@@ -1016,7 +1016,7 @@ impl Session<WaitingForResponse> {
         services: IssuerServices<'a, N, S>,
     ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>)
     where
-        K: EcdsaKeySend,
+        K: EcdsaKey,
         N: NonceStore,
         S: StatusListServices,
     {
@@ -1097,7 +1097,7 @@ impl Session<WaitingForResponse> {
         services: IssuerServices<'a, N, S>,
     ) -> Result<CredentialResponse, CredentialRequestError>
     where
-        K: EcdsaKeySend,
+        K: EcdsaKey,
         N: NonceStore,
         S: StatusListServices,
     {
@@ -1183,7 +1183,7 @@ impl Session<WaitingForResponse> {
         services: IssuerServices<'a, N, S>,
     ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>)
     where
-        K: EcdsaKeySend,
+        K: EcdsaKey,
         N: NonceStore,
         S: StatusListServices,
     {
@@ -1213,7 +1213,7 @@ impl Session<WaitingForResponse> {
         services: IssuerServices<'a, N, S>,
     ) -> Result<CredentialResponses, CredentialRequestError>
     where
-        K: EcdsaKeySend,
+        K: EcdsaKey,
         N: NonceStore,
         S: StatusListServices,
     {
@@ -1390,7 +1390,7 @@ impl CredentialResponse {
         preview_credential_payload: PreviewableCredentialPayload,
         issued_at: DateTime<Utc>,
         holder_pubkey: &VerifyingKey,
-        credential_config: &CredentialConfiguration<impl EcdsaKeySend>,
+        credential_config: &CredentialConfiguration<impl EcdsaKey>,
         status_claim: StatusClaim,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let payload = CredentialPayload::from_previewable_credential_payload(
@@ -1411,7 +1411,7 @@ impl CredentialResponse {
 
     async fn new_for_mdoc(
         credential_payload: CredentialPayload,
-        credential_config: &CredentialConfiguration<impl EcdsaKeySend + Sized>,
+        credential_config: &CredentialConfiguration<impl EcdsaKey>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         // Construct an mdoc `IssuerSigned` from the contents of `PreviewableCredentialPayload`
         // and the attestation config by signing it.
@@ -1422,7 +1422,7 @@ impl CredentialResponse {
 
     async fn new_for_sd_jwt(
         credential_payload: CredentialPayload,
-        credential_config: &CredentialConfiguration<impl EcdsaKeySend + Sized>,
+        credential_config: &CredentialConfiguration<impl EcdsaKey>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let signed_sd_jwt = credential_payload
             .into_signed_sd_jwt(credential_config.metadata.normalized(), &credential_config.key_pair)
