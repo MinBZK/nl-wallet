@@ -47,7 +47,7 @@ class WalletTransferAwaitingScanPage extends StatelessWidget {
                     text: Text.rich(context.l10n.walletTransferAwaitingScanPageCenterQrCta.toTextSpan(context)),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                     child: Center(child: WalletQrView(data: data)),
                   ),
                 ],

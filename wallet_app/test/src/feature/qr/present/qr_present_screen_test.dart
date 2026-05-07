@@ -12,6 +12,9 @@ import '../../../test_util/test_utils.dart';
 
 class MockQrPresentBloc extends MockBloc<QrPresentEvent, QrPresentState> implements QrPresentBloc {}
 
+const _kSampleEngagement =
+    'mdoc:owBjMS4wAYIB2BhYS6QBAiABIVggLLZphpbtiOLpRxFGZtqdyYv7M7iG1w9IbUpt6e4E36wiWCCLXBwFmO0RFvFC1zt7u3VNFAvGfbWaK6EerUAhCxrVdAKBgwIBowD1AfQKUJgEN2SpqkkZrXvxpQEZ784';
+
 void main() {
   group('QrPresentScreen goldens', () {
     testGoldens('QrPresentInitial', (tester) async {
@@ -28,18 +31,30 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const QrPresentScreen().withState<QrPresentBloc, QrPresentState>(
           MockQrPresentBloc(),
-          const QrPresentServerStarted('https://example.org/qr'),
+          const QrPresentServerStarted(_kSampleEngagement),
         ),
       );
       await TestUtils.preCacheWalletLogoForQrImageView(tester);
       await screenMatchesGolden('qr_present_server_started.light');
     });
 
+    testGoldens('QrPresentServerStarted - dark', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const QrPresentScreen().withState<QrPresentBloc, QrPresentState>(
+          MockQrPresentBloc(),
+          const QrPresentServerStarted(_kSampleEngagement),
+        ),
+        brightness: Brightness.dark,
+      );
+      await TestUtils.preCacheWalletLogoForQrImageView(tester);
+      await screenMatchesGolden('qr_present_server_started.dark');
+    });
+
     testGoldens('QrPresentServerStarted - dark - landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const QrPresentScreen().withState<QrPresentBloc, QrPresentState>(
           MockQrPresentBloc(),
-          const QrPresentServerStarted('https://example.org/qr'),
+          const QrPresentServerStarted(_kSampleEngagement),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
@@ -111,7 +126,7 @@ void main() {
         await tester.pumpWidgetWithAppWrapper(
           const QrPresentScreen().withState<QrPresentBloc, QrPresentState>(
             MockQrPresentBloc(),
-            const QrPresentServerStarted('https://example.org/qr'),
+            const QrPresentServerStarted(_kSampleEngagement),
           ),
         );
         await TestUtils.preCacheWalletLogoForQrImageView(tester);
