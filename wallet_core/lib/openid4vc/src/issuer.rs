@@ -59,6 +59,7 @@ use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::BatchCredentialIssuance;
+use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::NonZeroNorOneU64;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
@@ -169,7 +170,7 @@ pub enum CredentialRequestError {
     Jwt(#[from] JwtError),
 
     #[error("missing credential configuration with identifier: {0}")]
-    MissingCredentialConfiguration(String),
+    MissingCredentialConfiguration(CredentialConfigurationId),
 
     #[error("mismatch between requested: {requested} and offered attestation types: {offered}")]
     CredentialTypeMismatch { requested: Format, offered: Format },
@@ -218,7 +219,7 @@ pub enum CredentialPreviewError {
     UnknownCredentialIdentifier(String),
 
     #[error("missing credential configuration with identifier: {0}")]
-    MissingCredentialConfiguration(String),
+    MissingCredentialConfiguration(CredentialConfigurationId),
 
     #[error("requested credential previews not found in session")]
     CredentialPreviewsNotFound,
@@ -240,7 +241,7 @@ pub struct WaitingForResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialPreviewState {
-    pub credential_configuration_id: String,
+    pub credential_configuration_id: CredentialConfigurationId,
     pub format: Format,
     pub batch_size: NonZeroU8,
     pub credential_payload: PreviewableCredentialPayload,
@@ -904,7 +905,7 @@ impl Session<Created> {
         );
 
         let state = CredentialPreviewState {
-            credential_configuration_id: credential_config_id.to_string(),
+            credential_configuration_id: credential_config_id.clone(),
             format,
             batch_size,
             credential_payload,
@@ -1537,7 +1538,7 @@ mod tests {
             metadata_documents: TypeMetadataDocuments::degree_example().1,
         };
         let credential_configs =
-            CredentialConfigurations::try_new([("credential_config_id".to_string(), config_params)]).unwrap();
+            CredentialConfigurations::try_new([("credential_config_id".to_string().into(), config_params)]).unwrap();
 
         let CredentialPreviewState { credential_payload, .. } =
             Session::<Created>::credential_preview_state_for_issuable_document(

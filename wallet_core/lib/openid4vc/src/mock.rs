@@ -69,7 +69,7 @@ impl IssuerMetadata {
             }),
             display: None,
             credential_configurations_supported: HashMap::from_iter(vec![(
-                attestation_type.to_string(),
+                attestation_type.to_string().into(),
                 CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
                     attestation_type.to_string(),
                     vec![ProofType::Jwt],

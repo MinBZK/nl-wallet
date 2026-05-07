@@ -50,6 +50,7 @@ use crate::credential::CredentialResponses;
 use crate::dpop::DPOP_HEADER_NAME;
 use crate::dpop::DPOP_NONCE_HEADER_NAME;
 use crate::dpop::Dpop;
+use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::nonce::response::NonceResponse;
@@ -342,7 +343,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .ok_or(WalletIssuanceError::NoCredentialPreviewEndpoint)?; // TODO (PVW-5559): skip preview when no credential preview endpoint
 
         // TODO: Get the credential configuration ids from the `CredentialOffer` instead.
-        let credential_configuration_ids: VecNonEmpty<String> = issuer_metadata
+        let credential_configuration_ids: VecNonEmpty<CredentialConfigurationId> = issuer_metadata
             .credential_configurations_supported
             .keys()
             .cloned()

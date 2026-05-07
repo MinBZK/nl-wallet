@@ -146,7 +146,7 @@ where
                 metadata_documents,
             };
 
-            (attestation_type.to_string(), params)
+            (attestation_type.to_string().into(), params)
         });
     let credential_configs = CredentialConfigurations::try_new(configurations).unwrap();
 

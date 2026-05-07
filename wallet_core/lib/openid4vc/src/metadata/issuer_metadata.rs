@@ -3,6 +3,9 @@ use std::num::NonZeroU64;
 use std::ops::Not;
 
 use attestation_types::claim_path::ClaimPath;
+use derive_more::AsRef;
+use derive_more::Display;
+use derive_more::From;
 use derive_more::Into;
 use http_utils::data_uri::DataUri;
 use itertools::Itertools;
@@ -30,6 +33,10 @@ use crate::jose::JwsAlgorithm;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 use crate::metadata::well_known::WellKnownMetadata;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, From, Into, Display, Serialize, Deserialize)]
+#[as_ref(str)]
+pub struct CredentialConfigurationId(String);
 
 /// Credential issuer metadata, as per
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4>.
@@ -99,7 +106,7 @@ pub struct IssuerMetadata {
     /// Wallet which Credential is being offered. The value is an object that contains metadata about a specific
     /// Credential.
     #[serde_as(as = "MapPreventDuplicates<_, _>")]
-    pub credential_configurations_supported: HashMap<String, CredentialConfiguration>,
+    pub credential_configurations_supported: HashMap<CredentialConfigurationId, CredentialConfiguration>,
 
     /// URL of the credential issuer's credential preview endpoint. This URL MUST use the https scheme and MAY contain
     /// port, path and query parameter components.
@@ -917,7 +924,7 @@ mod tests {
         assert_eq!(metadata.credential_configurations_supported.len(), 1);
         let (config_id, config) = metadata.credential_configurations_supported.iter().next().unwrap();
 
-        assert_eq!(config_id, "SD_JWT_VC_example_in_OpenID4VCI");
+        assert_eq!(config_id.as_ref(), "SD_JWT_VC_example_in_OpenID4VCI");
         assert_matches!(
             &config.format,
             CredentialFormat::SdJwt {

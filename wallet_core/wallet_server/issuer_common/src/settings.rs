@@ -22,6 +22,7 @@ use openid4vc::credential_configurations::CredentialConfigurationParameters;
 use openid4vc::credential_configurations::CredentialConfigurations;
 use openid4vc::credential_configurations::CredentialConfigurationsError;
 use openid4vc::issuer_identifier::IssuerIdentifier;
+use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use rustls_pki_types::TrustAnchor;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
@@ -75,7 +76,7 @@ pub struct TypeMetadataByVct(HashMap<String, (UncheckedTypeMetadata, Vec<u8>)>);
 
 #[derive(Debug, Clone, Deserialize, From, IntoIterator, AsRef)]
 pub struct CredentialConfigurationsSettings(
-    #[into_iterator(owned, ref)] HashMap<String, CredentialConfigurationSettings>,
+    #[into_iterator(owned, ref)] HashMap<CredentialConfigurationId, CredentialConfigurationSettings>,
 );
 
 #[derive(Debug, Clone, Deserialize)]
@@ -255,13 +256,18 @@ pub enum IssuerSettingsError {
     Certificate(#[from] CertificateError),
     #[error("error verifying certificate: {0}")]
     CertificateVerification(#[from] CertificateVerificationError),
-    #[error("certificate for {attestation_type} missing SAN {san}")]
-    CertificateMissingSan { attestation_type: String, san: HttpsUri },
-    #[error("multiple SANs in issuer certificate for {attestation_type}: which one to use was not specified")]
-    CertificateSanUnspecified { attestation_type: String },
-    #[error("attestation and status list certificate subject are different {typ}: `{attestation}` vs `{status_list}`")]
+    #[error("certificate for {config_id} missing SAN {san}")]
+    CertificateMissingSan {
+        config_id: CredentialConfigurationId,
+        san: HttpsUri,
+    },
+    #[error("multiple SANs in issuer certificate for {config_id}: which one to use was not specified")]
+    CertificateSanUnspecified { config_id: CredentialConfigurationId },
+    #[error(
+        "attestation and status list certificate subject are different {config_id}: `{attestation}` vs `{status_list}`"
+    )]
     CertificatesSubjectNameMismatch {
-        typ: String,
+        config_id: CredentialConfigurationId,
         attestation: String,
         status_list: String,
     },
@@ -271,7 +277,7 @@ impl IssuerSettings {
     pub fn validate(&self) -> Result<(), IssuerSettingsError> {
         tracing::debug!("verifying issuer settings");
 
-        for (typ, attestation) in self.credential_configurations.as_ref() {
+        for (config_id, attestation) in self.credential_configurations.as_ref() {
             if let Some(certificate_san) = attestation.certificate_san.as_ref() {
                 // If the certificate SAN to be used has been specified, then it has to be present in the certificate.
                 if !attestation
@@ -282,7 +288,7 @@ impl IssuerSettings {
                     .contains(certificate_san)
                 {
                     return Err(IssuerSettingsError::CertificateMissingSan {
-                        attestation_type: typ.clone(),
+                        config_id: config_id.clone(),
                         san: certificate_san.clone(),
                     });
                 }
@@ -290,7 +296,7 @@ impl IssuerSettings {
                 // If not, then there must be only one SAN in the certificate so there is no disambiguation.
                 if attestation.keypair.certificate.san_dns_name_or_uris()?.len().get() > 1 {
                     return Err(IssuerSettingsError::CertificateSanUnspecified {
-                        attestation_type: typ.clone(),
+                        config_id: config_id.clone(),
                     });
                 }
             }
@@ -323,12 +329,12 @@ impl IssuerSettings {
 
         verify_key_pairs(&key_pairs, &trust_anchors, CertificateUsage::OAuthStatusSigning, &time)?;
 
-        for (typ, attestation) in self.credential_configurations.as_ref() {
+        for (config_id, attestation) in self.credential_configurations.as_ref() {
             let attestation_dn = attestation.keypair.certificate.distinguished_name()?;
             let status_list_dn = attestation.status_list.keypair.certificate.distinguished_name()?;
             if attestation_dn != status_list_dn {
                 return Err(IssuerSettingsError::CertificatesSubjectNameMismatch {
-                    typ: typ.clone(),
+                    config_id: config_id.clone(),
                     attestation: attestation_dn,
                     status_list: status_list_dn,
                 });
@@ -453,7 +459,7 @@ mod tests {
         IssuerSettings {
             public_url: "https://example.com".parse().unwrap(),
             credential_configurations: HashMap::from([(
-                "pid_sdjwt".to_string(),
+                "pid_sdjwt".to_string().into(),
                 CredentialConfigurationSettings {
                     attestation_type: "com.example.pid".to_string(),
                     format: Format::SdJwt,
@@ -537,7 +543,7 @@ mod tests {
 
         settings.server_settings.issuer_trust_anchors = vec![issuer_ca.borrowing_trust_anchor().clone()];
         settings.credential_configurations = HashMap::from([(
-            "no_registration_sdjwt".to_string(),
+            "no_registration_sdjwt".to_string().into(),
             CredentialConfigurationSettings {
                 attestation_type: "com.example.no_registration".to_string(),
                 format: Format::SdJwt,
@@ -636,8 +642,8 @@ mod tests {
         let error = settings.validate().expect_err("should fail");
         assert_matches!(
             error,
-            IssuerSettingsError::CertificatesSubjectNameMismatch { typ, attestation, status_list }
-                if typ == "pid_sdjwt" &&
+            IssuerSettingsError::CertificatesSubjectNameMismatch { config_id, attestation, status_list }
+                if config_id.as_ref() == "pid_sdjwt" &&
                     attestation == "CN=cert.issuer.example.com" &&
                     status_list == "CN=different.example.com"
         );

@@ -17,6 +17,7 @@ use ssri::Integrity;
 
 use crate::Format;
 use crate::metadata::issuer_metadata;
+use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::ProofType;
 
 #[derive(Debug, thiserror::Error)]
@@ -29,9 +30,9 @@ pub enum CredentialConfigurationsError {
 
     #[error(
         "multiple credential configurations for the same combination of format and attestation type: {}",
-        .0.iter().map(|((format, attestation_type), configs)| configs.join(", ")).join(" / ")
+        .0.iter().map(|((format, attestation_type), configs)| configs.iter().join(", ")).join(" / ")
     )]
-    DuplicateFormatAndAttestationType(HashMap<(Format, String), Vec<String>>),
+    DuplicateFormatAndAttestationType(HashMap<(Format, String), Vec<CredentialConfigurationId>>),
 }
 
 #[derive(Debug)]
@@ -137,13 +138,13 @@ impl CredentialConfigurationMetadata {
 /// Static credential configurations indexed by their identifier.
 #[derive(Debug, From)]
 pub struct CredentialConfigurations<K> {
-    configs_by_id: HashMap<String, CredentialConfiguration<K>>,
-    ids_by_format_and_attestation_type: HashMap<(Format, Cow<'static, str>), String>,
+    configs_by_id: HashMap<CredentialConfigurationId, CredentialConfiguration<K>>,
+    ids_by_format_and_attestation_type: HashMap<(Format, Cow<'static, str>), CredentialConfigurationId>,
 }
 
 impl<K> CredentialConfigurations<K> {
     pub fn try_new(
-        configurations: impl IntoIterator<Item = (String, CredentialConfigurationParameters<K>)>,
+        configurations: impl IntoIterator<Item = (CredentialConfigurationId, CredentialConfigurationParameters<K>)>,
     ) -> Result<Self, CredentialConfigurationsError> {
         let mut ids_by_format_and_attestation_type = HashMap::<_, Vec<_>>::new();
 
@@ -191,7 +192,10 @@ impl<K> CredentialConfigurations<K> {
         Ok(credential_configurations)
     }
 
-    pub fn get_by_configuration_id(&self, config_id: &str) -> Option<&CredentialConfiguration<K>> {
+    pub fn get_by_configuration_id(
+        &self,
+        config_id: &CredentialConfigurationId,
+    ) -> Option<&CredentialConfiguration<K>> {
         self.configs_by_id.get(config_id)
     }
 
@@ -199,14 +203,15 @@ impl<K> CredentialConfigurations<K> {
         &self,
         format: Format,
         attestation_type: &str,
-    ) -> Option<(&str, &CredentialConfiguration<K>)> {
+    ) -> Option<(&CredentialConfigurationId, &CredentialConfiguration<K>)> {
         self.ids_by_format_and_attestation_type
             .get(&(format, Cow::Borrowed(attestation_type)))
             .and_then(|id| self.configs_by_id.get_key_value(id))
-            .map(|(id, config)| (id.as_str(), config))
     }
 
-    pub fn to_credential_configurations_supported(&self) -> HashMap<String, issuer_metadata::CredentialConfiguration> {
+    pub fn to_credential_configurations_supported(
+        &self,
+    ) -> HashMap<CredentialConfigurationId, issuer_metadata::CredentialConfiguration> {
         self.configs_by_id
             .iter()
             .map(|(config_id, config)| {

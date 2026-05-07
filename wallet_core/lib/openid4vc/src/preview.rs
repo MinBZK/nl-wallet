@@ -2,6 +2,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::token::CredentialPreview;
 
 /// Credential Preview Request as per the OpenID4VCI profile specification.
@@ -21,7 +22,7 @@ pub enum CredentialPreviewRequest {
     /// An array of strings, each uniquely identifying a key in `credential_configurations_supported`.
     /// MUST NOT be used when `credential_identifiers` is present.
     CredentialConfigurationIds {
-        credential_configuration_ids: VecNonEmpty<String>,
+        credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
     },
 }
 
