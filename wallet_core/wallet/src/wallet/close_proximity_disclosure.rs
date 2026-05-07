@@ -532,7 +532,7 @@ where
         let device_response = match Self::create_close_proximity_device_response(
             attestations.values().copied(),
             session_transcript.as_ref(),
-            &verifier_certificate,
+            *verifier_certificate,
             &remote_wscd,
         )
         .await
@@ -658,7 +658,7 @@ where
     async fn create_close_proximity_device_response<'a, K, W>(
         attestations: impl IntoIterator<Item = &'a DisclosableAttestation>,
         session_transcript: &SessionTranscript,
-        verifier_certificate: &VerifierCertificate,
+        verifier_certificate: VerifierCertificate,
         wscd: &W,
     ) -> Result<DeviceResponseWithPoa<Poa>, DisclosureError>
     where
@@ -683,16 +683,15 @@ where
         // if this fails, there's a bug in the code
         let nonce = Nonce::from(hex::encode(cbor_serialize(&session_transcript).unwrap()));
         // use the same aud as for SD-JWT
-        let aud = verifier_certificate
-            .certificate()
+        let (certificate, registration) = verifier_certificate.into_certificate_and_registration();
+        let organization = registration.organization;
+        let aud = certificate
             .common_name()
             .map_err(|error| CloseProximityDisclosureError::InvalidCertificate {
                 error,
-                organization: verifier_certificate.registration().organization.clone(),
+                organization: organization.clone(),
             })?
-            .ok_or_else(|| CloseProximityDisclosureError::MissingCommonName {
-                organization: verifier_certificate.registration().organization.clone(),
-            })?
+            .ok_or_else(|| CloseProximityDisclosureError::MissingCommonName { organization })?
             .to_string();
         let poa_input = JwtPoaInput::new(Some(nonce), aud);
 
@@ -1690,7 +1689,7 @@ mod tests {
             TestWalletMockStorage::<LocalConfigurationRepository>::create_close_proximity_device_response(
                 disclosable_attestations.iter(),
                 &session_transcript,
-                &verifier_certificate,
+                verifier_certificate,
                 &wscd,
             )
             .await
