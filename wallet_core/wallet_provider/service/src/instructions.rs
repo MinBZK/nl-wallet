@@ -422,7 +422,7 @@ impl HandleInstruction for ChangePinCommit {
     }
 }
 
-/// Helper for the [`PerformIssuance`] and [`PerformIssuanceWithWia`] instruction handlers.
+/// Helper for the [`PerformIssuance`] instruction handler.
 pub async fn perform_issuance<T, R, H>(
     instruction: PerformIssuance,
     user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
@@ -2170,7 +2170,7 @@ mod tests {
         assert_matches!(err, InstructionValidationError::PoaMessage);
     }
 
-    async fn perform_issuance<R, I: HandleInstruction<Result = R>>(instruction: I) -> R {
+    async fn handle_issuance_instruction<R, I: HandleInstruction<Result = R>>(instruction: I) -> R {
         let wallet_user = wallet_user::mock::wallet_user_1();
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
@@ -2233,7 +2233,7 @@ mod tests {
     #[case(1)]
     #[case(2)]
     async fn should_handle_perform_issuance(#[case] key_count: usize) {
-        let result = perform_issuance(PerformIssuance {
+        let result = handle_issuance_instruction(PerformIssuance {
             key_count: key_count.try_into().unwrap(),
             aud: POP_AUD.to_string(),
             nonce: Some(Nonce::from(POP_NONCE.to_string())),
@@ -2245,7 +2245,7 @@ mod tests {
 
     #[tokio::test]
     async fn should_handle_issue_wia() {
-        let result = perform_issuance(IssueWia {
+        let result = handle_issuance_instruction(IssueWia {
             nonce: Some(Nonce::from(POP_NONCE.to_string())),
             aud: POP_AUD.to_string(),
         })
@@ -2294,6 +2294,7 @@ mod tests {
     #[case(Box::new(mock_sign_instruction()), false)]
     #[case(Box::new(DeleteKeys { identifiers: vec_nonempty!["id".to_string()] }), false)]
     #[case(Box::new(mock_start_pin_recovery_instruction()), true)]
+    #[case(Box::new(IssueWia { aud: "aud".to_string(), nonce: None }), true)]
     fn test_instruction_validation_during_pin_recovery(
         #[case] instruction: Box<dyn ValidateInstruction>,
         #[case] should_succeed: bool,
@@ -2329,6 +2330,7 @@ mod tests {
     #[case::complete_transfer(Box::new(CompleteTransfer { transfer_session_id: Uuid::new_v4() }))]
     #[case::delete_keys(Box::new(DeleteKeys { identifiers: vec_nonempty!["id".to_string()] }))]
     #[case::disclose_recovery_code_pin_recovery(Box::new(DiscloseRecoveryCodePinRecovery { recovery_code_disclosure: "this.isan.sdjwt~".parse().unwrap() }))]
+    #[case::issue_wia(Box::new(IssueWia { aud: "aud".to_string(), nonce: None }))]
     fn test_instruction_validation_revoked_wallet(#[case] instruction: Box<dyn ValidateInstruction>) {
         let mut wallet_user = wallet_user::mock::wallet_user_1();
         wallet_user.state = WalletUserState::Revoked;
