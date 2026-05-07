@@ -26,7 +26,6 @@ use sd_jwt::error::DecoderError;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use url::Url;
 use utils::single_unique::MultipleItemsFound;
-use wscd::Poa;
 use wscd::wscd::IssuanceWscd;
 
 use crate::CredentialErrorCode;
@@ -260,7 +259,7 @@ pub trait IssuanceSession {
         include_wia: bool,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
     where
-        W: IssuanceWscd<Poa = Poa>;
+        W: IssuanceWscd;
 
     async fn reject_issuance(self) -> Result<(), WalletIssuanceError>;
 

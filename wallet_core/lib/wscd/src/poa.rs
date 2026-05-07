@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use crypto::keys::EcdsaKey;
 use crypto::wscd::WscdPoa;
 use derive_more::AsRef;
+use derive_more::Constructor;
 use derive_more::From;
 use futures::future::try_join_all;
 use jwt::DEFAULT_VALIDATIONS;
@@ -26,7 +27,6 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::error::PoaError;
 use crate::error::PoaVerificationError;
-use crate::wscd::JwtPoaInput;
 
 pub const POA_JWT_TYP: &str = "poa+jwt";
 
@@ -44,6 +44,12 @@ impl JwtTyp for PoaPayload {
 /// A Proof of Association, asserting that a set of credential public keys are managed by a single WSCD.
 #[derive(Debug, Clone, From, AsRef, Serialize, Deserialize)]
 pub struct Poa(JsonJwt<PoaPayload>);
+
+#[derive(Debug, Constructor)]
+pub struct JwtPoaInput {
+    pub nonce: Option<Nonce>,
+    pub aud: String,
+}
 
 impl TryFrom<VecNonEmpty<UnverifiedJwt<PoaPayload>>> for Poa {
     type Error = JwtError;

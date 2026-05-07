@@ -1202,7 +1202,7 @@ mod tests {
     use utils::vec_nonempty;
     use wscd::Poa;
     use wscd::mock_remote::MockRemoteWscd;
-    use wscd::wscd::JwtPoaInput;
+    use wscd::poa::JwtPoaInput;
 
     use super::AuthRequestValidationError;
     use super::AuthResponseError;

@@ -172,7 +172,6 @@ pub struct PerformIssuance {
 pub struct PerformIssuanceResult {
     pub key_identifiers: VecNonEmpty<String>,
     pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>,
-    pub poa: Option<Poa>,
 }
 
 impl InstructionAndResult for PerformIssuance {

@@ -1,7 +1,6 @@
 use std::error::Error;
 use std::num::NonZeroUsize;
 
-use crypto::wscd::WscdPoa;
 use derive_more::Constructor;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
@@ -12,28 +11,20 @@ use utils::vec_at_least::VecNonEmpty;
 
 pub trait IssuanceWscd {
     type Error: Error + Send + Sync + 'static;
-    type Poa: WscdPoa;
 
-    /// Construct new keys along with PoPs and PoA, and optionally a WIA, for use during issuance.
+    /// Construct new keys along with PoPs, and optionally a WIA, for use during issuance.
     async fn perform_issuance(
         &self,
         count: NonZeroUsize,
         aud: String,
         nonce: Option<Nonce>,
         include_wia: bool,
-    ) -> Result<IssuanceResult<Self::Poa>, Self::Error>;
+    ) -> Result<IssuanceResult, Self::Error>;
 }
 
 #[derive(Debug, Constructor)]
-pub struct IssuanceResult<P> {
+pub struct IssuanceResult {
     pub key_identifiers: VecNonEmpty<String>,
     pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>,
-    pub poa: Option<P>,
     pub wia: Option<WiaDisclosure>,
-}
-
-#[derive(Debug, Constructor)]
-pub struct JwtPoaInput {
-    pub nonce: Option<Nonce>,
-    pub aud: String,
 }

@@ -457,40 +457,19 @@ where
         .map(|wrapped_key| attestation_key(wrapped_key, user_state))
         .collect();
 
-    // The JWT claims to be signed in the PoPs and the PoA.
+    // The JWT claims to be signed in the PoPs.
     let claims = JwtPopClaims::new(instruction.nonce, NL_WALLET_CLIENT_ID.to_string(), instruction.aud);
 
-    let (wia_key, wia_disclosure, key_count_including_wia) = if let Some(wallet_user) = wallet_user {
+    let (wia_key, wia_disclosure) = if let Some(wallet_user) = wallet_user {
         let (key, wia_disclosure) = wia(&claims, wallet_user, user_state).await?;
-        (Some(key), Some(wia_disclosure), instruction.key_count.get() + 1)
+        (Some(key), Some(wia_disclosure))
     } else {
-        (None, None, instruction.key_count.get())
-    };
-
-    let pops = issuance_pops(&attestation_keys, &claims).await?;
-    let poa = if key_count_including_wia > 1 {
-        let wia_attestation_key = wia_key.as_ref().map(|key| attestation_key(key, user_state));
-        Some(
-            Poa::new(
-                attestation_keys
-                    .iter()
-                    .chain(wia_attestation_key.as_ref())
-                    .collect_vec()
-                    .try_into()
-                    // Safe because we check the `key_count` above
-                    .unwrap_or_else(|_| unreachable!()),
-                claims,
-            )
-            .await?,
-        )
-    } else {
-        None
+        (None, None)
     };
 
     let issuance_result = PerformIssuanceResult {
         key_identifiers: key_ids,
-        pops,
-        poa,
+        pops: issuance_pops(&attestation_keys, &claims).await?,
     };
 
     Ok((issuance_result, wia_disclosure, wrapped_keys, wia_key))
@@ -1457,7 +1436,6 @@ mod tests {
     use hsm::model::mock::MockPkcs11Client;
     use hsm::model::wrapped_key::WrappedKey;
     use hsm::service::HsmError;
-    use itertools::Itertools;
     use jwt::Algorithm;
     use jwt::UnverifiedJwt;
     use jwt::Validation;
@@ -1507,7 +1485,6 @@ mod tests {
     use wallet_provider_domain::model::wallet_user::WalletUserState;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
-    use wscd::Poa;
 
     use crate::account_server::InstructionValidationError;
     use crate::account_server::UserState;
@@ -2222,7 +2199,6 @@ mod tests {
 
     fn validate_issuance(
         pops: &[UnverifiedJwt<JwtPopClaims, HeaderWithJwk>],
-        poa: Option<Poa>,
         wia_with_disclosure: Option<&WiaDisclosure>,
     ) {
         let mut validations = Validation::new(Algorithm::ES256);
@@ -2230,16 +2206,11 @@ mod tests {
         validations.set_issuer(&[NL_WALLET_CLIENT_ID]);
         validations.set_audience(&[POP_AUD]);
 
-        let keys = pops
-            .iter()
-            .map(|pop| {
-                let (header, _) = pop.parse_and_verify_with_jwk(&validations).unwrap();
+        pops.iter().for_each(|pop| {
+            pop.parse_and_verify_with_jwk(&validations).unwrap();
+        });
 
-                header.verifying_key().unwrap()
-            })
-            .collect_vec();
-
-        let wia_key = wia_with_disclosure.map(|wia_with_disclosure| {
+        if let Some(wia_with_disclosure) = wia_with_disclosure {
             let wia_key = &wia_with_disclosure
                 .wia()
                 .dangerous_parse_unverified()
@@ -2252,20 +2223,6 @@ mod tests {
             wia_with_disclosure
                 .wia_pop()
                 .parse_and_verify(&wia_key.into(), &validations)
-                .unwrap();
-
-            *wia_key
-        });
-
-        let keys = keys.into_iter().chain(wia_key).collect_vec();
-        if keys.len() > 1 {
-            poa.unwrap()
-                .verify(
-                    &keys,
-                    POP_AUD,
-                    &[NL_WALLET_CLIENT_ID.to_string()],
-                    &Nonce::from(POP_NONCE.to_string()),
-                )
                 .unwrap();
         }
     }
@@ -2285,7 +2242,7 @@ mod tests {
         })
         .await;
 
-        validate_issuance(result.pops.as_slice(), result.poa, None);
+        validate_issuance(result.pops.as_slice(), None);
     }
 
     #[tokio::test]
@@ -2299,11 +2256,7 @@ mod tests {
         })
         .await;
 
-        validate_issuance(
-            result.issuance_result.pops.as_slice(),
-            result.issuance_result.poa,
-            Some(&result.wia_disclosure),
-        );
+        validate_issuance(result.issuance_result.pops.as_slice(), Some(&result.wia_disclosure));
     }
 
     fn mock_change_pin_start_instruction() -> ChangePinStart {
