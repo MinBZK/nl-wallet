@@ -138,7 +138,7 @@ impl InstructionAndResult for ChangePinRollback {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StartPinRecovery {
     #[serde(flatten)]
-    pub issuance_with_wia_instruction: PerformIssuanceWithWia,
+    pub issuance_instruction: PerformIssuance,
     #[serde_as(as = "Base64")]
     pub pin_pubkey: DerVerifyingKey,
 }
@@ -147,7 +147,7 @@ pub struct StartPinRecovery {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StartPinRecoveryResult {
     #[serde(flatten)]
-    pub issuance_with_wia_result: PerformIssuanceWithWiaResult,
+    pub issuance_result: PerformIssuanceResult,
     pub certificate: WalletCertificate,
 }
 
@@ -178,27 +178,6 @@ impl InstructionAndResult for PerformIssuance {
     const NAME: &'static str = "perform_issuance";
 
     type Result = PerformIssuanceResult;
-}
-
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PerformIssuanceWithWia {
-    #[serde(flatten)]
-    pub issuance_instruction: PerformIssuance,
-}
-
-#[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PerformIssuanceWithWiaResult {
-    #[serde(flatten)]
-    pub issuance_result: PerformIssuanceResult,
-    pub wia_disclosure: WiaDisclosure,
-}
-
-impl InstructionAndResult for PerformIssuanceWithWia {
-    const NAME: &'static str = "perform_issuance_with_wia";
-
-    type Result = PerformIssuanceWithWiaResult;
 }
 
 #[derive(Debug, Serialize, Deserialize)]

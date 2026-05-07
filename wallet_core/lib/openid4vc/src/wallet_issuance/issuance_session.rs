@@ -501,7 +501,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             .to_string();
 
         let issuance_data = wscd
-            .perform_issuance(key_count, aud.clone(), c_nonce.clone(), false)
+            .perform_issuance(key_count, aud.clone(), c_nonce.clone())
             .await
             .map_err(|e| WalletIssuanceError::PrivateKeyGeneration(e.into()))?;
 

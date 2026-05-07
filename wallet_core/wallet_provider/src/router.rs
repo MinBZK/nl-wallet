@@ -52,7 +52,6 @@ use wallet_account::messages::instructions::InstructionResultMessage;
 use wallet_account::messages::instructions::IssueWia;
 use wallet_account::messages::instructions::PairTransfer;
 use wallet_account::messages::instructions::PerformIssuance;
-use wallet_account::messages::instructions::PerformIssuanceWithWia;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
 use wallet_account::messages::instructions::ResetTransfer;
 use wallet_account::messages::instructions::SendWalletPayload;
@@ -165,10 +164,6 @@ where
                 .route(
                     &format!("/instructions/{}", PerformIssuance::NAME),
                     post(handle_instruction::<PerformIssuance, _, _, _>),
-                )
-                .route(
-                    &format!("/instructions/{}", PerformIssuanceWithWia::NAME),
-                    post(handle_instruction::<PerformIssuanceWithWia, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/{}", IssueWia::NAME),

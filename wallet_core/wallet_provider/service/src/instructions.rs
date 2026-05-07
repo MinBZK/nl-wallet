@@ -51,8 +51,6 @@ use wallet_account::messages::instructions::IssueWiaResult;
 use wallet_account::messages::instructions::PairTransfer;
 use wallet_account::messages::instructions::PerformIssuance;
 use wallet_account::messages::instructions::PerformIssuanceResult;
-use wallet_account::messages::instructions::PerformIssuanceWithWia;
-use wallet_account::messages::instructions::PerformIssuanceWithWiaResult;
 use wallet_account::messages::instructions::ReceiveWalletPayload;
 use wallet_account::messages::instructions::ReceiveWalletPayloadResult;
 use wallet_account::messages::instructions::ResetTransfer;
@@ -160,7 +158,6 @@ fn validate_transfer_instruction(wallet_user: &WalletUser) -> Result<(), Instruc
 
 impl ValidateInstruction for ChangePinStart {}
 impl ValidateInstruction for PerformIssuance {}
-impl ValidateInstruction for PerformIssuanceWithWia {}
 impl ValidateInstruction for DiscloseRecoveryCode {}
 impl ValidateInstruction for DeleteKeys {}
 
@@ -329,7 +326,6 @@ pub trait PinChecks {
 
 impl PinChecks for ChangePinStart {}
 impl PinChecks for PerformIssuance {}
-impl PinChecks for PerformIssuanceWithWia {}
 impl PinChecks for DiscloseRecoveryCode {}
 impl PinChecks for DiscloseRecoveryCodePinRecovery {}
 impl PinChecks for ChangePinCommit {}
@@ -426,42 +422,11 @@ impl HandleInstruction for ChangePinCommit {
     }
 }
 
-pub(super) async fn perform_issuance_with_wia<T, R, H>(
-    instruction: PerformIssuance,
-    wallet_user: &WalletUser,
-    user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
-) -> Result<(PerformIssuanceWithWiaResult, VecNonEmpty<WrappedKey>, WrappedKey), InstructionError>
-where
-    T: Committable,
-    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-    H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
-{
-    let (issuance_result, wia_disclosure, wrapped_keys, wia_key_and_id) =
-        perform_issuance(instruction, Some(wallet_user), user_state).await?;
-
-    let issuance_result = PerformIssuanceWithWiaResult {
-        issuance_result,
-        wia_disclosure: wia_disclosure.unwrap(),
-    };
-
-    // unwrap: `perform_issuance()` included a WIA since we passed it `true` above.
-    Ok((issuance_result, wrapped_keys, wia_key_and_id.unwrap()))
-}
-
 /// Helper for the [`PerformIssuance`] and [`PerformIssuanceWithWia`] instruction handlers.
 pub async fn perform_issuance<T, R, H>(
     instruction: PerformIssuance,
-    wallet_user: Option<&WalletUser>,
     user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
-) -> Result<
-    (
-        PerformIssuanceResult,
-        Option<WiaDisclosure>,
-        VecNonEmpty<WrappedKey>,
-        Option<WrappedKey>,
-    ),
-    InstructionError,
->
+) -> Result<(PerformIssuanceResult, VecNonEmpty<WrappedKey>), InstructionError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
@@ -482,19 +447,12 @@ where
     // The JWT claims to be signed in the PoPs.
     let claims = JwtPopClaims::new(instruction.nonce, NL_WALLET_CLIENT_ID.to_string(), instruction.aud);
 
-    let (wia_key, wia_disclosure) = if let Some(wallet_user) = wallet_user {
-        let (key, wia_disclosure) = wia(&claims, wallet_user, user_state).await?;
-        (Some(key), Some(wia_disclosure))
-    } else {
-        (None, None)
-    };
-
     let issuance_result = PerformIssuanceResult {
         key_identifiers: key_ids,
         pops: issuance_pops(&attestation_keys, &claims).await?,
     };
 
-    Ok((issuance_result, wia_disclosure, wrapped_keys, wia_key))
+    Ok((issuance_result, wrapped_keys))
 }
 
 fn create_issuance_keys(
@@ -640,7 +598,7 @@ impl HandleInstruction for PerformIssuance {
         H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
     {
-        let (issuance_result, _, wrapped_keys, _) = perform_issuance(self, None, user_state).await?;
+        let (issuance_result, wrapped_keys) = perform_issuance(self, user_state).await?;
 
         let db_keys = create_issuance_keys(wrapped_keys.into_inner(), None, false, generators);
 
@@ -649,40 +607,6 @@ impl HandleInstruction for PerformIssuance {
         tx.commit().await?;
 
         Ok(issuance_result)
-    }
-}
-
-impl HandleInstruction for PerformIssuanceWithWia {
-    type Result = PerformIssuanceWithWiaResult;
-
-    async fn handle<T, R, H, G>(
-        self,
-        wallet_user: &WalletUser,
-        generators: &G,
-        user_state: &UserState<R, impl WalletFlags, H, impl WiaIssuer, impl StatusListService>,
-        _recovery_code_config: &RecoveryCodeConfig,
-    ) -> Result<Self::Result, InstructionError>
-    where
-        T: Committable,
-        R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
-        H: Encrypter<VerifyingKey, Error = HsmError> + Pkcs11Client,
-        G: Generator<Uuid> + Generator<DateTime<Utc>>,
-    {
-        let (issuance_with_wia_result, wrapped_keys, wia_key_and_id) =
-            perform_issuance_with_wia(self.issuance_instruction, wallet_user, user_state).await?;
-
-        let db_keys = create_issuance_keys(wrapped_keys.into_inner(), Some(wia_key_and_id), true, generators);
-
-        let tx = user_state.repositories.begin_transaction().await?;
-        // Delete all blocked keys for any previous PID renewal or PIN recovery
-        user_state
-            .repositories
-            .delete_all_blocked_keys(&tx, wallet_user.id)
-            .await?;
-        persist_keys(&tx, wallet_user, user_state, db_keys, generators).await?;
-        tx.commit().await?;
-
-        Ok(issuance_with_wia_result)
     }
 }
 
@@ -731,6 +655,7 @@ impl HandleInstruction for IssueWia {
             generators,
         )
         .await?;
+
         tx.commit().await?;
 
         Ok(IssueWiaResult { wia_disclosure })
@@ -1545,7 +1470,6 @@ mod tests {
     use wallet_account::messages::instructions::IssueWia;
     use wallet_account::messages::instructions::PairTransfer;
     use wallet_account::messages::instructions::PerformIssuance;
-    use wallet_account::messages::instructions::PerformIssuanceWithWia;
     use wallet_account::messages::instructions::ReceiveWalletPayload;
     use wallet_account::messages::instructions::ResetTransfer;
     use wallet_account::messages::instructions::SendWalletPayload;
@@ -2320,20 +2244,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn should_handle_perform_issuance_with_wia() {
-        let result = perform_issuance(PerformIssuanceWithWia {
-            issuance_instruction: PerformIssuance {
-                key_count: NonZeroUsize::MIN,
-                aud: POP_AUD.to_string(),
-                nonce: Some(Nonce::from(POP_NONCE.to_string())),
-            },
-        })
-        .await;
-
-        validate_issuance(result.issuance_result.pops.as_slice(), Some(&result.wia_disclosure));
-    }
-
-    #[tokio::test]
     async fn should_handle_issue_wia() {
         let result = perform_issuance(IssueWia {
             nonce: Some(Nonce::from(POP_NONCE.to_string())),
@@ -2369,15 +2279,9 @@ mod tests {
         }
     }
 
-    fn mock_issuance_with_wia_instruction() -> PerformIssuanceWithWia {
-        PerformIssuanceWithWia {
-            issuance_instruction: mock_issuance_instruction(),
-        }
-    }
-
     fn mock_start_pin_recovery_instruction() -> StartPinRecovery {
         StartPinRecovery {
-            issuance_with_wia_instruction: mock_issuance_with_wia_instruction(),
+            issuance_instruction: mock_issuance_instruction(),
             pin_pubkey: (*SigningKey::random(&mut OsRng).verifying_key()).into(),
         }
     }
@@ -2408,7 +2312,6 @@ mod tests {
 
     #[rstest]
     #[case::perform_issuance(Box::new(mock_issuance_instruction()))]
-    #[case::perform_issuance_with_wia(Box::new(mock_issuance_with_wia_instruction()))]
     #[case::disclose_recovery_code(Box::new(DiscloseRecoveryCode { recovery_code_disclosure: "this.isan.sdjwt~".parse().unwrap(), app_version: "0.0.1".parse().unwrap() }))]
     #[case::sign_instruction(Box::new(mock_sign_instruction()))]
     #[case::change_pin_commit(Box::new(ChangePinCommit {}))]

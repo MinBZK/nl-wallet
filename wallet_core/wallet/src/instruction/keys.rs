@@ -20,8 +20,6 @@ use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use wallet_account::messages::instructions::IssueWia;
 use wallet_account::messages::instructions::PerformIssuance;
-use wallet_account::messages::instructions::PerformIssuanceWithWia;
-use wallet_account::messages::instructions::PerformIssuanceWithWiaResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::registration::WalletCertificateClaims;
@@ -132,27 +130,15 @@ where
         key_count: NonZeroUsize,
         aud: String,
         nonce: Option<Nonce>,
-        include_wia: bool,
     ) -> Result<IssuanceResult, Self::Error> {
-        let issuance_instruction = PerformIssuance { key_count, aud, nonce };
-        let (issuance_result, wia) = if !include_wia {
-            (self.instruction_client.send(issuance_instruction).await?, None)
-        } else {
-            let PerformIssuanceWithWiaResult {
-                issuance_result,
-                wia_disclosure,
-            } = self
-                .instruction_client
-                .send(PerformIssuanceWithWia { issuance_instruction })
-                .await?;
-
-            (issuance_result, Some(wia_disclosure))
-        };
+        let issuance_result = self
+            .instruction_client
+            .send(PerformIssuance { key_count, aud, nonce })
+            .await?;
 
         Ok(IssuanceResult::new(
             issuance_result.key_identifiers,
             issuance_result.pops,
-            wia,
         ))
     }
 
@@ -221,25 +207,21 @@ where
         key_count: std::num::NonZeroUsize,
         aud: String,
         nonce: Option<Nonce>,
-        _include_wia: bool,
     ) -> Result<IssuanceResult, Self::Error> {
         let result = self
             .instruction_client
             .send(StartPinRecovery {
-                issuance_with_wia_instruction: PerformIssuanceWithWia {
-                    issuance_instruction: PerformIssuance { key_count, aud, nonce },
-                },
+                issuance_instruction: PerformIssuance { key_count, aud, nonce },
                 pin_pubkey: self.pin_key.into(),
             })
             .await?;
 
         self.certificates.lock().push(result.certificate);
 
-        let issuance_result = result.issuance_with_wia_result.issuance_result;
+        let issuance_result = result.issuance_result;
         Ok(IssuanceResult::new(
             issuance_result.key_identifiers,
             issuance_result.pops,
-            Some(result.issuance_with_wia_result.wia_disclosure),
         ))
     }
 
