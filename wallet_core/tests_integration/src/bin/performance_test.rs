@@ -55,8 +55,15 @@ async fn main() {
     let verification_server_url = option_env!("VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3005/");
     let internal_verification_server_url =
         option_env!("INTERNAL_VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3006/");
-    let digid_url = option_env!("DIGID_URL").unwrap_or("https://localhost:8006");
-    let digid_trust_anchor = option_env!("DIGID_TRUST_ANCHOR").unwrap_or_default();
+    let digid_url = option_env!("DIGID_BASE_URL").unwrap_or("https://localhost:8006");
+    let digid_trust_anchors: Vec<Certificate> = option_env!("DIGID_TRUST_ANCHORS")
+        .unwrap_or_default()
+        .split(',')
+        .filter(|s| !s.is_empty())
+        .map(|s| {
+            Certificate::from_der(BASE64_STANDARD.decode(s).unwrap().as_slice()).expect("Could not parse trust anchor")
+        })
+        .collect();
 
     let config_server_config = default_config_server_config();
     let wallet_config = default_wallet_config();
@@ -95,20 +102,7 @@ async fn main() {
         .await
         .expect("Could not create pid issuance auth url");
 
-    let redirect_url = fake_digid_auth(
-        authorization_url,
-        digid_url,
-        if digid_trust_anchor.is_empty() {
-            vec![]
-        } else {
-            vec![
-                Certificate::from_der(BASE64_STANDARD.decode(digid_trust_anchor).unwrap().as_slice())
-                    .expect("Could not parse trust anchor"),
-            ]
-        },
-        "999991772",
-    )
-    .await;
+    let redirect_url = fake_digid_auth(authorization_url, digid_url, digid_trust_anchors, "999991772").await;
 
     let _attestations = wallet
         .continue_pid_issuance(redirect_url)

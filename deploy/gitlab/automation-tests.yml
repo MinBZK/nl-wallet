@@ -320,7 +320,8 @@ run-automation-smoke-test-ios-ont:
       artifacts: false
   script:
     - mv browserstack-config/browserstack-Iphone16Pro-18-NL.yml ./browserstack.yml
-    - ./gradlew --no-daemon --info --stacktrace smokeTestIOS -Dtest.config.platform.name="IOS" -Dtest.config.remote=true -Dfile.encoding=UTF-8
+    - ./gradlew --no-daemon --info --stacktrace smokeTestIOS -Dtest.config.platform.name="IOS" -Dtest.config.remote=true
+      -Dfile.encoding=UTF-8
 
 browsertests-format-lint:
   rules: !reference [.default-or-merge-request, rules]
@@ -355,7 +356,8 @@ run-wallet-web-browsertest-test-ont:
   after_script:
     - deploy/bin/store-artifact.sh browsertests/packages/wallet-web/test-results/results.xml
       qt/quality-time/junit-results/browsertest-wallet-web.xml
-    - find browsertests/packages/wallet-web/allure-results -maxdepth 1 -type f ! -name '*-attachment.zip' | xargs deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-wallet-web.zip
+    - find browsertests/packages/wallet-web/allure-results -maxdepth 1 -type f ! -name '*-attachment.zip' | xargs
+      deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-wallet-web.zip
   artifacts:
     name: browsertest-wallet-web
     when: always
@@ -382,7 +384,8 @@ run-fallback-pages-browsertest-test-ont:
   after_script:
     - deploy/bin/store-artifact.sh browsertests/packages/fallback-pages/test-results/results.xml
       qt/quality-time/junit-results/browsertest-fallback-pages.xml
-    - find browsertests/packages/fallback-pages/allure-results -maxdepth 1 -type f ! -name '*-attachment.zip' | xargs deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-fallback-pages.zip
+    - find browsertests/packages/fallback-pages/allure-results -maxdepth 1 -type f ! -name '*-attachment.zip' | xargs
+      deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-fallback-pages.zip
   artifacts:
     name: browsertest-fallback-page
     when: always
@@ -409,7 +412,8 @@ run-revocation-portal-browsertest-test-ont:
   after_script:
     - deploy/bin/store-artifact.sh browsertests/packages/revocation-portal/test-results/results.xml
       qt/quality-time/junit-results/browsertest-revocation-portal.xml
-    - find browsertests/packages/revocation-portal/allure-results -maxdepth 1 -type f ! -name '*-attachment.zip' | xargs deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-revocation-portal.zip
+    - find browsertests/packages/revocation-portal/allure-results -maxdepth 1 -type f ! -name '*-attachment.zip' | xargs
+      deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-revocation-portal.zip
   artifacts:
     name: browsertest-revocation-portal
     when: always
@@ -425,9 +429,6 @@ run-digid-bridge-test-ont:
     - .env-k8s
   rules: !reference [.default-or-merge-request-manual, rules]
   needs:
-    - job: deploy-apps-ont
-      artifacts: false
-      optional: true
     - job: build-env-ont
       artifacts: true
   variables:
@@ -472,6 +473,8 @@ run-digid-bridge-test-ont:
     - export PID_ISSUER__DIGID__CLIENT_SETTINGS__TRUST_ANCHORS
     - PID_ISSUER__DIGID__CLIENT_SETTINGS__OIDC_IDENTIFIER="$DIGID_BASE_URL"
     - export PID_ISSUER__DIGID__CLIENT_SETTINGS__OIDC_IDENTIFIER
+    - PID_ISSUER__DIGID__CLIENT_ID="$DIGID_CLIENT_ID"
+    - export PID_ISSUER__DIGID__CLIENT_ID
     # Construct the wallet's redirect_uri from UL_HOSTNAME (provided by build-env-ont) so it
     # matches what ont's rdo-max has registered for this client.
     - DIGID_TEST_REDIRECT_URI="https://${UL_HOSTNAME}/deeplink/return-from-digid/"
@@ -489,13 +492,10 @@ run-performance-test-ont:
   extends: .env-k8s
   rules:
     - !reference [.on-schedule-nightly-performance-test, rules]
-    - !reference [.default-branch, rules]
+    - !reference [.default-or-merge-request-manual, rules]
   needs:
     - job: build-performance-test
       artifacts: true
-    - job: deploy-apps-ont
-      artifacts: false
-      optional: true
   script:
     - START_TIME=$(date -u -d "-1 minute" "+%Y-%m-%d %H:%M:%S")
     - echo "Performance test starting, query range begins at $START_TIME"
