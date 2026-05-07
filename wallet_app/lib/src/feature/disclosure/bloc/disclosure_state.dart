@@ -364,7 +364,7 @@ class DisclosureSuccess extends DisclosureState {
   final Organization relyingParty;
   final WalletEvent? event;
   final String? returnUrl;
-  final SuccessDescriptionType descriptionType;
+  final SuccessStyle style;
 
   @override
   final FlowProgress stepperProgress;
@@ -382,16 +382,16 @@ class DisclosureSuccess extends DisclosureState {
     required this.relyingParty,
     this.event,
     this.returnUrl,
-    this.descriptionType = .regular,
+    this.style = .regular,
     required bool isCrossDevice,
   }) : stepperProgress = _calculateStepperProgress(isCrossDevice: isCrossDevice);
 
   @override
-  List<Object?> get props => [relyingParty, returnUrl, descriptionType, ...super.props];
+  List<Object?> get props => [relyingParty, returnUrl, style, ...super.props];
 }
 
-/// Indicates what description to show in the success state
-enum SuccessDescriptionType { regular, login, closeProximity }
+/// Defines the visual style and messaging variant to be used on the success page.
+enum SuccessStyle { regular, login, closeProximity, sameDeviceNoReturnUrl }
 
 /// State shown when the user has intentionally stopped or cancelled the disclosure session.
 class DisclosureStopped extends DisclosureState {
