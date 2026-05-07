@@ -144,7 +144,7 @@ class QrPresentScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                         child: WalletQrView(data: qrContents),
                       ),
                       const SizedBox(height: 16),
