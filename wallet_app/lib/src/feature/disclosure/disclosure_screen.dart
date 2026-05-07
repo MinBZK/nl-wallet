@@ -273,8 +273,8 @@ class DisclosureScreen extends StatelessWidget {
     return DisclosureSuccessPage(
       organizationDisplayName: state.relyingParty.displayName,
       returnUrl: state.returnUrl,
-      descriptionType: state.descriptionType,
-      onHistoryPressed: state.event == null
+      style: state.style,
+      onShowActivityPressed: state.event == null
           ? null
           : () {
               Navigator.pushNamed(
