@@ -33,6 +33,8 @@ use rustls_pki_types::TrustAnchor;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 
 use crate::utils::serialization::CborError;
 use crate::utils::serialization::cbor_deserialize;
@@ -70,6 +72,9 @@ pub enum CoseError {
     #[error("signing certificate header did not contain bytes")]
     #[category(critical)]
     CertificateUnexpectedHeaderType,
+    #[error("x5chain certificate chain is empty")]
+    #[category(critical)]
+    EmptyCertificateChain,
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
     #[error("signing failed: {0}")]
@@ -212,6 +217,27 @@ impl<T> MdocCose<CoseSign1, T> {
         let cose = sign_cose(&payload, unprotected_header, private_key, include_payload).await?;
 
         Ok(cose.into())
+    }
+
+    pub fn x5chain(&self) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError>
+    where
+        T: DeserializeOwned,
+    {
+        let header_item = self.unprotected_header_item(&Label::Int(COSE_X5CHAIN_HEADER_LABEL))?;
+
+        match header_item {
+            Value::Bytes(bytes) => Ok(vec_nonempty![BorrowingCertificate::from_der(bytes.clone())?]),
+            Value::Array(items) => items
+                .iter()
+                .map(|item| {
+                    let bytes = item.as_bytes().ok_or(CoseError::CertificateUnexpectedHeaderType)?;
+                    Ok(BorrowingCertificate::from_der(bytes.clone())?)
+                })
+                .collect::<Result<Vec<_>, CoseError>>()?
+                .try_into()
+                .map_err(|_| CoseError::EmptyCertificateChain),
+            _ => Err(CoseError::CertificateUnexpectedHeaderType),
+        }
     }
 
     /// Get the [`Certificate`] containing the public key with which the MSO is signed from the unsigned COSE header.
@@ -557,6 +583,65 @@ mod tests {
 
         cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &[ca.to_trust_anchor()])
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn x5chain_single_cert() {
+        use ciborium::value::Value;
+
+        use crate::utils::cose::COSE_X5CHAIN_HEADER_LABEL;
+
+        let ca = Ca::generate("ca.example.com", Default::default()).unwrap();
+        let issuer_key_pair = ca
+            .generate_key_pair("cert.example.com", CertificateUsage::Mdl, Default::default())
+            .unwrap();
+
+        let cert = issuer_key_pair.certificate();
+        let header = HeaderBuilder::new()
+            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(cert.to_vec()))
+            .build();
+        let cose: MdocCose<_, ToyMessage> =
+            MdocCose::sign(&ToyMessage::default(), header, issuer_key_pair.private_key(), true)
+                .await
+                .unwrap();
+
+        let chain = cose.x5chain().unwrap();
+        assert_eq!(chain.len().get(), 1);
+        assert_eq!(cert.as_ref(), chain[0].as_ref());
+    }
+
+    #[tokio::test]
+    async fn x5chain_multiple_certs() {
+        use ciborium::value::Value;
+
+        use crate::utils::cose::COSE_X5CHAIN_HEADER_LABEL;
+
+        let ca = Ca::generate("ca.example.com", Default::default()).unwrap();
+        let issuer_key_pair = ca
+            .generate_key_pair("cert.example.com", CertificateUsage::Mdl, Default::default())
+            .unwrap();
+        let other_ca = Ca::generate("other-ca.example.com", Default::default()).unwrap();
+        let other_key_pair = other_ca
+            .generate_key_pair("other-cert.example.com", CertificateUsage::Mdl, Default::default())
+            .unwrap();
+
+        let cert1 = issuer_key_pair.certificate();
+        let cert2 = other_key_pair.certificate();
+        let header = HeaderBuilder::new()
+            .value(
+                COSE_X5CHAIN_HEADER_LABEL,
+                Value::Array(vec![Value::Bytes(cert1.to_vec()), Value::Bytes(cert2.to_vec())]),
+            )
+            .build();
+        let cose: MdocCose<_, ToyMessage> =
+            MdocCose::sign(&ToyMessage::default(), header, issuer_key_pair.private_key(), true)
+                .await
+                .unwrap();
+
+        let chain = cose.x5chain().unwrap();
+        assert_eq!(chain.len().get(), 2);
+        assert_eq!(cert1.as_ref(), chain[0].as_ref());
+        assert_eq!(cert2.as_ref(), chain[1].as_ref());
     }
 
     #[tokio::test]
