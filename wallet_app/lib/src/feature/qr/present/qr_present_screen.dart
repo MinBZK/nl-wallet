@@ -17,6 +17,7 @@ import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/icon/back_icon_button.dart';
+import '../../common/widget/button/icon/close_icon_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/button/primary_button.dart';
@@ -52,7 +53,7 @@ class QrPresentScreen extends StatelessWidget {
         appBar: WalletAppBar(
           fadeInTitleOnScroll: _fadeInTitleOnScroll(state),
           title: Text(_resolveTitle(context, state)),
-          actions: const [HelpIconButton()],
+          actions: _actions(state),
           automaticallyImplyLeading: false,
           leading: _leadingButton(state),
         ),
@@ -97,7 +98,18 @@ class QrPresentScreen extends StatelessWidget {
       QrPresentConnected() => null,
       QrPresentConnectionFailed() => null,
       QrPresentError() => const BackIconButton(),
-      QrPresentBluetoothDisabled() => const BackIconButton(),
+      QrPresentBluetoothDisabled() => null,
+    };
+  }
+
+  List<Widget>? _actions(QrPresentState state) {
+    return switch (state) {
+      QrPresentInitial() => const [HelpIconButton()],
+      QrPresentServerStarted() => const [HelpIconButton()],
+      QrPresentConnected() => const [HelpIconButton()],
+      QrPresentConnectionFailed() => null,
+      QrPresentError() => const [HelpIconButton()],
+      QrPresentBluetoothDisabled() => const [HelpIconButton(), CloseIconButton()],
     };
   }
 
