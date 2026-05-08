@@ -301,14 +301,6 @@ where
         &mut self,
         error: &CloseProximityDisclosureError,
     ) -> Result<(), DisclosureError> {
-        let send_result = match error_device_response_status(error) {
-            Some(status) => {
-                let response = encode_error_device_response(status)?;
-                Some(CPC::send_device_response(response).await)
-            }
-            None => None,
-        };
-
         match self.session.take() {
             Some(Session::CloseProximityDisclosure(session)) => {
                 session.listener.abort();
@@ -317,11 +309,18 @@ where
                 self.session = other;
             }
         }
+        let send_result = match error_device_response_status(error) {
+            Some(status) => {
+                let response = encode_error_device_response(status)?;
+                Some(CPC::send_device_response(response).await)
+            }
+            None => None,
+        };
 
         let should_stop_ble_server = match &send_result {
-            Some(Ok(())) => false, // response sent successfully, do not stop here
-            Some(Err(_)) => true,  // attempted send failed, stop
-            None => true,          // no response was sent, stop
+            Some(Ok(())) => false, // response sent successfully, the BLE server is stopped by platform_support
+            Some(Err(_)) |         // attempted send failed, the BLE server may not have been stopped
+            None => true,          // no response was sent, server should be stopped by us
         };
 
         let stop_result = if should_stop_ble_server {
