@@ -253,7 +253,7 @@ impl CredentialConfigurationsSettings {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum IssuerSettingsError {
+pub enum IssuerSettingsValidationError {
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
     #[error("error verifying certificate: {0}")]
@@ -276,7 +276,7 @@ pub enum IssuerSettingsError {
 }
 
 impl IssuerSettings {
-    pub fn validate(&self) -> Result<(), IssuerSettingsError> {
+    pub fn validate(&self) -> Result<(), IssuerSettingsValidationError> {
         tracing::debug!("verifying issuer settings");
 
         for (config_id, attestation) in self.credential_configurations.as_ref() {
@@ -289,7 +289,7 @@ impl IssuerSettings {
                     .as_ref()
                     .contains(certificate_san)
                 {
-                    return Err(IssuerSettingsError::CertificateMissingSan {
+                    return Err(IssuerSettingsValidationError::CertificateMissingSan {
                         config_id: config_id.clone(),
                         san: certificate_san.clone(),
                     });
@@ -297,7 +297,7 @@ impl IssuerSettings {
             } else {
                 // If not, then there must be only one SAN in the certificate so there is no disambiguation.
                 if attestation.keypair.certificate.san_dns_name_or_uris()?.len().get() > 1 {
-                    return Err(IssuerSettingsError::CertificateSanUnspecified {
+                    return Err(IssuerSettingsValidationError::CertificateSanUnspecified {
                         config_id: config_id.clone(),
                     });
                 }
@@ -335,7 +335,7 @@ impl IssuerSettings {
             let attestation_dn = attestation.keypair.certificate.distinguished_name()?;
             let status_list_dn = attestation.status_list.keypair.certificate.distinguished_name()?;
             if attestation_dn != status_list_dn {
-                return Err(IssuerSettingsError::CertificatesSubjectNameMismatch {
+                return Err(IssuerSettingsValidationError::CertificatesSubjectNameMismatch {
                     config_id: config_id.clone(),
                     attestation: attestation_dn,
                     status_list: status_list_dn,
@@ -447,7 +447,7 @@ mod tests {
     use super::IssuerSettings;
     use super::StatusListAttestationSettings;
     use super::TypeMetadataByVct;
-    use crate::settings::IssuerSettingsError;
+    use crate::settings::IssuerSettingsValidationError;
 
     fn mock_settings(issuer_ca: &Ca) -> IssuerSettings {
         let keypair = generate_issuer_mock_with_registration(issuer_ca, IssuerRegistration::new_mock())
@@ -527,7 +527,7 @@ mod tests {
 
         assert_matches!(
             settings.validate().expect_err("should fail"),
-            IssuerSettingsError::CertificateVerification(CertificateVerificationError::MissingTrustAnchors)
+            IssuerSettingsValidationError::CertificateVerification(CertificateVerificationError::MissingTrustAnchors)
         );
     }
 
@@ -584,7 +584,7 @@ mod tests {
 
         assert_matches!(
             settings.validate().expect_err("should fail"),
-            IssuerSettingsError::CertificateVerification(
+            IssuerSettingsValidationError::CertificateVerification(
                 CertificateVerificationError::NoCertificateType(CertificateTypeError::IssuerRegistrationNotFound, key)
             ) if key == "no_registration_sdjwt"
         );
@@ -603,7 +603,7 @@ mod tests {
         settings.credential_configurations = HashMap::from([(typ.clone(), attestation_settings)]).into();
 
         let error = settings.validate().expect_err("should fail");
-        assert_matches!(error, IssuerSettingsError::CertificateMissingSan { san, .. } if san == wrong_san);
+        assert_matches!(error, IssuerSettingsValidationError::CertificateMissingSan { san, .. } if san == wrong_san);
     }
 
     #[test]
@@ -619,7 +619,7 @@ mod tests {
         let error = settings.validate().expect_err("should fail");
         assert_matches!(
             error,
-            IssuerSettingsError::CertificateVerification(
+            IssuerSettingsValidationError::CertificateVerification(
                 CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key)
             ) if key == "pid_sdjwt"
         );
@@ -646,7 +646,7 @@ mod tests {
         let error = settings.validate().expect_err("should fail");
         assert_matches!(
             error,
-            IssuerSettingsError::CertificatesSubjectNameMismatch { config_id, attestation, status_list }
+            IssuerSettingsValidationError::CertificatesSubjectNameMismatch { config_id, attestation, status_list }
                 if config_id.as_ref() == "pid_sdjwt" &&
                     attestation == "CN=cert.issuer.example.com" &&
                     status_list == "CN=different.example.com"
