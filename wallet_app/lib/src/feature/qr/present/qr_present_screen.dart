@@ -17,6 +17,7 @@ import '../../common/screen/placeholder_screen.dart';
 import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/icon/back_icon_button.dart';
+import '../../common/widget/button/icon/close_icon_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/button/primary_button.dart';
@@ -41,7 +42,6 @@ class QrPresentScreen extends StatelessWidget {
     final content = switch (state) {
       QrPresentInitial() => _buildInitial(context),
       QrPresentServerStarted(:final qrContents) => _buildServerStarted(context, qrContents),
-      QrPresentConnecting() => _buildConnecting(context),
       QrPresentConnected() => _buildConnected(context),
       QrPresentConnectionFailed() => _buildConnectionFailed(context),
       QrPresentError(:final error) => _buildError(context, error),
@@ -53,7 +53,7 @@ class QrPresentScreen extends StatelessWidget {
         appBar: WalletAppBar(
           fadeInTitleOnScroll: _fadeInTitleOnScroll(state),
           title: Text(_resolveTitle(context, state)),
-          actions: const [HelpIconButton()],
+          actions: _actions(state),
           automaticallyImplyLeading: false,
           leading: _leadingButton(state),
         ),
@@ -85,7 +85,6 @@ class QrPresentScreen extends StatelessWidget {
   bool _fadeInTitleOnScroll(QrPresentState state) => switch (state) {
     QrPresentInitial() => false,
     QrPresentServerStarted() => false,
-    QrPresentConnecting() => true,
     QrPresentConnected() => true,
     QrPresentConnectionFailed() => true,
     QrPresentError() => true,
@@ -96,11 +95,21 @@ class QrPresentScreen extends StatelessWidget {
     return switch (state) {
       QrPresentInitial() => const BackIconButton(),
       QrPresentServerStarted() => const BackIconButton(),
-      QrPresentConnecting() => null,
       QrPresentConnected() => null,
       QrPresentConnectionFailed() => null,
       QrPresentError() => const BackIconButton(),
-      QrPresentBluetoothDisabled() => const BackIconButton(),
+      QrPresentBluetoothDisabled() => null,
+    };
+  }
+
+  List<Widget>? _actions(QrPresentState state) {
+    return switch (state) {
+      QrPresentInitial() => const [HelpIconButton()],
+      QrPresentServerStarted() => const [HelpIconButton()],
+      QrPresentConnected() => const [HelpIconButton()],
+      QrPresentConnectionFailed() => null,
+      QrPresentError() => const [HelpIconButton()],
+      QrPresentBluetoothDisabled() => const [HelpIconButton(), CloseIconButton()],
     };
   }
 
@@ -117,7 +126,6 @@ class QrPresentScreen extends StatelessWidget {
     return switch (state) {
       QrPresentInitial() => context.l10n.qrPresentScreenTitle,
       QrPresentServerStarted() => context.l10n.qrPresentScreenTitle,
-      QrPresentConnecting() => '',
       QrPresentConnected() => '',
       QrPresentConnectionFailed() => context.l10n.qrPresentScreenConnectionFailedPageTitle,
       QrPresentError(:final error) => _buildError(context, error).title,
@@ -148,7 +156,7 @@ class QrPresentScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                         child: WalletQrView(data: qrContents),
                       ),
                       const SizedBox(height: 16),
@@ -174,15 +182,6 @@ class QrPresentScreen extends StatelessWidget {
       error,
       onPrimaryActionPressed: () => Navigator.pop(context),
       style: .close,
-    );
-  }
-
-  Widget _buildConnecting(BuildContext context) {
-    return GenericLoadingPage(
-      title: context.l10n.qrPresentScreenConnectingTitle,
-      description: '',
-      cancelCta: context.l10n.generalStop,
-      onCancel: () => Navigator.pop(context),
     );
   }
 

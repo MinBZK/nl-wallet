@@ -10,7 +10,6 @@ use serde_with::SerializeDisplay;
 use serde_with::skip_serializing_none;
 use strum::EnumString;
 use url::Url;
-use wscd::PoaVerificationError;
 
 use crate::issuer::CredentialPreviewError;
 use crate::issuer::CredentialRequestError;
@@ -109,7 +108,6 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::UseBatchIssuance
                 | CredentialRequestError::WrongNumberOfCredentialRequests
                 | CredentialRequestError::MissingWia
-                | CredentialRequestError::MissingPoa
                 | CredentialRequestError::CredentialTypeMismatch { .. } => {
                     CredentialErrorCode::InvalidCredentialRequest
                 }
@@ -119,7 +117,6 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 }
 
                 CredentialRequestError::MissingProofNonce
-                | CredentialRequestError::PoaVerification(PoaVerificationError::MissingNonce)
                 | CredentialRequestError::Wia(WiaError::MissingNonce)
                 | CredentialRequestError::InvalidNonce => CredentialErrorCode::InvalidNonce,
 
@@ -128,7 +125,6 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::Jwt(_)
                 | CredentialRequestError::InvalidProofPublicKey(_)
                 | CredentialRequestError::MissingCredentialRequestPoP
-                | CredentialRequestError::PoaVerification(_)
                 | CredentialRequestError::Wia(_) => CredentialErrorCode::InvalidProof,
 
                 // TODO (PVW-5538): Return `CredentialErrorCode::InvalidEncryptionParameters` when appropriate.

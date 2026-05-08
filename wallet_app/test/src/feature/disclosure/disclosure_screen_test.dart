@@ -43,10 +43,21 @@ import '../pin/pin_page_test.dart';
 
 class MockDisclosureBloc extends MockBloc<DisclosureEvent, DisclosureState> implements DisclosureBloc {
   @override
-  final bool isLoginFlow;
+  StartDisclosureResult? startDisclosureResult;
 
-  MockDisclosureBloc({this.isLoginFlow = false});
+  MockDisclosureBloc({this.startDisclosureResult});
 }
+
+final kSampleReadyToDiscloseResult = StartDisclosureReadyToDisclose(
+  relyingParty: WalletMockData.organization,
+  originUrl: 'originUrl',
+  requestPurpose: ''.untranslated,
+  sessionType: .sameDevice,
+  type: .login,
+  cardRequests: [],
+  policy: WalletMockData.policy,
+  sharedDataWithOrganizationBefore: false,
+);
 
 void main() {
   group('goldens', () {
@@ -83,7 +94,7 @@ void main() {
     testGoldens('ltc15 Stop Sheet Dark (on top of check organization for login)', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
-          MockDisclosureBloc(),
+          MockDisclosureBloc(startDisclosureResult: kSampleReadyToDiscloseResult),
           DisclosureCheckOrganizationForLogin(
             relyingParty: WalletMockData.organization,
             originUrl: 'https://origin.org',
@@ -105,7 +116,7 @@ void main() {
     testGoldens('ltc15 Stop Sheet Dark (on top of check attributes)', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
-          MockDisclosureBloc(),
+          MockDisclosureBloc(startDisclosureResult: kSampleReadyToDiscloseResult),
           DisclosureConfirmDataAttributes(
             relyingParty: WalletMockData.organization,
             requestPurpose: 'requestPurpose'.untranslated,
@@ -371,7 +382,7 @@ void main() {
             relyingParty: WalletMockData.organization,
             event: WalletMockData.disclosureEvent,
             isCrossDevice: false,
-            descriptionType: .login,
+            style: .login,
           ),
         ),
       );
@@ -386,11 +397,26 @@ void main() {
             relyingParty: WalletMockData.organization,
             event: WalletMockData.disclosureEvent,
             isCrossDevice: false,
-            descriptionType: .closeProximity,
+            style: .closeProximity,
           ),
         ),
       );
       await screenMatchesGolden('success.close_proximity.light');
+    });
+
+    testGoldens('ltc15 DisclosureSuccess Light (Same Device - No return url)', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          DisclosureSuccess(
+            relyingParty: WalletMockData.organization,
+            event: WalletMockData.disclosureEvent,
+            isCrossDevice: false,
+            style: .sameDeviceNoReturnUrl,
+          ),
+        ),
+      );
+      await screenMatchesGolden('success.same_device.no_return_url.light');
     });
 
     testGoldens('ltc15 DisclosureSuccess Light - with returnUrl', (tester) async {
@@ -464,7 +490,7 @@ void main() {
       // Inflate a state with showStopConfirmation = true.
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
-          MockDisclosureBloc(),
+          MockDisclosureBloc(startDisclosureResult: kSampleReadyToDiscloseResult),
           const DisclosureCheckUrl(originUrl: 'https://origin.org'),
         ),
       );
@@ -761,7 +787,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
-            MockDisclosureBloc(isLoginFlow: true),
+            MockDisclosureBloc(),
             DisclosureCheckOrganizationForLogin(
               relyingParty: WalletMockData.organization,
               originUrl: 'originUrl',
@@ -785,7 +811,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
-            MockDisclosureBloc(isLoginFlow: true),
+            MockDisclosureBloc(),
             DisclosureCheckOrganizationForLogin(
               relyingParty: WalletMockData.organization,
               originUrl: 'originUrl',
@@ -922,7 +948,7 @@ void main() {
     testWidgets(
       'DisclosureScreen shows DisclosureStopSheet when stop is pressed',
       (tester) async {
-        final mockDisclosureBloc = MockDisclosureBloc();
+        final mockDisclosureBloc = MockDisclosureBloc(startDisclosureResult: kSampleReadyToDiscloseResult);
         await tester.pumpWidgetWithAppWrapper(
           const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
             mockDisclosureBloc,

@@ -211,9 +211,9 @@ void main() {
       skip: 3,
       expect: () => [
         isA<DisclosureSuccess>().having(
-          (it) => it.descriptionType,
+          (it) => it.style,
           'regular type success',
-          SuccessDescriptionType.regular,
+          SuccessStyle.regular,
         ),
       ],
     );
@@ -232,11 +232,37 @@ void main() {
         // Give the bloc 25ms to process the previous event
         await Future.delayed(const Duration(milliseconds: 25));
         bloc.add(const DisclosureShareRequestedCardsApproved());
-        bloc.add(const DisclosurePinConfirmed());
+        bloc.add(const DisclosurePinConfirmed(returnUrl: 'https://example.org'));
       },
       skip: 2,
       expect: () => [
-        isA<DisclosureSuccess>().having((it) => it.descriptionType, 'login type success', SuccessDescriptionType.login),
+        isA<DisclosureSuccess>().having((it) => it.style, 'login type success', SuccessStyle.login),
+      ],
+    );
+
+    blocTest(
+      'when the user confirms the pin for same device without a return url, the bloc emits DisclosureSuccess (same device - no return url)',
+      setUp: () {
+        when(getMostRecentWalletEventUseCase.invoke()).thenAnswer((_) async => WalletMockData.disclosureEvent);
+        when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+          return Result.success(emptyRequest(sessionType: .sameDevice, type: .regular));
+        });
+      },
+      build: create,
+      act: (bloc) async {
+        bloc.add(const DisclosureSessionStarted(StartDisclosureRequest.qrScan('')));
+        // Give the bloc 25ms to process the previous event
+        await Future.delayed(const Duration(milliseconds: 25));
+        bloc.add(const DisclosureShareRequestedCardsApproved());
+        bloc.add(const DisclosurePinConfirmed(returnUrl: null));
+      },
+      skip: 2,
+      expect: () => [
+        isA<DisclosureSuccess>().having(
+          (it) => it.style,
+          'same_device_no_return_url type success',
+          SuccessStyle.sameDeviceNoReturnUrl,
+        ),
       ],
     );
 
@@ -261,9 +287,9 @@ void main() {
         isA<DisclosureCheckOrganizationForLogin>(),
         isA<DisclosureConfirmPin>(),
         isA<DisclosureSuccess>().having(
-          (it) => it.descriptionType,
+          (it) => it.style,
           'close proximity type success',
-          SuccessDescriptionType.closeProximity,
+          SuccessStyle.closeProximity,
         ),
       ],
     );

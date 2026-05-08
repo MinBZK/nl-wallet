@@ -359,9 +359,8 @@ async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
 
     let key_pair = ca.generate_status_list_mock().unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
-    let configs: StatusListConfigs<SigningKey> = (0..2)
-        .zip_eq(itertools::repeat_n(key_pair, 2))
-        .map(|(_, key_pair)| {
+    let configs: StatusListConfigs<SigningKey> = itertools::repeat_n(key_pair, 2)
+        .map(|key_pair| {
             let attestation_type = random_string(20);
             let config = StatusListConfig {
                 list_size: NonZeroU31::try_new(4).unwrap(),

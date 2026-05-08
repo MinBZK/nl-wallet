@@ -16,3 +16,8 @@ use-cases/wallet-creation
 use-cases/wallet-provider-instruction
 use-cases/recovery_usecases
 ```
+
+```{toctree}
+:hidden:
+use-cases/close-proximity-disclosure
+```

@@ -18,7 +18,7 @@ class WalletQrView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return QrImageView(
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.all(16),
       backgroundColor: LightWalletTheme.colorScheme.surface,
       size: context.isLandscape ? (context.mediaQuery.size.width * 0.3) : null,
       dataModuleStyle: const QrDataModuleStyle(

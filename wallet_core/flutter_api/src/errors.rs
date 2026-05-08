@@ -377,12 +377,6 @@ impl FlutterApiErrorFields for DisclosureError {
     }
 
     fn data(&self) -> serde_json::Value {
-        let session_type = match self {
-            DisclosureError::VpClient(VpClientError::DisclosureUriSourceMismatch(session_type, _)) => {
-                Some(*session_type)
-            }
-            _ => None,
-        };
         let can_retry = match self {
             DisclosureError::VpClient(VpClientError::Request(error))
             | DisclosureError::VpVerifierServer {
@@ -394,9 +388,15 @@ impl FlutterApiErrorFields for DisclosureError {
             },
             DisclosureError::NonSelectivelyDisclosableClaim(_, _)
             | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _) => Some(false),
+            DisclosureError::CloseProximityDisclosureSessionError(inner) => match inner {
+                // Platform errors are transient and worth retrying.
+                CloseProximityDisclosureError::PlatformError(_) => Some(true),
+                CloseProximityDisclosureError::DeviceResponse(error) => detect_networking_error(error).map(|_| true),
+                CloseProximityDisclosureError::DeviceResponseEncoding(_) => None,
+                _ => Some(false),
+            },
             _ => None,
         };
-        let return_url = self.return_url();
         let organization_name = match self {
             DisclosureError::VpVerifierServer { organization, .. } => organization
                 .as_ref()
@@ -404,15 +404,24 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::NonSelectivelyDisclosableClaim(organization, _)
             | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(organization, _, _)
             | DisclosureError::RecoveryCodeRequested(organization) => Some(organization.display_name.clone()),
+            DisclosureError::CloseProximityDisclosureSessionError(
+                CloseProximityDisclosureError::ReaderAuthValidation { organization, .. }
+                | CloseProximityDisclosureError::InvalidCertificate { organization, .. }
+                | CloseProximityDisclosureError::MissingCommonName { organization },
+            ) => Some(organization.display_name.clone()),
             _ => None,
         };
-        let revocation_data = if let Self::Instruction(InstructionError::AccountRevoked(data)) = self {
-            Some(*data)
-        } else {
-            None
-        };
 
-        if session_type.is_some() || can_retry.is_some() || return_url.is_some() || revocation_data.is_some() {
+        let session_type = self.session_type();
+        let return_url = self.return_url();
+        let revocation_data = self.revocation_data();
+
+        if session_type.is_some()
+            || can_retry.is_some()
+            || return_url.is_some()
+            || organization_name.is_some()
+            || revocation_data.is_some()
+        {
             serde_json::to_value(DisclosureErrorData {
                 session_type,
                 can_retry,
@@ -433,8 +442,34 @@ impl FlutterApiErrorFields for CloseProximityDisclosureError {
     }
 
     fn data(&self) -> serde_json::Value {
-        // TODO add organisation (PVW-5710)
-        serde_json::Value::Null
+        let organization_name = match self {
+            CloseProximityDisclosureError::ReaderAuthValidation { organization, .. }
+            | CloseProximityDisclosureError::InvalidCertificate { organization, .. }
+            | CloseProximityDisclosureError::MissingCommonName { organization } => {
+                Some(organization.display_name.clone())
+            }
+            _ => None,
+        };
+
+        let can_retry = match self {
+            // Platform errors are transient and worth retrying.
+            CloseProximityDisclosureError::PlatformError(_) => Some(true),
+            CloseProximityDisclosureError::DeviceResponse(error) => detect_networking_error(error).map(|_| true),
+            CloseProximityDisclosureError::DeviceResponseEncoding(_) => None,
+            _ => Some(false),
+        };
+
+        // All close proximity disclosure sessions are cross-device, `return_url` is not
+        // applicable to close proximity disclosure, and `revocation_data` always surfaces as
+        // `DisclosureError::Instruction`.
+        serde_json::to_value(DisclosureErrorData {
+            session_type: Some(SessionType::CrossDevice),
+            can_retry,
+            return_url: None,
+            organization_name,
+            revocation_data: None,
+        })
+        .unwrap() // This conversion should never fail.
     }
 }
 
@@ -532,11 +567,11 @@ impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
             | CloseProximityDisclosureError::InvalidDocRequest(_)
             | CloseProximityDisclosureError::MissingReaderRegistration
             | CloseProximityDisclosureError::InvalidCertificateType(_)
-            | CloseProximityDisclosureError::ReaderAuthValidation(_)
+            | CloseProximityDisclosureError::ReaderAuthValidation { .. }
             | CloseProximityDisclosureError::MalformedDeviceRequest(_)
             | CloseProximityDisclosureError::InvalidDeviceRequest(_)
-            | CloseProximityDisclosureError::InvalidCertificate(_)
-            | CloseProximityDisclosureError::MissingCommonName => FlutterApiErrorType::Verifier,
+            | CloseProximityDisclosureError::InvalidCertificate { .. }
+            | CloseProximityDisclosureError::MissingCommonName { .. } => FlutterApiErrorType::Verifier,
             CloseProximityDisclosureError::DeviceResponseEncoding(_)
             | CloseProximityDisclosureError::PlatformError(_)
             | CloseProximityDisclosureError::DeviceResponse(_) => FlutterApiErrorType::Generic,

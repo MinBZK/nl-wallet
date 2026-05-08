@@ -25,6 +25,7 @@ mock_example_constructors = [
 ]
 
 [dependencies]
+aes-gcm.workspace = true
 base64.workspace = true
 chrono.workspace = true
 ciborium.workspace = true
@@ -36,6 +37,7 @@ indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 nom.workspace = true
 nutype = { workspace = true, features = ["serde"] }
+parking_lot.workspace = true
 p256 = { workspace = true, features = ["ecdh", "pem"] }
 rand_core.workspace = true
 ring.workspace = true

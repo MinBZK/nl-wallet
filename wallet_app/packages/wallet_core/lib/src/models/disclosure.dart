@@ -29,7 +29,6 @@ sealed class AcceptDisclosureResult with _$AcceptDisclosureResult {
 sealed class CloseProximityDisclosureFlutterUpdate with _$CloseProximityDisclosureFlutterUpdate {
   const CloseProximityDisclosureFlutterUpdate._();
 
-  const factory CloseProximityDisclosureFlutterUpdate.connecting() = CloseProximityDisclosureFlutterUpdate_Connecting;
   const factory CloseProximityDisclosureFlutterUpdate.connected() = CloseProximityDisclosureFlutterUpdate_Connected;
   const factory CloseProximityDisclosureFlutterUpdate.deviceRequestReceived() =
       CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived;

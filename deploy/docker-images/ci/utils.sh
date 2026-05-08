@@ -55,6 +55,7 @@ echo "36352a993b97e9758793cdb87f9ba674bd6d88c914488e122be78a1962203803  gh.tar.g
 tar -xf gh.tar.gz --exclude 'LICENSE' --exclude 'share'
 mv gh_*/bin/gh /usr/local/bin/
 rm -rf gh_* gh.tar.gz
+gh config set telemetry disabled
 
 # GitLab CLI
 # Download from: https://gitlab.com/gitlab-org/cli/-/releases

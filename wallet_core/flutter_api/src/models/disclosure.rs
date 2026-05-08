@@ -51,7 +51,6 @@ pub enum DisclosureSessionType {
 }
 
 pub enum CloseProximityDisclosureFlutterUpdate {
-    Connecting,
     Connected,
     DeviceRequestReceived,
     Disconnected,
@@ -62,7 +61,6 @@ pub enum CloseProximityDisclosureFlutterUpdate {
 impl From<CloseProximityDisclosureUpdate> for CloseProximityDisclosureFlutterUpdate {
     fn from(source: CloseProximityDisclosureUpdate) -> Self {
         match source {
-            CloseProximityDisclosureUpdate::Connecting => Self::Connecting,
             CloseProximityDisclosureUpdate::Connected => Self::Connected,
             CloseProximityDisclosureUpdate::DeviceRequestReceived => Self::DeviceRequestReceived,
             CloseProximityDisclosureUpdate::Disconnected => Self::Disconnected,

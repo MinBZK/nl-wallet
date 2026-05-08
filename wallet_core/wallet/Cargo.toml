@@ -14,6 +14,8 @@ doctest = false
 # Allow the disclosure return URL and its prefix to use "http://" and
 # allow Credential Issuer Identifiers to contain "http://"
 allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_configuration/allow_insecure_url"]
+# Enable the iOS-only UniFFI session-crypto helpers exposed by platform_support.
+ios_session_crypto = ["platform_support/ios_session_crypto"]
 # Use fake Apple attested keys for use in the iOS simulator
 fake_attestation = [
     "dep:apple_app_attest",

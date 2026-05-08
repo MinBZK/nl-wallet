@@ -12,6 +12,9 @@ crate-type = ["staticlib", "cdylib", "lib"]
 doctest = false
 
 [features]
+# Compile the Rust close-proximity session-crypto helpers that depend on `mdoc`.
+# These helpers are only used from the iOS UniFFI bindings.
+ios_session_crypto = ["dep:mdoc", "dep:rand", "dep:serde_bytes"]
 # Implement the mock hardware key types
 mock_hw_keystore = ["dep:aes-gcm", "dep:rand_core"]
 # Include the MockCloseProximityDisclosureClient
@@ -76,8 +79,13 @@ derive_more = { workspace = true, features = ["debug"] }
 p256 = { workspace = true, features = ["pkcs8"] }
 parking_lot.workspace = true
 thiserror.workspace = true
+tokio = { workspace = true, features = ["sync"] }
 trait-variant.workspace = true
 uniffi.workspace = true
+
+crypto.path = "../../lib/crypto"
+error_category.path = "../../lib/error_category"
+utils.path = "../../lib/utils"
 
 aes-gcm = { workspace = true, optional = true }
 assert_matches = { workspace = true, optional = true }
@@ -86,21 +94,18 @@ cfg_eval = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
+rand = { workspace = true, optional = true }
+rand_core = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
+serde_bytes = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 serde_with = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }
-tokio = { workspace = true, features = ["sync"] }
 uuid = { workspace = true, optional = true }
-
-crypto.path = "../../lib/crypto"
-error_category.path = "../../lib/error_category"
-utils.path = "../../lib/utils"
-
-rand_core = { workspace = true, optional = true }
 
 android_attest = { path = "../../lib/android_attest", optional = true }
 apple_app_attest = { path = "../../lib/apple_app_attest", optional = true }
+mdoc = { path = "../../lib/mdoc", optional = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = { workspace = true, optional = true }

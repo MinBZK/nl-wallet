@@ -124,7 +124,6 @@ where
     A: AccountProviderClient,
 {
     type Error = RemoteEcdsaKeyError;
-    type Poa = Poa;
 
     async fn perform_issuance(
         &self,
@@ -132,7 +131,7 @@ where
         aud: String,
         nonce: Option<Nonce>,
         include_wia: bool,
-    ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
+    ) -> Result<IssuanceResult, Self::Error> {
         let issuance_instruction = PerformIssuance { key_count, aud, nonce };
         let (issuance_result, wia) = if !include_wia {
             (self.instruction_client.send(issuance_instruction).await?, None)
@@ -151,7 +150,6 @@ where
         Ok(IssuanceResult::new(
             issuance_result.key_identifiers,
             issuance_result.pops,
-            issuance_result.poa,
             wia,
         ))
     }
@@ -195,7 +193,7 @@ impl<S, AK, GK, A> PinRecoveryRemoteEcdsaWscd<S, AK, GK, A> {
     }
 }
 
-pub trait PinRecoveryWscd: IssuanceWscd<Poa = Poa> {
+pub trait PinRecoveryWscd: IssuanceWscd {
     fn certificates(self) -> Vec<UnverifiedJwt<WalletCertificateClaims>>;
 }
 
@@ -207,7 +205,6 @@ where
     A: AccountProviderClient,
 {
     type Error = RemoteEcdsaKeyError;
-    type Poa = Poa;
 
     async fn perform_issuance(
         &self,
@@ -215,7 +212,7 @@ where
         aud: String,
         nonce: Option<Nonce>,
         include_wia: bool,
-    ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
+    ) -> Result<IssuanceResult, Self::Error> {
         if !include_wia {
             panic!("include_wia must always be true for PinRecoveryRemoteEcdsaWscd")
         }
@@ -236,7 +233,6 @@ where
         Ok(IssuanceResult::new(
             issuance_result.key_identifiers,
             issuance_result.pops,
-            issuance_result.poa,
             Some(result.issuance_with_wia_result.wia_disclosure),
         ))
     }
