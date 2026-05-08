@@ -18,13 +18,13 @@ pub trait IssuanceWscd {
         count: NonZeroUsize,
         aud: String,
         nonce: Option<Nonce>,
-        include_wia: bool,
     ) -> Result<IssuanceResult, Self::Error>;
+
+    async fn issue_wia(&self, aud: String, nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error>;
 }
 
 #[derive(Debug, Constructor)]
 pub struct IssuanceResult {
     pub key_identifiers: VecNonEmpty<String>,
     pub pops: VecNonEmpty<UnverifiedJwt<JwtPopClaims, HeaderWithJwk>>,
-    pub wia: Option<WiaDisclosure>,
 }

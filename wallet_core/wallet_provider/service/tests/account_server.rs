@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::num::NonZeroUsize;
 use std::time::Duration;
 
 use android_attest::attestation_extension::key_description::KeyDescription;
@@ -20,8 +19,7 @@ use status_lists::postgres::PostgresStatusListService;
 use utils::generator::UuidV4AndTimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
 use wallet_account::messages::instructions::CheckPin;
-use wallet_account::messages::instructions::PerformIssuance;
-use wallet_account::messages::instructions::PerformIssuanceWithWia;
+use wallet_account::messages::instructions::IssueWia;
 use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
@@ -260,11 +258,7 @@ async fn test_wia_status() {
     let challenge = account_server
         .instruction_challenge(
             hw_privkey
-                .sign_instruction_challenge::<PerformIssuanceWithWia>(
-                    cert_data.wallet_id.clone().into(),
-                    1,
-                    certificate.clone(),
-                )
+                .sign_instruction_challenge::<IssueWia>(cert_data.wallet_id.clone().into(), 1, certificate.clone())
                 .await,
             &UuidV4AndTimeGenerator,
             &user_state,
@@ -274,12 +268,9 @@ async fn test_wia_status() {
 
     let instruction = hw_privkey
         .sign_instruction(
-            PerformIssuanceWithWia {
-                issuance_instruction: PerformIssuance {
-                    key_count: NonZeroUsize::MIN,
-                    aud: "aud".to_string(),
-                    nonce: Some(Nonce::from("nonce".to_string())),
-                },
+            IssueWia {
+                aud: "aud".to_string(),
+                nonce: Some(Nonce::from("nonce".to_string())),
             },
             challenge,
             44,
