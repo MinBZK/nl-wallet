@@ -335,6 +335,7 @@ pub struct Issuer<K, A, S, N, L> {
     proof_nonce_store: Arc<N>,
     status_list_services: Arc<L>,
     cleanup_task: AbortHandle,
+    status_list_refresh_tasks: Vec<AbortHandle>,
 }
 
 /// Fields of the [`Issuer`] needed by the issuance functions.
@@ -382,6 +383,10 @@ impl<K, A, S, N, L> Drop for Issuer<K, A, S, N, L> {
     fn drop(&mut self) {
         // Stop the tasks at the next .await
         self.cleanup_task.abort();
+
+        for task in &self.status_list_refresh_tasks {
+            task.abort();
+        }
     }
 }
 
@@ -399,6 +404,7 @@ impl<K, A, S, N, L> Issuer<K, A, S, N, L>
 where
     S: SessionStore<IssuanceData> + Sync + 'static,
     N: NonceStore + Sync + 'static,
+    L: StatusListServices,
 {
     #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn new(
@@ -471,6 +477,8 @@ where
             }
         });
 
+        let status_list_refresh_tasks = status_list_services.start_refresh_jobs();
+
         Self {
             issuer_data,
             attr_service,
@@ -478,6 +486,7 @@ where
             proof_nonce_store,
             status_list_services,
             cleanup_task,
+            status_list_refresh_tasks,
         }
     }
 }

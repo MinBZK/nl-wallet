@@ -89,7 +89,6 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     .await?;
     let status_list_services = PostgresStatusListServices::try_new(db_connection, status_list_configs).await?;
     status_list_services.initialize_lists().await?;
-    status_list_services.start_refresh_jobs();
     let status_list_router = issuer_settings
         .status_lists
         .serve

@@ -159,6 +159,7 @@ where
                 .unwrap();
             Ok(generate_status_claims(&uri, copies))
         });
+    status_list_service.expect_start_refresh_jobs().return_const(vec![]);
 
     let issuer = MockIssuer::new(
         issuer_identifier,

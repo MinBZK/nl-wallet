@@ -324,6 +324,9 @@ mod tests {
             metadata_documents: TypeMetadataDocuments::degree_example().1,
         };
 
+        let mut status_list_services = MockStatusListServices::new();
+        status_list_services.expect_start_refresh_jobs().return_const(vec![]);
+
         Issuer::new(
             "https://example.com".parse().unwrap(),
             NonZeroU8::MIN,
@@ -334,7 +337,7 @@ mod tests {
             (),
             sessions,
             MemoryNonceStore::new(),
-            Arc::new(MockStatusListServices::default()),
+            Arc::new(status_list_services),
         )
     }
 

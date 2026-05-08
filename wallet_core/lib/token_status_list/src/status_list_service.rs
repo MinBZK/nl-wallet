@@ -1,6 +1,7 @@
 use std::num::NonZeroUsize;
 
 use attestation_types::status_claim::StatusClaim;
+use tokio::task::AbortHandle;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
@@ -16,6 +17,8 @@ pub trait StatusListServices: StatusListRevocationService {
         expires: Option<DateTimeSeconds>,
         copies: NonZeroUsize,
     ) -> Result<VecNonEmpty<StatusClaim>, Self::Error>;
+
+    fn start_refresh_jobs(&self) -> Vec<AbortHandle>;
 }
 
 #[trait_variant::make(Send)]
@@ -28,6 +31,8 @@ pub trait StatusListService: StatusListRevocationService {
         expires: Option<DateTimeSeconds>,
         copies: NonZeroUsize,
     ) -> Result<VecNonEmpty<StatusClaim>, Self::Error>;
+
+    fn start_refresh_job(&self) -> AbortHandle;
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -106,6 +111,8 @@ pub mod mock {
                 expires: Option<DateTimeSeconds>,
                 copies: NonZeroUsize,
             ) -> Result<VecNonEmpty<StatusClaim>, Infallible>;
+
+            fn start_refresh_job(&self) -> AbortHandle;
         }
 
         impl StatusListRevocationService for StatusListService {
@@ -130,6 +137,8 @@ pub mod mock {
                 expires: Option<DateTimeSeconds>,
                 copies: NonZeroUsize,
             ) -> Result<VecNonEmpty<StatusClaim>, Infallible>;
+
+            fn start_refresh_jobs(&self) -> Vec<AbortHandle>;
         }
 
         impl StatusListRevocationService for StatusListServices {

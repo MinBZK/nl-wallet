@@ -247,6 +247,10 @@ where
             .await
             .map(|(claims, _)| claims)
     }
+
+    fn start_refresh_jobs(&self) -> Vec<AbortHandle> {
+        self.start_refresh_jobs()
+    }
 }
 
 impl<K> StatusListRevocationService for PostgresStatusListServices<K>
@@ -349,6 +353,10 @@ where
         self.obtain_status_claims_and_scheduled_tasks(batch_id, expires, copies)
             .await
             .map(|(claims, _)| claims)
+    }
+
+    fn start_refresh_job(&self) -> AbortHandle {
+        self.start_refresh_job()
     }
 }
 
