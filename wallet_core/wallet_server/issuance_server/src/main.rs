@@ -61,7 +61,10 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
             .collect(),
     )?;
 
-    let (db_connection, status_list_checker) = match (store_connection, settings.status_lists.storage_url.as_ref()) {
+    let (db_connection, status_list_checker) = match (
+        store_connection,
+        settings.issuer_settings.status_lists.storage_url.as_ref(),
+    ) {
         (_, Some(url)) => {
             let connection = new_connection(url.clone()).await.map_err(anyhow::Error::from)?;
             let checker = DatabaseChecker::new("db-status-list", &connection);
@@ -84,7 +87,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
             .values()
             .map(|settings| settings.status_list.clone())
             .collect(),
-        &settings.status_lists,
+        &settings.issuer_settings.status_lists,
         settings.issuer_settings.public_url.as_base_url(),
         hsm.clone(),
     )
@@ -93,6 +96,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
     status_list_services.initialize_lists().await?;
     status_list_services.start_refresh_jobs();
     let status_list_router = settings
+        .issuer_settings
         .status_lists
         .serve
         .then(|| {
@@ -105,7 +109,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
                             settings.status_list.publish_dir.clone(),
                         )
                     }),
-                settings.status_lists.ttl(),
+                settings.issuer_settings.status_lists.ttl(),
             )
         })
         .transpose()?;

@@ -25,7 +25,6 @@ use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
 use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
-use status_lists::settings::StatusListsSettings;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
@@ -37,8 +36,6 @@ pub struct IssuanceServerSettings {
 
     #[serde(flatten)]
     pub issuer_settings: IssuerSettings,
-
-    pub status_lists: StatusListsSettings,
 
     /// Configuration for caching status list tokens.
     #[serde(default)]

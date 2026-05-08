@@ -21,7 +21,6 @@ use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::SecretKey;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
-use status_lists::settings::StatusListsSettings;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -41,8 +40,6 @@ pub struct PidIssuerSettings {
 
     #[serde(flatten)]
     pub issuer_settings: IssuerSettings,
-
-    pub status_lists: StatusListsSettings,
 }
 
 #[serde_as]

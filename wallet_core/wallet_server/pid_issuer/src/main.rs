@@ -59,21 +59,22 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?,
     )?;
 
-    let (db_connection, status_list_checker) = match (store_connection, settings.status_lists.storage_url.as_ref()) {
-        (_, Some(url)) => {
-            let connection = new_connection(url.clone()).await.map_err(anyhow::Error::from)?;
-            let checker = DatabaseChecker::new("db-status-list", &connection);
-            Ok((connection, Some(checker)))
-        }
-        (StoreConnection::Postgres(db_connection), None) => {
-            // Safe unwrap as store is Postgres
-            store_checker.as_mut().unwrap().rename("db");
-            Ok((db_connection, None))
-        }
-        _ => Err(anyhow!(
-            "No database connection configured for status list in pid issuer"
-        )),
-    }?;
+    let (db_connection, status_list_checker) =
+        match (store_connection, issuer_settings.status_lists.storage_url.as_ref()) {
+            (_, Some(url)) => {
+                let connection = new_connection(url.clone()).await.map_err(anyhow::Error::from)?;
+                let checker = DatabaseChecker::new("db-status-list", &connection);
+                Ok((connection, Some(checker)))
+            }
+            (StoreConnection::Postgres(db_connection), None) => {
+                // Safe unwrap as store is Postgres
+                store_checker.as_mut().unwrap().rename("db");
+                Ok((db_connection, None))
+            }
+            _ => Err(anyhow!(
+                "No database connection configured for status list in pid issuer"
+            )),
+        }?;
     let status_list_configs = StatusListAttestationSettings::settings_into_configs(
         issuer_settings
             .credential_configurations
@@ -81,7 +82,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
             .values()
             .map(|settings| settings.status_list.clone())
             .collect(),
-        &settings.status_lists,
+        &issuer_settings.status_lists,
         issuer_settings.public_url.as_base_url(),
         hsm.clone(),
     )
@@ -89,7 +90,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     let status_list_services = PostgresStatusListServices::try_new(db_connection, status_list_configs).await?;
     status_list_services.initialize_lists().await?;
     status_list_services.start_refresh_jobs();
-    let status_list_router = settings
+    let status_list_router = issuer_settings
         .status_lists
         .serve
         .then(|| {
@@ -102,7 +103,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
                             settings.status_list.publish_dir.clone(),
                         )
                     }),
-                settings.status_lists.ttl(),
+                issuer_settings.status_lists.ttl(),
             )
         })
         .transpose()?;

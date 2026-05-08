@@ -69,6 +69,8 @@ pub struct IssuerSettings {
     #[serde(flatten)]
     #[debug(skip)]
     pub server_settings: Settings,
+
+    pub status_lists: StatusListsSettings,
 }
 
 #[derive(Debug, Clone, AsRef)]
@@ -439,6 +441,7 @@ mod tests {
     use server_utils::settings::Settings;
     use server_utils::settings::Storage;
     use status_lists::publish::PublishDir;
+    use status_lists::settings::StatusListsSettings;
 
     use super::CredentialConfigurationSettings;
     use super::IssuerSettings;
@@ -505,6 +508,7 @@ mod tests {
                 issuer_trust_anchors: vec![issuer_ca.borrowing_trust_anchor().clone()],
                 hsm: None,
             },
+            status_lists: StatusListsSettings::default(),
         }
     }
 

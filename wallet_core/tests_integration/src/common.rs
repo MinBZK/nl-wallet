@@ -71,7 +71,6 @@ pub use server_utils::store::postgres::new_connection;
 use static_server::settings::Settings as StaticSettings;
 use status_lists::postgres::PostgresStatusListServices;
 use status_lists::serve::create_serve_router;
-use status_lists::settings::StatusListsSettings;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use tokio::net::TcpListener;
 use tokio::time;
@@ -734,7 +733,6 @@ async fn get_internal_listener(server_settings: &mut server_utils::settings::Set
 async fn get_status_list_service_and_router(
     storage_url: Url,
     issuer_settings: &IssuerSettings,
-    status_lists_settings: &StatusListsSettings,
     hsm: Option<Pkcs11Hsm>,
 ) -> (Router, PostgresStatusListServices<PrivateKeyVariant>) {
     let db_connection = new_connection(storage_url).await.unwrap();
@@ -759,7 +757,7 @@ async fn get_status_list_service_and_router(
             .values()
             .map(|settings| settings.status_list.clone())
             .collect(),
-        status_lists_settings,
+        &issuer_settings.status_lists,
         issuer_settings.public_url.as_base_url(),
         hsm,
     )
@@ -829,13 +827,8 @@ pub async fn start_issuance_server(
         storage_settings.into(),
     ));
 
-    let (status_list_router, status_list_services) = get_status_list_service_and_router(
-        storage_settings.url.clone(),
-        &settings.issuer_settings,
-        &settings.status_lists,
-        hsm.clone(),
-    )
-    .await;
+    let (status_list_router, status_list_services) =
+        get_status_list_service_and_router(storage_settings.url.clone(), &settings.issuer_settings, hsm.clone()).await;
     let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder()).unwrap();
 
     tokio::spawn(
@@ -896,13 +889,8 @@ pub async fn start_pid_issuer_server(
     ));
     let proof_nonce_store = ProofNonceStore::new(store_connection.clone());
 
-    let (status_list_router, status_list_services) = get_status_list_service_and_router(
-        storage_settings.url.clone(),
-        &settings.issuer_settings,
-        &settings.status_lists,
-        hsm.clone(),
-    )
-    .await;
+    let (status_list_router, status_list_services) =
+        get_status_list_service_and_router(storage_settings.url.clone(), &settings.issuer_settings, hsm.clone()).await;
 
     tokio::spawn(
         async move {
