@@ -8,6 +8,7 @@ use health_checkers::postgres::DatabaseChecker;
 use hsm::service::Pkcs11Hsm;
 use http_utils::health::create_health_router;
 use issuer_common::nonce_store::ProofNonceStore;
+use issuer_common::par_store::IssuerParStore;
 use issuer_common::settings::StatusListAttestationSettings;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
@@ -50,6 +51,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         storage_settings.into(),
     ));
     let proof_nonce_store = ProofNonceStore::new(store_connection.clone());
+    let par_store = Arc::new(IssuerParStore::new(store_connection.clone()));
 
     let digid_metadata_cache =
         Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings).map_err(anyhow::Error::from)?);
@@ -123,6 +125,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         hsm,
         sessions,
         proof_nonce_store,
+        par_store,
         settings.wua_issuer_pubkey.into_inner(),
         status_list_services,
         status_list_router,

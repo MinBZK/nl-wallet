@@ -34,6 +34,7 @@ use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
 use issuer_common::nonce_store::ProofNonceStore;
+use issuer_common::par_store::IssuerParStore;
 use issuer_common::settings::IssuerSettings;
 use issuer_common::settings::StatusListAttestationSettings;
 use jwt::SignedJwt;
@@ -937,6 +938,7 @@ where
         storage_settings.into(),
     ));
     let proof_nonce_store = ProofNonceStore::new(store_connection.clone());
+    let par_store = Arc::new(IssuerParStore::new(store_connection.clone()));
 
     let (status_list_router, status_list_services) = get_status_list_service_and_router(
         storage_settings.url.clone(),
@@ -957,6 +959,7 @@ where
                 hsm,
                 issuance_sessions,
                 proof_nonce_store,
+                par_store,
                 settings.wua_issuer_pubkey.into_inner(),
                 status_list_services,
                 Some(status_list_router),

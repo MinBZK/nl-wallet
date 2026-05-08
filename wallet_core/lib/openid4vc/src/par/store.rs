@@ -97,11 +97,11 @@ impl ParStore for () {
     }
 }
 
-#[cfg(test)]
-mod tests {
+#[cfg(any(test, feature = "test"))]
+pub mod test {
     use chrono::Duration;
+    use chrono::Utc;
 
-    use super::MemoryParStore;
     use super::ParStore;
     use crate::authorization::VciAuthorizationRequest;
     use crate::pkce::PkcePair;
@@ -116,87 +116,81 @@ mod tests {
         )
     }
 
-    #[tokio::test]
-    async fn test_store_and_consume() {
-        let store = MemoryParStore::default();
+    pub async fn test_par_store<P, F>(store: P, mut count_entries: F)
+    where
+        P: ParStore,
+        F: AsyncFnMut(&P) -> usize,
+    {
         let request_uri = "urn:ietf:params:oauth:request_uri:test".to_string();
-        let expires_at = chrono::Utc::now() + Duration::seconds(60);
+        let valid_expiry = Utc::now() + Duration::seconds(60);
+        let expired_expiry = Utc::now() - Duration::seconds(1);
 
+        // Store a valid entry and consume it.
         store
-            .store(request_uri.clone(), example_request(), expires_at)
+            .store(request_uri.clone(), example_request(), valid_expiry)
             .await
             .unwrap();
+        assert_eq!(count_entries(&store).await, 1);
 
         let result = store.consume(&request_uri).await.unwrap();
         assert!(result.is_some());
-    }
+        assert_eq!(count_entries(&store).await, 0);
 
-    #[tokio::test]
-    async fn test_consume_removes_entry() {
-        let store = MemoryParStore::default();
-        let request_uri = "urn:ietf:params:oauth:request_uri:test".to_string();
-        let expires_at = chrono::Utc::now() + Duration::seconds(60);
-
-        store
-            .store(request_uri.clone(), example_request(), expires_at)
-            .await
-            .unwrap();
-
-        store.consume(&request_uri).await.unwrap();
-
+        // Consuming the same entry a second time returns None.
         let result = store.consume(&request_uri).await.unwrap();
         assert!(result.is_none());
-    }
 
-    #[tokio::test]
-    async fn test_consume_expired() {
-        let store = MemoryParStore::default();
-        let request_uri = "urn:ietf:params:oauth:request_uri:test".to_string();
-        let expires_at = chrono::Utc::now() - Duration::seconds(1);
-
-        store
-            .store(request_uri.clone(), example_request(), expires_at)
+        // Consuming an unknown URI returns None.
+        let result = store
+            .consume("urn:ietf:params:oauth:request_uri:unknown")
             .await
             .unwrap();
-
-        let result = store.consume(&request_uri).await.unwrap();
         assert!(result.is_none());
-    }
 
-    #[tokio::test]
-    async fn test_consume_unknown_uri() {
-        let store = MemoryParStore::default();
-
-        let result = store.consume("unknown").await.unwrap();
-        assert!(result.is_none());
-    }
-
-    #[tokio::test]
-    async fn test_cleanup_removes_expired() {
-        let store = MemoryParStore::default();
+        // Consuming an expired entry returns None (but still removes it).
         let expired_uri = "urn:ietf:params:oauth:request_uri:expired".to_string();
-        let valid_uri = "urn:ietf:params:oauth:request_uri:valid".to_string();
+        store
+            .store(expired_uri.clone(), example_request(), expired_expiry)
+            .await
+            .unwrap();
+        assert_eq!(count_entries(&store).await, 1);
 
+        let result = store.consume(&expired_uri).await.unwrap();
+        assert!(result.is_none());
+        assert_eq!(count_entries(&store).await, 0);
+
+        // Cleanup removes expired entries but leaves valid ones intact.
+        let valid_uri = "urn:ietf:params:oauth:request_uri:valid".to_string();
         store
-            .store(
-                expired_uri.clone(),
-                example_request(),
-                chrono::Utc::now() - Duration::seconds(1),
-            )
+            .store(expired_uri.clone(), example_request(), expired_expiry)
             .await
             .unwrap();
         store
-            .store(
-                valid_uri.clone(),
-                example_request(),
-                chrono::Utc::now() + Duration::seconds(60),
-            )
+            .store(valid_uri.clone(), example_request(), valid_expiry)
             .await
             .unwrap();
+        assert_eq!(count_entries(&store).await, 2);
 
         store.cleanup().await.unwrap();
+        assert_eq!(count_entries(&store).await, 1);
 
         assert!(store.consume(&expired_uri).await.unwrap().is_none());
         assert!(store.consume(&valid_uri).await.unwrap().is_some());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::MemoryParStore;
+    use super::test::test_par_store;
+
+    #[tokio::test]
+    async fn test_memory_par_store() {
+        let store = MemoryParStore::default();
+        test_par_store(store, async |store| {
+            let MemoryParStore(map) = store;
+            map.lock().unwrap().len()
+        })
+        .await;
     }
 }

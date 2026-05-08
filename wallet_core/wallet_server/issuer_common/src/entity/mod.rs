@@ -3,3 +3,4 @@
 pub mod prelude;
 
 pub mod proof_nonce;
+pub mod pushed_authorization_request;
