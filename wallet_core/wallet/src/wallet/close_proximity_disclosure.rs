@@ -1001,7 +1001,7 @@ mod tests {
         send_context.expect().once().returning(|| Ok(()));
 
         let context = MockCloseProximityDisclosureClient::stop_ble_server_context();
-        context.expect().once().returning(|| Ok(()));
+        context.expect().never();
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -1051,7 +1051,7 @@ mod tests {
         send_context.expect().once().returning(|| Ok(()));
 
         let context = MockCloseProximityDisclosureClient::stop_ble_server_context();
-        context.expect().once().returning(|| Ok(()));
+        context.expect().never();
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let (verifier_certificate, _) = setup_close_proximity_disclosure_proposed_session(&mut wallet);
@@ -1256,7 +1256,7 @@ mod tests {
             .returning(|_| Ok(()));
 
         let stop_context = MockCloseProximityDisclosureClient::stop_ble_server_context();
-        stop_context.expect().once().returning(|| Ok(()));
+        stop_context.expect().never();
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         install_session_established_close_proximity_session(
@@ -1292,7 +1292,7 @@ mod tests {
             .returning(|_| Ok(()));
 
         let stop_context = MockCloseProximityDisclosureClient::stop_ble_server_context();
-        stop_context.expect().once().returning(|| Ok(()));
+        stop_context.expect().never();
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         install_session_established_close_proximity_session(
@@ -1328,7 +1328,7 @@ mod tests {
             .returning(|_| Ok(()));
 
         let stop_context = MockCloseProximityDisclosureClient::stop_ble_server_context();
-        stop_context.expect().once().returning(|| Ok(()));
+        stop_context.expect().never();
 
         let items_request = pid_given_name_items_request();
         let (mut device_request, session_transcript, _trust_anchors) =
@@ -1352,6 +1352,37 @@ mod tests {
             Err(DisclosureError::CloseProximityDisclosureSessionError(
                 CloseProximityDisclosureError::MissingReaderAuth
             ))
+        );
+        assert!(wallet.session.is_none());
+    }
+
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_wallet_continue_close_proximity_disclosure_send_error_response_failure_still_stops_ble_server() {
+        let send_context = MockCloseProximityDisclosureClient::send_device_response_context();
+        send_context.expect().once().returning(|_| {
+            Err(PlatformError::PlatformError {
+                reason: "send failed".to_string(),
+            })
+        });
+
+        let stop_context = MockCloseProximityDisclosureClient::stop_ble_server_context();
+        stop_context.expect().once().returning(|| Ok(()));
+
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        install_session_established_close_proximity_session(
+            &mut wallet,
+            cbor_serialize(&qr_session_transcript(None)).unwrap(),
+            vec![0xff],
+        );
+
+        let result = wallet.continue_close_proximity_disclosure().await;
+
+        assert_matches!(
+            result,
+            Err(DisclosureError::PlatformCloseProximityDisclosureSessionError(
+                PlatformError::PlatformError { reason }
+            )) if reason == "send failed"
         );
         assert!(wallet.session.is_none());
     }
