@@ -2,6 +2,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
+use attestation_data::auth::Organization;
 use attestation_data::auth::reader_auth::ValidationError;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::verifier_certificate::VerifierCertificate;
@@ -191,9 +192,13 @@ pub enum CloseProximityDisclosureError {
     #[error("invalid certificate type: {0}")]
     InvalidCertificateType(#[from] CertificateTypeError),
 
-    #[error("reader auth validation error: {0}")]
+    #[error("reader auth validation error: {error}")]
     #[category(pd)]
-    ReaderAuthValidation(#[source] ValidationError),
+    ReaderAuthValidation {
+        #[source]
+        error: ValidationError,
+        organization: Box<Organization>,
+    },
 
     #[error("received invalid CBOR from reader: {0}")]
     #[category(critical)]
@@ -215,13 +220,17 @@ pub enum CloseProximityDisclosureError {
     #[category(pd)]
     DeviceResponse(#[source] mdoc::Error),
 
-    #[error("could not extract Common Name from certificate: {0}")]
+    #[error("could not extract Common Name from certificate: {error}")]
     #[category(critical)]
-    InvalidCertificate(#[source] CertificateError),
+    InvalidCertificate {
+        #[source]
+        error: CertificateError,
+        organization: Box<Organization>,
+    },
 
     #[error("no Common Name found in certificate")]
     #[category(critical)]
-    MissingCommonName,
+    MissingCommonName { organization: Box<Organization> },
 }
 
 fn parse_device_request(bytes: &[u8]) -> Result<DeviceRequest, CloseProximityDisclosureError> {
@@ -240,9 +249,9 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         | CloseProximityDisclosureError::InvalidDocRequest(_)
         | CloseProximityDisclosureError::MissingReaderRegistration
         | CloseProximityDisclosureError::InvalidCertificateType(_)
-        | CloseProximityDisclosureError::ReaderAuthValidation(_)
-        | CloseProximityDisclosureError::InvalidCertificate(_)
-        | CloseProximityDisclosureError::MissingCommonName => Some(DeviceResponseStatus::GeneralError),
+        | CloseProximityDisclosureError::ReaderAuthValidation { .. }
+        | CloseProximityDisclosureError::InvalidCertificate { .. }
+        | CloseProximityDisclosureError::MissingCommonName { .. } => Some(DeviceResponseStatus::GeneralError),
         // These are either internal wallet errors or failures already handled by platform support,
         // so we do not expect to send a protocol-level error DeviceResponse for them.
         CloseProximityDisclosureError::DeviceResponseEncoding(_)
@@ -521,7 +530,7 @@ where
         let device_response = match Self::create_close_proximity_device_response(
             attestations.values().copied(),
             session_transcript.as_ref(),
-            &verifier_certificate,
+            *verifier_certificate,
             &remote_wscd,
         )
         .await
@@ -647,7 +656,7 @@ where
     async fn create_close_proximity_device_response<'a, K, W>(
         attestations: impl IntoIterator<Item = &'a DisclosableAttestation>,
         session_transcript: &SessionTranscript,
-        verifier_certificate: &VerifierCertificate,
+        verifier_certificate: VerifierCertificate,
         wscd: &W,
     ) -> Result<DeviceResponseWithPoa<Poa>, DisclosureError>
     where
@@ -672,11 +681,15 @@ where
         // if this fails, there's a bug in the code
         let nonce = Nonce::from(hex::encode(cbor_serialize(&session_transcript).unwrap()));
         // use the same aud as for SD-JWT
-        let aud = verifier_certificate
-            .certificate()
+        let (certificate, registration) = verifier_certificate.into_certificate_and_registration();
+        let organization = registration.organization;
+        let aud = certificate
             .common_name()
-            .map_err(CloseProximityDisclosureError::InvalidCertificate)?
-            .ok_or(CloseProximityDisclosureError::MissingCommonName)?
+            .map_err(|error| CloseProximityDisclosureError::InvalidCertificate {
+                error,
+                organization: organization.clone(),
+            })?
+            .ok_or_else(|| CloseProximityDisclosureError::MissingCommonName { organization })?
             .to_string();
         let poa_input = JwtPoaInput::new(Some(nonce), aud);
 
@@ -741,7 +754,10 @@ pub fn verify_device_request(
     verifier_certificate
         .registration()
         .verify_requested_attributes(device_request.items_requests())
-        .map_err(CloseProximityDisclosureError::ReaderAuthValidation)?;
+        .map_err(|error| CloseProximityDisclosureError::ReaderAuthValidation {
+            error,
+            organization: verifier_certificate.registration().organization.clone(),
+        })?;
 
     Ok(verifier_certificate)
 }
@@ -1479,7 +1495,7 @@ mod tests {
             &trust_anchors,
         );
 
-        assert_matches!(result, Err(CloseProximityDisclosureError::ReaderAuthValidation(_)));
+        assert_matches!(result, Err(CloseProximityDisclosureError::ReaderAuthValidation { .. }));
     }
 
     // The PIN used in accept_disclosure tests.
@@ -1671,7 +1687,7 @@ mod tests {
             TestWalletMockStorage::<LocalConfigurationRepository>::create_close_proximity_device_response(
                 disclosable_attestations.iter(),
                 &session_transcript,
-                &verifier_certificate,
+                verifier_certificate,
                 &wscd,
             )
             .await
