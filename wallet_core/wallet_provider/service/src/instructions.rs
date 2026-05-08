@@ -164,6 +164,8 @@ impl ValidateInstruction for DeleteKeys {}
 impl ValidateInstruction for IssueWia {
     fn validate_instruction(&self, wallet_user: &WalletUser) -> Result<(), InstructionValidationError> {
         // Allow during PIN recovery
+        // TODO (PVW-5550): since eventually the WIA is obtained by the wallet before PIN recovery
+        //                  would start, this exception will have to be removed eventually.
 
         validate_wallet_user_not_revoked(wallet_user)?;
         validate_wallet_user_not_transferred(wallet_user)?;
