@@ -324,19 +324,15 @@ where
         };
 
         let stop_result = if should_stop_ble_server {
-            Some(CPC::stop_ble_server().await)
+            CPC::stop_ble_server().await
         } else {
-            None
+            Ok(())
         };
 
-        if let Some(send_result) = send_result {
-            send_result?;
-        }
-
-        if let Some(stop_result) = stop_result {
-            stop_result?;
-        }
-
+        // A failed send should still trigger BLE cleanup, but if both operations fail we return
+        // the send error because that is the primary action in this helper.
+        send_result.transpose()?;
+        stop_result?;
         Ok(())
     }
 
