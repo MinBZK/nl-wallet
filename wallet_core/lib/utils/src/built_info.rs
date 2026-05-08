@@ -35,6 +35,9 @@ pub fn version() -> &'static Version {
     &CURRENT_VERSION
 }
 
-pub fn version_identifier() -> Option<&'static str> {
-    GIT_COMMIT_HASH_SHORT
+pub fn db_version_identifier() -> &'static str {
+    // In our own builds the git repo is always available, but this is not
+    // necessarily true for other environments. For those we fall back to
+    // the version in Cargo.toml.
+    GIT_COMMIT_HASH_SHORT.unwrap_or(PKG_VERSION)
 }
