@@ -636,19 +636,18 @@ where
             _ => (None, Ok(()), false),
         };
 
+        // Keep the cleanup decision separate from the call itself: if sending the termination
+        // status failed, we still need to stop BLE before returning that send error.
         let should_stop_ble_server = !sent_termination || send_result.is_err();
 
         let stop_result = if should_stop_ble_server {
-            Some(CPC::stop_ble_server().await)
+            CPC::stop_ble_server().await
         } else {
-            None
+            Ok(())
         };
 
         send_result?;
-
-        if let Some(stop_result) = stop_result {
-            stop_result?;
-        }
+        stop_result?;
 
         // Only store the event if the session is past SessionEstablished state (i.e. DisclosureProposed or later)
         if let Some((certificate, status)) = event {
