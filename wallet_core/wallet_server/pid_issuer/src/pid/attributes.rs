@@ -12,6 +12,7 @@ use jwk_simple::Key;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::UpstreamCodeVerifier;
 use openid4vc::token::TokenRequest;
+use openid4vc::token::TokenRequestGrantType;
 use server_utils::keys::SecretKeyVariant;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -29,25 +30,37 @@ use crate::pid::constants::PID_RECOVERY_CODE;
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("DigiD error: {0}")]
-    Digid(#[from] digid::Error),
+    Digid(#[source] digid::Error),
+
     #[error("could not find attributes for BSN")]
     NoAttributesFound,
+
     #[error("error retrieving from BRP: {0}")]
-    Brp(#[from] BrpError),
+    Brp(#[source] BrpError),
+
     #[error("error creating issuable documents")]
     InvalidIssuableDocuments,
+
     #[error("certificate error: {0}")]
-    Certificate(#[from] CertificateError),
+    Certificate(#[source] CertificateError),
+
     #[error("could not find BSN attribute")]
     NoBsnFound,
+
     #[error("error retrieving BSN: {0}")]
     RetrievingBsn(#[source] AttributesHandlingError),
+
     #[error("BSN attribute had unexpected type (expected string)")]
     BsnUnexpectedType,
+
     #[error("failed to compute BSN HMAC: {0}")]
-    Hmac(#[from] HsmError),
+    Hmac(#[source] HsmError),
+
     #[error("error inserting recovery code: {0}")]
     InsertingRecoveryCode(#[source] AttributesHandlingError),
+
+    #[error("invalid grant type")]
+    InvalidGrantType,
 }
 
 pub struct BrpPidAttributeService {
@@ -66,7 +79,7 @@ impl BrpPidAttributeService {
     ) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
-            openid_client: OpenIdClient::try_new(bsn_privkey, client_id, digid_metadata_cache)?,
+            openid_client: OpenIdClient::try_new(bsn_privkey, client_id, digid_metadata_cache).map_err(Error::Digid)?,
             recovery_code_secret_key,
         })
     }
@@ -77,14 +90,21 @@ impl AttributeService for BrpPidAttributeService {
 
     async fn attributes(
         &self,
-        mut token_request: TokenRequest,
+        token_request: TokenRequest,
         upstream_code_verifier: Option<UpstreamCodeVerifier>,
     ) -> Result<VecNonEmpty<IssuableDocument>, Error> {
-        // Replace the wallet-facing PKCE verifier with the upstream-facing one before
-        // forwarding to RDO Max. The handler bridged the two pairs in /authorize and /token.
-        token_request.code_verifier = upstream_code_verifier.map(String::from);
-        let bsn = self.openid_client.bsn(token_request).await?;
-        let mut persons = self.brp_client.get_person_by_bsn(&bsn).await?;
+        let authorization_code = match token_request.grant_type {
+            TokenRequestGrantType::AuthorizationCode { code } => code,
+            _ => return Err(Error::InvalidGrantType),
+        };
+        let code_verifier = upstream_code_verifier.map(String::from);
+
+        let bsn = self
+            .openid_client
+            .bsn(authorization_code, code_verifier, token_request.redirect_uri)
+            .await
+            .map_err(Error::Digid)?;
+        let mut persons = self.brp_client.get_person_by_bsn(&bsn).await.map_err(Error::Brp)?;
 
         if persons.persons.len() != 1 {
             return Err(Error::NoAttributesFound);
@@ -115,7 +135,9 @@ impl BrpPidAttributeService {
             _ => return Err(Error::BsnUnexpectedType),
         };
 
-        let recovery_code = AttributeValue::Text(hex::encode(secret_key.sign_hmac(bsn.as_bytes()).await?));
+        let recovery_code = AttributeValue::Text(hex::encode(
+            secret_key.sign_hmac(bsn.as_bytes()).await.map_err(Error::Hmac)?,
+        ));
 
         attributes
             .insert(

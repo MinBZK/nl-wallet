@@ -18,7 +18,9 @@ use openid4vc::metadata::oauth_metadata::OidcProviderMetadata;
 use openid4vc::metadata::well_known;
 use openid4vc::metadata::well_known::WellKnownError;
 use openid4vc::metadata::well_known::WellKnownPath;
+use openid4vc::token::AuthorizationCode;
 use openid4vc::token::TokenRequest;
+use openid4vc::token::TokenRequestGrantType;
 use openid4vc_server::issuer::UpstreamAuthorizationAdapter;
 use openid4vc_server::issuer::UpstreamResolveError;
 use tokio::sync::OnceCell;
@@ -152,9 +154,20 @@ impl OpenIdClient {
         })
     }
 
-    pub async fn bsn(&self, mut token_request: TokenRequest) -> Result<String, Error> {
+    pub async fn bsn(
+        &self,
+        code: AuthorizationCode,
+        code_verifier: Option<String>,
+        redirect_uri: Option<Url>,
+    ) -> Result<String, Error> {
         let metadata = self.cache.metadata().await.map_err(Error::WellKnown)?;
-        token_request.client_id = Some(self.client_id.clone());
+
+        let token_request = TokenRequest {
+            grant_type: TokenRequestGrantType::AuthorizationCode { code },
+            client_id: Some(self.client_id.clone()),
+            code_verifier,
+            redirect_uri,
+        };
 
         let userinfo_claims = userinfo::request_userinfo::<UserInfo>(
             self.cache.http_client(),
