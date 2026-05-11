@@ -347,10 +347,10 @@ impl IssuerSettings {
 
 #[derive(Debug, thiserror::Error)]
 pub enum StatusListAttestationSettingsError {
-    #[error("incorrectly configured asttestation status list expiration: {0}")]
+    #[error("incorrectly configured attestation status list expiration: {0}")]
     ExpiryLessThanTtl(#[from] ExpiryLessThanTtl),
 
-    #[error("incorrectly configured asttestation status list private key or certificate: {0}")]
+    #[error("incorrectly configured attestation status list private key or certificate: {0}")]
     PrivateKey(#[from] PrivateKeySettingsError),
 }
 
