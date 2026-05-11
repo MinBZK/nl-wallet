@@ -23,7 +23,7 @@ required-features = ["db_test"]
 [[test]]
 name = "serve"
 path = "tests/serve.rs"
-required-features = ["db_test"]
+required-features = ["serve_test"]
 
 [features]
 default = []
@@ -36,7 +36,8 @@ axum = [
     "utoipa/uuid",
     "token_status_list/axum",
 ]
-db_test = ["axum", "dep:db_test", "dep:reqwest", "test", "tokio/rt-multi-thread"]
+serve_test = ["axum", "dep:reqwest"]
+db_test = ["serve_test", "dep:db_test", "test", "tokio/rt-multi-thread"]
 test = []
 # Enable additional test API endpoints
 test_api = ["axum"]

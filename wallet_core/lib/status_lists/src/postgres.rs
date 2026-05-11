@@ -312,6 +312,12 @@ impl<K> PostgresStatusListServices<K> {
             .collect();
         Ok(PostgresStatusListServices(services))
     }
+
+    pub fn configs(&self) -> impl Iterator<Item = &StatusListConfig<K>> {
+        let Self(inner) = self;
+
+        inner.values().map(PostgresStatusListService::config)
+    }
 }
 
 impl<K> PostgresStatusListServices<K>
@@ -511,6 +517,10 @@ impl<K, R> PostgresStatusListService<K, R> {
             config: Arc::new(config),
             revoke_all,
         })
+    }
+
+    pub fn config(&self) -> &StatusListConfig<K> {
+        &self.config
     }
 
     fn external_id_url(&self, external_id: &str) -> Url {

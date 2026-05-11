@@ -98,19 +98,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         .issuer_settings
         .status_lists
         .serve
-        .then(|| {
-            create_serve_router(
-                (&settings.issuer_settings.credential_configurations)
-                    .into_iter()
-                    .map(|(_, settings)| {
-                        (
-                            settings.status_list.context_path.as_str(),
-                            settings.status_list.publish_dir.clone(),
-                        )
-                    }),
-                settings.issuer_settings.status_lists.ttl(),
-            )
-        })
+        .then(|| create_serve_router(status_list_services.configs().map(|config| config.to_route_source())))
         .transpose()?;
 
     // Note that HTTP is explicitly allowed for the retrieval of status lists.

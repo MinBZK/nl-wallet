@@ -737,19 +737,6 @@ async fn get_status_list_service_and_router(
 ) -> (Router, PostgresStatusListServices<PrivateKeyVariant>) {
     let db_connection = new_connection(storage_url).await.unwrap();
 
-    let status_list_router = create_serve_router(
-        (&issuer_settings.credential_configurations)
-            .into_iter()
-            .map(|(_, settings)| {
-                (
-                    settings.status_list.context_path.as_str(),
-                    settings.status_list.publish_dir.clone(),
-                )
-            }),
-        None,
-    )
-    .unwrap();
-
     let status_list_configs = StatusListAttestationSettings::settings_into_configs(
         issuer_settings
             .credential_configurations
@@ -767,6 +754,9 @@ async fn get_status_list_service_and_router(
     let status_list_services = PostgresStatusListServices::try_new(db_connection, status_list_configs)
         .await
         .unwrap();
+
+    let status_list_router =
+        create_serve_router(status_list_services.configs().map(|config| config.to_route_source())).unwrap();
 
     (status_list_router, status_list_services)
 }

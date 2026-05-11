@@ -92,19 +92,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     let status_list_router = issuer_settings
         .status_lists
         .serve
-        .then(|| {
-            create_serve_router(
-                (&issuer_settings.credential_configurations)
-                    .into_iter()
-                    .map(|(_, settings)| {
-                        (
-                            settings.status_list.context_path.as_str(),
-                            settings.status_list.publish_dir.clone(),
-                        )
-                    }),
-                issuer_settings.status_lists.ttl(),
-            )
-        })
+        .then(|| create_serve_router(status_list_services.configs().map(|config| config.to_route_source())))
         .transpose()?;
 
     let db_checkers = [store_checker, status_list_checker].into_iter().flat_map(boxed);
