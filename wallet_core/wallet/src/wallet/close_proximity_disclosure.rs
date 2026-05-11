@@ -283,7 +283,7 @@ where
     ) -> Result<MdocUri, DisclosureError> {
         info!("Starting close proximity disclosure");
 
-        self.check_disclosure_preconditions()?;
+        self.check_session_preconditions()?;
 
         info!("Checking if there is already an active session");
         if self.session.is_some() {
@@ -352,7 +352,7 @@ where
     ) -> Result<DisclosureProposalPresentation, DisclosureError> {
         info!("Continuing close proximity disclosure");
 
-        self.check_disclosure_preconditions()?;
+        self.check_session_preconditions()?;
 
         info!("Checking if there is an active close proximity session");
         let Some(Session::CloseProximityDisclosure(CloseProximityDisclosureSession { session_state, .. })) =

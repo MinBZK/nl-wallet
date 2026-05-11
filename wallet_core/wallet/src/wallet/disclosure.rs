@@ -82,6 +82,7 @@ use crate::storage::StorageError;
 use crate::wallet::HistoryError;
 use crate::wallet::Session;
 use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureError;
+use crate::wallet::state::CheckPreconditionsError;
 
 #[derive(Debug, Clone)]
 pub struct DisclosureProposalPresentation {
@@ -121,6 +122,10 @@ pub enum DisclosureError {
     #[error("wallet is locked")]
     #[category(expected)]
     Locked,
+
+    #[error("preconditions failed")]
+    #[category(expected)]
+    CheckPreconditions(#[from] CheckPreconditionsError),
 
     #[error("disclosure session is not in the correct state")]
     #[category(expected)]
@@ -550,35 +555,13 @@ where
             .registration
             .as_key_and_registration_data()
             .ok_or_else(|| DisclosureError::NotRegistered)?;
-        let attested_key_and_registration_data = (Arc::clone(attested_key), registration_data.to_owned());
 
         info!("Checking if locked");
         if self.lock.is_locked() {
             return Err(DisclosureError::Locked);
         }
 
-        Ok(attested_key_and_registration_data)
-    }
-
-    /// Checks the common preconditions for disclosure-related operations: version not blocked, wallet registered,
-    /// and wallet not locked.
-    pub(super) fn check_disclosure_preconditions(&self) -> Result<(), DisclosureError> {
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(DisclosureError::VersionBlocked);
-        }
-
-        info!("Checking if registered");
-        if !self.registration.is_registered() {
-            return Err(DisclosureError::NotRegistered);
-        }
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(DisclosureError::Locked);
-        }
-
-        Ok(())
+        Ok((Arc::clone(attested_key), registration_data.to_owned()))
     }
 
     /// Helper method that fetches attestation from the database based on their attestation type, filters out any of
@@ -667,7 +650,7 @@ where
     ) -> Result<DisclosureProposalPresentation, DisclosureError> {
         info!("Performing disclosure based on received URI: {}", uri);
 
-        self.check_disclosure_preconditions()?;
+        self.check_session_preconditions()?;
 
         info!("Checking if there is already an active session");
         if self.session.is_some() {
@@ -816,7 +799,7 @@ where
         }
     }
 
-    async fn terminate_disclosure_session(
+    pub(super) async fn terminate_disclosure_session(
         &mut self,
         session: WalletDisclosureSession<DCC::Session>,
     ) -> Result<Option<Url>, DisclosureError> {
@@ -840,31 +823,6 @@ where
         .await?;
 
         Ok(return_url)
-    }
-
-    #[instrument(skip_all)]
-    #[sentry_capture_error]
-    pub async fn cancel_disclosure(&mut self) -> Result<Option<Url>, DisclosureError>
-    where
-        CPC: CloseProximityDisclosureClient,
-    {
-        info!("Cancelling disclosure");
-
-        self.check_disclosure_preconditions()?;
-
-        info!("Checking if a disclosure session is present");
-
-        match self.session.take() {
-            Some(Session::Disclosure(session)) => self.terminate_disclosure_session(session).await,
-            Some(Session::CloseProximityDisclosure(session)) => {
-                self.terminate_close_proximity_disclosure_session(session).await?;
-                Ok(None)
-            }
-            other => {
-                self.session = other;
-                Err(DisclosureError::SessionState)
-            }
-        }
     }
 
     #[instrument(skip_all)]
@@ -1205,6 +1163,8 @@ mod tests {
     use crate::storage::ChangePinData;
     use crate::storage::DisclosableAttestation;
     use crate::storage::StoredAttestationCopy;
+    use crate::wallet::state::CancelSessionError;
+    use crate::wallet::state::CheckPreconditionsError;
     use crate::wallet::test::ISSUER_KEY;
     use crate::wallet::test::example_pid_stored_attestation_copy;
     use crate::wallet::test::example_pid_stored_attestation_copy_with_issuer_keypair;
@@ -1734,7 +1694,10 @@ mod tests {
             .await
             .expect_err("starting disclosure should not succeed");
 
-        assert_matches!(error, DisclosureError::VersionBlocked);
+        assert_matches!(
+            error,
+            DisclosureError::CheckPreconditions(CheckPreconditionsError::VersionBlocked)
+        );
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_none());
     }
@@ -1750,7 +1713,10 @@ mod tests {
             .await
             .expect_err("starting disclosure should not succeed");
 
-        assert_matches!(error, DisclosureError::NotRegistered);
+        assert_matches!(
+            error,
+            DisclosureError::CheckPreconditions(CheckPreconditionsError::NotRegistered)
+        );
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_none());
     }
@@ -1767,7 +1733,10 @@ mod tests {
             .await
             .expect_err("starting disclosure should not succeed");
 
-        assert_matches!(error, DisclosureError::Locked);
+        assert_matches!(
+            error,
+            DisclosureError::CheckPreconditions(CheckPreconditionsError::Locked)
+        );
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_none());
     }
@@ -2323,7 +2292,7 @@ mod tests {
 
         // Cancelling disclosure should result in a `Wallet` without a disclosure session.
         let cancel_return_url = wallet
-            .cancel_disclosure()
+            .cancel_session()
             .await
             .expect("cancelling disclosure should succeed");
 
@@ -2349,12 +2318,14 @@ mod tests {
 
         // Cancelling disclosure on a blocked wallet should result in an error.
         let error = wallet
-            .cancel_disclosure()
+            .cancel_session()
             .await
             .expect_err("cancelling disclosure should not succeed");
 
-        assert_matches!(error, DisclosureError::VersionBlocked);
-        assert!(error.return_url().is_none());
+        assert_matches!(
+            error,
+            CancelSessionError::Preconditions(CheckPreconditionsError::VersionBlocked)
+        );
         assert!(wallet.session.is_some());
     }
 
@@ -2365,12 +2336,14 @@ mod tests {
 
         // Cancelling disclosure on an unregistered wallet should result in an error.
         let error = wallet
-            .cancel_disclosure()
+            .cancel_session()
             .await
             .expect_err("cancelling disclosure should not succeed");
 
-        assert_matches!(error, DisclosureError::NotRegistered);
-        assert!(error.return_url().is_none());
+        assert_matches!(
+            error,
+            CancelSessionError::Preconditions(CheckPreconditionsError::NotRegistered)
+        );
         assert!(wallet.session.is_none());
     }
 
@@ -2391,12 +2364,14 @@ mod tests {
 
         // Cancelling disclosure on a locked wallet should result in an error.
         let error = wallet
-            .cancel_disclosure()
+            .cancel_session()
             .await
             .expect_err("cancelling disclosure should not succeed");
 
-        assert_matches!(error, DisclosureError::Locked);
-        assert!(error.return_url().is_none());
+        assert_matches!(
+            error,
+            CancelSessionError::Preconditions(CheckPreconditionsError::Locked)
+        );
         assert!(wallet.session.is_some());
     }
 
@@ -2409,12 +2384,11 @@ mod tests {
 
         // Cancelling disclosure on a wallet without an active disclosure session should result in an error.
         let error = wallet
-            .cancel_disclosure()
+            .cancel_session()
             .await
             .expect_err("cancelling disclosure should not succeed");
 
-        assert_matches!(error, DisclosureError::SessionState);
-        assert!(error.return_url().is_none());
+        assert_matches!(error, CancelSessionError::SessionState);
         assert!(wallet.session.is_none());
     }
 
@@ -2455,12 +2429,16 @@ mod tests {
         });
 
         let error = wallet
-            .cancel_disclosure()
+            .cancel_session()
             .await
             .expect_err("cancelling disclosure should not succeed");
 
-        assert_matches!(error, DisclosureError::VpClient(VpClientError::Request(_)));
-        assert_eq!(error.return_url(), Some(RETURN_URL.as_ref()));
+        assert_matches!(
+            error,
+            CancelSessionError::Disclosure(error)
+                if matches!(error, DisclosureError::VpClient(VpClientError::Request(_)))
+                   && error.return_url().is_some_and(|u| u == RETURN_URL.as_ref())
+        );
         assert!(wallet.session.is_none());
     }
 
@@ -2498,12 +2476,14 @@ mod tests {
             .return_once(|| Ok(None));
 
         let error = wallet
-            .cancel_disclosure()
+            .cancel_session()
             .await
             .expect_err("cancelling disclosure should not succeed");
 
-        assert_matches!(error, DisclosureError::EventStorage(_));
-        assert!(error.return_url().is_none());
+        assert_matches!(
+            error,
+            CancelSessionError::Disclosure(error) if matches!(error, DisclosureError::EventStorage(_)) && error.return_url().is_none()
+        );
         assert!(wallet.session.is_none());
         assert!(events.lock().pop().unwrap().is_empty());
     }

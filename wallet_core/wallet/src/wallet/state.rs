@@ -1,13 +1,21 @@
+use std::sync::Arc;
+
 use error_category::ErrorCategory;
+use error_category::sentry_capture_error;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
+use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
+use tracing::info;
 use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
+use url::Url;
 use wallet_account::messages::errors::AccountRevokedData;
 use wallet_account::messages::errors::RevocationReason;
+use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::Wallet;
+use crate::account_provider::AccountProviderClient;
 use crate::errors::StorageError;
 use crate::pin::change::ChangePinStorage;
 use crate::repository::Repository;
@@ -15,6 +23,8 @@ use crate::storage::PinRecoveryData;
 use crate::storage::Storage;
 use crate::storage::TransferData;
 use crate::storage::TransferKeyData;
+use crate::wallet::DisclosureError;
+use crate::wallet::IssuanceError;
 use crate::wallet::Session;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -22,6 +32,39 @@ use crate::wallet::Session;
 pub enum WalletStateError {
     #[error("error fetching data from storage: {0}")]
     Storage(#[from] StorageError),
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+pub enum CheckPreconditionsError {
+    #[category(expected)]
+    #[error("app version is blocked")]
+    VersionBlocked,
+
+    #[error("wallet is not registered")]
+    #[category(expected)]
+    NotRegistered,
+
+    #[error("wallet is locked")]
+    #[category(expected)]
+    Locked,
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
+pub enum CancelSessionError {
+    #[error("preconditions error: {0}")]
+    Preconditions(#[from] CheckPreconditionsError),
+
+    #[error("issuance error: {0}")]
+    Issuance(#[from] IssuanceError),
+
+    #[error("disclosure error: {0}")]
+    #[category(defer)]
+    Disclosure(#[from] DisclosureError),
+
+    #[error("session is not in the correct state")]
+    #[category(expected)]
+    SessionState,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -145,6 +188,58 @@ where
         }
 
         Ok(WalletState::Ready)
+    }
+
+    /// Checks the common preconditions for session (issuance/disclosure)-related operations: version not blocked,
+    /// wallet registered, and wallet not locked.
+    pub(super) fn check_session_preconditions(&self) -> Result<(), CheckPreconditionsError> {
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(CheckPreconditionsError::VersionBlocked);
+        }
+
+        info!("Checking if registered");
+        if !self.registration.is_registered() {
+            return Err(CheckPreconditionsError::NotRegistered);
+        }
+
+        info!("Checking if locked");
+        if self.lock.is_locked() {
+            return Err(CheckPreconditionsError::Locked);
+        }
+
+        Ok(())
+    }
+
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
+    pub async fn cancel_session(&mut self) -> Result<Option<Url>, CancelSessionError>
+    where
+        CR: Repository<Arc<WalletConfiguration>>,
+        APC: AccountProviderClient,
+        CPC: CloseProximityDisclosureClient,
+    {
+        info!("Cancelling disclosure");
+
+        self.check_session_preconditions()?;
+
+        info!("Checking if a disclosure session is present");
+
+        match self.session.take() {
+            Some(Session::Issuance(session)) => {
+                self.cancel_issuance(session).await?;
+                Ok(None)
+            }
+            Some(Session::Disclosure(session)) => Ok(self.terminate_disclosure_session(session).await?),
+            Some(Session::CloseProximityDisclosure(session)) => {
+                self.terminate_close_proximity_disclosure_session(session).await?;
+                Ok(None)
+            }
+            other => {
+                self.session = other;
+                Err(CancelSessionError::SessionState)
+            }
+        }
     }
 }
 

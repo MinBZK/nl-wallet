@@ -9,6 +9,7 @@ use wallet::AccountRevokedData;
 use wallet::attestation_data::LocalizedStrings;
 use wallet::errors::AccountProviderError;
 use wallet::errors::ChangePinError;
+use wallet::errors::CheckPreconditionsError;
 use wallet::errors::CloseProximityDisclosureError;
 use wallet::errors::DeleteAttestationError;
 use wallet::errors::DisclosureBasedIssuanceError;
@@ -262,10 +263,12 @@ impl FlutterApiErrorFields for IssuanceError {
         }
 
         match self {
-            IssuanceError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            IssuanceError::NotRegistered | IssuanceError::Locked | IssuanceError::SessionState => {
-                FlutterApiErrorType::WalletState
-            }
+            IssuanceError::CheckPreconditions(CheckPreconditionsError::VersionBlocked)
+            | IssuanceError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            IssuanceError::CheckPreconditions(_)
+            | IssuanceError::NotRegistered
+            | IssuanceError::Locked
+            | IssuanceError::SessionState => FlutterApiErrorType::WalletState,
             IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(_))) => {
                 FlutterApiErrorType::RedirectUri
             }
@@ -280,7 +283,25 @@ impl FlutterApiErrorFields for IssuanceError {
                 FlutterApiErrorType::WrongDigid
             }
             IssuanceError::Instruction(error) => FlutterApiErrorType::from(error),
-            _ => FlutterApiErrorType::Generic,
+            IssuanceError::PidAlreadyPresent
+            | IssuanceError::NoPidPresent
+            | IssuanceError::IssuerMetadataDiscovery(_)
+            | IssuanceError::Signature(_)
+            | IssuanceError::MissingSignature
+            | IssuanceError::AttestationStorage(_)
+            | IssuanceError::AttestationQuery(_)
+            | IssuanceError::KeyNotFound(_)
+            | IssuanceError::Attestations(_)
+            | IssuanceError::Notifications(_)
+            | IssuanceError::Events(_)
+            | IssuanceError::ChangePin(_)
+            | IssuanceError::JwtCredential(_)
+            | IssuanceError::Certificate(_)
+            | IssuanceError::MissingPidSdJwt
+            | IssuanceError::RecoveryCodeDisclosure(_)
+            | IssuanceError::TransferDataStorage(_)
+            | IssuanceError::IssuanceSession(_)
+            | IssuanceError::RecoveryCode(_) => FlutterApiErrorType::Generic,
         }
     }
 
@@ -339,10 +360,12 @@ fn type_for_vp_message_client(error: &VpMessageClientError) -> Option<FlutterApi
 impl FlutterApiErrorFields for DisclosureError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
-            DisclosureError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            DisclosureError::NotRegistered | DisclosureError::Locked | DisclosureError::SessionState => {
-                FlutterApiErrorType::WalletState
-            }
+            DisclosureError::CheckPreconditions(CheckPreconditionsError::VersionBlocked)
+            | DisclosureError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            DisclosureError::CheckPreconditions(_)
+            | DisclosureError::NotRegistered
+            | DisclosureError::Locked
+            | DisclosureError::SessionState => FlutterApiErrorType::WalletState,
             DisclosureError::VpClient(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
                 FlutterApiErrorType::DisclosureSourceMismatch
             }

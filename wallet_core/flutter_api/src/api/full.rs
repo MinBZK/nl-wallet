@@ -334,11 +334,12 @@ pub async fn cancel_pin_recovery() -> anyhow::Result<()> {
     Ok(())
 }
 
+// TODO remove this function
 #[flutter_api_error]
 pub async fn cancel_issuance() -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
 
-    wallet.cancel_issuance().await?;
+    wallet.cancel_session().await?;
 
     Ok(())
 }
@@ -412,10 +413,20 @@ pub async fn continue_close_proximity_disclosure() -> anyhow::Result<StartDisclo
 }
 
 #[flutter_api_error]
+pub async fn cancel_session() -> anyhow::Result<Option<String>> {
+    let mut wallet = wallet().write().await;
+
+    let return_url = wallet.cancel_session().await?.map(String::from);
+
+    Ok(return_url)
+}
+
+// TODO remove this function
+#[flutter_api_error]
 pub async fn cancel_disclosure() -> anyhow::Result<Option<String>> {
     let mut wallet = wallet().write().await;
 
-    let return_url = wallet.cancel_disclosure().await?.map(String::from);
+    let return_url = wallet.cancel_session().await?.map(String::from);
 
     Ok(return_url)
 }

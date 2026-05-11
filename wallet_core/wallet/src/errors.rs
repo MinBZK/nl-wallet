@@ -26,6 +26,8 @@ pub use crate::repository::HttpClientError;
 pub use crate::storage::KeyFileError;
 pub use crate::storage::StorageError;
 pub use crate::update_policy::UpdatePolicyError;
+pub use crate::wallet::CancelSessionError;
+pub use crate::wallet::CheckPreconditionsError;
 pub use crate::wallet::CloseProximityDisclosureError;
 pub use crate::wallet::DeleteAttestationError;
 pub use crate::wallet::DisclosureBasedIssuanceError;
