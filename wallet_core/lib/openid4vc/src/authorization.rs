@@ -13,7 +13,7 @@ use serde_with::skip_serializing_none;
 use url::Url;
 
 /// See
-/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-authorization-request>
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-authorization-request>
 /// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.1>.
 /// When sent using [PAR (Pushed Authorization Requests)](https://datatracker.ietf.org/doc/html/rfc9126),
 /// it is usually sent URL-encoded in the request body to POST /op/par.
