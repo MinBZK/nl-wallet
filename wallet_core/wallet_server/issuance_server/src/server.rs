@@ -1,180 +1,65 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use anyhow::Result;
 use axum::Router;
-use crypto::trust_anchor::BorrowingTrustAnchor;
-use futures::future::try_join_all;
-use hsm::service::Pkcs11Hsm;
-use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
-use openid4vc::issuer::IssuanceData;
-use openid4vc::issuer::Issuer;
-use openid4vc::nonce::store::NonceStore;
-use openid4vc::server_state::SessionStore;
-use openid4vc::verifier::DisclosureData;
-use openid4vc::verifier::SessionTypeReturnUrl;
-use openid4vc::verifier::WalletInitiatedUseCase;
-use openid4vc::verifier::WalletInitiatedUseCases;
+use http_utils::health::HealthChecker;
+use http_utils::health::create_health_router;
 use openid4vc_server::issuer::create_issuance_router;
-use openid4vc_server::verifier::VerifierFactory;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::server::add_cache_control_no_store_layer;
 use server_utils::server::create_internal_listener;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::listen;
 use server_utils::server::secure_internal_router;
+use server_utils::settings::Settings;
+use status_lists::postgres::PostgresStatusListServices;
 use status_lists::revoke::create_revocation_router;
-use token_status_list::status_list_service::StatusListRevocationService;
-use token_status_list::status_list_service::StatusListServices;
-use token_status_list::verification::client::StatusListClient;
-use token_status_list::verification::verifier::RevocationVerifier;
+use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
-use utils::generator::TimeGenerator;
 
-use crate::disclosure::AttributesFetcher;
-use crate::disclosure::IssuanceResultHandler;
-use crate::settings::IssuanceServerSettings;
+use crate::settings::IssuanceServerIssuer;
 
-#[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve<IS, N, DS, A, L, C>(
-    settings: IssuanceServerSettings,
-    hsm: Option<Pkcs11Hsm>,
-    issuance_sessions: Arc<IS>,
-    proof_nonce_store: N,
-    disclosure_sessions: Arc<DS>,
-    attributes_fetcher: A,
-    status_list_services: L,
-    status_list_router: Option<Router>,
-    status_list_client: C,
-    health_router: Router,
-) -> Result<()>
-where
-    IS: SessionStore<IssuanceData> + Send + Sync + 'static,
-    N: NonceStore + Send + Sync + 'static,
-    DS: SessionStore<DisclosureData> + Send + Sync + 'static,
-    A: AttributesFetcher + Sync + 'static,
-    L: StatusListServices + StatusListRevocationService + Sync + 'static,
-    C: StatusListClient + Sync + 'static,
-{
+pub async fn serve(
+    issuer: Arc<IssuanceServerIssuer>,
+    status_list_services: Arc<PostgresStatusListServices<PrivateKeyVariant>>,
+    server_settings: Settings,
+    serve_status_lists: bool,
+    health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
+    disclosure_router: Router,
+) -> Result<()> {
     serve_with_listeners(
-        create_wallet_listener(&settings.issuer_settings.server_settings.wallet_server).await?,
-        create_internal_listener(&settings.issuer_settings.server_settings.internal_server).await?,
-        settings,
-        hsm,
-        issuance_sessions,
-        proof_nonce_store,
-        disclosure_sessions,
-        attributes_fetcher,
+        create_wallet_listener(&server_settings.wallet_server).await?,
+        create_internal_listener(&server_settings.internal_server).await?,
+        issuer,
         status_list_services,
-        status_list_router,
-        status_list_client,
-        health_router,
+        server_settings,
+        serve_status_lists,
+        health_checkers,
+        disclosure_router,
     )
     .await
 }
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve_with_listeners<IS, N, DS, A, L, C>(
+pub async fn serve_with_listeners(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
-    settings: IssuanceServerSettings,
-    hsm: Option<Pkcs11Hsm>,
-    issuance_sessions: Arc<IS>,
-    proof_nonce_store: N,
-    disclosure_sessions: Arc<DS>,
-    attributes_fetcher: A,
-    status_list_services: L,
-    status_list_router: Option<Router>,
-    status_list_client: C,
-    health_router: Router,
-) -> Result<()>
-where
-    IS: SessionStore<IssuanceData> + Send + Sync + 'static,
-    N: NonceStore + Send + Sync + 'static,
-    DS: SessionStore<DisclosureData> + Send + Sync + 'static,
-    A: AttributesFetcher + Sync + 'static,
-    L: StatusListServices + StatusListRevocationService + Sync + 'static,
-    C: StatusListClient + Sync + 'static,
-{
-    let issuer_settings = settings.issuer_settings;
-    let log_requests = issuer_settings.server_settings.log_requests;
-    let type_metadata = issuer_settings.metadata;
-    let disclosure_public_url = issuer_settings.public_url.as_base_url().join_base_url("disclosure");
-    let attestation_config = issuer_settings
-        .credential_configurations
-        .parse(&hsm, &type_metadata)
-        .await?;
-
-    let use_cases = try_join_all(settings.disclosure_settings.into_iter().map(|(id, s)| {
-        let hsm = hsm.clone();
-
-        async move {
-            Ok::<_, anyhow::Error>((
-                id,
-                WalletInitiatedUseCase::new(
-                    s.key_pair.parse(hsm).await?,
-                    SessionTypeReturnUrl::Both,
-                    s.dcql_query.try_into()?,
-                    format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap(),
-                ),
-            ))
-        }
-    }))
-    .await?
-    .into_iter()
-    .collect::<HashMap<String, WalletInitiatedUseCase<PrivateKeyVariant>>>();
-
-    let use_cases = WalletInitiatedUseCases::new(use_cases);
-
-    let status_list_services = Arc::new(status_list_services);
-    let issuer = Arc::new(Issuer::new(
-        issuer_settings.public_url.clone(),
-        issuer_settings.batch_size,
-        issuer_settings.wallet_client_ids.clone(),
-        attestation_config,
-        None,
-        None,
-        (),
-        issuance_sessions,
-        proof_nonce_store,
-        Arc::clone(&status_list_services),
-    ));
-
-    let issuance_router = create_issuance_router(Arc::clone(&issuer));
-
-    let result_handler = IssuanceResultHandler {
-        issuer,
-        attributes_fetcher,
-    };
-
-    let revocation_verifier = RevocationVerifier::new(
-        Arc::new(status_list_client),
-        settings.status_list_token_cache_settings.capacity,
-        settings.status_list_token_cache_settings.default_ttl,
-        settings.status_list_token_cache_settings.error_ttl,
-        TimeGenerator,
-    );
-
-    let disclosure_router = VerifierFactory::new(
-        disclosure_public_url,
-        settings.universal_link_base_url,
-        use_cases,
-        issuer_settings
-            .server_settings
-            .issuer_trust_anchors
-            .iter()
-            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
-            .collect(),
-        issuer_settings.wallet_client_ids,
-        settings.extending_vct_values.unwrap_or_default(),
-    )
-    .create_wallet_router(disclosure_sessions, revocation_verifier, Some(Box::new(result_handler)));
-
-    let mut wallet_router = add_cache_control_no_store_layer(issuance_router)
+    issuer: Arc<IssuanceServerIssuer>,
+    status_list_services: Arc<PostgresStatusListServices<PrivateKeyVariant>>,
+    server_settings: Settings,
+    serve_status_lists: bool,
+    health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
+    disclosure_router: Router,
+) -> Result<()> {
+    let issuance_router = create_issuance_router(issuer);
+    let mut router = add_cache_control_no_store_layer(issuance_router)
         .nest("/disclosure", add_cache_control_no_store_layer(disclosure_router));
 
-    if let Some(status_list_router) = status_list_router {
-        wallet_router = wallet_router.merge(status_list_router);
+    if serve_status_lists {
+        let status_list_router =
+            create_serve_router(status_list_services.configs().map(|config| config.to_route_source()))?;
+
+        router = router.merge(status_list_router);
     }
 
     let (internal_router, internal_openapi) = create_revocation_router(status_list_services);
@@ -189,15 +74,18 @@ where
     #[cfg(not(feature = "test_internal_ui"))]
     let mut internal_router = internal_router.route("/openapi.json", axum::routing::get(axum::Json(internal_openapi)));
 
-    internal_router = secure_internal_router(&issuer_settings.server_settings.internal_server, internal_router);
+    internal_router = secure_internal_router(&server_settings.internal_server, internal_router);
     internal_router = add_cache_control_no_store_layer(internal_router);
+
+    let health_router = create_health_router(health_checkers);
+
     listen(
         wallet_listener,
         internal_listener,
-        wallet_router,
+        router,
         internal_router,
         health_router,
-        log_requests,
+        server_settings.log_requests,
     )
     .await
 }

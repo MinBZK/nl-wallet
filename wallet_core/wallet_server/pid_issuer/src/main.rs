@@ -1,25 +1,13 @@
-use std::sync::Arc;
-
 use anyhow::Result;
-use anyhow::anyhow;
-use health_checkers::boxed;
 use health_checkers::hsm::HsmChecker;
-use health_checkers::postgres::DatabaseChecker;
 use hsm::service::Pkcs11Hsm;
-use http_utils::health::create_health_router;
-use issuer_common::nonce_store::ProofNonceStore;
-use issuer_common::settings::StatusListAttestationSettings;
+use openid4vc::issuer::WiaConfig;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
 use pid_issuer::server;
 use pid_issuer::settings::PidIssuerSettings;
 use server_utils::keys::SecretKeyVariant;
 use server_utils::server::wallet_server_main;
-use server_utils::store::SessionStoreVariant;
-use server_utils::store::StoreConnection;
-use server_utils::store::postgres::new_connection;
-use status_lists::postgres::PostgresStatusListServices;
-use status_lists::serve::create_serve_router;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -27,8 +15,10 @@ async fn main() -> Result<()> {
 }
 
 async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
-    let issuer_settings = settings.issuer_settings;
-    let hsm = issuer_settings
+    let serve_status_lists = settings.issuer_settings.status_lists.serve;
+
+    let hsm = settings
+        .issuer_settings
         .server_settings
         .hsm
         .clone()
@@ -36,19 +26,9 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         .transpose()?;
     let hsm_checker = hsm.as_ref().map(HsmChecker::new);
 
-    let storage_settings = &issuer_settings.server_settings.storage;
-    let store_connection = StoreConnection::try_new(storage_settings.url.clone()).await?;
-    let mut store_checker = match &store_connection {
-        StoreConnection::Postgres(connection) => Some(DatabaseChecker::new("db-session", connection)),
-        _ => None,
+    let wia_config = WiaConfig {
+        wia_issuer_pubkey: (&settings.wua_issuer_pubkey.into_inner()).into(),
     };
-
-    let sessions = Arc::new(SessionStoreVariant::new(
-        store_connection.clone(),
-        storage_settings.into(),
-    ));
-    let proof_nonce_store = ProofNonceStore::new(store_connection.clone());
-
     let upstream_oauth_identifier = settings.digid.client_settings.oidc_identifier.clone();
 
     let pid_attr_service = BrpPidAttributeService::try_new(
@@ -59,57 +39,22 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?,
     )?;
 
-    let (db_connection, status_list_checker) =
-        match (store_connection, issuer_settings.status_lists.storage_url.as_ref()) {
-            (_, Some(url)) => {
-                let connection = new_connection(url.clone()).await.map_err(anyhow::Error::from)?;
-                let checker = DatabaseChecker::new("db-status-list", &connection);
-                Ok((connection, Some(checker)))
-            }
-            (StoreConnection::Postgres(db_connection), None) => {
-                // Safe unwrap as store is Postgres
-                store_checker.as_mut().unwrap().rename("db");
-                Ok((db_connection, None))
-            }
-            _ => Err(anyhow!(
-                "No database connection configured for status list in pid issuer"
-            )),
-        }?;
-    let status_list_configs = StatusListAttestationSettings::settings_into_configs(
-        issuer_settings
-            .credential_configurations
-            .as_ref()
-            .values()
-            .map(|settings| settings.status_list.clone())
-            .collect(),
-        &issuer_settings.status_lists,
-        issuer_settings.public_url.as_base_url().clone(),
-        hsm.clone(),
-    )
-    .await?;
-    let status_list_services = PostgresStatusListServices::try_new(db_connection, status_list_configs).await?;
-    status_list_services.initialize_lists().await?;
-    let status_list_router = issuer_settings
-        .status_lists
-        .serve
-        .then(|| create_serve_router(status_list_services.configs().map(|config| config.to_route_source())))
-        .transpose()?;
+    let (issuer, status_list_services, database_checkers, _, server_settings) = settings
+        .issuer_settings
+        .into_issuer(hsm, Some(wia_config), Some(upstream_oauth_identifier), pid_attr_service)
+        .await?;
 
-    let db_checkers = [store_checker, status_list_checker].into_iter().flat_map(boxed);
-    let health_router = create_health_router(std::iter::once(hsm_checker).flat_map(boxed).chain(db_checkers));
+    let health_checkers = health_checkers::boxed(hsm_checker)
+        .into_iter()
+        .chain(database_checkers.into_iter().map(|checker| Box::new(checker) as Box<_>));
 
     // This will block until the server shuts down.
     server::serve(
-        pid_attr_service,
-        upstream_oauth_identifier,
-        issuer_settings,
-        hsm,
-        sessions,
-        proof_nonce_store,
-        settings.wua_issuer_pubkey.into_inner(),
+        issuer,
         status_list_services,
-        status_list_router,
-        health_router,
+        server_settings,
+        serve_status_lists,
+        health_checkers,
     )
     .await
 }

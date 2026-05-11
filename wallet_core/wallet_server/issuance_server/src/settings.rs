@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::path::Path;
+use std::sync::Arc;
 
+use axum::Router;
 use config::Config;
 use config::ConfigError;
 use config::Environment;
@@ -8,38 +10,74 @@ use config::File;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
 use dcql::Query;
+use dcql::normalized::UnsupportedDcqlFeatures;
 use derive_more::Debug;
+use futures::future::try_join_all;
+use hsm::service::Pkcs11Hsm;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use issuer_common::nonce_store::ProofNonceStore;
 use issuer_common::settings::IssuerSettings;
 use issuer_common::settings::IssuerSettingsValidationError;
+use itertools::Itertools;
+use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
+use openid4vc::issuer::IssuanceData;
+use openid4vc::issuer::Issuer;
 use openid4vc::server_state::SessionStoreTimeouts;
+use openid4vc::verifier::DisclosureData;
+use openid4vc::verifier::SessionTypeReturnUrl;
+use openid4vc::verifier::WalletInitiatedUseCase;
+use openid4vc::verifier::WalletInitiatedUseCases;
+use openid4vc_server::verifier::VerifierFactory;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
+use server_utils::keys::PrivateKeySettingsError;
+use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::KeyPair;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
 use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
+use server_utils::store::SessionStoreVariant;
+use status_lists::postgres::PostgresStatusListServices;
+use token_status_list::verification::reqwest::HttpStatusListClient;
+use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 
-#[serde_as]
+use crate::disclosure::HttpAttributesFetcher;
+use crate::disclosure::IssuanceResultHandler;
+
+pub type IssuanceServerIssuer = Issuer<
+    PrivateKeyVariant,
+    (),
+    SessionStoreVariant<IssuanceData>,
+    ProofNonceStore,
+    PostgresStatusListServices<PrivateKeyVariant>,
+>;
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct IssuanceServerSettings {
-    pub disclosure_settings: HashMap<String, AttestationSettings>,
-
     #[serde(flatten)]
     pub issuer_settings: IssuerSettings,
+
+    #[serde(flatten)]
+    pub verifier_settings: VerifierSettings,
 
     /// Configuration for caching status list tokens.
     #[serde(default)]
     pub status_list_token_cache_settings: StatusListTokenCacheSettings,
+}
+
+#[serde_as]
+#[derive(Debug, Clone, Deserialize)]
+pub struct VerifierSettings {
+    pub disclosure_settings: HashMap<String, AttestationSettings>,
 
     /// Reader trust anchors are used to verify the keys and certificates in the `disclosure_settings` configuration on
     /// application startup.
@@ -64,6 +102,21 @@ pub struct AttestationSettings {
     /// (or an empty JSON array if none).
     #[debug(skip)]
     pub attestation_url_config: TlsPinningConfig,
+}
+
+impl IssuanceServerSettings {
+    pub fn to_revocation_verifier(
+        &self,
+        status_list_client: HttpStatusListClient,
+    ) -> RevocationVerifier<HttpStatusListClient> {
+        RevocationVerifier::new(
+            Arc::new(status_list_client),
+            self.status_list_token_cache_settings.capacity,
+            self.status_list_token_cache_settings.default_ttl,
+            self.status_list_token_cache_settings.error_ttl,
+            TimeGenerator,
+        )
+    }
 }
 
 impl ServerSettings for IssuanceServerSettings {
@@ -126,6 +179,30 @@ impl ServerSettings for IssuanceServerSettings {
     fn validate(&self) -> Result<(), IssuerSettingsValidationError> {
         self.issuer_settings.validate()?;
 
+        self.verifier_settings.validate()?;
+
+        Ok(())
+    }
+
+    fn server_settings(&self) -> &Settings {
+        &self.issuer_settings.server_settings
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum VerifierSettingsError {
+    #[error("invalid disclosure private key: {0}")]
+    PrivateKey(#[source] PrivateKeySettingsError),
+
+    #[error("unsupported DCQL query: {0}")]
+    Dcql(#[source] UnsupportedDcqlFeatures),
+
+    #[error("could not initialize attributes fetcher: {0}")]
+    AttributesFetcher(#[source] reqwest::Error),
+}
+
+impl VerifierSettings {
+    fn validate(&self) -> Result<(), IssuerSettingsValidationError> {
         let time = TimeGenerator;
 
         let trust_anchors: Vec<TrustAnchor<'_>> = self
@@ -145,7 +222,77 @@ impl ServerSettings for IssuanceServerSettings {
         Ok(())
     }
 
-    fn server_settings(&self) -> &Settings {
-        &self.issuer_settings.server_settings
+    pub async fn into_disclosure_router(
+        self,
+        hsm: Option<Pkcs11Hsm>,
+        issuer: Arc<IssuanceServerIssuer>,
+        disclosure_sessions: SessionStoreVariant<DisclosureData>,
+        revocation_verifier: RevocationVerifier<HttpStatusListClient>,
+        server_settings: &Settings,
+    ) -> Result<Router, VerifierSettingsError> {
+        let use_case_count = self.disclosure_settings.len();
+        let (use_case_futures, url_configs) = self
+            .disclosure_settings
+            .into_iter()
+            .zip_eq(itertools::repeat_n(hsm, use_case_count))
+            .map(|((id, attestation), hsm)| {
+                let use_case_id = id.clone();
+                let use_case_future = async {
+                    let key_pair = attestation
+                        .key_pair
+                        .parse(hsm)
+                        .await
+                        .map_err(VerifierSettingsError::PrivateKey)?;
+
+                    let use_case = WalletInitiatedUseCase::new(
+                        key_pair,
+                        SessionTypeReturnUrl::Both,
+                        attestation.dcql_query.try_into().map_err(VerifierSettingsError::Dcql)?,
+                        format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap(),
+                    );
+
+                    Ok((use_case_id, use_case))
+                };
+
+                (use_case_future, (id, attestation.attestation_url_config))
+            })
+            .unzip::<_, _, Vec<_>, HashMap<_, _>>();
+
+        let use_cases = try_join_all(use_case_futures)
+            .await?
+            .into_iter()
+            .collect::<HashMap<_, _>>();
+        let use_cases = WalletInitiatedUseCases::new(use_cases);
+
+        let attributes_fetcher =
+            HttpAttributesFetcher::try_new(url_configs).map_err(VerifierSettingsError::AttributesFetcher)?;
+
+        let issuer_trust_anchors = server_settings
+            .issuer_trust_anchors
+            .iter()
+            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
+            .collect();
+
+        let factory = VerifierFactory::new(
+            issuer.issuer_identifier().as_base_url().join_base_url("disclosure"),
+            self.universal_link_base_url,
+            use_cases,
+            issuer_trust_anchors,
+            issuer.accepted_wallet_client_ids().map(str::to_string).collect_vec(),
+            self.extending_vct_values.unwrap_or_default(),
+        );
+
+        let result_handler = IssuanceResultHandler {
+            issuer,
+            attributes_fetcher,
+        };
+
+        let router = factory.create_wallet_router(
+            Arc::new(disclosure_sessions),
+            revocation_verifier,
+            Some(Box::new(result_handler)),
+        );
+
+        Ok(router)
     }
 }

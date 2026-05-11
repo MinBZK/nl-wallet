@@ -177,7 +177,7 @@ where
 
         let credential_offer = CredentialOfferContainer {
             credential_offer: CredentialOffer {
-                credential_issuer: self.issuer.metadata().credential_issuer.clone(),
+                credential_issuer: self.issuer.issuer_identifier().clone(),
                 credential_configuration_ids,
                 grants: Some(Grants::PreAuthorizedCode {
                     pre_authorized_code: GrantPreAuthorizedCode::new(token.into()),

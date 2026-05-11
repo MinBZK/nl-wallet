@@ -1,109 +1,80 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use axum::Router;
-use hsm::service::Pkcs11Hsm;
-use issuer_common::settings::IssuerSettings;
+use http_utils::health::HealthChecker;
+use http_utils::health::create_health_router;
+use issuer_common::nonce_store::ProofNonceStore;
 use openid4vc::issuer::AttributeService;
+use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
-use openid4vc::issuer::WiaConfig;
-use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::nonce::store::NonceStore;
-use openid4vc::server_state::SessionStore;
 use openid4vc_server::issuer::create_issuance_router;
-use p256::ecdsa::VerifyingKey;
+use server_utils::keys::PrivateKeyVariant;
 use server_utils::server::add_cache_control_no_store_layer;
 use server_utils::server::create_internal_listener;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::listen;
 use server_utils::server::secure_internal_router;
+use server_utils::settings::Settings;
+use server_utils::store::SessionStoreVariant;
+use status_lists::postgres::PostgresStatusListServices;
 use status_lists::revoke::create_revocation_router;
-use token_status_list::status_list_service::StatusListRevocationService;
-use token_status_list::status_list_service::StatusListServices;
+use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
 
-#[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve<A, IS, N, L>(
-    attr_service: A,
-    upstream_oauth_identifier: IssuerIdentifier,
-    settings: IssuerSettings,
-    hsm: Option<Pkcs11Hsm>,
-    issuance_sessions: Arc<IS>,
-    proof_nonce_store: N,
-    wia_issuer_pubkey: VerifyingKey,
-    status_list_services: L,
-    status_list_router: Option<Router>,
-    health_router: Router,
+pub async fn serve<A>(
+    issuer: Issuer<
+        PrivateKeyVariant,
+        A,
+        SessionStoreVariant<IssuanceData>,
+        ProofNonceStore,
+        PostgresStatusListServices<PrivateKeyVariant>,
+    >,
+    status_list_services: Arc<PostgresStatusListServices<PrivateKeyVariant>>,
+    server_settings: Settings,
+    serve_status_lists: bool,
+    health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
-    IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
-    N: NonceStore + Send + Sync + 'static,
-    L: StatusListServices + StatusListRevocationService + Send + Sync + 'static,
 {
     serve_with_listeners(
-        create_wallet_listener(&settings.server_settings.wallet_server).await?,
-        create_internal_listener(&settings.server_settings.internal_server).await?,
-        attr_service,
-        upstream_oauth_identifier,
-        settings,
-        hsm,
-        issuance_sessions,
-        proof_nonce_store,
-        wia_issuer_pubkey,
+        create_wallet_listener(&server_settings.wallet_server).await?,
+        create_internal_listener(&server_settings.internal_server).await?,
+        issuer,
         status_list_services,
-        status_list_router,
-        health_router,
+        server_settings,
+        serve_status_lists,
+        health_checkers,
     )
     .await
 }
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve_with_listeners<A, IS, N, L>(
+pub async fn serve_with_listeners<A>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
-    attr_service: A,
-    upstream_oauth_identifier: IssuerIdentifier,
-    settings: IssuerSettings,
-    hsm: Option<Pkcs11Hsm>,
-    issuance_sessions: Arc<IS>,
-    proof_nonce_store: N,
-    wia_issuer_pubkey: VerifyingKey,
-    status_list_services: L,
-    status_list_router: Option<Router>,
-    health_router: Router,
+    issuer: Issuer<
+        PrivateKeyVariant,
+        A,
+        SessionStoreVariant<IssuanceData>,
+        ProofNonceStore,
+        PostgresStatusListServices<PrivateKeyVariant>,
+    >,
+    status_list_services: Arc<PostgresStatusListServices<PrivateKeyVariant>>,
+    server_settings: Settings,
+    serve_status_lists: bool,
+    health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
-    IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
-    N: NonceStore + Send + Sync + 'static,
-    L: StatusListServices + StatusListRevocationService + Send + Sync + 'static,
 {
-    let log_requests = settings.server_settings.log_requests;
+    let issuance_router = create_issuance_router(Arc::new(issuer));
+    let mut router = add_cache_control_no_store_layer(issuance_router);
 
-    let attestation_config = settings
-        .credential_configurations
-        .parse(&hsm, &settings.metadata)
-        .await?;
+    if serve_status_lists {
+        let status_list_router =
+            create_serve_router(status_list_services.configs().map(|config| config.to_route_source()))?;
 
-    let status_list_services = Arc::new(status_list_services);
-    let wallet_issuance_router = create_issuance_router(Arc::new(Issuer::new(
-        settings.public_url,
-        settings.batch_size,
-        settings.wallet_client_ids,
-        attestation_config,
-        Some(WiaConfig {
-            wia_issuer_pubkey: (&wia_issuer_pubkey).into(),
-        }),
-        Some(upstream_oauth_identifier),
-        attr_service,
-        issuance_sessions,
-        proof_nonce_store,
-        Arc::clone(&status_list_services),
-    )));
-
-    let mut router = add_cache_control_no_store_layer(wallet_issuance_router);
-    if let Some(status_list_router) = status_list_router {
         router = router.merge(status_list_router);
     }
 
@@ -119,15 +90,18 @@ where
     #[cfg(not(feature = "test_internal_ui"))]
     let mut internal_router = internal_router.route("/openapi.json", axum::routing::get(axum::Json(internal_openapi)));
 
-    internal_router = secure_internal_router(&settings.server_settings.internal_server, internal_router);
+    internal_router = secure_internal_router(&server_settings.internal_server, internal_router);
     internal_router = add_cache_control_no_store_layer(internal_router);
+
+    let health_router = create_health_router(health_checkers);
+
     listen(
         wallet_listener,
         internal_listener,
         router,
         internal_router,
         health_router,
-        log_requests,
+        server_settings.log_requests,
     )
     .await
 }

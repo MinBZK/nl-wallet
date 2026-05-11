@@ -391,12 +391,20 @@ impl<K, A, S, N, L> Drop for Issuer<K, A, S, N, L> {
 }
 
 impl<K, A, S, N, L> Issuer<K, A, S, N, L> {
-    pub fn metadata(&self) -> &IssuerMetadata {
-        &self.issuer_data.metadata
-    }
-
     pub fn credential_configurations(&self) -> &CredentialConfigurations<K> {
         &self.issuer_data.credential_configs
+    }
+
+    pub fn accepted_wallet_client_ids(&self) -> impl Iterator<Item = &str> {
+        self.issuer_data.accepted_wallet_client_ids.iter().map(String::as_str)
+    }
+
+    pub fn issuer_identifier(&self) -> &IssuerIdentifier {
+        &self.issuer_data.metadata.credential_issuer
+    }
+
+    pub fn metadata(&self) -> &IssuerMetadata {
+        &self.issuer_data.metadata
     }
 }
 
