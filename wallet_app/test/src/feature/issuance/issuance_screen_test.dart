@@ -511,6 +511,19 @@ void main() {
       await screenMatchesGolden('cancelled_session_error.light');
     });
 
+    testGoldens('IssuanceRelyingPartyError Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceRelyingPartyError(
+            error: const GenericError('test', sourceError: 'test'),
+            organizationName: 'XYZ Bank'.untranslated,
+          ),
+        ),
+      );
+      await screenMatchesGolden('relying_party_error.light');
+    });
+
     testGoldens('ltc5 IssuanceCancelledSessionError Dark Landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(

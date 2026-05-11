@@ -13,7 +13,7 @@ class SignLoadTriggered extends SignEvent {
   const SignLoadTriggered(this.id);
 
   @override
-  List<Object?> get props => [id];
+  List<Object?> get props => [...super.props, id];
 }
 
 class SignBackPressed extends SignEvent {

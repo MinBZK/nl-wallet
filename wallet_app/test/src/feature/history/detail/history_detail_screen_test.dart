@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/policy/organization_policy.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/feature/history/detail/bloc/history_detail_bloc.dart';
 import 'package:wallet/src/feature/history/detail/history_detail_screen.dart';
 import 'package:wallet/src/feature/history/detail/widget/page/history_detail_deletion_page.dart';
@@ -208,7 +209,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
-          const HistoryDetailLoadFailure(),
+          const HistoryDetailLoadFailure(GenericError('test', sourceError: 'test')),
         ),
       );
       await screenMatchesGolden('loading.error.light');
@@ -428,15 +429,15 @@ void main() {
         const HistoryDetailScreen()
             .withState<HistoryDetailBloc, HistoryDetailState>(
               MockHistoryDetailBloc(),
-              const HistoryDetailLoadFailure(),
+              const HistoryDetailLoadFailure(GenericError('test', sourceError: 'test')),
             )
             .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
       );
 
       final l10n = await TestUtils.englishLocalizations;
-      expect(find.text(l10n.historyDetailScreenTitle), findsAtLeast(1));
-      expect(find.text(l10n.errorScreenGenericDescription), findsOneWidget);
-      expect(find.text(l10n.generalRetry), findsOneWidget); // CTA to retry is visible
+      expect(find.text(l10n.errorScreenGenericHeadline), findsAtLeast(1));
+      expect(find.text(l10n.errorScreenGenericDescriptionCloseVariant), findsOneWidget);
+      expect(find.text(l10n.generalClose), findsOneWidget); // CTA to close is visible
     });
   });
 }
