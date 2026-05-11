@@ -5,6 +5,8 @@ sealed class HistoryDetailState extends Equatable {
 }
 
 class HistoryDetailInitial extends HistoryDetailState {
+  const HistoryDetailInitial();
+
   @override
   List<Object> get props => [];
 }
@@ -25,9 +27,12 @@ class HistoryDetailLoadSuccess extends HistoryDetailState {
   List<Object> get props => [event];
 }
 
-class HistoryDetailLoadFailure extends HistoryDetailState {
-  const HistoryDetailLoadFailure();
+class HistoryDetailLoadFailure extends HistoryDetailState implements ErrorState {
+  @override
+  final ApplicationError error;
+
+  const HistoryDetailLoadFailure(this.error);
 
   @override
-  List<Object> get props => [];
+  List<Object> get props => [error];
 }
