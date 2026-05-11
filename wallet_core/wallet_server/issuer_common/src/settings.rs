@@ -380,15 +380,16 @@ impl StatusListAttestationSettings {
     pub async fn settings_into_configs(
         attestation_settings: Vec<StatusListAttestationSettings>,
         status_list_settings: &StatusListsSettings,
-        public_url: &BaseUrl,
+        public_url: BaseUrl,
         hsm: Option<Pkcs11Hsm>,
     ) -> Result<StatusListConfigs<PrivateKeyVariant>, StatusListAttestationSettingsError> {
         let attestation_count = attestation_settings.len();
         let group_names_and_config = try_join_all(
             attestation_settings
                 .into_iter()
+                .zip_eq(itertools::repeat_n(public_url, attestation_count))
                 .zip_eq(itertools::repeat_n(hsm, attestation_count))
-                .map(|(attestation, hsm)| {
+                .map(|((attestation, public_url), hsm)| {
                     attestation.into_group_name_and_config(status_list_settings, public_url, hsm)
                 }),
         )
@@ -400,17 +401,13 @@ impl StatusListAttestationSettings {
     async fn into_group_name_and_config(
         self,
         status_list_settings: &StatusListsSettings,
-        public_url: &BaseUrl,
+        public_url: BaseUrl,
         hsm: Option<Pkcs11Hsm>,
     ) -> Result<(String, StatusListConfig<PrivateKeyVariant>), StatusListAttestationSettingsError> {
-        let base_url = self
-            .base_url
-            .as_ref()
-            .unwrap_or(public_url)
-            .join_base_url(&self.context_path);
+        let base_url = self.base_url.unwrap_or(public_url);
         let key_pair = self.keypair.parse(hsm).await?;
 
-        let config = status_list_settings.to_config(base_url, self.publish_dir, key_pair)?;
+        let config = status_list_settings.to_config(base_url, self.context_path, self.publish_dir, key_pair)?;
 
         Ok((self.group_name, config))
     }

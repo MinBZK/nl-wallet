@@ -88,7 +88,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
             .map(|settings| settings.status_list.clone())
             .collect(),
         &settings.issuer_settings.status_lists,
-        settings.issuer_settings.public_url.as_base_url(),
+        settings.issuer_settings.public_url.as_base_url().clone(),
         hsm.clone(),
     )
     .await?;

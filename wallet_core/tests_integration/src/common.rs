@@ -758,7 +758,7 @@ async fn get_status_list_service_and_router(
             .map(|settings| settings.status_list.clone())
             .collect(),
         &issuer_settings.status_lists,
-        issuer_settings.public_url.as_base_url(),
+        issuer_settings.public_url.as_base_url().clone(),
         hsm,
     )
     .await

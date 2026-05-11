@@ -80,6 +80,7 @@ async fn do_registration(
         ttl: None,
 
         base_url: "http://example.com".parse().unwrap(), // unused
+        context_path: "tsl".to_string(),
         publish_dir: std::env::temp_dir().to_path_buf().try_into().unwrap(),
         key_pair, // unused
     };

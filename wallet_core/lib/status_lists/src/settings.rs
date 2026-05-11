@@ -56,6 +56,7 @@ impl StatusListsSettings {
     pub fn to_config<K>(
         &self,
         base_url: BaseUrl,
+        context_path: String,
         publish_dir: PublishDir,
         key_pair: crypto::server_keys::KeyPair<K>,
     ) -> Result<StatusListConfig<K>, ExpiryLessThanTtl> {
@@ -68,6 +69,7 @@ impl StatusListsSettings {
             refresh_threshold: self.refresh_threshold_ratio.of_duration(expiry),
             ttl,
             base_url,
+            context_path,
             publish_dir,
             key_pair,
         };

@@ -97,9 +97,8 @@ async fn create_status_list_service(
         expiry: Duration::from_secs(3600),
         refresh_threshold: Duration::from_secs(600),
         ttl,
-        base_url: format!("https://example.com/tsl/{}", attestation_group)
-            .as_str()
-            .parse()?,
+        base_url: "https://example.com/tsl/".parse()?,
+        context_path: attestation_group.clone(),
         publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf())?,
         key_pair: ca.generate_status_list_mock()?,
     };
@@ -368,7 +367,8 @@ async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
                 expiry: Duration::from_secs(3600),
                 refresh_threshold: Duration::from_secs(600),
                 ttl: None,
-                base_url: "https://example.com/tsl".parse().unwrap(),
+                base_url: "https://example.com/".parse().unwrap(),
+                context_path: "tsl".to_string(),
                 publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf()).unwrap(),
                 key_pair,
             };
@@ -529,11 +529,11 @@ async fn test_service_create_status_claims() {
     assert_eq!(claims.len(), 2.try_into().unwrap());
     assert_matches!(&claims[0], StatusClaim::StatusList(list) if *list == StatusListClaim {
         idx: db_list_items[1].index as u32,
-        uri: config.base_url.join(&db_lists[0].external_id),
+        uri: config.base_url.join_base_url(&attestation_group).join(&db_lists[0].external_id),
     });
     assert_matches!(&claims[1], StatusClaim::StatusList(list) if *list == StatusListClaim {
         idx: db_list_items[2].index as u32,
-        uri: config.base_url.join(&db_lists[0].external_id),
+        uri: config.base_url.join_base_url(&attestation_group).join(&db_lists[0].external_id),
     });
 
     // Check if database attestation batch is correctly stored
@@ -596,11 +596,11 @@ async fn test_service_create_status_claims_creates_in_flight_if_needed() {
     assert_eq!(claims.len(), 2.try_into().unwrap());
     assert_matches!(&claims[0], StatusClaim::StatusList(list) if *list == StatusListClaim {
         idx: db_old_list_items[7].index as u32,
-        uri: config.base_url.join(&db_lists[0].external_id),
+        uri: config.base_url.join_base_url(&attestation_group).join(&db_lists[0].external_id),
     });
     assert_matches!(&claims[1], StatusClaim::StatusList(list) if *list == StatusListClaim {
         idx: db_new_list_items[0].index as u32,
-        uri: config.base_url.join(&db_lists[1].external_id),
+        uri: config.base_url.join_base_url(&attestation_group).join(&db_lists[1].external_id),
     });
 
     // Check if database attestation batch is correctly stored
@@ -646,7 +646,10 @@ async fn test_service_create_status_claims_concurrently() {
     assert_eq!(db_lists.len(), 1); // No new list creation scheduled
     let mut db_list_items = assert_status_list_items(&connection, &db_lists[0], 3, 24, 24, false).await;
 
-    let url = config.base_url.join(&db_lists[0].external_id);
+    let url = config
+        .base_url
+        .join_base_url(&attestation_group)
+        .join(&db_lists[0].external_id);
     let db_claims = db_list_items
         .drain(0..(concurrent * num_copies.get()))
         .map(|item| {
@@ -701,7 +704,12 @@ async fn test_service_revoke_attestation_batches_multiple_lists() {
 
     let list_urls = db_lists
         .iter()
-        .map(|list| config.base_url.join(&list.external_id))
+        .map(|list| {
+            config
+                .base_url
+                .join_base_url(&attestation_group)
+                .join(&list.external_id)
+        })
         .collect::<Vec<_>>();
     assert_published_list(
         &config,

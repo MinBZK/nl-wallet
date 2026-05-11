@@ -86,6 +86,7 @@ async fn setup_state(
         refresh_threshold: Duration::from_secs(600),
         ttl: None,
         base_url: "https://example.com/".parse().unwrap(),
+        context_path: "tsl".to_string(),
         publish_dir,
         key_pair,
     };

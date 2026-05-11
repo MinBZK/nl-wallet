@@ -54,6 +54,7 @@ use token_status_list::status_list_token::StatusListTokenBuilder;
 use tokio::task::AbortHandle;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
+use url::Url;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
@@ -511,6 +512,13 @@ impl<K, R> PostgresStatusListService<K, R> {
             revoke_all,
         })
     }
+
+    fn external_id_url(&self, external_id: &str) -> Url {
+        self.config
+            .base_url
+            .join_base_url(&self.config.context_path)
+            .join(external_id)
+    }
 }
 
 impl<K, R> PostgresStatusListService<K, R>
@@ -557,7 +565,7 @@ where
         let claims = lists_with_items
             .into_iter()
             .flat_map(|(list, items)| {
-                let url = self.config.base_url.join(&list.external_id);
+                let url = self.external_id_url(&list.external_id);
                 items.into_iter().map(move |item| {
                     StatusClaim::StatusList(StatusListClaim {
                         idx: item.index as u32,
@@ -1046,7 +1054,7 @@ where
 
         // Build new status list
         let expires = Utc::now() + self.config.expiry;
-        let sub = self.config.base_url.join(external_id);
+        let sub = self.external_id_url(external_id);
         let packed = if is_revoked_all {
             PackedStatusList::all_invalid(self.config.list_size.as_usize())
         } else {
@@ -1097,7 +1105,7 @@ where
             .lock_for(external_id)
             .with_lock_if_newer(version, async || {
                 // Build packed status list
-                let sub = self.config.base_url.join(external_id);
+                let sub = self.external_id_url(external_id);
                 let builder = tokio::task::spawn_blocking(move || {
                     let mut status_list = StatusList::new(size);
                     for index in result.into_iter().flatten() {
@@ -1123,7 +1131,7 @@ where
             .publish_dir
             .lock_for(external_id)
             .with_lock_if_newer(version, async || {
-                let sub = self.config.base_url.join(external_id);
+                let sub = self.external_id_url(external_id);
                 let builder = StatusListToken::builder(sub, PackedStatusList::all_invalid(size));
                 self.sign_and_write_token(builder, expires, external_id).await
             })
@@ -1246,7 +1254,8 @@ mod tests {
                 expiry: Duration::from_secs(3600),
                 refresh_threshold: Duration::from_secs(600),
                 ttl: None,
-                base_url: "https://example.com/tsl".parse().unwrap(),
+                base_url: "https://example.com/".parse().unwrap(),
+                context_path: "tsl".to_string(),
                 publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
                 key_pair: Ca::generate_issuer_mock_ca()
                     .unwrap()
