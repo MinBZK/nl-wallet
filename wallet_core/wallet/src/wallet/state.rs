@@ -287,6 +287,8 @@ where
 #[cfg(test)]
 #[expect(clippy::too_many_arguments)] // Doesn't work at `fn` level in combination with `rstest`
 mod tests {
+
+    use assert_matches::assert_matches;
     use attestation_data::disclosure_type::DisclosureType;
     use jwe::algorithm::EcdhAlgorithm;
     use jwe::decryption::JweEcdhSecretKey;
@@ -314,6 +316,7 @@ mod tests {
     use crate::wallet::disclosure::RedirectUriPurpose;
     use crate::wallet::issuance::WalletIssuanceSession;
     use crate::wallet::pin_recovery::PinRecoverySession;
+    use crate::wallet::state::CancelSessionError;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::create_example_pid_sd_jwt;
@@ -711,5 +714,36 @@ mod tests {
         Session::PinRecovery(PinRecoverySession::OAuth {
             authorization_session: MockAuthorizationSession::new(),
         })
+    }
+
+    // cancel_session with active issuance or disclosure sessions is tested in their respective modules, these also
+    // already include tests for locked/unregistered wallets and blocked versions
+
+    #[tokio::test]
+    async fn test_cancel_session_pin_recovery() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet.session = Some(pin_recovery_session());
+
+        let error = wallet
+            .cancel_session()
+            .await
+            .expect_err("cancel_session should fail for PinRecovery session");
+
+        assert_matches!(error, CancelSessionError::SessionState);
+        assert!(wallet.session.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_cancel_session_no_session() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        let error = wallet
+            .cancel_session()
+            .await
+            .expect_err("cancel_session should fail when there is no session");
+
+        assert_matches!(error, CancelSessionError::SessionState);
+        assert!(wallet.session.is_none());
     }
 }
