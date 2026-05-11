@@ -36,8 +36,8 @@ use openid4vc::ErrorResponse;
 use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
 use openid4vc::authorization::AuthorizationRequest;
+use openid4vc::authorization::AuthorizeRequestParams;
 use openid4vc::authorization::PkceCodeChallenge;
-use openid4vc::authorization::PushedAuthorizationRequest;
 use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
@@ -228,7 +228,7 @@ where
 
 async fn authorize<K, A, S, N, L, P, F>(
     State(state): State<ApplicationState<K, A, S, N, L, P, F>>,
-    Query(PushedAuthorizationRequest { request_uri, client_id }): Query<PushedAuthorizationRequest>,
+    Query(AuthorizeRequestParams { request_uri, client_id }): Query<AuthorizeRequestParams>,
 ) -> Result<Response, ErrorResponse<AuthorizeError>>
 where
     K: EcdsaKeySend,

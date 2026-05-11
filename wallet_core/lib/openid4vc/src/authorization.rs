@@ -39,8 +39,10 @@ pub struct AuthorizationRequest {
     pub response_mode: Option<ResponseMode>,
 }
 
+/// Represents the parameters that are passed in the query string of the /authorize endpoint where the `request_uri`
+/// refers to a Pushed Authorization Request sent earlier.
 #[derive(Serialize, Deserialize, Debug)]
-pub struct PushedAuthorizationRequest {
+pub struct AuthorizeRequestParams {
     pub client_id: String,
     pub request_uri: String,
 }
