@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../environment.dart';
 import '../../../domain/model/wallet_state.dart';
 import '../../../domain/usecase/wallet/get_wallet_state_usecase.dart';
 import '../../../wallet_core/error/core_error.dart';
@@ -30,7 +31,7 @@ class AppBlockedBloc extends Bloc<AppBlockedEvent, AppBlockedState> {
   Future<void> _onRefresh(AppBlockedLoadTriggered event, Emitter<AppBlockedState> emit) async {
     emit(AppBlockedInitial());
     // Artificial delay for better UX, as the check is usually near-instant.
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future.delayed(Environment.isTest ? Duration.zero : const Duration(milliseconds: 400));
 
     // Handle the provided reason, crucial because some reasons are transient.
     switch (event.reason) {

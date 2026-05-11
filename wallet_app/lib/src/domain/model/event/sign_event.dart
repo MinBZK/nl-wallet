@@ -17,5 +17,5 @@ class SignEvent extends WalletEvent {
   });
 
   @override
-  List<Object?> get props => [dateTime, status, relyingParty, policy, document];
+  List<Object?> get props => [dateTime, status, relyingParty, policy, document, sharedAttributes];
 }

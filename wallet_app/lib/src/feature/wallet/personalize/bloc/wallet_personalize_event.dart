@@ -15,7 +15,7 @@ class WalletPersonalizeUpdateState extends WalletPersonalizeEvent {
   const WalletPersonalizeUpdateState(this.state);
 
   @override
-  List<Object?> get props => [state];
+  List<Object?> get props => [state, ...super.props];
 }
 
 class WalletPersonalizeContinuePidIssuance extends WalletPersonalizeEvent {
@@ -24,7 +24,7 @@ class WalletPersonalizeContinuePidIssuance extends WalletPersonalizeEvent {
   const WalletPersonalizeContinuePidIssuance(this.authUrl);
 
   @override
-  List<Object?> get props => [authUrl];
+  List<Object?> get props => [authUrl, ...super.props];
 }
 
 class WalletPersonalizeLoginWithDigidSucceeded extends WalletPersonalizeEvent {
@@ -33,7 +33,7 @@ class WalletPersonalizeLoginWithDigidSucceeded extends WalletPersonalizeEvent {
   const WalletPersonalizeLoginWithDigidSucceeded(this.previewAttributes);
 
   @override
-  List<Object?> get props => [previewAttributes];
+  List<Object?> get props => [previewAttributes, ...super.props];
 }
 
 class WalletPersonalizeLoginWithDigidFailed extends WalletPersonalizeEvent {
@@ -44,7 +44,7 @@ class WalletPersonalizeLoginWithDigidFailed extends WalletPersonalizeEvent {
   const WalletPersonalizeLoginWithDigidFailed({required this.error, this.cancelledByUser = false});
 
   @override
-  List<Object?> get props => [error, cancelledByUser];
+  List<Object?> get props => [error, cancelledByUser, ...super.props];
 }
 
 class WalletPersonalizeAcceptPidFailed extends WalletPersonalizeEvent {
@@ -53,7 +53,7 @@ class WalletPersonalizeAcceptPidFailed extends WalletPersonalizeEvent {
   const WalletPersonalizeAcceptPidFailed({required this.error});
 
   @override
-  List<Object?> get props => [error];
+  List<Object?> get props => [error, ...super.props];
 }
 
 class WalletPersonalizeOfferingAccepted extends WalletPersonalizeEvent {
@@ -62,7 +62,7 @@ class WalletPersonalizeOfferingAccepted extends WalletPersonalizeEvent {
   const WalletPersonalizeOfferingAccepted(this.previewAttributes);
 
   @override
-  List<Object?> get props => [previewAttributes];
+  List<Object?> get props => [previewAttributes, ...super.props];
 }
 
 class WalletPersonalizeOfferingRejected extends WalletPersonalizeEvent {}

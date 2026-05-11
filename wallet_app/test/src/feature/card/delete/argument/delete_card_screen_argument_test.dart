@@ -1,5 +1,7 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/feature/card/delete/argument/delete_card_screen_argument.dart';
+import 'package:wallet/src/feature/card/delete/delete_card_screen.dart';
 
 void main() {
   group('DeleteCardScreenArgument', () {
@@ -21,6 +23,29 @@ void main() {
       expect(a, b);
       expect(a, isNot(c));
       expect(a.hashCode, b.hashCode);
+    });
+  });
+
+  group('DeleteCardScreen - getArgument', () {
+    test('returns DeleteCardScreenArgument when valid arguments are passed', () {
+      const argument = DeleteCardScreenArgument(attestationId: 'card-123', cardTitle: 'Driving License');
+      final settings = RouteSettings(arguments: argument.toMap());
+
+      final result = DeleteCardScreen.getArgument(settings);
+
+      expect(result, argument);
+    });
+
+    test('throws UnsupportedError when arguments are null', () {
+      const settings = RouteSettings(arguments: null);
+
+      expect(() => DeleteCardScreen.getArgument(settings), throwsA(isA<UnsupportedError>()));
+    });
+
+    test('throws UnsupportedError when arguments are invalid', () {
+      const settings = RouteSettings(arguments: 'invalid');
+
+      expect(() => DeleteCardScreen.getArgument(settings), throwsA(isA<UnsupportedError>()));
     });
   });
 }
