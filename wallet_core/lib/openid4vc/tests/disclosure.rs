@@ -328,7 +328,7 @@ impl DirectMockVpMessageClient {
             session_type: SessionType::SameDevice,
             ephemeral_id_params: Some(EphemeralIdParameters {
                 ephemeral_id: vec![42],
-                time: Utc::now(),
+                time: Some(Utc::now()),
             }),
         })
         .unwrap();
