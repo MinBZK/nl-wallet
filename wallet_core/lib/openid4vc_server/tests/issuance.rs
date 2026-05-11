@@ -18,6 +18,8 @@ use openid4vc::credential::GrantPreAuthorizedCode;
 use openid4vc::credential::Grants;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
+use openid4vc::issuer::UpstreamAuthorizationAdapter;
+use openid4vc::issuer::UpstreamResolveError;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::par::MemoryParStore;
@@ -39,8 +41,6 @@ use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredential;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
-use openid4vc_server::issuer::UpstreamAuthorizationAdapter;
-use openid4vc_server::issuer::UpstreamResolveError;
 use openid4vc_server::issuer::create_issuance_router;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePrivateKey;
@@ -52,6 +52,7 @@ use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use tokio::net::TcpListener;
 use url::Url;
+use utils::generator::TimeGenerator;
 use wscd::mock_remote::MockRemoteWscd;
 
 const MOCK_UPSTREAM_CLIENT_ID: &str = "mock_upstream_client_id";
@@ -101,7 +102,7 @@ async fn start_server(
     attestation_count: NonZeroUsize,
     upstream_authorization_endpoint: Option<Url>,
 ) -> (
-    Arc<MockIssuer>,
+    Arc<MockIssuer<TimeGenerator, MemoryParStore, MemoryPkceFlowStore>>,
     TrustAnchor<'static>,
     IssuerIdentifier,
     SigningKey,
@@ -117,6 +118,8 @@ async fn start_server(
     let par_store = Arc::new(MemoryParStore::default());
     let pkce_store = Arc::new(MemoryPkceFlowStore::default());
 
+    let adapter = upstream_authorization_endpoint
+        .map(|url| Arc::new(StaticAuthorizationAdapter::new(url)) as Arc<dyn UpstreamAuthorizationAdapter>);
     let (issuer, trust_anchor, wia_issuer_privkey) = setup_mock_issuer(
         issuer_identifier.clone(),
         MockAttrService {
@@ -124,18 +127,13 @@ async fn start_server(
         },
         attestation_count,
         sessions,
-    );
-    let issuer = Arc::new(issuer);
-
-    let adapter = upstream_authorization_endpoint
-        .map(|url| Arc::new(StaticAuthorizationAdapter::new(url)) as Arc<dyn UpstreamAuthorizationAdapter>);
-    let router = create_issuance_router(
-        Arc::clone(&issuer),
         par_store,
         pkce_store,
         adapter,
-        vec![MOCK_WALLET_CLIENT_ID.to_string()],
     );
+    let issuer = Arc::new(issuer);
+
+    let router = create_issuance_router(Arc::clone(&issuer));
     tokio::spawn(async move {
         axum_server::from_tcp_rustls(listener, tls_server_config.into_rustls_config().unwrap())
             .unwrap()

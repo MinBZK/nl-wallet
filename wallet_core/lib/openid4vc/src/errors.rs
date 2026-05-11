@@ -11,9 +11,11 @@ use serde_with::skip_serializing_none;
 use strum::EnumString;
 use url::Url;
 
+use crate::issuer::AuthorizeError;
 use crate::issuer::CredentialPreviewError;
 use crate::issuer::CredentialRequestError;
 use crate::issuer::IssuanceError;
+use crate::issuer::ParError;
 use crate::issuer::TokenRequestError;
 use crate::verifier::CancelSessionError;
 use crate::verifier::DisclosedAttributesError;
@@ -197,12 +199,87 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
                 TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
                 | TokenRequestError::AttributesError(_)
                 | TokenRequestError::AttributeService(_)
-                | TokenRequestError::CredentialTypeNotOffered(_) => TokenErrorCode::ServerError,
+                | TokenRequestError::CredentialTypeNotOffered(_)
+                | TokenRequestError::PkceStore(_) => TokenErrorCode::ServerError,
                 TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
                 TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
+                TokenRequestError::MissingCodeVerifier | TokenRequestError::PkceVerificationFailed => {
+                    TokenErrorCode::InvalidGrant
+                }
             },
             error_description: Some(description),
             error_uri: None,
+        }
+    }
+}
+
+/// Wire-format error codes for the Pushed Authorization Request endpoint.
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
+pub enum ParErrorCode {
+    InvalidClient,
+    ServerError,
+}
+
+impl From<ParError> for ErrorResponse<ParErrorCode> {
+    fn from(err: ParError) -> Self {
+        let description = err.to_string();
+        ErrorResponse {
+            error: match err {
+                ParError::InvalidClient(_) => ParErrorCode::InvalidClient,
+                ParError::Store(_) => ParErrorCode::ServerError,
+            },
+            error_description: Some(description),
+            error_uri: None,
+        }
+    }
+}
+
+impl ErrorStatusCode for ParErrorCode {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            Self::InvalidClient => StatusCode::UNAUTHORIZED,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+
+/// Wire-format error codes for the authorization endpoint.
+#[derive(Clone, Debug, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "snake_case")]
+pub enum AuthorizeErrorCode {
+    InvalidClient,
+    InvalidRequest,
+    ServerError,
+}
+
+impl From<AuthorizeError> for ErrorResponse<AuthorizeErrorCode> {
+    fn from(err: AuthorizeError) -> Self {
+        let description = err.to_string();
+        ErrorResponse {
+            error: match err {
+                AuthorizeError::InvalidClient(_) => AuthorizeErrorCode::InvalidClient,
+                AuthorizeError::UnknownRequestUri(_)
+                | AuthorizeError::UnsupportedCodeChallenge
+                | AuthorizeError::MissingCodeChallenge => AuthorizeErrorCode::InvalidRequest,
+                AuthorizeError::NoUpstreamAdapter
+                | AuthorizeError::ParStore(_)
+                | AuthorizeError::PkceStore(_)
+                | AuthorizeError::UpstreamResolve(_)
+                | AuthorizeError::Encode(_) => AuthorizeErrorCode::ServerError,
+            },
+            error_description: Some(description),
+            error_uri: None,
+        }
+    }
+}
+
+impl ErrorStatusCode for AuthorizeErrorCode {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            Self::InvalidClient => StatusCode::UNAUTHORIZED,
+            Self::InvalidRequest => StatusCode::BAD_REQUEST,
+            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }

@@ -6,12 +6,12 @@ use hsm::service::Pkcs11Hsm;
 use issuer_common::settings::IssuerSettings;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::Issuer;
+use openid4vc::issuer::UpstreamAuthorizationAdapter;
 use openid4vc::issuer::WiaConfig;
 use openid4vc::nonce::store::NonceStore;
 use openid4vc::par::MemoryParStore;
 use openid4vc::pkce::store::MemoryPkceFlowStore;
 use openid4vc::server_state::SessionStore;
-use openid4vc_server::issuer::UpstreamAuthorizationAdapter;
 use openid4vc_server::issuer::create_issuance_router;
 use p256::ecdsa::VerifyingKey;
 use server_utils::server::add_cache_control_no_store_layer;
@@ -89,24 +89,21 @@ where
     let par_store = Arc::new(MemoryParStore::default());
     let pkce_store = Arc::new(MemoryPkceFlowStore::default());
     let wallet_client_ids = settings.wallet_client_ids;
-    let wallet_issuance_router = create_issuance_router(
-        Arc::new(Issuer::new(
-            settings.public_url,
-            wallet_client_ids.clone(),
-            attestation_config,
-            Some(WiaConfig {
-                wia_issuer_pubkey: (&wia_issuer_pubkey).into(),
-            }),
-            attr_service,
-            issuance_sessions,
-            proof_nonce_store,
-            Arc::clone(&status_list_services),
-        )),
-        Arc::clone(&par_store),
-        Arc::clone(&pkce_store),
-        Some(upstream_authorization_adapter),
+    let wallet_issuance_router = create_issuance_router(Arc::new(Issuer::new(
+        settings.public_url,
         wallet_client_ids,
-    );
+        attestation_config,
+        Some(WiaConfig {
+            wia_issuer_pubkey: (&wia_issuer_pubkey).into(),
+        }),
+        attr_service,
+        issuance_sessions,
+        proof_nonce_store,
+        Arc::clone(&status_list_services),
+        par_store,
+        pkce_store,
+        Some(upstream_authorization_adapter),
+    )));
 
     let mut router = add_cache_control_no_store_layer(wallet_issuance_router);
     if let Some(status_list_router) = status_list_router {

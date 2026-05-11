@@ -1,7 +1,6 @@
 use std::str::FromStr;
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use axum::Form;
 use axum::Json;
 use axum::Router;
@@ -25,19 +24,15 @@ use axum_extra::headers::CacheControl;
 use axum_extra::headers::Header;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::authorization::Credentials;
-use base64::Engine;
-use base64::prelude::BASE64_URL_SAFE_NO_PAD;
-use chrono::Utc;
 use crypto::keys::EcdsaKeySend;
-use crypto::utils::sha256;
+use openid4vc::AuthorizeErrorCode;
 use openid4vc::CredentialErrorCode;
 use openid4vc::CredentialPreviewErrorCode;
 use openid4vc::ErrorResponse;
-use openid4vc::ErrorStatusCode;
+use openid4vc::ParErrorCode;
 use openid4vc::TokenErrorCode;
 use openid4vc::authorization::AuthorizationRequest;
 use openid4vc::authorization::AuthorizeRequestParams;
-use openid4vc::authorization::PkceCodeChallenge;
 use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
@@ -49,55 +44,23 @@ use openid4vc::dpop::Dpop;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
-use openid4vc::issuer::UpstreamCodeVerifier;
 use openid4vc::metadata::issuer_metadata::IssuerMetadata;
 use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
 use openid4vc::nonce::response::NonceResponse;
 use openid4vc::nonce::store::NonceStore;
-use openid4vc::par;
-use openid4vc::par::PAR_TTL;
 use openid4vc::par::ParStore;
-use openid4vc::pkce::PkcePair;
-use openid4vc::pkce::S256PkcePair;
-use openid4vc::pkce::store::PKCE_FLOW_TTL;
 use openid4vc::pkce::store::PkceFlowStore;
 use openid4vc::preview::CredentialPreviewRequest;
 use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::SessionStore;
 use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
-use openid4vc::token::TokenRequestGrantType;
 use openid4vc::token::TokenResponse;
-use serde::Serialize;
 use token_status_list::status_list_service::StatusListServices;
 use tracing::warn;
-use url::Url;
-
-/// Error returned by [`UpstreamAuthorizationAdapter::adapt`].
-#[derive(Debug, thiserror::Error)]
-pub enum UpstreamResolveError {
-    #[error("upstream metadata discovery failed: {0}")]
-    Discovery(Box<dyn std::error::Error + Send + Sync>),
-
-    #[error("upstream metadata has no authorization_endpoint")]
-    NoAuthorizationEndpoint,
-}
-
-/// Adapts the wallet's authorization request to what the upstream OIDC provider expects.
-///
-/// The implementer resolves the upstream authorization endpoint (e.g. via OIDC discovery)
-/// and rewrites the request.
-#[async_trait]
-pub trait UpstreamAuthorizationAdapter: Send + Sync {
-    async fn adapt(&self, request: AuthorizationRequest) -> Result<(Url, AuthorizationRequest), UpstreamResolveError>;
-}
 
 struct ApplicationState<K, A, S, N, L, P, F> {
-    issuer: Arc<Issuer<K, A, S, N, L>>,
-    par_store: Arc<P>,
-    pkce_store: Arc<F>,
-    upstream_authorization_adapter: Option<Arc<dyn UpstreamAuthorizationAdapter>>,
-    accepted_wallet_client_ids: Vec<String>,
+    issuer: Arc<Issuer<K, A, S, N, L, P, F>>,
 }
 
 // Implement `Clone` manually, because `#[derive(Clone)]` unnecessarily adds `Clone` bounds on its type parameters,
@@ -106,21 +69,11 @@ impl<K, A, S, N, L, P, F> Clone for ApplicationState<K, A, S, N, L, P, F> {
     fn clone(&self) -> Self {
         Self {
             issuer: self.issuer.clone(),
-            par_store: self.par_store.clone(),
-            pkce_store: self.pkce_store.clone(),
-            upstream_authorization_adapter: self.upstream_authorization_adapter.clone(),
-            accepted_wallet_client_ids: self.accepted_wallet_client_ids.clone(),
         }
     }
 }
 
-pub fn create_issuance_router<K, A, S, N, L, P, F>(
-    issuer: Arc<Issuer<K, A, S, N, L>>,
-    par_store: Arc<P>,
-    pkce_store: Arc<F>,
-    upstream_authorization_adapter: Option<Arc<dyn UpstreamAuthorizationAdapter>>,
-    accepted_wallet_client_ids: Vec<String>,
-) -> Router
+pub fn create_issuance_router<K, A, S, N, L, P, F>(issuer: Arc<Issuer<K, A, S, N, L, P, F>>) -> Router
 where
     K: EcdsaKeySend + Sync + 'static,
     A: AttributeService + Send + Sync + 'static,
@@ -130,13 +83,7 @@ where
     P: ParStore + Send + Sync + 'static,
     F: PkceFlowStore + Send + Sync + 'static,
 {
-    let application_state = ApplicationState {
-        issuer,
-        par_store,
-        pkce_store,
-        upstream_authorization_adapter,
-        accepted_wallet_client_ids,
-    };
+    let application_state = ApplicationState { issuer };
 
     Router::new()
         .nest(
@@ -161,8 +108,6 @@ where
         .with_state(application_state)
 }
 
-// Although there is no standard here mandating what our error response looks like, we use `ErrorResponse`
-// for consistency with the other endpoints.
 async fn oauth_metadata<K, A, S, N, L, P, F>(
     State(state): State<ApplicationState<K, A, S, N, L, P, F>>,
 ) -> Json<AuthorizationServerMetadata>
@@ -181,164 +126,32 @@ async fn metadata<K, A, S, N, L, P, F>(
 async fn pushed_authorization_request<K, A, S, N, L, P, F>(
     State(state): State<ApplicationState<K, A, S, N, L, P, F>>,
     Form(authorization_request): Form<AuthorizationRequest>,
-) -> Result<(StatusCode, Json<PushedAuthorizationResponse>), ErrorResponse<ParError>>
+) -> Result<(StatusCode, Json<PushedAuthorizationResponse>), ErrorResponse<ParErrorCode>>
 where
-    K: EcdsaKeySend,
-    A: AttributeService,
-    S: SessionStore<IssuanceData>,
-    N: NonceStore,
-    L: StatusListServices,
     P: ParStore,
 {
-    if !state
-        .accepted_wallet_client_ids
-        .contains(&authorization_request.client_id)
-    {
-        return Err(ErrorResponse {
-            error: ParError::InvalidClient,
-            error_description: Some(format!("unknown client_id: {}", authorization_request.client_id)),
-            error_uri: None,
-        });
-    }
-
-    let request_uri = par::generate_request_uri();
-    let expires_at = Utc::now() + PAR_TTL;
-
-    state
-        .par_store
-        .store(request_uri.clone(), authorization_request, expires_at)
+    let response = state
+        .issuer
+        .process_pushed_authorization_request(authorization_request)
         .await
-        .map_err(|error| {
-            warn!("storing PAR request failed: {}", error);
-            ErrorResponse {
-                error: ParError::ServerError,
-                error_description: Some(error.to_string()),
-                error_uri: None,
-            }
-        })?;
+        .inspect_err(|error| warn!("processing pushed authorization request failed: {error}"))?;
 
-    Ok((
-        StatusCode::CREATED,
-        Json(PushedAuthorizationResponse {
-            request_uri,
-            expires_in: PAR_TTL,
-        }),
-    ))
+    Ok((StatusCode::CREATED, Json(response)))
 }
 
 async fn authorize<K, A, S, N, L, P, F>(
     State(state): State<ApplicationState<K, A, S, N, L, P, F>>,
     Query(AuthorizeRequestParams { request_uri, client_id }): Query<AuthorizeRequestParams>,
-) -> Result<Response, ErrorResponse<AuthorizeError>>
+) -> Result<Response, ErrorResponse<AuthorizeErrorCode>>
 where
-    K: EcdsaKeySend,
-    A: AttributeService,
-    S: SessionStore<IssuanceData>,
-    N: NonceStore,
-    L: StatusListServices,
     P: ParStore,
     F: PkceFlowStore,
 {
-    if !state.accepted_wallet_client_ids.contains(&client_id) {
-        return Err(ErrorResponse {
-            error: AuthorizeError::InvalidClient,
-            error_description: Some(format!("unknown client_id: {client_id}")),
-            error_uri: None,
-        });
-    }
-
-    let upstream_authorization_adapter = state
-        .upstream_authorization_adapter
-        .clone()
-        .ok_or_else(|| ErrorResponse {
-            error: AuthorizeError::ServerError,
-            error_description: Some("no upstream authorization adapter configured".to_string()),
-            error_uri: None,
-        })?;
-
-    let mut authorization_request = state
-        .par_store
-        .consume(&request_uri)
+    let redirect_url = state
+        .issuer
+        .process_authorize(&request_uri, &client_id)
         .await
-        .map_err(|error| {
-            warn!("consuming PAR request failed: {}", error);
-            ErrorResponse {
-                error: AuthorizeError::ServerError,
-                error_description: Some(error.to_string()),
-                error_uri: None,
-            }
-        })?
-        .ok_or_else(|| ErrorResponse {
-            error: AuthorizeError::InvalidRequest,
-            error_description: Some(format!("request_uri not found or expired: {request_uri}")),
-            error_uri: None,
-        })?;
-
-    // Bridge PKCE: substitute the wallet's challenge with one we hold the verifier for, and
-    // store the upstream verifier keyed by the wallet's challenge for the matching /token call.
-    let wallet_code_challenge = match authorization_request.code_challenge.take() {
-        Some(PkceCodeChallenge::S256 { code_challenge }) => code_challenge,
-        Some(PkceCodeChallenge::Plain { .. }) => {
-            return Err(ErrorResponse {
-                error: AuthorizeError::InvalidRequest,
-                error_description: Some("only S256 code_challenge_method is supported".to_string()),
-                error_uri: None,
-            });
-        }
-        None => {
-            return Err(ErrorResponse {
-                error: AuthorizeError::InvalidRequest,
-                error_description: Some("missing code_challenge".to_string()),
-                error_uri: None,
-            });
-        }
-    };
-
-    let upstream_pkce = S256PkcePair::generate();
-    authorization_request.code_challenge = Some(PkceCodeChallenge::S256 {
-        code_challenge: upstream_pkce.code_challenge().to_string(),
-    });
-
-    state
-        .pkce_store
-        .store(
-            wallet_code_challenge,
-            upstream_pkce.into_code_verifier(),
-            Utc::now() + PKCE_FLOW_TTL,
-        )
-        .await
-        .map_err(|error| {
-            warn!("storing PKCE bridge entry failed: {}", error);
-            ErrorResponse {
-                error: AuthorizeError::ServerError,
-                error_description: Some(error.to_string()),
-                error_uri: None,
-            }
-        })?;
-
-    let (authorization_endpoint, authorization_request) = upstream_authorization_adapter
-        .adapt(authorization_request)
-        .await
-        .map_err(|error| {
-            warn!("adapting authorization request for upstream failed: {}", error);
-            ErrorResponse {
-                error: AuthorizeError::ServerError,
-                error_description: Some(error.to_string()),
-                error_uri: None,
-            }
-        })?;
-
-    let query_string = serde_urlencoded::to_string(&authorization_request).map_err(|error| {
-        warn!("encoding authorization request as query string failed: {}", error);
-        ErrorResponse {
-            error: AuthorizeError::ServerError,
-            error_description: Some(error.to_string()),
-            error_uri: None,
-        }
-    })?;
-
-    let mut redirect_url = authorization_endpoint;
-    redirect_url.set_query(Some(&query_string));
+        .inspect_err(|error| warn!("processing authorization request failed: {error}"))?;
 
     Ok((StatusCode::FOUND, [(header::LOCATION, redirect_url.to_string())]).into_response())
 }
@@ -354,50 +167,11 @@ where
     S: SessionStore<IssuanceData>,
     F: PkceFlowStore,
 {
-    // Authorization-code flow: bridge the wallet's PKCE pair to the upstream's by deriving
-    // c1 from the wallet's verifier and looking up v2. The lookup itself is the wallet
-    // PKCE check — only the holder of v1 can produce c1, which is the storage key.
-    // Pre-authorized-code flow does not use PKCE, so we skip this entirely.
-    let upstream_code_verifier = match token_request.grant_type {
-        TokenRequestGrantType::AuthorizationCode { .. } => {
-            let wallet_code_verifier = token_request.code_verifier.as_ref().ok_or_else(|| ErrorResponse {
-                error: TokenErrorCode::InvalidGrant,
-                error_description: Some("missing code_verifier".to_string()),
-                error_uri: None,
-            })?;
-            let wallet_code_challenge = BASE64_URL_SAFE_NO_PAD.encode(sha256(wallet_code_verifier.as_bytes()));
-
-            let code_verifier = state
-                .pkce_store
-                .consume(&wallet_code_challenge)
-                .await
-                .map_err(|error| {
-                    warn!("consuming PKCE bridge entry failed: {}", error);
-                    ErrorResponse {
-                        error: TokenErrorCode::ServerError,
-                        error_description: Some(error.to_string()),
-                        error_uri: None,
-                    }
-                })?
-                .map(UpstreamCodeVerifier::from)
-                .ok_or_else(|| ErrorResponse {
-                    error: TokenErrorCode::InvalidGrant,
-                    error_description: Some("PKCE verification failed".to_string()),
-                    error_uri: None,
-                })?;
-
-            Some(code_verifier)
-        }
-        TokenRequestGrantType::PreAuthorizedCode { .. } => None,
-    };
-
     let (response, dpop_nonce) = state
         .issuer
-        .process_token_request(token_request, dpop, upstream_code_verifier)
+        .process_token_request(token_request, dpop)
         .await
-        .inspect_err(|error| {
-            warn!("processing token request failed: {}", error);
-        })?;
+        .inspect_err(|error| warn!("processing token request failed: {error}"))?;
 
     let headers = HeaderMap::from_iter([(
         HeaderName::from_str(DPOP_NONCE_HEADER_NAME).unwrap(),
@@ -567,39 +341,5 @@ impl Credentials for DpopBearer {
 
     fn encode(&self) -> HeaderValue {
         HeaderValue::from_str(&(DPOP_HEADER_NAME.to_string() + " " + &self.0)).unwrap()
-    }
-}
-
-#[derive(Serialize, Debug, Clone)]
-#[serde(rename_all = "snake_case")]
-pub enum ParError {
-    InvalidClient,
-    ServerError,
-}
-
-impl ErrorStatusCode for ParError {
-    fn status_code(&self) -> StatusCode {
-        match self {
-            Self::InvalidClient => StatusCode::UNAUTHORIZED,
-            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-        }
-    }
-}
-
-#[derive(Serialize, Debug, Clone)]
-#[serde(rename_all = "snake_case")]
-enum AuthorizeError {
-    InvalidClient,
-    InvalidRequest,
-    ServerError,
-}
-
-impl ErrorStatusCode for AuthorizeError {
-    fn status_code(&self) -> StatusCode {
-        match self {
-            Self::InvalidClient => StatusCode::UNAUTHORIZED,
-            Self::InvalidRequest => StatusCode::BAD_REQUEST,
-            Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
-        }
     }
 }

@@ -36,19 +36,29 @@ use crate::issuer::AttestationTypeConfig;
 use crate::issuer::AttributeService;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
+use crate::issuer::UpstreamAuthorizationAdapter;
 use crate::issuer::UpstreamCodeVerifier;
 use crate::issuer::WiaConfig;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::nonce::memory_store::MemoryNonceStore;
+use crate::par::ParStore;
+use crate::pkce::store::PkceFlowStore;
 use crate::server_state::MemorySessionStore;
 use crate::token::TokenRequest;
 
 pub const MOCK_ATTESTATION_TYPES: [&str; 2] = ["com.example.pid", "com.example.address"];
 pub const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
-pub type MockIssuer<G = TimeGenerator> =
-    Issuer<SigningKey, MockAttrService, MemorySessionStore<IssuanceData, G>, MemoryNonceStore, MockStatusListServices>;
+pub type MockIssuer<G = TimeGenerator, P = (), F = ()> = Issuer<
+    SigningKey,
+    MockAttrService,
+    MemorySessionStore<IssuanceData, G>,
+    MemoryNonceStore,
+    MockStatusListServices,
+    P,
+    F,
+>;
 
 pub fn mock_type_metadata(vct: &str) -> TypeMetadata {
     TypeMetadata::try_new(UncheckedTypeMetadata {
@@ -107,14 +117,20 @@ impl AttributeService for MockAttrService {
     }
 }
 
-pub fn setup_mock_issuer<G>(
+#[expect(clippy::too_many_arguments, reason = "Test setup helper")]
+pub fn setup_mock_issuer<G, P, F>(
     issuer_identifier: IssuerIdentifier,
     attr_service: MockAttrService,
     attestation_count: NonZeroUsize,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
-) -> (MockIssuer<G>, TrustAnchor<'static>, SigningKey)
+    par_store: Arc<P>,
+    pkce_flow_store: Arc<F>,
+    upstream_authorization_adapter: Option<Arc<dyn UpstreamAuthorizationAdapter>>,
+) -> (MockIssuer<G, P, F>, TrustAnchor<'static>, SigningKey)
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
+    P: ParStore + Send + Sync + 'static,
+    F: PkceFlowStore + Send + Sync + 'static,
 {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
@@ -173,6 +189,9 @@ where
         sessions,
         MemoryNonceStore::new(),
         Arc::new(status_list_service),
+        par_store,
+        pkce_flow_store,
+        upstream_authorization_adapter,
     );
 
     (issuer, trust_anchor, wia_issuer_privkey)

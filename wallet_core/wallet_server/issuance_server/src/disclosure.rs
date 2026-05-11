@@ -284,6 +284,9 @@ mod tests {
             sessions,
             MemoryNonceStore::new(),
             Arc::new(MockStatusListServices::default()),
+            Arc::new(()),
+            Arc::new(()),
+            None,
         )
     }
 

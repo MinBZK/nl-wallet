@@ -23,19 +23,12 @@ issuance = ["axum-extra/typed-header"]
 disclosure = ["dep:ring"]
 
 [dependencies]
-async-trait.workspace = true
 axum = { workspace = true, features = ["form", "json"] }
-base64.workspace = true
-chrono = { workspace = true, features = ["now"] }
 http.workspace = true
-indexmap.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
-serde_urlencoded.workspace = true
-thiserror.workspace = true
 tower-http = { workspace = true, features = ["cors"] }
 tracing.workspace = true
-url = { workspace = true, features = ["serde"] }
 
 axum-extra = { workspace = true, optional = true }
 ring = { workspace = true, optional = true }
@@ -50,7 +43,9 @@ token_status_list = { path = "../token_status_list" }
 utils.path = "../utils"
 
 [dev-dependencies]
+async-trait.workspace = true
 axum-server.workspace = true
+indexmap.workspace = true
 p256.workspace = true
 rand_core.workspace = true
 reqwest.workspace = true

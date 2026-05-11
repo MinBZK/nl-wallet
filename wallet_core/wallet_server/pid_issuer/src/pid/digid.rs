@@ -13,6 +13,8 @@ use jwe::error::RsaPrivateJwkError;
 use jwk_simple::Key;
 use jwt::nonce::Nonce;
 use openid4vc::authorization::AuthorizationRequest;
+use openid4vc::issuer::UpstreamAuthorizationAdapter;
+use openid4vc::issuer::UpstreamResolveError;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::oauth_metadata::OidcProviderMetadata;
 use openid4vc::metadata::well_known;
@@ -21,8 +23,6 @@ use openid4vc::metadata::well_known::WellKnownPath;
 use openid4vc::token::AuthorizationCode;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
-use openid4vc_server::issuer::UpstreamAuthorizationAdapter;
-use openid4vc_server::issuer::UpstreamResolveError;
 use tokio::sync::OnceCell;
 use url::Url;
 
