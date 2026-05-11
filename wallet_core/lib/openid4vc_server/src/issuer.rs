@@ -148,9 +148,9 @@ where
         .nest(
             "/issuance",
             Router::new()
-                .route("/par", post(pushed_authorization_request::<K, A, S, N, L, P, F>))
-                .route("/authorize", get(authorize::<K, A, S, N, L, P, F>))
-                .route("/token", post(token::<K, A, S, N, L, P, F>))
+                .route("/par", post(pushed_authorization_request))
+                .route("/authorize", get(authorize))
+                .route("/token", post(token))
                 .route("/credential_preview", post(credential_preview))
                 .route("/nonce", post(nonce))
                 .route("/credential", post(credential))
