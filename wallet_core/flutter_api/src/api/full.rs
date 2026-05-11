@@ -334,7 +334,7 @@ pub async fn cancel_pin_recovery() -> anyhow::Result<()> {
     Ok(())
 }
 
-// TODO remove this function
+// TODO remove this function (PVW-5927)
 #[flutter_api_error]
 pub async fn cancel_issuance() -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
@@ -421,7 +421,7 @@ pub async fn cancel_session() -> anyhow::Result<Option<String>> {
     Ok(return_url)
 }
 
-// TODO remove this function
+// TODO remove this function (PVW-5927)
 #[flutter_api_error]
 pub async fn cancel_disclosure() -> anyhow::Result<Option<String>> {
     let mut wallet = wallet().write().await;
