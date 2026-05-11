@@ -111,18 +111,6 @@ pub struct AttributesNotAvailable {
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum DisclosureError {
-    #[category(expected)]
-    #[error("app version is blocked")]
-    VersionBlocked,
-
-    #[error("wallet is not registered")]
-    #[category(expected)]
-    NotRegistered,
-
-    #[error("wallet is locked")]
-    #[category(expected)]
-    Locked,
-
     #[error("preconditions failed")]
     #[category(expected)]
     CheckPreconditions(#[from] CheckPreconditionsError),
@@ -176,9 +164,6 @@ pub enum DisclosureError {
 
     #[error("error finalizing pin change: {0}")]
     ChangePin(#[from] ChangePinError),
-
-    #[error("error fetching update policy: {0}")]
-    UpdatePolicy(#[from] UpdatePolicyError),
 
     #[error("unexpected redirect URI purpose: expected {expected:?}, found {found:?}")]
     #[category(critical)]
@@ -532,38 +517,6 @@ where
         Ok(RemoteEcdsaWscd::new(remote_instruction))
     }
 
-    pub(super) async fn check_accept_disclosure_preconditions(
-        &mut self,
-    ) -> Result<AttestedKeyAndRegistrationData<AKH>, DisclosureError>
-    where
-        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
-    {
-        let config = self.config_repository.get();
-
-        info!("Fetching update policy");
-        self.update_policy_repository
-            .fetch(&config.update_policy_server.http_config)
-            .await?;
-
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(DisclosureError::VersionBlocked);
-        }
-
-        info!("Checking if registered");
-        let (attested_key, registration_data) = self
-            .registration
-            .as_key_and_registration_data()
-            .ok_or_else(|| DisclosureError::NotRegistered)?;
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(DisclosureError::Locked);
-        }
-
-        Ok((Arc::clone(attested_key), registration_data.to_owned()))
-    }
-
     /// Helper method that fetches attestation from the database based on their attestation type, filters out any of
     /// them that do not match the request and convert the remaining ones to a [`DisclosableAttestation`], which
     /// contains an [`AttestationPresentation`] to show to the user.
@@ -840,7 +793,7 @@ where
     {
         info!("Accepting disclosure");
 
-        let attested_key_and_registration_data = self.check_accept_disclosure_preconditions().await?;
+        let (attested_key_and_registration_data, _) = self.check_accept_session_preconditions().await?;
 
         // We have to take ownership of the disclosure session here, so that `session`
         // below doesn't borrow from `self`, as we also borrow mutably from `self` here.
@@ -2568,7 +2521,10 @@ mod tests {
             .await
             .expect_err("accepting disclosure should not succeed");
 
-        assert_matches!(error, DisclosureError::VersionBlocked);
+        assert_matches!(
+            error,
+            DisclosureError::CheckPreconditions(CheckPreconditionsError::VersionBlocked)
+        );
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_some());
     }
@@ -2584,7 +2540,10 @@ mod tests {
             .await
             .expect_err("accepting disclosure should not succeed");
 
-        assert_matches!(error, DisclosureError::NotRegistered);
+        assert_matches!(
+            error,
+            DisclosureError::CheckPreconditions(CheckPreconditionsError::NotRegistered)
+        );
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_none());
     }
@@ -2606,7 +2565,10 @@ mod tests {
             .await
             .expect_err("accepting disclosure should not succeed");
 
-        assert_matches!(error, DisclosureError::Locked);
+        assert_matches!(
+            error,
+            DisclosureError::CheckPreconditions(CheckPreconditionsError::Locked)
+        );
         assert!(error.return_url().is_none());
         assert!(wallet.session.is_some());
     }

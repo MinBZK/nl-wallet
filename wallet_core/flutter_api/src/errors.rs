@@ -263,12 +263,10 @@ impl FlutterApiErrorFields for IssuanceError {
         }
 
         match self {
-            IssuanceError::CheckPreconditions(CheckPreconditionsError::VersionBlocked)
-            | IssuanceError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            IssuanceError::CheckPreconditions(_)
-            | IssuanceError::NotRegistered
-            | IssuanceError::Locked
-            | IssuanceError::SessionState => FlutterApiErrorType::WalletState,
+            IssuanceError::CheckPreconditions(CheckPreconditionsError::VersionBlocked) => {
+                FlutterApiErrorType::VersionBlocked
+            }
+            IssuanceError::CheckPreconditions(_) | IssuanceError::SessionState => FlutterApiErrorType::WalletState,
             IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(_))) => {
                 FlutterApiErrorType::RedirectUri
             }
@@ -277,7 +275,6 @@ impl FlutterApiErrorFields for IssuanceError {
             IssuanceError::AttestationPreview(_)
             | IssuanceError::Attestation { .. }
             | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
-            IssuanceError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
             IssuanceError::DeniedDigiD => FlutterApiErrorType::DeniedDigid,
             IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
                 FlutterApiErrorType::WrongDigid
@@ -360,12 +357,10 @@ fn type_for_vp_message_client(error: &VpMessageClientError) -> Option<FlutterApi
 impl FlutterApiErrorFields for DisclosureError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
-            DisclosureError::CheckPreconditions(CheckPreconditionsError::VersionBlocked)
-            | DisclosureError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            DisclosureError::CheckPreconditions(_)
-            | DisclosureError::NotRegistered
-            | DisclosureError::Locked
-            | DisclosureError::SessionState => FlutterApiErrorType::WalletState,
+            DisclosureError::CheckPreconditions(CheckPreconditionsError::VersionBlocked) => {
+                FlutterApiErrorType::VersionBlocked
+            }
+            DisclosureError::CheckPreconditions(_) | DisclosureError::SessionState => FlutterApiErrorType::WalletState,
             DisclosureError::VpClient(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
                 FlutterApiErrorType::DisclosureSourceMismatch
             }
@@ -381,7 +376,6 @@ impl FlutterApiErrorFields for DisclosureError {
                 detect_networking_error(error).unwrap_or(FlutterApiErrorType::Verifier)
             }
             DisclosureError::Instruction(error) => FlutterApiErrorType::from(error),
-            DisclosureError::UpdatePolicy(error) => FlutterApiErrorType::from(error),
             DisclosureError::NonSelectivelyDisclosableClaim(_, _)
             | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _)
             | DisclosureError::DisclosureUriQuery(_)
@@ -504,6 +498,7 @@ struct DisclosureBasedIssuanceErrorData {
 impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
+            Self::CheckPreconditions(error) => error.typ(),
             Self::Disclosure(error) => error.typ(),
             Self::Issuance(error) => error.typ(),
             Self::MissingRedirectUri(_) | Self::UnexpectedScheme(_, _) => FlutterApiErrorType::Issuer,
@@ -512,6 +507,7 @@ impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
 
     fn data(&self) -> serde_json::Value {
         match self {
+            Self::CheckPreconditions(error) => error.data(),
             Self::Disclosure(error) => error.data(),
             Self::Issuance(error) => error.data(),
             Self::MissingRedirectUri(organization) | Self::UnexpectedScheme(_, organization) => {
@@ -520,6 +516,18 @@ impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
                 })
                 .unwrap()
             }
+        }
+    }
+}
+
+impl FlutterApiErrorFields for CheckPreconditionsError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            CheckPreconditionsError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            CheckPreconditionsError::NotRegistered | CheckPreconditionsError::Locked => {
+                FlutterApiErrorType::WalletState
+            }
+            CheckPreconditionsError::UpdatePolicy(error) => error.into(),
         }
     }
 }
@@ -759,6 +767,7 @@ mod tests {
     use wallet::RevocationReason;
     use wallet::attestation_data::AttributeValue;
     use wallet::errors::ChangePinError;
+    use wallet::errors::CheckPreconditionsError;
     use wallet::errors::DeleteAttestationError;
     use wallet::errors::DisclosureError;
     use wallet::errors::InstructionError;
@@ -779,16 +788,20 @@ mod tests {
     // TODO: (PVW-4073) Add more error test cases.
     #[rstest]
     #[case(
-        IssuanceError::VersionBlocked,
+        IssuanceError::CheckPreconditions(CheckPreconditionsError::VersionBlocked),
         FlutterApiErrorType::VersionBlocked,
         serde_json::Value::Null
     )]
     #[case(
-        IssuanceError::NotRegistered,
+        IssuanceError::CheckPreconditions(CheckPreconditionsError::NotRegistered),
         FlutterApiErrorType::WalletState,
         serde_json::Value::Null
     )]
-    #[case(IssuanceError::Locked, FlutterApiErrorType::WalletState, serde_json::Value::Null)]
+    #[case(
+        IssuanceError::CheckPreconditions(CheckPreconditionsError::Locked),
+        FlutterApiErrorType::WalletState,
+        serde_json::Value::Null
+    )]
     #[case(
         IssuanceError::SessionState,
         FlutterApiErrorType::WalletState,

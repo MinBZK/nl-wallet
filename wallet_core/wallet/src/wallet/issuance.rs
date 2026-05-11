@@ -74,18 +74,6 @@ use crate::wallet::state::CheckPreconditionsError;
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum IssuanceError {
-    #[category(expected)]
-    #[error("app version is blocked")]
-    VersionBlocked,
-
-    #[error("wallet is not registered")]
-    #[category(expected)]
-    NotRegistered,
-
-    #[error("wallet is locked")]
-    #[category(expected)]
-    Locked,
-
     #[error("preconditions failed")]
     #[category(expected)]
     CheckPreconditions(#[from] CheckPreconditionsError),
@@ -159,9 +147,6 @@ pub enum IssuanceError {
 
     #[error("JWT credential error: {0}")]
     JwtCredential(#[from] JwtError),
-
-    #[error("error fetching update policy: {0}")]
-    UpdatePolicy(#[from] UpdatePolicyError),
 
     #[error("error converting credential payload to attestation: {error}")]
     #[category(critical)]
@@ -458,29 +443,7 @@ where
     {
         info!("Accepting issuance");
 
-        let config = self.config_repository.get();
-
-        info!("Fetching update policy");
-        self.update_policy_repository
-            .fetch(&config.update_policy_server.http_config)
-            .await?;
-
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(IssuanceError::VersionBlocked);
-        }
-
-        info!("Checking if registered");
-        let (attested_key, registration_data) = self
-            .registration
-            .as_key_and_registration_data()
-            .ok_or_else(|| IssuanceError::NotRegistered)?;
-        let attested_key = Arc::clone(attested_key);
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(IssuanceError::Locked);
-        }
+        let ((attested_key, registration_data), config) = self.check_accept_session_preconditions().await?;
 
         let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
 
@@ -1529,7 +1492,10 @@ mod tests {
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
-        assert_matches!(error, IssuanceError::NotRegistered);
+        assert_matches!(
+            error,
+            IssuanceError::CheckPreconditions(CheckPreconditionsError::NotRegistered)
+        );
     }
 
     #[tokio::test]
@@ -1545,7 +1511,10 @@ mod tests {
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
-        assert_matches!(error, IssuanceError::Locked);
+        assert_matches!(
+            error,
+            IssuanceError::CheckPreconditions(CheckPreconditionsError::Locked)
+        );
 
         assert!(wallet.has_registration());
         assert!(wallet.is_locked());

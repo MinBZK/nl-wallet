@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
+use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -17,8 +18,10 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::Wallet;
 use crate::account_provider::AccountProviderClient;
 use crate::errors::StorageError;
+use crate::errors::UpdatePolicyError;
 use crate::pin::change::ChangePinStorage;
 use crate::repository::Repository;
+use crate::repository::UpdateableRepository;
 use crate::storage::PinRecoveryData;
 use crate::storage::Storage;
 use crate::storage::TransferData;
@@ -26,6 +29,7 @@ use crate::storage::TransferKeyData;
 use crate::wallet::DisclosureError;
 use crate::wallet::IssuanceError;
 use crate::wallet::Session;
+use crate::wallet::disclosure::AttestedKeyAndRegistrationData;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -35,6 +39,7 @@ pub enum WalletStateError {
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum CheckPreconditionsError {
     #[category(expected)]
     #[error("app version is blocked")]
@@ -47,6 +52,9 @@ pub enum CheckPreconditionsError {
     #[error("wallet is locked")]
     #[category(expected)]
     Locked,
+
+    #[error("error fetching update policy: {0}")]
+    UpdatePolicy(#[from] UpdatePolicyError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -209,6 +217,39 @@ where
         }
 
         Ok(())
+    }
+
+    pub(super) async fn check_accept_session_preconditions(
+        &mut self,
+    ) -> Result<(AttestedKeyAndRegistrationData<AKH>, Arc<WalletConfiguration>), CheckPreconditionsError>
+    where
+        CR: Repository<Arc<WalletConfiguration>>,
+        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
+    {
+        let config = self.config_repository.get();
+
+        info!("Fetching update policy");
+        self.update_policy_repository
+            .fetch(&config.update_policy_server.http_config)
+            .await?;
+
+        info!("Checking if blocked");
+        if self.is_blocked() {
+            return Err(CheckPreconditionsError::VersionBlocked);
+        }
+
+        info!("Checking if registered");
+        let (attested_key, registration_data) = self
+            .registration
+            .as_key_and_registration_data()
+            .ok_or_else(|| CheckPreconditionsError::NotRegistered)?;
+
+        info!("Checking if locked");
+        if self.lock.is_locked() {
+            return Err(CheckPreconditionsError::Locked);
+        }
+
+        Ok(((Arc::clone(attested_key), registration_data.to_owned()), config))
     }
 
     #[instrument(skip_all)]

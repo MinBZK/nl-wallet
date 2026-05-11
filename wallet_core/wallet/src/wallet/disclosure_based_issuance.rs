@@ -29,11 +29,15 @@ use crate::errors::UpdatePolicyError;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
+use crate::wallet::CheckPreconditionsError;
 use crate::wallet::Session;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum DisclosureBasedIssuanceError {
+    #[error("preconditions failed: {0}")]
+    CheckPreconditions(#[from] CheckPreconditionsError),
+
     #[error("disclosure failed: {0}")]
     Disclosure(#[from] DisclosureError),
 
@@ -76,8 +80,7 @@ where
     ) -> Result<Vec<AttestationPresentation>, DisclosureBasedIssuanceError> {
         info!("Continuing disclosure based issuance");
 
-        let attested_key_and_registration_data = self.check_accept_disclosure_preconditions().await?;
-        let config = self.config_repository.get();
+        let (attested_key_and_registration_data, config) = self.check_accept_session_preconditions().await?;
 
         info!("Checking if a disclosure session is present");
         let Some(Session::Disclosure(session)) = self.session.take() else {
