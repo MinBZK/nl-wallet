@@ -11,6 +11,7 @@ use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::EcdsaKeySend;
+use derive_more::Constructor;
 use futures::StreamExt;
 use futures::future::join_all;
 use futures::future::try_join_all;
@@ -44,7 +45,6 @@ use sea_orm::sqlx::types::chrono::NaiveDate;
 use token_status_list::status_list::PackedStatusList;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
-use token_status_list::status_list_service::BatchIsRevoked;
 use token_status_list::status_list_service::RevocationError;
 use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
@@ -127,6 +127,17 @@ pub struct PostgresStatusListService<K, R> {
     attestation_group_id: i16,
     config: Arc<StatusListConfig<K>>,
     revoke_all: R,
+}
+
+#[cfg_attr(feature = "axum", derive(serde::Serialize, serde::Deserialize, utoipa::ToSchema))]
+pub struct BatchIsRevoked {
+    pub batch_id: Uuid,
+    pub is_revoked: bool,
+}
+
+#[derive(Debug, Clone, Constructor)]
+pub struct PostgresRevocationHelper {
+    connection: DatabaseConnection,
 }
 
 // Manually implement Clone as derived Clone uses incorrect bounds:
@@ -275,14 +286,6 @@ where
 
         Ok(())
     }
-
-    async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError> {
-        self.first_service().get_attestation_batch(batch_id).await
-    }
-
-    async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError> {
-        self.first_service().list_attestation_batches().await
-    }
 }
 
 impl<K> PostgresStatusListServices<K> {
@@ -331,11 +334,6 @@ where
 
     fn services(&self) -> impl Iterator<Item = &PostgresStatusListService<K, NoRevokeAll>> {
         self.0.values()
-    }
-
-    fn first_service(&self) -> &PostgresStatusListService<K, NoRevokeAll> {
-        // in the constructor we ensure that at least one service is present
-        self.0.values().next().expect("at least one service should be present")
     }
 
     pub fn start_refresh_jobs(&self) -> Vec<AbortHandle> {
@@ -465,36 +463,6 @@ where
         .map_err(|e| RevocationError::InternalError(Box::new(e)))?;
 
         Ok(())
-    }
-
-    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
-    async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError> {
-        attestation_batch::Entity::find()
-            .filter(attestation_batch::Column::BatchId.eq(batch_id))
-            .select_only()
-            .select_column(attestation_batch::Column::BatchId)
-            .select_column(attestation_batch::Column::IsRevoked)
-            .into_tuple()
-            .one(&self.connection)
-            .await
-            .map_err(|e| RevocationError::InternalError(Box::new(e)))?
-            .map(|(batch_id, is_revoked)| BatchIsRevoked { batch_id, is_revoked })
-            .ok_or_else(|| RevocationError::BatchIdNotFound(batch_id))
-    }
-
-    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
-    async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError> {
-        Ok(attestation_batch::Entity::find()
-            .select_only()
-            .select_column(attestation_batch::Column::BatchId)
-            .select_column(attestation_batch::Column::IsRevoked)
-            .into_tuple()
-            .all(&self.connection)
-            .await
-            .map_err(|e| RevocationError::InternalError(Box::new(e)))?
-            .into_iter()
-            .map(|(batch_id, is_revoked)| BatchIsRevoked { batch_id, is_revoked })
-            .collect())
     }
 }
 
@@ -1240,6 +1208,36 @@ async fn read_token_expiry(path: &Path) -> Result<DateTime<Utc>, TokenReadError>
     // Trusting the files this service writes
     let (_, claims) = token.as_ref().dangerous_parse_unverified()?;
     claims.exp.ok_or(TokenReadError::NoExpiry)
+}
+
+impl PostgresRevocationHelper {
+    pub async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError> {
+        attestation_batch::Entity::find()
+            .filter(attestation_batch::Column::BatchId.eq(batch_id))
+            .select_only()
+            .select_column(attestation_batch::Column::BatchId)
+            .select_column(attestation_batch::Column::IsRevoked)
+            .into_tuple()
+            .one(&self.connection)
+            .await
+            .map_err(|error| RevocationError::InternalError(Box::new(error)))?
+            .map(|(batch_id, is_revoked)| BatchIsRevoked { batch_id, is_revoked })
+            .ok_or_else(|| RevocationError::BatchIdNotFound(batch_id))
+    }
+
+    pub async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError> {
+        Ok(attestation_batch::Entity::find()
+            .select_only()
+            .select_column(attestation_batch::Column::BatchId)
+            .select_column(attestation_batch::Column::IsRevoked)
+            .into_tuple()
+            .all(&self.connection)
+            .await
+            .map_err(|error| RevocationError::InternalError(Box::new(error)))?
+            .into_iter()
+            .map(|(batch_id, is_revoked)| BatchIsRevoked { batch_id, is_revoked })
+            .collect())
+    }
 }
 
 #[cfg(test)]

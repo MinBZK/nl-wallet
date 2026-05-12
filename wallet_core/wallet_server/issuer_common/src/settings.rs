@@ -48,6 +48,7 @@ use server_utils::store::StoreError;
 use server_utils::store::postgres::new_connection;
 use status_lists::config::StatusListConfig;
 use status_lists::config::StatusListConfigs;
+use status_lists::postgres::PostgresRevocationHelper;
 use status_lists::postgres::PostgresStatusListServices;
 use status_lists::postgres::StatusListServiceError;
 use status_lists::publish::PublishDir;
@@ -404,6 +405,7 @@ impl IssuerSettings {
                 PostgresStatusListServices<PrivateKeyVariant>,
             >,
             Arc<PostgresStatusListServices<PrivateKeyVariant>>,
+            PostgresRevocationHelper,
             Vec<DatabaseChecker>,
             StoreConnection,
             Settings,
@@ -463,14 +465,17 @@ impl IssuerSettings {
         let sessions = SessionStoreVariant::new(store_connection.clone(), (&self.server_settings.storage).into());
         let proof_nonce_store = ProofNonceStore::new(store_connection.clone());
 
-        let status_list_services = PostgresStatusListServices::try_new(status_list_connection, status_list_configs)
-            .await
-            .map_err(IssuerSettingsError::StatusLists)?;
+        let status_list_services =
+            PostgresStatusListServices::try_new(status_list_connection.clone(), status_list_configs)
+                .await
+                .map_err(IssuerSettingsError::StatusLists)?;
         status_list_services
             .initialize_lists()
             .await
             .map_err(IssuerSettingsError::StatusLists)?;
         let status_list_services = Arc::new(status_list_services);
+
+        let revocation_helper = PostgresRevocationHelper::new(status_list_connection);
 
         let issuer = Issuer::new(
             self.public_url,
@@ -488,6 +493,7 @@ impl IssuerSettings {
         Ok((
             issuer,
             status_list_services,
+            revocation_helper,
             database_checkers,
             store_connection,
             self.server_settings,

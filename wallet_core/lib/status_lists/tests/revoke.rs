@@ -17,6 +17,7 @@ use sea_orm::QueryFilter;
 use status_lists::config::StatusListConfig;
 use status_lists::entity::attestation_batch;
 use status_lists::postgres::NoRevokeAll;
+use status_lists::postgres::PostgresRevocationHelper;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::publish::PublishDir;
 use status_lists::revoke::create_revocation_router;
@@ -27,11 +28,11 @@ use utils::num::NonZeroU31;
 use utils::num::U31;
 use uuid::Uuid;
 
-async fn setup_revocation_server<L>(service: Arc<L>) -> anyhow::Result<Url>
+async fn setup_revocation_server<L>(service: Arc<L>, revocation_helper: PostgresRevocationHelper) -> anyhow::Result<Url>
 where
     L: StatusListRevocationService + Send + Sync + 'static,
 {
-    let (router, _) = create_revocation_router(service);
+    let (router, _) = create_revocation_router(service, revocation_helper);
     let listener = TcpListener::bind(("127.0.0.1", 0)).await?;
     let port = listener.local_addr()?.port();
     tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
@@ -76,8 +77,10 @@ async fn setup_revocation_test(
         .unwrap();
     try_join_all(service.initialize_lists().await.unwrap()).await.unwrap();
 
+    let helper = PostgresRevocationHelper::new(connection);
+
     let service = Arc::new(service);
-    let revoke_endpoint = setup_revocation_server(Arc::clone(&service)).await.unwrap();
+    let revoke_endpoint = setup_revocation_server(Arc::clone(&service), helper).await.unwrap();
 
     (service, revoke_endpoint)
 }

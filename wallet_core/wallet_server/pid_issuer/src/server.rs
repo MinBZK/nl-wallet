@@ -16,6 +16,7 @@ use server_utils::server::listen;
 use server_utils::server::secure_internal_router;
 use server_utils::settings::Settings;
 use server_utils::store::SessionStoreVariant;
+use status_lists::postgres::PostgresRevocationHelper;
 use status_lists::postgres::PostgresStatusListServices;
 use status_lists::revoke::create_revocation_router;
 use status_lists::serve::create_serve_router;
@@ -30,6 +31,7 @@ pub async fn serve<A>(
         PostgresStatusListServices<PrivateKeyVariant>,
     >,
     status_list_services: Arc<PostgresStatusListServices<PrivateKeyVariant>>,
+    revocation_helper: PostgresRevocationHelper,
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
@@ -42,6 +44,7 @@ where
         create_internal_listener(&server_settings.internal_server).await?,
         issuer,
         status_list_services,
+        revocation_helper,
         server_settings,
         serve_status_lists,
         health_checkers,
@@ -61,6 +64,7 @@ pub async fn serve_with_listeners<A>(
         PostgresStatusListServices<PrivateKeyVariant>,
     >,
     status_list_services: Arc<PostgresStatusListServices<PrivateKeyVariant>>,
+    revocation_helper: PostgresRevocationHelper,
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
@@ -78,7 +82,7 @@ where
         router = router.merge(status_list_router);
     }
 
-    let (internal_router, internal_openapi) = create_revocation_router(status_list_services);
+    let (internal_router, internal_openapi) = create_revocation_router(status_list_services, revocation_helper);
 
     #[cfg(feature = "test_internal_ui")]
     let mut internal_router = internal_router.merge(

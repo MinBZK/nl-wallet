@@ -39,7 +39,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?,
     )?;
 
-    let (issuer, status_list_services, database_checkers, _, server_settings) = settings
+    let (issuer, status_list_services, revocation_helper, database_checkers, _, server_settings) = settings
         .issuer_settings
         .into_issuer(hsm, Some(wia_config), Some(upstream_oauth_identifier), pid_attr_service)
         .await?;
@@ -52,6 +52,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     server::serve(
         issuer,
         status_list_services,
+        revocation_helper,
         server_settings,
         serve_status_lists,
         health_checkers,

@@ -60,19 +60,10 @@ impl axum::response::IntoResponse for RevocationError {
     }
 }
 
-#[cfg_attr(feature = "axum", derive(serde::Serialize, serde::Deserialize, utoipa::ToSchema))]
-pub struct BatchIsRevoked {
-    pub batch_id: Uuid,
-    pub is_revoked: bool,
-}
-
 #[trait_variant::make(Send)]
 pub trait StatusListRevocationService {
     async fn republish_all(&self, force: bool) -> Result<(), RevocationError>;
     async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError>;
-
-    async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError>;
-    async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError>;
 }
 
 #[cfg(any(test, feature = "mock"))]
@@ -118,9 +109,6 @@ pub mod mock {
         impl StatusListRevocationService for StatusListService {
             async fn republish_all(&self, force: bool) -> Result<(), RevocationError>;
             async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError>;
-
-            async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError>;
-            async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError>;
         }
     }
 
@@ -144,9 +132,6 @@ pub mod mock {
         impl StatusListRevocationService for StatusListServices {
             async fn republish_all(&self, force: bool) -> Result<(), RevocationError>;
             async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError>;
-
-            async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError>;
-            async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError>;
         }
     }
 }

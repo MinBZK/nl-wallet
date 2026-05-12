@@ -761,7 +761,7 @@ pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Op
 
     let serve_status_lists = settings.issuer_settings.status_lists.serve;
 
-    let (issuer, status_list_services, _, store_connection, server_settings) = settings
+    let (issuer, status_list_services, revocation_helper, _, store_connection, server_settings) = settings
         .issuer_settings
         .into_issuer(hsm.clone(), None, None, ())
         .await
@@ -790,6 +790,7 @@ pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Op
                 internal_listener,
                 issuer,
                 status_list_services,
+                revocation_helper,
                 server_settings,
                 serve_status_lists,
                 [],
@@ -833,7 +834,7 @@ pub async fn start_pid_issuer_server(
     };
     let upstream_oauth_identifier = settings.digid.client_settings.oidc_identifier.clone();
 
-    let (issuer, status_list_services, _, _, server_settings) = settings
+    let (issuer, status_list_services, revocation_helper, _, _, server_settings) = settings
         .issuer_settings
         .into_issuer(hsm, Some(wia_config), Some(upstream_oauth_identifier), attr_service)
         .await
@@ -846,6 +847,7 @@ pub async fn start_pid_issuer_server(
                 internal_listener,
                 issuer,
                 status_list_services,
+                revocation_helper,
                 server_settings,
                 serve_status_lists,
                 [],
