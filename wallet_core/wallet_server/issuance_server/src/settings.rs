@@ -15,7 +15,6 @@ use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use issuer_common::settings::IssuerSettings;
 use issuer_common::settings::IssuerSettingsError;
 use openid4vc::server_state::SessionStoreTimeouts;
-use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
@@ -131,19 +130,18 @@ impl ServerSettings for IssuanceServerSettings {
 
         let time = TimeGenerator;
 
-        let trust_anchors: Vec<TrustAnchor<'_>> = self
-            .reader_trust_anchors
-            .iter()
-            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
-            .collect::<Vec<_>>();
-
         let key_pairs: Vec<(&str, &KeyPair)> = self
             .disclosure_settings
             .iter()
             .map(|(id, settings)| (id.as_ref(), &settings.key_pair))
             .collect();
 
-        verify_key_pairs(&key_pairs, &trust_anchors, CertificateUsage::ReaderAuth, &time)?;
+        verify_key_pairs(
+            &key_pairs,
+            &self.reader_trust_anchors,
+            CertificateUsage::ReaderAuth,
+            &time,
+        )?;
 
         Ok(())
     }

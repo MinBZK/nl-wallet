@@ -687,7 +687,7 @@ where
             .start(
                 disclosure_uri_query,
                 source,
-                &wallet_config.disclosure.rp_trust_anchors(),
+                wallet_config.disclosure.rp_trust_anchors(),
             )
             .await?;
 

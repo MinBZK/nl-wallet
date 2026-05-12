@@ -110,12 +110,12 @@ pub mod verification {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
+    use crypto::trust_anchor::BorrowingTrustAnchor;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
     use crypto::x509::DistinguishedName;
     use jwt::DEFAULT_VALIDATIONS;
     use jwt::error::JwtX5cError;
-    use rustls_pki_types::TrustAnchor;
     use url::Url;
     use utils::generator::Generator;
 
@@ -148,7 +148,7 @@ pub mod verification {
     impl StatusListToken {
         pub fn parse_and_verify(
             &self,
-            issuer_trust_anchors: &[TrustAnchor],
+            issuer_trust_anchors: &[BorrowingTrustAnchor],
             attestation_signing_certificate_dn: DistinguishedName,
             url: &Url,
             time: &impl Generator<DateTime<Utc>>,
@@ -304,7 +304,7 @@ mod test {
 
         let err = signed
             .parse_and_verify(
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 ca.generate_pid_issuer_mock()
                     .unwrap()
                     .certificate()
@@ -318,7 +318,7 @@ mod test {
 
         let err = signed
             .parse_and_verify(
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 &"http://example.com/sub".parse().unwrap(),
                 &MockTimeGenerator::default(),
@@ -328,7 +328,7 @@ mod test {
 
         let err = signed
             .parse_and_verify(
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 &expected_claims.sub,
                 &MockTimeGenerator::new(DateTime::from_timestamp(SLT_EXP, 0).unwrap().add(Days::new(1))),
@@ -338,7 +338,7 @@ mod test {
 
         signed
             .parse_and_verify(
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 &expected_claims.sub,
                 &MockTimeGenerator::default(),

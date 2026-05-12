@@ -3,10 +3,10 @@ use std::hash::Hash;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::CredentialEcdsaKey;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
-use rustls_pki_types::TrustAnchor;
 use utils::generator::Generator;
 use wscd::Poa;
 
@@ -26,11 +26,11 @@ mockall::mock! {
     impl DisclosureClient for DisclosureClient {
         type Session = MockDisclosureSession;
 
-        async fn start<'a>(
+        async fn start(
             &self,
             request_uri_query: &str,
             uri_source: DisclosureUriSource,
-            trust_anchors: &[TrustAnchor<'a>],
+            trust_anchors: &[BorrowingTrustAnchor],
         ) -> Result<MockDisclosureSession, VpSessionError>;
     }
 }

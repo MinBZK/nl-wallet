@@ -800,7 +800,11 @@ mod test {
 
         // The IssuerSigned should be valid
         issuer_signed
-            .verify(ValidityRequirement::Valid, &TimeGenerator, &[ca.to_trust_anchor()])
+            .verify(
+                ValidityRequirement::Valid,
+                &TimeGenerator,
+                &[ca.to_borrowing_trust_anchor()],
+            )
             .expect("the IssuerSigned sent in the preview should be valid");
 
         // The issuer certificate generated above should be included in the IssuerAuth
@@ -835,7 +839,7 @@ mod test {
 
         // The IssuerSigned should be valid
         let verified_sd_jwt = unverified_sd_jwt
-            .into_verified_against_trust_anchors(&[ca.to_trust_anchor()], &TimeGenerator)
+            .into_verified_against_trust_anchors(&[ca.to_borrowing_trust_anchor()], &TimeGenerator)
             .expect("the IssuerSigned sent in the preview should be valid");
 
         // The issuer certificate generated above should be included in the IssuerAuth
@@ -1137,7 +1141,7 @@ mod test {
         let presented_sd_jwt = presented_sd_jwts.into_iter().exactly_one().unwrap().into_unverified();
         presented_sd_jwt
             .into_verified_against_trust_anchors(
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 &kb_verification_options,
                 &time_generator,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(issuer_key_pair))),

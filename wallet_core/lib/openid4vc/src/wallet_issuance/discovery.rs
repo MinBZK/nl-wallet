@@ -1,5 +1,5 @@
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use http_utils::reqwest::HttpJsonClient;
-use rustls_pki_types::TrustAnchor;
 use url::Url;
 
 use crate::credential::CredentialOfferContainer;
@@ -52,7 +52,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         &self,
         redirect_uri: &Url,
         client_id: String,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         let query = redirect_uri
             .query()
@@ -120,6 +120,7 @@ mod test {
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::BorrowingTrustAnchor;
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
     use http_utils::reqwest::HttpJsonClient;
@@ -128,7 +129,6 @@ mod test {
     use httpmock::Method::POST;
     use httpmock::MockServer;
     use indexmap::IndexMap;
-    use rustls_pki_types::TrustAnchor;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -159,14 +159,14 @@ mod test {
     /// and a credential preview endpoint. Returns the server, issuer identifier, and trust anchor.
     async fn start_wiremock_issuer(
         authorization_endpoint: Option<&str>,
-    ) -> (MockServer, IssuerIdentifier, TrustAnchor<'static>) {
+    ) -> (MockServer, IssuerIdentifier, BorrowingTrustAnchor) {
         let server = MockServer::start_async().await;
         let issuer_identifier = server.base_url().parse::<IssuerIdentifier>().unwrap();
 
         // Create CA and issuer certificate for the credential preview.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_pid_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
-        let trust_anchor = ca.to_trust_anchor().to_owned();
+        let trust_anchor = ca.to_borrowing_trust_anchor();
 
         // Create type metadata for the credential preview.
         let (_, _, type_metadata_documents) =

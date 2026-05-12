@@ -125,7 +125,7 @@ where
             .start_pre_authorized_code_flow(
                 &redirect_uri,
                 NL_WALLET_CLIENT_ID.to_string(),
-                &config.issuer_trust_anchors(),
+                config.issuer_trust_anchors(),
             )
             .await
             .map_err(|e| convert_and_enrich_error(e, &organization))?;
