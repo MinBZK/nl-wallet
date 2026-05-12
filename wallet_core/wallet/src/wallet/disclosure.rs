@@ -111,7 +111,7 @@ pub struct AttributesNotAvailable {
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum DisclosureError {
-    #[error("preconditions failed")]
+    #[error("preconditions failed: {0}")]
     #[category(expected)]
     CheckPreconditions(#[from] CheckPreconditionsError),
 

@@ -74,7 +74,7 @@ use crate::wallet::state::CheckPreconditionsError;
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum IssuanceError {
-    #[error("preconditions failed")]
+    #[error("preconditions failed: {0}")]
     #[category(expected)]
     CheckPreconditions(#[from] CheckPreconditionsError),
 

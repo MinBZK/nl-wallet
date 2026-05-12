@@ -260,11 +260,11 @@ where
         APC: AccountProviderClient,
         CPC: CloseProximityDisclosureClient,
     {
-        info!("Cancelling disclosure");
+        info!("Cancelling session");
 
         self.check_session_preconditions()?;
 
-        info!("Checking if a disclosure session is present");
+        info!("Checking if a session is present");
 
         match self.session.take() {
             Some(Session::Issuance(session)) => {
