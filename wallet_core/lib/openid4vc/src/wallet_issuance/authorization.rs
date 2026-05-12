@@ -25,13 +25,16 @@ use crate::wallet_issuance::WalletIssuanceError;
 use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
 use crate::wallet_issuance::issuance_session::HttpVcMessageClient;
 
-#[derive(Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "snake_case")]
+#[derive(Deserialize, Debug, Clone, PartialEq, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
 pub enum ParErrorCode {
     InvalidClient,
     ServerError,
-    #[serde(other)]
-    Unknown,
+
+    // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
+    // Note that this is never to be used by the issuer, as this will lead to a panic.
+    #[strum(default)]
+    Other(String),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
