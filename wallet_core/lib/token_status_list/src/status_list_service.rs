@@ -7,7 +7,7 @@ use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
 #[trait_variant::make(Send)]
-pub trait StatusListService: StatusListRevocationService {
+pub trait StatusListService {
     type Error: std::error::Error + Send + Sync + 'static;
 
     async fn obtain_status_claims(
@@ -18,6 +18,9 @@ pub trait StatusListService: StatusListRevocationService {
     ) -> Result<VecNonEmpty<StatusClaim>, Self::Error>;
 
     fn start_refresh_job(&self) -> AbortHandle;
+
+    async fn republish_all(&self, force: bool) -> Result<(), RevocationError>;
+    async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError>;
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -43,12 +46,6 @@ impl axum::response::IntoResponse for RevocationError {
             }
         }
     }
-}
-
-#[trait_variant::make(Send)]
-pub trait StatusListRevocationService {
-    async fn republish_all(&self, force: bool) -> Result<(), RevocationError>;
-    async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError>;
 }
 
 #[cfg(any(test, feature = "mock"))]
@@ -89,9 +86,7 @@ pub mod mock {
             ) -> Result<VecNonEmpty<StatusClaim>, Infallible>;
 
             fn start_refresh_job(&self) -> AbortHandle;
-        }
 
-        impl StatusListRevocationService for StatusListService {
             async fn republish_all(&self, force: bool) -> Result<(), RevocationError>;
             async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError>;
         }

@@ -9,7 +9,7 @@ use crypto::EcdsaKeySend;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use token_status_list::status_list_service::RevocationError;
-use token_status_list::status_list_service::StatusListRevocationService;
+use token_status_list::status_list_service::StatusListService;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;

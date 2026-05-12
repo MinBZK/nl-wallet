@@ -46,7 +46,6 @@ use token_status_list::status_list::PackedStatusList;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
 use token_status_list::status_list_service::RevocationError;
-use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListToken;
 use token_status_list::status_list_token::StatusListTokenBuilder;
@@ -236,13 +235,7 @@ where
     fn start_refresh_job(&self) -> AbortHandle {
         self.start_refresh_job()
     }
-}
 
-impl<K, R> StatusListRevocationService for PostgresStatusListService<K, R>
-where
-    K: EcdsaKeySend + Sync + 'static,
-    R: RevokeAll + Clone + Sync + 'static,
-{
     #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
     async fn republish_all(&self, force: bool) -> Result<(), RevocationError> {
         if force {
