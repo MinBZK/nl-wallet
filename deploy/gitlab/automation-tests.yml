@@ -298,7 +298,7 @@ browserstack-a11y-merge:
     paths:
       - uiautomation/combined_summary.json
 
-.run-automation-smoke-test-ont:
+run-automation-smoke-test-ont:
   extends: .run-automation-tests-common-setup
   rules: !reference [.default-branch, rules]
   needs:
@@ -310,7 +310,7 @@ browserstack-a11y-merge:
     - mv browserstack-config/browserstack-oneplus12r-14-NL.yml ./browserstack.yml
     - ./gradlew --no-daemon --info --stacktrace smokeTest -Dtest.config.remote=true -Dfile.encoding=UTF-8
 
-.run-automation-smoke-test-ios-ont:
+run-automation-smoke-test-ios-ont:
   extends: .run-automation-tests-common-setup
   rules: !reference [.default-branch, rules]
   needs:
