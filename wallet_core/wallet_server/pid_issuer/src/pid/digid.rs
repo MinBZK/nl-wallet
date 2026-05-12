@@ -47,11 +47,8 @@ pub enum Error {
     UserInfo(#[source] UserInfoError),
 }
 
-/// Holds the TLS-pinned HTTP client, upstream issuer identifier, and a lazy
-/// cache of the upstream's OIDC discovery metadata. Shared (behind an `Arc`)
-/// by everything that needs to talk to the upstream — the authorization
-/// endpoint resolver and the userinfo exchange — so `/.well-known/openid-configuration`
-/// is fetched at most once per process.
+/// Holds the TLS-pinned HTTP client, upstream issuer identifier, and a lazy cache of the upstream's OIDC discovery
+/// metadata.
 pub struct DigidMetadataCache {
     http_client: HttpJsonClient,
     oidc_identifier: IssuerIdentifier,
