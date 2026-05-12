@@ -6,22 +6,17 @@ use p256::EncodedPoint;
 use p256::SecretKey;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
-use rustls_pki_types::CertificateDer;
-use rustls_pki_types::TrustAnchor;
-use webpki::anchor_from_trusted_cert;
+
+use crate::trust_anchor::BorrowingTrustAnchor;
 
 pub struct Examples;
-
-fn to_static_ref<T>(val: T) -> &'static mut T {
-    Box::leak(Box::new(val))
-}
 
 pub const EXAMPLE_KEY_IDENTIFIER: &str = "example_static_device_key";
 
 impl Examples {
     /// Returns the IACA trust anchor (Issuer Authority Certificate Authority).
-    pub fn iaca_trust_anchors() -> &'static [TrustAnchor<'static>] {
-        let bts = &hex!(
+    pub fn iaca_trust_anchors() -> Vec<BorrowingTrustAnchor> {
+        let bts = hex!(
             "308201ce30820173a00302010202142ab4edd052b2582f4c6ad96186de70f4de5a3994300a06082a8648ce3d04030230233114301\
              206035504030c0b75746f7069612069616361310b3009060355040613025553301e170d3230313030313030303030305a170d3239\
              303932393030303030305a30233114301206035504030c0b75746f7069612069616361310b3009060355040613025553305930130\
@@ -33,12 +28,12 @@ impl Examples {
              f7129fa609c24299a5c787022100d088d8741f5d05b360ef6e85023e90df1d31dd1e6701a88efe9a7103021f986c"
         );
 
-        to_static_ref([anchor_from_trusted_cert(to_static_ref(CertificateDer::from(bts.as_slice()))).unwrap()])
+        vec![BorrowingTrustAnchor::from_der(bts.as_slice()).unwrap()]
     }
 
     /// CA cert for reader authentication
-    pub fn reader_trust_anchors() -> &'static [TrustAnchor<'static>] {
-        let bts = &hex!(
+    pub fn reader_trust_anchors() -> Vec<BorrowingTrustAnchor> {
+        let bts = hex!(
             "3082019030820137a003020102021430d747795405d564b7ac48be6f364ae2c774f2fc300a06082a8648ce3d04030230163114301\
              206035504030c0b72656164657220726f6f74301e170d3230313030313030303030305a170d3239303932393030303030305a3016\
              3114301206035504030c0b72656164657220726f6f743059301306072a8648ce3d020106082a8648ce3d030107034200043643293\
@@ -49,7 +44,7 @@ impl Examples {
              99930022077f46f00b4af3e014d253e0edcc9f146a75a6b1bdfe33e9fa72f30f0880d5237"
         );
 
-        to_static_ref([anchor_from_trusted_cert(to_static_ref(CertificateDer::from(bts.as_slice()))).unwrap()])
+        vec![BorrowingTrustAnchor::from_der(bts.as_slice()).unwrap()]
     }
 
     /// Reader ephemeral private key, for deriving MAC key

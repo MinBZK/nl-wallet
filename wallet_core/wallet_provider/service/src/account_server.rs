@@ -31,6 +31,7 @@ use chrono::DateTime;
 use chrono::Days;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use derive_more::Constructor;
 use derive_more::From;
 use futures::TryFutureExt;
@@ -523,7 +524,7 @@ pub struct UserState<R, F, H, W, S> {
     pub wia_issuer: W,
     pub wia_validity: Days,
     pub wrapping_key_identifier: String,
-    pub pid_issuer_trust_anchors: Vec<TrustAnchor<'static>>,
+    pub pid_issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
     pub status_list_service: S,
 }
 
@@ -1795,7 +1796,7 @@ pub mod mock {
         flags: F,
         wallet_user_hsm: MockPkcs11Client<HsmError>,
         wrapping_key_identifier: String,
-        pid_issuer_trust_anchors: Vec<TrustAnchor<'static>>,
+        pid_issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
         status_list_service: S,
     ) -> UserState<R, F, MockPkcs11Client<HsmError>, MockWiaIssuer, S> {
         UserState::<R, F, MockPkcs11Client<HsmError>, MockWiaIssuer, S> {
@@ -2057,7 +2058,10 @@ mod tests {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
         recovery_code_sd_jwt(&issuer_ca)
             .1
-            .into_verified_against_trust_anchors(&[issuer_ca.to_trust_anchor()], &MockTimeGenerator::default())
+            .into_verified_against_trust_anchors(
+                &[issuer_ca.to_borrowing_trust_anchor()],
+                &MockTimeGenerator::default(),
+            )
             .unwrap()
     }
 

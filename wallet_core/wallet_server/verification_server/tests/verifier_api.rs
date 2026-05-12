@@ -24,6 +24,7 @@ use chrono::Utc;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use dcql::CredentialFormat;
 use dcql::CredentialQuery;
 use dcql::Query;
@@ -58,7 +59,6 @@ use parking_lot::RwLock;
 use reqwest::Client;
 use reqwest::Response;
 use rstest::rstest;
-use rustls_pki_types::TrustAnchor;
 use sd_jwt::builder::SignedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use server_utils::settings::Authentication;
@@ -119,7 +119,7 @@ async fn internal_server_settings_and_listener() -> (ServerAuth, Option<TcpListe
 async fn wallet_server_settings_and_listener(
     internal_server: ServerAuth,
     request: &StartDisclosureRequest,
-) -> (VerifierSettings, TcpListener, Ca, TrustAnchor<'static>) {
+) -> (VerifierSettings, TcpListener, Ca, BorrowingTrustAnchor) {
     // Set up the listener.
     let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
     let addr = listener.local_addr().unwrap();
@@ -130,13 +130,13 @@ async fn wallet_server_settings_and_listener(
 
     // Create the issuer CA and derive the trust anchors from it.
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuer_trust_anchors = vec![issuer_ca.borrowing_trust_anchor().clone()];
+    let issuer_trust_anchors = vec![issuer_ca.to_borrowing_trust_anchor()];
 
     // Create the RP CA, derive the trust anchor from it and generate
     // a reader registration, based on the example items request.
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
-    let reader_trust_anchors = vec![rp_ca.borrowing_trust_anchor().clone()];
-    let rp_trust_anchor = rp_ca.to_trust_anchor().to_owned();
+    let reader_trust_anchors = vec![rp_ca.to_borrowing_trust_anchor()];
+    let rp_trust_anchor = rp_ca.to_borrowing_trust_anchor();
     let reader_registration = ReaderRegistration::mock_from_dcql_query(request.dcql_query.as_ref().unwrap());
 
     // Set up the use case, based on RP CA and reader registration.
@@ -593,7 +593,7 @@ async fn start_disclosure<S>(
     SessionToken,
     BaseUrl,
     Ca,
-    TrustAnchor<'static>,
+    BorrowingTrustAnchor,
 )
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,

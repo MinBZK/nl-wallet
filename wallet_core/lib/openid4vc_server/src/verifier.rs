@@ -13,6 +13,7 @@ use axum::routing::delete;
 use axum::routing::get;
 use axum::routing::post;
 use crypto::keys::EcdsaKeySend;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use dcql::unique_id_vec::UniqueIdVec;
 use http::HeaderMap;
 use http::HeaderValue;
@@ -45,7 +46,6 @@ use openid4vc::verifier::UseCase;
 use openid4vc::verifier::UseCases;
 use openid4vc::verifier::Verifier;
 use openid4vc::verifier::WalletAuthResponse;
-use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use token_status_list::verification::client::StatusListClient;
@@ -66,7 +66,7 @@ pub struct VerifierFactory<US> {
     public_url: BaseUrl,
     disclosure_base_deep_link: BaseUrl,
     use_cases: US,
-    issuer_trust_anchors: Vec<TrustAnchor<'static>>,
+    issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
     accepted_wallet_client_ids: Vec<String>,
     extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
 }
@@ -86,7 +86,7 @@ where
         public_url: BaseUrl,
         disclosure_base_deep_link: BaseUrl,
         use_cases: US,
-        issuer_trust_anchors: Vec<TrustAnchor<'static>>,
+        issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
         accepted_wallet_client_ids: Vec<String>,
         extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
     ) -> Self {

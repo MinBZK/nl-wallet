@@ -10,6 +10,7 @@ use chrono::Utc;
 use crypto::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
@@ -25,7 +26,6 @@ use jsonwebtoken::Validation;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::CertificateDer;
-use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -214,7 +214,7 @@ where
     /// header.
     pub fn parse_and_verify_against_trust_anchors(
         &self,
-        trust_anchors: &[TrustAnchor],
+        trust_anchors: &[BorrowingTrustAnchor],
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: CertificateUsage,
         validation_options: &Validation,
@@ -249,7 +249,7 @@ where
         validation_options: &Validation,
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: CertificateUsage,
-        trust_anchors: &[TrustAnchor],
+        trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cError> {
         let (header, payload) =
             self.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation_options)?;
@@ -1251,7 +1251,7 @@ mod tests {
 
         let (header, deserialized) = jwt
             .parse_and_verify_against_trust_anchors(
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 &TimeGenerator,
                 CertificateUsage::ReaderAuth,
                 &DEFAULT_VALIDATIONS,
@@ -1353,7 +1353,7 @@ mod tests {
         // Verifying this JWT against the CA's trust anchor should succeed.
         let (header, deserialized) = jwt
             .parse_and_verify_against_trust_anchors(
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 &TimeGenerator,
                 CertificateUsage::ReaderAuth,
                 &DEFAULT_VALIDATIONS,
@@ -1379,7 +1379,7 @@ mod tests {
 
         let err = jwt
             .parse_and_verify_against_trust_anchors(
-                &[other_ca.to_trust_anchor()],
+                &[other_ca.to_borrowing_trust_anchor()],
                 &TimeGenerator,
                 CertificateUsage::ReaderAuth,
                 &DEFAULT_VALIDATIONS,
@@ -1388,6 +1388,38 @@ mod tests {
         assert_matches!(
             err,
             JwtX5cError::CertificateValidation(CertificateError::Verification(_))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_rejects_jwt_with_trust_anchor_in_x5c() {
+        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let keypair = ca.generate_reader_mock().unwrap();
+
+        let ca_cert = BorrowingCertificate::from_certificate_der(ca.certificate().to_owned()).unwrap();
+
+        // Put the ca_cert in both the certificate list and the trust anchors.
+        let certs = vec_nonempty![keypair.certificate().to_owned(), ca_cert];
+        let trust_anchors = vec![ca.to_borrowing_trust_anchor()];
+
+        let payload = json!({"hello": "world"});
+        let jwt = SignedJwt::sign_with_header(HeaderWithX5c::from_certs(certs), &payload, keypair.private_key())
+            .await
+            .unwrap()
+            .into_unverified();
+
+        let err = jwt
+            .parse_and_verify_against_trust_anchors(
+                &trust_anchors,
+                &TimeGenerator,
+                CertificateUsage::ReaderAuth,
+                &DEFAULT_VALIDATIONS,
+            )
+            .unwrap_err();
+
+        assert_matches!(
+            err,
+            JwtX5cError::CertificateValidation(CertificateError::TrustAnchorInChain)
         );
     }
 

@@ -27,7 +27,6 @@ use openid4vc::verifier::RpInitiatedUseCases;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::UseCaseData;
 use ring::hmac;
-use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::hex::Hex;
@@ -205,12 +204,6 @@ impl ServerSettings for VerifierSettings {
 
         let time = TimeGenerator;
 
-        let trust_anchors: Vec<TrustAnchor<'_>> = self
-            .reader_trust_anchors
-            .iter()
-            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
-            .collect::<Vec<_>>();
-
         let key_pairs: Vec<(&str, &KeyPair)> = self
             .usecases
             .as_ref()
@@ -218,7 +211,12 @@ impl ServerSettings for VerifierSettings {
             .map(|(use_case_id, usecase)| (use_case_id.as_ref(), &usecase.key_pair))
             .collect();
 
-        verify_key_pairs(&key_pairs, &trust_anchors, CertificateUsage::ReaderAuth, &time)?;
+        verify_key_pairs(
+            &key_pairs,
+            &self.reader_trust_anchors,
+            CertificateUsage::ReaderAuth,
+            &time,
+        )?;
 
         Ok(())
     }

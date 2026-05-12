@@ -14,10 +14,10 @@ use chrono::Days;
 use chrono::Utc;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
-use rustls_pki_types::TrustAnchor;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
@@ -108,13 +108,13 @@ pub fn setup_mock_issuer<G>(
     attestation_count: NonZeroUsize,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
     upstream_oauth_identifier: Option<IssuerIdentifier>,
-) -> (MockIssuer<G>, TrustAnchor<'static>, SigningKey)
+) -> (MockIssuer<G>, BorrowingTrustAnchor, SigningKey)
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
-    let trust_anchor = ca.to_trust_anchor().to_owned();
+    let trust_anchor = ca.to_borrowing_trust_anchor();
     let wia_issuer_privkey = SigningKey::random(&mut OsRng);
 
     let attestation_config = MOCK_ATTESTATION_TYPES[..attestation_count.get()]

@@ -121,7 +121,7 @@ mod tests {
                 Some(&eph_reader_key),
                 &session_transcript,
                 &IsoCertTimeGenerator,
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
                 ))),

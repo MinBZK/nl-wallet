@@ -10,6 +10,7 @@ use attestation_data::x509::CertificateTypeError;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::CredentialEcdsaKey;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::wscd::DisclosureWscd;
 use crypto::x509::CertificateError;
 use derive_more::IsVariant;
@@ -38,7 +39,6 @@ use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureError as PlatformError;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
-use rustls_pki_types::TrustAnchor;
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tracing::error;
@@ -384,7 +384,7 @@ where
             &device_request,
             &session_transcript,
             &TimeGenerator,
-            &wallet_config.disclosure.rp_trust_anchors(),
+            wallet_config.disclosure.rp_trust_anchors(),
         ) {
             Ok(verifier_certificate) => verifier_certificate,
             Err(error) => {
@@ -743,7 +743,7 @@ pub fn verify_device_request(
     device_request: &DeviceRequest,
     session_transcript: &SessionTranscript,
     time: &impl Generator<DateTime<Utc>>,
-    trust_anchors: &[TrustAnchor],
+    trust_anchors: &[BorrowingTrustAnchor],
 ) -> Result<VerifierCertificate, CloseProximityDisclosureError> {
     // Verify all `DocRequest` entries and make sure the resulting certificates are all exactly equal.
     let certificate = device_request
@@ -805,6 +805,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::p256_der::DerSignature;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::BorrowingTrustAnchor;
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
@@ -835,7 +836,6 @@ mod tests {
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
     use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
     use rand_core::OsRng;
-    use rustls_pki_types::TrustAnchor;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use serial_test::serial;
     use utils::generator::mock::MockTimeGenerator;
@@ -1409,10 +1409,10 @@ mod tests {
         SessionTranscript::new_qr(cose_key, device_engagement)
     }
 
-    async fn setup_device_request<'a>(
+    async fn setup_device_request(
         items_requests: Vec<ItemsRequest>,
         device_engagement: Option<DeviceEngagement>,
-    ) -> (DeviceRequest, SessionTranscript, Vec<TrustAnchor<'a>>) {
+    ) -> (DeviceRequest, SessionTranscript, Vec<BorrowingTrustAnchor>) {
         let mut reader_registration = ReaderRegistration::new_mock();
         items_requests.clone().into_iter().for_each(|items_request| {
             let (doc_type, claims) = items_request.into_doctype_and_claims();
@@ -1434,7 +1434,7 @@ mod tests {
         .unwrap();
 
         let device_request = DeviceRequest::from_doc_requests(doc_requests);
-        let trust_anchors = vec![READER_CA.to_trust_anchor().to_owned()];
+        let trust_anchors = vec![READER_CA.to_borrowing_trust_anchor()];
 
         (device_request, session_transcript, trust_anchors)
     }
@@ -1513,7 +1513,7 @@ mod tests {
         let doc_request2 = create_doc_request(items_request2, &session_transcript, &key_pair2).await;
 
         let device_request = DeviceRequest::from_doc_requests(vec_nonempty![doc_request1, doc_request2]);
-        let trust_anchors = [READER_CA.to_trust_anchor()];
+        let trust_anchors = [READER_CA.to_borrowing_trust_anchor()];
 
         let result = verify_device_request(
             &device_request,
@@ -1539,7 +1539,7 @@ mod tests {
         let doc_requests = create_doc_request(items_request, &session_transcript, &key_pair).await;
 
         let device_request = DeviceRequest::from_doc_requests(vec_nonempty![doc_requests]);
-        let trust_anchors = vec![READER_CA.to_trust_anchor().to_owned()];
+        let trust_anchors = vec![READER_CA.to_borrowing_trust_anchor()];
 
         let result = verify_device_request(
             &device_request,
