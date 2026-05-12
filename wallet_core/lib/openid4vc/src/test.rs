@@ -25,7 +25,7 @@ use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
-use token_status_list::status_list_service::mock::MockStatusListServices;
+use token_status_list::status_list_service::mock::MockStatusListService;
 use token_status_list::status_list_service::mock::generate_status_claims;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
@@ -49,7 +49,7 @@ pub const MOCK_ATTESTATION_TYPES: [&str; 2] = ["com.example.pid", "com.example.a
 pub const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
 pub type MockIssuer<G = TimeGenerator> =
-    Issuer<SigningKey, MockAttrService, MemorySessionStore<IssuanceData, G>, MemoryNonceStore, MockStatusListServices>;
+    Issuer<MockAttrService, SigningKey, MockStatusListService, MemorySessionStore<IssuanceData, G>, MemoryNonceStore>;
 
 pub fn mock_type_metadata(vct: &str) -> TypeMetadata {
     TypeMetadata::try_new(UncheckedTypeMetadata {
@@ -124,6 +124,17 @@ where
         .iter()
         .copied()
         .map(|attestation_type| {
+            let mut status_list = MockStatusListService::new();
+            status_list.expect_obtain_status_claims().returning(|_, _, copies| {
+                let uri = format!("https://tsl.example.com/{}", attestation_type.replace(':', "-"))
+                    .parse()
+                    .unwrap();
+                Ok(generate_status_claims(&uri, copies))
+            });
+            status_list
+                .expect_start_refresh_job()
+                .return_once(|| tokio::task::spawn(async {}).abort_handle());
+
             let (_, _, metadata_documents) =
                 TypeMetadataDocuments::from_single_example(mock_type_metadata(attestation_type));
 
@@ -136,7 +147,7 @@ where
                 )
                 .unwrap(),
                 valid_days: Days::new(365),
-                status_list_group: attestation_type.to_string(),
+                status_list: Arc::new(status_list),
                 issuer_uri: issuance_keypair
                     .certificate()
                     .san_dns_name_or_uris()
@@ -150,17 +161,6 @@ where
         });
     let credential_configs = CredentialConfigurations::try_new(configurations).unwrap();
 
-    let mut status_list_service = MockStatusListServices::default();
-    status_list_service
-        .expect_obtain_status_claims()
-        .returning(|attestation_type, _, _, copies| {
-            let uri = format!("https://tsl.example.com/{}", attestation_type.replace(':', "-"))
-                .parse()
-                .unwrap();
-            Ok(generate_status_claims(&uri, copies))
-        });
-    status_list_service.expect_start_refresh_jobs().return_const(vec![]);
-
     let issuer = MockIssuer::new(
         issuer_identifier,
         NonZeroU8::new(4).unwrap(),
@@ -173,7 +173,6 @@ where
         attr_service,
         sessions,
         MemoryNonceStore::new(),
-        Arc::new(status_list_service),
     );
 
     (issuer, trust_anchor, wia_issuer_privkey)

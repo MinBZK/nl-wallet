@@ -32,6 +32,7 @@ use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use rustls_pki_types::TrustAnchor;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+use sea_orm::DatabaseConnection;
 use sea_orm::DbErr;
 use serde::Deserialize;
 use serde_with::TryFromInto;
@@ -46,10 +47,9 @@ use server_utils::store::SessionStoreVariant;
 use server_utils::store::StoreConnection;
 use server_utils::store::StoreError;
 use server_utils::store::postgres::new_connection;
-use status_lists::config::StatusListConfig;
-use status_lists::config::StatusListConfigs;
+use status_lists::postgres::NoRevokeAll;
 use status_lists::postgres::PostgresRevocationHelper;
-use status_lists::postgres::PostgresStatusListServices;
+use status_lists::postgres::PostgresStatusListService;
 use status_lists::postgres::StatusListServiceError;
 use status_lists::publish::PublishDir;
 use status_lists::settings::ExpiryLessThanTtl;
@@ -205,6 +205,9 @@ pub enum CredentialConfigurationsSettingsError {
     #[error("could not compile SD-JWT VC Type Metadata chain: {0}")]
     TypeMetadataChain(#[source] TypeMetadataDocumentsError),
 
+    #[error("could not initialize status: {0}")]
+    StatusList(#[source] StatusListAttestationSettingsError),
+
     #[error("could not set up credential configurations: {0}")]
     CredentialConfigurations(#[source] CredentialConfigurationsError),
 }
@@ -212,56 +215,74 @@ pub enum CredentialConfigurationsSettingsError {
 impl CredentialConfigurationsSettings {
     pub async fn parse(
         self,
+        status_list_connection: DatabaseConnection,
+        public_url: BaseUrl,
         hsm: Option<Pkcs11Hsm>,
+        status_list_settings: &StatusListsSettings,
         metadata_by_vct: &TypeMetadataByVct,
-    ) -> Result<CredentialConfigurations<PrivateKeyVariant>, CredentialConfigurationsSettingsError> {
+    ) -> Result<
+        CredentialConfigurations<PrivateKeyVariant, PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>>,
+        CredentialConfigurationsSettingsError,
+    > {
         let Self(inner) = self;
 
         let config_count = inner.len();
-        let config_params = try_join_all(inner.into_iter().zip_eq(itertools::repeat_n(hsm, config_count)).map(
-            |((config_id, settings), hsm)| {
-                async move {
-                    // Take the SAN from the settings if specified, or otherwise take the first SAN from the
-                    // certificate. NB: the settings validation function will have verified before
-                    // this that the certificate contains just one SAN.
-                    let issuer_uri = match settings.certificate_san {
-                        Some(san) => san,
-                        None => {
-                            let san_dns_name_or_uris = settings
-                                .keypair
-                                .certificate
-                                .san_dns_name_or_uris()
-                                .map_err(CredentialConfigurationsSettingsError::CertificateSanDns)?;
+        let config_params = try_join_all(
+            inner
+                .into_iter()
+                .zip_eq(itertools::repeat_n(
+                    (status_list_connection, public_url, hsm),
+                    config_count,
+                ))
+                .map(|((config_id, settings), (status_list_connection, public_url, hsm))| {
+                    async move {
+                        // Take the SAN from the settings if specified, or otherwise take the first SAN from the
+                        // certificate. NB: the settings validation function will have verified before
+                        // this that the certificate contains just one SAN.
+                        let issuer_uri = match settings.certificate_san {
+                            Some(san) => san,
+                            None => {
+                                let san_dns_name_or_uris = settings
+                                    .keypair
+                                    .certificate
+                                    .san_dns_name_or_uris()
+                                    .map_err(CredentialConfigurationsSettingsError::CertificateSanDns)?;
 
-                            san_dns_name_or_uris.first().clone()
-                        }
-                    };
+                                san_dns_name_or_uris.first().clone()
+                            }
+                        };
 
-                    let metadata_documents = metadata_by_vct
-                        .to_metadata_documents(&settings.attestation_type)
-                        .map_err(CredentialConfigurationsSettingsError::TypeMetadataChain)?;
+                        let metadata_documents = metadata_by_vct
+                            .to_metadata_documents(&settings.attestation_type)
+                            .map_err(CredentialConfigurationsSettingsError::TypeMetadataChain)?;
 
-                    let key_pair = settings
-                        .keypair
-                        .parse(hsm.clone())
-                        .await
-                        .map_err(CredentialConfigurationsSettingsError::PrivateKey)?;
+                        let key_pair = settings
+                            .keypair
+                            .parse(hsm.clone())
+                            .await
+                            .map_err(CredentialConfigurationsSettingsError::PrivateKey)?;
 
-                    let params = CredentialConfigurationParameters {
-                        format: settings.format,
-                        attestation_type: settings.attestation_type,
-                        key_pair,
-                        valid_days: Days::new(settings.valid_days),
-                        status_list_group: settings.status_list.group_name,
-                        issuer_uri,
-                        attestation_qualification: settings.attestation_qualification,
-                        metadata_documents,
-                    };
+                        let status_list = settings
+                            .status_list
+                            .into_service(status_list_connection, public_url, hsm, status_list_settings)
+                            .await
+                            .map_err(CredentialConfigurationsSettingsError::StatusList)?;
 
-                    Ok::<_, CredentialConfigurationsSettingsError>((config_id, params))
-                }
-            },
-        ))
+                        let params = CredentialConfigurationParameters {
+                            format: settings.format,
+                            attestation_type: settings.attestation_type,
+                            key_pair,
+                            status_list: Arc::new(status_list),
+                            valid_days: Days::new(settings.valid_days),
+                            issuer_uri,
+                            attestation_qualification: settings.attestation_qualification,
+                            metadata_documents,
+                        };
+
+                        Ok::<_, CredentialConfigurationsSettingsError>((config_id, params))
+                    }
+                }),
+        )
         .await?;
 
         let configurations = CredentialConfigurations::try_new(config_params)
@@ -305,13 +326,13 @@ pub enum IssuerSettingsError {
     #[error("could not initialize storage: {0}")]
     Storage(#[source] StoreError),
 
-    #[error("could not initialize status list database: {0}")]
+    #[error("could not connect to status list database: {0}")]
     StatusListDatabase(#[source] DbErr),
 
     #[error("could not parse status list settings: {0}")]
     StatusListSettings(#[source] StatusListAttestationSettingsError),
 
-    #[error("could not initialize status lists: {0}")]
+    #[error("could not initialize status list service: {0}")]
     StatusLists(#[source] StatusListServiceError),
 
     #[error("no database configured for status lists")]
@@ -398,13 +419,12 @@ impl IssuerSettings {
     ) -> Result<
         (
             Issuer<
-                PrivateKeyVariant,
                 A,
+                PrivateKeyVariant,
+                PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
                 SessionStoreVariant<IssuanceData>,
                 ProofNonceStore,
-                PostgresStatusListServices<PrivateKeyVariant>,
             >,
-            Arc<PostgresStatusListServices<PrivateKeyVariant>>,
             PostgresRevocationHelper,
             Vec<DatabaseChecker>,
             StoreConnection,
@@ -413,25 +433,6 @@ impl IssuerSettings {
         IssuerSettingsError,
     > {
         let mut database_checkers = Vec::with_capacity(1);
-
-        let status_list_configs = StatusListAttestationSettings::settings_into_configs(
-            self.credential_configurations
-                .as_ref()
-                .values()
-                .map(|settings| settings.status_list.clone())
-                .collect(),
-            &self.status_lists,
-            self.public_url.as_base_url().clone(),
-            hsm.clone(),
-        )
-        .await
-        .map_err(IssuerSettingsError::StatusListSettings)?;
-
-        let credential_configurations = self
-            .credential_configurations
-            .parse(hsm, &self.metadata)
-            .await
-            .map_err(IssuerSettingsError::CredentialConfigurations)?;
 
         let store_connection = StoreConnection::try_new(self.server_settings.storage.url.clone())
             .await
@@ -447,7 +448,10 @@ impl IssuerSettings {
             database_checkers.push(DatabaseChecker::new(name, connection));
         }
 
-        let status_list_connection = match (&store_connection, self.status_lists.storage_url) {
+        let sessions = SessionStoreVariant::new(store_connection.clone(), (&self.server_settings.storage).into());
+        let proof_nonce_store = ProofNonceStore::new(store_connection.clone());
+
+        let status_list_connection = match (&store_connection, self.status_lists.storage_url.clone()) {
             (_, Some(url)) => {
                 let connection = new_connection(url)
                     .await
@@ -462,18 +466,17 @@ impl IssuerSettings {
             }
         };
 
-        let sessions = SessionStoreVariant::new(store_connection.clone(), (&self.server_settings.storage).into());
-        let proof_nonce_store = ProofNonceStore::new(store_connection.clone());
-
-        let status_list_services =
-            PostgresStatusListServices::try_new(status_list_connection.clone(), status_list_configs)
-                .await
-                .map_err(IssuerSettingsError::StatusLists)?;
-        status_list_services
-            .initialize_lists()
+        let credential_configurations = self
+            .credential_configurations
+            .parse(
+                status_list_connection.clone(),
+                self.public_url.as_base_url().clone(),
+                hsm,
+                &self.status_lists,
+                &self.metadata,
+            )
             .await
-            .map_err(IssuerSettingsError::StatusLists)?;
-        let status_list_services = Arc::new(status_list_services);
+            .map_err(IssuerSettingsError::CredentialConfigurations)?;
 
         let revocation_helper = PostgresRevocationHelper::new(status_list_connection);
 
@@ -487,12 +490,10 @@ impl IssuerSettings {
             attr_service,
             Arc::new(sessions),
             proof_nonce_store,
-            Arc::clone(&status_list_services),
         );
 
         Ok((
             issuer,
-            status_list_services,
             revocation_helper,
             database_checkers,
             store_connection,
@@ -504,10 +505,13 @@ impl IssuerSettings {
 #[derive(Debug, thiserror::Error)]
 pub enum StatusListAttestationSettingsError {
     #[error("incorrectly configured attestation status list expiration: {0}")]
-    ExpiryLessThanTtl(#[from] ExpiryLessThanTtl),
+    ExpiryLessThanTtl(#[source] ExpiryLessThanTtl),
 
     #[error("incorrectly configured attestation status list private key or certificate: {0}")]
-    PrivateKey(#[from] PrivateKeySettingsError),
+    PrivateKey(#[source] PrivateKeySettingsError),
+
+    #[error("could not initialize status list database: {0}")]
+    Service(#[source] DbErr),
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -531,39 +535,29 @@ pub struct StatusListAttestationSettings {
 }
 
 impl StatusListAttestationSettings {
-    pub async fn settings_into_configs(
-        attestation_settings: Vec<StatusListAttestationSettings>,
-        status_list_settings: &StatusListsSettings,
-        public_url: BaseUrl,
-        hsm: Option<Pkcs11Hsm>,
-    ) -> Result<StatusListConfigs<PrivateKeyVariant>, StatusListAttestationSettingsError> {
-        let attestation_count = attestation_settings.len();
-        let group_names_and_config = try_join_all(
-            attestation_settings
-                .into_iter()
-                .zip_eq(itertools::repeat_n(public_url, attestation_count))
-                .zip_eq(itertools::repeat_n(hsm, attestation_count))
-                .map(|((attestation, public_url), hsm)| {
-                    attestation.into_group_name_and_config(status_list_settings, public_url, hsm)
-                }),
-        )
-        .await?;
-
-        Ok(group_names_and_config.into_iter().collect::<HashMap<_, _>>().into())
-    }
-
-    async fn into_group_name_and_config(
+    async fn into_service(
         self,
-        status_list_settings: &StatusListsSettings,
+        connection: DatabaseConnection,
         public_url: BaseUrl,
         hsm: Option<Pkcs11Hsm>,
-    ) -> Result<(String, StatusListConfig<PrivateKeyVariant>), StatusListAttestationSettingsError> {
+        status_list_settings: &StatusListsSettings,
+    ) -> Result<PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>, StatusListAttestationSettingsError> {
         let base_url = self.base_url.unwrap_or(public_url);
-        let key_pair = self.keypair.parse(hsm).await?;
+        let key_pair = self
+            .keypair
+            .parse(hsm)
+            .await
+            .map_err(StatusListAttestationSettingsError::PrivateKey)?;
 
-        let config = status_list_settings.to_config(base_url, self.context_path, self.publish_dir, key_pair)?;
+        let config = status_list_settings
+            .to_config(base_url, self.context_path, self.publish_dir, key_pair)
+            .map_err(StatusListAttestationSettingsError::ExpiryLessThanTtl)?;
 
-        Ok((self.group_name, config))
+        let service = PostgresStatusListService::try_new(&self.group_name, connection, config, NoRevokeAll)
+            .await
+            .map_err(StatusListAttestationSettingsError::Service)?;
+
+        Ok(service)
     }
 }
 

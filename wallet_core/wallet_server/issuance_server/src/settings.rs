@@ -43,7 +43,8 @@ use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
 use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
 use server_utils::store::SessionStoreVariant;
-use status_lists::postgres::PostgresStatusListServices;
+use status_lists::postgres::NoRevokeAll;
+use status_lists::postgres::PostgresStatusListService;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::TimeGenerator;
@@ -54,11 +55,11 @@ use crate::disclosure::HttpAttributesFetcher;
 use crate::disclosure::IssuanceResultHandler;
 
 pub type IssuanceServerIssuer = Issuer<
-    PrivateKeyVariant,
     (),
+    PrivateKeyVariant,
+    PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
     SessionStoreVariant<IssuanceData>,
     ProofNonceStore,
-    PostgresStatusListServices<PrivateKeyVariant>,
 >;
 
 #[derive(Debug, Clone, Deserialize)]

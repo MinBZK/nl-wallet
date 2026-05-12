@@ -4,6 +4,7 @@ use anyhow::Result;
 use http_utils::health::HealthChecker;
 use http_utils::health::create_health_router;
 use issuer_common::nonce_store::ProofNonceStore;
+use itertools::Itertools;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
@@ -16,21 +17,21 @@ use server_utils::server::listen;
 use server_utils::server::secure_internal_router;
 use server_utils::settings::Settings;
 use server_utils::store::SessionStoreVariant;
+use status_lists::postgres::NoRevokeAll;
 use status_lists::postgres::PostgresRevocationHelper;
-use status_lists::postgres::PostgresStatusListServices;
+use status_lists::postgres::PostgresStatusListService;
 use status_lists::revoke::create_revocation_router;
 use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
 
 pub async fn serve<A>(
     issuer: Issuer<
-        PrivateKeyVariant,
         A,
+        PrivateKeyVariant,
+        PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
         SessionStoreVariant<IssuanceData>,
         ProofNonceStore,
-        PostgresStatusListServices<PrivateKeyVariant>,
     >,
-    status_list_services: Arc<PostgresStatusListServices<PrivateKeyVariant>>,
     revocation_helper: PostgresRevocationHelper,
     server_settings: Settings,
     serve_status_lists: bool,
@@ -43,7 +44,6 @@ where
         create_wallet_listener(&server_settings.wallet_server).await?,
         create_internal_listener(&server_settings.internal_server).await?,
         issuer,
-        status_list_services,
         revocation_helper,
         server_settings,
         serve_status_lists,
@@ -57,13 +57,12 @@ pub async fn serve_with_listeners<A>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
     issuer: Issuer<
-        PrivateKeyVariant,
         A,
+        PrivateKeyVariant,
+        PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
         SessionStoreVariant<IssuanceData>,
         ProofNonceStore,
-        PostgresStatusListServices<PrivateKeyVariant>,
     >,
-    status_list_services: Arc<PostgresStatusListServices<PrivateKeyVariant>>,
     revocation_helper: PostgresRevocationHelper,
     server_settings: Settings,
     serve_status_lists: bool,
@@ -72,12 +71,21 @@ pub async fn serve_with_listeners<A>(
 where
     A: AttributeService + Send + Sync + 'static,
 {
+    let status_list_services = issuer
+        .credential_configurations()
+        .configurations()
+        .map(|config| Arc::clone(&config.status_list))
+        .collect_vec();
+
     let issuance_router = create_issuance_router(Arc::new(issuer));
     let mut router = add_cache_control_no_store_layer(issuance_router);
 
     if serve_status_lists {
-        let status_list_router =
-            create_serve_router(status_list_services.configs().map(|config| config.to_route_source()))?;
+        let status_list_router = create_serve_router(
+            status_list_services
+                .iter()
+                .map(|service| service.config().to_route_source()),
+        )?;
 
         router = router.merge(status_list_router);
     }

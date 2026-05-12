@@ -21,18 +21,17 @@ use status_lists::postgres::PostgresRevocationHelper;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::publish::PublishDir;
 use status_lists::revoke::create_revocation_router;
-use token_status_list::status_list_service::StatusListRevocationService;
 use tokio::net::TcpListener;
 use url::Url;
 use utils::num::NonZeroU31;
 use utils::num::U31;
 use uuid::Uuid;
 
-async fn setup_revocation_server<L>(service: Arc<L>, revocation_helper: PostgresRevocationHelper) -> anyhow::Result<Url>
-where
-    L: StatusListRevocationService + Send + Sync + 'static,
-{
-    let (router, _) = create_revocation_router(service, revocation_helper);
+async fn setup_revocation_server(
+    service: Arc<PostgresStatusListService<SigningKey, NoRevokeAll>>,
+    revocation_helper: PostgresRevocationHelper,
+) -> anyhow::Result<Url> {
+    let (router, _) = create_revocation_router(vec![service], revocation_helper);
     let listener = TcpListener::bind(("127.0.0.1", 0)).await?;
     let port = listener.local_addr()?.port();
     tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });

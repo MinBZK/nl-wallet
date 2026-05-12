@@ -472,7 +472,7 @@ impl<K, R> PostgresStatusListService<K, R> {
         connection: DatabaseConnection,
         config: StatusListConfig<K>,
         revoke_all: R,
-    ) -> Result<Self, StatusListServiceError> {
+    ) -> Result<Self, DbErr> {
         let attestation_groups = vec![attestation_group];
         let attestation_group_ids = initialize_attestation_group_ids(&connection, attestation_groups).await?;
 

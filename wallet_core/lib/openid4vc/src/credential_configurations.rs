@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
@@ -36,12 +37,12 @@ pub enum CredentialConfigurationsError {
 }
 
 #[derive(Debug)]
-pub struct CredentialConfigurationParameters<K> {
+pub struct CredentialConfigurationParameters<K, L> {
     pub format: Format,
     pub attestation_type: String,
     #[debug(skip)]
     pub key_pair: KeyPair<K>,
-    pub status_list_group: String,
+    pub status_list: Arc<L>,
     pub valid_days: Days,
     pub issuer_uri: HttpsUri,
     pub attestation_qualification: AttestationQualification,
@@ -55,13 +56,12 @@ pub struct CredentialConfigurationParameters<K> {
 /// When performing issuance, the issuer augments the [`CredentialConfiguration`] with an [`IssuableDocument`] to form
 /// the attestation.
 #[derive(Debug)]
-pub struct CredentialConfiguration<K> {
+pub struct CredentialConfiguration<K, L> {
     pub format: Format,
     pub attestation_type: String,
     #[debug(skip)]
     pub key_pair: KeyPair<K>,
-    // TODO (PVW-5918): Hold a `PostgresStatusListService` here instead of a group name.
-    pub status_list_group: String,
+    pub status_list: Arc<L>,
     pub valid_days: Days,
     pub issuer_uri: HttpsUri,
     pub attestation_qualification: AttestationQualification,
@@ -76,26 +76,26 @@ pub struct CredentialConfigurationMetadata {
     normalized: NormalizedTypeMetadata,
 }
 
-impl<K> CredentialConfiguration<K> {
+impl<K, L> CredentialConfiguration<K, L> {
     /// Create a new [`CredentialConfiguration`] and decode and validate the type metadata documents.
     pub fn try_new(
         CredentialConfigurationParameters {
             format,
             attestation_type,
             key_pair,
-            status_list_group,
+            status_list,
             valid_days,
             issuer_uri,
             attestation_qualification,
             metadata_documents,
-        }: CredentialConfigurationParameters<K>,
+        }: CredentialConfigurationParameters<K, L>,
     ) -> Result<Self, TypeMetadataChainError> {
         let metadata = CredentialConfigurationMetadata::try_new(&attestation_type, metadata_documents)?;
 
         let config = Self {
             format,
             attestation_type,
-            status_list_group,
+            status_list,
             key_pair,
             valid_days,
             issuer_uri,
@@ -137,14 +137,14 @@ impl CredentialConfigurationMetadata {
 
 /// Static credential configurations indexed by their identifier.
 #[derive(Debug, From)]
-pub struct CredentialConfigurations<K> {
-    configs_by_id: HashMap<CredentialConfigurationId, CredentialConfiguration<K>>,
+pub struct CredentialConfigurations<K, L> {
+    configs_by_id: HashMap<CredentialConfigurationId, CredentialConfiguration<K, L>>,
     ids_by_format_and_attestation_type: HashMap<(Format, Cow<'static, str>), CredentialConfigurationId>,
 }
 
-impl<K> CredentialConfigurations<K> {
+impl<K, L> CredentialConfigurations<K, L> {
     pub fn try_new(
-        configurations: impl IntoIterator<Item = (CredentialConfigurationId, CredentialConfigurationParameters<K>)>,
+        configurations: impl IntoIterator<Item = (CredentialConfigurationId, CredentialConfigurationParameters<K, L>)>,
     ) -> Result<Self, CredentialConfigurationsError> {
         let mut ids_by_format_and_attestation_type = HashMap::<_, Vec<_>>::new();
 
@@ -192,10 +192,14 @@ impl<K> CredentialConfigurations<K> {
         Ok(credential_configurations)
     }
 
+    pub fn configurations(&self) -> impl Iterator<Item = &CredentialConfiguration<K, L>> {
+        self.configs_by_id.values()
+    }
+
     pub fn get_by_configuration_id(
         &self,
         config_id: &CredentialConfigurationId,
-    ) -> Option<&CredentialConfiguration<K>> {
+    ) -> Option<&CredentialConfiguration<K, L>> {
         self.configs_by_id.get(config_id)
     }
 
@@ -203,7 +207,7 @@ impl<K> CredentialConfigurations<K> {
         &self,
         format: Format,
         attestation_type: &str,
-    ) -> Option<(&CredentialConfigurationId, &CredentialConfiguration<K>)> {
+    ) -> Option<(&CredentialConfigurationId, &CredentialConfiguration<K, L>)> {
         self.ids_by_format_and_attestation_type
             .get(&(format, Cow::Borrowed(attestation_type)))
             .and_then(|id| self.configs_by_id.get_key_value(id))

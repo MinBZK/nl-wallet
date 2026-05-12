@@ -31,11 +31,10 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         .transpose()?;
     let hsm_checker = hsm.as_ref().map(HsmChecker::new);
 
-    let (issuer, status_list_services, revocation_helper, database_checkers, store_connection, server_settings) =
-        settings
-            .issuer_settings
-            .into_issuer(hsm.clone(), None, None, ())
-            .await?;
+    let (issuer, revocation_helper, database_checkers, store_connection, server_settings) = settings
+        .issuer_settings
+        .into_issuer(hsm.clone(), None, None, ())
+        .await?;
 
     let issuer = Arc::new(issuer);
 
@@ -59,7 +58,6 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
     // This will block until the server shuts down.
     server::serve(
         issuer,
-        status_list_services,
         revocation_helper,
         server_settings,
         serve_status_lists,
