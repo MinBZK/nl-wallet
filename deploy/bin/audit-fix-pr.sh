@@ -45,5 +45,12 @@ fi
 glab auth login --hostname "$CI_SERVER_HOST" --token "$AUDIT_FIX_GITLAB_TOKEN"
 if ! glab mr list -F json | jq -e --arg branch "$branch" 'any(select(.source_branch == $branch))' > /dev/null; then
     AUDIT_FIX_GIT_USERNAME="${AUDIT_FIX_GIT_EMAIL%@*}"
-    glab mr create --assignee "$AUDIT_FIX_GIT_USERNAME" --reviewer "$AUDIT_FIX_REVIEWERS" -f -l security -y
+    glab mr create \
+        --assignee "$AUDIT_FIX_GIT_USERNAME" \
+        --reviewer "$AUDIT_FIX_REVIEWERS" \
+        --remove-source-branch=true \
+        --squash-before-merge=false \
+        --fill \
+        --label security \
+        --yes
 fi
