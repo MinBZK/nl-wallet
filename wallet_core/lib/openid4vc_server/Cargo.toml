@@ -43,7 +43,6 @@ token_status_list = { path = "../token_status_list" }
 utils.path = "../utils"
 
 [dev-dependencies]
-async-trait.workspace = true
 axum-server.workspace = true
 indexmap.workspace = true
 p256.workspace = true

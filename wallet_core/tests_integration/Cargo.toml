@@ -111,7 +111,6 @@ test_common = [
     "apple_app_attest/mock",
     "attestation_data/example_credential_payloads",
     "attestation_data/mock",
-    "dep:async-trait",
     "dep:axum-server",
     "axum/json",
     "dep:android_attest",
@@ -247,7 +246,6 @@ performance_test = [
 
 [dependencies]
 assert_matches = { workspace = true, optional = true }
-async-trait = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
 axum-server = { workspace = true, optional = true }
 base64 = { workspace = true, optional = true }

@@ -7,7 +7,6 @@ use std::ops::Add;
 use std::sync::Arc;
 use std::time::Duration;
 
-use async_trait::async_trait;
 use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::CredentialPayloadError;
@@ -222,9 +221,18 @@ pub enum UpstreamResolveError {
 ///
 /// The implementer resolves the upstream authorization endpoint (e.g. via OIDC discovery)
 /// and rewrites the request.
-#[async_trait]
-pub trait UpstreamAuthorizationAdapter: Send + Sync {
+#[trait_variant::make(Send)]
+pub trait UpstreamAuthorizationAdapter {
     async fn adapt(&self, request: AuthorizationRequest) -> Result<(Url, AuthorizationRequest), UpstreamResolveError>;
+}
+
+/// No-op [`UpstreamAuthorizationAdapter`] used as the default for [`Issuer`]'s `UAA` type
+/// parameter when the issuer is constructed without an upstream adapter. The field is always
+/// `None` in that case, so this method is unreachable.
+impl UpstreamAuthorizationAdapter for () {
+    async fn adapt(&self, _: AuthorizationRequest) -> Result<(Url, AuthorizationRequest), UpstreamResolveError> {
+        unimplemented!("() UpstreamAuthorizationAdapter does not adapt authorization requests")
+    }
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
@@ -499,15 +507,15 @@ impl<K> AttestationTypeConfig<K> {
 #[derive(Debug, From, AsRef)]
 pub struct AttestationTypesConfig<K>(HashMap<String, AttestationTypeConfig<K>>);
 
-pub struct Issuer<K, A, S, N, L, P = (), F = ()> {
+pub struct Issuer<K, A, S, N, L, PAS = (), PKS = (), UAA = ()> {
     attr_service: A,
     issuer_data: IssuerData<K>,
     sessions: Arc<S>,
     proof_nonce_store: Arc<N>,
     status_list_services: Arc<L>,
-    par_store: Arc<P>,
-    pkce_flow_store: Arc<F>,
-    upstream_authorization_adapter: Option<Arc<dyn UpstreamAuthorizationAdapter>>,
+    par_store: Arc<PAS>,
+    pkce_flow_store: Arc<PKS>,
+    upstream_authorization_adapter: Option<Arc<UAA>>,
     cleanup_task: AbortHandle,
 }
 
@@ -530,20 +538,20 @@ pub struct WiaConfig {
     pub wia_issuer_pubkey: EcdsaDecodingKey,
 }
 
-impl<K, A, S, N, L, P, F> Drop for Issuer<K, A, S, N, L, P, F> {
+impl<K, A, S, N, L, PAS, PKS, UAA> Drop for Issuer<K, A, S, N, L, PAS, PKS, UAA> {
     fn drop(&mut self) {
         // Stop the tasks at the next .await
         self.cleanup_task.abort();
     }
 }
 
-impl<K, A, S, N, L, P, F> Issuer<K, A, S, N, L, P, F> {
+impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA> {
     pub fn metadata(&self) -> &IssuerMetadata {
         &self.issuer_data.metadata
     }
 }
 
-impl<K, A, S, N, L, P, F> Issuer<K, A, S, N, L, P, F>
+impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
 where
     S: SessionStore<IssuanceData> + Sync + 'static,
     N: NonceStore + Sync + 'static,
@@ -558,9 +566,9 @@ where
         sessions: Arc<S>,
         proof_nonce_store: N,
         status_list_services: Arc<L>,
-        par_store: Arc<P>,
-        pkce_flow_store: Arc<F>,
-        upstream_authorization_adapter: Option<Arc<dyn UpstreamAuthorizationAdapter>>,
+        par_store: Arc<PAS>,
+        pkce_flow_store: Arc<PKS>,
+        upstream_authorization_adapter: Option<Arc<UAA>>,
     ) -> Self {
         let credential_configurations_supported = attestation_config
             .as_ref()
@@ -674,7 +682,7 @@ fn logged_issuance_result<T, E: std::error::Error>(result: Result<T, E>) -> Resu
         .inspect_err(|error| info!("Issuance error: {error}"))
 }
 
-impl<K, A, S, N, L, P, F> Issuer<K, A, S, N, L, P, F>
+impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
 where
     S: SessionStore<IssuanceData>,
 {
@@ -710,7 +718,7 @@ where
     }
 }
 
-impl<K, A, S, N, L, P, F> Issuer<K, A, S, N, L, P, F>
+impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
 where
     N: NonceStore,
 {
@@ -723,7 +731,7 @@ where
     }
 }
 
-impl<K, A, S, N, L, P, F> Issuer<K, A, S, N, L, P, F>
+impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
 where
     A: AttributeService,
 {
@@ -742,9 +750,9 @@ where
     }
 }
 
-impl<K, A, S, N, L, P, F> Issuer<K, A, S, N, L, P, F>
+impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
 where
-    P: ParStore,
+    PAS: ParStore,
 {
     pub async fn process_pushed_authorization_request(
         &self,
@@ -769,10 +777,11 @@ where
     }
 }
 
-impl<K, A, S, N, L, P, F> Issuer<K, A, S, N, L, P, F>
+impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
 where
-    P: ParStore,
-    F: PkceFlowStore,
+    PAS: ParStore,
+    PKS: PkceFlowStore,
+    UAA: UpstreamAuthorizationAdapter,
 {
     /// Consume the PAR, swap the wallet's PKCE challenge for an upstream one (storing the upstream
     /// verifier under the wallet's challenge for the matching `/token` call), dispatch via the
@@ -836,7 +845,7 @@ where
     }
 }
 
-impl<K, A, S, N, L, P, F> Issuer<K, A, S, N, L, P, F>
+impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
 where
     S: SessionStore<IssuanceData>,
 {
@@ -924,12 +933,12 @@ where
     }
 }
 
-impl<K, A, S, N, L, P, F> Issuer<K, A, S, N, L, P, F>
+impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
 where
     K: EcdsaKeySend,
     A: AttributeService,
     S: SessionStore<IssuanceData>,
-    F: PkceFlowStore,
+    PKS: PkceFlowStore,
 {
     /// Process a token request, performing the wallet ↔ upstream PKCE bridge consumption when the
     /// grant type is `authorization_code`. Pre-authorized-code grants bypass PKCE entirely.
@@ -964,7 +973,7 @@ where
     }
 }
 
-impl<K, A, S, N, L, P, F> Issuer<K, A, S, N, L, P, F>
+impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
 where
     K: EcdsaKeySend,
     A: AttributeService,
@@ -1033,7 +1042,7 @@ where
     }
 }
 
-impl<K, A, S, N, L, P, F> Issuer<K, A, S, N, L, P, F>
+impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
 where
     K: EcdsaKeySend,
     A: AttributeService,
@@ -1102,7 +1111,7 @@ where
     }
 }
 
-impl<K, A, S, N, L, P, F> Issuer<K, A, S, N, L, P, F>
+impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
 where
     S: SessionStore<IssuanceData>,
 {
@@ -2216,7 +2225,7 @@ mod tests {
             sessions.clone(),
             Arc::new(()),
             Arc::new(()),
-            None,
+            None::<Arc<()>>,
         );
 
         let token = issuer.new_session(documents).await.unwrap();

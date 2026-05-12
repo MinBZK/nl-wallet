@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::tls_pinned_client_builder;
 use indexmap::IndexSet;
@@ -101,7 +100,6 @@ impl DigidAuthorizationAdapter {
     }
 }
 
-#[async_trait]
 impl UpstreamAuthorizationAdapter for DigidAuthorizationAdapter {
     async fn adapt(
         &self,

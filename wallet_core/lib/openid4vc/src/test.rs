@@ -50,14 +50,15 @@ use crate::token::TokenRequest;
 pub const MOCK_ATTESTATION_TYPES: [&str; 2] = ["com.example.pid", "com.example.address"];
 pub const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
-pub type MockIssuer<G = TimeGenerator, P = (), F = ()> = Issuer<
+pub type MockIssuer<G = TimeGenerator, PAS = (), PKS = (), UAA = ()> = Issuer<
     SigningKey,
     MockAttrService,
     MemorySessionStore<IssuanceData, G>,
     MemoryNonceStore,
     MockStatusListServices,
-    P,
-    F,
+    PAS,
+    PKS,
+    UAA,
 >;
 
 pub fn mock_type_metadata(vct: &str) -> TypeMetadata {
@@ -118,19 +119,20 @@ impl AttributeService for MockAttrService {
 }
 
 #[expect(clippy::too_many_arguments, reason = "Test setup helper")]
-pub fn setup_mock_issuer<G, P, F>(
+pub fn setup_mock_issuer<G, PAS, PKS, UAA>(
     issuer_identifier: IssuerIdentifier,
     attr_service: MockAttrService,
     attestation_count: NonZeroUsize,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
-    par_store: Arc<P>,
-    pkce_flow_store: Arc<F>,
-    upstream_authorization_adapter: Option<Arc<dyn UpstreamAuthorizationAdapter>>,
-) -> (MockIssuer<G, P, F>, TrustAnchor<'static>, SigningKey)
+    par_store: Arc<PAS>,
+    pkce_flow_store: Arc<PKS>,
+    upstream_authorization_adapter: Option<Arc<UAA>>,
+) -> (MockIssuer<G, PAS, PKS, UAA>, TrustAnchor<'static>, SigningKey)
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
-    P: ParStore + Send + Sync + 'static,
-    F: PkceFlowStore + Send + Sync + 'static,
+    PAS: ParStore + Send + Sync + 'static,
+    PKS: PkceFlowStore + Send + Sync + 'static,
+    UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
 {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();

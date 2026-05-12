@@ -5186,7 +5186,6 @@ dependencies = [
 name = "openid4vc_server"
 version = "0.6.0-dev"
 dependencies = [
- "async-trait",
  "attestation_data",
  "axum",
  "axum-extra",
@@ -5650,7 +5649,6 @@ version = "0.6.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
- "async-trait",
  "attestation_data",
  "attestation_types",
  "axum",
@@ -8409,7 +8407,6 @@ dependencies = [
  "android_attest",
  "apple_app_attest",
  "assert_matches",
- "async-trait",
  "attestation_data",
  "attestation_types",
  "audit_log",

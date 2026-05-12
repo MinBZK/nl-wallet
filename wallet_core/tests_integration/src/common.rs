@@ -892,19 +892,21 @@ impl Default for StaticUpstreamAuthorizationAdapter {
     }
 }
 
-#[async_trait::async_trait]
 impl UpstreamAuthorizationAdapter for StaticUpstreamAuthorizationAdapter {
     async fn adapt(&self, request: AuthorizationRequest) -> Result<(Url, AuthorizationRequest), UpstreamResolveError> {
         Ok((self.authorization_endpoint.clone(), request))
     }
 }
 
-pub async fn start_pid_issuer_server(
+pub async fn start_pid_issuer_server<UAA>(
     mut settings: PidIssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     attr_service: impl AttributeService + Sync + 'static,
-    upstream_authorization_adapter: Arc<dyn UpstreamAuthorizationAdapter>,
-) -> IssuerUrl {
+    upstream_authorization_adapter: Arc<UAA>,
+) -> IssuerUrl
+where
+    UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
+{
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
     let public_url = local_http_issuer_identifier(public_port);

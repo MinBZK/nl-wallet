@@ -73,7 +73,6 @@ impl StaticAuthorizationAdapter {
     }
 }
 
-#[async_trait::async_trait]
 impl UpstreamAuthorizationAdapter for StaticAuthorizationAdapter {
     async fn adapt(
         &self,
@@ -102,7 +101,7 @@ async fn start_server(
     attestation_count: NonZeroUsize,
     upstream_authorization_endpoint: Option<Url>,
 ) -> (
-    Arc<MockIssuer<TimeGenerator, MemoryParStore, MemoryPkceFlowStore>>,
+    Arc<MockIssuer<TimeGenerator, MemoryParStore, MemoryPkceFlowStore, StaticAuthorizationAdapter>>,
     TrustAnchor<'static>,
     IssuerIdentifier,
     SigningKey,
@@ -118,8 +117,7 @@ async fn start_server(
     let par_store = Arc::new(MemoryParStore::default());
     let pkce_store = Arc::new(MemoryPkceFlowStore::default());
 
-    let adapter = upstream_authorization_endpoint
-        .map(|url| Arc::new(StaticAuthorizationAdapter::new(url)) as Arc<dyn UpstreamAuthorizationAdapter>);
+    let adapter = upstream_authorization_endpoint.map(|url| Arc::new(StaticAuthorizationAdapter::new(url)));
     let (issuer, trust_anchor, wia_issuer_privkey) = setup_mock_issuer(
         issuer_identifier.clone(),
         MockAttrService {
