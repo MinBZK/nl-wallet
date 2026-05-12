@@ -393,6 +393,7 @@ where
             .select_column(status_list::Column::Id)
             .select_column(status_list::Column::ExternalId)
             .select_column(status_list::Column::Size)
+            .filter(status_list::Column::AttestationGroupId.eq(self.attestation_group_id))
             .into_tuple::<(i64, String, i32)>()
             .stream(&self.connection)
             .await
