@@ -809,27 +809,30 @@ where
             .map_err(|error| AuthorizeError::ParStore(Box::new(error)))?
             .ok_or_else(|| AuthorizeError::UnknownRequestUri(request_uri.to_string()))?;
 
-        // Bridge PKCE: substitute the wallet's challenge with one we hold the verifier for, and
-        // store the upstream verifier keyed by the wallet's challenge for the matching /token call.
-        let wallet_code_challenge = match authorization_request.code_challenge.take() {
-            Some(PkceCodeChallenge::S256 { code_challenge }) => code_challenge,
-            Some(PkceCodeChallenge::Plain { .. }) => return Err(AuthorizeError::UnsupportedCodeChallenge),
-            None => return Err(AuthorizeError::MissingCodeChallenge),
-        };
+        // Bridge PKCE: generate a new PKCE pair for the upstream server, substitute the wallet's challenge with the
+        // upstream challenge, and store the upstream verifier keyed by the wallet's challenge for the matching
+        // /token call.
+        {
+            let wallet_code_challenge = match authorization_request.code_challenge.take() {
+                Some(PkceCodeChallenge::S256 { code_challenge }) => code_challenge,
+                Some(PkceCodeChallenge::Plain { .. }) => return Err(AuthorizeError::UnsupportedCodeChallenge),
+                None => return Err(AuthorizeError::MissingCodeChallenge),
+            };
 
-        let upstream_pkce = S256PkcePair::generate();
-        authorization_request.code_challenge = Some(PkceCodeChallenge::S256 {
-            code_challenge: upstream_pkce.code_challenge().to_string(),
-        });
+            let upstream_pkce = S256PkcePair::generate();
+            authorization_request.code_challenge = Some(PkceCodeChallenge::S256 {
+                code_challenge: upstream_pkce.code_challenge().to_string(),
+            });
 
-        self.pkce_flow_store
-            .store(
-                wallet_code_challenge,
-                upstream_pkce.into_code_verifier(),
-                Utc::now() + PKCE_FLOW_TTL,
-            )
-            .await
-            .map_err(|error| AuthorizeError::PkceStore(Box::new(error)))?;
+            self.pkce_flow_store
+                .store(
+                    wallet_code_challenge,
+                    upstream_pkce.into_code_verifier(),
+                    Utc::now() + PKCE_FLOW_TTL,
+                )
+                .await
+                .map_err(|error| AuthorizeError::PkceStore(Box::new(error)))?;
+        }
 
         let (authorization_endpoint, authorization_request) = upstream_authorization_adapter
             .adapt(authorization_request)
