@@ -80,7 +80,6 @@ use crate::nonce::store::NonceStore;
 use crate::nonce::store::NonceStoreError;
 use crate::par;
 use crate::par::PAR_TTL;
-use crate::par::ParStore;
 use crate::pkce::PkcePair;
 use crate::pkce::S256PkcePair;
 use crate::pkce::store::PKCE_FLOW_TTL;
@@ -96,6 +95,7 @@ use crate::server_state::SessionState;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
 use crate::server_state::SessionToken;
+use crate::store::Store;
 use crate::token::AccessToken;
 use crate::token::AuthorizationCode;
 use crate::token::CredentialPreview;
@@ -685,7 +685,7 @@ where
 
 impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
 where
-    PAS: ParStore,
+    PAS: Store<String, VciAuthorizationRequest>,
 {
     pub async fn process_pushed_authorization_request(
         &self,
@@ -700,10 +700,9 @@ where
         }
 
         let request_uri = par::generate_request_uri();
-        let expires_at = Utc::now() + PAR_TTL;
 
         self.par_store
-            .store(request_uri.clone(), request, expires_at)
+            .store(request_uri.clone(), request)
             .await
             .map_err(|error| ParError::Store(Box::new(error)))?;
 
@@ -716,7 +715,7 @@ where
 
 impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
 where
-    PAS: ParStore,
+    PAS: Store<String, VciAuthorizationRequest>,
     PKS: PkceFlowStore,
     UAA: UpstreamAuthorizationAdapter,
 {

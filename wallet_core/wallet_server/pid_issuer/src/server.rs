@@ -4,14 +4,15 @@ use anyhow::Result;
 use axum::Router;
 use hsm::service::Pkcs11Hsm;
 use issuer_common::settings::IssuerSettings;
+use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::UpstreamAuthorizationAdapter;
 use openid4vc::issuer::WiaConfig;
 use openid4vc::nonce::store::NonceStore;
-use openid4vc::par::ParStore;
 use openid4vc::pkce::store::MemoryPkceFlowStore;
 use openid4vc::server_state::SessionStore;
+use openid4vc::store::Store;
 use openid4vc_server::issuer::create_issuance_router;
 use p256::ecdsa::VerifyingKey;
 use server_utils::server::add_cache_control_no_store_layer;
@@ -43,7 +44,7 @@ where
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
     N: NonceStore + Send + Sync + 'static,
     L: StatusListServices + StatusListRevocationService + Send + Sync + 'static,
-    P: ParStore + Send + Sync + 'static,
+    P: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
     UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
 {
     serve_with_listeners(
@@ -85,7 +86,7 @@ where
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
     N: NonceStore + Send + Sync + 'static,
     L: StatusListServices + StatusListRevocationService + Send + Sync + 'static,
-    P: ParStore + Send + Sync + 'static,
+    P: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
     UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
 {
     let log_requests = settings.server_settings.log_requests;

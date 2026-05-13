@@ -1,8 +1,9 @@
 use chrono::DateTime;
 use chrono::Utc;
 use openid4vc::authorization::VciAuthorizationRequest;
-use openid4vc::par::MemoryParStore;
-use openid4vc::par::ParStore;
+use openid4vc::par::PAR_TTL;
+use openid4vc::store::MemoryStore;
+use openid4vc::store::Store;
 use sea_orm::ActiveModelTrait;
 use sea_orm::ColumnTrait;
 use sea_orm::DatabaseConnection;
@@ -40,7 +41,7 @@ pub enum IssuerParStoreError {
 #[derive(Debug)]
 enum ParStoreBackend {
     Postgres(DatabaseConnection),
-    Memory(MemoryParStore),
+    Memory(MemoryStore<String, VciAuthorizationRequest>),
 }
 
 /// Stores pushed authorization requests either in PostgreSQL or in memory.
@@ -54,7 +55,7 @@ impl IssuerParStore {
     pub fn new(store_connection: StoreConnection) -> Self {
         let backend = match store_connection {
             StoreConnection::Postgres(connection) => ParStoreBackend::Postgres(connection),
-            StoreConnection::Memory => ParStoreBackend::Memory(MemoryParStore::default()),
+            StoreConnection::Memory => ParStoreBackend::Memory(MemoryStore::new(PAR_TTL)),
         };
 
         Self {
@@ -86,21 +87,17 @@ where
     }
 }
 
-impl<T> ParStore for IssuerParStore<T>
+impl<T> Store<String, VciAuthorizationRequest> for IssuerParStore<T>
 where
     T: Generator<DateTime<Utc>> + Send + Sync,
 {
     type Error = IssuerParStoreError;
 
-    async fn store(
-        &self,
-        request_uri: String,
-        data: VciAuthorizationRequest,
-        expires_at: DateTime<Utc>,
-    ) -> Result<(), Self::Error> {
+    async fn store(&self, request_uri: String, data: VciAuthorizationRequest) -> Result<(), Self::Error> {
         match &self.backend {
             ParStoreBackend::Postgres(connection) => {
                 let data = serde_json::to_value(&data).map_err(IssuerParStoreError::Serialize)?;
+                let expires_at = self.now() + PAR_TTL;
 
                 pushed_authorization_request::ActiveModel {
                     id: NotSet,
@@ -115,17 +112,21 @@ where
                 Ok(())
             }
             ParStoreBackend::Memory(memory_store) => {
-                memory_store.store(request_uri, data, expires_at).await.unwrap();
+                memory_store.store(request_uri, data).await.unwrap();
                 Ok(())
             }
         }
     }
 
-    async fn consume(&self, request_uri: &str) -> Result<Option<VciAuthorizationRequest>, Self::Error> {
+    async fn consume(
+        &self,
+        request_uri: impl Into<String> + Send,
+    ) -> Result<Option<VciAuthorizationRequest>, Self::Error> {
+        let request_uri = request_uri.into();
         match &self.backend {
             ParStoreBackend::Postgres(connection) => {
                 let deleted = PushedAuthorizationRequest::delete_many()
-                    .filter(pushed_authorization_request::Column::RequestUri.eq(request_uri))
+                    .filter(pushed_authorization_request::Column::RequestUri.eq(request_uri.as_str()))
                     .exec_with_returning(connection)
                     .await
                     .map_err(IssuerParStoreError::DbConsume)?;
@@ -142,7 +143,7 @@ where
                 let data = serde_json::from_value(model.data).map_err(IssuerParStoreError::Deserialize)?;
                 Ok(Some(data))
             }
-            ParStoreBackend::Memory(memory_store) => Ok(memory_store.consume(request_uri).await.unwrap()),
+            ParStoreBackend::Memory(memory_store) => Ok(memory_store.consume(request_uri.as_str()).await.unwrap()),
         }
     }
 
