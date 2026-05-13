@@ -16,8 +16,6 @@ use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use attestation_data::issuable_document::IssuableDocument;
 use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
-use base64::Engine;
-use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use chrono::DateTime;
 use chrono::Days;
 use chrono::DurationRound;
@@ -25,7 +23,6 @@ use chrono::Utc;
 use crypto::EcdsaKeySend;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
-use crypto::utils::sha256;
 use derive_more::AsRef;
 use derive_more::Debug;
 use derive_more::From;
@@ -956,7 +953,7 @@ where
                     .code_verifier
                     .as_ref()
                     .ok_or(TokenRequestError::MissingCodeVerifier)?;
-                let wallet_code_challenge = BASE64_URL_SAFE_NO_PAD.encode(sha256(wallet_code_verifier.as_bytes()));
+                let wallet_code_challenge = S256PkcePair::challenge_for(wallet_code_verifier);
 
                 let verifier = self
                     .pkce_flow_store
