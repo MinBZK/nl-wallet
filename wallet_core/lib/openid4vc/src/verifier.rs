@@ -653,11 +653,7 @@ where
         time: &impl Generator<DateTime<Utc>>,
     ) -> VerifierUrlParameters {
         // only include the time in the ephemeral ID in situations where no return URL is used
-        let time = match session_type_return_url {
-            SessionTypeReturnUrl::Both => None,
-            SessionTypeReturnUrl::SameDevice if session_type == SessionType::SameDevice => None,
-            _ => Some(time.generate()),
-        };
+        let time = (!must_use_return_url(session_type_return_url, session_type)).then(|| time.generate());
 
         VerifierUrlParameters {
             session_type,
@@ -1386,22 +1382,27 @@ impl Session<Created> {
         session_token: &SessionToken,
         session_type_return_url: SessionTypeReturnUrl,
         session_type: SessionType,
-        return_url: RedirectUriTemplate,
+        redirect_uri_template: RedirectUriTemplate,
     ) -> Option<RedirectUri> {
-        match (session_type_return_url, session_type, return_url) {
-            (SessionTypeReturnUrl::Both, _, return_url_config)
-            | (SessionTypeReturnUrl::SameDevice, SessionType::SameDevice, return_url_config) => {
-                let nonce = random_string(32);
-                let mut redirect_uri = return_url_config.template.into_url(session_token);
-                redirect_uri.query_pairs_mut().append_pair("nonce", &nonce);
-                Some(RedirectUri {
-                    uri: redirect_uri.try_into().unwrap(),
-                    nonce,
-                    share_on_error: return_url_config.share_on_error,
-                })
+        must_use_return_url(session_type_return_url, session_type).then(|| {
+            let nonce = random_string(32);
+            let mut redirect_uri = redirect_uri_template.template.into_url(session_token);
+            redirect_uri.query_pairs_mut().append_pair("nonce", &nonce);
+
+            RedirectUri {
+                uri: redirect_uri.try_into().unwrap(),
+                nonce,
+                share_on_error: redirect_uri_template.share_on_error,
             }
-            (SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, _) => None,
-        }
+        })
+    }
+}
+
+fn must_use_return_url(session_type_return_url: SessionTypeReturnUrl, session_type: SessionType) -> bool {
+    match session_type_return_url {
+        SessionTypeReturnUrl::Both => true,
+        SessionTypeReturnUrl::SameDevice if session_type == SessionType::SameDevice => true,
+        _ => false,
     }
 }
 
@@ -1633,6 +1634,7 @@ mod tests {
     use super::WalletAuthResponse;
     use super::WalletInitiatedUseCase;
     use super::WalletInitiatedUseCases;
+    use super::must_use_return_url;
     use crate::ErrorResponse;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::server_state::MemorySessionStore;
@@ -2258,5 +2260,18 @@ mod tests {
             .await
             .unwrap();
         test_memory_store_with_cleanup_task(sessions, token, &mock_time, CLEANUP_INTERVAL).await;
+    }
+
+    #[rstest]
+    #[case(SessionTypeReturnUrl::Both, SessionType::SameDevice, true)]
+    #[case(SessionTypeReturnUrl::Both, SessionType::CrossDevice, true)]
+    #[case(SessionTypeReturnUrl::SameDevice, SessionType::SameDevice, true)]
+    #[case(SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, false)]
+    fn test_must_use_return_url(
+        #[case] session_type_return_url: SessionTypeReturnUrl,
+        #[case] session_type: SessionType,
+        #[case] expected: bool,
+    ) {
+        assert_eq!(must_use_return_url(session_type_return_url, session_type), expected);
     }
 }
