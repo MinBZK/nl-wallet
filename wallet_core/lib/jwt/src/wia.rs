@@ -48,7 +48,7 @@ impl WiaClaims {
     }
 }
 
-pub const WIA_JWT_TYP: &str = "wia+jwt";
+pub const WIA_JWT_TYP: &str = "oauth-client-attestation+jwt";
 
 impl JwtTyp for WiaClaims {
     const TYP: &'static str = WIA_JWT_TYP;
