@@ -22,12 +22,12 @@ pub trait PkceFlowStore {
 
     async fn store(
         &self,
-        code_challenge: String,
-        code_verifier: String,
+        wallet_code_challenge: String,
+        upstream_code_verifier: String,
         expires_at: DateTime<Utc>,
     ) -> Result<(), Self::Error>;
 
-    async fn consume(&self, code_challenge: &str) -> Result<Option<String>, Self::Error>;
+    async fn consume(&self, wallet_code_challenge: &str) -> Result<Option<String>, Self::Error>;
 
     async fn cleanup(&self) -> Result<(), Self::Error>;
 }
@@ -36,22 +36,22 @@ pub trait PkceFlowStore {
 pub struct MemoryPkceFlowStore(Mutex<HashMap<String, (String, DateTime<Utc>)>>);
 
 impl MemoryPkceFlowStore {
-    fn store_inner(&self, code_challenge: String, code_verifier: String, expires_at: DateTime<Utc>) {
+    fn store_inner(&self, wallet_code_challenge: String, upstream_code_verifier: String, expires_at: DateTime<Utc>) {
         let Self(entries) = self;
         let mut entries = entries.lock().expect("there should be no panic while the lock is held");
-        entries.insert(code_challenge, (code_verifier, expires_at));
+        entries.insert(wallet_code_challenge, (upstream_code_verifier, expires_at));
     }
 
-    fn consume_inner(&self, code_challenge: &str) -> Option<String> {
+    fn consume_inner(&self, wallet_code_challenge: &str) -> Option<String> {
         let Self(entries) = self;
         let mut entries = entries.lock().expect("there should be no panic while the lock is held");
 
-        let (code_verifier, expires_at) = entries.remove(code_challenge)?;
+        let (upstream_code_verifier, expires_at) = entries.remove(wallet_code_challenge)?;
 
         if Utc::now() > expires_at {
             None
         } else {
-            Some(code_verifier)
+            Some(upstream_code_verifier)
         }
     }
 
@@ -68,16 +68,16 @@ impl PkceFlowStore for MemoryPkceFlowStore {
 
     async fn store(
         &self,
-        code_challenge: String,
-        code_verifier: String,
+        wallet_code_challenge: String,
+        upstream_code_verifier: String,
         expires_at: DateTime<Utc>,
     ) -> Result<(), Self::Error> {
-        self.store_inner(code_challenge, code_verifier, expires_at);
+        self.store_inner(wallet_code_challenge, upstream_code_verifier, expires_at);
         Ok(())
     }
 
-    async fn consume(&self, code_challenge: &str) -> Result<Option<String>, Self::Error> {
-        Ok(self.consume_inner(code_challenge))
+    async fn consume(&self, wallet_code_challenge: &str) -> Result<Option<String>, Self::Error> {
+        Ok(self.consume_inner(wallet_code_challenge))
     }
 
     async fn cleanup(&self) -> Result<(), Self::Error> {
