@@ -191,19 +191,19 @@
 <h2>Upgrading<a class="headerlink" href="#upgrading" title="Link to this heading"></a></h2>
 <ul>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">neither</span></code> value for <code class="docutils literal notranslate"><span class="pre">session_type_return_url</span></code> in the verification server
-configuration is no longer supported; use <code class="docutils literal notranslate"><span class="pre">same_device</span></code> (the default) with
-a <code class="docutils literal notranslate"><span class="pre">return_url_template</span></code> instead.</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuance</span></code> section of the Wallet configuration has been paired down
-as follows:</p>
+configuration is no longer supported; use <code class="docutils literal notranslate"><span class="pre">same_device</span></code> (the default) with a
+<code class="docutils literal notranslate"><span class="pre">return_url_template</span></code> instead.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuance</span></code> section of the Wallet configuration has been paired down as
+follows:</p>
 <ul class="simple">
 <li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuer_url</span></code> field is now just called <code class="docutils literal notranslate"><span class="pre">url</span></code>.</p></li>
 <li><p>The value at the <code class="docutils literal notranslate"><span class="pre">digid/client_id</span></code> path has been moved to <code class="docutils literal notranslate"><span class="pre">client_id</span></code>.</p></li>
 <li><p>The object contained in <code class="docutils literal notranslate"><span class="pre">digid_http_config</span></code> has been removed.</p></li>
 </ul>
 </li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> configuration has had its <code class="docutils literal notranslate"><span class="pre">digid.http_config</span></code> section
-renamed to <code class="docutils literal notranslate"><span class="pre">digid.client_settings</span></code>. Within this section, the <code class="docutils literal notranslate"><span class="pre">base_url</span></code> field
-has been renamed to <code class="docutils literal notranslate"><span class="pre">oidc_identifier</span></code>, which contains the same value.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> configuration has had its <code class="docutils literal notranslate"><span class="pre">digid.http_config</span></code> section renamed
+to <code class="docutils literal notranslate"><span class="pre">digid.client_settings</span></code>. Within this section, the <code class="docutils literal notranslate"><span class="pre">base_url</span></code> field has been
+renamed to <code class="docutils literal notranslate"><span class="pre">oidc_identifier</span></code>, which contains the same value.</p></li>
 <li><p>The supported <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-defined-client-identifier-p">client identifier prefix</a> (in the context of OpenID4VP, so a
 “client” here is a relying-party, a verifier) has changed from <code class="docutils literal notranslate"><span class="pre">x509_san_dns</span></code>
 to <code class="docutils literal notranslate"><span class="pre">x509_hash</span></code>. That means our wallet app expects <code class="docutils literal notranslate"><span class="pre">x509_hash</span></code> client ids. In
@@ -212,8 +212,8 @@ to be updated (in our code that means the <code class="docutils literal notransl
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;client_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;x509_hash:YYIN_SgqjFj2044q1fpvpa0rxqrXEG0U1xdm2Hw_ohM&quot;</span><span class="p">,</span>
 </pre></div>
 </div>
-<p>The value of <code class="docutils literal notranslate"><span class="pre">x509_hash</span></code> is the base64url-encoded value of the SHA-256 hash of
-the DER-encoded X.509 certificate.</p>
+<p>The value of <code class="docutils literal notranslate"><span class="pre">x509_hash</span></code> is the base64url-encoded value of the SHA-256 hash
+of the DER-encoded X.509 certificate.</p>
 </li>
 </ul>
 </section>
@@ -227,14 +227,22 @@ Wallet app as well.</p></li>
 <li><p>Users can delete non-PID cards from their wallet, via the card detail screen.</p></li>
 <li><p>When a card is deleted, the wallet now stores this in its history.</p></li>
 <li><p>Allow incoming BLE connection through ‘Present QR’ screen. The BLE server is
-now started when this screen is displayed and a remote verifier can connect
-to trigger navigation to the disclosure flow.</p></li>
+now started when this screen is displayed and a remote verifier can connect to
+trigger navigation to the disclosure flow.</p></li>
 <li><p>Parse the ISO 18013-5 “close proximity” DeviceRequest and present it in the
 disclosure screen so the user can share the specified credentials.</p></li>
 <li><p>If the RP’s DCQL request contains a Trusted Authorities Query of type
-Authority Key Identifier, both the verification_server and the wallet will
-now respect this, allowing the RP to request attestations signed by specific
+Authority Key Identifier, both the verification_server and the wallet will now
+respect this, allowing the RP to request attestations signed by specific
 issuer keys.</p></li>
+<li><p>The verification server will now include <code class="docutils literal notranslate"><span class="pre">session_type</span></code> in the hash
+computation of the <code class="docutils literal notranslate"><span class="pre">ephemeral_id</span></code>, making it impossible for any intermediary
+to change its value.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">time</span></code> field will now only be included in the <code class="docutils literal notranslate"><span class="pre">ephemeral_id</span></code> computation
+for sessions that <strong>do not</strong> use a return URL. As a result, same-device
+sessions (and cross-device sessions that use a return URL) no longer expire,
+fixing a UX issue that occurred when the user took too long to enter their
+PIN.</p></li>
 </ul>
 </section>
 <section id="interoperability-improvements">
@@ -248,8 +256,8 @@ with OpenID4VCI 1.0:</p>
 <ul>
 <li><p>The issuer now provides a nonce endpoint, which replaces the <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code>
 value in the <code class="docutils literal notranslate"><span class="pre">TokenResponse</span></code>.</p></li>
-<li><p>The PID issuance flow has been changed to use the Authorization Code
-flow, instead of a hybrid implementation of the Authorization Code and
+<li><p>The PID issuance flow has been changed to use the Authorization Code flow,
+instead of a hybrid implementation of the Authorization Code and
 Pre-authorized Code flow.</p></li>
 </ul>
 </li>
