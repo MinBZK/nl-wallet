@@ -51,7 +51,6 @@ use openid4vc::metadata::issuer_metadata::IssuerMetadata;
 use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
 use openid4vc::nonce::response::NonceResponse;
 use openid4vc::nonce::store::NonceStore;
-use openid4vc::pkce::store::PkceFlowStore;
 use openid4vc::preview::CredentialPreviewRequest;
 use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::SessionStore;
@@ -84,7 +83,7 @@ where
     N: NonceStore + Send + Sync + 'static,
     L: StatusListServices + Send + Sync + 'static,
     PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
-    PKS: PkceFlowStore + Send + Sync + 'static,
+    PKS: Store<String, String> + Send + Sync + 'static,
     UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
 {
     let application_state = ApplicationState { issuer };
@@ -149,7 +148,7 @@ async fn authorize<K, A, S, N, L, PAS, PKS, UAA>(
 ) -> Result<Response, ErrorResponse<AuthorizeErrorCode>>
 where
     PAS: Store<String, VciAuthorizationRequest>,
-    PKS: PkceFlowStore,
+    PKS: Store<String, String>,
     UAA: UpstreamAuthorizationAdapter,
 {
     let redirect_url = state
@@ -170,7 +169,7 @@ where
     K: EcdsaKeySend,
     A: AttributeService,
     S: SessionStore<IssuanceData>,
-    PKS: PkceFlowStore,
+    PKS: Store<String, String>,
 {
     let (response, dpop_nonce) = state
         .issuer

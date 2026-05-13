@@ -25,7 +25,7 @@ use openid4vc::issuer::UpstreamResolveError;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::par::PAR_TTL;
-use openid4vc::pkce::store::MemoryPkceFlowStore;
+use openid4vc::pkce::PKCE_FLOW_TTL;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionToken;
 use openid4vc::store::MemoryStore;
@@ -113,7 +113,7 @@ async fn start_server(
         MockIssuer<
             TimeGenerator,
             MemoryStore<String, VciAuthorizationRequest>,
-            MemoryPkceFlowStore,
+            MemoryStore<String, String>,
             StaticAuthorizationAdapter,
         >,
     >,
@@ -130,7 +130,7 @@ async fn start_server(
 
     let sessions = Arc::new(MemorySessionStore::default());
     let par_store = Arc::new(MemoryStore::new(PAR_TTL));
-    let pkce_store = Arc::new(MemoryPkceFlowStore::default());
+    let pkce_store = Arc::new(MemoryStore::new(PKCE_FLOW_TTL));
 
     let adapter = upstream_authorization_endpoint.map(StaticAuthorizationAdapter::new);
     let (issuer, trust_anchor, wia_issuer_privkey) = setup_mock_issuer(

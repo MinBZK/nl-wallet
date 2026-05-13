@@ -43,7 +43,6 @@ use crate::issuer::WiaConfig;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::nonce::memory_store::MemoryNonceStore;
-use crate::pkce::store::PkceFlowStore;
 use crate::server_state::MemorySessionStore;
 use crate::store::Store;
 use crate::token::TokenRequest;
@@ -133,7 +132,7 @@ pub fn setup_mock_issuer<G, PAS, PKS, UAA>(
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
     PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
-    PKS: PkceFlowStore + Send + Sync + 'static,
+    PKS: Store<String, String> + Send + Sync + 'static,
     UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
 {
     let ca = Ca::generate_issuer_mock_ca().unwrap();

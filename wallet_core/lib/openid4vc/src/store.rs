@@ -142,10 +142,9 @@ mod tests {
     use super::MemoryStore;
     use super::Store;
 
-    fn memory_store_with_mock_time() -> (
-        MemoryStore<String, String, MockTimeGenerator>,
-        Arc<RwLock<DateTime<Utc>>>,
-    ) {
+    type TestMemoryStore = MemoryStore<String, String, MockTimeGenerator>;
+
+    fn memory_store_with_mock_time() -> (TestMemoryStore, Arc<RwLock<DateTime<Utc>>>) {
         let generator = MockTimeGenerator::default();
         let mock_time = Arc::clone(&generator.time);
         let store = MemoryStore::new_with_time(Duration::seconds(60), generator);

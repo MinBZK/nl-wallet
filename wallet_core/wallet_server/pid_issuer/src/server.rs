@@ -10,8 +10,9 @@ use openid4vc::issuer::Issuer;
 use openid4vc::issuer::UpstreamAuthorizationAdapter;
 use openid4vc::issuer::WiaConfig;
 use openid4vc::nonce::store::NonceStore;
-use openid4vc::pkce::store::MemoryPkceFlowStore;
+use openid4vc::pkce::PKCE_FLOW_TTL;
 use openid4vc::server_state::SessionStore;
+use openid4vc::store::MemoryStore;
 use openid4vc::store::Store;
 use openid4vc_server::issuer::create_issuance_router;
 use p256::ecdsa::VerifyingKey;
@@ -97,7 +98,7 @@ where
         .await?;
 
     let status_list_services = Arc::new(status_list_services);
-    let pkce_store = Arc::new(MemoryPkceFlowStore::default());
+    let pkce_store = Arc::new(MemoryStore::new(PKCE_FLOW_TTL));
 
     let wallet_issuance_router = create_issuance_router(Arc::new(Issuer::try_new(
         settings.public_url,

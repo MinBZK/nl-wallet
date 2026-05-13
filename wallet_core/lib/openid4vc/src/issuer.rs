@@ -82,8 +82,6 @@ use crate::par;
 use crate::par::PAR_TTL;
 use crate::pkce::PkcePair;
 use crate::pkce::S256PkcePair;
-use crate::pkce::store::PKCE_FLOW_TTL;
-use crate::pkce::store::PkceFlowStore;
 use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
 use crate::recurring_task::start_recurring_task;
@@ -716,7 +714,7 @@ where
 impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
 where
     PAS: Store<String, VciAuthorizationRequest>,
-    PKS: PkceFlowStore,
+    PKS: Store<String, String>,
     UAA: UpstreamAuthorizationAdapter,
 {
     /// Consume the PAR, swap the wallet's PKCE challenge for an upstream one (storing the upstream
@@ -760,11 +758,7 @@ where
             };
 
             self.pkce_flow_store
-                .store(
-                    wallet_code_challenge,
-                    upstream_pkce.into_code_verifier(),
-                    Utc::now() + PKCE_FLOW_TTL,
-                )
+                .store(wallet_code_challenge, upstream_pkce.into_code_verifier())
                 .await
                 .map_err(|error| AuthorizeError::PkceStore(Box::new(error)))?;
         }
@@ -868,7 +862,7 @@ where
     K: EcdsaKeySend,
     A: AttributeService,
     S: SessionStore<IssuanceData>,
-    PKS: PkceFlowStore,
+    PKS: Store<String, String>,
 {
     /// Process a token request, performing the wallet ↔ upstream PKCE bridge consumption when the
     /// grant type is `authorization_code`. Pre-authorized-code grants bypass PKCE entirely.

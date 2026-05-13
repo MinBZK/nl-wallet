@@ -1,7 +1,7 @@
 use db_test::DbSetup;
 use db_test::connection_from_url;
 use issuer_common::par_store::IssuerParStore;
-use openid4vc::par::store::test::test_par_store;
+use openid4vc::par::test::test_par_store;
 use sea_orm::ConnectionTrait;
 use sea_orm::DbBackend;
 use sea_orm::Statement;
