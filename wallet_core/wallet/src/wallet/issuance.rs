@@ -399,7 +399,7 @@ where
         let trust_anchors = config.issuer_trust_anchors();
 
         let issuance_session = authorization_session
-            .start_issuance(&redirect_uri, &trust_anchors)
+            .start_issuance(&redirect_uri, trust_anchors)
             .await
             .map_err(|e| match e {
                 WalletIssuanceError::OAuth(OAuthError::Denied) => IssuanceError::DeniedDigiD,
@@ -551,7 +551,7 @@ where
 
         info!("Signing nonce using Wallet Provider");
         let issuance_result = protocol_state
-            .accept_issuance(&config.issuer_trust_anchors(), &remote_wscd, pid_purpose.is_some())
+            .accept_issuance(config.issuer_trust_anchors(), &remote_wscd, pid_purpose.is_some())
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, protocol_state));
 

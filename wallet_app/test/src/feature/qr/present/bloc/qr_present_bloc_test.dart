@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:bluetooth/bluetooth.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +10,7 @@ import 'package:wallet/src/domain/model/close_proximity/ble_connection_event.dar
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/feature/qr/present/bloc/qr_present_bloc.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../../mocks/wallet_mocks.mocks.dart';
 
@@ -18,6 +21,7 @@ void main() {
   late AppLifecycleService mockAppLifecycleService;
   late QrPresentBloc bloc;
   late Bluetooth bluetooth;
+  late StreamController<BleConnectionEvent> connectionEventController;
 
   setUp(() {
     mockStartQrEngagementUseCase = MockStartCloseProximityDisclosureUseCase();
@@ -25,6 +29,10 @@ void main() {
     mockCancelDisclosureUseCase = MockCancelDisclosureUseCase();
     bluetooth = MockBluetooth();
     mockAppLifecycleService = AppLifecycleService();
+    connectionEventController = StreamController<BleConnectionEvent>.broadcast();
+
+    when(mockObserveCloseProximityConnectionUseCase.invoke()).thenAnswer((_) => connectionEventController.stream);
+
     bloc = QrPresentBloc(
       mockStartQrEngagementUseCase,
       mockObserveCloseProximityConnectionUseCase,
@@ -87,6 +95,73 @@ void main() {
         verify(mockStartQrEngagementUseCase.invoke()).called(1);
       },
     );
+
+    group('Connection Events', () {
+      setUp(() {
+        when(bluetooth.isEnabled()).thenAnswer((_) async => true);
+        when(mockStartQrEngagementUseCase.invoke()).thenAnswer((_) async => const Result.success('qr_content'));
+      });
+
+      blocTest<QrPresentBloc, QrPresentState>(
+        'emits QrPresentConnected(deviceRequestReceived: false) when BleConnected is received',
+        build: () => bloc,
+        act: (bloc) async {
+          bloc.add(const QrPresentStartRequested());
+          await bloc.stream.firstWhere((s) => s is QrPresentServerStarted);
+          connectionEventController.add(const BleConnected());
+        },
+        expect: () => [
+          const QrPresentInitial(),
+          const QrPresentServerStarted('qr_content'),
+          const QrPresentConnected(deviceRequestReceived: false),
+        ],
+      );
+
+      blocTest<QrPresentBloc, QrPresentState>(
+        'emits QrPresentConnected(deviceRequestReceived: true) when BleDeviceRequestReceived is received',
+        build: () => bloc,
+        act: (bloc) async {
+          bloc.add(const QrPresentStartRequested());
+          await bloc.stream.firstWhere((s) => s is QrPresentServerStarted);
+          connectionEventController.add(const BleDeviceRequestReceived());
+        },
+        expect: () => [
+          const QrPresentInitial(),
+          const QrPresentServerStarted('qr_content'),
+          const QrPresentConnected(deviceRequestReceived: true),
+        ],
+      );
+
+      blocTest<QrPresentBloc, QrPresentState>(
+        'emits QrPresentConnectionFailed when BleDisconnected is received',
+        build: () => bloc,
+        act: (bloc) async {
+          bloc.add(const QrPresentStartRequested());
+          await bloc.stream.firstWhere((s) => s is QrPresentServerStarted);
+          connectionEventController.add(const BleDisconnected());
+        },
+        expect: () => [
+          const QrPresentInitial(),
+          const QrPresentServerStarted('qr_content'),
+          const QrPresentConnectionFailed(),
+        ],
+      );
+
+      blocTest<QrPresentBloc, QrPresentState>(
+        'emits QrPresentError when BleError is received',
+        build: () => bloc,
+        act: (bloc) async {
+          bloc.add(const QrPresentStartRequested());
+          await bloc.stream.firstWhere((s) => s is QrPresentServerStarted);
+          connectionEventController.add(const BleError(CoreGenericError('error', data: null)));
+        },
+        expect: () => [
+          const QrPresentInitial(),
+          const QrPresentServerStarted('qr_content'),
+          const QrPresentError(GenericError('error', sourceError: CoreGenericError('error', data: null))),
+        ],
+      );
+    });
 
     test('Cancel disclosure on stop request', () async {
       bloc.add(const QrPresentStopRequested());

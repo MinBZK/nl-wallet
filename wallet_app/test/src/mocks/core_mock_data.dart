@@ -1,5 +1,8 @@
+import 'package:mockito/mockito.dart';
 import 'package:wallet_core/core.dart';
 import 'package:wallet_mock/mock.dart';
+
+class MockAttestationPresentation extends Mock implements AttestationPresentation {}
 
 abstract class CoreMockData {
   static const AttestationPresentation attestation = AttestationPresentation(

@@ -1,8 +1,8 @@
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use error_category::ErrorCategory;
 use http_utils::reqwest::HttpJsonClient;
-use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use url::Url;
 
@@ -215,7 +215,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         let authorization_code = self.authorization_code(received_redirect_uri)?;
         let message_client = HttpVcMessageClient::new(self.http_client);

@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use attestation_data::credential_payload::CredentialPayload;
 use crypto::server_keys::generate::Ca;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
@@ -49,7 +50,6 @@ use reqwest::Method;
 use reqwest::StatusCode;
 use reqwest::redirect::Policy;
 use rstest::rstest;
-use rustls_pki_types::TrustAnchor;
 use tokio::net::TcpListener;
 use url::Url;
 use utils::generator::TimeGenerator;
@@ -102,7 +102,7 @@ async fn start_server(
     upstream_authorization_endpoint: Option<Url>,
 ) -> (
     Arc<MockIssuer<TimeGenerator, MemoryParStore, MemoryPkceFlowStore, StaticAuthorizationAdapter>>,
-    TrustAnchor<'static>,
+    BorrowingTrustAnchor,
     IssuerIdentifier,
     SigningKey,
     ReqwestTrustAnchor,

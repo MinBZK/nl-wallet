@@ -135,7 +135,6 @@ impl IssuanceWscd for MockRemoteWscd {
         count: NonZeroUsize,
         aud: String,
         nonce: Option<Nonce>,
-        include_wia: bool,
     ) -> Result<IssuanceResult, Self::Error> {
         let claims = JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud);
 
@@ -163,39 +162,45 @@ impl IssuanceWscd for MockRemoteWscd {
             })
             .collect();
 
-        let wia_and_key = include_wia.then(|| {
-            let wia_key = SigningKey::random(&mut OsRng);
-            let wia_key = MockRemoteEcdsaKey::new(verifying_key_sha256(wia_key.verifying_key()), wia_key);
-
-            // If no WIA signing key is configured, just use the WIA's private key to sign it
-            let wia_signing_key = self.wia_signing_key.as_ref().unwrap_or(&wia_key.key);
-            let wia = SignedJwt::sign(
-                &WiaClaims::new(
-                    wia_key.verifying_key(),
-                    MOCK_WALLET_CLIENT_ID.to_string(),
-                    Utc::now() + Duration::from_secs(600),
-                    StatusClaim::new_mock(),
-                )
-                .unwrap(),
-                wia_signing_key,
-            )
-            .now_or_never()
-            .unwrap()
-            .unwrap()
-            .into();
-
-            let wia_disclosure = SignedJwt::sign(&claims, &wia_key).now_or_never().unwrap().unwrap();
-
-            (WiaDisclosure::new(wia, wia_disclosure.into()), wia_key)
-        });
-
         Ok(IssuanceResult {
             key_identifiers: attestation_keys
                 .into_nonempty_iter()
                 .map(|key| key.identifier)
                 .collect(),
             pops,
-            wia: wia_and_key.map(|(wia, _)| wia),
         })
+    }
+
+    async fn issue_wia(&self, aud: String, nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
+        let wia_key = SigningKey::random(&mut OsRng);
+        let wia_key = MockRemoteEcdsaKey::new(verifying_key_sha256(wia_key.verifying_key()), wia_key);
+
+        // If no WIA signing key is configured, just use the WIA's private key to sign it
+        let wia_signing_key = self.wia_signing_key.as_ref().unwrap_or(&wia_key.key);
+
+        let wia = SignedJwt::sign(
+            &WiaClaims::new(
+                wia_key.verifying_key(),
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                Utc::now() + Duration::from_secs(600),
+                StatusClaim::new_mock(),
+            )
+            .unwrap(),
+            wia_signing_key,
+        )
+        .now_or_never()
+        .unwrap()
+        .unwrap()
+        .into();
+
+        let wia_disclosure = SignedJwt::sign(
+            &JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud),
+            &wia_key,
+        )
+        .now_or_never()
+        .unwrap()
+        .unwrap();
+
+        Ok(WiaDisclosure::new(wia, wia_disclosure.into()))
     }
 }

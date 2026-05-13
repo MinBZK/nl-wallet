@@ -121,6 +121,9 @@ class WalletRoutes {
     appBlockedRoute,
   ];
 
+  @visibleForTesting
+  static List<String> get allRoutes => _routeBuilders.keys.toList();
+
   static const aboutRoute = '/about';
   static const biometricsSettingsRoute = '/settings/biometrics';
   static const cardDataRoute = '/card/data';
@@ -221,14 +224,11 @@ class WalletRoutes {
 
   static Route<dynamic> routeFactory(RouteSettings settings) {
     final builderFactory = _routeBuilders[settings.name];
-    if (builderFactory == null) {
-      throw UnsupportedError('Unknown route: ${settings.name}');
-    }
+    if (builderFactory == null) throw UnsupportedError('Unknown route: ${settings.name}');
 
     final builder = builderFactory(settings);
-    if (publicRoutes.contains(settings.name)) {
-      return MaterialPageRoute(builder: builder, settings: settings);
-    }
+    if (publicRoutes.contains(settings.name)) return MaterialPageRoute(builder: builder, settings: settings);
+
     return SecuredPageRoute(builder: builder, settings: settings, transition: _resolvePageTransition(settings));
   }
 
@@ -284,15 +284,17 @@ Widget _createSetupSecurityScreenBuilder(BuildContext context) => BlocProvider<S
 );
 
 WidgetBuilder _createDashboardScreenBuilder(RouteSettings settings) {
-  final DashboardScreenArgument? argument = DashboardScreen.getArgument(settings);
-  return (context) => BlocProvider(
-    create: (context) => DashboardBloc(
-      context.read(),
-      context.read(),
-      argument?.cards,
-    )..add(const DashboardLoadTriggered()),
-    child: const DashboardScreen(),
-  );
+  return (context) {
+    final DashboardScreenArgument? argument = DashboardScreen.getArgument(settings);
+    return BlocProvider(
+      create: (context) => DashboardBloc(
+        context.read(),
+        context.read(),
+        argument?.cards,
+      )..add(const DashboardLoadTriggered()),
+      child: const DashboardScreen(),
+    );
+  };
 }
 
 Widget _createMenuScreenBuilder(BuildContext context) {
@@ -349,8 +351,8 @@ WidgetBuilder _createCardHistoryScreenBuilder(RouteSettings settings) {
 Widget _createThemeScreenBuilder(BuildContext context) => const ThemeScreen();
 
 WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
-  final args = DisclosureScreen.getArgument(settings);
   return (context) {
+    final args = DisclosureScreen.getArgument(settings);
     return BlocProvider<DisclosureBloc>(
       create: (BuildContext context) {
         final bloc = DisclosureBloc(
@@ -417,8 +419,8 @@ WidgetBuilder _createSignScreenBuilder(RouteSettings settings) {
 }
 
 WidgetBuilder _createWalletPersonalizeScreenBuilder(RouteSettings settings) {
-  final argument = Consumable(tryCast<String>(settings.arguments));
   return (context) {
+    final argument = Consumable(tryCast<String>(settings.arguments));
     return BlocProvider<WalletPersonalizeBloc>(
       create: (BuildContext context) {
         final bloc = WalletPersonalizeBloc(
@@ -448,7 +450,7 @@ WidgetBuilder _createHistoryDetailScreenBuilder(RouteSettings settings) {
   return (context) {
     final HistoryDetailScreenArgument argument = HistoryDetailScreen.getArgument(settings);
     return BlocProvider<HistoryDetailBloc>(
-      create: (BuildContext context) => HistoryDetailBloc(context.read())
+      create: (BuildContext context) => HistoryDetailBloc()
         ..add(
           HistoryDetailLoadTriggered(event: argument.walletEvent),
         ),
@@ -557,8 +559,8 @@ WidgetBuilder _createTourVideoScreenBuilder(RouteSettings settings) {
 }
 
 WidgetBuilder _createRenewPidScreenBuilder(RouteSettings settings) {
-  final argument = Consumable(tryCast<String>(settings.arguments));
   return (context) {
+    final argument = Consumable(tryCast<String>(settings.arguments));
     return BlocProvider<RenewPidBloc>(
       create: (BuildContext context) {
         final bloc = RenewPidBloc(
@@ -577,8 +579,8 @@ WidgetBuilder _createRenewPidScreenBuilder(RouteSettings settings) {
 }
 
 WidgetBuilder _createPinRecoveryScreenBuilder(RouteSettings settings) {
-  final argument = Consumable(tryCast<String>(settings.arguments));
   return (context) {
+    final argument = Consumable(tryCast<String>(settings.arguments));
     return BlocProvider<RecoverPinBloc>(
       create: (BuildContext context) {
         final bloc = RecoverPinBloc(
@@ -599,8 +601,8 @@ WidgetBuilder _createPinRecoveryScreenBuilder(RouteSettings settings) {
 }
 
 WidgetBuilder _createWalletTransferSourceRoute(RouteSettings settings) {
-  final argument = Consumable(tryCast<String>(settings.arguments));
   return (context) {
+    final argument = Consumable(tryCast<String>(settings.arguments));
     return MultiBlocProvider(
       providers: [
         BlocProvider<WalletTransferSourceBloc>(
@@ -673,8 +675,8 @@ Widget _createManageNotificationsScreenBuilder(BuildContext context) => BlocProv
 );
 
 WidgetBuilder _createAppBlockedScreenBuilder(RouteSettings settings) {
-  final reason = AppBlockedScreen.getArgument(settings)?.reason ?? .unknown;
   return (context) {
+    final reason = AppBlockedScreen.getArgument(settings)?.reason ?? .unknown;
     return BlocProvider<AppBlockedBloc>(
       create: (BuildContext context) => AppBlockedBloc(context.read())..add(AppBlockedLoadTriggered(reason: reason)),
       child: const AppBlockedScreen(),

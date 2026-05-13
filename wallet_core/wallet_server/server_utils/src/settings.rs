@@ -18,7 +18,6 @@ use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
 use nutype::nutype;
 use openid4vc::server_state::SessionStoreTimeouts;
-use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::hex::Hex;
@@ -193,7 +192,7 @@ pub trait ServerSettings: Sized {
 
 pub fn verify_key_pairs(
     key_pairs: &[(&str, &KeyPair)],
-    trust_anchors: &[TrustAnchor<'_>],
+    trust_anchors: &[BorrowingTrustAnchor],
     usage: CertificateUsage,
     time: &impl Generator<DateTime<Utc>>,
 ) -> Result<(), CertificateVerificationError> {

@@ -7,6 +7,7 @@ use attestation_data::attributes::AttributesTraversalBehaviour;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_types::claim_path::ClaimPath;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::BorrowingCertificate;
 use derive_more::Debug;
 use futures::TryFutureExt;
@@ -24,7 +25,6 @@ use reqwest::Method;
 use reqwest::Response;
 use reqwest::header::AUTHORIZATION;
 use reqwest::header::ToStrError;
-use rustls_pki_types::TrustAnchor;
 use sd_jwt::error::DecoderError;
 use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
@@ -350,7 +350,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         issuer_metadata: IssuerMetadata,
         oauth_metadata: AuthorizationServerMetadata,
         token_request: TokenRequest,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<Self, WalletIssuanceError> {
         let credential_preview_endpoint = issuer_metadata
             .credential_preview_endpoint
@@ -454,7 +454,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
     async fn accept_issuance<W>(
         &mut self,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
         wscd: &W,
         include_wia: bool,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
@@ -493,17 +493,15 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             }
         };
 
-        let mut issuance_data = wscd
-            .perform_issuance(
-                key_count,
-                self.session_state
-                    .issuer_metadata
-                    .credential_issuer
-                    .as_ref()
-                    .to_string(),
-                c_nonce,
-                include_wia,
-            )
+        let aud = self
+            .session_state
+            .issuer_metadata
+            .credential_issuer
+            .as_ref()
+            .to_string();
+
+        let issuance_data = wscd
+            .perform_issuance(key_count, aud.clone(), c_nonce.clone())
             .await
             .map_err(|e| WalletIssuanceError::PrivateKeyGeneration(e.into()))?;
 
@@ -541,11 +539,21 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         .into_iter()
         .unzip();
 
+        let mut wia = if include_wia {
+            Some(
+                wscd.issue_wia(aud, c_nonce)
+                    .await
+                    .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?,
+            )
+        } else {
+            None
+        };
+
         // The following two unwraps are safe because N > 0, see above.
         let responses = match credential_requests.len() {
             1 => {
                 let mut credential_request = credential_requests.pop().unwrap();
-                credential_request.attestations = issuance_data.wia.take();
+                credential_request.attestations = wia.take();
                 vec![
                     self.request_credential(credential_endpoint_url, &credential_request)
                         .await?,
@@ -553,7 +561,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             }
             _ => {
                 let credential_requests = VecNonEmpty::try_from(credential_requests).unwrap();
-                self.request_batch_credentials(credential_endpoint_url, credential_requests, issuance_data.wia.take())
+                self.request_batch_credentials(credential_endpoint_url, credential_requests, wia.take())
                     .await?
             }
         };
@@ -724,7 +732,7 @@ impl Credential {
         key_identifier: String,
         verifying_key: &VerifyingKey,
         preview: &NormalizedCredentialPreview,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<IssuedCredential, WalletIssuanceError> {
         match self {
             Self::MsoMdoc {
@@ -936,7 +944,7 @@ mod tests {
 
     fn test_start_issuance(
         ca: &Ca,
-        trust_anchor: TrustAnchor,
+        trust_anchor: BorrowingTrustAnchor,
         issuer_metadata: IssuerMetadata,
         preview_payloads: Vec<PreviewableCredentialPayload>,
         type_metadata: TypeMetadata,
@@ -994,7 +1002,7 @@ mod tests {
 
         let session = test_start_issuance(
             &ca,
-            ca.to_trust_anchor(),
+            ca.to_borrowing_trust_anchor(),
             IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE),
             vec![PreviewableCredentialPayload::example_family_name(
                 &MockTimeGenerator::default(),
@@ -1036,7 +1044,7 @@ mod tests {
 
         let error = test_start_issuance(
             &ca,
-            ca.to_trust_anchor(),
+            ca.to_borrowing_trust_anchor(),
             issuer_metadata.clone(),
             vec![PreviewableCredentialPayload::example_family_name(
                 &MockTimeGenerator::default(),
@@ -1055,7 +1063,7 @@ mod tests {
 
         let _ = test_start_issuance(
             &ca,
-            ca.to_trust_anchor(),
+            ca.to_borrowing_trust_anchor(),
             issuer_metadata,
             vec![PreviewableCredentialPayload::example_family_name(
                 &MockTimeGenerator::default(),
@@ -1073,7 +1081,7 @@ mod tests {
 
         let error = test_start_issuance(
             &ca,
-            other_ca.to_trust_anchor(),
+            other_ca.to_borrowing_trust_anchor(),
             IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE),
             vec![PreviewableCredentialPayload::example_family_name(
                 &MockTimeGenerator::default(),
@@ -1097,7 +1105,7 @@ mod tests {
 
         let error = test_start_issuance(
             &ca,
-            ca.to_trust_anchor(),
+            ca.to_borrowing_trust_anchor(),
             IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE),
             vec![PreviewableCredentialPayload::example_empty(
                 PID_ATTESTATION_TYPE,
@@ -1117,7 +1125,7 @@ mod tests {
 
         let error = test_start_issuance(
             &ca,
-            ca.to_trust_anchor(),
+            ca.to_borrowing_trust_anchor(),
             IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE),
             vec![PreviewableCredentialPayload::example_empty(
                 PID_ATTESTATION_TYPE,
@@ -1194,7 +1202,7 @@ mod tests {
             issuer_metadata,
             oauth_metadata,
             TokenRequest::new_mock(),
-            &[ca.to_trust_anchor()],
+            &[ca.to_borrowing_trust_anchor()],
         )
         .now_or_never()
         .unwrap()
@@ -1248,7 +1256,7 @@ mod tests {
 
     #[derive(super::Debug, Clone)]
     struct MockCredentialSigner {
-        pub trust_anchor: TrustAnchor<'static>,
+        pub trust_anchor: BorrowingTrustAnchor,
         issuer_key: Arc<KeyPair>,
         metadata_integrity: Integrity,
         previewable_payload: PreviewableCredentialPayload,
@@ -1273,7 +1281,7 @@ mod tests {
             preview_payload: PreviewableCredentialPayload,
         ) -> (Self, NormalizedCredentialPreview) {
             let ca = Ca::generate_issuer_mock_ca().unwrap();
-            let trust_anchor = ca.to_trust_anchor().to_owned();
+            let trust_anchor = ca.to_borrowing_trust_anchor();
 
             let issuer_registration = IssuerRegistration::new_mock();
             let issuer_key = generate_pid_issuer_mock_with_registration(&ca, issuer_registration.clone()).unwrap();
@@ -1622,7 +1630,7 @@ mod tests {
         Credential,
         NormalizedCredentialPreview,
         VerifyingKey,
-        TrustAnchor<'static>,
+        BorrowingTrustAnchor,
     ) {
         let (signer, preview_data) = MockCredentialSigner::new_with_preview_state();
         let trust_anchor = signer.trust_anchor.clone();

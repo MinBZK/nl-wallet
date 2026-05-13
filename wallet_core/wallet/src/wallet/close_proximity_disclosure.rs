@@ -10,6 +10,7 @@ use attestation_data::x509::CertificateTypeError;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::CredentialEcdsaKey;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::wscd::DisclosureWscd;
 use crypto::x509::CertificateError;
 use derive_more::IsVariant;
@@ -38,7 +39,6 @@ use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureError as PlatformError;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
-use rustls_pki_types::TrustAnchor;
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tracing::error;
@@ -310,15 +310,6 @@ where
         &mut self,
         error: &CloseProximityDisclosureError,
     ) -> Result<(), DisclosureError> {
-        let Some(status) = error_device_response_status(error) else {
-            return Ok(());
-        };
-
-        // After sending the error DeviceResponse, always stop BLE and clear the
-        // close proximity session so the verifier is not left waiting on a dead session.
-        let response = encode_error_device_response(status)?;
-        let send_result = CPC::send_device_response(response).await;
-
         match self.session.take() {
             Some(Session::CloseProximityDisclosure(session)) => {
                 session.listener.abort();
@@ -327,12 +318,30 @@ where
                 self.session = other;
             }
         }
+        let send_result = match error_device_response_status(error) {
+            Some(status) => {
+                let response = encode_error_device_response(status)?;
+                Some(CPC::send_device_response(response).await)
+            }
+            None => None,
+        };
 
-        let stop_result = CPC::stop_ble_server().await;
+        let should_stop_ble_server = match &send_result {
+            Some(Ok(())) => false, // response sent successfully, the BLE server is stopped by platform_support
+            Some(Err(_)) |         // attempted send failed, the BLE server may not have been stopped
+            None => true,          // no response was sent, server should be stopped by us
+        };
 
-        send_result?;
+        let stop_result = if should_stop_ble_server {
+            CPC::stop_ble_server().await
+        } else {
+            Ok(())
+        };
+
+        // A failed send should still trigger BLE cleanup, but if both operations fail we return
+        // the send error because that is the primary action in this helper.
+        send_result.transpose()?;
         stop_result?;
-
         Ok(())
     }
 
@@ -375,7 +384,7 @@ where
             &device_request,
             &session_transcript,
             &TimeGenerator,
-            &wallet_config.disclosure.rp_trust_anchors(),
+            wallet_config.disclosure.rp_trust_anchors(),
         ) {
             Ok(verifier_certificate) => verifier_certificate,
             Err(error) => {
@@ -618,21 +627,34 @@ where
         session.listener.abort();
 
         let state = session.session_state.lock().to_owned();
-        let (event, send_result) = match state {
+
+        let (event, send_result, sent_termination) = match state {
             CloseProximityDisclosureSessionState::DisclosureProposed {
                 verifier_certificate, ..
             } => (
                 Some((verifier_certificate, EventStatus::Cancelled)),
                 CPC::send_session_termination().await,
+                true,
             ),
+
             CloseProximityDisclosureSessionState::Errored {
                 verifier_certificate: Some(verifier_certificate),
                 ..
-            } => (Some((verifier_certificate, EventStatus::Error)), Ok(())),
-            _ => (None, Ok(())),
+            } => (Some((verifier_certificate, EventStatus::Error)), Ok(()), false),
+
+            _ => (None, Ok(()), false),
         };
 
-        let stop_result = CPC::stop_ble_server().await;
+        // Keep the cleanup decision separate from the call itself: if sending the termination
+        // status failed, we still need to stop BLE before returning that send error.
+        let should_stop_ble_server = !sent_termination || send_result.is_err();
+
+        let stop_result = if should_stop_ble_server {
+            CPC::stop_ble_server().await
+        } else {
+            Ok(())
+        };
+
         send_result?;
         stop_result?;
 
@@ -721,7 +743,7 @@ pub fn verify_device_request(
     device_request: &DeviceRequest,
     session_transcript: &SessionTranscript,
     time: &impl Generator<DateTime<Utc>>,
-    trust_anchors: &[TrustAnchor],
+    trust_anchors: &[BorrowingTrustAnchor],
 ) -> Result<VerifierCertificate, CloseProximityDisclosureError> {
     // Verify all `DocRequest` entries and make sure the resulting certificates are all exactly equal.
     let certificate = device_request
@@ -783,6 +805,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::p256_der::DerSignature;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::BorrowingTrustAnchor;
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
@@ -813,7 +836,6 @@ mod tests {
     use platform_support::close_proximity_disclosure::CloseProximityDisclosureUpdate as PlatformUpdate;
     use platform_support::close_proximity_disclosure::MockCloseProximityDisclosureClient;
     use rand_core::OsRng;
-    use rustls_pki_types::TrustAnchor;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use serial_test::serial;
     use utils::generator::mock::MockTimeGenerator;
@@ -995,7 +1017,7 @@ mod tests {
         send_context.expect().once().returning(|| Ok(()));
 
         let context = MockCloseProximityDisclosureClient::stop_ble_server_context();
-        context.expect().once().returning(|| Ok(()));
+        context.expect().never();
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -1045,7 +1067,7 @@ mod tests {
         send_context.expect().once().returning(|| Ok(()));
 
         let context = MockCloseProximityDisclosureClient::stop_ble_server_context();
-        context.expect().once().returning(|| Ok(()));
+        context.expect().never();
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let (verifier_certificate, _) = setup_close_proximity_disclosure_proposed_session(&mut wallet);
@@ -1250,7 +1272,7 @@ mod tests {
             .returning(|_| Ok(()));
 
         let stop_context = MockCloseProximityDisclosureClient::stop_ble_server_context();
-        stop_context.expect().once().returning(|| Ok(()));
+        stop_context.expect().never();
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         install_session_established_close_proximity_session(
@@ -1286,7 +1308,7 @@ mod tests {
             .returning(|_| Ok(()));
 
         let stop_context = MockCloseProximityDisclosureClient::stop_ble_server_context();
-        stop_context.expect().once().returning(|| Ok(()));
+        stop_context.expect().never();
 
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         install_session_established_close_proximity_session(
@@ -1322,7 +1344,7 @@ mod tests {
             .returning(|_| Ok(()));
 
         let stop_context = MockCloseProximityDisclosureClient::stop_ble_server_context();
-        stop_context.expect().once().returning(|| Ok(()));
+        stop_context.expect().never();
 
         let items_request = pid_given_name_items_request();
         let (mut device_request, session_transcript, _trust_anchors) =
@@ -1350,16 +1372,47 @@ mod tests {
         assert!(wallet.session.is_none());
     }
 
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_wallet_continue_close_proximity_disclosure_send_error_response_failure_still_stops_ble_server() {
+        let send_context = MockCloseProximityDisclosureClient::send_device_response_context();
+        send_context.expect().once().returning(|_| {
+            Err(PlatformError::PlatformError {
+                reason: "send failed".to_string(),
+            })
+        });
+
+        let stop_context = MockCloseProximityDisclosureClient::stop_ble_server_context();
+        stop_context.expect().once().returning(|| Ok(()));
+
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        install_session_established_close_proximity_session(
+            &mut wallet,
+            cbor_serialize(&qr_session_transcript(None)).unwrap(),
+            vec![0xff],
+        );
+
+        let result = wallet.continue_close_proximity_disclosure().await;
+
+        assert_matches!(
+            result,
+            Err(DisclosureError::PlatformCloseProximityDisclosureSessionError(
+                PlatformError::PlatformError { reason }
+            )) if reason == "send failed"
+        );
+        assert!(wallet.session.is_none());
+    }
+
     fn qr_session_transcript(device_engagement: Option<DeviceEngagement>) -> SessionTranscript {
         let ephemeral_key_pair = SigningKey::random(&mut OsRng);
         let cose_key: CoseKey = ephemeral_key_pair.verifying_key().try_into().unwrap();
         SessionTranscript::new_qr(cose_key, device_engagement)
     }
 
-    async fn setup_device_request<'a>(
+    async fn setup_device_request(
         items_requests: Vec<ItemsRequest>,
         device_engagement: Option<DeviceEngagement>,
-    ) -> (DeviceRequest, SessionTranscript, Vec<TrustAnchor<'a>>) {
+    ) -> (DeviceRequest, SessionTranscript, Vec<BorrowingTrustAnchor>) {
         let mut reader_registration = ReaderRegistration::new_mock();
         items_requests.clone().into_iter().for_each(|items_request| {
             let (doc_type, claims) = items_request.into_doctype_and_claims();
@@ -1381,7 +1434,7 @@ mod tests {
         .unwrap();
 
         let device_request = DeviceRequest::from_doc_requests(doc_requests);
-        let trust_anchors = vec![READER_CA.to_trust_anchor().to_owned()];
+        let trust_anchors = vec![READER_CA.to_borrowing_trust_anchor()];
 
         (device_request, session_transcript, trust_anchors)
     }
@@ -1460,7 +1513,7 @@ mod tests {
         let doc_request2 = create_doc_request(items_request2, &session_transcript, &key_pair2).await;
 
         let device_request = DeviceRequest::from_doc_requests(vec_nonempty![doc_request1, doc_request2]);
-        let trust_anchors = [READER_CA.to_trust_anchor()];
+        let trust_anchors = [READER_CA.to_borrowing_trust_anchor()];
 
         let result = verify_device_request(
             &device_request,
@@ -1486,7 +1539,7 @@ mod tests {
         let doc_requests = create_doc_request(items_request, &session_transcript, &key_pair).await;
 
         let device_request = DeviceRequest::from_doc_requests(vec_nonempty![doc_requests]);
-        let trust_anchors = vec![READER_CA.to_trust_anchor().to_owned()];
+        let trust_anchors = vec![READER_CA.to_borrowing_trust_anchor()];
 
         let result = verify_device_request(
             &device_request,

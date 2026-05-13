@@ -31,6 +31,7 @@ use chrono::DateTime;
 use chrono::Days;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use derive_more::Constructor;
 use derive_more::From;
 use futures::TryFutureExt;
@@ -121,7 +122,7 @@ use crate::flags::WalletFlags;
 use crate::instructions::HandleInstruction;
 use crate::instructions::PinChecks;
 use crate::instructions::ValidateInstruction;
-use crate::instructions::perform_issuance_with_wia;
+use crate::instructions::perform_issuance;
 use crate::keys::InstructionResultSigningKey;
 use crate::keys::WalletCertificateSigningKey;
 use crate::pin_policy::PinRecoveryPinPolicy;
@@ -523,7 +524,7 @@ pub struct UserState<R, F, H, W, S> {
     pub wia_issuer: W,
     pub wia_validity: Days,
     pub wrapping_key_identifier: String,
-    pub pid_issuer_trust_anchors: Vec<TrustAnchor<'static>>,
+    pub pid_issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
     pub status_list_service: S,
 }
 
@@ -1229,11 +1230,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             })
             .await?;
 
-        let issuance_instruction = instruction_payload.issuance_with_wia_instruction.issuance_instruction;
-
         // Handle the issuance part without persisting the generated keys
-        let (issuance_with_wia_result, keys, _) =
-            perform_issuance_with_wia(issuance_instruction, &wallet_user, user_state).await?;
+        let (issuance_result, keys) = perform_issuance(instruction_payload.issuance_instruction, user_state).await?;
 
         let tx = user_state.repositories.begin_transaction().await?;
 
@@ -1293,7 +1291,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .sign_instruction_result(
                 instruction_result_signing_key,
                 StartPinRecoveryResult {
-                    issuance_with_wia_result,
+                    issuance_result,
                     certificate,
                 },
             )
@@ -1798,7 +1796,7 @@ pub mod mock {
         flags: F,
         wallet_user_hsm: MockPkcs11Client<HsmError>,
         wrapping_key_identifier: String,
-        pid_issuer_trust_anchors: Vec<TrustAnchor<'static>>,
+        pid_issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
         status_list_service: S,
     ) -> UserState<R, F, MockPkcs11Client<HsmError>, MockWiaIssuer, S> {
         UserState::<R, F, MockPkcs11Client<HsmError>, MockWiaIssuer, S> {
@@ -2004,9 +2002,9 @@ mod tests {
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::InstructionAndResult;
     use wallet_account::messages::instructions::InstructionResult;
+    use wallet_account::messages::instructions::IssueWia;
     use wallet_account::messages::instructions::PairTransfer;
     use wallet_account::messages::instructions::PerformIssuance;
-    use wallet_account::messages::instructions::PerformIssuanceWithWia;
     use wallet_account::messages::instructions::ResetTransfer;
     use wallet_account::messages::instructions::Sign;
     use wallet_account::messages::instructions::StartPinRecovery;
@@ -2060,7 +2058,10 @@ mod tests {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
         recovery_code_sd_jwt(&issuer_ca)
             .1
-            .into_verified_against_trust_anchors(&[issuer_ca.to_trust_anchor()], &MockTimeGenerator::default())
+            .into_verified_against_trust_anchors(
+                &[issuer_ca.to_borrowing_trust_anchor()],
+                &MockTimeGenerator::default(),
+            )
             .unwrap()
     }
 
@@ -3446,12 +3447,10 @@ mod tests {
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
 
         let instruction = StartPinRecovery {
-            issuance_with_wia_instruction: PerformIssuanceWithWia {
-                issuance_instruction: PerformIssuance {
-                    key_count: NonZeroUsize::MIN,
-                    aud: "aud".to_string(),
-                    nonce: Some(Nonce::from("nonce".to_string())),
-                },
+            issuance_instruction: PerformIssuance {
+                key_count: NonZeroUsize::MIN,
+                aud: "aud".to_string(),
+                nonce: Some(Nonce::from("nonce".to_string())),
             },
             pin_pubkey: new_pin_pubkey.into(),
         };
@@ -3534,26 +3533,38 @@ mod tests {
         let new_pin_privkey = SigningKey::random(&mut OsRng);
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
 
-        let instruction = StartPinRecovery {
-            issuance_with_wia_instruction: PerformIssuanceWithWia {
-                issuance_instruction: PerformIssuance {
-                    key_count: NonZeroUsize::MIN,
-                    aud: "aud".to_string(),
-                    nonce: Some(Nonce::from("nonce".to_string())),
-                },
+        // Setup the two instructions that the wallet sends during PIN recovery
+        let issue_wia_instruction = IssueWia {
+            aud: "aud".to_string(),
+            nonce: Some(Nonce::from("nonce".to_string())),
+        };
+        let issue_wia_instruction = hw_privkey
+            .sign_instruction(
+                issue_wia_instruction,
+                challenge.clone(),
+                46,
+                &setup.pin_privkey,
+                cert.clone(),
+            )
+            .await;
+
+        let pin_recovery_instruction = StartPinRecovery {
+            issuance_instruction: PerformIssuance {
+                key_count: NonZeroUsize::MIN,
+                aud: "aud".to_string(),
+                nonce: Some(Nonce::from("nonce".to_string())),
             },
             pin_pubkey: new_pin_pubkey.into(),
         };
-        let instruction = hw_privkey
-            .sign_instruction(instruction, challenge, 46, &new_pin_privkey, cert)
+        let pin_recovery_instruction = hw_privkey
+            .sign_instruction(pin_recovery_instruction, challenge, 47, &new_pin_privkey, cert)
             .await;
 
-        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
-
+        // Setup the expectations for PIN recovery
         let mut repositories = MockTransactionalWalletUserRepository::new();
         repositories
             .expect_find_wallet_user_by_wallet_id()
-            .times(1)
+            .times(2)
             .returning(move |transaction, wallet_id| {
                 user_state
                     .repositories
@@ -3563,22 +3574,25 @@ mod tests {
             });
         repositories
             .expect_clear_instruction_challenge()
-            .times(1)
-            .returning(|_, _| Ok(()));
-        repositories
-            .expect_reset_unsuccessful_pin_entries()
             .times(2)
             .returning(|_, _| Ok(()));
         repositories
+            .expect_reset_unsuccessful_pin_entries()
+            .times(3)
+            .returning(|_, _| Ok(()));
+        repositories
             .expect_update_instruction_sequence_number()
-            .times(1)
+            .times(2)
             .returning(|_, _, _| Ok(()));
         repositories
             .expect_begin_transaction()
-            .times(4)
+            .times(7)
             .returning(|| Ok(MockTransaction));
         repositories.expect_store_wia_id().once().returning(|_, _, _| Ok(()));
-
+        repositories
+            .expect_delete_all_blocked_keys()
+            .times(1)
+            .returning(|_, _| Ok(()));
         repositories
             .expect_change_pin()
             .times(1)
@@ -3586,7 +3600,7 @@ mod tests {
                 assert_eq!(state, WalletUserState::RecoveringPin);
                 Ok(())
             });
-        repositories.expect_save_keys().times(1).returning(move |_, _| Ok(()));
+        repositories.expect_save_keys().times(2).returning(move |_, _| Ok(()));
 
         let user_state = UserState {
             repositories,
@@ -3599,9 +3613,22 @@ mod tests {
             status_list_service: user_state.status_list_service,
         };
 
+        let instruction_result_signing_key = SigningKey::random(&mut OsRng);
+
+        account_server
+            .handle_instruction(
+                issue_wia_instruction,
+                &instruction_result_signing_key,
+                &UuidV4AndTimeGenerator,
+                &TimeoutPinPolicy,
+                &user_state,
+            )
+            .await
+            .unwrap();
+
         account_server
             .handle_start_pin_recovery_instruction(
-                instruction,
+                pin_recovery_instruction,
                 (&instruction_result_signing_key, &setup.signing_key),
                 &UuidV4AndTimeGenerator,
                 &user_state,
@@ -3888,12 +3915,10 @@ mod tests {
         let new_pin_privkey = SigningKey::random(&mut OsRng);
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
         let instruction = StartPinRecovery {
-            issuance_with_wia_instruction: PerformIssuanceWithWia {
-                issuance_instruction: PerformIssuance {
-                    key_count: NonZeroUsize::MIN,
-                    aud: "aud".to_string(),
-                    nonce: Some(Nonce::from("nonce".to_string())),
-                },
+            issuance_instruction: PerformIssuance {
+                key_count: NonZeroUsize::MIN,
+                aud: "aud".to_string(),
+                nonce: Some(Nonce::from("nonce".to_string())),
             },
             pin_pubkey: new_pin_pubkey.into(),
         };

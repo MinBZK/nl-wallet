@@ -210,7 +210,7 @@ where
         // Fetch issuance previews
         let config = self.config_repository.get();
         let issuance_session = authorization_session
-            .start_issuance(&redirect_uri, &config.issuer_trust_anchors())
+            .start_issuance(&redirect_uri, config.issuer_trust_anchors())
             .await
             .map_err(|e| match e {
                 WalletIssuanceError::OAuth(OAuthError::Denied) => PinRecoveryError::DeniedDigiD,
@@ -338,7 +338,7 @@ where
         self.storage.write().await.upsert_data(&PinRecoveryData).await?;
 
         let issuance_result = issuance_session
-            .accept_issuance(&config.issuer_trust_anchors(), &pin_recovery_wscd, true)
+            .accept_issuance(config.issuer_trust_anchors(), &pin_recovery_wscd, true)
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, issuance_session));
 
@@ -459,6 +459,7 @@ mod tests {
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use jwt::UnverifiedJwt;
     use jwt::nonce::Nonce;
+    use jwt::wia::WiaDisclosure;
     use openid4vc::Format;
     use openid4vc::wallet_issuance::WalletIssuanceError;
     use openid4vc::wallet_issuance::authorization::OAuthError;
@@ -929,8 +930,11 @@ mod tests {
             _count: NonZeroUsize,
             _aud: String,
             _nonce: Option<Nonce>,
-            _include_wia: bool,
         ) -> Result<wscd::wscd::IssuanceResult, Self::Error> {
+            unimplemented!()
+        }
+
+        async fn issue_wia(&self, _aud: String, _nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
             unimplemented!()
         }
     }
