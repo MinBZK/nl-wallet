@@ -685,6 +685,12 @@ impl<K, S> RpInitiatedUseCases<K, S> {
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<(), GetAuthRequestError> {
         let ephemeral_id_params = ephemeral_id_params.ok_or(GetAuthRequestError::QueryParametersMissing)?;
+        hmac::verify(
+            ephemeral_id_secret,
+            &Self::format_ephemeral_id_payload(session_token, session_type, ephemeral_id_params.time.as_ref()),
+            &ephemeral_id_params.ephemeral_id,
+        )
+        .map_err(|_| GetAuthRequestError::InvalidEphemeralId(ephemeral_id_params.ephemeral_id.clone()))?;
 
         // only verify the expiry if the time is included in the URL
         if ephemeral_id_params
@@ -695,12 +701,6 @@ impl<K, S> RpInitiatedUseCases<K, S> {
                 ephemeral_id_params.ephemeral_id,
             ));
         }
-        hmac::verify(
-            ephemeral_id_secret,
-            &Self::format_ephemeral_id_payload(session_token, session_type, ephemeral_id_params.time.as_ref()),
-            &ephemeral_id_params.ephemeral_id,
-        )
-        .map_err(|_| GetAuthRequestError::InvalidEphemeralId(ephemeral_id_params.ephemeral_id))?;
 
         Ok(())
     }
