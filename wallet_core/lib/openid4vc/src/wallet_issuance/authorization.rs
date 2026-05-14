@@ -10,9 +10,7 @@ use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::AuthorizationResponse;
-use crate::authorization::PkceCodeChallenge;
 use crate::authorization::PushedAuthorizationResponse;
-use crate::authorization::ResponseType;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::pkce::PkcePair;
@@ -109,19 +107,8 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         let pkce_pair = P::generate();
         let state = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
 
-        let par_request = AuthorizationRequest {
-            response_type: ResponseType::Code.into(),
-            client_id: client_id.clone(),
-            redirect_uri: Some(redirect_uri.clone()),
-            state: Some(state.clone()),
-            authorization_details: None,
-            code_challenge: Some(PkceCodeChallenge::S256 {
-                code_challenge: pkce_pair.code_challenge().to_string(),
-            }),
-            scope: None,
-            nonce: None,
-            response_mode: None,
-        };
+        let par_request =
+            AuthorizationRequest::for_par(client_id.clone(), redirect_uri.clone(), state.clone(), &pkce_pair);
 
         let par_endpoint = oauth_metadata
             .pushed_authorization_request_endpoint

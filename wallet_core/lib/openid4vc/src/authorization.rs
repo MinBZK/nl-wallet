@@ -11,6 +11,9 @@ use serde_with::formats::SpaceSeparator;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
+use utils::spec::SpecForbidden;
+
+use crate::pkce::PkcePair;
 
 /// See
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-authorization-request>
@@ -37,6 +40,44 @@ pub struct AuthorizationRequest {
 
     pub nonce: Option<Nonce>,
     pub response_mode: Option<ResponseMode>,
+
+    // Should not be present for PAR and openid4vp
+    #[serde(default, skip_serializing, rename = "request_uri")]
+    _request_uri: SpecForbidden,
+}
+
+impl AuthorizationRequest {
+    pub fn for_par<P: PkcePair>(client_id: String, redirect_uri: Url, state: String, pkce_pair: &P) -> Self {
+        Self {
+            response_type: ResponseType::Code.into(),
+            client_id,
+            redirect_uri: Some(redirect_uri),
+            state: Some(state),
+            code_challenge: Some(PkceCodeChallenge::S256 {
+                code_challenge: String::from(pkce_pair.code_challenge()),
+            }),
+            authorization_details: None,
+            scope: None,
+            nonce: None,
+            response_mode: None,
+            _request_uri: SpecForbidden,
+        }
+    }
+
+    pub fn for_vp(client_id: String, nonce: Nonce, state: Option<String>) -> Self {
+        Self {
+            response_type: ResponseType::VpToken.into(),
+            client_id,
+            nonce: Some(nonce),
+            response_mode: Some(ResponseMode::DirectPostJwt),
+            redirect_uri: None,
+            state,
+            authorization_details: None,
+            code_challenge: None,
+            scope: None,
+            _request_uri: SpecForbidden,
+        }
+    }
 }
 
 /// Represents the response from the /par endpoint containing a `request_uri` that can be used to retrieve the pushed
@@ -160,6 +201,7 @@ mod tests {
     use serde_json::json;
     use serde_urlencoded;
     use url::Url;
+    use utils::spec::SpecForbidden;
 
     use crate::authorization::AuthorizationDetails;
     use crate::authorization::AuthorizationDetailsFormatData;
@@ -191,6 +233,7 @@ mod tests {
             scope: Some(scope),
             nonce: Some(nonce.clone()),
             response_mode: Some(ResponseMode::Fragment),
+            _request_uri: SpecForbidden,
         };
 
         let encoded = serde_urlencoded::to_string(&request).unwrap();

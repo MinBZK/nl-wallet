@@ -104,20 +104,16 @@ mod tests {
     use super::MemoryParStore;
     use super::ParStore;
     use crate::authorization::AuthorizationRequest;
-    use crate::authorization::ResponseType;
+    use crate::pkce::PkcePair;
+    use crate::pkce::S256PkcePair;
 
     fn example_request() -> AuthorizationRequest {
-        AuthorizationRequest {
-            response_type: ResponseType::Code.into(),
-            client_id: "client-1".to_string(),
-            redirect_uri: None,
-            state: None,
-            authorization_details: None,
-            code_challenge: None,
-            scope: None,
-            nonce: None,
-            response_mode: None,
-        }
+        AuthorizationRequest::for_par(
+            String::from("client-1"),
+            "uri://redirect_uri".parse().unwrap(),
+            String::from("state"),
+            &S256PkcePair::generate(),
+        )
     }
 
     #[tokio::test]
