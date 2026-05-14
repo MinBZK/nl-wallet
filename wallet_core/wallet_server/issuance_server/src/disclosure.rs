@@ -325,7 +325,8 @@ mod tests {
             "https://example.com".parse().unwrap(),
             NonZeroU8::MIN,
             vec![],
-            CredentialConfigurations::try_new([("credential_config_id".to_string().into(), config_params)]).unwrap(),
+            CredentialConfigurations::try_new([("credential_config_id".to_string().into(), config_params)].into())
+                .unwrap(),
             None,
             None,
             (),

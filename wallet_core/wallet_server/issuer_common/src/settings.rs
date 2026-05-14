@@ -239,7 +239,9 @@ impl CredentialConfigurationsSettings {
                 Ok::<_, CredentialConfigurationsSettingsError>((config_id, params))
             }
         }))
-        .await?;
+        .await?
+        .into_iter()
+        .collect();
 
         let configurations = CredentialConfigurations::try_new(config_params)
             .map_err(CredentialConfigurationsSettingsError::CredentialConfigurations)?;

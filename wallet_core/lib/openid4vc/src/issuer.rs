@@ -1536,7 +1536,8 @@ mod tests {
             metadata_documents: TypeMetadataDocuments::degree_example().1,
         };
         let credential_configs =
-            CredentialConfigurations::try_new([("credential_config_id".to_string().into(), config_params)]).unwrap();
+            CredentialConfigurations::try_new([("credential_config_id".to_string().into(), config_params)].into())
+                .unwrap();
 
         let CredentialPreviewState { credential_payload, .. } =
             Session::<Created>::credential_preview_state_for_issuable_document(

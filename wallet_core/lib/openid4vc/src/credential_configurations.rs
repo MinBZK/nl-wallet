@@ -144,7 +144,7 @@ pub struct CredentialConfigurations<K> {
 
 impl<K> CredentialConfigurations<K> {
     pub fn try_new(
-        configurations: impl IntoIterator<Item = (CredentialConfigurationId, CredentialConfigurationParameters<K>)>,
+        configurations: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K>>,
     ) -> Result<Self, CredentialConfigurationsError> {
         let mut ids_by_format_and_attestation_type = HashMap::<_, Vec<_>>::new();
 

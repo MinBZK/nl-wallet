@@ -146,7 +146,8 @@ where
             };
 
             (attestation_type.to_string().into(), params)
-        });
+        })
+        .collect();
     let credential_configs = CredentialConfigurations::try_new(configurations).unwrap();
 
     let mut status_list_service = MockStatusListServices::default();
