@@ -12,7 +12,6 @@ use attestation_data::credential_payload::CredentialPayloadError;
 use attestation_data::credential_payload::MdocCredentialPayloadError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
-use attestation_data::issuable_document::IssuableDocument;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::DurationRound;
@@ -57,6 +56,7 @@ use crate::credential_configurations::CredentialConfiguration;
 use crate::credential_configurations::CredentialConfigurations;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
+use crate::issuable_document::IssuableDocument;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::AtLeastTwoU64;
 use crate::metadata::issuer_metadata::BatchCredentialIssuance;
@@ -1466,7 +1466,6 @@ mod tests {
 
     use assert_matches::assert_matches;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::issuable_document::IssuableDocument;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
     use chrono::Days;
@@ -1491,6 +1490,7 @@ mod tests {
     use crate::credential::CredentialResponses;
     use crate::credential_configurations::CredentialConfigurationParameters;
     use crate::dpop::Dpop;
+    use crate::issuable_document::IssuableDocument;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
     use crate::nonce::response::NonceResponse;

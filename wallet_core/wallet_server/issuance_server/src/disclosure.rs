@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_data::issuable_document::IssuableDocument;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::IntoReqwestClient;
@@ -16,6 +15,7 @@ use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::GrantPreAuthorizedCode;
 use openid4vc::credential::Grants;
+use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::server_state::SessionStore;
@@ -209,8 +209,6 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
-    use attestation_data::issuable_document::IssuableDocument;
-    use attestation_data::issuable_document::IssuableDocumentFormat;
     use attestation_data::validity::IssuanceValidity;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
@@ -225,6 +223,8 @@ mod tests {
     use openid4vc::credential::CredentialOffer;
     use openid4vc::credential_configurations::CredentialConfigurationParameters;
     use openid4vc::credential_configurations::CredentialConfigurations;
+    use openid4vc::issuable_document::IssuableDocument;
+    use openid4vc::issuable_document::IssuableDocumentFormat;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;
     use openid4vc::nonce::memory_store::MemoryNonceStore;

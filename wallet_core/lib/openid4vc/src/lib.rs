@@ -1,6 +1,7 @@
-use attestation_data::issuable_document::IssuableDocumentFormat;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
+
+use crate::issuable_document::IssuableDocumentFormat;
 
 // Data structures implemening OAuth/OpenID(4VCI) protocol messages.
 pub mod authorization;
@@ -16,6 +17,7 @@ pub mod pkce;
 
 // Issuance code for the server and client.
 pub mod credential_configurations;
+pub mod issuable_document;
 pub mod issuer;
 pub mod preview;
 pub mod wallet_issuance;

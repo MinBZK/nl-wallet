@@ -4,8 +4,6 @@ use std::path::Path;
 
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
-use attestation_data::issuable_document::IssuableDocument;
-use attestation_data::issuable_document::IssuableDocumentFormat;
 use config::Config;
 use config::ConfigError;
 use config::Environment;
@@ -14,6 +12,8 @@ use derive_more::Into;
 use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use openid4vc::issuable_document::IssuableDocument;
+use openid4vc::issuable_document::IssuableDocumentFormat;
 use serde::Deserialize;
 use serde_valid::Validate;
 use serde_with::DisplayFromStr;

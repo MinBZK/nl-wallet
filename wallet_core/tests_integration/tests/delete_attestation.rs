@@ -1,6 +1,6 @@
-use attestation_data::issuable_document::IssuableDocument;
 use db_test::DbSetup;
 use dcql::CredentialFormat;
+use openid4vc::issuable_document::IssuableDocument;
 use sea_orm::ColumnTrait;
 use sea_orm::EntityTrait;
 use sea_orm::PaginatorTrait;

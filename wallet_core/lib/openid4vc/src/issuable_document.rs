@@ -1,3 +1,6 @@
+use attestation_data::attributes::Attributes;
+use attestation_data::attributes::AttributesError;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_types::qualification::AttestationQualification;
 use chrono::DateTime;
 use chrono::Utc;
@@ -9,10 +12,6 @@ use serde_valid::Validate;
 use serde_with::DisplayFromStr;
 use serde_with::serde_as;
 use uuid::Uuid;
-
-use crate::attributes::Attributes;
-use crate::attributes::AttributesError;
-use crate::credential_payload::PreviewableCredentialPayload;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumString, strum::Display)]
 #[strum(serialize_all = "snake_case")]
@@ -106,11 +105,11 @@ impl IssuableDocument {
 
 #[cfg(feature = "mock")]
 pub mod mock {
+    use attestation_data::attributes::Attribute;
+    use attestation_data::attributes::AttributeValue;
     use indexmap::IndexMap;
 
     use super::*;
-    use crate::attributes::Attribute;
-    use crate::attributes::AttributeValue;
 
     impl IssuableDocument {
         pub fn new_mock_degree(education: String) -> Self {

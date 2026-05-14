@@ -1,10 +1,10 @@
 use assert_matches::assert_matches;
 use attestation_data::attributes::Attributes;
-use attestation_data::issuable_document::IssuableDocument;
-use attestation_data::issuable_document::IssuableDocumentFormat;
 use db_test::DbSetup;
 use itertools::Itertools;
 use openid4vc::ErrorResponse;
+use openid4vc::issuable_document::IssuableDocument;
+use openid4vc::issuable_document::IssuableDocumentFormat;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use pid_issuer::pid::constants::PID_ADDRESS_GROUP;
 use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;

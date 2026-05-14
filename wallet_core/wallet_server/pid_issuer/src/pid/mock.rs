@@ -2,9 +2,9 @@ use std::convert::Infallible;
 
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
-use attestation_data::issuable_document::IssuableDocument;
-use attestation_data::issuable_document::IssuableDocumentFormat;
 use derive_more::Constructor;
+use openid4vc::issuable_document::IssuableDocument;
+use openid4vc::issuable_document::IssuableDocumentFormat;
 use openid4vc::issuer::AttributeService;
 use openid4vc::token::TokenRequest;
 use utils::vec_at_least::NonEmptyIterator;
