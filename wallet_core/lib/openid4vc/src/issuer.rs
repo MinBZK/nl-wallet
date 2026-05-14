@@ -386,12 +386,19 @@ impl<K, A, S, N, L> Drop for Issuer<K, A, S, N, L> {
 }
 
 impl<K, A, S, N, L> Issuer<K, A, S, N, L> {
-    pub fn metadata(&self) -> &IssuerMetadata {
-        &self.issuer_data.metadata
+    pub fn credential_config_id_by_format_and_attestation_type(
+        &self,
+        format: Format,
+        attestation_type: &str,
+    ) -> Option<&CredentialConfigurationId> {
+        self.issuer_data
+            .credential_configs
+            .get_by_format_and_attestation_type(format, attestation_type)
+            .map(|(config_id, _config)| config_id)
     }
 
-    pub fn credential_configurations(&self) -> &CredentialConfigurations<K> {
-        &self.issuer_data.credential_configs
+    pub fn metadata(&self) -> &IssuerMetadata {
+        &self.issuer_data.metadata
     }
 }
 

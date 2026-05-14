@@ -154,9 +154,8 @@ where
             .iter()
             .map(|document| {
                 self.issuer
-                    .credential_configurations()
-                    .get_by_format_and_attestation_type(document.format, &document.attestation_type)
-                    .map(|(config_id, _config)| config_id.clone())
+                    .credential_config_id_by_format_and_attestation_type(document.format, &document.attestation_type)
+                    .cloned()
                     .ok_or_else(|| {
                         DisclosureResultHandlerError::new(IssuanceResultHandlerError::AttestationTypeNotConfigured(
                             document.format,
