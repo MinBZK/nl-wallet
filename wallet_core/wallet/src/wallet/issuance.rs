@@ -1367,8 +1367,7 @@ mod tests {
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
         wallet.mut_storage().checkpoint();
 
-        // Create a mock OpenID4VCI session that accepts the PID with a single
-        // instance of `MdocCopies`, which contains a single valid `Mdoc`.
+        // Create a mock OpenID4VCI session that accepts a single valid PID in SD-JWT format.
         let (sd_jwt, metadata) = create_example_pid_sd_jwt();
         let (pid_issuer, attestations) = mock_issuance_session(
             IssuedCredential::SdJwt {
@@ -1711,7 +1710,7 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        // Have the mock OpenID4VCI session report some mdocs upon accepting.
+        // Have the mock OpenID4VCI session issue an SD-JWT PID.
         let (verified_sd_jwt, _metadata) = create_example_pid_sd_jwt();
         let (pid_issuer, attestations) = mock_issuance_session(
             IssuedCredential::SdJwt {
@@ -1727,7 +1726,7 @@ mod tests {
             protocol_state: pid_issuer,
         }));
 
-        // Have the mdoc storage return an error on query.
+        // Have the storage return an error on query.
         wallet
             .mut_storage()
             .expect_fetch_data::<ChangePinData>()
