@@ -65,9 +65,54 @@ impl S256PkcePair {
     }
 }
 
+#[cfg(any(test, feature = "test"))]
+pub mod test {
+    use crate::store::Store;
+
+    pub async fn test_pkce_store<P, F>(store: P, mut count_entries: F)
+    where
+        P: Store<String, String>,
+        F: AsyncFnMut(&P) -> usize,
+    {
+        let wallet_code_challenge = "test-wallet-code-challenge".to_string();
+        let upstream_code_verifier = "test-upstream-code-verifier".to_string();
+
+        // Store an entry and consume it.
+        store
+            .store(wallet_code_challenge.clone(), upstream_code_verifier.clone())
+            .await
+            .unwrap();
+        assert_eq!(count_entries(&store).await, 1);
+
+        let result = store.consume(wallet_code_challenge.as_str()).await.unwrap();
+        assert_eq!(result.as_deref(), Some(upstream_code_verifier.as_str()));
+        assert_eq!(count_entries(&store).await, 0);
+
+        // Consuming the same entry a second time returns None.
+        let result = store.consume(wallet_code_challenge.as_str()).await.unwrap();
+        assert!(result.is_none());
+
+        // Consuming an unknown challenge returns None.
+        let result = store.consume("unknown-wallet-code-challenge").await.unwrap();
+        assert!(result.is_none());
+
+        // Cleanup runs without error.
+        store.cleanup().await.unwrap();
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use chrono::Duration;
+
     use super::*;
+    use crate::store::MemoryStore;
+
+    #[tokio::test]
+    async fn test_memory_pkce_store() {
+        let store: MemoryStore<String, String> = MemoryStore::new(Duration::seconds(60));
+        test::test_pkce_store(store, async |s| s.len()).await;
+    }
 
     #[test]
     fn test_s256_pkce_pair() {
