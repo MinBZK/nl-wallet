@@ -18,8 +18,6 @@ use http_utils::urls::HttpsUri;
 use itertools::Itertools;
 use openid4vc::Format;
 use openid4vc::credential_configurations::CredentialConfigurationParameters;
-use openid4vc::credential_configurations::CredentialConfigurations;
-use openid4vc::credential_configurations::CredentialConfigurationsError;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -184,17 +182,17 @@ pub enum CredentialConfigurationsSettingsError {
 
     #[error("could not compile SD-JWT VC Type Metadata chain: {0}")]
     TypeMetadataChain(#[source] TypeMetadataDocumentsError),
-
-    #[error("could not set up credential configurations: {0}")]
-    CredentialConfigurations(#[source] CredentialConfigurationsError),
 }
 
 impl CredentialConfigurationsSettings {
-    pub async fn parse(
+    pub async fn into_params(
         self,
         hsm: &Option<Pkcs11Hsm>,
         metadata_by_vct: &TypeMetadataByVct,
-    ) -> Result<CredentialConfigurations<PrivateKeyVariant>, CredentialConfigurationsSettingsError> {
+    ) -> Result<
+        HashMap<CredentialConfigurationId, CredentialConfigurationParameters<PrivateKeyVariant>>,
+        CredentialConfigurationsSettingsError,
+    > {
         let Self(inner) = self;
 
         let config_params = try_join_all(inner.into_iter().map(|(config_id, settings)| {
@@ -243,10 +241,7 @@ impl CredentialConfigurationsSettings {
         .into_iter()
         .collect();
 
-        let configurations = CredentialConfigurations::try_new(config_params)
-            .map_err(CredentialConfigurationsSettingsError::CredentialConfigurations)?;
-
-        Ok(configurations)
+        Ok(config_params)
     }
 }
 

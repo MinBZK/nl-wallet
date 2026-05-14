@@ -219,7 +219,6 @@ mod tests {
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential::CredentialOffer;
     use openid4vc::credential_configurations::CredentialConfigurationParameters;
-    use openid4vc::credential_configurations::CredentialConfigurations;
     use openid4vc::issuable_document::IssuableDocument;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;
@@ -320,12 +319,11 @@ mod tests {
             metadata_documents: TypeMetadataDocuments::degree_example().1,
         };
 
-        Issuer::new(
+        Issuer::try_new(
             "https://example.com".parse().unwrap(),
             NonZeroU8::MIN,
             vec![],
-            CredentialConfigurations::try_new([("credential_config_id".to_string().into(), config_params)].into())
-                .unwrap(),
+            [("credential_config_id".to_string().into(), config_params)].into(),
             None,
             None,
             (),
@@ -333,6 +331,7 @@ mod tests {
             MemoryNonceStore::new(),
             Arc::new(MockStatusListServices::default()),
         )
+        .unwrap()
     }
 
     #[tokio::test]

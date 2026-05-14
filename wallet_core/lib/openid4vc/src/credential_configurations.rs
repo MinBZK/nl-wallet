@@ -144,11 +144,11 @@ pub struct CredentialConfigurations<K> {
 
 impl<K> CredentialConfigurations<K> {
     pub fn try_new(
-        configurations: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K>>,
+        config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K>>,
     ) -> Result<Self, CredentialConfigurationsError> {
         let mut ids_by_format_and_attestation_type = HashMap::<_, Vec<_>>::new();
 
-        let configs_by_id = configurations
+        let configs_by_id = config_params
             .into_iter()
             .map(|(config_id, params)| {
                 if !params.format.is_supported() {

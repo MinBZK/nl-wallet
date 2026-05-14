@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::convert::Infallible;
 use std::num::NonZeroU8;
@@ -53,7 +54,9 @@ use crate::credential::CredentialRequests;
 use crate::credential::CredentialResponse;
 use crate::credential::CredentialResponses;
 use crate::credential_configurations::CredentialConfiguration;
+use crate::credential_configurations::CredentialConfigurationParameters;
 use crate::credential_configurations::CredentialConfigurations;
+use crate::credential_configurations::CredentialConfigurationsError;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::issuable_document::IssuableDocument;
@@ -408,18 +411,20 @@ where
     N: NonceStore + Sync + 'static,
 {
     #[expect(clippy::too_many_arguments, reason = "Constructor")]
-    pub fn new(
+    pub fn try_new(
         issuer_identifier: IssuerIdentifier,
         batch_size: NonZeroU8,
         wallet_client_ids: Vec<String>,
-        credential_configs: CredentialConfigurations<K>,
+        credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K>>,
         wia_config: Option<WiaConfig>,
         upstream_oauth_identifier: Option<IssuerIdentifier>,
         attr_service: A,
         sessions: Arc<S>,
         proof_nonce_store: N,
         status_list_services: Arc<L>,
-    ) -> Self {
+    ) -> Result<Self, CredentialConfigurationsError> {
+        let credential_configs = CredentialConfigurations::try_new(credential_config_params)?;
+
         let server_url = issuer_identifier.join_issuer_url("/issuance");
         let credential_endpoint = server_url.join_issuer_url("/credential");
         let batch_credential_endpoint = server_url.join_issuer_url("/batch_credential");
@@ -478,14 +483,16 @@ where
             }
         });
 
-        Self {
+        let issuer = Self {
             issuer_data,
             attr_service,
             sessions,
             proof_nonce_store,
             status_list_services,
             cleanup_task,
-        }
+        };
+
+        Ok(issuer)
     }
 }
 
