@@ -9773,6 +9773,7 @@ dependencies = [
  "hsm",
  "http",
  "http_utils",
+ "jwt",
  "log",
  "metrics",
  "metrics-exporter-prometheus",

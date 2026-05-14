@@ -17,8 +17,10 @@ use itertools::Itertools;
 use jwt::SignedJwt;
 use jwt::nonce::Nonce;
 use jwt::pop::JwtPopClaims;
+use jwt::wia::ClientStatus;
 use jwt::wia::WiaClaims;
 use jwt::wia::WiaDisclosure;
+use jwt::wia::WiaWalletInfo;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
@@ -178,12 +180,24 @@ impl IssuanceWscd for MockRemoteWscd {
         // If no WIA signing key is configured, just use the WIA's private key to sign it
         let wia_signing_key = self.wia_signing_key.as_ref().unwrap_or(&wia_key.key);
 
+        let exp = Utc::now() + Duration::from_secs(600);
+        let wallet_info = WiaWalletInfo {
+            wallet_name: "Mock Wallet".to_string(),
+            wallet_link: None,
+            wallet_version: "1.0.0".to_string(),
+            wallet_solution_certification_information: "info".to_string(),
+        };
+
         let wia = SignedJwt::sign(
             &WiaClaims::new(
                 wia_key.verifying_key(),
                 MOCK_WALLET_CLIENT_ID.to_string(),
-                Utc::now() + Duration::from_secs(600),
-                StatusClaim::new_mock(),
+                exp,
+                wallet_info,
+                ClientStatus {
+                    status: StatusClaim::new_mock(),
+                    exp,
+                },
             )
             .unwrap(),
             wia_signing_key,

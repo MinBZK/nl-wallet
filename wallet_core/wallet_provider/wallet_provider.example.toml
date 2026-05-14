@@ -19,11 +19,8 @@ pin_public_disclosure_protection_key_identifier = "pin_public_disclosure_protect
 # Identifier for key used to generate revocation code HMACs that are stored in the database
 revocation_code_key_identifier = "revocation_code_key"
 
-# Identifier for key used to issue WUAs to wallets
-wua_signing_key_identifier = "wua_signing_key"
-
-# Identifier for the WUA issuer.
-wua_issuer_identifier = "wua-issuer.example.com"
+# Identifier for key used to issue WIAs to wallets
+wia_signing_key_identifier = "wia_signing_key"
 
 # Delay in seconds for background job that refreshes flags
 # flags_refresh_delay_in_seconds = 300
@@ -38,8 +35,8 @@ wua_issuer_identifier = "wua-issuer.example.com"
 [recovery_code_paths]
 "urn:eudi:pid:nl:1" = ["recovery_code"]
 
-# Status List configuration for the WUA
-[wua_status_lists]
+# Status List configuration for the WIA
+[wia_status_list]
 # Base URL for the Status List Claims
 base_url = "http://cdn.example.com/tsl"
 # Directory to publish the Status List Tokens

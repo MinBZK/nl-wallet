@@ -7,6 +7,7 @@ use chrono::Duration;
 use crypto::keys::EcdsaKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::Pkcs11Hsm;
+use jwt::wia::WiaWalletInfo;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use status_lists::postgres::PostgresStatusListService;
@@ -15,6 +16,7 @@ use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::generator::UuidV4AndTimeGenerator;
 use uuid::Uuid;
+use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
@@ -139,7 +141,11 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         let status_list_service = PostgresStatusListService::try_new(
             db.to_connection(),
             WIA_ATTESTATION_TYPE_IDENTIFIER,
-            settings.wua_status_list.into_config(wallet_user_hsm.clone()).await?,
+            settings
+                .wia_settings
+                .wia_status_list
+                .into_config(wallet_user_hsm.clone())
+                .await?,
             flags.clone(),
         )
         .await?;
@@ -158,10 +164,19 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         );
 
         let wia_issuer = HsmWiaIssuer::new(
-            HsmEcdsaKey::new(settings.wua_signing_key_identifier, wallet_user_hsm.clone()),
-            settings.wua_issuer_identifier,
+            HsmEcdsaKey::new(
+                settings.wia_settings.wia_signing_key_identifier,
+                wallet_user_hsm.clone(),
+            ),
+            NL_WALLET_CLIENT_ID.to_string(),
             wallet_user_hsm.clone(),
             settings.attestation_wrapping_key_identifier.clone(),
+            WiaWalletInfo {
+                wallet_name: "NL Wallet".to_string(),
+                wallet_link: Some(NL_WALLET_CLIENT_ID.to_string()),
+                wallet_version: "1.0.0".to_string(),
+                wallet_solution_certification_information: NL_WALLET_CLIENT_ID.to_string(),
+            },
         );
 
         let state = RouterState {
@@ -176,7 +191,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 flags,
                 wallet_user_hsm,
                 wia_issuer,
-                wia_validity: Days::new(settings.wua_valid_days),
+                wia_validity: Days::new(settings.wia_settings.wia_valid_days),
                 wrapping_key_identifier: settings.attestation_wrapping_key_identifier,
                 pid_issuer_trust_anchors: settings.pid_issuer_trust_anchors,
                 status_list_service,

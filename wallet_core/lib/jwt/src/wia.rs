@@ -9,6 +9,7 @@ use jsonwebtoken::Validation;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::skip_serializing_none;
 
 use crate::DEFAULT_VALIDATIONS;
 use crate::EcdsaDecodingKey;
@@ -24,26 +25,58 @@ use crate::pop::JwtPopClaims;
 pub struct WiaClaims {
     pub cnf: ConfirmationClaim,
 
-    pub iss: String,
-
+    // Standard JWT fields, without `iss`; that is derived from the `x5c` certs
+    pub sub: String,
     #[serde(with = "ts_seconds")]
     pub exp: DateTime<Utc>,
+    #[serde(with = "ts_seconds")]
+    pub iat: DateTime<Utc>,
+    #[serde(with = "ts_seconds")]
+    pub nbf: DateTime<Utc>,
 
+    #[serde(flatten)]
+    pub wallet_info: WiaWalletInfo,
+
+    pub client_status: ClientStatus,
+}
+
+#[skip_serializing_none]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WiaWalletInfo {
+    pub wallet_name: String,
+    pub wallet_version: String,
+    pub wallet_solution_certification_information: String,
+    #[serde(default)]
+    pub wallet_link: Option<String>, // TODO URL
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ClientStatus {
+    // Revocation status of the Wallet Instance that presented the WIA.
     pub status: StatusClaim,
+
+    // The duration for which the WP will track revocation status in the `status` URL.
+    // (Distinct in terms of semantics as well as value from the top level WIA `exp` claim, which is max 24h.)
+    #[serde(with = "ts_seconds")]
+    pub exp: DateTime<Utc>,
 }
 
 impl WiaClaims {
     pub fn new(
         holder_pubkey: &VerifyingKey,
-        iss: String,
+        sub: String,
         exp: DateTime<Utc>,
-        status: StatusClaim,
+        wallet_info: WiaWalletInfo,
+        client_status: ClientStatus,
     ) -> Result<Self, JwtError> {
         Ok(Self {
             cnf: ConfirmationClaim::from_verifying_key(holder_pubkey)?,
-            iss,
+            sub,
             exp,
-            status,
+            iat: Utc::now(),
+            nbf: Utc::now(),
+            wallet_info,
+            client_status,
         })
     }
 }
@@ -87,7 +120,7 @@ impl WiaDisclosure {
     ) -> Result<(VerifyingKey, Nonce), WiaError> {
         let (_, verified_wia_claims) = self.0.parse_and_verify(issuer_public_key, &WIA_JWT_VALIDATIONS)?;
         let wia_pubkey = verified_wia_claims.cnf.verifying_key()?;
-        tracing::debug!("WIA status claim: {:?}", verified_wia_claims.status);
+        tracing::debug!("WIA status claim: {:?}", verified_wia_claims.client_status.status);
 
         let mut validations = DEFAULT_VALIDATIONS.to_owned();
         validations.set_audience(&[expected_aud]);
@@ -108,9 +141,9 @@ pub static WIA_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
     let mut validations = DEFAULT_VALIDATIONS.to_owned();
     validations.leeway = 0;
 
-    // Enforce presence and validity of exp.
-    validations.set_required_spec_claims(&["exp"]);
+    // Enforce validity of exp and nbf. (Presence is already enforced by the presence of the fields.)
     validations.validate_exp = true;
+    validations.validate_nbf = true;
 
     validations
 });

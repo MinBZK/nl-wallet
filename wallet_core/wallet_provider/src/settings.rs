@@ -47,9 +47,6 @@ pub struct Settings {
     pub pin_pubkey_encryption_key_identifier: String,
     pub pin_public_disclosure_protection_key_identifier: String,
     pub revocation_code_key_identifier: String,
-    pub wua_signing_key_identifier: String,
-    pub wua_issuer_identifier: String,
-    pub wua_valid_days: u64,
     pub recovery_code_paths: HashMap<String, VecNonEmpty<String>>,
     pub database: DatabaseSettings,
     pub audit_log: DatabaseSettings,
@@ -65,7 +62,8 @@ pub struct Settings {
     pub flags_refresh_delay: Duration,
     pub revoke_solution_enabled: bool,
 
-    pub wua_status_list: WiaStatusListsSettings,
+    #[serde(flatten)]
+    pub wia_settings: WiaSettings,
 
     #[serde(rename = "instruction_challenge_timeout_in_ms")]
     #[serde_as(as = "DurationMilliSeconds")]
@@ -77,6 +75,13 @@ pub struct Settings {
 
     pub ios: Ios,
     pub android: Android,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct WiaSettings {
+    pub wia_signing_key_identifier: String,
+    pub wia_valid_days: u64,
+    pub wia_status_list: WiaStatusListsSettings,
 }
 
 #[derive(Clone, Deserialize)]
@@ -169,14 +174,13 @@ impl Settings {
                 "pin_public_disclosure_protection_key",
             )?
             .set_default("revocation_code_key_identifier", "revocation_code_key")?
-            .set_default("wua_status_list.list_size", 100_000)?
-            .set_default("wua_status_list.create_threshold_ratio", 0.01)?
-            .set_default("wua_status_list.expiry_in_hours", 24)?
-            .set_default("wua_status_list.refresh_threshold_ratio", 0.25)?
-            .set_default("wua_status_list.key_identifier", "wua_tsl_key")?
-            .set_default("wua_signing_key_identifier", "wua_signing_key")?
-            .set_default("wua_issuer_identifier", "wua-issuer.example.com")?
-            .set_default("wua_valid_days", 365)?
+            .set_default("wia_status_list.list_size", 100_000)?
+            .set_default("wia_status_list.create_threshold_ratio", 0.01)?
+            .set_default("wia_status_list.expiry_in_hours", 24)?
+            .set_default("wia_status_list.refresh_threshold_ratio", 0.25)?
+            .set_default("wia_status_list.key_identifier", "wia_tsl_key")?
+            .set_default("wia_signing_key_identifier", "wia_signing_key")?
+            .set_default("wia_valid_days", 365)?
             .set_default("audit_log.options.connect_timeout_in_sec", "3")?
             .set_default("audit_log.options.max_connections", "10")?
             .set_default("database.options.connect_timeout_in_sec", "3")?
