@@ -34,7 +34,7 @@ use openid4vc::ErrorResponse;
 use openid4vc::ParErrorCode;
 use openid4vc::TokenErrorCode;
 use openid4vc::authorization::AuthorizationRequest;
-use openid4vc::authorization::AuthorizeRequestParams;
+use openid4vc::authorization::PushedAuthorizationRequest;
 use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
@@ -145,7 +145,7 @@ where
 
 async fn authorize<K, A, S, N, L, PAS, PKS, UAA>(
     State(state): State<ApplicationState<K, A, S, N, L, PAS, PKS, UAA>>,
-    Query(AuthorizeRequestParams { request_uri, client_id }): Query<AuthorizeRequestParams>,
+    Query(PushedAuthorizationRequest { request_uri, client_id }): Query<PushedAuthorizationRequest>,
 ) -> Result<Response, ErrorResponse<AuthorizeErrorCode>>
 where
     PAS: ParStore,

@@ -16,7 +16,7 @@ use url::Url;
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-authorization-request>
 /// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.1>.
 /// When sent using [PAR (Pushed Authorization Requests)](https://datatracker.ietf.org/doc/html/rfc9126),
-/// it is usually sent URL-encoded in the request body to POST /op/par.
+/// it is usually sent URL-encoded in the request body to the /par endpoint.
 #[serde_as]
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -39,14 +39,9 @@ pub struct AuthorizationRequest {
     pub response_mode: Option<ResponseMode>,
 }
 
-/// Represents the parameters that are passed in the query string of the /authorize endpoint where the `request_uri`
-/// refers to a Pushed Authorization Request sent earlier.
-#[derive(Serialize, Deserialize, Debug)]
-pub struct AuthorizeRequestParams {
-    pub client_id: String,
-    pub request_uri: String,
-}
-
+/// Represents the response from the /par endpoint containing a `request_uri` that can be used to retrieve the pushed
+/// `AuthorizationRequest` later at the /authorize endpoint. Note: this is not a response to the
+/// `PushedAuthorizationRequest` defined below.
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PushedAuthorizationResponse {
@@ -54,6 +49,14 @@ pub struct PushedAuthorizationResponse {
 
     #[serde_as(as = "DurationSeconds<i64>")]
     pub expires_in: Duration,
+}
+
+/// Represents the parameters that are passed in the query string of the /authorize endpoint where the `request_uri`
+/// refers to a pushed `AuthorizationRequest` sent earlier.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PushedAuthorizationRequest {
+    pub client_id: String,
+    pub request_uri: String,
 }
 
 /// Defined in https://openid.net/specs/oauth-v2-multiple-response-types-1_0.html#ResponseModes
