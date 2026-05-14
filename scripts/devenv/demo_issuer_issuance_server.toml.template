@@ -64,7 +64,7 @@ claims = [
 base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/university_sd_jwt/"
 trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
-[credential_configurations."com.example.degree"]
+[credential_configurations."com.example.degree_sd_jwt"]
 format = "dc+sd-jwt"
 attestation_type = "com.example.degree"
 valid_days = 365
@@ -72,8 +72,8 @@ private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_ISSUER}"
 certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_ISSUER}"
 
-[credential_configurations."com.example.degree".status_list]
-group_name = "com.example.degree"
+[credential_configurations."com.example.degree_sd_jwt".status_list]
+group_name = "com.example.degree_sd_jwt"
 context_path = "/tsl"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 private_key_type = "software"
@@ -97,7 +97,7 @@ claims = [
 base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/insurance/"
 trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
-[credential_configurations."com.example.insurance"]
+[credential_configurations."com.example.insurance_mdoc"]
 format = "mso_mdoc"
 attestation_type = "com.example.insurance"
 valid_days = 365
@@ -105,21 +105,13 @@ private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_INSURANCE_ISSUER}"
 certificate = "${DEMO_ISSUER_CRT_INSURANCE_ISSUER}"
 
-[credential_configurations."com.example.insurance".status_list]
-group_name = "com.example.insurance"
+[credential_configurations."com.example.insurance_mdoc".status_list]
+group_name = "com.example.insurance_mdoc"
 context_path = "/tsl"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_INSURANCE_TSL}"
 certificate = "${DEMO_ISSUER_CRT_INSURANCE_TSL}"
-
-[credential_configurations."com.example.housing"]
-format = "dc+sd-jwt"
-attestation_type = "com.example.housing"
-valid_days = 365
-private_key_type = "software"
-private_key = "${DEMO_ISSUER_KEY_HOUSING_ISSUER}"
-certificate = "${DEMO_ISSUER_CRT_HOUSING_ISSUER}"
 
 [disclosure_settings.housing]
 private_key_type = "software"
@@ -138,8 +130,16 @@ claims = [
 base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/housing/"
 trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
-[credential_configurations."com.example.housing".status_list]
-group_name = "com.example.housing"
+[credential_configurations."com.example.housing_sd_jwt"]
+format = "dc+sd-jwt"
+attestation_type = "com.example.housing"
+valid_days = 365
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_HOUSING_ISSUER}"
+certificate = "${DEMO_ISSUER_CRT_HOUSING_ISSUER}"
+
+[credential_configurations."com.example.housing_sd_jwt".status_list]
+group_name = "com.example.housing_sd_jwt"
 context_path = "/tsl"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
 private_key_type = "software"
