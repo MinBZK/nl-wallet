@@ -988,7 +988,7 @@ where
     ///
     /// Production code should call [`Self::process_token_request`] instead; this entry point exists
     /// for tests that drive the issuer without an authorization flow having occurred.
-    pub async fn process_token_request_with_verifier(
+    async fn process_token_request_with_verifier(
         &self,
         token_request: TokenRequest,
         dpop: Dpop,
