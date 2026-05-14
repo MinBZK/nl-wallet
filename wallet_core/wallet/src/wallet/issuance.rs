@@ -788,6 +788,7 @@ mod tests {
     use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
+    use p256::ecdsa::SigningKey;
     use rstest::rstest;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use url::Url;
@@ -814,6 +815,7 @@ mod tests {
     use crate::wallet::test::AUTH_URL;
     use crate::wallet::test::create_example_credential_payload;
     use crate::wallet::test::create_example_pid_credential_payload;
+    use crate::wallet::test::create_example_pid_mdoc;
     use crate::wallet::test::create_example_pid_preview_data;
     use crate::wallet::test::create_example_pid_sd_jwt;
     use crate::wallet::test::create_example_preview_data;
@@ -1700,6 +1702,41 @@ mod tests {
             .expect_err("Accepting PID issuance should have resulted in an error");
 
         assert_matches!(error, IssuanceError::IssuerServer { .. });
+
+        assert!(wallet.has_registration());
+        assert!(!wallet.is_locked());
+    }
+
+    #[tokio::test]
+    async fn test_accept_pid_issuance_error_missing_pid_sd_jwt() {
+        // Prepare a registered and unlocked wallet.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Have the mock OpenID4VCI session issue the PID only in Mdoc format.
+        let (mdoc, _metadata) = create_example_pid_mdoc(&SigningKey::random(&mut rand::thread_rng()));
+        let (pid_issuer, attestations) = mock_issuance_session(
+            IssuedCredential::MsoMdoc { mdoc },
+            String::from(PID_ATTESTATION_TYPE),
+            VerifiedTypeMetadataDocuments::nl_pid_example(),
+        );
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
+            pid_purpose: Some(PidIssuancePurpose::Enrollment),
+            preview_attestations: attestations,
+            protocol_state: pid_issuer,
+        }));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        // Accepting PID issuance should result in an error.
+        let error = wallet
+            .accept_issuance(PIN.to_owned())
+            .await
+            .expect_err("Accepting PID issuance should have resulted in an error");
+
+        assert_matches!(error, IssuanceError::MissingPidSdJwt);
 
         assert!(wallet.has_registration());
         assert!(!wallet.is_locked());
