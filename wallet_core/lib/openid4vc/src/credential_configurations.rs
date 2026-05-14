@@ -30,7 +30,7 @@ pub enum CredentialConfigurationsError {
 
     #[error(
         "multiple credential configurations for the same combination of format and attestation type: {}",
-        .0.iter().map(|((format, attestation_type), configs)| configs.iter().join(", ")).join(" / ")
+        .0.values().map(|config_ids| config_ids.iter().join(", ")).join(" / ")
     )]
     DuplicateFormatAndAttestationType(HashMap<(Format, String), Vec<CredentialConfigurationId>>),
 }
