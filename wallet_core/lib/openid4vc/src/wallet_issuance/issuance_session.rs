@@ -556,7 +556,6 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             .normalized_credential_previews
             .iter()
             .map(|preview| {
-                // Note that this unwrap is safe, as we only ever compile for 64-bit architectures.
                 let copy_count = usize::from(preview.content.batch_size.get());
 
                 // Consume the amount of copies from the front of `responses_and_keys`.

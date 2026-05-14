@@ -1236,7 +1236,7 @@ impl Session<WaitingForResponse> {
                             .ok_or(CredentialRequestError::WrongNumberOfCredentialRequests)?;
 
                         // Verify the assumption that the order of the incoming requests matches exactly
-                        // that of the flattened copies_per_format by matching the requested format.
+                        // that of the flattened batch_size by matching the requested format.
                         if preview.format != cred_req.credential_type.as_ref().format() {
                             return Err(CredentialRequestError::CredentialTypeMismatch {
                                 offered: preview.format,
@@ -1255,7 +1255,7 @@ impl Session<WaitingForResponse> {
                     })
                     .collect::<Result<Vec<_>, _>>()?
                     .try_into()
-                    .unwrap(); // ok because copies_per_format has a NonZeroU8 value in AttestationConfig (source)
+                    .unwrap(); // ok because `batch_size` has a `NonZeroU8` value in `CredentialPreviewContent`.
 
                 let credential_config = issuer_data
                     .credential_configuration_for_preview_state(preview)
