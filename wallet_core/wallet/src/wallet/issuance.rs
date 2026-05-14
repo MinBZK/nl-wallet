@@ -675,26 +675,28 @@ where
         instruction_client: &InstructionClient<S, AK, GK, APC>,
         issued_credentials_with_metadata: &[CredentialWithMetadata],
     ) -> Result<Option<TransferSessionId>, IssuanceError> {
-        let (pid, claim_path) = issued_credentials_with_metadata
+        let (pid, pid_paths) = issued_credentials_with_metadata
             .iter()
             .find_map(|cred| {
-                pid_attributes.sd_jwt.get(&cred.attestation_type).and_then(|pid_paths| {
-                    cred.copies.as_ref().iter().find_map(|copy| match copy {
-                        IssuedCredential::MsoMdoc { .. } => None,
-                        IssuedCredential::SdJwt { sd_jwt, .. } => {
-                            let claim_path = pid_paths
-                                .recovery_code
-                                .nonempty_iter()
-                                .map(|path| ClaimPath::SelectByKey(path.to_string()))
-                                .collect::<VecNonEmpty<_>>();
-                            Some((sd_jwt.clone(), claim_path))
-                        }
-                    })
-                })
+                let pid_paths = pid_attributes.sd_jwt.get(&cred.attestation_type)?;
+
+                let sd_jwt = cred.copies.as_ref().iter().find_map(|copy| match copy {
+                    IssuedCredential::MsoMdoc { .. } => None,
+                    IssuedCredential::SdJwt { sd_jwt, .. } => Some(sd_jwt),
+                })?;
+
+                Some((sd_jwt, pid_paths))
             })
             .ok_or(IssuanceError::MissingPidSdJwt)?;
 
+        let claim_path = pid_paths
+            .recovery_code
+            .nonempty_iter()
+            .map(|path| ClaimPath::SelectByKey(path.clone()))
+            .collect();
+
         let recovery_code_disclosure = pid
+            .clone()
             .into_presentation_builder()
             .disclose(&claim_path)
             .map_err(IssuanceError::RecoveryCodeDisclosure)?
