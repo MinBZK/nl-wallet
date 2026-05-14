@@ -11,7 +11,8 @@ use jwe::decryption::JweRsaPrivateKey;
 use jwe::error::RsaPrivateJwkError;
 use jwk_simple::Key;
 use jwt::nonce::Nonce;
-use openid4vc::authorization::AuthorizationRequest;
+use openid4vc::authorization::OidcAuthorizationRequest;
+use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::issuer::UpstreamAuthorizationAdapter;
 use openid4vc::issuer::UpstreamResolveError;
 use openid4vc::issuer_identifier::IssuerIdentifier;
@@ -103,8 +104,8 @@ impl DigidAuthorizationAdapter {
 impl UpstreamAuthorizationAdapter for DigidAuthorizationAdapter {
     async fn adapt(
         &self,
-        mut request: AuthorizationRequest,
-    ) -> Result<(Url, AuthorizationRequest), UpstreamResolveError> {
+        mut request: VciAuthorizationRequest,
+    ) -> Result<(Url, OidcAuthorizationRequest), UpstreamResolveError> {
         let metadata = self
             .cache
             .metadata()
@@ -117,13 +118,15 @@ impl UpstreamAuthorizationAdapter for DigidAuthorizationAdapter {
             .clone()
             .ok_or(UpstreamResolveError::NoAuthorizationEndpoint)?;
 
-        request.client_id = self.client_id.clone();
+        request.oauth_request.client_id = self.client_id.clone();
         request.scope = Some(IndexSet::from_iter([String::from("openid")]));
-        // nl-rdo-max requires a `nonce` on the upstream authorization request, although it is not
-        // mandated by the OAuth/OIDC spec.
-        request.nonce = Some(Nonce::new_random());
 
-        Ok((authorization_endpoint, request))
+        let oidc_request = OidcAuthorizationRequest {
+            vci_request: request,
+            nonce: Some(Nonce::new_random()),
+        };
+
+        Ok((authorization_endpoint, oidc_request))
     }
 }
 

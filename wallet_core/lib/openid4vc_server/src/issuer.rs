@@ -33,9 +33,9 @@ use openid4vc::CredentialPreviewErrorCode;
 use openid4vc::ErrorResponse;
 use openid4vc::ParErrorCode;
 use openid4vc::TokenErrorCode;
-use openid4vc::authorization::AuthorizationRequest;
 use openid4vc::authorization::PushedAuthorizationRequest;
 use openid4vc::authorization::PushedAuthorizationResponse;
+use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
@@ -129,7 +129,7 @@ async fn metadata<K, A, S, N, L, PAS, PKS, UAA>(
 
 async fn pushed_authorization_request<K, A, S, N, L, PAS, PKS, UAA>(
     State(state): State<ApplicationState<K, A, S, N, L, PAS, PKS, UAA>>,
-    Form(authorization_request): Form<AuthorizationRequest>,
+    Form(authorization_request): Form<VciAuthorizationRequest>,
 ) -> Result<(StatusCode, Json<PushedAuthorizationResponse>), ErrorResponse<ParErrorCode>>
 where
     PAS: ParStore,

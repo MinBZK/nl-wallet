@@ -74,7 +74,7 @@ use utils::vec_nonempty;
 use wscd::Poa;
 use wscd::PoaVerificationError;
 
-use crate::authorization::AuthorizationRequest;
+use crate::authorization::AuthorizationRequestBase;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
 use crate::cose::CoseAlgorithmIdentifier;
@@ -139,7 +139,10 @@ pub struct VpAuthorizationRequest {
     pub aud: VpAuthorizationRequestAudience,
 
     #[serde(flatten)]
-    pub oauth_request: AuthorizationRequest,
+    pub oauth_request: AuthorizationRequestBase,
+
+    pub nonce: Option<Nonce>,
+    pub response_mode: Option<ResponseMode>,
 
     /// Contains requirements on the credentials and/or attributes to be disclosed.
     pub dcql_query: Query,
@@ -576,28 +579,15 @@ impl NormalizedVpAuthorizationRequest {
     }
 
     fn try_from(vp_auth_request: VpAuthorizationRequest) -> Result<Self, AuthRequestValidationError> {
-        // Check absence of fields that must not be present in an OpenID4VP Authorization Request
-        if vp_auth_request.oauth_request.authorization_details.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("authorization_details"));
-        }
-        if vp_auth_request.oauth_request.code_challenge.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("code_challenge"));
-        }
-        if vp_auth_request.oauth_request.redirect_uri.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("redirect_uri"));
-        }
-        if vp_auth_request.oauth_request.scope.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("scope"));
-        }
         if vp_auth_request.transaction_data.is_some() {
             return Err(AuthRequestValidationError::UnsupportedField("transaction_data"));
         }
 
         // Check presence of fields that must be present in an OpenID4VP Authorization Request
-        if vp_auth_request.oauth_request.nonce.is_none() {
+        if vp_auth_request.nonce.is_none() {
             return Err(AuthRequestValidationError::ExpectedFieldMissing("nonce"));
         }
-        if vp_auth_request.oauth_request.response_mode.is_none() {
+        if vp_auth_request.response_mode.is_none() {
             return Err(AuthRequestValidationError::ExpectedFieldMissing("response_mode"));
         }
         if vp_auth_request.response_uri.is_none() {
@@ -615,11 +605,11 @@ impl NormalizedVpAuthorizationRequest {
                 found: serde_json::to_string(&vp_auth_request.oauth_request.response_type).unwrap(),
             });
         }
-        if vp_auth_request.oauth_request.response_mode.unwrap() != ResponseMode::DirectPostJwt {
+        if vp_auth_request.response_mode.unwrap() != ResponseMode::DirectPostJwt {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_mode",
                 expected: "direct_post.jwt",
-                found: serde_json::to_string(&vp_auth_request.oauth_request.response_mode).unwrap(),
+                found: serde_json::to_string(&vp_auth_request.response_mode).unwrap(),
             });
         }
         let jwks = &client_metadata.jwks.keys;
@@ -655,7 +645,7 @@ impl NormalizedVpAuthorizationRequest {
 
         Ok(NormalizedVpAuthorizationRequest {
             client_id,
-            nonce: vp_auth_request.oauth_request.nonce.unwrap(),
+            nonce: vp_auth_request.nonce.unwrap(),
             encryption_pubkey,
             credential_requests: vp_auth_request.dcql_query.try_into()?,
             response_uri: vp_auth_request.response_uri.unwrap(),
@@ -689,7 +679,9 @@ impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
     fn from(value: NormalizedVpAuthorizationRequest) -> Self {
         Self {
             aud: VpAuthorizationRequestAudience::SelfIssued,
-            oauth_request: AuthorizationRequest::for_vp(value.client_id.to_string(), value.nonce, value.state),
+            oauth_request: AuthorizationRequestBase::for_vp(value.client_id.to_string(), value.state),
+            nonce: Some(value.nonce),
+            response_mode: Some(ResponseMode::DirectPostJwt),
             dcql_query: value.credential_requests.into(),
             client_metadata: Some(value.client_metadata),
             response_uri: Some(value.response_uri),

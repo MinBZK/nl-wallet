@@ -61,9 +61,10 @@ use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
 use crate::Format;
-use crate::authorization::AuthorizationRequest;
+use crate::authorization::OidcAuthorizationRequest;
 use crate::authorization::PkceCodeChallenge;
 use crate::authorization::PushedAuthorizationResponse;
+use crate::authorization::VciAuthorizationRequest;
 use crate::credential::Credential;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
@@ -188,9 +189,6 @@ pub enum AuthorizeError {
     #[error("only S256 code_challenge_method is supported")]
     UnsupportedCodeChallenge,
 
-    #[error("missing code_challenge")]
-    MissingCodeChallenge,
-
     #[error("consuming PAR request failed: {0}")]
     ParStore(#[source] Box<dyn StdError + Send + Sync + 'static>),
 
@@ -220,14 +218,17 @@ pub enum UpstreamResolveError {
 /// and rewrites the request.
 #[trait_variant::make(Send)]
 pub trait UpstreamAuthorizationAdapter {
-    async fn adapt(&self, request: AuthorizationRequest) -> Result<(Url, AuthorizationRequest), UpstreamResolveError>;
+    async fn adapt(
+        &self,
+        request: VciAuthorizationRequest,
+    ) -> Result<(Url, OidcAuthorizationRequest), UpstreamResolveError>;
 }
 
 /// No-op [`UpstreamAuthorizationAdapter`] used as the default for [`Issuer`]'s `UAA` type
 /// parameter when the issuer is constructed without an upstream adapter. The field is always
 /// `None` in that case, so this method is unreachable.
 impl UpstreamAuthorizationAdapter for () {
-    async fn adapt(&self, _: AuthorizationRequest) -> Result<(Url, AuthorizationRequest), UpstreamResolveError> {
+    async fn adapt(&self, _: VciAuthorizationRequest) -> Result<(Url, OidcAuthorizationRequest), UpstreamResolveError> {
         unimplemented!("() UpstreamAuthorizationAdapter does not adapt authorization requests")
     }
 }
@@ -753,10 +754,14 @@ where
 {
     pub async fn process_pushed_authorization_request(
         &self,
-        request: AuthorizationRequest,
+        request: VciAuthorizationRequest,
     ) -> Result<PushedAuthorizationResponse, ParError> {
-        if !self.issuer_data.accepted_wallet_client_ids.contains(&request.client_id) {
-            return Err(ParError::InvalidClient(request.client_id));
+        if !self
+            .issuer_data
+            .accepted_wallet_client_ids
+            .contains(&request.oauth_request.client_id)
+        {
+            return Err(ParError::InvalidClient(request.oauth_request.client_id));
         }
 
         let request_uri = par::generate_request_uri();
@@ -810,16 +815,15 @@ where
         // upstream challenge, and store the upstream verifier keyed by the wallet's challenge for the matching
         // /token call.
         {
-            let wallet_code_challenge = match authorization_request.code_challenge.take() {
-                Some(PkceCodeChallenge::S256 { code_challenge }) => code_challenge,
-                Some(PkceCodeChallenge::Plain { .. }) => return Err(AuthorizeError::UnsupportedCodeChallenge),
-                None => return Err(AuthorizeError::MissingCodeChallenge),
+            let wallet_code_challenge = match &authorization_request.code_challenge {
+                PkceCodeChallenge::S256 { code_challenge } => code_challenge.clone(),
+                PkceCodeChallenge::Plain { .. } => return Err(AuthorizeError::UnsupportedCodeChallenge),
             };
 
             let upstream_pkce = S256PkcePair::generate();
-            authorization_request.code_challenge = Some(PkceCodeChallenge::S256 {
+            authorization_request.code_challenge = PkceCodeChallenge::S256 {
                 code_challenge: upstream_pkce.code_challenge().to_string(),
-            });
+            };
 
             self.pkce_flow_store
                 .store(

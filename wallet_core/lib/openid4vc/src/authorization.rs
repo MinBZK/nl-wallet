@@ -15,74 +15,88 @@ use utils::spec::SpecForbidden;
 
 use crate::pkce::PkcePair;
 
-/// See
-/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-authorization-request>
-/// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.1>.
-/// When sent using [PAR (Pushed Authorization Requests)](https://datatracker.ietf.org/doc/html/rfc9126),
-/// it is usually sent URL-encoded in the request body to the /par endpoint.
+/// The shared [OAuth2 RFC 6749](https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.1) fields that any
+/// authorization request — whether for OpenID4VCI issuance or OpenID4VP presentation — must carry.
+///
+/// Flow-specific variants embed this with `#[serde(flatten)]` and add their own fields.
 #[serde_as]
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct AuthorizationRequest {
+pub struct AuthorizationRequestBase {
     #[serde_as(as = "StringWithSeparator::<SpaceSeparator, ResponseType>")]
     pub response_type: IndexSet<ResponseType>,
 
     pub client_id: String,
-    pub redirect_uri: Option<Url>,
     pub state: Option<String>,
-    pub authorization_details: Option<Vec<AuthorizationDetails>>,
 
-    #[serde(flatten)]
-    pub code_challenge: Option<PkceCodeChallenge>,
-
-    #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, String>>")]
-    pub scope: Option<IndexSet<String>>,
-
-    pub nonce: Option<Nonce>,
-    pub response_mode: Option<ResponseMode>,
-
-    // Should not be present for PAR and openid4vp
+    // Should not be present for PAR and openid4vp.
     #[serde(default, skip_serializing, rename = "request_uri")]
     _request_uri: SpecForbidden,
 }
 
-impl AuthorizationRequest {
-    pub fn for_par<P: PkcePair>(client_id: String, redirect_uri: Url, state: String, pkce_pair: &P) -> Self {
-        Self {
-            response_type: ResponseType::Code.into(),
-            client_id,
-            redirect_uri: Some(redirect_uri),
-            state: Some(state),
-            code_challenge: Some(PkceCodeChallenge::S256 {
-                code_challenge: String::from(pkce_pair.code_challenge()),
-            }),
-            authorization_details: None,
-            scope: None,
-            nonce: None,
-            response_mode: None,
-            _request_uri: SpecForbidden,
-        }
-    }
-
-    pub fn for_vp(client_id: String, nonce: Nonce, state: Option<String>) -> Self {
+impl AuthorizationRequestBase {
+    pub fn for_vp(client_id: String, state: Option<String>) -> Self {
         Self {
             response_type: ResponseType::VpToken.into(),
             client_id,
-            nonce: Some(nonce),
-            response_mode: Some(ResponseMode::DirectPostJwt),
-            redirect_uri: None,
             state,
-            authorization_details: None,
-            code_challenge: None,
-            scope: None,
             _request_uri: SpecForbidden,
         }
     }
 }
 
+/// An OpenID4VCI authorization request, posted in URL-encoded form to the `/par` endpoint
+/// (RFC 9126) and later referenced from `/authorize` via [`PushedAuthorizationRequest`].
+#[serde_as]
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct VciAuthorizationRequest {
+    #[serde(flatten)]
+    pub oauth_request: AuthorizationRequestBase,
+
+    pub redirect_uri: Option<Url>,
+    pub authorization_details: Option<Vec<AuthorizationDetails>>,
+
+    #[serde(flatten)]
+    pub code_challenge: PkceCodeChallenge,
+
+    #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, String>>")]
+    pub scope: Option<IndexSet<String>>,
+}
+
+impl VciAuthorizationRequest {
+    pub fn for_par<P: PkcePair>(client_id: String, redirect_uri: Url, state: String, pkce_pair: &P) -> Self {
+        Self {
+            oauth_request: AuthorizationRequestBase {
+                response_type: ResponseType::Code.into(),
+                client_id,
+                state: Some(state),
+                _request_uri: SpecForbidden,
+            },
+            redirect_uri: Some(redirect_uri),
+            code_challenge: PkceCodeChallenge::S256 {
+                code_challenge: String::from(pkce_pair.code_challenge()),
+            },
+            authorization_details: None,
+            scope: None,
+        }
+    }
+}
+
+/// An [OIDC](https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest) authorization request. Adds the OIDC `nonce` parameter.
+#[serde_as]
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct OidcAuthorizationRequest {
+    #[serde(flatten)]
+    pub vci_request: VciAuthorizationRequest,
+
+    pub nonce: Option<Nonce>,
+}
+
 /// Represents the response from the /par endpoint containing a `request_uri` that can be used to retrieve the pushed
-/// `AuthorizationRequest` later at the /authorize endpoint. Note: this is not a response to the
-/// `PushedAuthorizationRequest` defined below.
+/// [`VciAuthorizationRequest`] later at the /authorize endpoint. Note: this is not a response to the
+/// [`PushedAuthorizationRequest`] defined below.
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PushedAuthorizationResponse {
@@ -93,7 +107,7 @@ pub struct PushedAuthorizationResponse {
 }
 
 /// Represents the parameters that are passed in the query string of the /authorize endpoint where the `request_uri`
-/// refers to a pushed `AuthorizationRequest` sent earlier.
+/// refers to a pushed [`VciAuthorizationRequest`] sent earlier.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PushedAuthorizationRequest {
     pub client_id: String,
@@ -187,7 +201,7 @@ pub enum AuthorizationDetailsType {
 /// and <https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2>.
 /// Contains the token that may be exchanged for an access token.
 /// URL-encoded and provided as query parameters added to the `redirect_uri` that was passed in the
-/// [`AuthorizationRequest`].
+/// [`VciAuthorizationRequest`].
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthorizationResponse {
     pub code: String,
@@ -205,46 +219,78 @@ mod tests {
 
     use crate::authorization::AuthorizationDetails;
     use crate::authorization::AuthorizationDetailsFormatData;
-    use crate::authorization::AuthorizationRequest;
+    use crate::authorization::AuthorizationRequestBase;
     use crate::authorization::PkceCodeChallenge;
-    use crate::authorization::ResponseMode;
     use crate::authorization::ResponseType;
+    use crate::authorization::VciAuthorizationRequest;
 
-    #[test]
-    fn authorization_request_serialization_roundtrip() {
-        let mut response_type = IndexSet::new();
-        response_type.insert(ResponseType::Code);
-
+    fn example_vci_request() -> VciAuthorizationRequest {
         let mut scope = IndexSet::new();
         scope.insert("openid".to_string());
         scope.insert("profile".to_string());
 
-        let nonce = Nonce::new_random();
-
-        let request = AuthorizationRequest {
-            response_type,
-            client_id: "client-123".to_string(),
+        VciAuthorizationRequest {
+            oauth_request: AuthorizationRequestBase {
+                response_type: ResponseType::Code.into(),
+                client_id: "client-123".to_string(),
+                state: Some("state-abc".to_string()),
+                _request_uri: SpecForbidden,
+            },
             redirect_uri: Some(Url::parse("https://example.com/callback").unwrap()),
-            state: Some("state-abc".to_string()),
             authorization_details: None,
-            code_challenge: Some(PkceCodeChallenge::S256 {
+            code_challenge: PkceCodeChallenge::S256 {
                 code_challenge: "challenge-xyz".to_string(),
-            }),
+            },
             scope: Some(scope),
-            nonce: Some(nonce.clone()),
-            response_mode: Some(ResponseMode::Fragment),
-            _request_uri: SpecForbidden,
-        };
+        }
+    }
+
+    #[test]
+    fn vci_authorization_request_urlencoded_roundtrip() {
+        let request = example_vci_request();
 
         let encoded = serde_urlencoded::to_string(&request).unwrap();
-        let decoded: AuthorizationRequest = serde_urlencoded::from_str(&encoded).unwrap();
+        let decoded: VciAuthorizationRequest = serde_urlencoded::from_str(&encoded).unwrap();
 
-        assert_eq!(decoded.client_id, "client-123");
-        assert_eq!(decoded.state.as_deref(), Some("state-abc"));
-        assert_eq!(decoded.nonce, Some(nonce));
+        assert_eq!(decoded.oauth_request.client_id, "client-123");
+        assert_eq!(decoded.oauth_request.state.as_deref(), Some("state-abc"));
         assert_eq!(
             decoded.scope.unwrap().iter().cloned().collect::<Vec<_>>(),
             vec!["openid", "profile"]
+        );
+        assert!(matches!(
+            decoded.code_challenge,
+            PkceCodeChallenge::S256 { code_challenge } if code_challenge == "challenge-xyz"
+        ));
+    }
+
+    #[test]
+    fn oidc_authorization_request_urlencoded_roundtrip() {
+        use crate::authorization::OidcAuthorizationRequest;
+
+        let nonce = Nonce::new_random();
+        let request = OidcAuthorizationRequest {
+            vci_request: example_vci_request(),
+            nonce: Some(nonce.clone()),
+        };
+
+        let encoded = serde_urlencoded::to_string(&request).unwrap();
+        let decoded: OidcAuthorizationRequest = serde_urlencoded::from_str(&encoded).unwrap();
+
+        assert_eq!(decoded.nonce, Some(nonce));
+        assert_eq!(decoded.vci_request.oauth_request.client_id, "client-123");
+    }
+
+    #[test]
+    fn vci_authorization_request_rejects_request_uri() {
+        let request = example_vci_request();
+        let mut encoded = serde_urlencoded::to_string(&request).unwrap();
+        encoded.push_str("&request_uri=should-not-be-here");
+
+        let err = serde_urlencoded::from_str::<VciAuthorizationRequest>(&encoded).unwrap_err();
+        assert!(
+            err.to_string().contains("MUST NOT be present"),
+            "expected SpecForbidden rejection, got: {err}"
         );
     }
 

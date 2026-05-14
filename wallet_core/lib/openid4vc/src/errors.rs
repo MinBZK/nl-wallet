@@ -259,9 +259,9 @@ impl From<AuthorizeError> for ErrorResponse<AuthorizeErrorCode> {
         ErrorResponse {
             error: match err {
                 AuthorizeError::InvalidClient(_) => AuthorizeErrorCode::InvalidClient,
-                AuthorizeError::UnknownRequestUri(_)
-                | AuthorizeError::UnsupportedCodeChallenge
-                | AuthorizeError::MissingCodeChallenge => AuthorizeErrorCode::InvalidRequest,
+                AuthorizeError::UnknownRequestUri(_) | AuthorizeError::UnsupportedCodeChallenge => {
+                    AuthorizeErrorCode::InvalidRequest
+                }
                 AuthorizeError::NoUpstreamAdapter
                 | AuthorizeError::ParStore(_)
                 | AuthorizeError::PkceStore(_)

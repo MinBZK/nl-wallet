@@ -11,8 +11,9 @@ use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
 use indexmap::IndexSet;
-use openid4vc::authorization::AuthorizationRequest;
+use openid4vc::authorization::OidcAuthorizationRequest;
 use openid4vc::authorization::PushedAuthorizationResponse;
+use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::GrantPreAuthorizedCode;
@@ -76,11 +77,17 @@ impl StaticAuthorizationAdapter {
 impl UpstreamAuthorizationAdapter for StaticAuthorizationAdapter {
     async fn adapt(
         &self,
-        mut request: AuthorizationRequest,
-    ) -> Result<(Url, AuthorizationRequest), UpstreamResolveError> {
-        request.client_id = self.client_id.clone();
+        mut request: VciAuthorizationRequest,
+    ) -> Result<(Url, OidcAuthorizationRequest), UpstreamResolveError> {
+        request.oauth_request.client_id = self.client_id.clone();
         request.scope = Some(self.scopes.clone());
-        Ok((self.url.clone(), request))
+        Ok((
+            self.url.clone(),
+            OidcAuthorizationRequest {
+                vci_request: request,
+                nonce: None,
+            },
+        ))
     }
 }
 
@@ -355,7 +362,12 @@ async fn par_rejects_unknown_client_id() {
     let par_url = format!("{}issuance/par", issuer_identifier.as_base_url().as_ref().as_str());
     let response = http_client
         .post(&par_url)
-        .form(&[("response_type", "code"), ("client_id", "unknown_client_id")])
+        .form(&[
+            ("response_type", "code"),
+            ("client_id", "unknown_client_id"),
+            ("code_challenge", "some-challenge"),
+            ("code_challenge_method", "S256"),
+        ])
         .send()
         .await
         .unwrap();
@@ -422,40 +434,26 @@ async fn authorize_rewrites_client_id_for_upstream() {
 }
 
 #[tokio::test]
-async fn authorize_rejects_missing_code_challenge() {
+async fn par_rejects_missing_code_challenge() {
     let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
     let (_, _, issuer_identifier, _, tls_trust_anchor) = start_server(NonZeroUsize::MIN, Some(upstream_endpoint)).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
-        .redirect(Policy::none())
         .build()
         .unwrap();
 
     let base = issuer_identifier.as_base_url().as_ref().as_str().to_string();
 
-    // PAR with no code_challenge — accepted by /par (it doesn't validate this), but /authorize
-    // refuses to bridge a request that has no challenge.
-    let par_resp: PushedAuthorizationResponse = http_client
+    // `code_challenge` is mandatory on `VciAuthorizationRequest`; absence makes the form fail to
+    // deserialize at the /par boundary (HTTP 422), rather than slipping through to /authorize.
+    let response = http_client
         .post(format!("{base}issuance/par"))
         .form(&[("response_type", "code"), ("client_id", MOCK_WALLET_CLIENT_ID)])
         .send()
         .await
-        .unwrap()
-        .json()
-        .await
         .unwrap();
 
-    let mut authorize_url: Url = format!("{base}issuance/authorize").parse().unwrap();
-    authorize_url
-        .query_pairs_mut()
-        .append_pair("client_id", MOCK_WALLET_CLIENT_ID)
-        .append_pair("request_uri", &par_resp.request_uri);
-    let response = http_client.get(authorize_url).send().await.unwrap();
-
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    let body = response.text().await.unwrap();
-    assert!(body.contains("invalid_request"), "unexpected body: {body}");
-    assert!(body.contains("missing code_challenge"), "unexpected body: {body}");
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
 }
 
 #[tokio::test]

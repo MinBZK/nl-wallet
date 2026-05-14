@@ -8,9 +8,9 @@ use url::Url;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
-use crate::authorization::AuthorizationRequest;
 use crate::authorization::AuthorizationResponse;
 use crate::authorization::PushedAuthorizationResponse;
+use crate::authorization::VciAuthorizationRequest;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::pkce::PkcePair;
@@ -108,7 +108,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         let state = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
 
         let par_request =
-            AuthorizationRequest::for_par(client_id.clone(), redirect_uri.clone(), state.clone(), &pkce_pair);
+            VciAuthorizationRequest::for_par(client_id.clone(), redirect_uri.clone(), state.clone(), &pkce_pair);
 
         let par_endpoint = oauth_metadata
             .pushed_authorization_request_endpoint

@@ -7,7 +7,7 @@ use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
 
-use crate::authorization::AuthorizationRequest;
+use crate::authorization::VciAuthorizationRequest;
 
 /// TTL for PAR entries. Per [RFC 9126 §2.2], the `expires_in` value should be short.
 ///
@@ -21,26 +21,26 @@ pub trait ParStore {
     async fn store(
         &self,
         request_uri: String,
-        data: AuthorizationRequest,
+        data: VciAuthorizationRequest,
         expires_at: DateTime<Utc>,
     ) -> Result<(), Self::Error>;
 
-    async fn consume(&self, request_uri: &str) -> Result<Option<AuthorizationRequest>, Self::Error>;
+    async fn consume(&self, request_uri: &str) -> Result<Option<VciAuthorizationRequest>, Self::Error>;
 
     async fn cleanup(&self) -> Result<(), Self::Error>;
 }
 
 #[derive(Debug, Default)]
-pub struct MemoryParStore(Mutex<HashMap<String, (AuthorizationRequest, DateTime<Utc>)>>);
+pub struct MemoryParStore(Mutex<HashMap<String, (VciAuthorizationRequest, DateTime<Utc>)>>);
 
 impl MemoryParStore {
-    fn store_inner(&self, request_uri: String, data: AuthorizationRequest, expires_at: DateTime<Utc>) {
+    fn store_inner(&self, request_uri: String, data: VciAuthorizationRequest, expires_at: DateTime<Utc>) {
         let Self(entries) = self;
         let mut entries = entries.lock().expect("there should be no panic while the lock is held");
         entries.insert(request_uri, (data, expires_at));
     }
 
-    fn consume_inner(&self, request_uri: &str) -> Option<AuthorizationRequest> {
+    fn consume_inner(&self, request_uri: &str) -> Option<VciAuthorizationRequest> {
         let Self(entries) = self;
         let mut entries = entries.lock().expect("there should be no panic while the lock is held");
 
@@ -63,14 +63,14 @@ impl ParStore for MemoryParStore {
     async fn store(
         &self,
         request_uri: String,
-        data: AuthorizationRequest,
+        data: VciAuthorizationRequest,
         expires_at: DateTime<Utc>,
     ) -> Result<(), Self::Error> {
         self.store_inner(request_uri, data, expires_at);
         Ok(())
     }
 
-    async fn consume(&self, request_uri: &str) -> Result<Option<AuthorizationRequest>, Self::Error> {
+    async fn consume(&self, request_uri: &str) -> Result<Option<VciAuthorizationRequest>, Self::Error> {
         Ok(self.consume_inner(request_uri))
     }
 
@@ -84,11 +84,11 @@ impl ParStore for MemoryParStore {
 impl ParStore for () {
     type Error = Infallible;
 
-    async fn store(&self, _: String, _: AuthorizationRequest, _: DateTime<Utc>) -> Result<(), Infallible> {
+    async fn store(&self, _: String, _: VciAuthorizationRequest, _: DateTime<Utc>) -> Result<(), Infallible> {
         Ok(())
     }
 
-    async fn consume(&self, _: &str) -> Result<Option<AuthorizationRequest>, Infallible> {
+    async fn consume(&self, _: &str) -> Result<Option<VciAuthorizationRequest>, Infallible> {
         Ok(None)
     }
 
@@ -103,12 +103,12 @@ mod tests {
 
     use super::MemoryParStore;
     use super::ParStore;
-    use crate::authorization::AuthorizationRequest;
+    use crate::authorization::VciAuthorizationRequest;
     use crate::pkce::PkcePair;
     use crate::pkce::S256PkcePair;
 
-    fn example_request() -> AuthorizationRequest {
-        AuthorizationRequest::for_par(
+    fn example_request() -> VciAuthorizationRequest {
+        VciAuthorizationRequest::for_par(
             String::from("client-1"),
             "uri://redirect_uri".parse().unwrap(),
             String::from("state"),

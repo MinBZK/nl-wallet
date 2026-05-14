@@ -38,7 +38,8 @@ use issuer_common::nonce_store::ProofNonceStore;
 use issuer_common::settings::IssuerSettings;
 use issuer_common::settings::StatusListAttestationSettings;
 use jwt::SignedJwt;
-use openid4vc::authorization::AuthorizationRequest;
+use openid4vc::authorization::OidcAuthorizationRequest;
+use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuer::AttributeService;
@@ -893,8 +894,17 @@ impl Default for StaticUpstreamAuthorizationAdapter {
 }
 
 impl UpstreamAuthorizationAdapter for StaticUpstreamAuthorizationAdapter {
-    async fn adapt(&self, request: AuthorizationRequest) -> Result<(Url, AuthorizationRequest), UpstreamResolveError> {
-        Ok((self.authorization_endpoint.clone(), request))
+    async fn adapt(
+        &self,
+        request: VciAuthorizationRequest,
+    ) -> Result<(Url, OidcAuthorizationRequest), UpstreamResolveError> {
+        Ok((
+            self.authorization_endpoint.clone(),
+            OidcAuthorizationRequest {
+                vci_request: request,
+                nonce: None,
+            },
+        ))
     }
 }
 
