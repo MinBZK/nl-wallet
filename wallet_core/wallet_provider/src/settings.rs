@@ -82,6 +82,10 @@ pub struct WiaSettings {
     pub wia_signing_key_identifier: String,
     pub wia_valid_days: u64,
     pub wia_status_list: WiaStatusListsSettings,
+    pub wia_wallet_name: String,
+    pub wia_wallet_link: Option<String>,
+    pub wia_wallet_version: String,
+    pub wia_wallet_solution_certification_information: String,
 }
 
 #[derive(Clone, Deserialize)]
@@ -181,6 +185,12 @@ impl Settings {
             .set_default("wia_status_list.key_identifier", "wia_tsl_key")?
             .set_default("wia_signing_key_identifier", "wia_signing_key")?
             .set_default("wia_valid_days", 365)?
+            .set_default("wia_wallet_name", "NL Wallet")?
+            .set_default("wia_wallet_link", "https://wallet.edi.rijksoverheid.nl")?
+            .set_default(
+                "wia_wallet_solution_certification_information",
+                "https://wallet.edi.rijksoverheid.nl",
+            )?
             .set_default("audit_log.options.connect_timeout_in_sec", "3")?
             .set_default("audit_log.options.max_connections", "10")?
             .set_default("database.options.connect_timeout_in_sec", "3")?

@@ -172,10 +172,12 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             wallet_user_hsm.clone(),
             settings.attestation_wrapping_key_identifier.clone(),
             WiaWalletInfo {
-                wallet_name: "NL Wallet".to_string(),
-                wallet_link: Some(NL_WALLET_CLIENT_ID.to_string()),
-                wallet_version: "1.0.0".to_string(),
-                wallet_solution_certification_information: NL_WALLET_CLIENT_ID.to_string(),
+                wallet_name: settings.wia_settings.wia_wallet_name,
+                wallet_link: settings.wia_settings.wia_wallet_link,
+                wallet_version: settings.wia_settings.wia_wallet_version,
+                wallet_solution_certification_information: settings
+                    .wia_settings
+                    .wia_wallet_solution_certification_information,
             },
         );
 

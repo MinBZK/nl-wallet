@@ -22,6 +22,18 @@ revocation_code_key_identifier = "revocation_code_key"
 # Identifier for key used to issue WIAs to wallets
 wia_signing_key_identifier = "wia_signing_key"
 
+# Human-readable name of the wallet solution
+wia_wallet_name = "NL Wallet"
+
+# URL linking to the wallet solution (optional)
+wia_wallet_link = "https://wallet.edi.rijksoverheid.nl"
+
+# Version of the wallet solution
+wia_wallet_version = "1.0.0"
+
+# Certification information for the wallet solution
+wia_wallet_solution_certification_information = "https://wallet.edi.rijksoverheid.nl"
+
 # Delay in seconds for background job that refreshes flags
 # flags_refresh_delay_in_seconds = 300
 
