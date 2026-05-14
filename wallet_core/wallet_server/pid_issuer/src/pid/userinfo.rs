@@ -12,7 +12,7 @@ use jwe::error::JweStringDecryptionError;
 use openid4vc::AuthBearerErrorCode;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
-use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
+use openid4vc::metadata::oauth_metadata::OidcProviderMetadata;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponse;
 use reqwest::header;
@@ -62,14 +62,20 @@ pub struct UserInfo {
 
 async fn request_userinfo_jwt(
     http_client: &HttpJsonClient,
-    config: &AuthorizationServerMetadata,
+    config: &OidcProviderMetadata,
     token_request: TokenRequest,
 ) -> Result<String, UserInfoError> {
     // Get userinfo endpoint from discovery, throw an error otherwise.
-    let endpoint = config.userinfo_endpoint.clone().ok_or(UserInfoError::NoUserinfoUrl)?;
+    let endpoint = config
+        .as_ref()
+        .userinfo_endpoint
+        .clone()
+        .ok_or(UserInfoError::NoUserinfoUrl)?;
 
     let response = http_client
-        .post(config.token_endpoint.clone(), |request| request.form(&token_request))
+        .post(config.as_ref().token_endpoint.clone(), |request| {
+            request.form(&token_request)
+        })
         .await?;
 
     let token_response = {
@@ -106,7 +112,7 @@ async fn request_userinfo_jwt(
 
 pub async fn request_userinfo<C>(
     http_client: &HttpJsonClient,
-    config: &AuthorizationServerMetadata,
+    config: &OidcProviderMetadata,
     token_request: TokenRequest,
     client_id: &str,
     decrypter: &JweDecrypter,
@@ -116,7 +122,7 @@ where
     C: DeserializeOwned,
 {
     let jwks_client = HttpJwksClient::new(http_client.clone());
-    let jwks_uri = config.jwks_uri.clone().ok_or(UserInfoError::NoJwksUri)?;
+    let jwks_uri = config.as_ref().jwks_uri.clone().ok_or(UserInfoError::NoJwksUri)?;
 
     let (jwe, jwks) = try_join!(
         request_userinfo_jwt(http_client, config, token_request),

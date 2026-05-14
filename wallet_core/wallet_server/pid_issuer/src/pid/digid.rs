@@ -170,7 +170,7 @@ impl OpenIdClient {
 
         let userinfo_claims = userinfo::request_userinfo::<UserInfo>(
             self.cache.http_client(),
-            metadata.as_ref(),
+            metadata,
             token_request,
             &self.client_id,
             &self.decrypter,
