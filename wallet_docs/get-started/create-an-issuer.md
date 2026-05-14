@@ -1273,7 +1273,7 @@ export TARGET_DIR=target/is-config && mkdir -p "$TARGET_DIR/parts"
 cat <<EOF > "$TARGET_DIR/parts/16-attestation-settings.toml"
 
 [credential_configurations.insurance]
-format = ""dc+sd-jwt""
+format = "dc+sd-jwt"
 attestation_type = "com.example.insurance"
 valid_days = 365
 private_key_type = "software"
@@ -1284,12 +1284,12 @@ EOF
 
 ##### The attestation settings associated status list settings
 
-Next to the previously done `[status_lists]` settings, which control how big and
-when status lists are created, an `credential_configurations` associated
-`status_list` block. Using `group_name`, this scopes the issued credential to a
-particular status list group, which is stored separately in the database. A
-sensible default value for this would be the credential configuration
-identifier.
+Next to the previously done `[status_lists]` settings, which controls when
+status lists are created and how big they are, add a `status_list` block that
+is associated with a `credential_configurations` section. Using `group_name`,
+this scopes the issued credential to a particular status list group, which is
+stored separately in the database. A sensible default value for this would be
+the credential configuration identifier.
 
 This block configures the `context_path`, which together with a `base_url` (if
 empty the `public_url` of the issuance server is used) is added to the
