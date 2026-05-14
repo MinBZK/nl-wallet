@@ -496,10 +496,12 @@ where
     {
         info!("Accepting issuance");
 
-        let config = &self.config_repository.get().update_policy_server;
+        let config = self.config_repository.get();
 
         info!("Fetching update policy");
-        self.update_policy_repository.fetch(&config.http_config).await?;
+        self.update_policy_repository
+            .fetch(&config.update_policy_server.http_config)
+            .await?;
 
         info!("Checking if blocked");
         if self.is_blocked() {
@@ -517,8 +519,6 @@ where
         if self.lock.is_locked() {
             return Err(IssuanceError::Locked);
         }
-
-        let config = self.config_repository.get();
 
         let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
 
@@ -581,10 +581,14 @@ where
 
         let transfer_session_id = if pid_purpose.is_some() {
             info!("This is a PID issuance session, therefore disclosing recovery code");
-            self.disclose_recovery_code(&remote_instruction, &issued_credentials_with_metadata)
-                .await?
-                // If we're doing PID renewal as opposed to enrolling, we don't want to transfer.
-                .filter(|_| pid_purpose == Some(PidIssuancePurpose::Enrollment))
+            self.disclose_recovery_code(
+                &config.pid_attributes,
+                &remote_instruction,
+                &issued_credentials_with_metadata,
+            )
+            .await?
+            // If we're doing PID renewal as opposed to enrolling, we don't want to transfer.
+            .filter(|_| pid_purpose == Some(PidIssuancePurpose::Enrollment))
         } else {
             None
         };
@@ -667,10 +671,10 @@ where
     /// endpoint of the Wallet Provider.
     async fn disclose_recovery_code<AK: AppleAttestedKey, GK: GoogleAttestedKey>(
         &mut self,
+        pid_attributes: &PidAttributesConfiguration,
         instruction_client: &InstructionClient<S, AK, GK, APC>,
         issued_credentials_with_metadata: &[CredentialWithMetadata],
     ) -> Result<Option<TransferSessionId>, IssuanceError> {
-        let pid_attributes = &self.config_repository.get().pid_attributes;
         let (pid, claim_path) = issued_credentials_with_metadata
             .iter()
             .find_map(|cred| {
