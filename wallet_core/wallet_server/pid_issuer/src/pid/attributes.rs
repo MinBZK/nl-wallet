@@ -85,16 +85,21 @@ impl AttributeService for BrpPidAttributeService {
 
         let attributes = Self::insert_recovery_code(person.into_attributes(), &self.recovery_code_secret_key).await?;
 
-        let issuable_documents = [IssuableDocumentFormat::SdJwt, IssuableDocumentFormat::MsoMdoc]
-            .into_iter()
-            .zip(itertools::repeat_n(attributes, 2))
-            .map(|(format, attributes)| {
-                IssuableDocument::try_new_with_random_id(format, PID_ATTESTATION_TYPE.to_string(), attributes)
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .map_err(|_| Error::InvalidIssuableDocuments)?
-            .try_into()
-            .unwrap();
+        // Supply both a SD-JWT and Mdoc PID credential, based on the same set of attributes.
+        let issuable_documents = vec_nonempty![
+            IssuableDocument::try_new_with_random_id(
+                IssuableDocumentFormat::SdJwt,
+                PID_ATTESTATION_TYPE.to_string(),
+                attributes.clone()
+            )
+            .map_err(|_| Error::InvalidIssuableDocuments)?,
+            IssuableDocument::try_new_with_random_id(
+                IssuableDocumentFormat::MsoMdoc,
+                PID_ATTESTATION_TYPE.to_string(),
+                attributes
+            )
+            .map_err(|_| Error::InvalidIssuableDocuments)?,
+        ];
 
         Ok(issuable_documents)
     }
