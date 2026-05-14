@@ -58,10 +58,10 @@ use crate::credential_configurations::CredentialConfigurations;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::metadata::issuer_metadata::AtLeastTwoU64;
 use crate::metadata::issuer_metadata::BatchCredentialIssuance;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerMetadata;
-use crate::metadata::issuer_metadata::NonZeroNorOneU64;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::nonce::store::NonceStatus;
 use crate::nonce::store::NonceStore;
@@ -419,7 +419,7 @@ where
         let nonce_endpoint = server_url.join_issuer_url("/nonce");
         let credential_preview_endpoint = server_url.join_issuer_url("/credential_preview");
 
-        let batch_credential_issuance = NonZeroNorOneU64::try_new(batch_size.into())
+        let batch_credential_issuance = AtLeastTwoU64::try_new(batch_size.into())
             .ok()
             .map(|batch_size| BatchCredentialIssuance { batch_size });
         let metadata = IssuerMetadata {

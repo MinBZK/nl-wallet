@@ -194,24 +194,24 @@ pub struct CredentialResponseEncryption {
 
 #[derive(Debug, thiserror::Error)]
 #[error("batch size must be 2 or greater, received: {0}")]
-pub struct NonZeroOrOneU64Error(NonZeroU64);
+pub struct AtLeastTwoU64Error(NonZeroU64);
 
 #[derive(Debug, Clone, Copy, Into, Serialize, Deserialize)]
 #[serde(try_from = "NonZeroU64", into = "NonZeroU64")]
-pub struct NonZeroNorOneU64(NonZeroU64);
+pub struct AtLeastTwoU64(NonZeroU64);
 
-impl NonZeroNorOneU64 {
-    pub fn try_new(size: NonZeroU64) -> Result<Self, NonZeroOrOneU64Error> {
+impl AtLeastTwoU64 {
+    pub fn try_new(size: NonZeroU64) -> Result<Self, AtLeastTwoU64Error> {
         if size.get() < 2 {
-            return Err(NonZeroOrOneU64Error(size));
+            return Err(AtLeastTwoU64Error(size));
         }
 
         Ok(Self(size))
     }
 }
 
-impl TryFrom<NonZeroU64> for NonZeroNorOneU64 {
-    type Error = NonZeroOrOneU64Error;
+impl TryFrom<NonZeroU64> for AtLeastTwoU64 {
+    type Error = AtLeastTwoU64Error;
 
     fn try_from(value: NonZeroU64) -> Result<Self, Self::Error> {
         Self::try_new(value)
@@ -226,7 +226,7 @@ impl TryFrom<NonZeroU64> for NonZeroNorOneU64 {
 pub struct BatchCredentialIssuance {
     // Integer value specifying the maximum array size for the proofs parameter in a Credential Request. It MUST be 2
     // or greater.
-    pub batch_size: NonZeroNorOneU64,
+    pub batch_size: AtLeastTwoU64,
 }
 
 /// Display properties of a Credential Issuer for a certain language.
