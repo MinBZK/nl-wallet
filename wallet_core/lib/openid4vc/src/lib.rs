@@ -1,8 +1,6 @@
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 
-use crate::issuable_document::IssuableDocumentFormat;
-
 // Data structures implemening OAuth/OpenID(4VCI) protocol messages.
 pub mod authorization;
 pub mod credential;
@@ -79,15 +77,6 @@ impl Format {
         match self {
             Self::MsoMdoc | Self::SdJwt => true,
             Self::LdpVc | Self::JwtVc | Self::JwtVcJson | Self::AcVc => false,
-        }
-    }
-}
-
-impl From<IssuableDocumentFormat> for Format {
-    fn from(value: IssuableDocumentFormat) -> Self {
-        match value {
-            IssuableDocumentFormat::MsoMdoc => Self::MsoMdoc,
-            IssuableDocumentFormat::SdJwt => Self::SdJwt,
         }
     }
 }

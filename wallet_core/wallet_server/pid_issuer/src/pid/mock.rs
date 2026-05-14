@@ -3,8 +3,8 @@ use std::convert::Infallible;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use derive_more::Constructor;
+use openid4vc::Format;
 use openid4vc::issuable_document::IssuableDocument;
-use openid4vc::issuable_document::IssuableDocumentFormat;
 use openid4vc::issuer::AttributeService;
 use openid4vc::token::TokenRequest;
 use utils::vec_at_least::NonEmptyIterator;
@@ -32,13 +32,13 @@ pub struct MockAttributeService(VecNonEmpty<IssuableDocument>);
 pub fn mock_issuable_documents_pid() -> VecNonEmpty<IssuableDocument> {
     vec_nonempty![
         IssuableDocument::try_new_with_random_id(
-            IssuableDocumentFormat::SdJwt,
+            Format::SdJwt,
             PID_ATTESTATION_TYPE.to_string(),
             eudi_nl_pid_example()
         )
         .unwrap(),
         IssuableDocument::try_new_with_random_id(
-            IssuableDocumentFormat::MsoMdoc,
+            Format::MsoMdoc,
             PID_ATTESTATION_TYPE.to_string(),
             eudi_nl_pid_example()
         )

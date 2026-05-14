@@ -13,13 +13,7 @@ use serde_with::DisplayFromStr;
 use serde_with::serde_as;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumString, strum::Display)]
-#[strum(serialize_all = "snake_case")]
-pub enum IssuableDocumentFormat {
-    MsoMdoc,
-    #[strum(serialize = "dc+sd-jwt")]
-    SdJwt,
-}
+use crate::Format;
 
 /// Generic data model used to pass the attributes to be issued from the issuer backend to the wallet server. This model
 /// should be convertable into all documents that are actually issued to the wallet, i.e. mdoc and sd-jwt.
@@ -38,7 +32,7 @@ pub enum IssuableDocumentFormat {
 pub struct IssuableDocument {
     pub id: Uuid,
     #[serde_as(as = "DisplayFromStr")]
-    pub format: IssuableDocumentFormat,
+    pub format: Format,
     pub attestation_type: String,
     #[validate(custom = IssuableDocument::validate_attributes)]
     attributes: Attributes,
@@ -47,7 +41,7 @@ pub struct IssuableDocument {
 impl IssuableDocument {
     pub fn try_new(
         id: Uuid,
-        format: IssuableDocumentFormat,
+        format: Format,
         attestation_type: String,
         attributes: Attributes,
     ) -> Result<Self, serde_valid::validation::Error> {
@@ -62,7 +56,7 @@ impl IssuableDocument {
     }
 
     pub fn try_new_with_random_id(
-        format: IssuableDocumentFormat,
+        format: Format,
         attestation_type: String,
         attributes: Attributes,
     ) -> Result<Self, serde_valid::validation::Error> {
@@ -114,7 +108,7 @@ pub mod mock {
     impl IssuableDocument {
         pub fn new_mock_degree(education: String) -> Self {
             IssuableDocument::try_new_with_random_id(
-                IssuableDocumentFormat::SdJwt,
+                Format::SdJwt,
                 "com.example.degree".to_string(),
                 IndexMap::from([
                     (

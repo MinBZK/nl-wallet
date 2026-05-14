@@ -34,7 +34,6 @@ use crate::Format;
 use crate::credential_configurations::CredentialConfigurationParameters;
 use crate::credential_configurations::CredentialConfigurations;
 use crate::issuable_document::IssuableDocument;
-use crate::issuable_document::IssuableDocumentFormat;
 use crate::issuer::AttributeService;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
@@ -76,7 +75,7 @@ pub fn mock_issuable_documents(document_count: NonZeroUsize) -> VecNonEmpty<Issu
     (0..document_count.get())
         .map(|i| {
             IssuableDocument::try_new_with_random_id(
-                IssuableDocumentFormat::SdJwt,
+                Format::SdJwt,
                 MOCK_ATTESTATION_TYPES[i].to_string(),
                 IndexMap::from_iter(MOCK_ATTRS.iter().map(|(key, val)| {
                     (

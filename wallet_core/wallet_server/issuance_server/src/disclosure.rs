@@ -153,15 +153,13 @@ where
         let credential_configuration_ids = to_issue
             .iter()
             .map(|document| {
-                let format = document.format.into();
-
                 self.issuer
                     .credential_configurations()
-                    .get_by_format_and_attestation_type(format, &document.attestation_type)
+                    .get_by_format_and_attestation_type(document.format, &document.attestation_type)
                     .map(|(config_id, _config)| config_id.to_string())
                     .ok_or_else(|| {
                         DisclosureResultHandlerError::new(IssuanceResultHandlerError::AttestationTypeNotConfigured(
-                            format,
+                            document.format,
                             document.attestation_type.clone(),
                         ))
                     })
@@ -224,7 +222,6 @@ mod tests {
     use openid4vc::credential_configurations::CredentialConfigurationParameters;
     use openid4vc::credential_configurations::CredentialConfigurations;
     use openid4vc::issuable_document::IssuableDocument;
-    use openid4vc::issuable_document::IssuableDocumentFormat;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
@@ -275,7 +272,7 @@ mod tests {
 
             Ok(vec![
                 IssuableDocument::try_new_with_random_id(
-                    IssuableDocumentFormat::SdJwt,
+                    Format::SdJwt,
                     attestation.attestation_type.clone(),
                     IndexMap::from([(
                         "attr_name".to_string(),

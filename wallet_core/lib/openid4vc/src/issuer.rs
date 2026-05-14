@@ -883,7 +883,7 @@ impl Session<Created> {
         document: IssuableDocument,
         batch_size: NonZeroU8,
     ) -> Result<CredentialPreviewState, TokenRequestError> {
-        let format = document.format.into();
+        let format = document.format;
         let (credential_config_id, credential_config) = credential_configurations
             .get_by_format_and_attestation_type(format, &document.attestation_type)
             .ok_or_else(|| TokenRequestError::CredentialTypeNotOffered(format, document.attestation_type.clone()))?;
@@ -1522,7 +1522,7 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
         let config_params = CredentialConfigurationParameters {
-            format: document.format.into(),
+            format: document.format,
             attestation_type: document.attestation_type.clone(),
             key_pair: KeyPair::new_from_signing_key(
                 issuance_keypair.private_key().to_owned(),

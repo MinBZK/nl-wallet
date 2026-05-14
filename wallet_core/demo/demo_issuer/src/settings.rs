@@ -12,8 +12,8 @@ use derive_more::Into;
 use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use openid4vc::Format;
 use openid4vc::issuable_document::IssuableDocument;
-use openid4vc::issuable_document::IssuableDocumentFormat;
 use serde::Deserialize;
 use serde_valid::Validate;
 use serde_with::DisplayFromStr;
@@ -53,7 +53,7 @@ pub type IssuableDocumentTemplates = VecNonEmpty<IssuableDocumentTemplate>;
 #[derive(Deserialize, Clone, Validate, Into)]
 pub struct IssuableDocumentTemplate {
     #[serde_as(as = "DisplayFromStr")]
-    format: IssuableDocumentFormat,
+    format: Format,
     attestation_type: String,
     #[validate(custom = IssuableDocument::validate_attributes)]
     attributes: Attributes,

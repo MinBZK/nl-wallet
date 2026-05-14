@@ -3,8 +3,8 @@ use attestation_data::attributes::Attributes;
 use db_test::DbSetup;
 use itertools::Itertools;
 use openid4vc::ErrorResponse;
+use openid4vc::Format;
 use openid4vc::issuable_document::IssuableDocument;
-use openid4vc::issuable_document::IssuableDocumentFormat;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use pid_issuer::pid::constants::PID_ADDRESS_GROUP;
 use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
@@ -77,7 +77,7 @@ async fn ltc1_test_pid_ok() {
 }
 
 fn pid_without_optionals_with_address() -> VecNonEmpty<IssuableDocument> {
-    [IssuableDocumentFormat::MsoMdoc, IssuableDocumentFormat::SdJwt]
+    [Format::MsoMdoc, Format::SdJwt]
         .into_iter()
         .map(|format| {
             IssuableDocument::try_new_with_random_id(
@@ -123,7 +123,7 @@ fn pid_without_optionals_with_address() -> VecNonEmpty<IssuableDocument> {
 }
 
 fn pid_missing_required_with_address() -> VecNonEmpty<IssuableDocument> {
-    [IssuableDocumentFormat::MsoMdoc, IssuableDocumentFormat::SdJwt]
+    [Format::MsoMdoc, Format::SdJwt]
         .into_iter()
         .map(|format| {
             IssuableDocument::try_new_with_random_id(
