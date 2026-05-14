@@ -177,7 +177,7 @@ impl TypeMetadataByVct {
 #[derive(Debug, thiserror::Error)]
 pub enum CredentialConfigurationsSettingsError {
     #[error("invalid certificate: {0}")]
-    CertificateSanDns(#[from] CertificateError),
+    CertificateSanDns(#[source] CertificateError),
 
     #[error("invalid private key: {0}")]
     PrivateKey(#[source] PrivateKeySettingsError),
