@@ -111,7 +111,6 @@ error_ttl_in_sec = 0
 # * private_key: Base64 encoded DER format private key, or string
 # * certificate: Base64 encoded DER format certificate
 # * valid_days: How long are these attestations valid, in days
-# * copies_per_format: How many copies of mso_mdoc, dc+sd-jwt? default is 4
 # * status_list_base_url: The url where status list objects can get fetched
 #
 
@@ -146,13 +145,13 @@ trust_anchors = ["MIJ..."]
 format = "dc+sd-jwt"
 attestation_type = "com.example.degree"
 valid_days = 365
-copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"
 private_key = "MIG..."
 certificate = "MIJ..."
 
 # Example "com.example.degree" associated status list settings
 [credential_configurations."com.example.degree".status_list]
+group_name = "com.example.degree"
 context_path = "/tsl"
 publish_dir = "/srv/html/tsl"
 private_key_type = "software"
