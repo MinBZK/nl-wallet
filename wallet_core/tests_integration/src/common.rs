@@ -359,7 +359,7 @@ pub async fn setup_env(
         issuer_settings,
         Some(hsm),
         MockAttributeService::new(pid_issuable_documents),
-        Arc::new(StaticUpstreamAuthorizationAdapter::default()),
+        StaticUpstreamAuthorizationAdapter::default(),
     )
     .await;
 
@@ -902,7 +902,7 @@ pub async fn start_pid_issuer_server<UAA>(
     mut settings: PidIssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     attr_service: impl AttributeService + Sync + 'static,
-    upstream_authorization_adapter: Arc<UAA>,
+    upstream_authorization_adapter: UAA,
 ) -> IssuerUrl
 where
     UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,

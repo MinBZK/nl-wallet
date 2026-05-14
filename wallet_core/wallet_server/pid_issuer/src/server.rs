@@ -27,7 +27,7 @@ use tokio::net::TcpListener;
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
 pub async fn serve<A, IS, N, L, UAA>(
     attr_service: A,
-    upstream_authorization_adapter: Arc<UAA>,
+    upstream_authorization_adapter: UAA,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
@@ -66,7 +66,7 @@ pub async fn serve_with_listeners<A, IS, N, L, UAA>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
     attr_service: A,
-    upstream_authorization_adapter: Arc<UAA>,
+    upstream_authorization_adapter: UAA,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,

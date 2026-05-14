@@ -63,10 +63,8 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .unwrap();
 
     let digid_metadata_cache = Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings.clone()).unwrap());
-    let upstream_authorization_adapter = Arc::new(DigidAuthorizationAdapter::new(
-        Arc::clone(&digid_metadata_cache),
-        settings.digid.client_id.clone(),
-    ));
+    let upstream_authorization_adapter =
+        DigidAuthorizationAdapter::new(Arc::clone(&digid_metadata_cache), settings.digid.client_id.clone());
 
     let issuer_url = start_pid_issuer_server(
         settings.clone(),

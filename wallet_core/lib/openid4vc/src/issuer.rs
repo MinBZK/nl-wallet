@@ -512,7 +512,7 @@ pub struct Issuer<K, A, S, N, L, PAS = (), PKS = (), UAA = ()> {
     status_list_services: Arc<L>,
     par_store: Arc<PAS>,
     pkce_flow_store: Arc<PKS>,
-    upstream_authorization_adapter: Option<Arc<UAA>>,
+    upstream_authorization_adapter: Option<UAA>,
     cleanup_task: AbortHandle,
 }
 
@@ -565,7 +565,7 @@ where
         status_list_services: Arc<L>,
         par_store: Arc<PAS>,
         pkce_flow_store: Arc<PKS>,
-        upstream_authorization_adapter: Option<Arc<UAA>>,
+        upstream_authorization_adapter: Option<UAA>,
     ) -> Self {
         let credential_configurations_supported = attestation_config
             .as_ref()
@@ -2225,7 +2225,7 @@ mod tests {
             sessions.clone(),
             Arc::new(()),
             Arc::new(()),
-            None::<Arc<()>>,
+            None::<()>,
         );
 
         let token = issuer.new_session(documents).await.unwrap();

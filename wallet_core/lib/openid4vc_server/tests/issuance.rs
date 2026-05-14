@@ -117,7 +117,7 @@ async fn start_server(
     let par_store = Arc::new(MemoryParStore::default());
     let pkce_store = Arc::new(MemoryPkceFlowStore::default());
 
-    let adapter = upstream_authorization_endpoint.map(|url| Arc::new(StaticAuthorizationAdapter::new(url)));
+    let adapter = upstream_authorization_endpoint.map(StaticAuthorizationAdapter::new);
     let (issuer, trust_anchor, wia_issuer_privkey) = setup_mock_issuer(
         issuer_identifier.clone(),
         MockAttrService {

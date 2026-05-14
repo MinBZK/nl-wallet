@@ -126,7 +126,7 @@ pub fn setup_mock_issuer<G, PAS, PKS, UAA>(
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
     par_store: Arc<PAS>,
     pkce_flow_store: Arc<PKS>,
-    upstream_authorization_adapter: Option<Arc<UAA>>,
+    upstream_authorization_adapter: Option<UAA>,
 ) -> (MockIssuer<G, PAS, PKS, UAA>, BorrowingTrustAnchor, SigningKey)
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,

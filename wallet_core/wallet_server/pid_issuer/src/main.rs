@@ -53,10 +53,8 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
 
     let digid_metadata_cache =
         Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings).map_err(anyhow::Error::from)?);
-    let upstream_authorization_adapter = Arc::new(DigidAuthorizationAdapter::new(
-        Arc::clone(&digid_metadata_cache),
-        settings.digid.client_id.clone(),
-    ));
+    let upstream_authorization_adapter =
+        DigidAuthorizationAdapter::new(Arc::clone(&digid_metadata_cache), settings.digid.client_id.clone());
 
     let pid_attr_service = BrpPidAttributeService::try_new(
         HttpBrpClient::new(settings.brp_server),
