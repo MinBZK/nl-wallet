@@ -112,6 +112,7 @@ impl UpstreamAuthorizationAdapter for DigidAuthorizationAdapter {
             .map_err(|e| UpstreamResolveError::Discovery(Box::new(e)))?;
 
         let authorization_endpoint = metadata
+            .as_ref()
             .authorization_endpoint
             .clone()
             .ok_or(UpstreamResolveError::NoAuthorizationEndpoint)?;
@@ -166,7 +167,7 @@ impl OpenIdClient {
 
         let userinfo_claims = userinfo::request_userinfo::<UserInfo>(
             self.cache.http_client(),
-            metadata,
+            metadata.as_ref(),
             token_request,
             &self.client_id,
             &self.decrypter,

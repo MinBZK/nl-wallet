@@ -1,5 +1,9 @@
 //! OAuth 2.0 Authorization Server Metadata, loosely based on https://crates.io/crates/openid.
 
+use derive_more::AsRef;
+use derive_more::Constructor;
+use derive_more::From;
+use derive_more::Into;
 use indexmap::IndexSet;
 use serde::Deserialize;
 use serde::Serialize;
@@ -159,13 +163,23 @@ impl AuthorizationServerMetadata {
     }
 }
 
-/// Alias for [`AuthorizationServerMetadata`] when obtained from an OpenID Provider's
-/// `/.well-known/openid-configuration` endpoint (OpenID Connect Discovery 1.0).
-pub type OidcProviderMetadata = AuthorizationServerMetadata;
+/// Wrapper around [`AuthorizationServerMetadata`] for metadata obtained from an OpenID Provider's
+/// `/.well-known/openid-configuration` endpoint (OpenID Connect Discovery 1.0). The newtype keeps
+/// the OIDC discovery flavor distinct from plain RFC 8414 metadata at the type level, while
+/// reusing the same lenient field representation underneath.
+#[derive(Clone, Debug, Deserialize, Serialize, AsRef, Constructor, From, Into)]
+#[serde(transparent)]
+pub struct OidcProviderMetadata(AuthorizationServerMetadata);
 
 impl WellKnownMetadata for AuthorizationServerMetadata {
     fn issuer_identifier(&self) -> &IssuerIdentifier {
         &self.issuer
+    }
+}
+
+impl WellKnownMetadata for OidcProviderMetadata {
+    fn issuer_identifier(&self) -> &IssuerIdentifier {
+        self.0.issuer_identifier()
     }
 }
 
