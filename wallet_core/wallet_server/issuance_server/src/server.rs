@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::Router;
-use crypto::trust_anchor::BorrowingTrustAnchor;
 use futures::future::try_join_all;
 use hsm::service::Pkcs11Hsm;
 use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
@@ -159,12 +158,7 @@ where
         disclosure_public_url,
         settings.universal_link_base_url,
         use_cases,
-        issuer_settings
-            .server_settings
-            .issuer_trust_anchors
-            .iter()
-            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
-            .collect(),
+        issuer_settings.server_settings.issuer_trust_anchors,
         issuer_settings.wallet_client_ids,
         settings.extending_vct_values.unwrap_or_default(),
     )

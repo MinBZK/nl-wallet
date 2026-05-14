@@ -2,9 +2,9 @@ use attestation_types::status_claim::StatusClaim;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::DistinguishedName;
 use entity::revocation_info;
-use rustls_pki_types::TrustAnchor;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
@@ -27,7 +27,7 @@ impl RevocationInfo {
 
     pub async fn verify_revocation(
         &self,
-        issuer_trust_anchors: &[TrustAnchor<'_>],
+        issuer_trust_anchors: &[BorrowingTrustAnchor],
         revocation_verifier: &RevocationVerifier<impl StatusListClient>,
         time: &impl Generator<DateTime<Utc>>,
     ) -> RevocationStatus {
@@ -76,7 +76,7 @@ mod test {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_cert = ca.generate_status_list_mock().unwrap();
         let issuer_cert_dn = issuer_cert.certificate().distinguished_name_canonical().unwrap();
-        let issuer_trust_anchors = &[ca.to_trust_anchor()];
+        let issuer_trust_anchors = &[ca.to_borrowing_trust_anchor()];
 
         let revocation_verifier =
             RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(issuer_cert)));

@@ -5,7 +5,6 @@ use std::path::PathBuf;
 
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
-use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use derive_more::AsRef;
@@ -23,7 +22,6 @@ use openid4vc::credential_configurations::CredentialConfigurations;
 use openid4vc::credential_configurations::CredentialConfigurationsError;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
-use rustls_pki_types::TrustAnchor;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use serde::Deserialize;
@@ -304,12 +302,7 @@ impl IssuerSettings {
 
         let time = TimeGenerator;
 
-        let trust_anchors: Vec<TrustAnchor<'_>> = self
-            .server_settings
-            .issuer_trust_anchors
-            .iter()
-            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
-            .collect::<Vec<_>>();
+        let trust_anchors = &self.server_settings.issuer_trust_anchors;
 
         let key_pairs: Vec<(&str, &KeyPair)> = self
             .credential_configurations
@@ -318,7 +311,7 @@ impl IssuerSettings {
             .map(|(typ, attestation)| (typ.as_ref(), &attestation.keypair))
             .collect();
 
-        verify_key_pairs(&key_pairs, &trust_anchors, CertificateUsage::Mdl, &time)?;
+        verify_key_pairs(&key_pairs, trust_anchors, CertificateUsage::Mdl, &time)?;
 
         let key_pairs: Vec<(&str, &KeyPair)> = self
             .credential_configurations
@@ -327,7 +320,7 @@ impl IssuerSettings {
             .map(|(typ, attestation)| (typ.as_ref(), &attestation.status_list.keypair))
             .collect();
 
-        verify_key_pairs(&key_pairs, &trust_anchors, CertificateUsage::OAuthStatusSigning, &time)?;
+        verify_key_pairs(&key_pairs, trust_anchors, CertificateUsage::OAuthStatusSigning, &time)?;
 
         for (config_id, attestation) in self.credential_configurations.as_ref() {
             let attestation_dn = attestation.keypair.certificate.distinguished_name()?;
@@ -502,7 +495,7 @@ mod tests {
                     successful_deletion_minutes: 10.try_into().unwrap(),
                     failed_deletion_minutes: 10.try_into().unwrap(),
                 },
-                issuer_trust_anchors: vec![issuer_ca.borrowing_trust_anchor().clone()],
+                issuer_trust_anchors: vec![issuer_ca.to_borrowing_trust_anchor()],
                 hsm: None,
             },
         }
@@ -541,7 +534,7 @@ mod tests {
             .expect("generate tsl cert failed")
             .into();
 
-        settings.server_settings.issuer_trust_anchors = vec![issuer_ca.borrowing_trust_anchor().clone()];
+        settings.server_settings.issuer_trust_anchors = vec![issuer_ca.to_borrowing_trust_anchor()];
         settings.credential_configurations = HashMap::from([(
             "no_registration_sdjwt".to_string().into(),
             CredentialConfigurationSettings {

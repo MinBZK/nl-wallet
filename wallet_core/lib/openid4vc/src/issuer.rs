@@ -1475,9 +1475,9 @@ mod tests {
     use chrono::Timelike;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::BorrowingTrustAnchor;
     use derive_more::Debug;
     use p256::ecdsa::SigningKey;
-    use rustls_pki_types::TrustAnchor;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use thiserror::Error;
     use tracing_test::traced_test;
@@ -1576,7 +1576,7 @@ mod tests {
 
     // Error injection tests
 
-    fn setup_simple_mock_issuer() -> (MockIssuer, TrustAnchor<'static>, IssuerIdentifier, SigningKey) {
+    fn setup_simple_mock_issuer() -> (MockIssuer, BorrowingTrustAnchor, IssuerIdentifier, SigningKey) {
         let issuer_identifier: IssuerIdentifier = "https://example.com/".parse().unwrap();
         let (issuer, trust_anchor, wia_issuer_privkey) = setup_mock_issuer(
             issuer_identifier.clone(),
@@ -1759,7 +1759,7 @@ mod tests {
     async fn start_and_accept_err(
         message_client: VcMessageClientStub,
         issuer_identifier: IssuerIdentifier,
-        trust_anchor: TrustAnchor<'static>,
+        trust_anchor: BorrowingTrustAnchor,
         wia_issuer_privkey: SigningKey,
     ) -> WalletIssuanceError {
         let trust_anchors = &[trust_anchor];

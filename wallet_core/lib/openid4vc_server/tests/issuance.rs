@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use attestation_data::credential_payload::CredentialPayload;
 use crypto::server_keys::generate::Ca;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
@@ -34,7 +35,6 @@ use openid4vc_server::issuer::create_issuance_router;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePrivateKey;
 use rstest::rstest;
-use rustls_pki_types::TrustAnchor;
 use tokio::net::TcpListener;
 use url::Url;
 use wscd::mock_remote::MockRemoteWscd;
@@ -57,7 +57,7 @@ async fn start_server(
     upstream_oauth_identifier: Option<IssuerIdentifier>,
 ) -> (
     Arc<MockIssuer>,
-    TrustAnchor<'static>,
+    BorrowingTrustAnchor,
     IssuerIdentifier,
     SigningKey,
     ReqwestTrustAnchor,

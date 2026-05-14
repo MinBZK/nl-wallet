@@ -348,7 +348,7 @@ mod tests {
             .verify_against_trust_anchors(
                 CertificateUsage::Mdl,
                 &IsoCertTimeGenerator,
-                Examples::iaca_trust_anchors(),
+                &Examples::iaca_trust_anchors(),
             )
             .unwrap()
             .0

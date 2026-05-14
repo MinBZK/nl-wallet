@@ -5,6 +5,7 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::x509::CertificateType;
 use attestation_data::x509::CertificateTypeError;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::utils::random_string;
 use crypto::utils::sha256;
 use crypto::x509::BorrowingCertificate;
@@ -15,7 +16,6 @@ use derive_more::From;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
 use indexmap::IndexSet;
-use rustls_pki_types::TrustAnchor;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use serde::Deserialize;
 use serde::Serialize;
@@ -174,7 +174,7 @@ pub struct CredentialPreview {
 }
 
 impl CredentialPreview {
-    pub fn verify(&self, trust_anchors: &[TrustAnchor<'_>]) -> Result<(), CredentialPreviewError> {
+    pub fn verify(&self, trust_anchors: &[BorrowingTrustAnchor]) -> Result<(), CredentialPreviewError> {
         let Self { content, .. } = self;
 
         // Verify the issuer certificates that the issuer presents for each credential to be issued.

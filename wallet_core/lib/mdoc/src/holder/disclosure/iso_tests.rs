@@ -82,7 +82,7 @@ async fn do_and_verify_iso_example_disclosure() {
     let certificate = device_request
         .doc_requests
         .first()
-        .verify(&session_transcript, &IsoCertTimeGenerator, reader_trust_anchors)
+        .verify(&session_transcript, &IsoCertTimeGenerator, &reader_trust_anchors)
         .unwrap()
         .unwrap();
     let reader_x509_subject = certificate.subject();
@@ -105,7 +105,7 @@ async fn do_and_verify_iso_example_disclosure() {
             None,
             &session_transcript,
             &IsoCertTimeGenerator,
-            &[ca.to_trust_anchor()],
+            &[ca.to_borrowing_trust_anchor()],
             &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 ca.generate_status_list_mock().unwrap(),
             ))),
@@ -151,7 +151,7 @@ async fn iso_examples_custom_disclosure() {
             None,
             &session_transcript,
             &IsoCertTimeGenerator,
-            &[ca.to_trust_anchor()],
+            &[ca.to_borrowing_trust_anchor()],
             &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 ca.generate_status_list_mock().unwrap(),
             ))),

@@ -5,6 +5,7 @@ use attestation_data::x509::generate::mock::generate_reader_mock_with_registrati
 use chrono::Utc;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::utils::random_string;
 use dcql::normalized::NormalizedCredentialRequests;
 use derive_more::Constructor;
@@ -18,7 +19,6 @@ use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 use jwt::nonce::Nonce;
 use parking_lot::Mutex;
-use rustls_pki_types::TrustAnchor;
 use url::Url;
 use utils::vec_nonempty;
 
@@ -122,7 +122,7 @@ pub fn request_uri_with_verifier_params(mut request_uri: Url, session_type: Sess
             session_type,
             ephemeral_id_params: Some(EphemeralIdParameters {
                 ephemeral_id: vec![42],
-                time: Utc::now(),
+                time: Some(Utc::now()),
             }),
         })
         .unwrap(),
@@ -152,7 +152,7 @@ pub fn request_uri(
 pub struct MockVerifierSession {
     pub redirect_uri: Option<BaseUrl>,
     pub reader_registration: Option<ReaderRegistration>,
-    pub trust_anchors: Vec<TrustAnchor<'static>>,
+    pub trust_anchors: Vec<BorrowingTrustAnchor>,
     pub credential_requests: NormalizedCredentialRequests,
     pub nonce: Nonce,
     pub state: Option<String>,
@@ -177,7 +177,7 @@ impl MockVerifierSession {
     ) -> Self {
         // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
         let ca = Ca::generate_reader_mock_ca().unwrap();
-        let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
+        let trust_anchors = vec![ca.to_borrowing_trust_anchor()];
         let key_pair = match &reader_registration {
             Some(reader_registration) => {
                 generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap()

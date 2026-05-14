@@ -1,3 +1,6 @@
+# Update transitive dependencies via
+#  pip-compile --generate-hashes --upgrade
+#  pip-compile --generate-hashes --upgrade-package PKG
 Sphinx >=7.4.7, <8.0.0
 sphinx-autobuild >=2024.10.3
 sphinx-multiversion ~=0.2.4

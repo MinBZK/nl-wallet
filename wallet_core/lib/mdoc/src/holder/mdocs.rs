@@ -2,8 +2,8 @@ use std::result::Result;
 
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::BorrowingCertificate;
-use rustls_pki_types::TrustAnchor;
 use ssri::Integrity;
 use utils::generator::Generator;
 
@@ -35,7 +35,7 @@ impl Mdoc {
         private_key_id: String,
         issuer_signed: IssuerSigned,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor],
+        trust_anchors: &[BorrowingTrustAnchor],
     ) -> crate::Result<Mdoc> {
         // Unfortunately we have to discard the `attributes` here, even though
         // the only consumer of this function will need them right away.
@@ -259,7 +259,7 @@ pub mod mock {
                 EXAMPLE_KEY_IDENTIFIER.to_string(),
                 issuer_signed,
                 &IsoCertTimeGenerator,
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
             )
             .unwrap()
         }
