@@ -895,8 +895,6 @@ impl Session<Created> {
         let now = utc_now_truncated_to_days();
         let valid_until = now.add(credential_config.valid_days);
 
-        let format = document.format.into();
-
         let (batch_id, credential_payload) = document.into_id_and_previewable_credential_payload(
             now,
             valid_until,
