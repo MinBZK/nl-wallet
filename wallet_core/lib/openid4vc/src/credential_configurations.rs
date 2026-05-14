@@ -55,7 +55,7 @@ pub struct CredentialConfigurationParameters<K> {
 /// When performing issuance, the issuer augments the [`CredentialConfiguration`] with an [`IssuableDocument`] to form
 /// the attestation.
 #[derive(Debug)]
-pub struct CredentialConfiguration<K> {
+pub(crate) struct CredentialConfiguration<K> {
     pub format: Format,
     pub attestation_type: String,
     #[debug(skip)]
@@ -69,7 +69,7 @@ pub struct CredentialConfiguration<K> {
 }
 
 #[derive(Debug)]
-pub struct CredentialConfigurationMetadata {
+pub(crate) struct CredentialConfigurationMetadata {
     #[debug(skip)]
     documents: SortedTypeMetadataDocuments,
     first_document_integrity: Integrity,
@@ -137,7 +137,7 @@ impl CredentialConfigurationMetadata {
 
 /// Static credential configurations indexed by their identifier.
 #[derive(Debug, From)]
-pub struct CredentialConfigurations<K> {
+pub(crate) struct CredentialConfigurations<K> {
     configs_by_id: HashMap<CredentialConfigurationId, CredentialConfiguration<K>>,
     ids_by_format_and_attestation_type: HashMap<(Format, Cow<'static, str>), CredentialConfigurationId>,
 }
