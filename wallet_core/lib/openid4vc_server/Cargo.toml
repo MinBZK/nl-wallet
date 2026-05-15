@@ -44,7 +44,10 @@ utils.path = "../utils"
 
 [dev-dependencies]
 axum-server.workspace = true
+indexmap.workspace = true
 p256.workspace = true
+rand_core.workspace = true
+reqwest.workspace = true
 rstest.workspace = true
 serde_urlencoded.workspace = true
 tokio = { workspace = true, features = ["test-util", "macros", "net"] }

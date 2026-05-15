@@ -24,7 +24,8 @@ impl ExtendingVctRetriever for ExtendingVctRetrieverStub {
 }
 
 impl AuthorizationServerMetadata {
-    /// Construct a new `Config` based on the OP's URL and some standardized or reasonable defaults.
+    /// Construct a new `AuthorizationServerMetadata` based on the OP's URL and some standardized or reasonable
+    /// defaults.
     pub fn new_mock(issuer_identifier: IssuerIdentifier) -> Self {
         let issuer_url = issuer_identifier.as_base_url();
         let auth_url = issuer_url.join("/authorize");

@@ -1,3 +1,5 @@
+pub mod store;
+
 use base64::prelude::*;
 use crypto::utils::random_string;
 use crypto::utils::sha256;
@@ -40,8 +42,7 @@ impl PkcePair for S256PkcePair {
         // by the standard.
         let code_verifier = random_string(CODE_VERIFIER_LENGTH);
 
-        let hash = sha256(code_verifier.as_bytes());
-        let code_challenge = BASE64_URL_SAFE_NO_PAD.encode(hash);
+        let code_challenge = Self::challenge_for(&code_verifier);
 
         Self(code_verifier, code_challenge)
     }
@@ -52,6 +53,12 @@ impl PkcePair for S256PkcePair {
 
     fn code_challenge(&self) -> &str {
         &self.1
+    }
+}
+
+impl S256PkcePair {
+    pub fn challenge_for(verifier: &str) -> String {
+        BASE64_URL_SAFE_NO_PAD.encode(sha256(verifier.as_bytes()))
     }
 }
 

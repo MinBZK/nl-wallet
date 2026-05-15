@@ -15,7 +15,7 @@ nameOverride: ""
 ## @section Common parameters
 ## @param replicaCount Number of replicas
 ##
-replicaCount: 2
+replicaCount: 1 #TODO (PVW-5910): increase to 2 after implementing a Postgres PAR store
 
 ## @section Image parameters
 ## @param image.repository Repository for the container image

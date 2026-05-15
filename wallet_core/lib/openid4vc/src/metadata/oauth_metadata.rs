@@ -1,5 +1,9 @@
 //! OAuth 2.0 Authorization Server Metadata, loosely based on https://crates.io/crates/openid.
 
+use derive_more::AsRef;
+use derive_more::Constructor;
+use derive_more::From;
+use derive_more::Into;
 use indexmap::IndexSet;
 use serde::Deserialize;
 use serde::Serialize;
@@ -11,6 +15,12 @@ use crate::issuer_identifier::IssuerIdentifier;
 
 /// OAuth 2.0 Authorization Server Metadata as defined by [RFC 8414](https://www.rfc-editor.org/rfc/rfc8414), to be
 /// published at `.well-known/oauth-authorization-server`.
+///
+/// This struct also serves as a lenient representation of
+/// [OpenID Connect Discovery 1.0](https://openid.net/specs/openid-connect-discovery-1_0.html) Provider Metadata
+/// (see [`OidcProviderMetadata`]), since OIDC Discovery is a superset of RFC 8414. Key differences: OIDC requires
+/// `jwks_uri`, `subject_types_supported`, and `id_token_signing_alg_values_supported` to be non-empty; RFC 8414 does
+/// not define those fields. This struct accepts both by treating them as optional/defaulting to empty.
 #[skip_serializing_none]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AuthorizationServerMetadata {
@@ -95,6 +105,16 @@ pub struct AuthorizationServerMetadata {
     // This is a NONSTANDARD extension Google uses that is a part of the Oauth discovery draft
     #[serde(default)]
     pub code_challenge_methods_supported: Option<IndexSet<String>>,
+
+    /// The URL of the pushed authorization request endpoint at which a client can post an authorization request to
+    /// exchange for a request_uri value usable at the authorization server.
+    #[serde(default)]
+    pub pushed_authorization_request_endpoint: Option<Url>,
+
+    /// Boolean parameter indicating whether the authorization server accepts authorization request data only via PAR.
+    /// If omitted, the default value is false.
+    #[serde(default)]
+    pub require_pushed_authorization_requests: bool,
 }
 
 impl AuthorizationServerMetadata {
@@ -137,13 +157,29 @@ impl AuthorizationServerMetadata {
             op_policy_uri: None,
             op_tos_uri: None,
             code_challenge_methods_supported: None,
+            pushed_authorization_request_endpoint: None,
+            require_pushed_authorization_requests: false,
         }
     }
 }
 
+/// Wrapper around [`AuthorizationServerMetadata`] for metadata obtained from an OpenID Provider's
+/// `/.well-known/openid-configuration` endpoint (OpenID Connect Discovery 1.0). The newtype keeps
+/// the OIDC discovery flavor distinct from plain RFC 8414 metadata at the type level, while
+/// reusing the same lenient field representation underneath.
+#[derive(Clone, Debug, Deserialize, Serialize, AsRef, Constructor, From, Into)]
+#[serde(transparent)]
+pub struct OidcProviderMetadata(AuthorizationServerMetadata);
+
 impl WellKnownMetadata for AuthorizationServerMetadata {
     fn issuer_identifier(&self) -> &IssuerIdentifier {
         &self.issuer
+    }
+}
+
+impl WellKnownMetadata for OidcProviderMetadata {
+    fn issuer_identifier(&self) -> &IssuerIdentifier {
+        self.0.issuer_identifier()
     }
 }
 

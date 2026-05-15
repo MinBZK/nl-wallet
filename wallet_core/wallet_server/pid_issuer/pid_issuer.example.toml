@@ -3,6 +3,11 @@
 # The wallet must be able to reach the server at this URL
 public_url = 'http://localhost:8001/'
 
+# OAuth client_id(s) that the wallet is allowed to use when sending a PAR request to this server.
+# Must match the client_id configured in the wallet's pid_issuance settings.
+# Distinct from [digid] client_id, which is used when forwarding authorization to the upstream IdP.
+wallet_client_ids = [""]
+
 issuer_trust_anchors = ["MII..."] # CAs for issuer certificates
 wua_issuer_pubkey = ""            # Public key of the WUA issuer
 
@@ -40,6 +45,8 @@ secret_key_type = "software"                                                    
 
 [digid]
 bsn_privkey = ""
+# OAuth client_id used when forwarding authorization to DigiD (nl-rdo-max). Must be registered in
+# DigiD's clients.json. Different from wallet_client_ids above.
 client_id = ""
 
 [digid.client_settings]

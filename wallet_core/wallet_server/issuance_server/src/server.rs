@@ -132,11 +132,13 @@ where
         issuer_settings.wallet_client_ids.clone(),
         credential_config_params,
         None,
-        None,
         (),
         issuance_sessions,
         proof_nonce_store,
         Arc::clone(&status_list_services),
+        Arc::new(()),
+        Arc::new(()),
+        None,
     )?);
 
     let issuance_router = create_issuance_router(Arc::clone(&issuer));
