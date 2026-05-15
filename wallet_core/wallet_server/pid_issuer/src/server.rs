@@ -85,16 +85,20 @@ where
 {
     let log_requests = settings.server_settings.log_requests;
 
-    let attestation_config = settings.attestation_settings.parse(&hsm, &settings.metadata).await?;
+    let credential_config_params = settings
+        .credential_configurations
+        .into_params(&hsm, &settings.metadata)
+        .await?;
 
     let status_list_services = Arc::new(status_list_services);
     let par_store = Arc::new(MemoryParStore::default());
     let pkce_store = Arc::new(MemoryPkceFlowStore::default());
-    let wallet_client_ids = settings.wallet_client_ids;
-    let wallet_issuance_router = create_issuance_router(Arc::new(Issuer::new(
+
+    let wallet_issuance_router = create_issuance_router(Arc::new(Issuer::try_new(
         settings.public_url,
-        wallet_client_ids,
-        attestation_config,
+        settings.batch_size,
+        settings.wallet_client_ids,
+        credential_config_params,
         Some(WiaConfig {
             wia_issuer_pubkey: (&wia_issuer_pubkey).into(),
         }),
@@ -105,7 +109,7 @@ where
         par_store,
         pkce_store,
         Some(upstream_authorization_adapter),
-    )));
+    )?));
 
     let mut router = add_cache_control_no_store_layer(wallet_issuance_router);
     if let Some(status_list_router) = status_list_router {

@@ -166,7 +166,7 @@ fn make_credential_offer_url(
         credential_issuer: issuer_identifier,
         credential_configuration_ids: MOCK_ATTESTATION_TYPES[..attestation_count.get()]
             .iter()
-            .map(ToString::to_string)
+            .map(|attestation_type| attestation_type.to_string().into())
             .collect(),
         grants: Some(Grants::PreAuthorizedCode {
             pre_authorized_code: GrantPreAuthorizedCode::new(auth_code),
@@ -198,12 +198,13 @@ fn verify_issued_credentials(
                 .into_inner()
                 .into_iter()
                 .for_each(|issued_credential| match issued_credential {
-                    IssuedCredential::MsoMdoc { mdoc } => {
-                        let payload = CredentialPayload::from_mdoc(mdoc, &preview_data.normalized_metadata).unwrap();
-                        assert_eq!(payload.previewable_payload, preview_data.content.credential_payload);
+                    IssuedCredential::MsoMdoc { .. } => {
+                        panic!("mdoc should not be issued");
                     }
-                    IssuedCredential::SdJwt { .. } => {
-                        panic!("SdJwt should not be issued");
+                    IssuedCredential::SdJwt { sd_jwt, .. } => {
+                        let payload =
+                            CredentialPayload::from_sd_jwt(sd_jwt, &preview_data.normalized_metadata).unwrap();
+                        assert_eq!(payload.previewable_payload, preview_data.content.credential_payload);
                     }
                 })
         });

@@ -904,14 +904,13 @@ mod tests {
 
     fn setup_issuance_session(wallet: &mut TestWalletMockStorage) {
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
-        let (pid_issuer, _) = mock_issuance_session(
+        let (pid_issuer, _) = mock_issuance_session([(
             IssuedCredential::SdJwt {
                 key_identifier: "key_id".to_string(),
                 sd_jwt: sd_jwt.clone(),
             },
-            PID_ATTESTATION_TYPE.to_string(),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
-        );
+        )]);
 
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),

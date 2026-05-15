@@ -15,7 +15,6 @@ use derive_more::Debug;
 use derive_more::From;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
-use indexmap::IndexMap;
 use indexmap::IndexSet;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use serde::Deserialize;
@@ -153,10 +152,10 @@ impl TokenResponse {
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialPreviewContent {
-    /// The amount of copies of this attestation that the holder will receive per credential format. This is serialized
-    /// as a list of pairs in order to guarantee the order across system boundaries.
-    #[serde(with = "indexmap::map::serde_seq")]
-    pub copies_per_format: IndexMap<Format, NonZeroU8>,
+    pub format: Format,
+
+    // TODO (PVW-5634): Use the `batch_credential_issuance` field in the issuer metadata instead.
+    pub batch_size: NonZeroU8,
 
     pub credential_payload: PreviewableCredentialPayload,
 

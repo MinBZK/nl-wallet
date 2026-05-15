@@ -129,7 +129,6 @@ mod test {
     use httpmock::Method::GET;
     use httpmock::Method::POST;
     use httpmock::MockServer;
-    use indexmap::IndexMap;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -182,7 +181,8 @@ mod test {
 
         let preview = CredentialPreview {
             content: CredentialPreviewContent {
-                copies_per_format: IndexMap::from([(Format::MsoMdoc, NonZeroU8::new(4).unwrap())]),
+                format: Format::MsoMdoc,
+                batch_size: NonZeroU8::new(4).unwrap(),
                 credential_payload,
                 issuer_certificate: issuance_keypair.certificate().clone(),
             },
@@ -299,7 +299,7 @@ mod test {
         // Construct a credential offer URL with a fake pre-authorized code.
         let credential_offer = CredentialOffer {
             credential_issuer: issuer_identifier,
-            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string()],
+            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string().into()],
             grants: Some(Grants::PreAuthorizedCode {
                 pre_authorized_code: GrantPreAuthorizedCode::new("fake_pre_auth_code".to_string().into()),
             }),
@@ -409,7 +409,7 @@ mod test {
         // Construct a credential offer URL WITHOUT any grants.
         let credential_offer = CredentialOffer {
             credential_issuer: "https://example.com".parse().unwrap(),
-            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string()],
+            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string().into()],
             grants: None,
         };
         let container = CredentialOfferContainer { credential_offer };

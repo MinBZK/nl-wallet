@@ -108,6 +108,12 @@
 | --------------------- | ----------------------------------------------------------------- | ----- |
 | `database.secretName` | The secret name that contains the connection url for the database | `nil` |
 
+### Credential parameters
+
+| Name        | Description                                                        | Value |
+| ----------- | ------------------------------------------------------------------ | ----- |
+| `batchSize` | The maximum amount of credentials a holder will be able to request | 4     |
+
 ### DigiD parameters
 
 | Name            | Description                                      | Value |

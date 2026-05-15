@@ -60,7 +60,7 @@ pub mod mock {
     }
 
     // This is the client that belongs to the [`status_list_service::MockStatusListServices`] struct.
-    // It contains a map of keypairs by attestation_type, where the attestation_type that should be
+    // It contains a map of keypairs by attestation_group, where the attestation_group that should be
     // used for the lookup is extracted from the `url` parameter in the same manner as the
     // [`MockStatusListServices`].
     #[derive(Debug, Constructor)]

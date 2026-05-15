@@ -29,7 +29,7 @@ if [[ -z $crate || $crate == 'issuer_common' ]]; then
     rm -f "$BASE_DIR/wallet_core/wallet_server/issuer_common/src/entity"/*
     sea-orm-cli generate entity \
         --database-url "postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/issuance_server" \
-        --ignore-tables "seaql_migrations,attestation_batch,attestation_batch_list_indices,attestation_type,session_state,status_list,status_list_item" \
+        --ignore-tables "seaql_migrations,attestation_batch,attestation_batch_list_indices,attestation_group,session_state,status_list,status_list_item" \
         --output-dir "$BASE_DIR/wallet_core/wallet_server/issuer_common/src/entity"
     cargo +nightly fmt --manifest-path "$BASE_DIR/wallet_core/wallet_server/issuer_common/Cargo.toml"
 fi
@@ -38,7 +38,7 @@ if [[ -z $crate || $crate == 'wallet_provider' ]]; then
     rm -f "$BASE_DIR/wallet_core/wallet_provider/persistence/src/entity"/*
     sea-orm-cli generate entity \
         --database-url "postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/wallet_provider" \
-        --ignore-tables "seaql_migrations,attestation_batch,attestation_batch_list_indices,attestation_type,status_list,status_list_flag,status_list_item" \
+        --ignore-tables "seaql_migrations,attestation_batch,attestation_batch_list_indices,attestation_group,status_list,status_list_flag,status_list_item" \
         --output-dir "$BASE_DIR/wallet_core/wallet_provider/persistence/src/entity"
     cargo +nightly fmt --manifest-path "$BASE_DIR/wallet_core/wallet_provider/persistence/Cargo.toml"
 fi
@@ -47,7 +47,7 @@ if [[ -z $crate || $crate == 'audit_log' ]]; then
     rm -f "$BASE_DIR/wallet_core/wallet_provider/audit_log/src/entity"/*
     sea-orm-cli generate entity \
         --database-url "postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/wallet_provider_audit_log" \
-        --ignore-tables "seaql_migrations,attestation_batch,attestation_batch_list_indices,attestation_type,status_list,status_list_item" \
+        --ignore-tables "seaql_migrations,attestation_batch,attestation_batch_list_indices,attestation_group,status_list,status_list_item" \
         --output-dir "$BASE_DIR/wallet_core/wallet_provider/audit_log/src/entity"
     cargo +nightly fmt --manifest-path "$BASE_DIR/wallet_core/wallet_provider/audit_log/Cargo.toml"
 fi

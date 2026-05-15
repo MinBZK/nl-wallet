@@ -3,21 +3,21 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_data::issuable_document::IssuableDocument;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use itertools::Itertools;
+use openid4vc::Format;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::GrantPreAuthorizedCode;
 use openid4vc::credential::Grants;
+use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
-use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreError;
 use openid4vc::verifier::DisclosureResultHandler;
@@ -89,19 +89,25 @@ impl AttributesFetcher for HttpAttributesFetcher {
 pub struct IssuanceResultHandler<AF, K, AS, S, N, L> {
     pub attributes_fetcher: AF,
     pub issuer: Arc<Issuer<K, AS, S, N, L>>,
-    pub credential_issuer: IssuerIdentifier,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum IssuanceResultHandlerError {
     #[error("failed to fetch attributes: {0}")]
     AttributesFetching(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
     #[error("no attestations to issue")]
     NoIssuableAttestations,
+
+    #[error("attestation type for format \"{0}\" not configured: {1}")]
+    AttestationTypeNotConfigured(Format, String),
+
     #[error("failed to create session: {0}")]
     SessionStore(#[from] SessionStoreError),
+
     #[error("URL encoding failed: {0}")]
     UrlEncoding(#[from] serde_urlencoded::ser::Error),
+
     #[error("URL decoding failed: {0}")]
     UrlDecoding(#[from] serde_urlencoded::de::Error),
 }
@@ -142,10 +148,22 @@ where
             .try_into()
             .map_err(|_| DisclosureResultHandlerError::new(IssuanceResultHandlerError::NoIssuableAttestations))?;
 
+        // Look up the credential configuration ids based on the combination
+        // of the format and attestation types of the issuable documents.
         let credential_configuration_ids = to_issue
             .iter()
-            .map(|document| document.attestation_type().to_string())
-            .collect();
+            .map(|document| {
+                self.issuer
+                    .credential_config_id_by_format_and_attestation_type(document.format, &document.attestation_type)
+                    .cloned()
+                    .ok_or_else(|| {
+                        DisclosureResultHandlerError::new(IssuanceResultHandlerError::AttestationTypeNotConfigured(
+                            document.format,
+                            document.attestation_type.clone(),
+                        ))
+                    })
+            })
+            .try_collect()?;
 
         // Start a new issuance session.
         let token = self
@@ -156,7 +174,7 @@ where
 
         let credential_offer = CredentialOfferContainer {
             credential_offer: CredentialOffer {
-                credential_issuer: self.credential_issuer.clone(),
+                credential_issuer: self.issuer.metadata().credential_issuer.clone(),
                 credential_configuration_ids,
                 grants: Some(Grants::PreAuthorizedCode {
                     pre_authorized_code: GrantPreAuthorizedCode::new(token.into()),
@@ -178,24 +196,30 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use std::convert::Infallible;
+    use std::num::NonZeroU8;
     use std::sync::Arc;
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
-    use attestation_data::issuable_document::IssuableDocument;
     use attestation_data::validity::IssuanceValidity;
+    use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
+    use chrono::Days;
     use chrono::Utc;
+    use crypto::server_keys::KeyPair;
+    use crypto::server_keys::generate::Ca;
     use dcql::unique_id_vec::UniqueIdVec;
     use indexmap::IndexMap;
+    use openid4vc::Format;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential::CredentialOffer;
-    use openid4vc::issuer::AttestationTypeConfig;
+    use openid4vc::credential_configurations::CredentialConfigurationParameters;
+    use openid4vc::issuable_document::IssuableDocument;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
@@ -205,6 +229,7 @@ mod tests {
     use openid4vc::server_state::SessionToken;
     use openid4vc::verifier::DisclosureResultHandler;
     use p256::ecdsa::SigningKey;
+    use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use token_status_list::status_list_service::mock::MockStatusListServices;
     use token_status_list::verification::verifier::RevocationStatus;
     use utils::vec_nonempty;
@@ -245,6 +270,7 @@ mod tests {
 
             Ok(vec![
                 IssuableDocument::try_new_with_random_id(
+                    Format::SdJwt,
                     attestation.attestation_type.clone(),
                     IndexMap::from([(
                         "attr_name".to_string(),
@@ -275,10 +301,29 @@ mod tests {
         Issuer<SigningKey, (), MemorySessionStore<IssuanceData>, MemoryNonceStore, MockStatusListServices>;
 
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
-        Issuer::new(
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
+
+        let config_params = CredentialConfigurationParameters {
+            format: Format::SdJwt,
+            attestation_type: "com.example.degree".to_string(),
+            key_pair: KeyPair::new_from_signing_key(
+                issuance_keypair.private_key().to_owned(),
+                issuance_keypair.certificate().to_owned(),
+            )
+            .unwrap(),
+            valid_days: Days::new(1),
+            status_list_group: "status_list_group".to_string(),
+            issuer_uri: "https://example.com".parse().unwrap(),
+            attestation_qualification: AttestationQualification::default(),
+            metadata_documents: TypeMetadataDocuments::degree_example().1,
+        };
+
+        Issuer::try_new(
             "https://example.com".parse().unwrap(),
+            NonZeroU8::MIN,
             vec![],
-            HashMap::<String, AttestationTypeConfig<SigningKey>>::new().into(),
+            [("credential_config_id".to_string().into(), config_params)].into(),
             None,
             (),
             sessions,
@@ -288,6 +333,7 @@ mod tests {
             Arc::new(()),
             None,
         )
+        .unwrap()
     }
 
     #[tokio::test]
@@ -297,11 +343,10 @@ mod tests {
         let result_handler = IssuanceResultHandler {
             attributes_fetcher: TestAttributesFetcher,
             issuer: Arc::new(mock_issuer(Arc::clone(&sessions))),
-            credential_issuer: "https://example.com".parse().unwrap(),
         };
 
         // The MockAttributesFetcher will return this attestation type in the issuable documents.
-        let mock_disclosed_type = "attestation_type";
+        let mock_disclosed_type = "com.example.degree";
         let mock_disclosed_attrs = mock_disclosed_attrs(mock_disclosed_type.to_string());
 
         let query_params = &result_handler
@@ -325,7 +370,7 @@ mod tests {
 
         // The session should contain an issuable attestation with our earlier disclosed attestation type.
         let issuable = session.issuable_documents.as_ref().unwrap().as_ref().first().unwrap();
-        assert_eq!(issuable.attestation_type(), mock_disclosed_type);
+        assert_eq!(issuable.attestation_type, mock_disclosed_type);
     }
 
     #[tokio::test]
@@ -335,7 +380,6 @@ mod tests {
             issuer: Arc::new(mock_issuer(Arc::new(MemorySessionStore::new(
                 SessionStoreTimeouts::default(),
             )))),
-            credential_issuer: "https://example.com".parse().unwrap(),
         };
 
         let err = result_handler

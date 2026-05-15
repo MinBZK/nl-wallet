@@ -1,3 +1,6 @@
+use attestation_data::attributes::Attributes;
+use attestation_data::attributes::AttributesError;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_types::qualification::AttestationQualification;
 use chrono::DateTime;
 use chrono::Utc;
@@ -6,11 +9,11 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_valid::Validate;
+use serde_with::DisplayFromStr;
+use serde_with::serde_as;
 use uuid::Uuid;
 
-use crate::attributes::Attributes;
-use crate::attributes::AttributesError;
-use crate::credential_payload::PreviewableCredentialPayload;
+use crate::Format;
 
 /// Generic data model used to pass the attributes to be issued from the issuer backend to the wallet server. This model
 /// should be convertable into all documents that are actually issued to the wallet, i.e. mdoc and sd-jwt.
@@ -23,23 +26,28 @@ use crate::credential_payload::PreviewableCredentialPayload;
 ///         "lastname": "Doe"
 ///     }
 /// }
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 #[cfg_attr(feature = "mock", derive(derive_more::Into))]
 pub struct IssuableDocument {
-    attestation_type: String,
+    pub id: Uuid,
+    #[serde_as(as = "DisplayFromStr")]
+    pub format: Format,
+    pub attestation_type: String,
     #[validate(custom = IssuableDocument::validate_attributes)]
     attributes: Attributes,
-    id: Uuid,
 }
 
 impl IssuableDocument {
     pub fn try_new(
+        id: Uuid,
+        format: Format,
         attestation_type: String,
         attributes: Attributes,
-        id: Uuid,
     ) -> Result<Self, serde_valid::validation::Error> {
         Self::validate_attributes(&attributes)?;
         let document = Self {
+            format,
             attestation_type,
             attributes,
             id,
@@ -48,10 +56,11 @@ impl IssuableDocument {
     }
 
     pub fn try_new_with_random_id(
+        format: Format,
         attestation_type: String,
         attributes: Attributes,
     ) -> Result<Self, serde_valid::validation::Error> {
-        Self::try_new(attestation_type, attributes, Uuid::new_v4())
+        Self::try_new(Uuid::new_v4(), format, attestation_type, attributes)
     }
 
     pub fn validate_attributes(attributes: &Attributes) -> Result<(), serde_valid::validation::Error> {
@@ -83,26 +92,23 @@ impl IssuableDocument {
         (self.id, payload)
     }
 
-    pub fn attestation_type(&self) -> &str {
-        &self.attestation_type
-    }
-
     pub fn validate_with_metadata(&self, type_metadata: &NormalizedTypeMetadata) -> Result<(), AttributesError> {
         self.attributes.validate(type_metadata)
     }
 }
 
-#[cfg(feature = "mock")]
+#[cfg(any(test, feature = "mock"))]
 pub mod mock {
+    use attestation_data::attributes::Attribute;
+    use attestation_data::attributes::AttributeValue;
     use indexmap::IndexMap;
 
     use super::*;
-    use crate::attributes::Attribute;
-    use crate::attributes::AttributeValue;
 
     impl IssuableDocument {
         pub fn new_mock_degree(education: String) -> Self {
             IssuableDocument::try_new_with_random_id(
+                Format::SdJwt,
                 "com.example.degree".to_string(),
                 IndexMap::from([
                     (

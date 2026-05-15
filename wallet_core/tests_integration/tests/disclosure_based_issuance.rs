@@ -3,7 +3,6 @@ use attestation_data::disclosure::DisclosedAttributes;
 use attestation_types::claim_path::ClaimPath;
 use db_test::DbSetup;
 use dcql::CredentialFormat;
-use dcql::normalized::MdocAttributeRequest;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::SdJwtAttributeRequest;
@@ -26,7 +25,6 @@ use wallet::openid4vc::SessionType;
 #[serial(hsm)]
 async fn ltc5_test_disclosure_based_issuance_and_disclosure(
     #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] pid_format: CredentialFormat,
-    #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] degree_format: CredentialFormat,
 ) {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
@@ -61,27 +59,13 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
     }
 
     // Prepare a disclosure request and send this to the verifier.
-    let credential_request = match degree_format {
-        CredentialFormat::MsoMdoc => NormalizedCredentialRequest::MsoMdoc {
-            id: "degree".parse().unwrap(),
-            doctype_value: "com.example.degree".to_string(),
-            claims: vec_nonempty![MdocAttributeRequest {
-                path: vec_nonempty![
-                    ClaimPath::SelectByKey("com.example.degree".to_string()),
-                    ClaimPath::SelectByKey("education".to_string())
-                ],
-                intent_to_retain: Some(true),
-            }],
-            aki: vec![],
-        },
-        CredentialFormat::SdJwt => NormalizedCredentialRequest::SdJwt {
-            id: "degree".parse().unwrap(),
-            vct_values: vec_nonempty!["com.example.degree".to_string()],
-            claims: vec_nonempty![SdJwtAttributeRequest {
-                path: vec_nonempty![ClaimPath::SelectByKey("education".to_string())],
-            }],
-            aki: vec![],
-        },
+    let credential_request = NormalizedCredentialRequest::SdJwt {
+        id: "degree".parse().unwrap(),
+        vct_values: vec_nonempty!["com.example.degree".to_string()],
+        claims: vec_nonempty![SdJwtAttributeRequest {
+            path: vec_nonempty![ClaimPath::SelectByKey("education".to_string())],
+        }],
+        aki: vec![],
     };
 
     let start_request = StartDisclosureRequest {
@@ -199,16 +183,8 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
         .attributes;
 
     // Check that the only attribute disclosed is the education.
-    let education = match (degree_format, attributes) {
-        (CredentialFormat::MsoMdoc, DisclosedAttributes::MsoMdoc(attributes)) => attributes
-            .iter()
-            .exactly_one()
-            .ok()
-            .and_then(|(name_space, attributes)| (name_space == "com.example.degree").then_some(attributes))
-            .and_then(|attributes| attributes.into_iter().exactly_one().ok())
-            .and_then(|(key, value)| (key == "education").then_some(value))
-            .unwrap(),
-        (CredentialFormat::SdJwt, DisclosedAttributes::SdJwt(attributes)) => attributes
+    let education = match attributes {
+        DisclosedAttributes::SdJwt(attributes) => attributes
             .flattened()
             .into_iter()
             .exactly_one()

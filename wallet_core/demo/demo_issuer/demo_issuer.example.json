@@ -19,6 +19,7 @@
       "data": {
         "9999999999": [
           {
+            "format": "dc+sd-jwt",
             "attestation_type": "com.example.degree",
             "attributes": {
               "university": "Holland University",
@@ -40,6 +41,7 @@
       "data": {
         "9999999999": [
           {
+            "format": "dc+sd-jwt",
             "attestation_type": "com.example.insurance",
             "attributes": {
               "product": "Health Insurance",
