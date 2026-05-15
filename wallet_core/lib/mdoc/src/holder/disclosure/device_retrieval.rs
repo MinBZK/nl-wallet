@@ -1,9 +1,9 @@
 use attestation_types::claim_path::ClaimPath;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
-use rustls_pki_types::TrustAnchor;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -36,7 +36,7 @@ impl DocRequest {
         &self,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor],
+        trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<Option<BorrowingCertificate>> {
         // If reader authentication is present, verify it and return the certificate.
         self.reader_auth
@@ -129,7 +129,7 @@ mod tests {
         // Create a CA, certificate and private key and trust anchors.
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let private_key = ca.generate_reader_mock().unwrap();
-        let trust_anchors = &[ca.to_trust_anchor()];
+        let trust_anchors = &[ca.to_borrowing_trust_anchor()];
 
         // Create a basic session transcript, item request and a `DocRequest`.
         let session_transcript = SessionTranscript::new_mock();
@@ -145,7 +145,11 @@ mod tests {
 
         let other_ca = Ca::generate_reader_mock_ca().unwrap();
         let error = doc_request
-            .verify(&session_transcript, &TimeGenerator, &[other_ca.to_trust_anchor()])
+            .verify(
+                &session_transcript,
+                &TimeGenerator,
+                &[other_ca.to_borrowing_trust_anchor()],
+            )
             .expect_err("Verifying DeviceRequest should have resulted in an error");
 
         assert_matches!(error, Error::Cose(_));

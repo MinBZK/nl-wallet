@@ -30,7 +30,6 @@ use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
 use openid4vc_server::verifier::VerifierFactory;
-use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
@@ -206,19 +205,18 @@ impl VerifierSettings {
     fn validate(&self) -> Result<(), IssuerSettingsValidationError> {
         let time = TimeGenerator;
 
-        let trust_anchors: Vec<TrustAnchor<'_>> = self
-            .reader_trust_anchors
-            .iter()
-            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
-            .collect::<Vec<_>>();
-
         let key_pairs: Vec<(&str, &KeyPair)> = self
             .disclosure_settings
             .iter()
             .map(|(id, settings)| (id.as_ref(), &settings.key_pair))
             .collect();
 
-        verify_key_pairs(&key_pairs, &trust_anchors, CertificateUsage::ReaderAuth, &time)?;
+        verify_key_pairs(
+            &key_pairs,
+            &self.reader_trust_anchors,
+            CertificateUsage::ReaderAuth,
+            &time,
+        )?;
 
         Ok(())
     }
@@ -268,17 +266,11 @@ impl VerifierSettings {
         let attributes_fetcher =
             HttpAttributesFetcher::try_new(url_configs).map_err(VerifierSettingsError::AttributesFetcher)?;
 
-        let issuer_trust_anchors = server_settings
-            .issuer_trust_anchors
-            .iter()
-            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
-            .collect();
-
         let factory = VerifierFactory::new(
             issuer.issuer_identifier().as_base_url().join_base_url("disclosure"),
             self.universal_link_base_url,
             use_cases,
-            issuer_trust_anchors,
+            server_settings.issuer_trust_anchors.clone(),
             issuer.accepted_wallet_client_ids().map(str::to_string).collect_vec(),
             self.extending_vct_values.unwrap_or_default(),
         );

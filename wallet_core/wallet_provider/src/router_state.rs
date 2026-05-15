@@ -186,11 +186,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 wia_issuer,
                 wia_validity: Days::new(settings.wua_valid_days),
                 wrapping_key_identifier: settings.attestation_wrapping_key_identifier,
-                pid_issuer_trust_anchors: settings
-                    .pid_issuer_trust_anchors
-                    .iter()
-                    .map(|anchor| anchor.to_owned_trust_anchor())
-                    .collect(),
+                pid_issuer_trust_anchors: settings.pid_issuer_trust_anchors,
                 status_list_service,
             },
             status_list_refresh_task,

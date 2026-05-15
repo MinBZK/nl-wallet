@@ -8,10 +8,10 @@ use attestation_types::status_claim::StatusClaim::StatusList;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::DistinguishedName;
 use moka::Expiry;
 use moka::future::Cache;
-use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use tracing::warn;
@@ -96,7 +96,7 @@ where
 
     pub async fn verify(
         &self,
-        issuer_trust_anchors: &[TrustAnchor<'_>],
+        issuer_trust_anchors: &[BorrowingTrustAnchor],
         attestation_signing_certificate_dn: DistinguishedName,
         status_claim: StatusClaim,
         time: &impl Generator<DateTime<Utc>>,
@@ -132,7 +132,7 @@ where
     async fn fetch_status_list_claims(
         &self,
         url: Url,
-        issuer_trust_anchors: &[TrustAnchor<'_>],
+        issuer_trust_anchors: &[BorrowingTrustAnchor],
         attestation_signing_certificate_dn: DistinguishedName,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<StatusListClaims, StatusListVerificationError> {
@@ -214,7 +214,7 @@ mod test {
         // Index 1 is valid
         let status = verifier
             .verify(
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
@@ -229,7 +229,7 @@ mod test {
         // Index 3 is invalid
         let status = verifier
             .verify(
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
@@ -244,7 +244,7 @@ mod test {
         // Corrupted when the sub claim doesn't match
         let status = verifier
             .verify(
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://different_uri".parse().unwrap(),
@@ -274,7 +274,7 @@ mod test {
         // Corrupted when the JWT is expired
         let status = verifier
             .verify(
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
@@ -289,7 +289,7 @@ mod test {
         // Corrupted when the attestation is signed with a different certificate
         let status = verifier
             .verify(
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 DistinguishedName::new(String::from("CN=Different CA")),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
@@ -315,7 +315,7 @@ mod test {
         );
         let status = verifier
             .verify(
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),
@@ -345,7 +345,7 @@ mod test {
         // Index 1 is valid
         let status = verifier
             .verify(
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 StatusList(StatusListClaim {
                     uri: "https://example.com/statuslists/1".parse().unwrap(),

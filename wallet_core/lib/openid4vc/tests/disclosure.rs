@@ -30,6 +30,7 @@ use crypto::server_keys::generate::Ca;
 use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
 use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
 use crypto::server_keys::generate::mock::RP_CERT_CN;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
@@ -103,7 +104,6 @@ use rand_core::OsRng;
 use ring::hmac;
 use ring::rand;
 use rstest::rstest;
-use rustls_pki_types::TrustAnchor;
 use token_status_list::verification::client::mock::StatusListClientStub;
 use token_status_list::verification::verifier::RevocationVerifier;
 use url::Url;
@@ -177,7 +177,7 @@ fn disclosure_direct() {
 
     // Wallet receives the signed Authorization Request and performs the disclosure.
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let jwe = disclosure_jwe(&auth_request_jws.into(), &[ca.to_trust_anchor()], &issuer_ca);
+    let jwe = disclosure_jwe(&auth_request_jws.into(), &[ca.to_borrowing_trust_anchor()], &issuer_ca);
 
     // RP decrypts the response JWE and verifies the contained Authorization Response.
     let disclosed_attestations = VpAuthorizationResponse::decrypt_and_verify(
@@ -186,7 +186,7 @@ fn disclosure_direct() {
         &iso_auth_request,
         &[MOCK_WALLET_CLIENT_ID.to_string()],
         &MockTimeGenerator::default(),
-        &[issuer_ca.to_trust_anchor()],
+        &[issuer_ca.to_borrowing_trust_anchor()],
         &ExtendingVctRetrieverStub,
         &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
             issuer_ca.generate_status_list_mock().unwrap(),
@@ -203,7 +203,7 @@ fn disclosure_direct() {
 /// The wallet side: verify the Authorization Request, gather the attestations and encrypt it into a JWE.
 fn disclosure_jwe(
     auth_request: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
-    trust_anchors: &[TrustAnchor<'_>],
+    trust_anchors: &[BorrowingTrustAnchor],
     issuer_ca: &Ca,
 ) -> String {
     let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::random(&mut OsRng));
@@ -282,7 +282,7 @@ async fn disclosure_using_message_client(
         test_credentials,
         formats,
         rp_keypair,
-        vec![issuer_ca.to_trust_anchor().to_owned()],
+        vec![issuer_ca.to_borrowing_trust_anchor()],
         issuer_ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
     );
     let request_uri = message_client.start_session();
@@ -290,7 +290,11 @@ async fn disclosure_using_message_client(
     // Perform the first part, which creates the disclosure session.
     let client = VpDisclosureClient::new(message_client);
     let session = client
-        .start(&request_uri, DisclosureUriSource::Link, &[ca.to_trust_anchor()])
+        .start(
+            &request_uri,
+            DisclosureUriSource::Link,
+            &[ca.to_borrowing_trust_anchor()],
+        )
         .await
         .unwrap();
 
@@ -312,7 +316,7 @@ struct DirectMockVpMessageClient {
     auth_request: NormalizedVpAuthorizationRequest,
     request_uri: BaseUrl,
     response_uri: BaseUrl,
-    trust_anchors: Vec<TrustAnchor<'static>>,
+    trust_anchors: Vec<BorrowingTrustAnchor>,
     status_list_keypair: KeyPair,
 }
 
@@ -321,14 +325,14 @@ impl DirectMockVpMessageClient {
         test_credentials: TestCredentials,
         formats: Vec<CredentialFormat>,
         auth_keypair: KeyPair,
-        trust_anchors: Vec<TrustAnchor<'static>>,
+        trust_anchors: Vec<BorrowingTrustAnchor>,
         status_list_keypair: KeyPair,
     ) -> Self {
         let query = serde_urlencoded::to_string(VerifierUrlParameters {
             session_type: SessionType::SameDevice,
             ephemeral_id_params: Some(EphemeralIdParameters {
                 ephemeral_id: vec![42],
-                time: Utc::now(),
+                time: Some(Utc::now()),
             }),
         })
         .unwrap();
@@ -1044,7 +1048,7 @@ fn setup_wallet_initiated_usecase_verifier<G>(
 ) -> (
     Arc<MockWalletInitiatedUseCaseVerifier<G>>,
     TestCredentials,
-    TrustAnchor<'static>,
+    BorrowingTrustAnchor,
     KeyPair,
     ClientId,
 )
@@ -1074,7 +1078,7 @@ where
     let verifier = Arc::new(MockWalletInitiatedUseCaseVerifier::new(
         WalletInitiatedUseCases::new(usecases),
         sessions,
-        vec![issuer_ca.to_trust_anchor().to_owned()],
+        vec![issuer_ca.to_borrowing_trust_anchor()],
         Some(Box::new(MockDisclosureResultHandler::new(None))),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
         HashMap::default(),
@@ -1086,7 +1090,7 @@ where
     (
         verifier,
         test_credentials,
-        rp_ca.to_trust_anchor().to_owned(),
+        rp_ca.to_borrowing_trust_anchor(),
         issuer_keypair,
         client_id,
     )
@@ -1095,7 +1099,7 @@ where
 fn setup_verifier(
     dcql_query: &Query,
     session_result_query_param: Option<String>,
-) -> (Arc<MockRpInitiatedUseCaseVerifier>, TrustAnchor<'static>, KeyPair) {
+) -> (Arc<MockRpInitiatedUseCaseVerifier>, BorrowingTrustAnchor, KeyPair) {
     // Initialize key material
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
@@ -1146,7 +1150,7 @@ fn setup_verifier(
     let verifier = Arc::new(MockRpInitiatedUseCaseVerifier::new(
         usecases,
         sessions,
-        vec![issuer_ca.to_trust_anchor().to_owned()],
+        vec![issuer_ca.to_borrowing_trust_anchor()],
         Some(Box::new(MockDisclosureResultHandler::new(session_result_query_param))),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
         HashMap::from([(
@@ -1158,14 +1162,14 @@ fn setup_verifier(
         ))),
     ));
 
-    (verifier, rp_ca.to_trust_anchor().to_owned(), issuer_keypair)
+    (verifier, rp_ca.to_borrowing_trust_anchor(), issuer_keypair)
 }
 
 async fn start_disclosure_session<US, UC>(
     verifier: Arc<MockVerifier<US>>,
     uri_source: DisclosureUriSource,
     request_uri: &str,
-    trust_anchor: TrustAnchor<'static>,
+    trust_anchor: BorrowingTrustAnchor,
 ) -> Result<VpDisclosureSession<VerifierMockVpMessageClient<MockVerifier<US>>>, VpSessionError>
 where
     US: UseCases<UseCase = UC, Key = SigningKey>,

@@ -73,7 +73,7 @@
 //! # use p256::ecdsa::SigningKey;
 //! # use p256::ecdsa::VerifyingKey;
 //! # use rand::rngs::OsRng;
-//! # use rustls_pki_types::TrustAnchor;
+//! # use crypto::trust_anchor::BorrowingTrustAnchor;
 //! # use sd_jwt::builder::SdJwtBuilder;
 //! # use sd_jwt::claims::ClaimName;
 //! # use sd_jwt::claims::ClaimValue;
@@ -126,7 +126,7 @@
 //! let unverified = signed.into_unverified();
 //!
 //! // 4) Holder parses and verifies SD-JWT against trust anchors.
-//! let trust_anchors = vec![ca.to_trust_anchor()];
+//! let trust_anchors = vec![ca.to_borrowing_trust_anchor()];
 //! let verified = unverified.into_verified_against_trust_anchors(
 //!     &trust_anchors,
 //!     &TimeGenerator::default()

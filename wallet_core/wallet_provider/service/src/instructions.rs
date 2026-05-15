@@ -1522,7 +1522,7 @@ mod tests {
             StubWalletFlags::default(),
             setup_hsm().await,
             wrapping_key_identifier.to_string(),
-            vec![ca.to_trust_anchor().to_owned()],
+            vec![ca.to_borrowing_trust_anchor()],
             mock_status_list_service(),
         )
     }

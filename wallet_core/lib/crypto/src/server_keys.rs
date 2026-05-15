@@ -189,6 +189,10 @@ pub mod generate {
             &self.borrowing_trust_anchor
         }
 
+        pub fn to_borrowing_trust_anchor(&self) -> BorrowingTrustAnchor {
+            self.borrowing_trust_anchor.clone()
+        }
+
         pub fn to_signing_key(&self) -> Result<SigningKey, CertificateError> {
             rcgen_cert_privkey(self.issuer.key())
         }
@@ -281,6 +285,37 @@ pub mod generate {
         {
             let public_key = SubjectPublicKeyInfo::from_der(public_key)?;
             self.certificate_for(&public_key, common_name, extensions, configuration)
+        }
+
+        /// Generate a new key pair and return both a self-signed root `Ca` for it and a
+        /// cross-signed certificate DER where the same key pair is signed by `self`.
+        /// The cross-cert carries the given `usage` EKU so that webpki can validate chains
+        /// that use it as an intermediate.
+        pub fn generate_root_and_cross_cert(
+            &self,
+            common_name: &str,
+            usage: CertificateUsage,
+            configuration: CertificateConfiguration,
+        ) -> Result<(Self, CertificateDer<'static>), CertificateError> {
+            let key_pair = rcgen::KeyPair::generate()?;
+
+            let mut self_signed_params = CertificateParams::from(configuration.clone());
+            self_signed_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
+            self_signed_params
+                .distinguished_name
+                .push(DnType::CommonName, common_name);
+            let self_signed_cert = self_signed_params.self_signed(&key_pair)?;
+
+            let mut cross_params = CertificateParams::from(configuration);
+            cross_params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
+            cross_params.distinguished_name.push(DnType::CommonName, common_name);
+            cross_params.custom_extensions.push(usage.into());
+            let cross_cert = cross_params.signed_by(&key_pair, &self.issuer)?;
+
+            let issuer = Issuer::new(self_signed_params, key_pair);
+            let root_ca = Self::new(issuer, self_signed_cert.into(), 0)?;
+
+            Ok((root_ca, cross_cert.into()))
         }
     }
 
