@@ -437,7 +437,7 @@ impl IssuerSettings {
 
         if let StoreConnection::Postgres(connection) = &store_connection {
             let name = if self.status_lists.storage_url.is_some() {
-                "db-session"
+                "db-stores"
             } else {
                 "db"
             };
