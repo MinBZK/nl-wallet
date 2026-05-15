@@ -23,17 +23,8 @@ use crate::postgres::RevokeAll;
 
 #[derive(Debug)]
 struct RevocationRouterState<K, R> {
-    status_list_services: Vec<Arc<PostgresStatusListService<K, R>>>,
+    status_list_services: Vec<PostgresStatusListService<K, R>>,
     revocation_helper: PostgresRevocationHelper,
-}
-
-impl<K, R> Clone for RevocationRouterState<K, R> {
-    fn clone(&self) -> Self {
-        Self {
-            status_list_services: self.status_list_services.iter().map(Arc::clone).collect(),
-            revocation_helper: self.revocation_helper.clone(),
-        }
-    }
 }
 
 #[derive(OpenApi)]
@@ -52,19 +43,18 @@ struct ApiDoc;
     )
 )]
 async fn revoke_batch<K, R>(
-    State(RevocationRouterState {
-        status_list_services, ..
-    }): State<RevocationRouterState<K, R>>,
+    State(state): State<Arc<RevocationRouterState<K, R>>>,
     Json(batch_ids): Json<Vec<Uuid>>,
 ) -> Result<(), RevocationError>
 where
     K: EcdsaKeySend + Sync + 'static,
     R: RevokeAll + Clone + Sync + 'static,
 {
-    let service_count = status_list_services.len();
+    let service_count = state.status_list_services.len();
 
     try_join_all(
-        status_list_services
+        state
+            .status_list_services
             .iter()
             .zip_eq(itertools::repeat_n(batch_ids, service_count))
             .map(|(service, batch_ids)| service.revoke_attestation_batches(batch_ids)),
@@ -82,9 +72,9 @@ where
     )
 )]
 async fn list_batch<K, R>(
-    State(RevocationRouterState { revocation_helper, .. }): State<RevocationRouterState<K, R>>,
+    State(state): State<Arc<RevocationRouterState<K, R>>>,
 ) -> Result<Json<Vec<BatchIsRevoked>>, RevocationError> {
-    Ok(Json(revocation_helper.list_attestation_batches().await?))
+    Ok(Json(state.revocation_helper.list_attestation_batches().await?))
 }
 
 #[cfg(feature = "test_api")]
@@ -100,14 +90,14 @@ async fn list_batch<K, R>(
     )
 )]
 async fn get_batch<K, R>(
-    State(RevocationRouterState { revocation_helper, .. }): State<RevocationRouterState<K, R>>,
+    State(state): State<Arc<RevocationRouterState<K, R>>>,
     Path(batch_id): Path<Uuid>,
 ) -> Result<Json<BatchIsRevoked>, RevocationError> {
-    Ok(Json(revocation_helper.get_attestation_batch(batch_id).await?))
+    Ok(Json(state.revocation_helper.get_attestation_batch(batch_id).await?))
 }
 
 pub fn create_revocation_router<K, R>(
-    status_list_services: Vec<Arc<PostgresStatusListService<K, R>>>,
+    status_list_services: Vec<PostgresStatusListService<K, R>>,
     revocation_helper: PostgresRevocationHelper,
 ) -> (Router, utoipa::openapi::OpenApi)
 where
@@ -123,7 +113,7 @@ where
         status_list_services,
         revocation_helper,
     };
-    let router = router.with_state(state);
+    let router = router.with_state(Arc::new(state));
 
     router.split_for_parts()
 }

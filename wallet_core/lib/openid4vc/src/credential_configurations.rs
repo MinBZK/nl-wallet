@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::sync::Arc;
 
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
@@ -43,7 +42,7 @@ pub struct CredentialConfigurationParameters<K, L> {
     pub attestation_type: String,
     #[debug(skip)]
     pub key_pair: KeyPair<K>,
-    pub status_list: Arc<L>,
+    pub status_list: L,
     pub valid_days: Days,
     pub issuer_uri: HttpsUri,
     pub attestation_qualification: AttestationQualification,
@@ -62,7 +61,7 @@ pub(crate) struct CredentialConfiguration<K, L> {
     pub attestation_type: String,
     #[debug(skip)]
     pub key_pair: KeyPair<K>,
-    pub status_list: Arc<L>,
+    pub status_list: L,
     pub valid_days: Days,
     pub issuer_uri: HttpsUri,
     pub attestation_qualification: AttestationQualification,
@@ -252,7 +251,6 @@ impl<K, L> CredentialConfigurations<K, L> {
 mod tests {
     use std::collections::HashMap;
     use std::collections::HashSet;
-    use std::sync::Arc;
 
     use assert_matches::assert_matches;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -288,7 +286,7 @@ mod tests {
                     format,
                     attestation_type: "com.example.degree".to_string(),
                     key_pair,
-                    status_list: Arc::new(MockStatusListService::new()),
+                    status_list: MockStatusListService::new(),
                     valid_days: Days::new(1),
                     issuer_uri: "https://example.com".parse().unwrap(),
                     attestation_qualification: AttestationQualification::default(),

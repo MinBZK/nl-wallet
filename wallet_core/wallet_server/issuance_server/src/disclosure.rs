@@ -316,7 +316,7 @@ mod tests {
                 issuance_keypair.certificate().to_owned(),
             )
             .unwrap(),
-            status_list: Arc::new(status_list),
+            status_list,
             valid_days: Days::new(1),
             issuer_uri: "https://example.com".parse().unwrap(),
             attestation_qualification: AttestationQualification::default(),

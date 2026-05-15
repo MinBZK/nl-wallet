@@ -71,7 +71,7 @@ pub async fn serve_with_listeners<A>(
 where
     A: AttributeService + Send + Sync + 'static,
 {
-    let status_list_services = issuer.status_lists().collect_vec();
+    let status_list_services = issuer.status_lists().cloned().collect_vec();
 
     let issuance_router = create_issuance_router(Arc::new(issuer));
     let mut router = add_cache_control_no_store_layer(issuance_router);

@@ -51,7 +51,7 @@ pub async fn serve_with_listeners(
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
     disclosure_router: Router,
 ) -> Result<()> {
-    let status_list_services = issuer.status_lists().collect_vec();
+    let status_list_services = issuer.status_lists().cloned().collect_vec();
 
     let issuance_router = create_issuance_router(issuer);
     let mut router = add_cache_control_no_store_layer(issuance_router)

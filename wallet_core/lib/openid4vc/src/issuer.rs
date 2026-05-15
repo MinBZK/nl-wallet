@@ -404,11 +404,11 @@ impl<A, K, L, S, N> Issuer<A, K, L, S, N> {
             .map(|(config_id, _config)| config_id)
     }
 
-    pub fn status_lists(&self) -> impl Iterator<Item = Arc<L>> {
+    pub fn status_lists(&self) -> impl Iterator<Item = &L> {
         self.issuer_data
             .credential_configs
             .configurations()
-            .map(|config| Arc::clone(&config.status_list))
+            .map(|config| &config.status_list)
     }
 
     pub fn accepted_wallet_client_ids(&self) -> impl Iterator<Item = &str> {

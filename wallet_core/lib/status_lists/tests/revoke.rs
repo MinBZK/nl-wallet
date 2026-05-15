@@ -1,5 +1,4 @@
 use std::num::NonZeroUsize;
-use std::sync::Arc;
 use std::time::Duration;
 
 use crypto::server_keys::generate::Ca;
@@ -28,7 +27,7 @@ use utils::num::U31;
 use uuid::Uuid;
 
 async fn setup_revocation_server(
-    service: Arc<PostgresStatusListService<SigningKey, NoRevokeAll>>,
+    service: PostgresStatusListService<SigningKey, NoRevokeAll>,
     revocation_helper: PostgresRevocationHelper,
 ) -> anyhow::Result<Url> {
     let (router, _) = create_revocation_router(vec![service], revocation_helper);
@@ -53,7 +52,7 @@ pub async fn fetch_attestation_batch(
 async fn setup_revocation_test(
     db_setup: &DbSetup,
     publish_dir: PublishDir,
-) -> (Arc<PostgresStatusListService<SigningKey, NoRevokeAll>>, Url) {
+) -> (PostgresStatusListService<SigningKey, NoRevokeAll>, Url) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
 
     let key_pair = ca.generate_status_list_mock().unwrap();
@@ -78,8 +77,7 @@ async fn setup_revocation_test(
 
     let helper = PostgresRevocationHelper::new(connection);
 
-    let service = Arc::new(service);
-    let revoke_endpoint = setup_revocation_server(Arc::clone(&service), helper).await.unwrap();
+    let revoke_endpoint = setup_revocation_server(service.clone(), helper).await.unwrap();
 
     (service, revoke_endpoint)
 }

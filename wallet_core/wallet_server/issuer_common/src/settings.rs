@@ -272,7 +272,7 @@ impl CredentialConfigurationsSettings {
                             format: settings.format,
                             attestation_type: settings.attestation_type,
                             key_pair,
-                            status_list: Arc::new(status_list),
+                            status_list,
                             valid_days: Days::new(settings.valid_days),
                             issuer_uri,
                             attestation_qualification: settings.attestation_qualification,
