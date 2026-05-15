@@ -12,7 +12,6 @@ use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
-use attestation_data::issuable_document::IssuableDocument;
 use axum::Json;
 use axum::Router;
 use axum::routing::post;
@@ -41,6 +40,7 @@ use issuer_common::settings::StatusListAttestationSettings;
 use jwt::SignedJwt;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
+use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::openid4vp::ClientId;
@@ -53,7 +53,7 @@ use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use pid_issuer::pid::mock::MockAttributeService;
-use pid_issuer::pid::mock::mock_issuable_document_pid;
+use pid_issuer::pid::mock::mock_issuable_documents_pid;
 use pid_issuer::settings::PidIssuerSettings;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use reqwest::Certificate;
@@ -659,7 +659,7 @@ pub fn pid_issuer_settings(db_url: Url) -> (PidIssuerSettings, VecNonEmpty<Issua
     settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.issuer_settings.server_settings.wallet_server.port = 0;
 
-    (settings, vec_nonempty![mock_issuable_document_pid()])
+    (settings, mock_issuable_documents_pid())
 }
 
 pub fn issuance_server_settings(
@@ -740,7 +740,7 @@ async fn get_status_list_service_and_router(
     let db_connection = new_connection(storage_url).await.unwrap();
 
     let status_list_router = create_serve_router(
-        (&issuer_settings.attestation_settings)
+        (&issuer_settings.credential_configurations)
             .into_iter()
             .map(|(_, settings)| {
                 (
@@ -754,10 +754,11 @@ async fn get_status_list_service_and_router(
 
     let status_list_configs = StatusListAttestationSettings::settings_into_configs(
         issuer_settings
-            .attestation_settings
+            .credential_configurations
             .as_ref()
-            .iter()
-            .map(|(id, settings)| (id.clone(), settings.status_list.clone())),
+            .values()
+            .map(|settings| settings.status_list.clone())
+            .collect(),
         status_lists_settings,
         issuer_settings.public_url.as_base_url(),
         hsm,

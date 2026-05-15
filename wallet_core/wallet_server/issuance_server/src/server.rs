@@ -99,7 +99,10 @@ where
     let log_requests = issuer_settings.server_settings.log_requests;
     let type_metadata = issuer_settings.metadata;
     let disclosure_public_url = issuer_settings.public_url.as_base_url().join_base_url("disclosure");
-    let attestation_config = issuer_settings.attestation_settings.parse(&hsm, &type_metadata).await?;
+    let credential_config_params = issuer_settings
+        .credential_configurations
+        .into_params(&hsm, &type_metadata)
+        .await?;
 
     let use_cases = try_join_all(settings.disclosure_settings.into_iter().map(|(id, s)| {
         let hsm = hsm.clone();
@@ -123,23 +126,23 @@ where
     let use_cases = WalletInitiatedUseCases::new(use_cases);
 
     let status_list_services = Arc::new(status_list_services);
-    let issuer = Arc::new(Issuer::new(
+    let issuer = Arc::new(Issuer::try_new(
         issuer_settings.public_url.clone(),
+        issuer_settings.batch_size,
         issuer_settings.wallet_client_ids.clone(),
-        attestation_config,
+        credential_config_params,
         None,
         None,
         (),
         issuance_sessions,
         proof_nonce_store,
         Arc::clone(&status_list_services),
-    ));
+    )?);
 
     let issuance_router = create_issuance_router(Arc::clone(&issuer));
 
     let result_handler = IssuanceResultHandler {
         issuer,
-        credential_issuer: issuer_settings.public_url,
         attributes_fetcher,
     };
 

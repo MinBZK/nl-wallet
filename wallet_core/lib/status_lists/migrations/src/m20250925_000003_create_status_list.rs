@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use sea_orm_migration::prelude::*;
 use sea_orm_migration::schema::*;
 
-use crate::m20250925_000001_create_attestation_type::AttestationType;
+use crate::m20250925_000001_create_attestation_group::AttestationGroup;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -16,7 +16,7 @@ impl MigrationTrait for Migration {
                     .table(StatusList::Table)
                     .if_not_exists()
                     .col(big_integer(StatusList::Id).primary_key().auto_increment())
-                    .col(small_integer(StatusList::AttestationTypeId))
+                    .col(small_integer(StatusList::AttestationGroupId))
                     .col(string(StatusList::ExternalId))
                     .col(integer(StatusList::Available))
                     .col(integer(StatusList::Size))
@@ -29,9 +29,9 @@ impl MigrationTrait for Migration {
                     )
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk_status_list_attestation_type")
-                            .from(StatusList::Table, StatusList::AttestationTypeId)
-                            .to(AttestationType::Table, AttestationType::Id)
+                            .name("fk_status_list_attestation_group")
+                            .from(StatusList::Table, StatusList::AttestationGroupId)
+                            .to(AttestationGroup::Table, AttestationGroup::Id)
                             .on_delete(ForeignKeyAction::NoAction),
                     )
                     .to_owned(),
@@ -46,7 +46,7 @@ impl MigrationTrait for Migration {
 pub enum StatusList {
     Table,
     Id,
-    AttestationTypeId,
+    AttestationGroupId,
     ExternalId,
     Available,
     Size,

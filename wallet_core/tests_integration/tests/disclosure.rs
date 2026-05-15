@@ -12,6 +12,7 @@ use dcql::normalized::NormalizedCredentialRequests;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::error::HttpJsonErrorBody;
 use itertools::Itertools;
+use openid4vc::Format;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
@@ -393,9 +394,11 @@ async fn test_disclosure_aki_ok() {
     let (pid_issuer_settings, _) = pid_issuer_settings(Url::parse("postgres://unused").unwrap());
     let aki = pid_issuer_settings
         .issuer_settings
-        .attestation_settings
+        .credential_configurations
         .into_iter()
-        .find(|(vct, _)| *vct == PID_ATTESTATION_TYPE)
+        .find(|(_, config_settings)| {
+            config_settings.format == Format::SdJwt && config_settings.attestation_type == *PID_ATTESTATION_TYPE
+        })
         .unwrap()
         .1
         .keypair

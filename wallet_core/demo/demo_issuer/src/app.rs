@@ -4,7 +4,6 @@ use std::sync::LazyLock;
 
 use askama::Template;
 use askama_web::WebTemplate;
-use attestation_data::issuable_document::IssuableDocument;
 use axum::Json;
 use axum::Router;
 use axum::extract::Path;
@@ -23,6 +22,7 @@ use http_utils::health::create_health_router;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use itertools::Itertools;
+use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::openid4vp::ClientId;
 use openid4vc::openid4vp::VpRequestUri;
 use openid4vc::openid4vp::VpRequestUriMethod;
@@ -247,8 +247,8 @@ async fn attestation(
             docs.iter()
                 .cloned()
                 .map(|doc| {
-                    let (attestation_type, attribute) = doc.into();
-                    IssuableDocument::try_new_with_random_id(attestation_type, attribute)
+                    let (format, attestation_type, attribute) = doc.into();
+                    IssuableDocument::try_new_with_random_id(format, attestation_type, attribute)
                         .map_err(|err| web_utils::error::Error::from(anyhow::Error::from(err)))
                 })
                 .collect::<Result<Vec<_>>>()

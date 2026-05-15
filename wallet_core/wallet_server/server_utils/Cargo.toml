@@ -62,7 +62,6 @@ crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
 http_utils.path = "../../lib/http_utils"
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
-sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
 utils.path = "../../lib/utils"
 
 db_test = { path = "../../lib/db_test", optional = true }

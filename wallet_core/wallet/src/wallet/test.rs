@@ -26,7 +26,7 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::BorrowingCertificateExtension;
 use dcql::CredentialFormat;
 use futures::future::FutureExt;
-use indexmap::IndexMap;
+use itertools::Itertools;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
@@ -226,7 +226,8 @@ pub fn create_example_preview_data(
 
     NormalizedCredentialPreview {
         content: CredentialPreviewContent {
-            copies_per_format: IndexMap::from([(format, NonZeroU8::MIN)]),
+            format,
+            batch_size: NonZeroU8::MIN,
             credential_payload: credential_payload.previewable_payload,
             issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
         },
@@ -555,84 +556,101 @@ where
 }
 
 pub fn mock_issuance_session(
-    credential: IssuedCredential,
-    attestation_type: String,
-    type_metadata: VerifiedTypeMetadataDocuments,
+    issuer_credentials: impl IntoIterator<Item = (IssuedCredential, VerifiedTypeMetadataDocuments)>,
 ) -> (MockIssuanceSession, VecNonEmpty<AttestationPresentation>) {
-    let normalized_type_metadata = type_metadata.to_normalized().unwrap();
+    let (credentials_with_metadata, attestation_presentations, issuer_registrations): (_, Vec<_>, Vec<_>) =
+        issuer_credentials
+            .into_iter()
+            .map(|(issued_credential, metadata_documents)| {
+                let (attestation_type, issuer_certificate, exp, nbf) = match &issued_credential {
+                    IssuedCredential::MsoMdoc { mdoc } => {
+                        let (mso, _, _) = mdoc.clone().into_components();
+
+                        let exp = (&mso.validity_info.valid_until).try_into().unwrap();
+                        let nbf = (&mso.validity_info.valid_from).try_into().unwrap();
+
+                        (
+                            mdoc.doc_type().to_string(),
+                            mdoc.issuer_certificate().unwrap(),
+                            Some(exp),
+                            Some(nbf),
+                        )
+                    }
+                    IssuedCredential::SdJwt { sd_jwt, .. } => {
+                        let claims = sd_jwt.claims();
+
+                        (
+                            claims.vct.clone(),
+                            sd_jwt.issuer_certificate().clone(),
+                            claims.exp,
+                            claims.nbf,
+                        )
+                    }
+                };
+
+                let validity_window = ValidityWindow {
+                    valid_from: nbf.map(Into::into),
+                    valid_until: exp.map(Into::into),
+                };
+
+                let issuer_registration = match IssuerRegistration::from_certificate(&issuer_certificate) {
+                    Ok(Some(registration)) => registration,
+                    _ => IssuerRegistration::new_mock(),
+                };
+
+                let normalized_type_metadata = metadata_documents.to_normalized().unwrap();
+
+                let attestation_presentation = match &issued_credential {
+                    IssuedCredential::MsoMdoc { mdoc } => AttestationPresentation::create_from_mdoc(
+                        AttestationIdentity::Ephemeral,
+                        normalized_type_metadata.clone(),
+                        issuer_registration.organization.clone(),
+                        AttestationValidity {
+                            revocation_status: None,
+                            validity_window,
+                        },
+                        mdoc.issuer_signed().clone().into_entries_by_namespace(),
+                        &EmptyPresentationConfig,
+                    )
+                    .unwrap(),
+                    IssuedCredential::SdJwt { sd_jwt, .. } => {
+                        let attributes = sd_jwt.decoded_claims().unwrap().try_into().unwrap();
+                        AttestationPresentation::create_from_attributes(
+                            AttestationIdentity::Ephemeral,
+                            normalized_type_metadata.clone(),
+                            issuer_registration.organization.clone(),
+                            AttestationValidity {
+                                revocation_status: None,
+                                validity_window,
+                            },
+                            &attributes,
+                            &EmptyPresentationConfig,
+                        )
+                        .unwrap()
+                    }
+                };
+
+                let credential_with_metadata = CredentialWithMetadata::new(
+                    IssuedCredentialCopies::new_or_panic(vec_nonempty![issued_credential]),
+                    attestation_type.to_string(),
+                    exp,
+                    nbf,
+                    normalized_type_metadata.extended_vcts(),
+                    metadata_documents,
+                );
+
+                (credential_with_metadata, attestation_presentation, issuer_registration)
+            })
+            .multiunzip();
+
+    // Just pick the first IssuerRegistration.
+    let issuer_registration = issuer_registrations.into_iter().next().unwrap();
 
     let mut client = MockIssuanceSession::new();
-    let issuer_certificate = match &credential {
-        IssuedCredential::MsoMdoc { mdoc } => mdoc.issuer_certificate().unwrap(),
-        IssuedCredential::SdJwt { sd_jwt, .. } => sd_jwt.issuer_certificate().to_owned(),
-    };
-
-    let issuer_registration = match IssuerRegistration::from_certificate(&issuer_certificate) {
-        Ok(Some(registration)) => registration,
-        _ => IssuerRegistration::new_mock(),
-    };
-
-    let (exp, nbf) = match credential.clone() {
-        IssuedCredential::MsoMdoc { mdoc } => {
-            let validity_info = mdoc.into_components().0.validity_info;
-            (
-                Some((&validity_info.valid_until).try_into().unwrap()),
-                Some((&validity_info.valid_from).try_into().unwrap()),
-            )
-        }
-        IssuedCredential::SdJwt { sd_jwt, .. } => (sd_jwt.claims().exp, sd_jwt.claims().nbf),
-    };
-    let validity_window = ValidityWindow {
-        valid_from: nbf.map(Into::into),
-        valid_until: exp.map(Into::into),
-    };
-
-    let attestations = vec![match &credential {
-        IssuedCredential::MsoMdoc { mdoc } => AttestationPresentation::create_from_mdoc(
-            AttestationIdentity::Ephemeral,
-            normalized_type_metadata.clone(),
-            issuer_registration.organization.clone(),
-            AttestationValidity {
-                revocation_status: None,
-                validity_window,
-            },
-            mdoc.issuer_signed().clone().into_entries_by_namespace(),
-            &EmptyPresentationConfig,
-        )
-        .unwrap(),
-        IssuedCredential::SdJwt { sd_jwt, .. } => {
-            let attributes = sd_jwt.decoded_claims().unwrap().try_into().unwrap();
-            AttestationPresentation::create_from_attributes(
-                AttestationIdentity::Ephemeral,
-                normalized_type_metadata.clone(),
-                issuer_registration.organization.clone(),
-                AttestationValidity {
-                    revocation_status: None,
-                    validity_window,
-                },
-                &attributes,
-                &EmptyPresentationConfig,
-            )
-            .unwrap()
-        }
-    }]
-    .try_into()
-    .unwrap();
-
     client.expect_issuer().return_const(issuer_registration);
+    client.expect_accept().return_once(|| Ok(credentials_with_metadata));
 
-    client.expect_accept().return_once(move || {
-        Ok(vec![CredentialWithMetadata::new(
-            IssuedCredentialCopies::new_or_panic(vec_nonempty![credential]),
-            attestation_type,
-            exp,
-            nbf,
-            normalized_type_metadata.extended_vcts(),
-            type_metadata,
-        )])
-    });
-
-    (client, attestations)
+    (client, attestation_presentations.try_into().unwrap())
 }
 
 pub fn mock_verifier_certificate() -> VerifierCertificate {

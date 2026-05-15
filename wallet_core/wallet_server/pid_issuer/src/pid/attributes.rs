@@ -2,11 +2,12 @@ use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesHandlingError;
-use attestation_data::issuable_document::IssuableDocument;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
 use hsm::service::HsmError;
 use jwk_simple::Key;
+use openid4vc::Format;
+use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
 use openid4vc::token::TokenRequest;
 use server_utils::keys::SecretKeyVariant;
@@ -84,10 +85,19 @@ impl AttributeService for BrpPidAttributeService {
 
         let attributes = Self::insert_recovery_code(person.into_attributes(), &self.recovery_code_secret_key).await?;
 
-        let issuable_document = IssuableDocument::try_new_with_random_id(PID_ATTESTATION_TYPE.to_string(), attributes)
-            .map_err(|_| Error::InvalidIssuableDocuments)?;
+        // Supply both a SD-JWT and Mdoc PID credential, based on the same set of attributes.
+        let issuable_documents = vec_nonempty![
+            IssuableDocument::try_new_with_random_id(
+                Format::SdJwt,
+                PID_ATTESTATION_TYPE.to_string(),
+                attributes.clone()
+            )
+            .map_err(|_| Error::InvalidIssuableDocuments)?,
+            IssuableDocument::try_new_with_random_id(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string(), attributes)
+                .map_err(|_| Error::InvalidIssuableDocuments)?,
+        ];
 
-        Ok(vec_nonempty![issuable_document])
+        Ok(issuable_documents)
     }
 }
 

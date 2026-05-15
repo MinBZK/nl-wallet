@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::convert::identity;
 
@@ -51,6 +50,7 @@ use crate::credential::CredentialResponses;
 use crate::dpop::DPOP_HEADER_NAME;
 use crate::dpop::DPOP_NONCE_HEADER_NAME;
 use crate::dpop::Dpop;
+use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::nonce::response::NonceResponse;
@@ -304,40 +304,24 @@ fn credential_request_types_from_preview(
     let credential_request_types = normalized_credential_previews
         .iter()
         .map(|preview| {
-            let mut unsupported_formats = HashSet::new();
-
-            // Construct a `Vec<CredentialRequestType>`, with one entry
-            // per copy per supported format for this credential.
-            let request_types = preview
-                .content
-                .copies_per_format
-                .iter()
-                .flat_map(|(format, copies)| {
-                    let request_type = CredentialRequestType::from_format(
-                        *format,
-                        preview.content.credential_payload.attestation_type.clone(),
-                    );
-
-                    if request_type.is_none() {
-                        unsupported_formats.insert(*format);
-                    }
-
-                    request_type.map(|request_type| itertools::repeat_n(request_type, copies.get().into()))
-                })
-                .flatten()
-                .collect_vec();
-
-            // If we do not support one of the proposed formats this constitutes an error, as described above.
-            if !unsupported_formats.is_empty() {
-                return Err(WalletIssuanceError::UnsupportedCredentialFormat(
+            // If we do not support the proposed format, this constitutes an error.
+            let request_type = CredentialRequestType::from_format(
+                preview.content.format,
+                preview.content.credential_payload.attestation_type.clone(),
+            )
+            .ok_or_else(|| {
+                WalletIssuanceError::UnsupportedCredentialFormat(
                     preview.content.credential_payload.attestation_type.clone(),
-                    unsupported_formats,
-                ));
-            }
+                    preview.content.format,
+                )
+            })?;
+
+            // Construct a `Vec<CredentialRequestType>`, with one entry per copy for this credential.
+            let request_types = vec![request_type; usize::from(preview.content.batch_size.get())];
 
             Ok(request_types)
         })
-        .process_results(|iter| iter.flatten().collect_vec())?
+        .process_results::<_, _, WalletIssuanceError, _>(|iter| iter.flatten().collect_vec())?
         .try_into()
         .unwrap(); // we're iterating over a VecNonEmpty
 
@@ -359,7 +343,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .ok_or(WalletIssuanceError::NoCredentialPreviewEndpoint)?; // TODO (PVW-5559): skip preview when no credential preview endpoint
 
         // TODO: Get the credential configuration ids from the `CredentialOffer` instead.
-        let credential_configuration_ids: VecNonEmpty<String> = issuer_metadata
+        let credential_configuration_ids: VecNonEmpty<CredentialConfigurationId> = issuer_metadata
             .credential_configurations_supported
             .keys()
             .cloned()
@@ -572,39 +556,28 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
             .normalized_credential_previews
             .iter()
             .map(|preview| {
-                let copies =
-                    preview
-                        .content
-                        .copies_per_format
-                        .iter()
-                        .try_fold(vec![], |mut acc, (format, copies)| {
-                            let copy_count: usize = copies.get().into();
+                let copy_count = usize::from(preview.content.batch_size.get());
 
-                            // Consume the amount of copies from the front of `responses_and_keys`.
-                            let mut cred_copies = responses_and_pubkeys
-                                .drain(..copy_count)
-                                .map(|(cred_response, (pubkey, key_id))| {
-                                    let credential = cred_response
-                                        .into_immediate_credential()
-                                        .ok_or(WalletIssuanceError::DeferredIssuanceUnsupported)?;
+                // Consume the amount of copies from the front of `responses_and_keys`.
+                let copies = responses_and_pubkeys
+                    .drain(..copy_count)
+                    .map(|(cred_response, (pubkey, key_id))| {
+                        let credential = cred_response
+                            .into_immediate_credential()
+                            .ok_or(WalletIssuanceError::DeferredIssuanceUnsupported)?;
 
-                                    if credential.format() != *format {
-                                        return Err(WalletIssuanceError::UnexpectedCredentialResponseType {
-                                            expected: format.to_string(),
-                                            actual: credential.clone(),
-                                        });
-                                    }
+                        if credential.format() != preview.content.format {
+                            return Err(WalletIssuanceError::UnexpectedCredentialResponseType {
+                                expected: preview.content.format.to_string(),
+                                actual: credential.clone(),
+                            });
+                        }
 
-                                    // Convert the response into a credential, verifying it against both the
-                                    // trust anchors and the credential preview we received in the preview.
-                                    credential.into_issued_credential(key_id, &pubkey, preview, trust_anchors)
-                                })
-                                .collect::<Result<Vec<IssuedCredential>, _>>()?;
-
-                            acc.append(&mut cred_copies);
-
-                            Ok::<_, WalletIssuanceError>(acc)
-                        })?;
+                        // Convert the response into a credential, verifying it against both the
+                        // trust anchors and the credential preview we received in the preview.
+                        credential.into_issued_credential(key_id, &pubkey, preview, trust_anchors)
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
 
                 // Verify that each of the resulting mdocs contain exactly the same metadata integrity digest.
                 let integrity = copies
@@ -909,7 +882,6 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateError;
     use futures::FutureExt;
-    use indexmap::IndexMap;
     use jwt::jwk::jwk_to_p256;
     use jwt::nonce::Nonce;
     use mdoc::utils::serialization::TaggedBytes;
@@ -948,7 +920,7 @@ mod tests {
         issuer_metadata: IssuerMetadata,
         preview_payloads: Vec<PreviewableCredentialPayload>,
         type_metadata: TypeMetadata,
-        formats: Vec<Format>,
+        format: Format,
     ) -> Result<HttpIssuanceSession<MockVcMessageClient>, WalletIssuanceError> {
         let issuance_key = generate_pid_issuer_mock_with_registration(ca, IssuerRegistration::new_mock()).unwrap();
 
@@ -968,7 +940,8 @@ mod tests {
                     .into_iter()
                     .map(|preview_payload| CredentialPreview {
                         content: CredentialPreviewContent {
-                            copies_per_format: formats.iter().map(|format| (*format, NonZeroU8::MIN)).collect(),
+                            format,
+                            batch_size: NonZeroU8::MIN,
                             credential_payload: preview_payload,
                             issuer_certificate: issuance_key.certificate().clone(),
                         },
@@ -1008,7 +981,7 @@ mod tests {
                 &MockTimeGenerator::default(),
             )],
             TypeMetadata::pid_example(),
-            vec![Format::MsoMdoc],
+            Format::MsoMdoc,
         )
         .expect("starting issuance session should succeed");
 
@@ -1050,7 +1023,7 @@ mod tests {
                 &MockTimeGenerator::default(),
             )],
             TypeMetadata::pid_example(),
-            vec![Format::MsoMdoc],
+            Format::MsoMdoc,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -1069,7 +1042,7 @@ mod tests {
                 &MockTimeGenerator::default(),
             )],
             TypeMetadata::pid_example(),
-            vec![Format::MsoMdoc],
+            Format::MsoMdoc,
         )
         .expect("starting issuance session should succeed");
     }
@@ -1087,7 +1060,7 @@ mod tests {
                 &MockTimeGenerator::default(),
             )],
             TypeMetadata::pid_example(),
-            vec![Format::MsoMdoc],
+            Format::MsoMdoc,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -1112,7 +1085,7 @@ mod tests {
                 &MockTimeGenerator::default(),
             )],
             TypeMetadata::empty_example_with_attestation_type("other_attestation_type"),
-            vec![Format::MsoMdoc],
+            Format::MsoMdoc,
         )
         .expect_err("starting issuance session should not succeed");
 
@@ -1132,14 +1105,14 @@ mod tests {
                 &MockTimeGenerator::default(),
             )],
             TypeMetadata::pid_example(),
-            vec![Format::AcVc, Format::MsoMdoc, Format::JwtVc],
+            Format::AcVc,
         )
         .expect_err("starting issuance session should not succeed");
 
         assert_matches!(
             error,
             WalletIssuanceError::UnsupportedCredentialFormat(attestation_type, formats)
-                if attestation_type == PID_ATTESTATION_TYPE && formats == HashSet::from([Format::JwtVc, Format::AcVc])
+                if attestation_type == PID_ATTESTATION_TYPE && formats == Format::AcVc
         );
     }
 
@@ -1154,8 +1127,6 @@ mod tests {
 
         let preview_payload =
             PreviewableCredentialPayload::example_empty(PID_ATTESTATION_TYPE, &MockTimeGenerator::default());
-        let copies_per_format: IndexMap<Format, NonZeroU8> =
-            IndexMap::from_iter([(Format::MsoMdoc, NonZeroU8::MIN), (Format::SdJwt, NonZeroU8::MIN)]);
 
         let mut mock_msg_client = MockVcMessageClient::new();
         mock_msg_client
@@ -1172,7 +1143,8 @@ mod tests {
                 let previews = vec_nonempty![
                     CredentialPreview {
                         content: CredentialPreviewContent {
-                            copies_per_format: copies_per_format.clone(),
+                            format: Format::MsoMdoc,
+                            batch_size: NonZeroU8::MIN,
                             credential_payload: preview_payload.clone(),
                             issuer_certificate: issuance_key.certificate().clone(),
                         },
@@ -1180,7 +1152,8 @@ mod tests {
                     },
                     CredentialPreview {
                         content: CredentialPreviewContent {
-                            copies_per_format,
+                            format: Format::SdJwt,
+                            batch_size: NonZeroU8::MIN,
                             credential_payload: preview_payload,
                             issuer_certificate: different_issuance_key.certificate().clone(),
                         },
@@ -1301,7 +1274,8 @@ mod tests {
 
             let preview = NormalizedCredentialPreview {
                 content: CredentialPreviewContent {
-                    copies_per_format: IndexMap::from([(Format::MsoMdoc, NonZeroU8::MIN)]),
+                    format: Format::MsoMdoc,
+                    batch_size: NonZeroU8::MIN,
                     credential_payload: preview_payload,
                     issuer_certificate,
                 },
