@@ -488,14 +488,8 @@ run-digid-bridge-test-ont:
     - RUST_BACKTRACE=1 CONFIG_ENV=dev cargo nextest run --package tests_integration --test digid_issuance --features
       digid_test --locked
 
-run-performance-test-ont:
+.run-performance-test-ont-base:
   extends: .env-k8s
-  rules:
-    - !reference [.on-schedule-nightly-performance-test, rules]
-    - !reference [.default-or-merge-request-manual, rules]
-  needs:
-    - job: build-performance-test
-      artifacts: true
   script:
     - START_TIME=$(date -u -d "-1 minute" "+%Y-%m-%d %H:%M:%S")
     - echo "Performance test starting, query range begins at $START_TIME"
@@ -509,6 +503,25 @@ run-performance-test-ont:
       - perf-test-timeframe.txt
     when: on_success
   allow_failure: true
+
+run-performance-test-ont:
+  extends: .run-performance-test-ont-base
+  rules:
+    - !reference [.on-schedule-nightly-performance-test, rules]
+    - !reference [.default-branch, rules]
+  needs:
+    - job: build-performance-test
+      artifacts: true
+    - job: deploy-apps-ont
+      artifacts: false
+
+run-performance-test-ont-manual:
+  extends: .run-performance-test-ont-base
+  rules:
+    - !reference [.merge-request-manual, rules]
+  needs:
+    - job: build-performance-test
+      artifacts: true
 
 retrieve-performance-test-results-ont:
   extends: .env-k8s
