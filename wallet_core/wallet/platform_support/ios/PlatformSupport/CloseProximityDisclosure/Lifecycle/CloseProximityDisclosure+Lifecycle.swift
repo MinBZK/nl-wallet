@@ -53,7 +53,7 @@ extension CloseProximityDisclosure {
                 // The connection task is canceled when the session is replaced or stopped.
             } catch {
                 guard await self.isActiveSession(session) else { return }
-                await self.failSession(session, error: error)
+                await self.finishSessionOnDisconnectOrFail(session, error: error)
             }
         }
         setConnectionTask(connectionTask, for: session)

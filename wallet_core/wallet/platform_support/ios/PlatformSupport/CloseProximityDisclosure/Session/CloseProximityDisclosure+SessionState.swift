@@ -134,6 +134,19 @@ extension CloseProximityDisclosure {
         }
     }
 
+    func finishSessionOnDisconnectOrFail(
+        _ session: CloseProximityDisclosureActiveSession,
+        error: Error
+    ) async {
+        // Once the flow is active, transport loss and Bluetooth switching off
+        // both surface as a normal close; restart owns the Bluetooth recovery UI.
+        if error.shouldReportCloseProximityClosedUpdate {
+            await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
+        } else {
+            await failSession(session, error: error)
+        }
+    }
+
     func closeSessionTransports(_ session: CloseProximityDisclosureActiveSession) {
         try? session.transport.close()
     }

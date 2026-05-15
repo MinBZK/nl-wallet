@@ -26,6 +26,7 @@ import org.multipaz.mdoc.engagement.buildDeviceEngagement
 import org.multipaz.mdoc.role.MdocRole
 import org.multipaz.mdoc.sessionencryption.SessionEncryption
 import org.multipaz.mdoc.transport.MdocTransport
+import org.multipaz.mdoc.transport.MdocTransportClosedException
 import org.multipaz.mdoc.transport.MdocTransportFactory
 import org.multipaz.mdoc.transport.MdocTransportOptions
 import org.multipaz.mdoc.transport.advertise
@@ -52,6 +53,16 @@ internal fun sessionMessageFailureStatus(exception: Exception): Long? =
         is IllegalStateException -> Constants.SESSION_DATA_STATUS_ERROR_SESSION_ENCRYPTION
         else -> null
     }
+
+internal fun transportStateShouldReportClosedUpdate(state: MdocTransport.State): Boolean =
+    when (state) {
+        MdocTransport.State.CLOSED,
+        MdocTransport.State.FAILED -> true
+        else -> false
+    }
+
+internal fun transportFailureShouldReportClosedUpdate(exception: Exception): Boolean =
+    exception is MdocTransportClosedException
 
 /**
  * This class is automatically initialized on app start through
@@ -232,7 +243,7 @@ class CloseProximityDisclosureBridge(
                 val transport = session.transports.waitForConnection(eSenderKey = session.eDeviceKey.publicKey)
                 handleConnectedTransport(session = session, transport = transport)
             } catch (exception: Exception) {
-                failSession(session = session, exception = exception)
+                finishSessionOnDisconnectOrFail(session = session, exception = exception)
             }
         }
     }
@@ -327,7 +338,7 @@ class CloseProximityDisclosureBridge(
             )
         } catch (exception: Exception) {
             if (isSessionActive(session)) {
-                failSession(session = session, exception = exception)
+                finishSessionOnDisconnectOrFail(session = session, exception = exception)
             }
             throw exception.asPlatformError()
         }
@@ -341,7 +352,7 @@ class CloseProximityDisclosureBridge(
             transport.sendMessage(SessionEncryption.encodeStatus(Constants.SESSION_DATA_STATUS_SESSION_TERMINATION))
         } catch (exception: Exception) {
             if (isSessionActive(session)) {
-                failSession(session = session, exception = exception)
+                finishSessionOnDisconnectOrFail(session = session, exception = exception)
             }
             throw exception.asPlatformError()
         }
@@ -451,7 +462,7 @@ class CloseProximityDisclosureBridge(
         } catch (_: StopObservingTransportState) {
             // Expected when the session is replaced, stopped, or a transport failure is reported elsewhere.
         } catch (exception: Exception) {
-            failSession(session = session, exception = exception)
+            finishSessionOnDisconnectOrFail(session = session, exception = exception)
         }
     }
 
@@ -459,17 +470,14 @@ class CloseProximityDisclosureBridge(
         session: ActiveSession,
         state: MdocTransport.State,
     ) {
-        when (state) {
-            MdocTransport.State.CONNECTED -> {
+        when {
+            state == MdocTransport.State.CONNECTED -> {
                 session.channel.sendUpdate(update = CloseProximityDisclosureUpdate.Connected)
             }
-            MdocTransport.State.CLOSED -> {
+            transportStateShouldReportClosedUpdate(state) -> {
+                // Once the flow is active, transport failure should surface as a normal close so
+                // Flutter can show the disconnected state before PIN submission.
                 finishSession(session = session, update = CloseProximityDisclosureUpdate.Closed)
-                throw StopObservingTransportState()
-            }
-            MdocTransport.State.FAILED -> {
-                // Transport failures are expected to surface through the active connect/read/write
-                // operation as well, and that path is responsible for failSession().
                 throw StopObservingTransportState()
             }
             else -> Unit
@@ -619,6 +627,19 @@ class CloseProximityDisclosureBridge(
         }
     }
 
+    private suspend fun finishSessionOnDisconnectOrFail(
+        session: ActiveSession,
+        exception: Exception,
+    ) {
+        // Once the flow is active, transport loss should surface as a close; only real protocol
+        // and bridge failures stay on the error path.
+        if (transportFailureShouldReportClosedUpdate(exception)) {
+            finishSession(session = session, update = CloseProximityDisclosureUpdate.Closed)
+        } else {
+            failSession(session = session, exception = exception)
+        }
+    }
+
     private suspend fun startReadJob(session: ActiveSession) {
         val transport = session.transport() ?: return
         val readJob = bridgeScope.launch {
@@ -631,7 +652,7 @@ class CloseProximityDisclosureBridge(
                 // The read job is canceled explicitly before sending the terminating DeviceResponse
                 // and while shutting the session down, so there is nothing to report here.
             } catch (exception: Exception) {
-                failSession(session = session, exception = exception)
+                finishSessionOnDisconnectOrFail(session = session, exception = exception)
             }
         }
         session.setReadJob(readJob)
