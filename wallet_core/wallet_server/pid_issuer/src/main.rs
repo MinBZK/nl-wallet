@@ -39,7 +39,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?,
     )?;
 
-    let (issuer, revocation_helper, database_checkers, _, server_settings) = settings
+    let (issuer, database_checkers, _, server_settings) = settings
         .issuer_settings
         .into_issuer(hsm, Some(wia_config), Some(upstream_oauth_identifier), pid_attr_service)
         .await?;
@@ -49,12 +49,5 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         .chain(database_checkers.into_iter().map(|checker| Box::new(checker) as Box<_>));
 
     // This will block until the server shuts down.
-    server::serve(
-        issuer,
-        revocation_helper,
-        server_settings,
-        serve_status_lists,
-        health_checkers,
-    )
-    .await
+    server::serve(issuer, server_settings, serve_status_lists, health_checkers).await
 }

@@ -9,7 +9,7 @@ use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::issuable_document::IssuableDocument;
 use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
 use serial_test::serial;
-use status_lists::postgres::BatchIsRevoked;
+use status_lists::postgres::revocation_helper::BatchIsRevoked;
 use tests_integration::common::*;
 use token_status_list::verification::verifier::RevocationStatus;
 use wallet::AttestationPresentation;

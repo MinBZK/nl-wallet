@@ -45,7 +45,6 @@ use server_utils::store::StoreConnection;
 use server_utils::store::StoreError;
 use server_utils::store::postgres::new_connection;
 use status_lists::postgres::NoRevokeAll;
-use status_lists::postgres::PostgresRevocationHelper;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::postgres::StatusListServiceError;
 use status_lists::publish::PublishDir;
@@ -422,7 +421,6 @@ impl IssuerSettings {
                 SessionStoreVariant<IssuanceData>,
                 ProofNonceStore,
             >,
-            PostgresRevocationHelper,
             Vec<DatabaseChecker>,
             StoreConnection,
             Settings,
@@ -466,7 +464,7 @@ impl IssuerSettings {
         let config_params = self
             .credential_configurations
             .into_params(
-                status_list_connection.clone(),
+                status_list_connection,
                 self.public_url.as_base_url().clone(),
                 hsm,
                 &self.status_lists,
@@ -474,8 +472,6 @@ impl IssuerSettings {
             )
             .await
             .map_err(IssuerSettingsError::CredentialConfigurationParameters)?;
-
-        let revocation_helper = PostgresRevocationHelper::new(status_list_connection);
 
         let issuer = Issuer::try_new(
             self.public_url,
@@ -490,13 +486,7 @@ impl IssuerSettings {
         )
         .map_err(IssuerSettingsError::CredentialConfigurations)?;
 
-        Ok((
-            issuer,
-            revocation_helper,
-            database_checkers,
-            store_connection,
-            self.server_settings,
-        ))
+        Ok((issuer, database_checkers, store_connection, self.server_settings))
     }
 }
 

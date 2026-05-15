@@ -12,16 +12,15 @@ use server_utils::server::create_wallet_listener;
 use server_utils::server::listen;
 use server_utils::server::secure_internal_router;
 use server_utils::settings::Settings;
-use status_lists::postgres::PostgresRevocationHelper;
 use status_lists::revoke::create_revocation_router;
 use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::settings::IssuanceServerIssuer;
 
 pub async fn serve(
     issuer: Arc<IssuanceServerIssuer>,
-    revocation_helper: PostgresRevocationHelper,
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
@@ -31,7 +30,6 @@ pub async fn serve(
         create_wallet_listener(&server_settings.wallet_server).await?,
         create_internal_listener(&server_settings.internal_server).await?,
         issuer,
-        revocation_helper,
         server_settings,
         serve_status_lists,
         health_checkers,
@@ -45,13 +43,12 @@ pub async fn serve_with_listeners(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
     issuer: Arc<IssuanceServerIssuer>,
-    revocation_helper: PostgresRevocationHelper,
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
     disclosure_router: Router,
 ) -> Result<()> {
-    let status_list_services = issuer.status_lists().cloned().collect_vec();
+    let status_list_services = VecNonEmpty::try_from(issuer.status_lists().cloned().collect_vec())?;
 
     let issuance_router = create_issuance_router(issuer);
     let mut router = add_cache_control_no_store_layer(issuance_router)
@@ -67,7 +64,7 @@ pub async fn serve_with_listeners(
         router = router.merge(status_list_router);
     }
 
-    let (internal_router, internal_openapi) = create_revocation_router(status_list_services, revocation_helper);
+    let (internal_router, internal_openapi) = create_revocation_router(status_list_services);
 
     #[cfg(feature = "test_internal_ui")]
     let mut internal_router = internal_router.merge(

@@ -26,7 +26,6 @@ path = "tests/serve.rs"
 required-features = ["serve_test"]
 
 [features]
-default = []
 axum = [
     "dep:etag",
     "dep:mediatype",
@@ -36,11 +35,11 @@ axum = [
     "utoipa/uuid",
     "token_status_list/axum",
 ]
-serve_test = ["axum", "dep:reqwest"]
-db_test = ["serve_test", "dep:db_test", "test", "tokio/rt-multi-thread"]
-test = []
 # Enable additional test API endpoints
-test_api = ["axum"]
+revocation_helper = []
+test_api = ["axum", "revocation_helper"]
+serve_test = ["axum", "dep:reqwest"]
+db_test = ["serve_test", "dep:db_test", "tokio/rt-multi-thread"]
 
 [dependencies]
 anyhow.workspace = true

@@ -10,20 +10,23 @@ use futures::future::try_join_all;
 use itertools::Itertools;
 use token_status_list::status_list_service::RevocationError;
 use token_status_list::status_list_service::StatusListService;
+use utils::vec_at_least::VecNonEmpty;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
 use uuid::Uuid;
 
-#[cfg(feature = "test_api")]
-use crate::postgres::BatchIsRevoked;
-use crate::postgres::PostgresRevocationHelper;
 use crate::postgres::PostgresStatusListService;
 use crate::postgres::RevokeAll;
+#[cfg(feature = "test_api")]
+use crate::postgres::revocation_helper::BatchIsRevoked;
+#[cfg(feature = "test_api")]
+use crate::postgres::revocation_helper::PostgresRevocationHelper;
 
 #[derive(Debug)]
 struct RevocationRouterState<K, R> {
-    status_list_services: Vec<PostgresStatusListService<K, R>>,
+    status_list_services: VecNonEmpty<PostgresStatusListService<K, R>>,
+    #[cfg(feature = "test_api")]
     revocation_helper: PostgresRevocationHelper,
 }
 
@@ -50,7 +53,7 @@ where
     K: EcdsaKeySend + Sync + 'static,
     R: RevokeAll + Clone + Sync + 'static,
 {
-    let service_count = state.status_list_services.len();
+    let service_count = state.status_list_services.len().get();
 
     try_join_all(
         state
@@ -97,8 +100,7 @@ async fn get_batch<K, R>(
 }
 
 pub fn create_revocation_router<K, R>(
-    status_list_services: Vec<PostgresStatusListService<K, R>>,
-    revocation_helper: PostgresRevocationHelper,
+    status_list_services: VecNonEmpty<PostgresStatusListService<K, R>>,
 ) -> (Router, utoipa::openapi::OpenApi)
 where
     K: EcdsaKeySend + Sync + 'static,
@@ -109,8 +111,12 @@ where
     #[cfg(feature = "test_api")]
     let router = router.routes(routes!(get_batch)).routes(routes!(list_batch));
 
+    #[cfg(feature = "test_api")]
+    let revocation_helper = PostgresRevocationHelper::from_status_list(status_list_services.first());
+
     let state = RevocationRouterState {
         status_list_services,
+        #[cfg(feature = "test_api")]
         revocation_helper,
     };
     let router = router.with_state(Arc::new(state));

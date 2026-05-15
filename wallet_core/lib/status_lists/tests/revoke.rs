@@ -16,7 +16,6 @@ use sea_orm::QueryFilter;
 use status_lists::config::StatusListConfig;
 use status_lists::entity::attestation_batch;
 use status_lists::postgres::NoRevokeAll;
-use status_lists::postgres::PostgresRevocationHelper;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::publish::PublishDir;
 use status_lists::revoke::create_revocation_router;
@@ -24,13 +23,11 @@ use tokio::net::TcpListener;
 use url::Url;
 use utils::num::NonZeroU31;
 use utils::num::U31;
+use utils::vec_nonempty;
 use uuid::Uuid;
 
-async fn setup_revocation_server(
-    service: PostgresStatusListService<SigningKey, NoRevokeAll>,
-    revocation_helper: PostgresRevocationHelper,
-) -> anyhow::Result<Url> {
-    let (router, _) = create_revocation_router(vec![service], revocation_helper);
+async fn setup_revocation_server(service: PostgresStatusListService<SigningKey, NoRevokeAll>) -> anyhow::Result<Url> {
+    let (router, _) = create_revocation_router(vec_nonempty![service]);
     let listener = TcpListener::bind(("127.0.0.1", 0)).await?;
     let port = listener.local_addr()?.port();
     tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
@@ -75,9 +72,7 @@ async fn setup_revocation_test(
         .unwrap();
     try_join_all(service.initialize_lists().await.unwrap()).await.unwrap();
 
-    let helper = PostgresRevocationHelper::new(connection);
-
-    let revoke_endpoint = setup_revocation_server(service.clone(), helper).await.unwrap();
+    let revoke_endpoint = setup_revocation_server(service.clone()).await.unwrap();
 
     (service, revoke_endpoint)
 }

@@ -11,7 +11,6 @@ use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::EcdsaKeySend;
-use derive_more::Constructor;
 use futures::StreamExt;
 use futures::future::join_all;
 use futures::future::try_join_all;
@@ -67,6 +66,9 @@ use crate::publish::LockVersion;
 use crate::publish::PublishLockError;
 use crate::refresh::RefreshControl;
 
+#[cfg(feature = "revocation_helper")]
+pub mod revocation_helper;
+
 /// Length of the external id for status lists used in the url (alphanumeric characters)
 const EXTERNAL_ID_SIZE: usize = 12;
 
@@ -118,17 +120,6 @@ pub struct PostgresStatusListService<K, R> {
     attestation_group_id: i16,
     config: Arc<StatusListConfig<K>>,
     revoke_all: R,
-}
-
-#[cfg_attr(feature = "axum", derive(serde::Serialize, serde::Deserialize, utoipa::ToSchema))]
-pub struct BatchIsRevoked {
-    pub batch_id: Uuid,
-    pub is_revoked: bool,
-}
-
-#[derive(Debug, Clone, Constructor)]
-pub struct PostgresRevocationHelper {
-    connection: DatabaseConnection,
 }
 
 // Manually implement Clone as derived Clone uses incorrect bounds:
@@ -1074,36 +1065,6 @@ async fn read_token_expiry(path: &Path) -> Result<DateTime<Utc>, TokenReadError>
     // Trusting the files this service writes
     let (_, claims) = token.as_ref().dangerous_parse_unverified()?;
     claims.exp.ok_or(TokenReadError::NoExpiry)
-}
-
-impl PostgresRevocationHelper {
-    pub async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError> {
-        attestation_batch::Entity::find()
-            .filter(attestation_batch::Column::BatchId.eq(batch_id))
-            .select_only()
-            .select_column(attestation_batch::Column::BatchId)
-            .select_column(attestation_batch::Column::IsRevoked)
-            .into_tuple()
-            .one(&self.connection)
-            .await
-            .map_err(|error| RevocationError::InternalError(Box::new(error)))?
-            .map(|(batch_id, is_revoked)| BatchIsRevoked { batch_id, is_revoked })
-            .ok_or_else(|| RevocationError::BatchIdNotFound(batch_id))
-    }
-
-    pub async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError> {
-        Ok(attestation_batch::Entity::find()
-            .select_only()
-            .select_column(attestation_batch::Column::BatchId)
-            .select_column(attestation_batch::Column::IsRevoked)
-            .into_tuple()
-            .all(&self.connection)
-            .await
-            .map_err(|error| RevocationError::InternalError(Box::new(error)))?
-            .into_iter()
-            .map(|(batch_id, is_revoked)| BatchIsRevoked { batch_id, is_revoked })
-            .collect())
-    }
 }
 
 #[cfg(test)]

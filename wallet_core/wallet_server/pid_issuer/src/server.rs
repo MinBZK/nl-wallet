@@ -18,11 +18,11 @@ use server_utils::server::secure_internal_router;
 use server_utils::settings::Settings;
 use server_utils::store::SessionStoreVariant;
 use status_lists::postgres::NoRevokeAll;
-use status_lists::postgres::PostgresRevocationHelper;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::revoke::create_revocation_router;
 use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
+use utils::vec_at_least::VecNonEmpty;
 
 pub async fn serve<A>(
     issuer: Issuer<
@@ -32,7 +32,6 @@ pub async fn serve<A>(
         SessionStoreVariant<IssuanceData>,
         ProofNonceStore,
     >,
-    revocation_helper: PostgresRevocationHelper,
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
@@ -44,7 +43,6 @@ where
         create_wallet_listener(&server_settings.wallet_server).await?,
         create_internal_listener(&server_settings.internal_server).await?,
         issuer,
-        revocation_helper,
         server_settings,
         serve_status_lists,
         health_checkers,
@@ -52,7 +50,6 @@ where
     .await
 }
 
-#[expect(clippy::too_many_arguments, reason = "Setup function")]
 pub async fn serve_with_listeners<A>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
@@ -63,7 +60,6 @@ pub async fn serve_with_listeners<A>(
         SessionStoreVariant<IssuanceData>,
         ProofNonceStore,
     >,
-    revocation_helper: PostgresRevocationHelper,
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
@@ -71,7 +67,7 @@ pub async fn serve_with_listeners<A>(
 where
     A: AttributeService + Send + Sync + 'static,
 {
-    let status_list_services = issuer.status_lists().cloned().collect_vec();
+    let status_list_services = VecNonEmpty::try_from(issuer.status_lists().cloned().collect_vec())?;
 
     let issuance_router = create_issuance_router(Arc::new(issuer));
     let mut router = add_cache_control_no_store_layer(issuance_router);
@@ -86,7 +82,7 @@ where
         router = router.merge(status_list_router);
     }
 
-    let (internal_router, internal_openapi) = create_revocation_router(status_list_services, revocation_helper);
+    let (internal_router, internal_openapi) = create_revocation_router(status_list_services);
 
     #[cfg(feature = "test_internal_ui")]
     let mut internal_router = internal_router.merge(

@@ -31,7 +31,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         .transpose()?;
     let hsm_checker = hsm.as_ref().map(HsmChecker::new);
 
-    let (issuer, revocation_helper, database_checkers, store_connection, server_settings) = settings
+    let (issuer, database_checkers, store_connection, server_settings) = settings
         .issuer_settings
         .into_issuer(hsm.clone(), None, None, ())
         .await?;
@@ -58,7 +58,6 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
     // This will block until the server shuts down.
     server::serve(
         issuer,
-        revocation_helper,
         server_settings,
         serve_status_lists,
         health_checkers,
