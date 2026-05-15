@@ -99,7 +99,7 @@ spec:
             - name: PID_ISSUER__METADATA
               value: "eudi:pid:1.json,eudi:pid:nl:1.json"
             - name: PID_ISSUER__BATCH_SIZE
-              value: {{ .Values.batchSize }}
+              value: {{ .Values.batchSize | quote }}
             - name: PID_ISSUER__STORAGE__URL
               valueFrom:
                 secretKeyRef:
