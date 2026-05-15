@@ -5,8 +5,6 @@ use std::sync::Arc;
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::issuable_document::IssuableDocument;
-use attestation_data::issuable_document::IssuableDocumentFormat;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::qualification::AttestationQualification;
@@ -34,7 +32,7 @@ use utils::vec_nonempty;
 
 use crate::Format;
 use crate::credential_configurations::CredentialConfigurationParameters;
-use crate::credential_configurations::CredentialConfigurations;
+use crate::issuable_document::IssuableDocument;
 use crate::issuer::AttributeService;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
@@ -76,7 +74,7 @@ pub fn mock_issuable_documents(document_count: NonZeroUsize) -> VecNonEmpty<Issu
     (0..document_count.get())
         .map(|i| {
             IssuableDocument::try_new_with_random_id(
-                IssuableDocumentFormat::SdJwt,
+                Format::SdJwt,
                 MOCK_ATTESTATION_TYPES[i].to_string(),
                 IndexMap::from_iter(MOCK_ATTRS.iter().map(|(key, val)| {
                     (
@@ -120,7 +118,7 @@ where
     let trust_anchor = ca.to_borrowing_trust_anchor();
     let wia_issuer_privkey = SigningKey::random(&mut OsRng);
 
-    let configurations = MOCK_ATTESTATION_TYPES[..attestation_count.get()]
+    let config_params = MOCK_ATTESTATION_TYPES[..attestation_count.get()]
         .iter()
         .copied()
         .map(|attestation_type| {
@@ -158,14 +156,14 @@ where
             };
 
             (attestation_type.to_string().into(), params)
-        });
-    let credential_configs = CredentialConfigurations::try_new(configurations).unwrap();
+        })
+        .collect();
 
-    let issuer = MockIssuer::new(
+    let issuer = MockIssuer::try_new(
         issuer_identifier,
         NonZeroU8::new(4).unwrap(),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
-        credential_configs,
+        config_params,
         Some(WiaConfig {
             wia_issuer_pubkey: wia_issuer_privkey.verifying_key().into(),
         }),
@@ -173,7 +171,8 @@ where
         attr_service,
         sessions,
         MemoryNonceStore::new(),
-    );
+    )
+    .unwrap();
 
     (issuer, trust_anchor, wia_issuer_privkey)
 }

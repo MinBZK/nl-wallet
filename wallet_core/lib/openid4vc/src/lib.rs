@@ -1,4 +1,3 @@
-use attestation_data::issuable_document::IssuableDocumentFormat;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 
@@ -16,6 +15,7 @@ pub mod pkce;
 
 // Issuance code for the server and client.
 pub mod credential_configurations;
+pub mod issuable_document;
 pub mod issuer;
 pub mod preview;
 pub mod wallet_issuance;
@@ -77,15 +77,6 @@ impl Format {
         match self {
             Self::MsoMdoc | Self::SdJwt => true,
             Self::LdpVc | Self::JwtVc | Self::JwtVcJson | Self::AcVc => false,
-        }
-    }
-}
-
-impl From<IssuableDocumentFormat> for Format {
-    fn from(value: IssuableDocumentFormat) -> Self {
-        match value {
-            IssuableDocumentFormat::MsoMdoc => Self::MsoMdoc,
-            IssuableDocumentFormat::SdJwt => Self::SdJwt,
         }
     }
 }

@@ -108,7 +108,7 @@ fn make_credential_offer_url(
         credential_issuer: issuer_identifier,
         credential_configuration_ids: MOCK_ATTESTATION_TYPES[..attestation_count.get()]
             .iter()
-            .map(ToString::to_string)
+            .map(|attestation_type| attestation_type.to_string().into())
             .collect(),
         grants: Some(Grants::PreAuthorizedCode {
             pre_authorized_code: GrantPreAuthorizedCode::new(auth_code),

@@ -21,7 +21,6 @@ use http_utils::urls::HttpsUri;
 use itertools::Itertools;
 use openid4vc::Format;
 use openid4vc::credential_configurations::CredentialConfigurationParameters;
-use openid4vc::credential_configurations::CredentialConfigurations;
 use openid4vc::credential_configurations::CredentialConfigurationsError;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
@@ -195,7 +194,7 @@ impl TypeMetadataByVct {
 #[derive(Debug, thiserror::Error)]
 pub enum CredentialConfigurationsSettingsError {
     #[error("invalid certificate: {0}")]
-    CertificateSanDns(#[from] CertificateError),
+    CertificateSanDns(#[source] CertificateError),
 
     #[error("invalid private key: {0}")]
     PrivateKey(#[source] PrivateKeySettingsError),
@@ -205,13 +204,10 @@ pub enum CredentialConfigurationsSettingsError {
 
     #[error("could not initialize status: {0}")]
     StatusList(#[source] StatusListAttestationSettingsError),
-
-    #[error("could not set up credential configurations: {0}")]
-    CredentialConfigurations(#[source] CredentialConfigurationsError),
 }
 
 impl CredentialConfigurationsSettings {
-    pub async fn parse(
+    pub async fn into_params(
         self,
         status_list_connection: DatabaseConnection,
         public_url: BaseUrl,
@@ -219,7 +215,13 @@ impl CredentialConfigurationsSettings {
         status_list_settings: &StatusListsSettings,
         metadata_by_vct: &TypeMetadataByVct,
     ) -> Result<
-        CredentialConfigurations<PrivateKeyVariant, PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>>,
+        HashMap<
+            CredentialConfigurationId,
+            CredentialConfigurationParameters<
+                PrivateKeyVariant,
+                PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
+            >,
+        >,
         CredentialConfigurationsSettingsError,
     > {
         let Self(inner) = self;
@@ -281,12 +283,11 @@ impl CredentialConfigurationsSettings {
                     }
                 }),
         )
-        .await?;
+        .await?
+        .into_iter()
+        .collect();
 
-        let configurations = CredentialConfigurations::try_new(config_params)
-            .map_err(CredentialConfigurationsSettingsError::CredentialConfigurations)?;
-
-        Ok(configurations)
+        Ok(config_params)
     }
 }
 
@@ -318,8 +319,8 @@ pub enum IssuerSettingsError {
     #[error("could not initialize HSM: {0}")]
     Hsm(#[source] HsmError),
 
-    #[error("could not initialize credential configurations: {0}")]
-    CredentialConfigurations(#[source] CredentialConfigurationsSettingsError),
+    #[error("could not initialize credential configuration parameters: {0}")]
+    CredentialConfigurationParameters(#[source] CredentialConfigurationsSettingsError),
 
     #[error("could not initialize storage: {0}")]
     Storage(#[source] StoreError),
@@ -335,6 +336,9 @@ pub enum IssuerSettingsError {
 
     #[error("no database configured for status lists")]
     NoStatusListDatabase,
+
+    #[error("could not initialize credential configurations: {0}")]
+    CredentialConfigurations(#[source] CredentialConfigurationsError),
 }
 
 impl IssuerSettings {
@@ -459,9 +463,9 @@ impl IssuerSettings {
             }
         };
 
-        let credential_configurations = self
+        let config_params = self
             .credential_configurations
-            .parse(
+            .into_params(
                 status_list_connection.clone(),
                 self.public_url.as_base_url().clone(),
                 hsm,
@@ -469,21 +473,22 @@ impl IssuerSettings {
                 &self.metadata,
             )
             .await
-            .map_err(IssuerSettingsError::CredentialConfigurations)?;
+            .map_err(IssuerSettingsError::CredentialConfigurationParameters)?;
 
         let revocation_helper = PostgresRevocationHelper::new(status_list_connection);
 
-        let issuer = Issuer::new(
+        let issuer = Issuer::try_new(
             self.public_url,
             self.batch_size,
             self.wallet_client_ids,
-            credential_configurations,
+            config_params,
             wia_config,
             upstream_oauth_identifier,
             attr_service,
             Arc::new(sessions),
             proof_nonce_store,
-        );
+        )
+        .map_err(IssuerSettingsError::CredentialConfigurations)?;
 
         Ok((
             issuer,

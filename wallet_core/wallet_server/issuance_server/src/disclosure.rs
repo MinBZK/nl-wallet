@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_data::issuable_document::IssuableDocument;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::IntoReqwestClient;
@@ -16,6 +15,7 @@ use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::GrantPreAuthorizedCode;
 use openid4vc::credential::Grants;
+use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::server_state::SessionStore;
@@ -153,15 +153,12 @@ where
         let credential_configuration_ids = to_issue
             .iter()
             .map(|document| {
-                let format = document.format.into();
-
                 self.issuer
-                    .credential_configurations()
-                    .get_by_format_and_attestation_type(format, &document.attestation_type)
-                    .map(|(config_id, _config)| config_id.to_string())
+                    .credential_config_id_by_format_and_attestation_type(document.format, &document.attestation_type)
+                    .cloned()
                     .ok_or_else(|| {
                         DisclosureResultHandlerError::new(IssuanceResultHandlerError::AttestationTypeNotConfigured(
-                            format,
+                            document.format,
                             document.attestation_type.clone(),
                         ))
                     })
@@ -209,8 +206,6 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::DisclosedAttestations;
     use attestation_data::disclosure::DisclosedAttributes;
-    use attestation_data::issuable_document::IssuableDocument;
-    use attestation_data::issuable_document::IssuableDocumentFormat;
     use attestation_data::validity::IssuanceValidity;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
@@ -224,7 +219,7 @@ mod tests {
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential::CredentialOffer;
     use openid4vc::credential_configurations::CredentialConfigurationParameters;
-    use openid4vc::credential_configurations::CredentialConfigurations;
+    use openid4vc::issuable_document::IssuableDocument;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;
     use openid4vc::nonce::memory_store::MemoryNonceStore;
@@ -275,7 +270,7 @@ mod tests {
 
             Ok(vec![
                 IssuableDocument::try_new_with_random_id(
-                    IssuableDocumentFormat::SdJwt,
+                    Format::SdJwt,
                     attestation.attestation_type.clone(),
                     IndexMap::from([(
                         "attr_name".to_string(),
@@ -328,17 +323,18 @@ mod tests {
             metadata_documents: TypeMetadataDocuments::degree_example().1,
         };
 
-        Issuer::new(
+        Issuer::try_new(
             "https://example.com".parse().unwrap(),
             NonZeroU8::MIN,
             vec![],
-            CredentialConfigurations::try_new([("credential_config_id".to_string().into(), config_params)]).unwrap(),
+            [("credential_config_id".to_string().into(), config_params)].into(),
             None,
             None,
             (),
             sessions,
             MemoryNonceStore::new(),
         )
+        .unwrap()
     }
 
     #[tokio::test]

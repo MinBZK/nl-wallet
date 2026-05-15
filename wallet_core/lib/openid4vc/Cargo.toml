@@ -71,6 +71,7 @@ ring.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
+serde_valid.workspace = true
 serde_urlencoded.workspace = true
 serde_with = { workspace = true, features = ["json"] }
 ssri.workspace = true

@@ -73,6 +73,7 @@ pub mod mock {
     }
 
     mock! {
+        #[derive(Debug)]
         pub StatusListService {}
 
         impl StatusListService for StatusListService {

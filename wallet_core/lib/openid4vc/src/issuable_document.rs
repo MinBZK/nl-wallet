@@ -1,3 +1,6 @@
+use attestation_data::attributes::Attributes;
+use attestation_data::attributes::AttributesError;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_types::qualification::AttestationQualification;
 use chrono::DateTime;
 use chrono::Utc;
@@ -10,17 +13,7 @@ use serde_with::DisplayFromStr;
 use serde_with::serde_as;
 use uuid::Uuid;
 
-use crate::attributes::Attributes;
-use crate::attributes::AttributesError;
-use crate::credential_payload::PreviewableCredentialPayload;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumString, strum::Display)]
-#[strum(serialize_all = "snake_case")]
-pub enum IssuableDocumentFormat {
-    MsoMdoc,
-    #[strum(serialize = "dc+sd-jwt")]
-    SdJwt,
-}
+use crate::Format;
 
 /// Generic data model used to pass the attributes to be issued from the issuer backend to the wallet server. This model
 /// should be convertable into all documents that are actually issued to the wallet, i.e. mdoc and sd-jwt.
@@ -39,7 +32,7 @@ pub enum IssuableDocumentFormat {
 pub struct IssuableDocument {
     pub id: Uuid,
     #[serde_as(as = "DisplayFromStr")]
-    pub format: IssuableDocumentFormat,
+    pub format: Format,
     pub attestation_type: String,
     #[validate(custom = IssuableDocument::validate_attributes)]
     attributes: Attributes,
@@ -48,7 +41,7 @@ pub struct IssuableDocument {
 impl IssuableDocument {
     pub fn try_new(
         id: Uuid,
-        format: IssuableDocumentFormat,
+        format: Format,
         attestation_type: String,
         attributes: Attributes,
     ) -> Result<Self, serde_valid::validation::Error> {
@@ -63,7 +56,7 @@ impl IssuableDocument {
     }
 
     pub fn try_new_with_random_id(
-        format: IssuableDocumentFormat,
+        format: Format,
         attestation_type: String,
         attributes: Attributes,
     ) -> Result<Self, serde_valid::validation::Error> {
@@ -104,18 +97,18 @@ impl IssuableDocument {
     }
 }
 
-#[cfg(feature = "mock")]
+#[cfg(any(test, feature = "mock"))]
 pub mod mock {
+    use attestation_data::attributes::Attribute;
+    use attestation_data::attributes::AttributeValue;
     use indexmap::IndexMap;
 
     use super::*;
-    use crate::attributes::Attribute;
-    use crate::attributes::AttributeValue;
 
     impl IssuableDocument {
         pub fn new_mock_degree(education: String) -> Self {
             IssuableDocument::try_new_with_random_id(
-                IssuableDocumentFormat::SdJwt,
+                Format::SdJwt,
                 "com.example.degree".to_string(),
                 IndexMap::from([
                     (

@@ -69,6 +69,7 @@ private_key = "MIG..."               # DER-encoded private key
 certificate = "MIJ..."
 
 [credential_configurations."com.example.pid_sdjwt".status_list]
+group_name = "com.example.pid_sdjwt"
 context_path = "/tsl"
 publish_dir = "/srv/html/tsl"
 private_key_type = "software"
@@ -76,6 +77,7 @@ private_key = "MIG..."
 certificate = "MIJ..."
 
 [credential_configurations."com.example.pid_mdoc".status_list]
+group_name = "com.example.pid_mdoc"
 context_path = "/tsl"
 publish_dir = "/srv/html/tsl"
 private_key_type = "software"

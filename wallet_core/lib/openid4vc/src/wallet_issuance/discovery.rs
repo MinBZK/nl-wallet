@@ -283,7 +283,7 @@ mod test {
         // Construct a credential offer URL with a fake pre-authorized code.
         let credential_offer = CredentialOffer {
             credential_issuer: issuer_identifier,
-            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string()],
+            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string().into()],
             grants: Some(Grants::PreAuthorizedCode {
                 pre_authorized_code: GrantPreAuthorizedCode::new("fake_pre_auth_code".to_string().into()),
             }),
@@ -391,7 +391,7 @@ mod test {
         // Construct a credential offer URL WITHOUT any grants.
         let credential_offer = CredentialOffer {
             credential_issuer: "https://example.com".parse().unwrap(),
-            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string()],
+            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string().into()],
             grants: None,
         };
         let container = CredentialOfferContainer { credential_offer };

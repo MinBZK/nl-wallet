@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::convert::Infallible;
 use std::num::NonZeroU8;
@@ -12,7 +13,6 @@ use attestation_data::credential_payload::CredentialPayloadError;
 use attestation_data::credential_payload::MdocCredentialPayloadError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
-use attestation_data::issuable_document::IssuableDocument;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::DurationRound;
@@ -54,14 +54,17 @@ use crate::credential::CredentialRequests;
 use crate::credential::CredentialResponse;
 use crate::credential::CredentialResponses;
 use crate::credential_configurations::CredentialConfiguration;
+use crate::credential_configurations::CredentialConfigurationParameters;
 use crate::credential_configurations::CredentialConfigurations;
+use crate::credential_configurations::CredentialConfigurationsError;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
+use crate::issuable_document::IssuableDocument;
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::metadata::issuer_metadata::AtLeastTwoU64;
 use crate::metadata::issuer_metadata::BatchCredentialIssuance;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerMetadata;
-use crate::metadata::issuer_metadata::NonZeroNorOneU64;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::nonce::store::NonceStatus;
 use crate::nonce::store::NonceStore;
@@ -390,8 +393,15 @@ impl<A, K, L, S, N> Drop for Issuer<A, K, L, S, N> {
 }
 
 impl<A, K, L, S, N> Issuer<A, K, L, S, N> {
-    pub fn credential_configurations(&self) -> &CredentialConfigurations<K, L> {
-        &self.issuer_data.credential_configs
+    pub fn credential_config_id_by_format_and_attestation_type(
+        &self,
+        format: Format,
+        attestation_type: &str,
+    ) -> Option<&CredentialConfigurationId> {
+        self.issuer_data
+            .credential_configs
+            .get_by_format_and_attestation_type(format, attestation_type)
+            .map(|(config_id, _config)| config_id)
     }
 
     pub fn status_lists(&self) -> impl Iterator<Item = Arc<L>> {
@@ -421,24 +431,26 @@ where
     L: StatusListService,
 {
     #[expect(clippy::too_many_arguments, reason = "Constructor")]
-    pub fn new(
+    pub fn try_new(
         issuer_identifier: IssuerIdentifier,
         batch_size: NonZeroU8,
         wallet_client_ids: Vec<String>,
-        credential_configs: CredentialConfigurations<K, L>,
+        credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
         wia_config: Option<WiaConfig>,
         upstream_oauth_identifier: Option<IssuerIdentifier>,
         attr_service: A,
         sessions: Arc<S>,
         proof_nonce_store: N,
-    ) -> Self {
+    ) -> Result<Self, CredentialConfigurationsError> {
+        let credential_configs = CredentialConfigurations::try_new(credential_config_params)?;
+
         let server_url = issuer_identifier.join_issuer_url("/issuance");
         let credential_endpoint = server_url.join_issuer_url("/credential");
         let batch_credential_endpoint = server_url.join_issuer_url("/batch_credential");
         let nonce_endpoint = server_url.join_issuer_url("/nonce");
         let credential_preview_endpoint = server_url.join_issuer_url("/credential_preview");
 
-        let batch_credential_issuance = NonZeroNorOneU64::try_new(batch_size.into())
+        let batch_credential_issuance = AtLeastTwoU64::try_new(batch_size.into())
             .ok()
             .map(|batch_size| BatchCredentialIssuance { batch_size });
         let metadata = IssuerMetadata {
@@ -496,14 +508,16 @@ where
             .map(|config| config.status_list.start_refresh_job())
             .collect();
 
-        Self {
+        let issuer = Self {
             issuer_data,
             attr_service,
             sessions,
             proof_nonce_store,
             cleanup_task,
             status_list_refresh_tasks,
-        }
+        };
+
+        Ok(issuer)
     }
 }
 
@@ -902,7 +916,7 @@ impl Session<Created> {
         document: IssuableDocument,
         batch_size: NonZeroU8,
     ) -> Result<CredentialPreviewState, TokenRequestError> {
-        let format = document.format.into();
+        let format = document.format;
         let (credential_config_id, credential_config) = credential_configurations
             .get_by_format_and_attestation_type(format, &document.attestation_type)
             .ok_or_else(|| TokenRequestError::CredentialTypeNotOffered(format, document.attestation_type.clone()))?;
@@ -913,8 +927,6 @@ impl Session<Created> {
         // day have the same `nbf` and `exp` field
         let now = utc_now_truncated_to_days();
         let valid_until = now.add(credential_config.valid_days);
-
-        let format = document.format.into();
 
         let (batch_id, credential_payload) = document.into_id_and_previewable_credential_payload(
             now,
@@ -1244,7 +1256,7 @@ impl Session<WaitingForResponse> {
                             .ok_or(CredentialRequestError::WrongNumberOfCredentialRequests)?;
 
                         // Verify the assumption that the order of the incoming requests matches exactly
-                        // that of the flattened copies_per_format by matching the requested format.
+                        // that of the flattened batch_size by matching the requested format.
                         if preview.format != cred_req.credential_type.as_ref().format() {
                             return Err(CredentialRequestError::CredentialTypeMismatch {
                                 offered: preview.format,
@@ -1263,7 +1275,7 @@ impl Session<WaitingForResponse> {
                     })
                     .collect::<Result<Vec<_>, _>>()?
                     .try_into()
-                    .unwrap(); // ok because copies_per_format has a NonZeroU8 value in AttestationConfig (source)
+                    .unwrap(); // ok because `batch_size` has a `NonZeroU8` value in `CredentialPreviewContent`.
 
                 let credential_config = issuer_data
                     .credential_configuration_for_preview_state(preview)
@@ -1483,7 +1495,6 @@ mod tests {
 
     use assert_matches::assert_matches;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::issuable_document::IssuableDocument;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;
     use chrono::Days;
@@ -1509,6 +1520,7 @@ mod tests {
     use crate::credential::CredentialResponses;
     use crate::credential_configurations::CredentialConfigurationParameters;
     use crate::dpop::Dpop;
+    use crate::issuable_document::IssuableDocument;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
     use crate::nonce::response::NonceResponse;
@@ -1540,7 +1552,7 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
         let config_params = CredentialConfigurationParameters {
-            format: document.format.into(),
+            format: document.format,
             attestation_type: document.attestation_type.clone(),
             key_pair: KeyPair::new_from_signing_key(
                 issuance_keypair.private_key().to_owned(),
@@ -1554,7 +1566,8 @@ mod tests {
             metadata_documents: TypeMetadataDocuments::degree_example().1,
         };
         let credential_configs =
-            CredentialConfigurations::try_new([("credential_config_id".to_string().into(), config_params)]).unwrap();
+            CredentialConfigurations::try_new([("credential_config_id".to_string().into(), config_params)].into())
+                .unwrap();
 
         let CredentialPreviewState { credential_payload, .. } =
             Session::<Created>::credential_preview_state_for_issuable_document(
