@@ -157,14 +157,21 @@
 | `recoveryCodePaths.urn:eudi:pid:nl:1` | Recovery code path for default PID attestation             | `["recovery_code"]` |
 | `revokeSolutionEnabled`               | Whether the revoke-solution API is enabled                 | `false`             |
 
-### WUA status list parameters
+### WIA parameters
 
-| Name                            | Description                                                | Value |
-| ------------------------------- | ---------------------------------------------------------- | ----- |
-| `wuaStatusList.baseUrl`         | WUA status list base url that will be encoded as iss claim | `nil` |
-| `wuaStatusList.certificate`     | WUA status list certificate                                | `nil` |
-| `wuaStatusList.volumeClaimName` | Name of PVC where the WUA status lists are published       | `nil` |
-| `wuaStatusList.volumeClaimPath` | Path in the PVC where the WUA status lists are published   | `nil` |
+| Name               | Description                                  | Value |
+| ------------------ | -------------------------------------------- | ----- |
+| `wiaCertificate`   | WIA signing certificate (base64-encoded DER) | `nil` |
+| `wiaWalletVersion` | Version of the wallet solution               | `nil` |
+
+### WIA status list parameters
+
+| Name                            | Description                                          | Value |
+| ------------------------------- | ---------------------------------------------------- | ----- |
+| `wiaStatusList.baseUrl`         | WIA status list base url                             | `nil` |
+| `wiaStatusList.certificate`     | WIA status list certificate                          | `nil` |
+| `wiaStatusList.volumeClaimName` | Name of PVC where the WIA status lists are published | `nil` |
+| `wiaStatusList.volumeClaimPath` | Path in PVC where the WIA status lists are published | `nil` |
 
 ### Migration parameters
 
