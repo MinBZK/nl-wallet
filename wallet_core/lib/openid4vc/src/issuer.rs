@@ -394,6 +394,13 @@ impl<A, K, L, S, N> Issuer<A, K, L, S, N> {
         &self.issuer_data.credential_configs
     }
 
+    pub fn status_lists(&self) -> impl Iterator<Item = Arc<L>> {
+        self.issuer_data
+            .credential_configs
+            .configurations()
+            .map(|config| Arc::clone(&config.status_list))
+    }
+
     pub fn accepted_wallet_client_ids(&self) -> impl Iterator<Item = &str> {
         self.issuer_data.accepted_wallet_client_ids.iter().map(String::as_str)
     }
