@@ -215,6 +215,26 @@ to be updated (in our code that means the <code class="docutils literal notransl
 <p>The value of <code class="docutils literal notranslate"><span class="pre">x509_hash</span></code> is the base64url-encoded value of the SHA-256 hash
 of the DER-encoded X.509 certificate.</p>
 </li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">attestation_settings</span></code> sections of both the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> and the
+<code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> have undergone significant changes. These sections have been
+renamed to <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code> an are now configured per credential
+format. Each individual section directly represent a Credential Configuration
+as presented in the Issuer Metadata. The full changes are as follows:</p>
+<ul class="simple">
+<li><p>The section key now represents a Credential Configuration identifier,
+where before this was used as the Attestation Type.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">attestation_type</span></code> field was added.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">copies_per_format</span></code> field has been removed and replaced by a <code class="docutils literal notranslate"><span class="pre">format</span></code>
+field and a top-level <code class="docutils literal notranslate"><span class="pre">batch_size</span></code> field, that applies to all issued
+credentials.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">status_list</span></code> section has had a <code class="docutils literal notranslate"><span class="pre">group_name</span></code> field added, in order to
+decouple status lists from the Attestation Type. Normally this value would
+be set to the same value as the Credential Configuration identifier.</p></li>
+</ul>
+</li>
+<li><p>Related to the previous change, the <code class="docutils literal notranslate"><span class="pre">IssuerDocument</span></code> the attestation server
+provides in the context of disclosure-based issuance has had the <code class="docutils literal notranslate"><span class="pre">format</span></code>
+field added.</p></li>
 </ul>
 </section>
 <section id="new-features">

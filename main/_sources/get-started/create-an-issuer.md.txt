@@ -1104,8 +1104,8 @@ variables configured like we documented in the database configuration section
 #### Configuring a hardware security module (optional)
 
 You can opt to use a hardware security module (HSM) to store private keys for
-`disclosure_settings` and `attestation_settings`. To do so we need to configure
-a few things:
+`disclosure_settings` and `credential_configurations`. To do so we need to
+configure a few things:
 
 ```shell
 cd nl-wallet
@@ -1133,7 +1133,7 @@ environment).
 <div class="admonition note">
 <p class="title">Private key field needs to be a key label when using HSM type</p>
 <p>When using a hardware security module, the `private_key` field of
-`disclosure_settings` and/or `attestation_settings` need to be the HSM key
+`disclosure_settings` and/or `credential_configurations` need to be the HSM key
 label.</p>
 <p>It is possible to use *both* hardware *and* software private keys in the same
 `issuance_server` instance. Simply make sure you set `private_key_type` to
@@ -1190,7 +1190,7 @@ as follows:
   * `[disclosure_settings.insurance]`
   * `[[disclosure_settings.insurance.dcql_query.credentials]]`
   * `[disclosure_settings.insurance.attestation_url_config]`
-  * `[attestation_settings.insurance]`
+  * `[credential_configurations.insurance]`
 
 In the next sub-sections we'll cover each one of these.
 
@@ -1260,9 +1260,10 @@ unset TRUST_ANCHORS
 ##### The attestation settings
 
 We're now going to base64 encode the issuer key and certificate within the
-`private_key` and `certificate` fields of the `attestation_settings`. This is
-the certificate that embedded the previously created `issuer_auth.json`. Let's
-create the section:
+`private_key` and `certificate` fields of the `credential_configurations`. This
+is the certificate that embedded the previously created `issuer_auth.json`. Note
+that this makes `insurance` the Credential Configuration identifier that is
+presented in the Issuer Metadata. Let's create the section:
 
 ```shell
 cd nl-wallet
@@ -1271,9 +1272,10 @@ export IDENTIFIER="foocorp"
 export TARGET_DIR=target/is-config && mkdir -p "$TARGET_DIR/parts"
 cat <<EOF > "$TARGET_DIR/parts/16-attestation-settings.toml"
 
-[attestation_settings.insurance]
+[credential_configurations.insurance]
+format = "dc+sd-jwt"
+attestation_type = "com.example.insurance"
 valid_days = 365
-copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"
 private_key = "$(< "${TARGET_DIR}/issuer.${IDENTIFIER}.key.der" $BASE64)"
 certificate = "$(< "${TARGET_DIR}/issuer.${IDENTIFIER}.crt.der" $BASE64)"
@@ -1282,9 +1284,12 @@ EOF
 
 ##### The attestation settings associated status list settings
 
-Next to the previously done `[status_lists]` settings, which control how big and
-when status lists are created, an `attestation_settings` associated
-`status_list` block.
+Next to the previously done `[status_lists]` settings, which controls when
+status lists are created and how big they are, add a `status_list` block that
+is associated with a `credential_configurations` section. Using `group_name`,
+this scopes the issued credential to a particular status list group, which is
+stored separately in the database. A sensible default value for this would be
+the credential configuration identifier.
 
 This block configures the `context_path`, which together with a `base_url` (if
 empty the `public_url` of the issuance server is used) is added to the
@@ -1307,7 +1312,8 @@ export IDENTIFIER="foocorp"
 export TARGET_DIR=target/is-config && mkdir -p "$TARGET_DIR/parts"
 cat <<EOF > "$TARGET_DIR/parts/17-attestation-status-list.toml"
 
-[attestation_settings.insurance.status_list]
+[credential_configurations.insurance.status_list]
+group_name = "insurance"
 context_path = "/tsl"
 publish_dir = "/srv/html/tsl"
 private_key_type = "software"
@@ -1358,15 +1364,16 @@ During startup, the `issuance_server` performs some checks on the configuration
 to prevent common configuration problems. Most notably the following checks are
 performed:
 
-- Verify all `disclosure_settings` and `attestation_settings` certificates are
-  valid;
-- Verify all `disclosure_settings` and `attestation_settings` certificates are
-  signed by any of the `reader_trust_anchors` and `issuer_trust_anchors`;
+- Verify all `disclosure_settings` and `credential_configurations` certificates
+  are valid;
+- Verify all `disclosure_settings` and `credential_configurations` certificates
+  are signed by any of the `reader_trust_anchors` and `issuer_trust_anchors`;
 - Verify all `disclosure_settings` certificates are valid reader-certificates,
   and contain the necessary Extended Key Usages and the `reader_auth.json`;
-- Verify all `attestation_settings` certificates are valid issuer-certificates,
-  and contain the necessary Extended Key Usages and the `issuer_auth.json`;
-- Verify all `disclosure_settings` and `attestation_settings` key-pairs are
+- Verify all `credential_configurations` certificates are valid
+  issuer-certificates, and contain the necessary Extended Key Usages and the
+  `issuer_auth.json`;
+- Verify all `disclosure_settings` and `credential_configurations` key-pairs are
   valid, i.e., the public and private keys should belong together;
 
 If this process discovers any configuration errors, the application will report

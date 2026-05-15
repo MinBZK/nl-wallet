@@ -1418,8 +1418,8 @@ variables configured like we documented in the database configuration section
 <section id="configuring-a-hardware-security-module-optional">
 <h4>Configuring a hardware security module (optional)<a class="headerlink" href="#configuring-a-hardware-security-module-optional" title="Link to this heading"></a></h4>
 <p>You can opt to use a hardware security module (HSM) to store private keys for
-<code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code> and <code class="docutils literal notranslate"><span class="pre">attestation_settings</span></code>. To do so we need to configure
-a few things:</p>
+<code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code> and <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code>. To do so we need to
+configure a few things:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
 <span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/is-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
 cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/11-hardware-security-module.toml&quot;</span>
@@ -1444,7 +1444,7 @@ environment).</p>
 <div class="admonition note">
 <p class="admonition-title">Private key field needs to be a key label when using HSM type</p>
 <p>When using a hardware security module, the <code class="docutils literal notranslate"><span class="pre">private_key</span></code> field of
-<code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code> and/or <code class="docutils literal notranslate"><span class="pre">attestation_settings</span></code> need to be the HSM key
+<code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code> and/or <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code> need to be the HSM key
 label.</p>
 <p>It is possible to use <em>both</em> hardware <em>and</em> software private keys in the same
 <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> instance. Simply make sure you set <code class="docutils literal notranslate"><span class="pre">private_key_type</span></code> to
@@ -1497,7 +1497,7 @@ as follows:</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">[disclosure_settings.insurance]</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">[[disclosure_settings.insurance.dcql_query.credentials]]</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">[disclosure_settings.insurance.attestation_url_config]</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">[attestation_settings.insurance]</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">[credential_configurations.insurance]</span></code></p></li>
 </ul>
 <p>In the next sub-sections we’ll cover each one of these.</p>
 <section id="the-disclosure-settings">
@@ -1563,18 +1563,20 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 <section id="the-attestation-settings">
 <h5>The attestation settings<a class="headerlink" href="#the-attestation-settings" title="Link to this heading"></a></h5>
 <p>We’re now going to base64 encode the issuer key and certificate within the
-<code class="docutils literal notranslate"><span class="pre">private_key</span></code> and <code class="docutils literal notranslate"><span class="pre">certificate</span></code> fields of the <code class="docutils literal notranslate"><span class="pre">attestation_settings</span></code>. This is
-the certificate that embedded the previously created <code class="docutils literal notranslate"><span class="pre">issuer_auth.json</span></code>. Let’s
-create the section:</p>
+<code class="docutils literal notranslate"><span class="pre">private_key</span></code> and <code class="docutils literal notranslate"><span class="pre">certificate</span></code> fields of the <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code>. This
+is the certificate that embedded the previously created <code class="docutils literal notranslate"><span class="pre">issuer_auth.json</span></code>. Note
+that this makes <code class="docutils literal notranslate"><span class="pre">insurance</span></code> the Credential Configuration identifier that is
+presented in the Issuer Metadata. Let’s create the section:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nl-wallet
 <span class="nb">export</span><span class="w"> </span><span class="nv">BASE64</span><span class="o">=</span><span class="s2">&quot;openssl base64 -e -A&quot;</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">IDENTIFIER</span><span class="o">=</span><span class="s2">&quot;foocorp&quot;</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/is-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
 cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/16-attestation-settings.toml&quot;</span>
 
-<span class="s">[attestation_settings.insurance]</span>
+<span class="s">[credential_configurations.insurance]</span>
+<span class="s">format = &quot;dc+sd-jwt&quot;</span>
+<span class="s">attestation_type = &quot;com.example.insurance&quot;</span>
 <span class="s">valid_days = 365</span>
-<span class="s">copies_per_format = { &quot;mso_mdoc&quot; = 4, &quot;dc+sd-jwt&quot; = 4 }</span>
 <span class="s">private_key_type = &quot;software&quot;</span>
 <span class="s">private_key = &quot;$(&lt; &quot;${TARGET_DIR}/issuer.${IDENTIFIER}.key.der&quot; $BASE64)&quot;</span>
 <span class="s">certificate = &quot;$(&lt; &quot;${TARGET_DIR}/issuer.${IDENTIFIER}.crt.der&quot; $BASE64)&quot;</span>
@@ -1584,9 +1586,12 @@ cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/pa
 </section>
 <section id="the-attestation-settings-associated-status-list-settings">
 <h5>The attestation settings associated status list settings<a class="headerlink" href="#the-attestation-settings-associated-status-list-settings" title="Link to this heading"></a></h5>
-<p>Next to the previously done <code class="docutils literal notranslate"><span class="pre">[status_lists]</span></code> settings, which control how big and
-when status lists are created, an <code class="docutils literal notranslate"><span class="pre">attestation_settings</span></code> associated
-<code class="docutils literal notranslate"><span class="pre">status_list</span></code> block.</p>
+<p>Next to the previously done <code class="docutils literal notranslate"><span class="pre">[status_lists]</span></code> settings, which controls when
+status lists are created and how big they are, add a <code class="docutils literal notranslate"><span class="pre">status_list</span></code> block that
+is associated with a <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code> section. Using <code class="docutils literal notranslate"><span class="pre">group_name</span></code>,
+this scopes the issued credential to a particular status list group, which is
+stored separately in the database. A sensible default value for this would be
+the credential configuration identifier.</p>
 <p>This block configures the <code class="docutils literal notranslate"><span class="pre">context_path</span></code>, which together with a <code class="docutils literal notranslate"><span class="pre">base_url</span></code> (if
 empty the <code class="docutils literal notranslate"><span class="pre">public_url</span></code> of the issuance server is used) is added to the
 attestation as a location for the Status List Claim. This url needs to be
@@ -1604,7 +1609,8 @@ reachable by the NL Wallet app and the verifiers. Let’s create it:</p>
 <span class="nb">export</span><span class="w"> </span><span class="nv">TARGET_DIR</span><span class="o">=</span>target/is-config<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$TARGET_DIR</span><span class="s2">/parts&quot;</span>
 cat<span class="w"> </span><span class="s">&lt;&lt;EOF &gt; &quot;$TARGET_DIR/parts/17-attestation-status-list.toml&quot;</span>
 
-<span class="s">[attestation_settings.insurance.status_list]</span>
+<span class="s">[credential_configurations.insurance.status_list]</span>
+<span class="s">group_name = &quot;insurance&quot;</span>
 <span class="s">context_path = &quot;/tsl&quot;</span>
 <span class="s">publish_dir = &quot;/srv/html/tsl&quot;</span>
 <span class="s">private_key_type = &quot;software&quot;</span>
@@ -1653,15 +1659,16 @@ need to troubleshoot.</p>
 to prevent common configuration problems. Most notably the following checks are
 performed:</p>
 <ul class="simple">
-<li><p>Verify all <code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code> and <code class="docutils literal notranslate"><span class="pre">attestation_settings</span></code> certificates are
-valid;</p></li>
-<li><p>Verify all <code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code> and <code class="docutils literal notranslate"><span class="pre">attestation_settings</span></code> certificates are
-signed by any of the <code class="docutils literal notranslate"><span class="pre">reader_trust_anchors</span></code> and <code class="docutils literal notranslate"><span class="pre">issuer_trust_anchors</span></code>;</p></li>
+<li><p>Verify all <code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code> and <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code> certificates
+are valid;</p></li>
+<li><p>Verify all <code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code> and <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code> certificates
+are signed by any of the <code class="docutils literal notranslate"><span class="pre">reader_trust_anchors</span></code> and <code class="docutils literal notranslate"><span class="pre">issuer_trust_anchors</span></code>;</p></li>
 <li><p>Verify all <code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code> certificates are valid reader-certificates,
 and contain the necessary Extended Key Usages and the <code class="docutils literal notranslate"><span class="pre">reader_auth.json</span></code>;</p></li>
-<li><p>Verify all <code class="docutils literal notranslate"><span class="pre">attestation_settings</span></code> certificates are valid issuer-certificates,
-and contain the necessary Extended Key Usages and the <code class="docutils literal notranslate"><span class="pre">issuer_auth.json</span></code>;</p></li>
-<li><p>Verify all <code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code> and <code class="docutils literal notranslate"><span class="pre">attestation_settings</span></code> key-pairs are
+<li><p>Verify all <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code> certificates are valid
+issuer-certificates, and contain the necessary Extended Key Usages and the
+<code class="docutils literal notranslate"><span class="pre">issuer_auth.json</span></code>;</p></li>
+<li><p>Verify all <code class="docutils literal notranslate"><span class="pre">disclosure_settings</span></code> and <code class="docutils literal notranslate"><span class="pre">credential_configurations</span></code> key-pairs are
 valid, i.e., the public and private keys should belong together;</p></li>
 </ul>
 <p>If this process discovers any configuration errors, the application will report
