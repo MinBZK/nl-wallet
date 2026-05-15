@@ -15,7 +15,9 @@
     },
     "certificate_public_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEUNzPZL65uFHdgDTqP4drbIwWWbL5dgOqIHGyXjPY6DJ+xOqwS9EfM46CVTkwKPIv8Bxz2CeNHDIp1EqzNqjZsg==",
     "instruction_result_public_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFTDftVSPYE0pK43M1SoH/4kEPDj2JXJQL3FZedP2rSq3iOQ3c3/GkP/SiHlwKg1462ke8Rie9/sZOgz/GaQWCQ==",
-    "wua_public_key": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEKQtdy5ansuk8N8vkLQAkQbzeeCJth3/Fr7Yrr64audGWhkWxrgAcenIH+qtP2FOgfNGQCnYsPVeHbQZ/VU1ksg=="
+    "wia_trust_anchors": [
+      "MIIBmTCCAUCgAwIBAgIUHrrZovMqmE6zdRid6xwRxgcn/dIwCgYIKoZIzj0EAwIwITEfMB0GA1UEAwwWd2lhLmlzc3Vlci5leGFtcGxlLmNvbTAeFw0yNjA1MTUxMTQzMzdaFw0yNzA1MTUxMTQzMzdaMCExHzAdBgNVBAMMFndpYS5pc3N1ZXIuZXhhbXBsZS5jb20wWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATkSDNKDNcyzl7IbCnJCGLkSufzoPRTiKst3cF9aMB0kEgFr1p1I4MUlm4ngT5hVkL1Q7zW0HMdaxzAMwUv3haAo1YwVDAfBgNVHSMEGDAWgBRCn7wne6DgdMlmrWdOHYoEEnIdAjAdBgNVHQ4EFgQUQp+8J3ug4HTJZq1nTh2KBBJyHQIwEgYDVR0TAQH/BAgwBgEB/wIBADAKBggqhkjOPQQDAgNHADBEAiAjncOEobAPd/qanCrkT3b/u3ZeAsOQOeQg/iI/YyCr1AIgDb0qTKPwn/MO2ZvOGEeP9E/xfGgjL67m2q/L2IovEbY="
+    ]
   },
   "pid_attributes": {
     "mso_mdoc": {

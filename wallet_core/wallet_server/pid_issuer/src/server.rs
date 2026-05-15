@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::Router;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::service::Pkcs11Hsm;
 use issuer_common::settings::IssuerSettings;
 use openid4vc::issuer::AttributeService;
@@ -11,7 +12,6 @@ use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::nonce::store::NonceStore;
 use openid4vc::server_state::SessionStore;
 use openid4vc_server::issuer::create_issuance_router;
-use p256::ecdsa::VerifyingKey;
 use server_utils::server::add_cache_control_no_store_layer;
 use server_utils::server::create_internal_listener;
 use server_utils::server::create_wallet_listener;
@@ -30,7 +30,7 @@ pub async fn serve<A, IS, N, L>(
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
     proof_nonce_store: N,
-    wia_issuer_pubkey: VerifyingKey,
+    wia_trust_anchors: Vec<BorrowingTrustAnchor>,
     status_list_services: L,
     status_list_router: Option<Router>,
     health_router: Router,
@@ -50,7 +50,7 @@ where
         hsm,
         issuance_sessions,
         proof_nonce_store,
-        wia_issuer_pubkey,
+        wia_trust_anchors,
         status_list_services,
         status_list_router,
         health_router,
@@ -68,7 +68,7 @@ pub async fn serve_with_listeners<A, IS, N, L>(
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
     proof_nonce_store: N,
-    wia_issuer_pubkey: VerifyingKey,
+    wia_trust_anchors: Vec<BorrowingTrustAnchor>,
     status_list_services: L,
     status_list_router: Option<Router>,
     health_router: Router,
@@ -88,9 +88,7 @@ where
         settings.public_url,
         settings.wallet_client_ids,
         attestation_config,
-        Some(WiaConfig {
-            wia_issuer_pubkey: (&wia_issuer_pubkey).into(),
-        }),
+        Some(WiaConfig { wia_trust_anchors }),
         Some(upstream_oauth_identifier),
         attr_service,
         issuance_sessions,

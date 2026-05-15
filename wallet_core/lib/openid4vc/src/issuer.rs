@@ -21,6 +21,7 @@ use chrono::DurationRound;
 use chrono::Utc;
 use crypto::EcdsaKeySend;
 use crypto::server_keys::KeyPair;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::utils::random_string;
 use derive_more::AsRef;
 use derive_more::Debug;
@@ -33,7 +34,6 @@ use http_utils::urls::HttpsUri;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use jwt::Algorithm;
-use jwt::EcdsaDecodingKey;
 use jwt::Validation;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
@@ -426,7 +426,7 @@ pub struct IssuerData<K> {
 
 pub struct WiaConfig {
     /// Public key of the WIA issuer.
-    pub wia_issuer_pubkey: EcdsaDecodingKey,
+    pub wia_trust_anchors: Vec<BorrowingTrustAnchor>,
 }
 
 impl<K, A, S, N, L> Drop for Issuer<K, A, S, N, L> {
@@ -1179,7 +1179,7 @@ impl Session<WaitingForResponse> {
                 let wia_disclosure = attestations.ok_or(CredentialRequestError::MissingWia)?;
 
                 let (_, wia_nonce) = wia_disclosure.verify(
-                    &wia_config.wia_issuer_pubkey,
+                    &wia_config.wia_trust_anchors,
                     issuer_identifier,
                     &self.state.data.accepted_wallet_client_ids,
                 )?;
@@ -1589,7 +1589,6 @@ mod tests {
     use crypto::trust_anchor::BorrowingTrustAnchor;
     use derive_more::Debug;
     use indexmap::IndexMap;
-    use p256::ecdsa::SigningKey;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use thiserror::Error;
     use tracing_test::traced_test;
@@ -1687,9 +1686,9 @@ mod tests {
 
     // Error injection tests
 
-    fn setup_simple_mock_issuer() -> (MockIssuer, BorrowingTrustAnchor, IssuerIdentifier, SigningKey) {
+    fn setup_simple_mock_issuer() -> (MockIssuer, BorrowingTrustAnchor, IssuerIdentifier, KeyPair) {
         let issuer_identifier: IssuerIdentifier = "https://example.com/".parse().unwrap();
-        let (issuer, trust_anchor, wia_issuer_privkey) = setup_mock_issuer(
+        let (issuer, trust_anchor, wia_keypair) = setup_mock_issuer(
             issuer_identifier.clone(),
             MockAttrService {
                 documents: mock_issuable_documents(NonZeroUsize::MIN),
@@ -1698,7 +1697,7 @@ mod tests {
             Arc::new(MemorySessionStore::default()),
             None,
         );
-        (issuer, trust_anchor, issuer_identifier, wia_issuer_privkey)
+        (issuer, trust_anchor, issuer_identifier, wia_keypair)
     }
 
     /// An implementation of [`VcMessageClient`] that dispatches messages directly to the contained
@@ -1871,7 +1870,7 @@ mod tests {
         message_client: VcMessageClientStub,
         issuer_identifier: IssuerIdentifier,
         trust_anchor: BorrowingTrustAnchor,
-        wia_issuer_privkey: SigningKey,
+        wia_keypair: KeyPair,
     ) -> WalletIssuanceError {
         let trust_anchors = &[trust_anchor];
         let issuer_metadata = message_client.issuer.metadata().clone();
@@ -1886,7 +1885,7 @@ mod tests {
         .await
         .unwrap();
 
-        let wscd = MockRemoteWscd::new_with_wia_keypair(wia_issuer_privkey);
+        let wscd = MockRemoteWscd::new_with_wia_keypair(wia_keypair);
         session.accept_issuance(trust_anchors, &wscd, true).await.unwrap_err()
     }
 

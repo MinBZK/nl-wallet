@@ -117,7 +117,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         hsm,
         sessions,
         proof_nonce_store,
-        settings.wua_issuer_pubkey.into_inner(),
+        settings.wia_trust_anchors,
         status_list_services,
         status_list_router,
         health_router,

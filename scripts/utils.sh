@@ -290,6 +290,16 @@ function generate_reader_root_ca {
     openssl x509 -in "${TARGET_DIR}/ca.reader.crt.pem" -outform DER -out "${TARGET_DIR}/ca.reader.crt.der"
 }
 
+# Generate an EC root CA for the WIA
+function generate_wia_root_ca {
+    echo -e "${INFO}Generating WIA CA key pair${NC}"
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
+        --common-name "wia.issuer.example.com" \
+        --file-prefix "${TARGET_DIR}/ca.wia" \
+        --force
+    openssl x509 -in "${TARGET_DIR}/ca.wia.crt.pem" -outform DER -out "${TARGET_DIR}/ca.wia.crt.der"
+}
+
 # Generate an EC key pair for the config_signing
 function generate_config_signing_key_pair {
     echo -e "${INFO}Generating config signing key pair${NC}"
@@ -306,6 +316,33 @@ function generate_config_signing_key_pair {
     openssl pkey -pubin -outform DER \
         -in "${TARGET_DIR}/wallet_provider/config_signing.pub.pem" \
         -out "${TARGET_DIR}/wallet_provider/config_signing.pub.der"
+}
+
+# Generate an EC key pair for the WIA
+function generate_wia_key_pair {
+    echo -e "${INFO}Generating WIA key pair in HSM${NC}"
+
+    generate_hsm_key_pair wia_signing_key wallet_provider/wia_signing_key.pub.pem
+
+    # Generate a certificate for the public key.
+    # NB: we can't sign the CSR with the private key since that is in the HSM simulator,
+    # so we reuse the CA private key in the inner `openssl` command, and then overwrite
+    # it in the outer `openssl` command using `-force_pubkey`.
+    openssl x509 \
+        -req \
+        -in <(openssl req -new \
+            -subj "/CN=wia.example.com" \
+            -key "${TARGET_DIR}/ca.wia.key.pem" \
+            -addext "extendedKeyUsage = 1.3.6.1.5.5.7.3.128") \
+        -CA "${TARGET_DIR}/ca.wia.crt.pem" \
+        -CAkey "${TARGET_DIR}/ca.wia.key.pem" \
+        -force_pubkey "${TARGET_DIR}/wallet_provider/wia_signing_key.pub.pem" \
+        -days 365 \
+        -copy_extensions copyall \
+        -out "${TARGET_DIR}/wallet_provider/wia_signing_key.crt.pem"
+
+    openssl x509 -in "${TARGET_DIR}/wallet_provider/wia_signing_key.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/wallet_provider/wia_signing_key.crt.der"
 }
 
 # Generate an EC key pair for the pid_issuer
@@ -355,23 +392,23 @@ function generate_pid_issuer_tsl_key_pair {
 
 # Generate an EC key pair for the wallet_provider
 function generate_wallet_provider_tsl_key_pair {
-    echo -e "${INFO}Generating Wallet Provider WUA TSL key pair${NC}"
+    echo -e "${INFO}Generating Wallet Provider WIA TSL key pair${NC}"
 
-    generate_hsm_key_pair wua_tsl_key wallet_provider/wua_tsl.pub.pem
+    generate_hsm_key_pair wia_tsl_key wallet_provider/wia_tsl.pub.pem
 
     # Generate a certificate for the public key including issuer authentication
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca tsl-cert \
-        --public-key-file "${TARGET_DIR}/wallet_provider/wua_tsl.pub.pem" \
+        --public-key-file "${TARGET_DIR}/wallet_provider/wia_tsl.pub.pem" \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
         --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
-        --common-name "wua-issuer.example.com" \
-        --file-prefix "${TARGET_DIR}/wallet_provider/wua_tsl" \
+        --common-name "wia-issuer.example.com" \
+        --file-prefix "${TARGET_DIR}/wallet_provider/wia_tsl" \
         --force
 
     # Convert the PEM certificate to DER format
-    openssl x509 -in "${TARGET_DIR}/wallet_provider/wua_tsl.crt.pem" \
-        -outform DER -out "${TARGET_DIR}/wallet_provider/wua_tsl.crt.der"
+    openssl x509 -in "${TARGET_DIR}/wallet_provider/wia_tsl.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/wallet_provider/wia_tsl.crt.der"
 }
 
 # Generate an EC key pairs for the demo_issuer

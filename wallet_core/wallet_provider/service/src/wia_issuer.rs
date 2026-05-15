@@ -93,7 +93,7 @@ where
     }
 
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error> {
-        Ok(self.keypair.certificate().public_key().clone())
+        Ok(*self.keypair.certificate().public_key())
     }
 }
 

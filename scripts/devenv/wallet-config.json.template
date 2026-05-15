@@ -15,7 +15,7 @@
     },
     "certificate_public_key": "${WP_CERTIFICATE_PUBLIC_KEY}",
     "instruction_result_public_key": "${WP_INSTRUCTION_RESULT_PUBLIC_KEY}",
-    "wua_public_key": "${WP_WIA_PUBLIC_KEY}"
+    "wia_trust_anchors": ["${WIA_CA_CRT}"]
   },
   "pid_attributes": {
     "mso_mdoc": {

@@ -311,10 +311,18 @@ fi
 ISSUER_CA_CRT=$(< "${TARGET_DIR}/ca.issuer.crt.der" ${BASE64})
 export ISSUER_CA_CRT
 
-# Generate key for WUA signing
-generate_wp_signing_key wia_signing
-WP_WIA_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wia_signing.pub.der" ${BASE64})
-export WP_WIA_PUBLIC_KEY
+# Generate root CA and certificate for WIA
+if [[ ! -f "${TARGET_DIR}/ca.wia.key.pem" ]]; then
+    generate_wia_root_ca
+else
+    echo -e "${INFO}Target file '${TARGET_DIR}/ca.wia.key.pem' already exists, not (re-)generating issuer root CA"
+fi
+WIA_CA_CRT=$(< "${TARGET_DIR}/ca.wia.crt.der" ${BASE64})
+export WIA_CA_CRT
+
+generate_wia_key_pair
+WP_WIA_CERTIFICATE=$(< "${TARGET_DIR}/wallet_provider/wia_signing_key.crt.der" ${BASE64})
+export WP_WIA_CERTIFICATE
 
 # Generate key for WIA tsl
 generate_wallet_provider_tsl_key_pair

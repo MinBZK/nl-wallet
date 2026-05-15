@@ -914,7 +914,7 @@ pub async fn start_pid_issuer_server(
                 hsm,
                 issuance_sessions,
                 proof_nonce_store,
-                settings.wua_issuer_pubkey.into_inner(),
+                settings.wia_trust_anchors,
                 status_list_services,
                 Some(status_list_router),
                 create_health_router([]),

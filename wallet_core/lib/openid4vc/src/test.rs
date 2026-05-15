@@ -17,7 +17,6 @@ use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
-use rand_core::OsRng;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
@@ -108,14 +107,14 @@ pub fn setup_mock_issuer<G>(
     attestation_count: NonZeroUsize,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
     upstream_oauth_identifier: Option<IssuerIdentifier>,
-) -> (MockIssuer<G>, BorrowingTrustAnchor, SigningKey)
+) -> (MockIssuer<G>, BorrowingTrustAnchor, KeyPair)
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
     let trust_anchor = ca.to_borrowing_trust_anchor();
-    let wia_issuer_privkey = SigningKey::random(&mut OsRng);
+    let wia_keypair = ca.generate_wia_mock().unwrap();
 
     let attestation_config = MOCK_ATTESTATION_TYPES[..attestation_count.get()]
         .iter()
@@ -163,7 +162,7 @@ where
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
         attestation_config,
         Some(WiaConfig {
-            wia_issuer_pubkey: wia_issuer_privkey.verifying_key().into(),
+            wia_trust_anchors: vec![trust_anchor.clone()],
         }),
         upstream_oauth_identifier,
         attr_service,
@@ -172,5 +171,5 @@ where
         Arc::new(status_list_service),
     );
 
-    (issuer, trust_anchor, wia_issuer_privkey)
+    (issuer, trust_anchor, wia_keypair)
 }

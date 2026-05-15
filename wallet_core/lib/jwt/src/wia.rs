@@ -4,20 +4,23 @@ use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
+use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::x509::CertificateUsage;
 use derive_more::Constructor;
 use jsonwebtoken::Validation;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
+use utils::generator::TimeGenerator;
 
 use crate::DEFAULT_VALIDATIONS;
-use crate::EcdsaDecodingKey;
 use crate::JwtTyp;
 use crate::UnverifiedJwt;
 use crate::confirmation::ConfirmationClaim;
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
+use crate::error::JwtX5cError;
 use crate::headers::HeaderWithX5c;
 use crate::nonce::Nonce;
 use crate::pop::JwtPopClaims;
@@ -110,16 +113,23 @@ pub enum WiaError {
     JwkConversion(#[from] JwkConversionError),
     #[error("JWT error: {0}")]
     Jwt(#[from] JwtError),
+    #[error("JWT with certificate error: {0}")]
+    JwtX5c(#[from] JwtX5cError),
 }
 
 impl WiaDisclosure {
     pub fn verify(
         &self,
-        issuer_public_key: &EcdsaDecodingKey,
+        trust_anchors: &[BorrowingTrustAnchor],
         expected_aud: &str,
         accepted_wallet_client_ids: &[String],
     ) -> Result<(VerifyingKey, Nonce), WiaError> {
-        let (_, verified_wia_claims) = self.0.parse_and_verify(issuer_public_key, &WIA_JWT_VALIDATIONS)?;
+        let (_, verified_wia_claims) = self.0.parse_and_verify_against_trust_anchors(
+            trust_anchors,
+            &TimeGenerator,
+            CertificateUsage::Wia,
+            &WIA_JWT_VALIDATIONS,
+        )?;
         let wia_pubkey = verified_wia_claims.cnf.verifying_key()?;
         tracing::debug!("WIA status claim: {:?}", verified_wia_claims.client_status.status);
 
