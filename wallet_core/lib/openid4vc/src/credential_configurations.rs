@@ -23,6 +23,9 @@ use crate::metadata::issuer_metadata::ProofType;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CredentialConfigurationsError {
+    #[error("no credential configuration parameters provided")]
+    NoConfigurations,
+
     #[error("could not parse SD-JWT VC Type Metadata chain: {0}")]
     TypeMetadata(#[source] TypeMetadataChainError),
 
@@ -146,6 +149,10 @@ impl<K, L> CredentialConfigurations<K, L> {
     pub fn try_new(
         config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
     ) -> Result<Self, CredentialConfigurationsError> {
+        if config_params.is_empty() {
+            return Err(CredentialConfigurationsError::NoConfigurations);
+        }
+
         let mut ids_by_format_and_attestation_type = HashMap::<_, Vec<_>>::new();
 
         let configs_by_id = config_params
@@ -382,6 +389,18 @@ mod tests {
                 metadata.claims().len()
             );
         }
+    }
+
+    #[test]
+    fn test_credential_configurations_try_new_error_no_configurations() {
+        let params = HashMap::<
+            CredentialConfigurationId,
+            CredentialConfigurationParameters<SigningKey, MockStatusListService>,
+        >::new();
+        let error = CredentialConfigurations::try_new(params)
+            .expect_err("creating credential configurations from parameters should fail");
+
+        assert_matches!(error, CredentialConfigurationsError::NoConfigurations);
     }
 
     #[test]
