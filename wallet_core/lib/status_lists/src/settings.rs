@@ -30,21 +30,6 @@ pub struct StatusListsSettings {
     pub serve: bool,
 }
 
-impl Default for StatusListsSettings {
-    /// Sensible default settings for status lists.
-    fn default() -> Self {
-        Self {
-            storage_url: None,
-            list_size: NonZeroU31::try_new(100_000).unwrap(),
-            create_threshold_ratio: Ratio::try_new(0.1).unwrap(),
-            expiry_in_hours: NonZeroU16::new(24).unwrap(),
-            refresh_threshold_ratio: Ratio::try_new(0.25).unwrap(),
-            ttl_in_minutes: None,
-            serve: true,
-        }
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 #[error("configured expiry is less than the TTL: {expiry:?} < {ttl:?}")]
 pub struct ExpiryLessThanTtl {

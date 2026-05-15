@@ -563,6 +563,7 @@ impl StatusListAttestationSettings {
 mod tests {
     use std::collections::HashMap;
     use std::num::NonZeroU8;
+    use std::num::NonZeroU16;
 
     use assert_matches::assert_matches;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -585,6 +586,8 @@ mod tests {
     use server_utils::settings::Storage;
     use status_lists::publish::PublishDir;
     use status_lists::settings::StatusListsSettings;
+    use utils::num::NonZeroU31;
+    use utils::num::Ratio;
 
     use super::CredentialConfigurationSettings;
     use super::IssuerSettings;
@@ -651,7 +654,15 @@ mod tests {
                 issuer_trust_anchors: vec![issuer_ca.to_borrowing_trust_anchor()],
                 hsm: None,
             },
-            status_lists: StatusListsSettings::default(),
+            status_lists: StatusListsSettings {
+                storage_url: None,
+                list_size: NonZeroU31::try_new(100_000).unwrap(),
+                create_threshold_ratio: Ratio::try_new(0.1).unwrap(),
+                expiry_in_hours: NonZeroU16::new(24).unwrap(),
+                refresh_threshold_ratio: Ratio::try_new(0.25).unwrap(),
+                ttl_in_minutes: None,
+                serve: true,
+            },
         }
     }
 
