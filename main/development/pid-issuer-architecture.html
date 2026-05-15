@@ -1,0 +1,854 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PID Issuer architecture &mdash; NL Wallet 0.6.0-dev documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=bd54c151" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=9ff6a3c4"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs"></script>
+      <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.2.0/dist/mermaid-layout-elk.esm.min.mjs"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.2.0/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+const defaultStyle = document.createElement('style');
+defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+`;
+document.head.appendChild(defaultStyle);
+
+const fullscreenStyle = document.createElement('style');
+fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+document.head.appendChild(fullscreenStyle);
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        return brightness < 128;
+    }
+    return false;
+};
+
+const load = async () => {
+    await mermaid.run();
+
+    const all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(load, 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(load, 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(load, 200);
+        return;
+    }
+
+    const darkTheme = isDarkTheme();
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    const modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    const modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    let previousScrollOffset = [window.scrollX, window.scrollY];
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    const allButtons = [];
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+
+        container.appendChild(fullscreenBtn);
+        allButtons.push(fullscreenBtn);
+    });
+
+    // Update theme classes when theme changes
+    const updateTheme = () => {
+        const dark = isDarkTheme();
+        allButtons.forEach(btn => {
+            if (dark) {
+                btn.classList.add('dark-theme');
+            } else {
+                btn.classList.remove('dark-theme');
+            }
+        });
+        if (dark) {
+            modal.classList.add('dark-theme');
+            modalContent.classList.add('dark-theme');
+            closeBtn.classList.add('dark-theme');
+        } else {
+            modal.classList.remove('dark-theme');
+            modalContent.classList.remove('dark-theme');
+            closeBtn.classList.remove('dark-theme');
+        }
+    };
+
+    // Watch for theme changes
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    observer.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style']
+    });
+};
+
+window.addEventListener("load", load);
+</script>
+      <script src="../_static/js/custom.js?v=48752f09"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="author" title="About these documents" href="../about.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="SD-JWT VC Profile" href="sd-jwt-vc-profile.html" />
+    <link rel="prev" title="OpenAPI Specifications" href="openapi-specifications.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../_static/wallet.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../about.html">About</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Get Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/preparations.html">Preparations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-a-verifier.html">Create a Verifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../get-started/create-an-issuer.html">Create an Issuer</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/architecture-overview.html">Overview in C4</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/system-context.html">System Context (C4)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/software-system.html">Software System overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/c4/software-system.html#external-systems-wallet-provider">External systems (Wallet Provider)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/use-cases.html">Relevant Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/mobile-app-startup.html">Mobile App Startup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/pin-validation.html">Pin Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/wallet-creation.html">Wallet Creation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/wallet-provider-instruction.html">Wallet Provider instructions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../architecture/use-cases/recovery_usecases.html">Wallet recovery</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/gsn-overview.html">Core Assurance Goal for the EUDI Wallet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Functional Design</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/use-case-overview.html">Use case overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/functional-design.html">About the Functional Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/use-cases.html">Use Cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.1_IntroduceTheApp.html">Use Case 1.1 Introduce the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.2_OpenTheApp.html">Use Case 1.2 Open the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC1.3_AppTour.html">Use Case 1.3 App tour</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC10.1_DeleteWalletUsingRevocationCode.html">Use Case 10.1 Revoke the wallet using the revocation code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.1_SetupRemotePinAndBiometricsUnlock.html">Use Case 2.1 Setup a remote PIN and biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.2_ChangeBiometricUnlock.html">Use Case 2.2 Change biometric unlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.3.2_RecoverPIN.html">Use Case 2.3.2 Recover PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.3_UnlockTheApp.html">Use Case 2.3 Unlock the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC2.6_ChangeRemotePIN.html">Use Case 2.6 Change remote PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC3.1_ObtainPidFromProvider.html">Use Case 3.1 Obtain PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC3.2_RenewPid.html">Use Case 3.3 Renew PID</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.1_ShowAllAvailableCards.html">Use Case 7.1 Show all available cards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.2_ShowCardDetails.html">Use Case 7.2 Show card details</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC7.4_DeleteEAACard.html">Use Case 7.4 Delete EAA card</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.11_ConfigureNotifications.html">Use Case 9.11 Configure Notifications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.12_ViewRevocationCode.html">Use Case 9.12 View revocation code in Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.4_WipeAllAppData.html">Use Case 9.4 Wipe all app data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.6_GetHelp.html">Use Case 9.6 Get help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.7_LogoutOffTheApp.html">Use Case 9.7 Log out of the app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/use-cases/UC9.9_ScanQR.html">Use Case 9.9 Scan QR</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/partial-flows.html">Partial Flows</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF1.4_ApplyAppUpdatePolicy.html">Partial Flow 1.4 Apply update policy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.4_ConfirmProtectedAction.html">Partial Flow 2.4 Confirm a protected action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.7_ResolveUniversalLink.html">Partial Flow 2.7 Resolve a universal link</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.8_ValidatePin.html">Partial Flow 2.8 Validate entered PIN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../functional-design/partial-flows/PF2.9_SetupPin.html">Partial Flow 2.8 Setup PIN</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/errors.html">Errors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/notifications.html">Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../functional-design/logical-test-cases.html">Logical Test Cases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="authorized-attributes.html">Authorized attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="generic-issuance.html">Generic Issuance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">PID Issuer architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="specification-references.html">Specification References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sphinx-documentation.html">Sphinx Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="updating-rust.html">Updating Rust</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using-lokalise.html">Using Lokalise</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Community</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../community/onboarding.html">Onboarding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../community/create-a-ca.html">Create a CA</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Way of Working</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-done.html">Definition of Done</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/definition-of-ready.html">Definition of Ready</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../way-of-working/release-howto.html">Releases Howto</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Glossary</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../glossary/glossary.html">Glossary</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Release Notes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.3.0.html">v0.3.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.0.html">v0.4.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.4.1.html">v0.4.1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.5.0.html">v0.5.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/v0.6.0.html">v0.6.0 (dev)</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">PID Issuer architecture</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/development/pid-issuer-architecture.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="pid-issuer-architecture">
+<h1>PID Issuer architecture<a class="headerlink" href="#pid-issuer-architecture" title="Link to this heading"></a></h1>
+<p>This page is a code-oriented companion to the protocol-level sequence diagram at
+<a class="reference internal" href="../architecture/use-cases/issuance-with-openid4vci.html#pid-issuance"><span class="std std-ref">Issuance with OpenID4VCI</span></a>.
+That diagram treats the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> as a black box and shows what goes over the
+wire between the wallet, the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> and RDO Max. This page opens that box:
+which crates contribute which pieces, where state lives, and which traits are
+the extension points for plugging in a different backend.</p>
+<section id="crate-map">
+<h2>Crate map<a class="headerlink" href="#crate-map" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> process is assembled from three crates:</p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">wallet_core/lib/openid4vc</span></code></strong> — protocol types and traits, with no HTTP or
+storage baked in. Relevant pieces:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">authorization::PushedAuthorizationRequest</span></code>,
+<code class="docutils literal notranslate"><span class="pre">authorization::PushedAuthorizationResponse</span></code>,
+<code class="docutils literal notranslate"><span class="pre">authorization::AuthorizationRequest</span></code>, <code class="docutils literal notranslate"><span class="pre">token::TokenRequest</span></code>,
+<code class="docutils literal notranslate"><span class="pre">token::TokenResponse</span></code>, <code class="docutils literal notranslate"><span class="pre">credential::CredentialRequest(s)</span></code>,
+<code class="docutils literal notranslate"><span class="pre">credential::CredentialResponse(s)</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">issuer::AttributeService</span></code> — the trait that produces the attributes to be
+issued given a <code class="docutils literal notranslate"><span class="pre">TokenRequest</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">issuer::Issuer</span></code> — the protocol state machine: verifies token/credential
+requests, drives the session, calls into the <code class="docutils literal notranslate"><span class="pre">AttributeService</span></code>, generates
+access tokens, etc. <code class="docutils literal notranslate"><span class="pre">process_token_request</span></code> accepts an optional
+<code class="docutils literal notranslate"><span class="pre">UpstreamCodeVerifier</span></code> that it forwards verbatim to the
+<code class="docutils literal notranslate"><span class="pre">AttributeService</span></code> — the <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> never inspects or interprets the value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">par::ParStore</span></code>, <code class="docutils literal notranslate"><span class="pre">nonce::store::NonceStore</span></code>,
+<code class="docutils literal notranslate"><span class="pre">server_state::SessionStore&lt;IssuanceData&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">pkce::PkceFlowStore</span></code> —
+abstractions over where PAR entries, c_nonces, issuance sessions and
+upstream-PKCE bridging entries live. Default in-memory impls
+(<code class="docutils literal notranslate"><span class="pre">MemoryParStore</span></code>, <code class="docutils literal notranslate"><span class="pre">MemoryNonceStore</span></code>, <code class="docutils literal notranslate"><span class="pre">MemorySessionStore</span></code>,
+<code class="docutils literal notranslate"><span class="pre">MemoryPkceFlowStore</span></code>) ship alongside.</p></li>
+</ul>
+</li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">wallet_core/lib/openid4vc_server</span></code></strong> — generic axum wiring for an OpenID4VCI
+issuer, knows nothing about DigiD or BRP:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">issuer::create_issuance_router</span></code> mounts the handlers on
+<code class="docutils literal notranslate"><span class="pre">/.well-known/openid-credential-issuer</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/.well-known/oauth-authorization-server</span></code>, <code class="docutils literal notranslate"><span class="pre">/issuance/par</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/issuance/authorize</span></code>, <code class="docutils literal notranslate"><span class="pre">/issuance/token</span></code>, <code class="docutils literal notranslate"><span class="pre">/issuance/nonce</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/issuance/credential</span></code>, and <code class="docutils literal notranslate"><span class="pre">/issuance/credential_preview</span></code> (an extension
+we support on top of the spec).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">issuer::ApplicationState</span></code> bundles the <code class="docutils literal notranslate"><span class="pre">Issuer</span></code>, the <code class="docutils literal notranslate"><span class="pre">ParStore</span></code>, the
+<code class="docutils literal notranslate"><span class="pre">PkceFlowStore</span></code>, the optional upstream adapter, and the accepted wallet
+<code class="docutils literal notranslate"><span class="pre">client_id</span></code>s. Both <code class="docutils literal notranslate"><span class="pre">/authorize</span></code> (write) and <code class="docutils literal notranslate"><span class="pre">/token</span></code> (consume) consult the
+<code class="docutils literal notranslate"><span class="pre">PkceFlowStore</span></code> to bridge the decoupled wallet/upstream PKCE pairs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">issuer::UpstreamAuthorizationAdapter</span></code> — the extension point the
+<code class="docutils literal notranslate"><span class="pre">/authorize</span></code> handler uses to resolve the upstream authorization endpoint
+and rewrite the wallet’s <code class="docutils literal notranslate"><span class="pre">AuthorizationRequest</span></code> into one the upstream
+provider accepts. Letting the implementer own the full request mutation
+keeps non-standard quirks (e.g. nl-rdo-max requires a <code class="docutils literal notranslate"><span class="pre">nonce</span></code>) out of the
+generic handler.</p></li>
+</ul>
+</li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">wallet_core/wallet_server/pid_issuer</span></code></strong> — the PID-specific concretions:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">pid::attributes::BrpPidAttributeService</span></code> — implements <code class="docutils literal notranslate"><span class="pre">AttributeService</span></code>
+by obtaining the BSN via DigiD and then looking up attributes in the BRP.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pid::digid::DigidMetadataCache</span></code> — fetches and holds the upstream OIDC
+discovery document; shared between the adapter and <code class="docutils literal notranslate"><span class="pre">OpenIdClient</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pid::digid::DigidAuthorizationAdapter</span></code> — implements
+<code class="docutils literal notranslate"><span class="pre">UpstreamAuthorizationAdapter</span></code>; consults the <code class="docutils literal notranslate"><span class="pre">DigidMetadataCache</span></code> to
+resolve the upstream <code class="docutils literal notranslate"><span class="pre">authorization_endpoint</span></code>, rewrites the wallet’s
+<code class="docutils literal notranslate"><span class="pre">client_id</span></code> to the DigiD <code class="docutils literal notranslate"><span class="pre">client_id</span></code>, sets <code class="docutils literal notranslate"><span class="pre">scope=openid</span></code>, and adds a
+fresh random <code class="docutils literal notranslate"><span class="pre">nonce</span></code> (required by nl-rdo-max).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pid::digid::OpenIdClient</span></code> — drives the upstream token + userinfo exchange
+via <code class="docutils literal notranslate"><span class="pre">pid::userinfo::request_userinfo</span></code>: POST to RDO Max’s <code class="docutils literal notranslate"><span class="pre">/token</span></code>, GET
+<code class="docutils literal notranslate"><span class="pre">/userinfo</span></code> as a signed-and-encrypted JWT, fetch the JWKS in parallel (via
+a per-call <code class="docutils literal notranslate"><span class="pre">pid::jwks::HttpJwksClient</span></code> wrapper), JWE-decrypt the payload
+and verify the JWS signature against the JWKS to extract the BSN.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pid::brp::client::HttpBrpClient</span></code> (implements <code class="docutils literal notranslate"><span class="pre">BrpClient</span></code>) — queries the
+BRP for personal data by BSN.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">server::serve</span></code> wires all of the above into <code class="docutils literal notranslate"><span class="pre">create_issuance_router</span></code> and
+serves it.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="component-diagram">
+<h2>Component diagram<a class="headerlink" href="#component-diagram" title="Link to this heading"></a></h2>
+<pre  class="mermaid">
+        flowchart LR
+    subgraph ovcs[&quot;openid4vc_server (HTTP wiring)&quot;]
+        direction TB
+        Router[&quot;create_issuance_router&lt;br/&gt;axum handlers&quot;]
+        AppState[&quot;ApplicationState&quot;]
+        UpAd_trait[&quot;trait&lt;br/&gt;UpstreamAuthorizationAdapter&quot;]
+    end
+
+    subgraph ovc[&quot;openid4vc (protocol types)&quot;]
+        direction TB
+        Issuer[&quot;struct Issuer&quot;]
+        AS_trait[&quot;trait AttributeService&quot;]
+        Store_traits[&quot;trait ParStore&lt;br/&gt;trait PkceFlowStore&lt;br/&gt;trait SessionStore of IssuanceData&lt;br/&gt;trait NonceStore&quot;]
+        MemStores[&quot;MemoryParStore&lt;br/&gt;MemoryPkceFlowStore&quot;]
+    end
+
+    subgraph pidi[&quot;pid_issuer (PID-specific)&quot;]
+        direction TB
+        BrpAttr[&quot;BrpPidAttributeService&quot;]
+        DigidAdapter[&quot;DigidAuthorizationAdapter&quot;]
+        OpenIdClient[&quot;OpenIdClient&quot;]
+        DigidCache[&quot;DigidMetadataCache&lt;br/&gt;(holds OIDC metadata)&quot;]
+        BrpClient[&quot;HttpBrpClient&quot;]
+    end
+
+    subgraph ext[&quot;external&quot;]
+        direction TB
+        RDO[(&quot;RDO Max / DigiD&quot;)]
+        BRP[(&quot;BRP&quot;)]
+    end
+
+    Router --&gt; AppState
+    AppState --&gt;|holds| Issuer
+    AppState --&gt;|holds| MemStores
+    AppState --&gt;|holds| UpAd_trait
+    Issuer --&gt;|calls| AS_trait
+    Issuer --&gt;|reads/writes| Store_traits
+
+    MemStores -.implements.-&gt; Store_traits
+    BrpAttr -.implements.-&gt; AS_trait
+    DigidAdapter -.implements.-&gt; UpAd_trait
+
+    BrpAttr --&gt;|owns| OpenIdClient
+    BrpAttr --&gt;|owns| BrpClient
+    OpenIdClient -. shares Arc .-&gt; DigidCache
+    DigidAdapter -. shares Arc .-&gt; DigidCache
+
+    DigidCache --&gt;|GET /.well-known/&lt;br/&gt;openid-configuration| RDO
+    OpenIdClient --&gt;|POST /token,&lt;br/&gt;GET /userinfo,&lt;br/&gt;GET jwks_uri| RDO
+    BrpClient --&gt;|get_person_by_bsn| BRP
+    </pre><p>Two extension points are worth noting:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">AttributeService</span></code> — swapping <code class="docutils literal notranslate"><span class="pre">BrpPidAttributeService</span></code> for a different
+implementation is how the generic <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> (disclosure-based
+issuance) reuses the same <code class="docutils literal notranslate"><span class="pre">openid4vc_server</span></code> handlers. The <code class="docutils literal notranslate"><span class="pre">/token</span></code> handler
+doesn’t know what a BSN is.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">UpstreamAuthorizationAdapter</span></code> — plugs in the upstream OIDC provider. Today
+the only implementor is <code class="docutils literal notranslate"><span class="pre">DigidAuthorizationAdapter</span></code>; a different IdP would get
+a sibling implementation here.</p></li>
+</ul>
+<p>State lives behind the four <code class="docutils literal notranslate"><span class="pre">*Store</span></code> traits. The in-memory variants shown here
+can all be replaced by stateful variants.</p>
+</section>
+<section id="internal-flow-par-authorize-and-token">
+<h2>Internal flow: PAR, authorize and token<a class="headerlink" href="#internal-flow-par-authorize-and-token" title="Link to this heading"></a></h2>
+<p>This narrows the protocol diagram down to the lanes inside the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>
+process across the three authorization-phase requests, so it’s visible which
+trait is consulted where and when the upstream DigiD round-trip happens relative
+to the protocol state machine.</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    autonumber
+    participant W as Wallet
+    participant H as handler&lt;br/&gt;(openid4vc_server)
+    participant R as DigidAuthorizationAdapter
+    participant P as ParStore
+    participant F as PkceFlowStore
+    participant I as Issuer&lt;br/&gt;(openid4vc)
+    participant A as BrpPidAttributeService
+    participant O as OpenIdClient
+    participant RDO as RDO Max
+    participant BRP
+    Note over W, F: POST /issuance/par
+    W -&gt;&gt; H: POST /par (AuthorizationRequest)
+    H -&gt;&gt; H: validate client_id against&lt;br/&gt;accepted_wallet_client_ids
+    H -&gt;&gt; P: store(request_uri,&lt;br/&gt;authorization_request, expires_at)
+    P -&gt;&gt; H: ok
+    H -&gt;&gt; W: 201 PushedAuthorizationResponse&lt;br/&gt;(request_uri, expires_in)
+    Note over W, F: GET /issuance/authorize
+    W -&gt;&gt; H: GET /authorize?client_id,request_uri
+    H -&gt;&gt; H: validate client_id
+    H -&gt;&gt; P: consume(request_uri)
+    P -&gt;&gt; H: AuthorizationRequest&lt;br/&gt;(including wallet code_challenge c1)
+    H -&gt;&gt; H: generate upstream PKCE pair (v2, c2),&lt;br/&gt;rewrite code_challenge and&lt;br/&gt;code_challenge_method to (c2, S256)
+    H -&gt;&gt; F: store(c1, v2)
+    F -&gt;&gt; H: ok
+    H -&gt;&gt; R: adapt(authorization_request)
+    R -&gt;&gt; RDO: GET /.well-known/openid-configuration&lt;br/&gt;(cached after first call)
+    RDO -&gt;&gt; R: OidcProviderMetadata
+    R -&gt;&gt; R: rewrite client_id to DigiD client_id,&lt;br/&gt;set scope=openid,&lt;br/&gt;add fresh random nonce
+    R -&gt;&gt; H: (authorization_endpoint,&lt;br/&gt;rewritten AuthorizationRequest)
+    H -&gt;&gt; W: 302 Location: upstream /authorize?...
+    Note over W, BRP: POST /issuance/token
+    W -&gt;&gt; H: POST /token&lt;br/&gt;(TokenRequest with code_verifier v1)
+    H -&gt;&gt; H: derive c1 = SHA256(v1)
+    H -&gt;&gt; F: consume(c1)
+    F -&gt;&gt; H: upstream code_verifier v2
+    H -&gt;&gt; H: verify wallet code_verifier v1&lt;br/&gt;against c1 (PKCE check)
+    H -&gt;&gt; I: process_token_request(token_request,&lt;br/&gt;upstream_code_verifier=Some(v2))
+    I -&gt;&gt; A: attributes(token_request,&lt;br/&gt;upstream_code_verifier)
+    A -&gt;&gt; O: bsn(code, code_verifier, redirect_uri)
+    par fetch userinfo JWE
+        O -&gt;&gt; RDO: POST {token_endpoint}&lt;br/&gt;(grant_type, code,&lt;br/&gt;redirect_uri, code_verifier,&lt;br/&gt;client_id)
+        RDO -&gt;&gt; O: access_token (upstream)
+        O -&gt;&gt; RDO: GET {userinfo_endpoint}&lt;br/&gt;Accept: application/jwt,&lt;br/&gt;Bearer (upstream_at)
+        RDO -&gt;&gt; O: userinfo JWE (JWT)
+    and fetch JWKS
+        O -&gt;&gt; RDO: GET {jwks_uri}
+        RDO -&gt;&gt; O: JwkSet
+    end
+    O -&gt;&gt; O: JWE-decrypt to JWS,&lt;br/&gt;verify JWS signature&lt;br/&gt;against JwkSet,&lt;br/&gt;extract BSN claim
+    O -&gt;&gt; A: BSN
+    A -&gt;&gt; BRP: get_person_by_bsn(bsn)
+    BRP -&gt;&gt; A: person data
+    A -&gt;&gt; A: build IssuableDocument&lt;br/&gt;(PID attestation,&lt;br/&gt;with recovery_code attribute)
+    A -&gt;&gt; I: VecNonEmpty of IssuableDocument
+    I -&gt;&gt; I: persist session,&lt;br/&gt;generate access_token and c_nonce
+    I -&gt;&gt; H: TokenResponse
+    H -&gt;&gt; W: TokenResponse
+    </pre><p>A few things the extended diagram makes visible:</p>
+<ul class="simple">
+<li><p><strong>Where the state stores are hit.</strong> <code class="docutils literal notranslate"><span class="pre">ParStore::store</span></code> is called on <code class="docutils literal notranslate"><span class="pre">/par</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ParStore::consume</span></code> is called on <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>, <code class="docutils literal notranslate"><span class="pre">PkceFlowStore::store</span></code> is
+called on <code class="docutils literal notranslate"><span class="pre">/authorize</span></code>, <code class="docutils literal notranslate"><span class="pre">PkceFlowStore::consume</span></code> is called on <code class="docutils literal notranslate"><span class="pre">/token</span></code>, and
+the <code class="docutils literal notranslate"><span class="pre">SessionStore&lt;IssuanceData&gt;</span></code> load happens only inside the <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> on
+<code class="docutils literal notranslate"><span class="pre">/token</span></code>.</p></li>
+<li><p><strong>Where the upstream-specific request mutation lives.</strong> Everything the
+upstream provider needs that the wallet’s request doesn’t carry — DigiD’s
+<code class="docutils literal notranslate"><span class="pre">client_id</span></code>, <code class="docutils literal notranslate"><span class="pre">scope=openid</span></code>, and the random <code class="docutils literal notranslate"><span class="pre">nonce</span></code> nl-rdo-max requires — is
+applied inside <code class="docutils literal notranslate"><span class="pre">DigidAuthorizationAdapter::adapt</span></code>, not in the
+<code class="docutils literal notranslate"><span class="pre">openid4vc_server</span></code> handler. The handler only validates the wallet’s
+<code class="docutils literal notranslate"><span class="pre">client_id</span></code>, drives PAR consumption, and forwards what the adapter returns.</p></li>
+<li><p><strong>How the upstream <code class="docutils literal notranslate"><span class="pre">client_id</span></code> is set in each phase.</strong> On <code class="docutils literal notranslate"><span class="pre">/authorize</span></code> the
+adapter rewrites the wallet’s <code class="docutils literal notranslate"><span class="pre">client_id</span></code> to DigiD’s. On <code class="docutils literal notranslate"><span class="pre">/token</span></code> there is no
+rewrite: <code class="docutils literal notranslate"><span class="pre">OpenIdClient</span></code> is constructed with the DigiD <code class="docutils literal notranslate"><span class="pre">client_id</span></code> and uses it
+when building its own upstream <code class="docutils literal notranslate"><span class="pre">TokenRequest</span></code>. The wallet’s
+<code class="docutils literal notranslate"><span class="pre">TokenRequest.client_id</span></code> never reaches RDO Max.</p></li>
+<li><p><strong>The PKCE decoupling</strong> is symmetric with the <code class="docutils literal notranslate"><span class="pre">client_id</span></code> rewrite but flipped
+in ownership, and lives entirely in <code class="docutils literal notranslate"><span class="pre">openid4vc_server</span></code>. At <code class="docutils literal notranslate"><span class="pre">/authorize</span></code> the
+handler generates its own pair <code class="docutils literal notranslate"><span class="pre">(v2,</span> <span class="pre">c2)</span></code>, substitutes the wallet’s
+<code class="docutils literal notranslate"><span class="pre">code_challenge</span></code> with <code class="docutils literal notranslate"><span class="pre">c2</span></code>, and persists <code class="docutils literal notranslate"><span class="pre">v2</span></code> keyed by the wallet’s <code class="docutils literal notranslate"><span class="pre">c1</span></code> in a
+dedicated <code class="docutils literal notranslate"><span class="pre">PkceFlowStore</span></code> (mirror of <code class="docutils literal notranslate"><span class="pre">ParStore</span></code>). At <code class="docutils literal notranslate"><span class="pre">/token</span></code> the handler
+recomputes <code class="docutils literal notranslate"><span class="pre">c1</span></code> from the wallet’s <code class="docutils literal notranslate"><span class="pre">code_verifier</span></code>, looks up <code class="docutils literal notranslate"><span class="pre">v2</span></code>, verifies the
+wallet’s verifier against <code class="docutils literal notranslate"><span class="pre">c1</span></code> (wallet-facing PKCE check), and delegates to
+<code class="docutils literal notranslate"><span class="pre">Issuer</span></code> — passing <code class="docutils literal notranslate"><span class="pre">v2</span></code> wrapped in an <code class="docutils literal notranslate"><span class="pre">UpstreamCodeVerifier</span></code> alongside the
+unmodified <code class="docutils literal notranslate"><span class="pre">TokenRequest</span></code>. The <code class="docutils literal notranslate"><span class="pre">Issuer</span></code> accepts the <code class="docutils literal notranslate"><span class="pre">UpstreamCodeVerifier</span></code>
+only as an opaque pass-through to the <code class="docutils literal notranslate"><span class="pre">AttributeService</span></code>; it never inspects or
+interprets the value. <code class="docutils literal notranslate"><span class="pre">BrpPidAttributeService</span></code> then unwraps <code class="docutils literal notranslate"><span class="pre">v2</span></code> from the
+<code class="docutils literal notranslate"><span class="pre">UpstreamCodeVerifier</span></code> (and reads <code class="docutils literal notranslate"><span class="pre">code</span></code> / <code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code> from the
+<code class="docutils literal notranslate"><span class="pre">TokenRequest</span></code>) before calling <code class="docutils literal notranslate"><span class="pre">OpenIdClient::bsn</span></code>. The upstream PKCE check is
+then done by RDO Max. Result: wallet and RDO Max each see their own PKCE pair;
+neither sees the other’s.</p></li>
+</ul>
+<p>The protocol-level view of the same exchange — including which parameters the
+<code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> rewrites on the way to RDO Max — is in
+<a class="reference internal" href="../architecture/use-cases/issuance-with-openid4vci.html#pid-issuance"><span class="std std-ref">Issuance with OpenID4VCI</span></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="openapi-specifications.html" class="btn btn-neutral float-left" title="OpenAPI Specifications" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sd-jwt-vc-profile.html" class="btn btn-neutral float-right" title="SD-JWT VC Profile" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: main
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Releases</dt>
+            <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.4.1/index.html">v0.4.1</a></dd>
+            <dd><a href="../../v0.5.0/index.html">v0.5.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="pid-issuer-architecture.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(false);
+      });
+  </script> 
+
+</body>
+</html>

@@ -496,6 +496,7 @@ window.addEventListener("load", load);
 <li class="toctree-l1"><a class="reference internal" href="../../development/authorized-attributes.html">Authorized attributes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../development/generic-issuance.html">Generic Issuance</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../development/openapi-specifications.html">OpenAPI Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development/pid-issuer-architecture.html">PID Issuer architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../development/sd-jwt-vc-profile.html">SD-JWT VC Profile</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../development/specification-references.html">Specification References</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../development/sphinx-documentation.html">Sphinx Documentation</a></li>
@@ -554,122 +555,321 @@ window.addEventListener("load", load);
              
   <section id="issuance-with-openid4vci">
 <h1>Issuance with OpenID4VCI<a class="headerlink" href="#issuance-with-openid4vci" title="Link to this heading"></a></h1>
-<p>We’ve implemented issuance with <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenID4VCI draft 13</a>, with attestation
-preview as a custom addition.</p>
-<p>We currently (2025-12-11) have two issuance implementations: The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>,
-a specialized issuer specifically for Dutch <a class="reference external" href="https://eudi.dev/latest/annexes/annex-3/annex-3.01-pid-rulebook">PID</a>s, which this page is about,
-and <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> a disclosure-based-issuance service that can issue all
-kinds of things (which you can <a class="reference internal" href="disclosure-based-issuance.html"><span class="doc std std-doc">read about here</span></a>).</p>
-<section id="pid-issuance">
-<h2>PID issuance<a class="headerlink" href="#pid-issuance" title="Link to this heading"></a></h2>
-<p>PID issuance is done by the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> which is a part of the
-<code class="docutils literal notranslate"><span class="pre">wallet_server</span></code> crate. It is created to issue <a class="reference external" href="https://eudi.dev/latest/annexes/annex-3/annex-3.01-pid-rulebook">PID</a>s specifically.</p>
-<p>This diagram below shows how the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> uses <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenID4VCI</a> in a
-<a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-pre-authorized-code-flow">Pre-Authorized Code Flow</a> to issue a [PID] to the wallet.</p>
-<p>Using this protocol, the wallet starts a normal OpenID Connect session at an
-<code class="docutils literal notranslate"><span class="pre">AuthServer</span></code> (which is a so-called <a class="reference external" href="https://openid.net/developers/how-connect-works">OpenID Provider</a>; in the case of the NL
-Wallet, this usually means <a class="reference external" href="https://www.logius.nl/onze-dienstverlening/toegang/digid">DigiD</a> through <a class="reference external" href="https://github.com/minvws/nl-rdo-max">nl-rdo-max</a>), from which it
-obtains an authorization code.</p>
-<p>Next, the wallet uses this code to start the OpenID4VCI issuance protocol in the
-pre-authorized code flow with a <code class="docutils literal notranslate"><span class="pre">wallet_server</span></code> component called <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>.
-The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> finishes the OpenID Connect session with the <code class="docutils literal notranslate"><span class="pre">AuthServer</span></code> to
-discover the identity of the wallet user, allowing it to finish issuance.</p>
-<p>In the diagram below we introduce an actor called the <code class="docutils literal notranslate"><span class="pre">PidAttributeService</span></code>,
-whose responsibility it is to produce the attributes to be issued when given a
-valid pre-authorized code.</p>
-<p>In the case of PID issuance, the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> can do this by finishing the
-OpenID Connect session that the wallet started. (The <code class="docutils literal notranslate"><span class="pre">PidAttributeService</span></code> is
-a part of the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> in the <code class="docutils literal notranslate"><span class="pre">wallet_server</span></code> crate, as opposed to a
-separate HTTP server; we include it here as separate actor to clearly visualize
-separate responsibilities.)</p>
-<p>The protocol works as follows:</p>
-<ul class="simple">
-<li><p>The wallet starts an OpenID Connect session at the <code class="docutils literal notranslate"><span class="pre">AuthServer</span></code> by sending
-it an Authorization Request, receiving an authorization code from the
-<code class="docutils literal notranslate"><span class="pre">AuthServer</span></code> in response;</p></li>
-<li><p>Using the received authorization code, the wallet starts OpenID4VCI issuance
-in a so-called pre-authorized code flow by sending a <code class="docutils literal notranslate"><span class="pre">POST</span></code> request with the
-previously obtained code as a pre-authorized code in a Token Request to the
-<code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>;</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> feeds the Token Request with the pre-authorized code to its
-<code class="docutils literal notranslate"><span class="pre">PidAttributeService</span></code> component. The <code class="docutils literal notranslate"><span class="pre">PidAttributeService</span></code> <code class="docutils literal notranslate"><span class="pre">POST</span></code>’s the
-Token Request to the <code class="docutils literal notranslate"><span class="pre">AuthServer</span></code>, transforming only the pre-authorized code
-in it to a normal authorization code but keeping the other parameters (such
-as the <code class="docutils literal notranslate"><span class="pre">state</span></code> and the PKCE <code class="docutils literal notranslate"><span class="pre">code_verifier</span></code>) in the Token Request as-is,
-thereby continuing the OpenID Connect session that the wallet previously
-started, and obtaining an <code class="docutils literal notranslate"><span class="pre">access_token</span></code>;</p></li>
-<li><p>Using the resulting <code class="docutils literal notranslate"><span class="pre">access_token</span></code>, the <code class="docutils literal notranslate"><span class="pre">PidAttributeService</span></code> invokes the
-<code class="docutils literal notranslate"><span class="pre">/userinfo</span></code> endpoint of the <code class="docutils literal notranslate"><span class="pre">AuthServer</span></code> to retrieve the BSN, with which it
-does a query to the <a class="reference external" href="https://www.rvig.nl/basisregistratie-personen">BRP</a>, resulting in the attributes to be issued;</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> then generates the <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> and an <code class="docutils literal notranslate"><span class="pre">access_token</span></code> of its
-own, and a preview of the attestations as a custom addition to the
-OpenID4VCI protocol, all of which it returns to the wallet;</p></li>
-<li><p>With the <code class="docutils literal notranslate"><span class="pre">access_token</span></code> and a valid set of proofs of possession (signatures
-over the <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> validating against the public keys that the wallet wants
-to have in its PID), the wallet can access the <code class="docutils literal notranslate"><span class="pre">batch_credential</span></code> endpoint
-of the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> to obtain the attestations.</p></li>
-</ul>
-<p>Notice that from the perspective of the <code class="docutils literal notranslate"><span class="pre">AuthServer</span></code>, the mobile operating
-system (abreviated as “OS” in the diagram) acts as the User Agent in an OpenID
-Connect session, and the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>’s <code class="docutils literal notranslate"><span class="pre">PidAttributeService</span></code> acts as the OpenID
-Client. The former starts the session by navigating to the <code class="docutils literal notranslate"><span class="pre">AuthServer</span></code> with an
-Authorization Request, and the latter resumes the session with Token and User
-Info Requests.</p>
-<p>The NL Wallet requires at least the SD JWT format for PID attestations. The MSO
-mDoc can be issued as well. The attestation type and paths to the <code class="docutils literal notranslate"><span class="pre">login</span></code> claim
-and the <code class="docutils literal notranslate"><span class="pre">recovery_code</span></code> are dynamically configured. See the <code class="docutils literal notranslate"><span class="pre">pid_attributes</span></code>
-field in the <code class="docutils literal notranslate"><span class="pre">wallet-config.json</span></code> for details.</p>
+<p>We’ve implemented issuance with <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenID4VCI 1.0</a> following the <a class="reference external" href="https://openid.github.io/OpenID4VC-HAIP/openid4vc-high-assurance-interoperability-profile-1_0-wg-draft.html">High
+Assurance Interoperability Profile (HAIP)</a>, with attestation preview as a
+custom addition. OpenID4VCI defines two grant flows and we use both across our
+two issuance implementations.</p>
+<p>We currently have two issuance implementations: the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>, a specialized
+issuer specifically for Dutch <a class="reference external" href="https://eudi.dev/latest/annexes/annex-3/annex-3.01-pid-rulebook">PID</a>s, which this page is about, and
+<code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>, a disclosure-based-issuance service that can issue all kinds
+of things (which you can <a class="reference internal" href="disclosure-based-issuance.html"><span class="doc std std-doc">read about here</span></a>). The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> uses the
+authorization code flow described below; the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> uses the
+pre-authorized code flow.</p>
+<section id="pre-authorized-code-flow">
+<h2>Pre-authorized code flow<a class="headerlink" href="#pre-authorized-code-flow" title="Link to this heading"></a></h2>
+<p>In the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-pre-authorized-code-flow">Pre-Authorized Code Flow</a> the issuer generates a pre-authorized code
+out of band, hands it to the wallet inside an <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenID4VCI Credential Offer</a>,
+and the wallet sends that code to the issuer’s <code class="docutils literal notranslate"><span class="pre">/token</span></code> endpoint with
+<code class="docutils literal notranslate"><span class="pre">grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code</span></code>. The issuer’s
+<code class="docutils literal notranslate"><span class="pre">AttributeService</span></code> resolves the pre-authorized code into the attributes to be
+issued. The wallet then obtains a <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> from the issuer’s <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-nonce-endpoint">nonce
+endpoint</a> and exchanges proofs of possession for attestations at the
+<code class="docutils literal notranslate"><span class="pre">/credential</span></code> endpoint.</p>
+<p>In our codebase, this flow is implemented by the <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> (the
+disclosure-based-issuance service); see <a class="reference internal" href="disclosure-based-issuance.html"><span class="doc std std-doc">Disclosure-based Issuance</span></a> for the
+end-to-end picture, including how the disclosed attributes are turned into
+attestations via the <em>attestation server</em>. The <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> does not accept the
+pre-authorized code grant — it only accepts the authorization code flow
+described below.</p>
 <pre  class="mermaid">
         sequenceDiagram
     autonumber
 
-    actor User
     participant OS
     participant Wallet
-    participant WP as Wallet Backend
-    participant WalletServer as PidIssuer
-    participant PidAttributeService
-    participant AuthServer
+    participant CI as Credential Issuer
+    participant AS as Authorization Server
 
-    User-&gt;&gt;+Wallet: click &quot;issue PID&quot;
-    Wallet-&gt;&gt;-OS: navigate to AuthServer/authorize?redirect_uri=...
-    OS-&gt;&gt;+AuthServer: GET /authorize?redirect_uri=...
-    note over User, AuthServer: authenticate user with DigiD app
-    AuthServer-&gt;&gt;AuthServer: generate &amp; store code
-    AuthServer-&gt;&gt;-OS: GET universal_link?code=...
-    OS-&gt;&gt;Wallet: openWallet(code)
-    activate Wallet
-        Wallet-&gt;&gt;+WalletServer: POST /token(pre-authorized_code)
-        WalletServer-&gt;&gt;+PidAttributeService: getAttributes(pre-authorized_code)
-        PidAttributeService-&gt;&gt;+AuthServer: POST /token(code)
-        AuthServer-&gt;&gt;AuthServer: lookup(code)
-        AuthServer-&gt;&gt;-PidAttributeService: access_token
-        PidAttributeService-&gt;&gt;+AuthServer: GET /userinfo(access_token)
-        AuthServer-&gt;&gt;-PidAttributeService: claims(BSN)
-        PidAttributeService-&gt;&gt;PidAttributeService: obtain attributes from BRP
-        PidAttributeService-&gt;&gt;-WalletServer: attributes
-        WalletServer-&gt;&gt;WalletServer: generate c_nonce, access_token
-        WalletServer-&gt;&gt;-Wallet: access_token, c_nonce, attestation_previews
-        Wallet-&gt;&gt;+User: Show attributes, ask consent
-    deactivate Wallet
-    User-&gt;&gt;-Wallet: approve with PIN
-    activate Wallet
-        Wallet -&gt;&gt;+ WP: request PoPs with nonce&lt;br/&gt;(PerformIssuanceWithWia instruction)
-        WP -&gt;&gt;- Wallet: Return WIA and Signed PoP and PoA
-        Wallet-&gt;&gt;+WalletServer: POST /batch_credential(access_token, PoPs)
-        note over Wallet: WIA and PoA are included here
-        WalletServer-&gt;&gt;WalletServer: verify proofs,  WIA and PoA
-        WalletServer-&gt;&gt;-Wallet: attestations
-    deactivate Wallet
+    Note over OS,AS: Credential Offer (out of band)
+
+    CI--&gt;&gt;OS: openid-credential-offer://?credential_offer_uri=&lt;url&gt;&lt;br/&gt;(e.g. via QR code or universal link)
+    OS-&gt;&gt;Wallet: open with offer URL
+    Wallet-&gt;&gt;CI: GET &lt;credential_offer_uri&gt;
+    CI-&gt;&gt;Wallet: Credential Offer&lt;br/&gt;{ credential_issuer, credential_configuration_ids,&lt;br/&gt;  grants: { pre-authorized_code:&lt;br/&gt;    { pre-authorized_code, ... } } }
+
+    Note over OS,AS: Discovery
+
+    Wallet--&gt;&gt;CI: discover OpenID4VCI metadata
+    CI--&gt;&gt;Wallet: issuer metadata
+    Wallet-&gt;&gt;Wallet: discover Authorization Server
+    Wallet--&gt;&gt;AS: discover OAuth metadata
+    AS--&gt;&gt;Wallet: oauth metadata
+
+    Note over OS,AS: Token exchange
+
+    Wallet-&gt;&gt;AS: POST Token Request&lt;br/&gt;(grant_type=...:pre-authorized_code,&lt;br/&gt;pre-authorized_code, WIA)
+    AS-&gt;&gt;Wallet: Token Response (access_token)
+
+    Note over OS,AS: Issuance phase
+
+    Wallet-&gt;&gt;CI: POST /previews(access_token)
+    CI-&gt;&gt;Wallet: previews
+
+    loop for every credential
+        Wallet-&gt;&gt;CI: POST Nonce Request
+        CI-&gt;&gt;Wallet: c_nonce
+        Wallet--&gt;&gt;CI: GET metadata
+        CI--&gt;&gt;Wallet: metadata
+        Wallet-&gt;&gt;CI: POST Credential Request&lt;br/&gt;(access_token, WUA) to /credential
+        CI-&gt;&gt;Wallet: Credential Response (attestation copies)
+    end
     </pre></section>
+<section id="authorization-code-flow-haip">
+<h2>Authorization code flow (HAIP)<a class="headerlink" href="#authorization-code-flow-haip" title="Link to this heading"></a></h2>
+<p>The <a class="reference external" href="https://openid.github.io/OpenID4VC-HAIP/openid4vc-high-assurance-interoperability-profile-1_0-wg-draft.html">HAIP profile</a> mandates the regular Authorization Code Flow with a number
+of additional requirements:</p>
+<ul class="simple">
+<li><p>A <a class="reference external" href="https://www.rfc-editor.org/rfc/rfc9126">Pushed Authorization Request (PAR)</a> is required; all authorization
+parameters are sent server-to-server and the browser only carries a
+<code class="docutils literal notranslate"><span class="pre">request_uri</span></code>;</p></li>
+<li><p><a class="reference external" href="https://www.rfc-editor.org/rfc/rfc7636">PKCE</a> with <code class="docutils literal notranslate"><span class="pre">S256</span></code> is required;</p></li>
+<li><p>The wallet authenticates itself at both <code class="docutils literal notranslate"><span class="pre">/par</span></code> and <code class="docutils literal notranslate"><span class="pre">/token</span></code> with a Wallet
+Instance Attestation (WIA) carried in a <code class="docutils literal notranslate"><span class="pre">client_assertion</span></code> (<a class="reference external" href="https://www.ietf.org/archive/id/draft-ietf-oauth-attestation-based-client-auth-05.html">OAuth 2.0
+Attestation-Based Client Authentication</a>);</p></li>
+<li><p>Access tokens are sender-constrained with <a class="reference external" href="https://www.rfc-editor.org/rfc/rfc9449">DPoP</a>. The <code class="docutils literal notranslate"><span class="pre">/token</span></code> response
+has <code class="docutils literal notranslate"><span class="pre">token_type=DPoP</span></code>, and every subsequent request at the credential issuer
+carries both an <code class="docutils literal notranslate"><span class="pre">Authorization:</span> <span class="pre">DPoP</span> <span class="pre">&lt;access_token&gt;</span></code> header and a fresh DPoP
+proof JWT (which includes <code class="docutils literal notranslate"><span class="pre">ath</span></code>, the hash of the access token);</p></li>
+<li><p>OpenID4VCI 1.0 moves <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> out of the <code class="docutils literal notranslate"><span class="pre">/token</span></code> response into a dedicated
+<a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-nonce-endpoint">nonce endpoint</a> at the credential issuer;</p></li>
+<li><p>Issuance uses a single <code class="docutils literal notranslate"><span class="pre">/credential</span></code> endpoint that accepts a <code class="docutils literal notranslate"><span class="pre">proofs</span></code> array,
+carrying one Proof of Possession per attestation private key.</p></li>
+</ul>
+<pre  class="mermaid">
+        sequenceDiagram
+    autonumber
+
+    participant OS
+    participant Wallet
+    participant CI as Credential Issuer
+    participant AS as Authorization Server
+
+    Wallet--&gt;&gt;CI: discover OpenID4VCI metadata
+    CI--&gt;&gt;Wallet: { credential_issuer,&lt;br/&gt;  credential_configurations_supported,&lt;br/&gt;  authorization_servers, nonce_endpoint,&lt;br/&gt;  credential_endpoint, ... }
+    Wallet-&gt;&gt;Wallet: discover Authorization Server
+
+    Note over OS,AS: Authentication phase
+
+    Wallet--&gt;&gt;AS: discover OAuth metadata
+    AS--&gt;&gt;Wallet: { pushed_authorization_request_endpoint,&lt;br/&gt;  authorization_endpoint, token_endpoint, ... }
+    Wallet-&gt;&gt;AS: POST PAR (WIA)
+    AS-&gt;&gt;Wallet: request_uri
+    Wallet-&gt;&gt;OS: open browser (URL)
+    OS-&gt;&gt;AS: (browser) GET Authorization Request (request_uri)
+    AS-&gt;&gt;OS: Authorization Response (code)
+    OS-&gt;&gt;Wallet: openWallet(code)
+    Wallet-&gt;&gt;AS: POST Token Request (code, WIA)
+    AS-&gt;&gt;Wallet: Token Response (access_token)
+
+    Note over OS,AS: Issuance phase
+
+    Wallet-&gt;&gt;CI: POST /previews(access_token)
+    CI-&gt;&gt;Wallet: previews
+
+    loop for every credential
+        Wallet-&gt;&gt;CI: POST Nonce Request
+        CI-&gt;&gt;Wallet: c_nonce
+        Wallet--&gt;&gt;CI: GET metadata
+        CI--&gt;&gt;Wallet: metadata
+        Wallet-&gt;&gt;CI: POST Credential Request&lt;br/&gt;(access_token, WUA) to /credential
+        CI-&gt;&gt;Wallet: Credential Response (attestation copies)
+    end
+    </pre></section>
+<section id="pid-issuance">
+<h2>PID issuance<a class="headerlink" href="#pid-issuance" title="Link to this heading"></a></h2>
+<p>The NL Wallet requires at least the SD JWT format for PID attestations. The MSO
+mDoc can be issued as well. The attestation type and paths to the <code class="docutils literal notranslate"><span class="pre">login</span></code> claim
+and the <code class="docutils literal notranslate"><span class="pre">recovery_code</span></code> are dynamically configured. See the <code class="docutils literal notranslate"><span class="pre">pid_attributes</span></code>
+field in the <code class="docutils literal notranslate"><span class="pre">wallet-config.json</span></code> for details.</p>
+<p>In the <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code>, the Authorization Server and Credential Issuer roles are
+combined: the wallet talks to a single <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>, which hosts its own <code class="docutils literal notranslate"><span class="pre">/par</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/authorize</span></code>, <code class="docutils literal notranslate"><span class="pre">/token</span></code>, <code class="docutils literal notranslate"><span class="pre">/nonce</span></code> and <code class="docutils literal notranslate"><span class="pre">/credential</span></code> endpoints. Behind the scenes,
+the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> still delegates the actual user authentication to an upstream
+OpenID Connect provider — in practice <a class="reference external" href="https://github.com/minvws/nl-rdo-max">RDO Max</a> acting as a DigiD broker.</p>
+<p>For the internal structure of the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> — which crates contribute the
+handlers, the <code class="docutils literal notranslate"><span class="pre">AttributeService</span></code> and <code class="docutils literal notranslate"><span class="pre">UpstreamAuthorizationEndpointResolver</span></code>
+seams, where state lives, and how a single <code class="docutils literal notranslate"><span class="pre">/token</span></code> request flows through the
+components — see
+<a class="reference internal" href="../../development/pid-issuer-architecture.html"><span class="std std-doc">PID Issuer architecture</span></a>.</p>
+<section id="delegation-to-rdo-max-what-is-decoupled-what-is-passed-through">
+<h3>Delegation to RDO Max: what is decoupled, what is passed through<a class="headerlink" href="#delegation-to-rdo-max-what-is-decoupled-what-is-passed-through" title="Link to this heading"></a></h3>
+<p>Conceptually the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> runs its own Authorization Server in front of RDO
+Max. Most OAuth parameters are therefore <em>decoupled</em>: the wallet’s values are
+terminated at the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code>, which substitutes its own for the upstream
+server. A few parameters are <em>shared</em> so that RDO Max can redirect the browser
+straight back to the wallet without any intermediary redirects to the PID
+Issuer’s domain, and lets RDO Max’s error/cancel responses reach the wallet
+directly.</p>
+<p>Parameter handling on <strong>upstream <code class="docutils literal notranslate"><span class="pre">/authorize</span></code></strong>:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Handling</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">client_id</span></code></p></td>
+<td><p><strong>decoupled</strong> — wallet’s client id → PID Issuer’s DigiD client id</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code></p></td>
+<td><p><strong>shared</strong> — wallet’s universal link, passed through</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">code_challenge</span></code>/<code class="docutils literal notranslate"><span class="pre">_method</span></code></p></td>
+<td><p><strong>decoupled</strong> — PID Issuer generates its own PKCE pair for the upstream</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">state</span></code></p></td>
+<td><p><strong>shared</strong> — so the wallet can verify it when the code comes back</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">response_type=code</span></code></p></td>
+<td><p><strong>shared</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">scope</span></code></p></td>
+<td><p><strong>terminated</strong> — replaced with <code class="docutils literal notranslate"><span class="pre">openid</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">nonce</span></code> (OIDC)</p></td>
+<td><p>PID Issuer generates its own for the upstream session</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">client_assertion</span></code> (WIA)</p></td>
+<td><p><strong>terminated</strong> — wallet ↔ PID Issuer only</p></td>
+</tr>
+</tbody>
+</table>
+<p>Parameter handling on <strong>upstream <code class="docutils literal notranslate"><span class="pre">/token</span></code></strong>:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Handling</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">client_id</span></code></p></td>
+<td><p><strong>decoupled</strong> — rewritten as above</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">code</span></code></p></td>
+<td><p><strong>shared</strong> — the upstream code flows wallet → PID Issuer → RDO Max</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">redirect_uri</span></code></p></td>
+<td><p><strong>shared</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">code_verifier</span></code></p></td>
+<td><p><strong>decoupled</strong> — wallet sends its verifier; PID Issuer swaps in its own</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grant_type=authorization_code</span></code></p></td>
+<td><p><strong>shared</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">client_assertion</span></code> (WIA)</p></td>
+<td><p><strong>terminated</strong></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DPoP</span></code> header</p></td>
+<td><p><strong>terminated</strong> — RDO Max is not DPoP-aware; upstream client auth used</p></td>
+</tr>
+</tbody>
+</table>
+<p>To keep the diagram focused on the OpenID4VCI / RDO Max delegation, the
+wallet-side DPoP layer and the Wallet Instance Attestation (WIA,
+<code class="docutils literal notranslate"><span class="pre">client_assertion</span></code>) are omitted below — both sit strictly between the wallet and
+the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> and do not affect the delegation to RDO Max.</p>
+<p>PKCE tracer values: wallet uses <code class="docutils literal notranslate"><span class="pre">(v1,</span> <span class="pre">c1)</span></code>, the <code class="docutils literal notranslate"><span class="pre">PID</span> <span class="pre">Issuer</span></code> uses <code class="docutils literal notranslate"><span class="pre">(v2,</span> <span class="pre">c2)</span></code> on
+the upstream server.</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    autonumber
+
+    participant OS
+    participant Wallet
+    participant PI as PID Issuer
+    participant RDO as RDO Max
+
+    %% ---- Optional issuer-initiated Credential Offer ----
+    Note over OS,RDO: Credential Offer (optional, issuer-initiated)
+
+    PI--&gt;&gt;OS: openid-credential-offer://?credential_offer_uri=&lt;url&gt;&lt;br/&gt;(e.g. via QR code or same-device link)
+    OS-&gt;&gt;Wallet: open with offer URL
+    Wallet-&gt;&gt;PI: GET &lt;credential_offer_uri&gt;
+    PI-&gt;&gt;Wallet: { credential_issuer, credential_configuration_ids:&lt;br/&gt;  [&quot;eu.europa.ec.eudi.pid_vc_sd_jwt&quot;],&lt;br/&gt;  grants: { authorization_code: { issuer_state: &quot;s_iss&quot; } } }
+
+    %% ---- Metadata discovery ----
+    Wallet--&gt;&gt;PI: GET /.well-known/openid-credential-issuer
+    PI--&gt;&gt;Wallet: { credential_issuer, credential_configurations_supported,&lt;br/&gt;  authorization_servers, nonce_endpoint,&lt;br/&gt;  credential_endpoint, ... }
+    Wallet-&gt;&gt;Wallet: pick AS from authorization_servers[]
+
+    Note over OS,RDO: Authentication phase
+
+    Wallet--&gt;&gt;PI: GET /.well-known/oauth-authorization-server
+    PI--&gt;&gt;Wallet: { pushed_authorization_request_endpoint,&lt;br/&gt;  authorization_endpoint, token_endpoint,&lt;br/&gt;  require_pushed_authorization_requests: true }
+
+    Wallet-&gt;&gt;Wallet: generate PKCE_W (v1, c1 = S256(v1)),&lt;br/&gt;state=s1
+
+    %% ---- PAR ----
+    Wallet-&gt;&gt;PI: POST /par
+    note right of Wallet: response_type=code&lt;br/&gt;client_id=nl-wallet-app&lt;br/&gt;redirect_uri=&lt;wallet_ul&gt;&lt;br/&gt;code_challenge=c1, code_challenge_method=S256&lt;br/&gt;state=s1&lt;br/&gt;scope=eu.europa.ec.eudi.pid_vc_sd_jwt&lt;br/&gt;issuer_state=s_iss   ← if from offer
+    PI-&gt;&gt;PI: bind session S,&lt;br/&gt;store PAR keyed by request_uri
+    PI-&gt;&gt;Wallet: 201 { request_uri: &quot;urn:...abc&quot;, expires_in: 60 }
+
+    %% ---- Front-channel authorization ----
+    Wallet-&gt;&gt;OS: open browser → GET &lt;PID_Issuer&gt;/authorize?&lt;br/&gt;client_id=nl-wallet-app&amp;request_uri=urn:...abc
+    OS-&gt;&gt;PI: GET /authorize?client_id=nl-wallet-app&amp;request_uri=urn:...abc
+    PI--&gt;&gt;RDO: GET /.well-known/openid-configuration&lt;br/&gt;(first upstream use, cached thereafter)
+    RDO--&gt;&gt;PI: upstream OIDC metadata&lt;br/&gt;(authorization_endpoint, token_endpoint, userinfo_endpoint)
+    PI-&gt;&gt;PI: generate PKCE_P (v2, c2)&lt;br/&gt;and upstream nonce, attach to session S
+    note right of PI: rewrite on the way to RDO Max:&lt;br/&gt;client_id       nl-wallet-app  →  pid-issuer-digid&lt;br/&gt;code_challenge  c1             →  c2&lt;br/&gt;scope           terminated     →  scope=openid&lt;br/&gt;redirect_uri    (passed through)&lt;br/&gt;state           (passed through)&lt;br/&gt;response_type   (passed through)
+    PI-&gt;&gt;OS: 302 Location: &lt;RDO&gt;/authorize?&lt;br/&gt;response_type=code&amp;client_id=pid-issuer-digid&amp;&lt;br/&gt;redirect_uri=&lt;wallet_ul&gt;&amp;&lt;br/&gt;code_challenge=c2&amp;code_challenge_method=S256&amp;&lt;br/&gt;state=s1&amp;scope=openid
+    OS-&gt;&gt;RDO: GET /authorize?...
+    note over OS,RDO: user authenticates via DigiD
+    RDO-&gt;&gt;OS: 302 Location: &lt;wallet_ul&gt;?&lt;br/&gt;code=code1&amp;state=s1
+    OS-&gt;&gt;Wallet: openWallet(code=code1, state=s1)
+    Wallet-&gt;&gt;Wallet: verify state == s1
+
+    %% ---- Token exchange ----
+    Wallet-&gt;&gt;PI: POST /token
+    note right of Wallet: grant_type=authorization_code&lt;br/&gt;code=code1&lt;br/&gt;redirect_uri=&lt;wallet_ul&gt;&lt;br/&gt;code_verifier=v1      ← wallet's PKCE&lt;br/&gt;client_id=nl-wallet-app
+    PI-&gt;&gt;PI: verify code_verifier v1 against c1,&lt;br/&gt;load session S → v2
+    note right of PI: rewrite on the way to RDO Max:&lt;br/&gt;client_id      nl-wallet-app  →  pid-issuer-digid&lt;br/&gt;code_verifier  v1             →  v2&lt;br/&gt;code, redirect_uri, grant_type  (passed through),&lt;br/&gt;upstream client auth applied
+    PI-&gt;&gt;RDO: POST /token
+    note right of PI: grant_type=authorization_code&lt;br/&gt;code=code1&lt;br/&gt;redirect_uri=&lt;wallet_ul&gt;&lt;br/&gt;code_verifier=v2&lt;br/&gt;client_id=pid-issuer-digid&lt;br/&gt;(with upstream client auth)
+    RDO-&gt;&gt;PI: { access_token: &lt;upstream_at&gt;, ... }
+    PI-&gt;&gt;RDO: GET /userinfo (Authorization: Bearer &lt;upstream_at&gt;)
+    RDO-&gt;&gt;PI: BSN (encrypted JWE)
+    PI-&gt;&gt;PI: Lookup attributes in BRP
+    PI-&gt;&gt;Wallet: { access_token: &lt;at&gt;, token_type: &quot;Bearer&quot;,&lt;br/&gt;  expires_in: 3600,&lt;br/&gt;  authorization_details: [{..., credential_identifiers:[...]}] }
+
+    Note over OS,RDO: Issuance phase
+
+    Wallet-&gt;&gt;PI: POST /previews&lt;br/&gt;Authorization: Bearer &lt;at&gt;
+    PI-&gt;&gt;Wallet: previews
+
+    loop for every credential
+        Wallet-&gt;&gt;PI: POST /nonce
+        PI-&gt;&gt;Wallet: { c_nonce: &quot;n1&quot; }
+        Wallet--&gt;&gt;PI: GET /.well-known/openid-credential-issuer&lt;br/&gt;(usually cached)
+        PI--&gt;&gt;Wallet: issuer metadata
+        Wallet-&gt;&gt;PI: POST /credential&lt;br/&gt;Authorization: Bearer &lt;at&gt;
+        note right of Wallet: credential_configuration_id:&lt;br/&gt;  &quot;eu.europa.ec.eudi.pid_vc_sd_jwt&quot;&lt;br/&gt;proofs: { jwt: [&lt;PoP_1&gt;, &lt;PoP_2&gt;, ...] }
+        PI-&gt;&gt;Wallet: { credentials: [{ credential: &quot;&lt;sd-jwt-vc&gt;&quot; }, ...] }
+    end
+    </pre></section>
+</section>
 <section id="key-generation-and-usage-during-issuance">
 <h2>Key generation and usage during issuance<a class="headerlink" href="#key-generation-and-usage-during-issuance" title="Link to this heading"></a></h2>
 <section id="wallet-app">
 <h3>Wallet App<a class="headerlink" href="#wallet-app" title="Link to this heading"></a></h3>
-<p>The wallet uses the Wallet Backend to generate attestation private keys and sign the issuer’s nonce with them.
-It does this by sending a <code class="docutils literal notranslate"><span class="pre">PerformIssuance</span></code> or <code class="docutils literal notranslate"><span class="pre">PerformIssuanceWithWia</span></code> <a class="reference internal" href="wallet-provider-instruction.html"><span class="std std-doc">instruction</span></a>, depending on whether or not a PID is being issued (which requires a WIA).
-Using one of these instructions, the App requests the Wallet Backend to provide a WIA and Proofs of Possession (PoPs) for the private keys by signing the <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> from the issuer.
-The following sequence diagram depicts how this happens.</p>
+<p>The wallet uses the Wallet Backend to generate attestation private keys and sign
+the issuer’s nonce with them. It does this by sending a <code class="docutils literal notranslate"><span class="pre">PerformIssuance</span></code> or
+<code class="docutils literal notranslate"><span class="pre">PerformIssuanceWithWia</span></code> <a class="reference internal" href="wallet-provider-instruction.html"><span class="std std-doc">instruction</span></a>,
+depending on whether or not a PID is being issued (which requires a WIA). Using
+one of these instructions, the App requests the Wallet Backend to provide a WIA
+and Proofs of Possession (PoPs) for the private keys by signing the <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code>
+from the issuer. The following sequence diagram depicts how this happens.</p>
 <pre  class="mermaid">
         sequenceDiagram
     %% Force ordering by explicitly setting up participants
@@ -692,7 +892,7 @@ The following sequence diagram depicts how this happens.</p>
     end
     opt WIA requested
         wallet_provider -&gt;&gt; wallet_provider: generateWIAContent()
-        wallet_provider -&gt;&gt;+ hsm: sign WIA content using wiaSigningPrivateKey 
+        wallet_provider -&gt;&gt;+ hsm: sign WIA content using wiaSigningPrivateKey
         hsm --&gt;&gt;- wallet_provider: WIA
     end
     opt More than 1 private key involved
