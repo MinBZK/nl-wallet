@@ -790,6 +790,7 @@ mod tests {
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
     use rstest::rstest;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use url::Url;
     use utils::generator::mock::MockTimeGenerator;
@@ -1349,8 +1350,37 @@ mod tests {
 
     const PIN: &str = "051097";
 
+    fn sd_jwt_pid() -> (IssuedCredential, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata) {
+        let (sd_jwt, normalized_metadata) = create_example_pid_sd_jwt();
+        let credential = IssuedCredential::SdJwt {
+            key_identifier: "key_id".to_string(),
+            sd_jwt: sd_jwt.clone(),
+        };
+        let metadata_docs = VerifiedTypeMetadataDocuments::nl_pid_example();
+
+        (credential, metadata_docs, normalized_metadata)
+    }
+
+    fn mdoc_pid() -> (IssuedCredential, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata) {
+        let (mdoc, normalized_metadata) = create_example_pid_mdoc(&SigningKey::random(&mut rand::thread_rng()));
+        let credential = IssuedCredential::MsoMdoc { mdoc };
+        let metadata_docs = VerifiedTypeMetadataDocuments::nl_pid_example();
+
+        (credential, metadata_docs, normalized_metadata)
+    }
+
+    #[rstest]
+    #[case([sd_jwt_pid()])]
+    #[case([sd_jwt_pid(), mdoc_pid()])]
+    #[case([mdoc_pid(), sd_jwt_pid()])]
+    // Receiving the PID twice in SD-JWT is unrealistic, but let's test it anyway.
+    #[case([sd_jwt_pid(), sd_jwt_pid()])]
     #[tokio::test]
-    async fn test_accept_pid_issuance() {
+    async fn test_accept_pid_issuance(
+        #[case] pid_credentials: impl IntoIterator<
+            Item = (IssuedCredential, VerifiedTypeMetadataDocuments, NormalizedTypeMetadata),
+        >,
+    ) {
         // Prepare a registered and unlocked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -1369,16 +1399,30 @@ mod tests {
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
         wallet.mut_storage().checkpoint();
 
-        // Create a mock OpenID4VCI session that accepts a single valid PID in SD-JWT format.
-        let (sd_jwt, metadata) = create_example_pid_sd_jwt();
-        let (pid_issuer, attestations) = mock_issuance_session(
-            IssuedCredential::SdJwt {
-                key_identifier: "key_id".to_string(),
-                sd_jwt: sd_jwt.clone(),
-            },
-            String::from(PID_ATTESTATION_TYPE),
-            VerifiedTypeMetadataDocuments::nl_pid_example(),
-        );
+        let (issuer_credentials, stored_copies) = pid_credentials
+            .into_iter()
+            .map(|(credential, metadata_docs, normalized_metadata)| {
+                let stored_attestation = match credential.clone() {
+                    IssuedCredential::MsoMdoc { mdoc } => StoredAttestation::MsoMdoc { mdoc },
+                    IssuedCredential::SdJwt { key_identifier, sd_jwt } => {
+                        StoredAttestation::SdJwt { key_identifier, sd_jwt }
+                    }
+                };
+                let stored_copy = StoredAttestationCopy::new(
+                    Uuid::new_v4(),
+                    Uuid::new_v4(),
+                    ValidityWindow::new_valid_mock(),
+                    stored_attestation,
+                    normalized_metadata,
+                    None,
+                );
+
+                ((credential, metadata_docs), stored_copy)
+            })
+            .unzip::<_, _, Vec<_>, Vec<_>>();
+
+        let credential_count = issuer_credentials.len();
+        let (pid_issuer, attestations) = mock_issuance_session(issuer_credentials);
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
             pid_purpose: Some(PidIssuancePurpose::Enrollment),
             preview_attestations: attestations,
@@ -1388,19 +1432,8 @@ mod tests {
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations()
-            .returning(move || {
-                Ok(vec![StoredAttestationCopy::new(
-                    Uuid::new_v4(),
-                    Uuid::new_v4(),
-                    ValidityWindow::new_valid_mock(),
-                    StoredAttestation::SdJwt {
-                        key_identifier: "sd_jwt_key_identifier".to_string(),
-                        sd_jwt: sd_jwt.clone(),
-                    },
-                    metadata.clone(),
-                    None,
-                )])
-            });
+            .times(1)
+            .return_once(|| Ok(stored_copies));
 
         wallet
             .mut_storage()
@@ -1456,11 +1489,12 @@ mod tests {
             assert_eq!(attestations.len(), 2);
             assert!(attestations[0].is_empty());
 
-            // The second entry should contain a single attestation with the PID.
-            assert_eq!(attestations[1].len(), 1);
-            let attestation = &attestations[1][0];
-            assert_matches!(attestation.identity, AttestationIdentity::Fixed { id: _ });
-            assert_eq!(attestation.attestation_type, PID_ATTESTATION_TYPE);
+            // The second entry should contain a the PID attestations.
+            assert_eq!(attestations[1].len(), credential_count);
+            for attestation in &attestations[1] {
+                assert_matches!(attestation.identity, AttestationIdentity::Fixed { id: _ });
+                assert_eq!(attestation.attestation_type, PID_ATTESTATION_TYPE);
+            }
 
             // Test that one successful issuance event is logged
             let events = events.lock();
@@ -1713,12 +1747,8 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Have the mock OpenID4VCI session issue the PID only in Mdoc format.
-        let (mdoc, _metadata) = create_example_pid_mdoc(&SigningKey::random(&mut rand::thread_rng()));
-        let (pid_issuer, attestations) = mock_issuance_session(
-            IssuedCredential::MsoMdoc { mdoc },
-            String::from(PID_ATTESTATION_TYPE),
-            VerifiedTypeMetadataDocuments::nl_pid_example(),
-        );
+        let (mdoc_credential, metadata_documents, _) = mdoc_pid();
+        let (pid_issuer, attestations) = mock_issuance_session([(mdoc_credential, metadata_documents)]);
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
             pid_purpose: Some(PidIssuancePurpose::Enrollment),
             preview_attestations: attestations,
@@ -1748,15 +1778,8 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Have the mock OpenID4VCI session issue an SD-JWT PID.
-        let (verified_sd_jwt, _metadata) = create_example_pid_sd_jwt();
-        let (pid_issuer, attestations) = mock_issuance_session(
-            IssuedCredential::SdJwt {
-                key_identifier: "key_id".to_string(),
-                sd_jwt: verified_sd_jwt.clone(),
-            },
-            String::from(PID_ATTESTATION_TYPE),
-            VerifiedTypeMetadataDocuments::nl_pid_example(),
-        );
+        let (sd_jwt_credential, metadata_documents, _) = sd_jwt_pid();
+        let (pid_issuer, attestations) = mock_issuance_session([(sd_jwt_credential, metadata_documents)]);
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
             pid_purpose: Some(PidIssuancePurpose::Enrollment),
             preview_attestations: attestations,

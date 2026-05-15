@@ -152,7 +152,6 @@ where
 #[expect(clippy::too_many_arguments)] // Doesn't work at `fn` level in combination with `rstest`
 mod tests {
     use attestation_data::disclosure_type::DisclosureType;
-    use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use jwe::algorithm::EcdhAlgorithm;
     use jwe::decryption::JweEcdhSecretKey;
     use openid4vc::disclosure_session::mock::MockDisclosureSession;
@@ -550,14 +549,13 @@ mod tests {
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
-        let (pid_issuer, attestations) = mock_issuance_session(
+        let (pid_issuer, attestations) = mock_issuance_session([(
             IssuedCredential::SdJwt {
                 key_identifier: "key_id".to_string(),
                 sd_jwt: sd_jwt.clone(),
             },
-            String::from(PID_ATTESTATION_TYPE),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
-        );
+        )]);
         Session::Issuance(WalletIssuanceSession::Issuance {
             pid_purpose: Some(PidIssuancePurpose::Enrollment),
             preview_attestations: attestations,
