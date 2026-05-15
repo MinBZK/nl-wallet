@@ -97,7 +97,7 @@ impl IssuableDocument {
     }
 }
 
-#[cfg(feature = "mock")]
+#[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
