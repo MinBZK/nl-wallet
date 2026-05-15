@@ -5,6 +5,7 @@ use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
 use crypto::keys::SecureEcdsaKey;
+use crypto::server_keys::KeyPair;
 use derive_more::Constructor;
 use hsm::keys::HsmEcdsaKey;
 use hsm::model::wrapped_key::WrappedKey;
@@ -13,6 +14,7 @@ use hsm::service::Pkcs11Client;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use jwt::error::JwtError;
+use jwt::headers::HeaderWithX5c;
 use jwt::wia::ClientStatus;
 use jwt::wia::WiaClaims;
 use jwt::wia::WiaWalletInfo;
@@ -31,13 +33,13 @@ pub trait WiaIssuer {
         &self,
         exp: DateTime<Utc>,
         status_claim: StatusClaim,
-    ) -> Result<(WrappedKey, UnverifiedJwt<WiaClaims>), Self::Error>;
+    ) -> Result<(WrappedKey, UnverifiedJwt<WiaClaims, HeaderWithX5c>), Self::Error>;
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
 #[derive(Constructor)]
 pub struct HsmWiaIssuer<H, K = HsmEcdsaKey> {
-    private_key: K,
+    keypair: KeyPair<K>,
     sub: String,
     hsm: H,
     wrapping_key_identifier: String,
@@ -65,13 +67,13 @@ where
         &self,
         wallet_exp: DateTime<Utc>,
         status_claim: StatusClaim,
-    ) -> Result<(WrappedKey, UnverifiedJwt<WiaClaims>), Self::Error> {
+    ) -> Result<(WrappedKey, UnverifiedJwt<WiaClaims, HeaderWithX5c>), Self::Error> {
         let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
         let pubkey = *wrapped_privkey.public_key();
 
         let wia_exp = Utc::now() + WIA_VALIDITY;
 
-        let jwt = SignedJwt::sign(
+        let jwt = SignedJwt::sign_with_certificate(
             &WiaClaims::new(
                 &pubkey,
                 self.sub.clone(),
@@ -82,7 +84,7 @@ where
                     exp: wallet_exp,
                 },
             )?,
-            &self.private_key,
+            &self.keypair,
         )
         .await?
         .into();
@@ -91,10 +93,7 @@ where
     }
 
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error> {
-        self.private_key
-            .verifying_key()
-            .await
-            .map_err(|e| HsmWiaIssuerError::PublicKeyError(Box::new(e)))
+        Ok(self.keypair.certificate().public_key().clone())
     }
 }
 
@@ -105,9 +104,11 @@ pub mod mock {
     use attestation_types::status_claim::StatusClaim;
     use chrono::DateTime;
     use chrono::Utc;
+    use crypto::server_keys::generate::Ca;
     use hsm::model::wrapped_key::WrappedKey;
     use jwt::SignedJwt;
     use jwt::UnverifiedJwt;
+    use jwt::headers::HeaderWithX5c;
     use jwt::wia::ClientStatus;
     use jwt::wia::WiaClaims;
     use jwt::wia::WiaWalletInfo;
@@ -134,11 +135,13 @@ pub mod mock {
             &self,
             exp: DateTime<Utc>,
             status_claim: StatusClaim,
-        ) -> Result<(WrappedKey, UnverifiedJwt<WiaClaims>), Self::Error> {
+        ) -> Result<(WrappedKey, UnverifiedJwt<WiaClaims, HeaderWithX5c>), Self::Error> {
             let privkey = SigningKey::random(&mut OsRng);
             let pubkey = privkey.verifying_key();
 
-            let jwt = SignedJwt::sign(
+            let keypair = Ca::generate_issuer_mock_ca().unwrap().generate_wia_mock().unwrap();
+
+            let jwt = SignedJwt::sign_with_certificate(
                 &WiaClaims::new(
                     pubkey,
                     "sub".to_string(),
@@ -150,7 +153,7 @@ pub mod mock {
                     },
                 )
                 .unwrap(),
-                &privkey, // Sign the WIA with its own private key in this test
+                &keypair,
             )
             .await
             .unwrap()
@@ -174,11 +177,12 @@ mod tests {
 
     use attestation_types::status_claim::StatusClaim;
     use chrono::Utc;
+    use crypto::server_keys::generate::Ca;
+    use crypto::x509::CertificateUsage;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
-    use jwt::DEFAULT_VALIDATIONS;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
+    use jwt::wia::WIA_JWT_VALIDATIONS;
+    use utils::generator::TimeGenerator;
 
     use super::HsmWiaIssuer;
     use super::WiaIssuer;
@@ -187,13 +191,13 @@ mod tests {
     #[tokio::test]
     async fn it_works() {
         let hsm = MockPkcs11Client::<HsmError>::default();
-        let wia_signing_key = SigningKey::random(&mut OsRng);
-        let wia_verifying_key = wia_signing_key.verifying_key();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let wia_keypair = ca.generate_wia_mock().unwrap();
         let sub = "sub";
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let wia_issuer = HsmWiaIssuer {
-            private_key: wia_signing_key.clone(),
+            keypair: wia_keypair,
             sub: sub.to_string(),
             hsm,
             wrapping_key_identifier: wrapping_key_identifier.to_string(),
@@ -206,7 +210,12 @@ mod tests {
             .unwrap();
 
         let (_, wia_claims) = wia
-            .parse_and_verify(&wia_verifying_key.into(), &DEFAULT_VALIDATIONS)
+            .parse_and_verify_against_trust_anchors(
+                &[ca.to_borrowing_trust_anchor()],
+                &TimeGenerator,
+                CertificateUsage::Wia,
+                &WIA_JWT_VALIDATIONS,
+            )
             .unwrap();
 
         assert_eq!(wia_privkey.public_key(), &wia_claims.cnf.verifying_key().unwrap());

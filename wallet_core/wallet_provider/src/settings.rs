@@ -77,8 +77,11 @@ pub struct Settings {
     pub android: Android,
 }
 
+#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct WiaSettings {
+    #[serde_as(as = "Base64")]
+    pub wia_certificate: BorrowingCertificate,
     pub wia_signing_key_identifier: String,
     pub wia_valid_days: u64,
     pub wia_status_list: WiaStatusListsSettings,

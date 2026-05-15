@@ -5,6 +5,7 @@ use audit_log::model::PostgresAuditLog;
 use chrono::Days;
 use chrono::Duration;
 use crypto::keys::EcdsaKey;
+use crypto::server_keys::KeyPair;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::Pkcs11Hsm;
 use jwt::wia::WiaWalletInfo;
@@ -164,10 +165,14 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         );
 
         let wia_issuer = HsmWiaIssuer::new(
-            HsmEcdsaKey::new(
-                settings.wia_settings.wia_signing_key_identifier,
-                wallet_user_hsm.clone(),
-            ),
+            KeyPair::new(
+                HsmEcdsaKey::new(
+                    settings.wia_settings.wia_signing_key_identifier,
+                    wallet_user_hsm.clone(),
+                ),
+                settings.wia_settings.wia_certificate,
+            )
+            .await?,
             NL_WALLET_CLIENT_ID.to_string(),
             wallet_user_hsm.clone(),
             settings.attestation_wrapping_key_identifier.clone(),

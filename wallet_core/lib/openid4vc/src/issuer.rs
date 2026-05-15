@@ -1886,7 +1886,7 @@ mod tests {
         .await
         .unwrap();
 
-        let wscd = MockRemoteWscd::new_with_wia_signing_key(wia_issuer_privkey);
+        let wscd = MockRemoteWscd::new_with_wia_keypair(wia_issuer_privkey);
         session.accept_issuance(trust_anchors, &wscd, true).await.unwrap_err()
     }
 

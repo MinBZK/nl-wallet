@@ -205,7 +205,7 @@ async fn authorization_code_flow(
 
     assert_eq!(session.normalized_credential_preview().len(), attestation_count.get());
 
-    let wscd = MockRemoteWscd::new_with_wia_signing_key(wia_issuer_privkey);
+    let wscd = MockRemoteWscd::new_with_wia_keypair(wia_issuer_privkey);
     let issued_creds = session.accept_issuance(trust_anchors, &wscd, true).await.unwrap();
 
     let copy_count = 4;
@@ -241,7 +241,7 @@ async fn pre_authorized_code_flow(
         .unwrap();
 
     let copy_count = 4;
-    let wscd = MockRemoteWscd::new_with_wia_signing_key(wia_issuer_privkey);
+    let wscd = MockRemoteWscd::new_with_wia_keypair(wia_issuer_privkey);
     let issued_creds = session.accept_issuance(trust_anchors, &wscd, true).await.unwrap();
 
     verify_issued_credentials(

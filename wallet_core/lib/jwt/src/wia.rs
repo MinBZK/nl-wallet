@@ -18,6 +18,7 @@ use crate::UnverifiedJwt;
 use crate::confirmation::ConfirmationClaim;
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
+use crate::headers::HeaderWithX5c;
 use crate::nonce::Nonce;
 use crate::pop::JwtPopClaims;
 
@@ -88,11 +89,11 @@ impl JwtTyp for WiaClaims {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Constructor)]
-pub struct WiaDisclosure(UnverifiedJwt<WiaClaims>, UnverifiedJwt<JwtPopClaims>);
+pub struct WiaDisclosure(UnverifiedJwt<WiaClaims, HeaderWithX5c>, UnverifiedJwt<JwtPopClaims>);
 
 #[cfg(feature = "test")]
 impl WiaDisclosure {
-    pub fn wia(&self) -> &UnverifiedJwt<WiaClaims> {
+    pub fn wia(&self) -> &UnverifiedJwt<WiaClaims, HeaderWithX5c> {
         &self.0
     }
 
