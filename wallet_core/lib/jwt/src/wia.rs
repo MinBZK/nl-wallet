@@ -161,3 +161,169 @@ pub static WIA_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
 
     validations
 });
+
+#[cfg(any(test, feature = "mock"))]
+mod mock {
+    use crate::wia::WiaWalletInfo;
+
+    impl WiaWalletInfo {
+        pub fn new_mock() -> WiaWalletInfo {
+            WiaWalletInfo {
+                wallet_name: "Test Wallet".to_string(),
+                wallet_version: "1.0.0".to_string(),
+                wallet_link: None,
+                wallet_solution_certification_information: "https://cert.example.com".to_string(),
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use assert_matches::assert_matches;
+    use attestation_types::status_claim::StatusClaim;
+    use chrono::Duration;
+    use chrono::Utc;
+    use crypto::server_keys::KeyPair;
+    use crypto::server_keys::generate::Ca;
+    use futures::FutureExt;
+    use p256::ecdsa::SigningKey;
+    use p256::ecdsa::VerifyingKey;
+    use rand_core::OsRng;
+
+    use crate::SignedJwt;
+    use crate::UnverifiedJwt;
+    use crate::headers::HeaderWithX5c;
+    use crate::nonce::Nonce;
+    use crate::pop::JwtPopClaims;
+    use crate::wia::ClientStatus;
+    use crate::wia::WiaClaims;
+    use crate::wia::WiaDisclosure;
+    use crate::wia::WiaError;
+    use crate::wia::WiaWalletInfo;
+
+    const AUD: &str = "https://issuer.example.com/";
+    const WALLET_CLIENT_ID: &str = "wallet-client";
+
+    fn make_wia(wia_keypair: &KeyPair, holder_pubkey: &VerifyingKey) -> UnverifiedJwt<WiaClaims, HeaderWithX5c> {
+        let wia_claims = WiaClaims::new(
+            holder_pubkey,
+            WALLET_CLIENT_ID.to_string(),
+            Utc::now() + Duration::hours(1),
+            WiaWalletInfo::new_mock(),
+            ClientStatus {
+                status: StatusClaim::new_mock(),
+                exp: Utc::now() + Duration::days(365),
+            },
+        )
+        .unwrap();
+
+        SignedJwt::sign_with_certificate(&wia_claims, wia_keypair)
+            .now_or_never()
+            .unwrap()
+            .unwrap()
+            .into()
+    }
+
+    fn make_pop(holder_key: &SigningKey, nonce: Option<Nonce>, aud: &str) -> UnverifiedJwt<JwtPopClaims> {
+        SignedJwt::sign(
+            &JwtPopClaims::new(nonce, WALLET_CLIENT_ID.to_string(), aud.to_string()),
+            holder_key,
+        )
+        .now_or_never()
+        .unwrap()
+        .unwrap()
+        .into()
+    }
+
+    #[test]
+    fn verify_valid() {
+        let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
+        let wia_keypair = ca.generate_wia_mock().unwrap();
+        let holder_key = SigningKey::random(&mut OsRng);
+
+        let disclosure = WiaDisclosure::new(
+            make_wia(&wia_keypair, holder_key.verifying_key()),
+            make_pop(&holder_key, Some(Nonce::new_random()), AUD),
+        );
+
+        let (_, nonce) = disclosure
+            .verify(&[ca.to_borrowing_trust_anchor()], AUD, &[WALLET_CLIENT_ID.to_string()])
+            .unwrap();
+
+        assert!(!nonce.as_ref().is_empty());
+    }
+
+    #[test]
+    fn verify_pop_signed_with_wrong_key() {
+        let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
+        let wia_keypair = ca.generate_wia_mock().unwrap();
+        let holder_key = SigningKey::random(&mut OsRng);
+        let wrong_key = SigningKey::random(&mut OsRng);
+
+        let disclosure = WiaDisclosure::new(
+            make_wia(&wia_keypair, holder_key.verifying_key()),
+            make_pop(&wrong_key, Some(Nonce::new_random()), AUD),
+        );
+
+        let error = disclosure
+            .verify(&[ca.to_borrowing_trust_anchor()], AUD, &[WALLET_CLIENT_ID.to_string()])
+            .unwrap_err();
+
+        assert_matches!(error, WiaError::Jwt(_));
+    }
+
+    #[test]
+    fn verify_pop_wrong_audience() {
+        let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
+        let wia_keypair = ca.generate_wia_mock().unwrap();
+        let holder_key = SigningKey::random(&mut OsRng);
+
+        let disclosure = WiaDisclosure::new(
+            make_wia(&wia_keypair, holder_key.verifying_key()),
+            make_pop(&holder_key, Some(Nonce::new_random()), "https://wrong.example.com/"),
+        );
+
+        let error = disclosure
+            .verify(&[ca.to_borrowing_trust_anchor()], AUD, &[WALLET_CLIENT_ID.to_string()])
+            .unwrap_err();
+
+        assert_matches!(error, WiaError::Jwt(_));
+    }
+
+    #[test]
+    fn verify_unaccepted_wallet_client_id() {
+        let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
+        let wia_keypair = ca.generate_wia_mock().unwrap();
+        let holder_key = SigningKey::random(&mut OsRng);
+
+        let disclosure = WiaDisclosure::new(
+            make_wia(&wia_keypair, holder_key.verifying_key()),
+            make_pop(&holder_key, Some(Nonce::new_random()), AUD),
+        );
+
+        let error = disclosure
+            .verify(&[ca.to_borrowing_trust_anchor()], AUD, &["other-client".to_string()])
+            .unwrap_err();
+
+        assert_matches!(error, WiaError::Jwt(_));
+    }
+
+    #[test]
+    fn verify_missing_nonce() {
+        let ca = Ca::generate("wia.ca.example.com", Default::default()).unwrap();
+        let wia_keypair = ca.generate_wia_mock().unwrap();
+        let holder_key = SigningKey::random(&mut OsRng);
+
+        let disclosure = WiaDisclosure::new(
+            make_wia(&wia_keypair, holder_key.verifying_key()),
+            make_pop(&holder_key, None, AUD),
+        );
+
+        let error = disclosure
+            .verify(&[ca.to_borrowing_trust_anchor()], AUD, &[WALLET_CLIENT_ID.to_string()])
+            .unwrap_err();
+
+        assert_matches!(error, WiaError::MissingNonce);
+    }
+}

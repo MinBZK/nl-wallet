@@ -119,15 +119,6 @@ pub mod mock {
 
     pub struct MockWiaIssuer;
 
-    pub fn mock_wallet_info() -> WiaWalletInfo {
-        WiaWalletInfo {
-            wallet_name: "Mock Wallet".to_string(),
-            wallet_link: None,
-            wallet_version: "1.0.0".to_string(),
-            wallet_solution_certification_information: "https://certification.wallet.example.com".to_string(),
-        }
-    }
-
     impl WiaIssuer for MockWiaIssuer {
         type Error = Infallible;
 
@@ -146,7 +137,7 @@ pub mod mock {
                     pubkey,
                     "sub".to_string(),
                     exp,
-                    mock_wallet_info(),
+                    WiaWalletInfo::new_mock(),
                     ClientStatus {
                         status: status_claim,
                         exp,
@@ -182,11 +173,11 @@ mod tests {
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
     use jwt::wia::WIA_JWT_VALIDATIONS;
+    use jwt::wia::WiaWalletInfo;
     use utils::generator::TimeGenerator;
 
     use super::HsmWiaIssuer;
     use super::WiaIssuer;
-    use super::mock::mock_wallet_info;
 
     #[tokio::test]
     async fn it_works() {
@@ -201,7 +192,7 @@ mod tests {
             sub: sub.to_string(),
             hsm,
             wrapping_key_identifier: wrapping_key_identifier.to_string(),
-            wallet_info: mock_wallet_info(),
+            wallet_info: WiaWalletInfo::new_mock(),
         };
 
         let (wia_privkey, wia) = wia_issuer

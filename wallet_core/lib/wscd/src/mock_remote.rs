@@ -185,19 +185,13 @@ impl IssuanceWscd for MockRemoteWscd {
             .unwrap_or(Ca::generate_issuer_mock_ca().unwrap().generate_wia_mock().unwrap());
 
         let exp = Utc::now() + Duration::from_secs(600);
-        let wallet_info = WiaWalletInfo {
-            wallet_name: "Mock Wallet".to_string(),
-            wallet_link: None,
-            wallet_version: "1.0.0".to_string(),
-            wallet_solution_certification_information: "info".to_string(),
-        };
 
         let wia = SignedJwt::sign_with_certificate(
             &WiaClaims::new(
                 wia_key.verifying_key(),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 exp,
-                wallet_info,
+                WiaWalletInfo::new_mock(),
                 ClientStatus {
                     status: StatusClaim::new_mock(),
                     exp,
