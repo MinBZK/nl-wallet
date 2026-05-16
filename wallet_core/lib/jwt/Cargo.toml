@@ -30,6 +30,7 @@ tracing.workspace = true
 attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
 error_category.path = "../error_category"
+http_utils.path = "../http_utils"
 utils.path = "../utils"
 
 [dev-dependencies]

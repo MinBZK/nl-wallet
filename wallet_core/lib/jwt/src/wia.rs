@@ -7,6 +7,7 @@ use chrono::serde::ts_seconds;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
 use derive_more::Constructor;
+use http_utils::urls::BaseUrl;
 use jsonwebtoken::Validation;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -49,9 +50,11 @@ pub struct WiaClaims {
 pub struct WiaWalletInfo {
     pub wallet_name: String,
     pub wallet_version: String,
-    pub wallet_solution_certification_information: String,
     #[serde(default)]
-    pub wallet_link: Option<String>, // TODO URL
+    pub wallet_link: Option<BaseUrl>,
+
+    // The structure (and therefore) type of this field is not yet defined, but the example in TS3 shows a string.
+    pub wallet_solution_certification_information: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
