@@ -233,7 +233,9 @@ mod tests {
     use assert_matches::assert_matches;
     use serde_json::json;
 
+    use super::CredentialOffer;
     use super::Grants;
+    use super::PreAuthTransactionCodeInputMode;
 
     #[test]
     fn test_grants_serialization() {
@@ -258,5 +260,75 @@ mod tests {
             serde_json::from_value::<Grants>(json).unwrap(),
             Grants::AuthorizationCode { .. }
         );
+    }
+
+    #[test]
+    fn test_credential_offer_serialization() {
+        // Source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-6
+        let credential_offer_json = json!({
+            "credential_issuer": "https://credential-issuer.example.com",
+            "credential_configuration_ids": [
+                "UniversityDegreeCredential",
+                "org.iso.18013.5.1.mDL"
+            ],
+            "grants": {
+                "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
+                    "pre-authorized_code": "oaKazRN8I0IbtZ0C7JuMn5",
+                    "tx_code": {
+                        "length": 4,
+                        "input_mode": "numeric",
+                        "description": "Please provide the one-time code that was sent via e-mail"
+                    }
+                }
+            }
+        });
+
+        let credential_offer = serde_json::from_value::<CredentialOffer>(credential_offer_json.clone())
+            .expect("should be able to deserialize CredentialOffer");
+
+        assert_eq!(
+            credential_offer.pre_authorized_code().map(AsRef::as_ref),
+            Some("oaKazRN8I0IbtZ0C7JuMn5")
+        );
+
+        assert_eq!(
+            credential_offer.credential_issuer.as_ref(),
+            "https://credential-issuer.example.com"
+        );
+        assert!(
+            credential_offer
+                .credential_configuration_ids
+                .iter()
+                .map(AsRef::as_ref)
+                .eq(["UniversityDegreeCredential", "org.iso.18013.5.1.mDL"])
+        );
+
+        let grant_pre_auth = match &credential_offer.grants {
+            Some(Grants::PreAuthorizedCode { pre_authorized_code }) => pre_authorized_code,
+            _ => panic!("JSON should contain Pre-Authorized Code grant"),
+        };
+
+        assert_eq!(grant_pre_auth.pre_authorized_code.as_ref(), "oaKazRN8I0IbtZ0C7JuMn5");
+
+        assert_eq!(
+            grant_pre_auth
+                .tx_code
+                .as_ref()
+                .and_then(|tx_code| tx_code.input_mode.as_ref()),
+            Some(&PreAuthTransactionCodeInputMode::Numeric)
+        );
+        assert_eq!(
+            grant_pre_auth.tx_code.as_ref().and_then(|tx_code| tx_code.length),
+            Some(4)
+        );
+        assert_eq!(
+            grant_pre_auth
+                .tx_code
+                .as_ref()
+                .and_then(|tx_code| tx_code.description.as_deref()),
+            Some("Please provide the one-time code that was sent via e-mail")
+        );
+
+        assert_eq!(serde_json::to_value(credential_offer).unwrap(), credential_offer_json);
     }
 }
