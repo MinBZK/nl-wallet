@@ -22,9 +22,8 @@ impl LowerCaseString {
 /// - `use`                         — can cause DoS via recursive expansion
 /// - `animate`, `set`              — can modify href/other attrs dynamically (XSS vector)
 /// - `foreignobject` and `feimage` — embeds arbitrary HTML
-/// - `animatecolor`, `tref`, `font`, `glyph`, `glyphref`,
-///   `altglyph`, `altglyphdef`, `altglyphitem`, `hkern`, `vkern`
-///   — deprecated in SVG 2.0; no modern use
+/// - `animatecolor`, `tref`, `font`, `glyph`, `glyphref`, `altglyph`, `altglyphdef`, `altglyphitem`, `hkern`, `vkern` —
+///   deprecated in SVG 2.0; no modern use
 pub fn is_allowed_tag(tag: &LowerCaseString) -> bool {
     static SET: OnceLock<HashSet<&'static str>> = OnceLock::new();
 

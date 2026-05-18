@@ -28,8 +28,8 @@ pub enum Error {
 ///
 /// The sanitizer uses an allowlist approach:
 /// - Only known-safe tags and attributes are passed through.
-/// - `href`, `xlink:href`, and `src` values are validated against a strict URL allowlist;
-///   only fragment refs (`#…`) and inert raster data URIs are permitted — no external URLs.
+/// - `href`, `xlink:href`, and `src` values are validated against a strict URL allowlist; only fragment refs (`#…`) and
+///   inert raster data URIs are permitted — no external URLs.
 /// - `<!DOCTYPE>` declarations are dropped entirely, preventing entity expansion attacks.
 /// - Comments and processing instructions are dropped.
 /// - CDATA sections are converted to escaped text nodes.
@@ -173,16 +173,13 @@ fn filter_element(e: &BytesStart<'_>) -> Result<Option<BytesStart<'static>>, Err
             continue;
         }
 
-        if allow::is_url_attr(&attr_name) {
-            if !allow::is_safe_url(&unescaped_attr) {
-                continue;
-            }
+        if allow::is_url_attr(&attr_name) && !allow::is_safe_url(&unescaped_attr) {
+            continue;
         }
 
-        if allow::is_url_func_attr(&attr_name) {
-            if !allow::has_safe_url_func(&LowerCaseString::new(unescaped_attr.get())) {
-                continue;
-            }
+        if allow::is_url_func_attr(&attr_name) && !allow::has_safe_url_func(&LowerCaseString::new(unescaped_attr.get()))
+        {
+            continue;
         }
 
         out.push_attribute(attr);
