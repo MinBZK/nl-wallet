@@ -2,7 +2,7 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use http_utils::reqwest::HttpJsonClient;
 use url::Url;
 
-use crate::credential::CredentialOfferContainer;
+use crate::credential_offer::CredentialOfferContainer;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
@@ -140,10 +140,10 @@ mod test {
     use super::HttpIssuanceDiscovery;
     use super::IssuanceDiscovery;
     use crate::Format;
-    use crate::credential::CredentialOffer;
-    use crate::credential::CredentialOfferContainer;
-    use crate::credential::GrantPreAuthorizedCode;
-    use crate::credential::Grants;
+    use crate::credential_offer::CredentialOffer;
+    use crate::credential_offer::CredentialOfferContainer;
+    use crate::credential_offer::GrantPreAuthorizedCode;
+    use crate::credential_offer::Grants;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::preview::CredentialPreviewResponse;

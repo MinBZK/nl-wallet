@@ -21,7 +21,7 @@ use issuer_common::nonce_store::ProofNonceStore;
 use issuer_common::settings::IssuerSettings;
 use issuer_common::settings::IssuerSettingsValidationError;
 use itertools::Itertools;
-use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
+use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::server_state::SessionStoreTimeouts;
