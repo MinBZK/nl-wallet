@@ -134,7 +134,6 @@ interface CloseProximityDisclosureBridge {
     void stop_ble_server();
 };
 
-// TODO this probably needs to be more fine-grained (PVW-5629)
 [Error]
 interface CloseProximityDisclosureError {
     PlatformError(string reason); // All exceptions in native code are represented by this error
@@ -146,7 +145,6 @@ interface CloseProximityDisclosureUpdate {
     Connected();
     SessionEstablished(sequence<u8> session_transcript, sequence<u8> device_request);
     Closed();
-    // TODO this probably warrants its own enum variant (PVW-5630)
     Error(CloseProximityDisclosureError error);
 };
 
