@@ -1,5 +1,7 @@
 mod allow;
 
+use derive_more::AsRef;
+use derive_more::Into;
 use quick_xml::Reader;
 use quick_xml::Writer;
 use quick_xml::events::BytesStart;
@@ -22,7 +24,7 @@ pub enum Error {
     Utf8(#[from] std::str::Utf8Error),
 }
 
-/// Sanitize an SVG string, returning a cleaned copy.
+/// A sanitized SVG.
 ///
 /// The sanitizer uses an allowlist approach:
 /// - Only known-safe tags and attributes are passed through.
@@ -36,7 +38,16 @@ pub enum Error {
 /// The `style` attribute is passed through without CSS sanitization. Avoid this crate
 /// if you need to block CSS-based attacks (e.g. `expression()`, `url()`). CSS sanitization
 /// may be added in a future version.
-pub fn sanitize(input: &str) -> Result<String, Error> {
+#[derive(Clone, Debug, AsRef, Into)]
+pub struct SanitizedSvg(String);
+
+impl SanitizedSvg {
+    pub fn try_new(xml: &str) -> Result<Self, Error> {
+        Ok(Self(sanitize(xml)?))
+    }
+}
+
+fn sanitize(input: &str) -> Result<String, Error> {
     let mut reader = Reader::from_str(input);
     {
         let cfg = reader.config_mut();

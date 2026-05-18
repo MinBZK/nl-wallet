@@ -13,6 +13,7 @@ doctest = false
 [dependencies]
 quick-xml.workspace = true
 thiserror.workspace = true
+derive_more = { workspace = true, features = ["as_ref", "into"] }
 
 [dev-dependencies]
 rstest.workspace = true

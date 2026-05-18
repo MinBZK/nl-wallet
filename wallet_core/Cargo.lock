@@ -8266,6 +8266,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 name = "svg_sanitize"
 version = "0.6.0-dev"
 dependencies = [
+ "derive_more",
  "quick-xml",
  "rstest",
  "thiserror 2.0.17",
