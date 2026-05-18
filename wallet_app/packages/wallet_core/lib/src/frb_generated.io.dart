@@ -2210,6 +2210,20 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__cancel_pin_recovery = _wire__crate__api__full__cancel_pin_recoveryPtr
       .asFunction<void Function(int)>();
 
+  void wire__crate__api__full__cancel_session(
+    int port_,
+  ) {
+    return _wire__crate__api__full__cancel_session(
+      port_,
+    );
+  }
+
+  late final _wire__crate__api__full__cancel_sessionPtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+    'frbgen_wallet_core_wire__crate__api__full__cancel_session',
+  );
+  late final _wire__crate__api__full__cancel_session = _wire__crate__api__full__cancel_sessionPtr
+      .asFunction<void Function(int)>();
+
   void wire__crate__api__full__cancel_wallet_transfer(
     int port_,
   ) {
