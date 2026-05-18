@@ -1,6 +1,7 @@
 //! Cose objects, keys, parsing, and verification.
 
 use std::marker::PhantomData;
+use std::num::NonZeroUsize;
 use std::result::Result;
 
 use chrono::DateTime;
@@ -26,13 +27,17 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
+use itertools::Itertools;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Verifier;
 use ring::hmac;
+use rustls_pki_types::CertificateDer;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use utils::generator::Generator;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
@@ -197,10 +202,25 @@ impl<C, T> From<C> for MdocCose<C, T> {
 /// COSE header label for `x5chain`, defined in [RFC 9360](https://datatracker.ietf.org/doc/rfc9360/).
 pub const COSE_X5CHAIN_HEADER_LABEL: i64 = 33;
 
-pub fn new_certificate_header(cert: &BorrowingCertificate) -> Header {
-    HeaderBuilder::new()
-        .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(cert.to_vec()))
-        .build()
+const ONE: NonZeroUsize = NonZeroUsize::new(1usize).expect("1 is non-zero");
+
+pub fn header_with_x5chain(chain: &VecNonEmpty<&BorrowingCertificate>) -> Header {
+    #[expect(clippy::trivially_copy_pass_by_ref)]
+    fn cbor_encode(c: &&BorrowingCertificate) -> Value {
+        Value::Bytes(c.to_vec())
+    }
+
+    if chain.len() == ONE {
+        let cert = chain.first();
+        HeaderBuilder::new()
+            .value(COSE_X5CHAIN_HEADER_LABEL, cbor_encode(cert))
+            .build()
+    } else {
+        let certs = chain.iter().map(cbor_encode).collect_vec();
+        HeaderBuilder::new()
+            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Array(certs))
+            .build()
+    }
 }
 
 impl<T> MdocCose<CoseSign1, T> {
@@ -268,10 +288,17 @@ impl<T> MdocCose<CoseSign1, T> {
     where
         T: DeserializeOwned,
     {
-        let cert = self.signing_cert()?;
+        let (cert, chain) = self.x5chain()?.into_nonempty_iter().next();
+
+        let chain = chain.into_iter().collect_vec();
+
+        let intermediate_certs = chain
+            .iter()
+            .map(|c| CertificateDer::from_slice(c.as_ref()))
+            .collect_vec();
 
         // Verify the certificate against the trusted IACAs
-        cert.verify(usage, &[], time, trust_anchors)
+        cert.verify(usage, &intermediate_certs, time, trust_anchors)
             .map_err(CoseError::Certificate)?;
 
         // Grab the certificate's public key and verify the Cose
@@ -476,6 +503,7 @@ mod tests {
     use serde::Deserialize;
     use serde::Serialize;
     use utils::generator::TimeGenerator;
+    use utils::vec_nonempty;
 
     use super::ClonePayload;
     use super::MdocCose;
@@ -572,7 +600,7 @@ mod tests {
             .unwrap();
 
         let payload = ToyMessage::default();
-        let header = cose::new_certificate_header(issuer_key_pair.certificate());
+        let header = cose::header_with_x5chain(&vec_nonempty![issuer_key_pair.certificate()]);
         let cose = MdocCose::sign(&payload, header, issuer_key_pair.private_key(), true)
             .await
             .unwrap();
@@ -587,19 +615,13 @@ mod tests {
 
     #[tokio::test]
     async fn x5chain_single_cert() {
-        use ciborium::value::Value;
-
-        use crate::utils::cose::COSE_X5CHAIN_HEADER_LABEL;
-
         let ca = Ca::generate("ca.example.com", Default::default()).unwrap();
         let issuer_key_pair = ca
             .generate_key_pair("cert.example.com", CertificateUsage::Mdl, Default::default())
             .unwrap();
 
         let cert = issuer_key_pair.certificate();
-        let header = HeaderBuilder::new()
-            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(cert.to_vec()))
-            .build();
+        let header = cose::header_with_x5chain(&vec_nonempty![cert]);
         let cose: MdocCose<_, ToyMessage> =
             MdocCose::sign(&ToyMessage::default(), header, issuer_key_pair.private_key(), true)
                 .await
@@ -612,10 +634,6 @@ mod tests {
 
     #[tokio::test]
     async fn x5chain_multiple_certs() {
-        use ciborium::value::Value;
-
-        use crate::utils::cose::COSE_X5CHAIN_HEADER_LABEL;
-
         let ca = Ca::generate("ca.example.com", Default::default()).unwrap();
         let issuer_key_pair = ca
             .generate_key_pair("cert.example.com", CertificateUsage::Mdl, Default::default())
@@ -627,12 +645,7 @@ mod tests {
 
         let cert1 = issuer_key_pair.certificate();
         let cert2 = other_key_pair.certificate();
-        let header = HeaderBuilder::new()
-            .value(
-                COSE_X5CHAIN_HEADER_LABEL,
-                Value::Array(vec![Value::Bytes(cert1.to_vec()), Value::Bytes(cert2.to_vec())]),
-            )
-            .build();
+        let header = cose::header_with_x5chain(&vec_nonempty![cert1, cert2]);
         let cose: MdocCose<_, ToyMessage> =
             MdocCose::sign(&ToyMessage::default(), header, issuer_key_pair.private_key(), true)
                 .await
@@ -642,6 +655,75 @@ mod tests {
         assert_eq!(chain.len().get(), 2);
         assert_eq!(cert1.as_ref(), chain[0].as_ref());
         assert_eq!(cert2.as_ref(), chain[1].as_ref());
+    }
+
+    #[tokio::test]
+    async fn verify_against_trust_anchors_with_intermediate_cert() {
+        // Root CA that permits one level of intermediate CAs
+        let root_ca = Ca::generate_with_intermediate_count("root-ca.example.com", Default::default(), 1).unwrap();
+        let intermediate_ca = root_ca
+            .generate_intermediate(
+                "intermediate-ca.example.com",
+                CertificateUsage::Mdl.into(),
+                Default::default(),
+            )
+            .unwrap();
+        let leaf_key_pair = intermediate_ca
+            .generate_key_pair("leaf.example.com", CertificateUsage::Mdl, Default::default())
+            .unwrap();
+
+        // x5chain: [leaf_cert, intermediate_cert]
+        let header = cose::header_with_x5chain(&vec_nonempty![
+            leaf_key_pair.certificate(),
+            &intermediate_ca.as_borrowing_certificate().unwrap(),
+        ]);
+
+        // Sign COSE and include x5chain header
+        let cose: MdocCose<_, ToyMessage> =
+            MdocCose::sign(&ToyMessage::default(), header, leaf_key_pair.private_key(), true)
+                .await
+                .unwrap();
+
+        // Verify signed COSE
+        let result = cose.verify_against_trust_anchors(
+            CertificateUsage::Mdl,
+            &TimeGenerator,
+            &[root_ca.to_borrowing_trust_anchor()],
+        );
+        assert_eq!(result.unwrap(), ToyMessage::default());
+    }
+
+    #[tokio::test]
+    async fn verify_against_trust_anchors_missing_intermediate() {
+        // Root CA that permits one level of intermediate CAs
+        let root_ca = Ca::generate_with_intermediate_count("root-ca.example.com", Default::default(), 1).unwrap();
+        let intermediate_ca = root_ca
+            .generate_intermediate(
+                "intermediate-ca.example.com",
+                CertificateUsage::Mdl.into(),
+                Default::default(),
+            )
+            .unwrap();
+        let leaf_key_pair = intermediate_ca
+            .generate_key_pair("leaf.example.com", CertificateUsage::Mdl, Default::default())
+            .unwrap();
+
+        // x5chain only contains the leaf cert, not the intermediate
+        let header = cose::header_with_x5chain(&vec_nonempty![leaf_key_pair.certificate()]);
+        let cose: MdocCose<_, ToyMessage> =
+            MdocCose::sign(&ToyMessage::default(), header, leaf_key_pair.private_key(), true)
+                .await
+                .unwrap();
+
+        // Verification should fail because the intermediate cert is absent from the chain
+        assert!(matches!(
+            cose.verify_against_trust_anchors(
+                CertificateUsage::Mdl,
+                &TimeGenerator,
+                &[root_ca.to_borrowing_trust_anchor()],
+            ),
+            Err(CoseError::Certificate(_))
+        ));
     }
 
     #[tokio::test]

@@ -98,7 +98,7 @@ pub mod test {
 
         let cose = MdocCose::<_, ReaderAuthenticationBytes>::sign(
             &TaggedBytes(CborSeq(reader_auth_keyed)),
-            cose::new_certificate_header(private_key.certificate()),
+            cose::header_with_x5chain(&vec_nonempty![private_key.certificate()]),
             private_key,
             false,
         )

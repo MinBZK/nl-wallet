@@ -124,6 +124,7 @@ mod test {
     use indexmap::IndexMap;
     use ssri::Integrity;
     use utils::generator::Generator;
+    use utils::vec_nonempty;
 
     use super::Mdoc;
     use crate::iso::disclosure::IssuerSigned;
@@ -134,6 +135,7 @@ mod test {
     use crate::iso::mdocs::MobileSecurityObject;
     use crate::iso::mdocs::MobileSecurityObjectVersion;
     use crate::iso::mdocs::ValidityInfo;
+    use crate::utils::cose;
     use crate::utils::cose::CoseKey;
     use crate::utils::cose::MdocCose;
     use crate::utils::serialization::TaggedBytes;
@@ -186,7 +188,7 @@ mod test {
                 type_metadata_integrity: Some(metadata_integrity),
             };
 
-            let header = IssuerSigned::create_unprotected_header(issuer_key_pair.certificate().to_vec());
+            let header = cose::header_with_x5chain(&vec_nonempty![issuer_key_pair.certificate()]);
             let mso_tagged = TaggedBytes(mso);
             let issuer_auth = MdocCose::sign(&mso_tagged, header, &issuer_key_pair, true)
                 .now_or_never()
