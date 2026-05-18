@@ -344,9 +344,12 @@ impl UrlUnescapedString {
     }
 }
 
-/// Conservative URL allowlist. Permits fragment refs, https, and inert image
-/// data URIs. Blocks http://, javascript:, data:image/svg+xml, /, file://,
-/// vbscript:, etc.
+/// Conservative URL allowlist. Permits only fragment refs and inert raster
+/// image data URIs. Blocks all external URLs (http://, https://, //),
+/// javascript:, data:image/svg+xml, /, file://, vbscript:, etc.
+///
+/// External URLs are blocked entirely so that SVGs cannot trigger outbound
+/// network requests that would allow tracking users or leaking credentials.
 ///
 /// `data:image/svg+xml` is intentionally excluded: an SVG-in-SVG data URI
 /// executes as a same-origin document in most browsers and is an XSS vector.
@@ -357,7 +360,7 @@ pub fn is_safe_url(value: &UrlUnescapedString) -> bool {
         return true;
     }
 
-    if value.starts_with('#') || value.starts_with("https://") {
+    if value.starts_with('#') {
         return true;
     }
 

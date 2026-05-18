@@ -28,7 +28,8 @@ pub enum Error {
 ///
 /// The sanitizer uses an allowlist approach:
 /// - Only known-safe tags and attributes are passed through.
-/// - `href`, `xlink:href`, and `src` values are validated against a strict URL allowlist.
+/// - `href`, `xlink:href`, and `src` values are validated against a strict URL allowlist;
+///   only fragment refs (`#…`) and inert raster data URIs are permitted — no external URLs.
 /// - `<!DOCTYPE>` declarations are dropped entirely, preventing entity expansion attacks.
 /// - Comments and processing instructions are dropped.
 /// - CDATA sections are converted to escaped text nodes.
@@ -299,12 +300,12 @@ mod tests {
     // ── href / URL validation ──────────────────────────────────────────────────
 
     /// These href values must be stripped entirely because they don't match the
-    /// positive URL allowlist (fragment-ref, https://, or an explicit raster
-    /// data: MIME type).
+    /// positive URL allowlist (fragment-ref or an explicit raster data: MIME type).
     #[rstest]
     #[case("javascript:alert(1)")]
     #[case("vbscript:MsgBox(1)")]
     #[case("http://example.com")]
+    #[case("https://example.com")] // external URLs blocked to prevent user tracking
     #[case("/images/logo.svg")]
     #[case("data:text/html,xss")]
     #[case("data:image/svg+xml;base64,PHN2Zy8+")] // SVG-in-SVG executes as same-origin
@@ -317,7 +318,6 @@ mod tests {
     /// These href values must pass through unchanged.
     #[rstest]
     #[case("#target")]
-    #[case("https://example.com")]
     #[case("data:image/png;base64,iVBORw0KGgo=")]
     #[case("data:image/jpeg;base64,/9j/4AAQ=")]
     #[case("data:image/gif;base64,R0lGODlh")]
