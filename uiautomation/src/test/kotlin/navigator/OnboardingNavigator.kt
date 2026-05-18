@@ -9,7 +9,7 @@ import screen.introduction.IntroductionScreen
 import screen.issuance.PersonalizeInformScreen
 import screen.issuance.PersonalizePidPreviewScreen
 import screen.issuance.PersonalizeSuccessScreen
-import screen.issuance.TransferWalletScreen
+import screen.issuance.StartTransferWalletScreen
 import screen.revocation.RevocationCodeSetupScreen
 import screen.security.PinScreen
 import screen.security.SecuritySetupCompletedScreen
@@ -19,6 +19,7 @@ import screen.web.digid.DigidLoginStartWebPage
 class OnboardingNavigator {
 
     fun toScreen(screen: OnboardingNavigatorScreen, bsn: String = DEFAULT_BSN) {
+        Thread.sleep(3000)
         if (screen > OnboardingNavigatorScreen.Demo) DemoScreen().clickContinueButton()
         if (screen > OnboardingNavigatorScreen.Introduction) IntroductionScreen().clickSkipButton()
         if (screen > OnboardingNavigatorScreen.IntroductionPrivacy) IntroductionPrivacyScreen().clickNextButton()
@@ -32,7 +33,7 @@ class OnboardingNavigator {
         if (screen > OnboardingNavigatorScreen.DigidLoginMockWebPage) DigidLoginMockWebPage().login(bsn)
         if (screen > OnboardingNavigatorScreen.PersonalizePidPreview) PersonalizePidPreviewScreen().clickAcceptButton()
         if (screen > OnboardingNavigatorScreen.PersonalizeConfirmIssuance) PinScreen().enterPin(DEFAULT_PIN)
-        if (screen > OnboardingNavigatorScreen.PersonalizeTransferWallet) TransferWalletScreen().createNewWallet()
+        if (screen > OnboardingNavigatorScreen.PersonalizeTransferWallet) StartTransferWalletScreen().createNewWallet()
         if (screen > OnboardingNavigatorScreen.PersonalizeSuccess) PersonalizeSuccessScreen().clickNextButton()
 
         // App now shows the dashboard screen.

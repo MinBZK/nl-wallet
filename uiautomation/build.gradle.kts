@@ -34,6 +34,8 @@ dependencies {
     implementation("io.qameta.allure:allure-junit5")
     implementation("org.json:json:20250517")
     implementation("org.tomlj:tomlj:1.1.1")
+    implementation("com.google.zxing:core:3.5.3")
+    implementation("com.google.zxing:javase:3.5.3")
 }
 
 tasks.test {
@@ -91,6 +93,13 @@ tasks.register<Test>("testAllAndroids") {
     }
 }
 
+tasks.register<Test>("twoDeviceTest") {
+    useJUnitPlatform {
+        includeTags("twoDevice")
+        exclude("suite/**")
+    }
+}
+
 tasks.withType<Test>().configureEach {
     jvmArgs("--add-modules=java.instrument")
     val testConfigMap = mapOf(
@@ -101,6 +110,14 @@ tasks.withType<Test>().configureEach {
         "test.config.remote" to false,
         "test.config.automation.name" to "UIAutomator2",
         "test.config.commit.sha" to "",
+        "test.config.source.name" to "",
+        "test.config.source.platform.name" to "",
+        "test.config.source.platform.version" to "",
+        "test.config.source.udid" to "",
+        "test.config.destination.name" to "",
+        "test.config.destination.platform.name" to "",
+        "test.config.destination.platform.version" to "",
+        "test.config.destination.udid" to "",
     )
     testConfigMap.forEach { (k, v) ->
         systemProperty(k, System.getProperty(k, v.toString()))
