@@ -166,6 +166,7 @@ fn filter_element(e: &BytesStart<'_>) -> Result<Option<BytesStart<'static>>, Err
 
     for attr_result in e.attributes().with_checks(false) {
         let attr = attr_result.map_err(|e| Error::Xml(quick_xml::Error::InvalidAttr(e)))?;
+        let unescaped_attr = UrlUnescapedString::new(&attr)?;
         let attr_name = LowerCaseString::new(str::from_utf8(attr.key.as_ref())?);
 
         if !(allow::is_allowed_attr(&attr_name) || allow::is_allowed_by_prefix(&attr_name)) {
@@ -173,7 +174,13 @@ fn filter_element(e: &BytesStart<'_>) -> Result<Option<BytesStart<'static>>, Err
         }
 
         if allow::is_url_attr(&attr_name) {
-            if !allow::is_safe_url(&UrlUnescapedString::new(&attr)?) {
+            if !allow::is_safe_url(&unescaped_attr) {
+                continue;
+            }
+        }
+
+        if allow::is_url_func_attr(&attr_name) {
+            if !allow::has_safe_url_func(&LowerCaseString::new(unescaped_attr.get())) {
                 continue;
             }
         }
@@ -395,6 +402,77 @@ mod tests {
     fn data_uri_blocked() {
         let out = sanitize_panicking(r#"<svg><a href="data:text/html,<script>alert(1)</script>">x</a></svg>"#);
         assert!(!out.contains("data:"), "got: {out}");
+    }
+
+    // ── CSS url() references in presentation attributes ────────────────────────
+
+    /// External `url()` in presentation attributes must be stripped to prevent
+    /// outbound requests that could be used for tracking.
+    #[rstest]
+    #[case(
+        "clip-path",
+        r#"<svg><rect clip-path="url(https://evil.example/)" width="10" height="10"/></svg>"#
+    )]
+    #[case(
+        "filter",
+        r#"<svg><rect filter="url(https://evil.example/)" width="10" height="10"/></svg>"#
+    )]
+    #[case(
+        "mask",
+        r#"<svg><rect mask="url(https://evil.example/)" width="10" height="10"/></svg>"#
+    )]
+    #[case(
+        "fill",
+        r#"<svg><rect fill="url(https://evil.example/)" width="10" height="10"/></svg>"#
+    )]
+    #[case(
+        "marker-start",
+        r#"<svg><path marker-start="url(https://evil.example/)" d="M0,0"/></svg>"#
+    )]
+    fn external_url_func_blocked(#[case] attr: &str, #[case] svg: &str) {
+        let out = sanitize_panicking(svg);
+        assert!(!out.contains(attr), "got: {out}");
+    }
+
+    /// Local fragment `url()` references must pass through — they are self-contained.
+    #[rstest]
+    #[case(r#"<svg><rect clip-path="url(#myClip)" width="10" height="10"/></svg>"#, "clip-path")]
+    #[case(r#"<svg><rect filter="url(#f1)" width="10" height="10"/></svg>"#, "filter")]
+    #[case(r#"<svg><rect fill="url(#gradient)" width="10" height="10"/></svg>"#, "fill")]
+    fn local_url_func_allowed(#[case] svg: &str, #[case] attr: &str) {
+        let out = sanitize_panicking(svg);
+        assert!(out.contains(attr), "got: {out}");
+    }
+
+    /// Alternative CSS image functions that can load external resources must be stripped.
+    #[rstest]
+    #[case(
+        "fill",
+        r#"<svg><rect fill="image(https://evil.example/)" width="10" height="10"/></svg>"#
+    )]
+    #[case(
+        "fill",
+        r#"<svg><rect fill="image-set(url(https://evil.example/) 1x)" width="10" height="10"/></svg>"#
+    )]
+    #[case(
+        "fill",
+        r#"<svg><rect fill="cross-fade(url(#a), url(https://evil.example/))" width="10" height="10"/></svg>"#
+    )]
+    #[case(
+        "fill",
+        r#"<svg><rect fill="src(https://evil.example/ type(image/png))" width="10" height="10"/></svg>"#
+    )]
+    fn alternative_css_image_func_blocked(#[case] attr: &str, #[case] svg: &str) {
+        let out = sanitize_panicking(svg);
+        assert!(!out.contains(attr), "got: {out}");
+    }
+
+    #[test]
+    fn fill_color_unaffected_by_url_func_check() {
+        // Plain color values on url()-capable attrs must not be disturbed.
+        let out = sanitize_panicking(r#"<svg><rect fill="red" stroke="blue" width="10" height="10"/></svg>"#);
+        assert!(out.contains(r#"fill="red""#), "got: {out}");
+        assert!(out.contains(r#"stroke="blue""#), "got: {out}");
     }
 
     // ── DOCTYPE / entity expansion ─────────────────────────────────────────────

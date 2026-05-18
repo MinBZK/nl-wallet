@@ -24,7 +24,7 @@ impl LowerCaseString {
 /// - `foreignobject` and `feimage` — embeds arbitrary HTML
 /// - `animatecolor`, `tref`, `font`, `glyph`, `glyphref`,
 ///   `altglyph`, `altglyphdef`, `altglyphitem`, `hkern`, `vkern`
-///                                 — deprecated in SVG 2.0; no modern use
+///   — deprecated in SVG 2.0; no modern use
 pub fn is_allowed_tag(tag: &LowerCaseString) -> bool {
     static SET: OnceLock<HashSet<&'static str>> = OnceLock::new();
 
@@ -327,7 +327,60 @@ pub fn is_allowed_attr(attr: &LowerCaseString) -> bool {
 
 /// Returns true if this attribute's value must be validated as a URL.
 pub fn is_url_attr(attr: &LowerCaseString) -> bool {
-    matches!(attr.get(), "href" | "xlink:href" | "src")
+    ["href", "xlink:href", "src"].contains(&attr.get())
+}
+
+/// Returns true if this attribute's value may contain CSS `url()` references
+/// that could trigger outbound network requests.
+pub fn is_url_func_attr(attr: &LowerCaseString) -> bool {
+    [
+        "clip-path",
+        "mask",
+        "filter",
+        "fill",
+        "stroke",
+        "marker-start",
+        "marker-mid",
+        "marker-end",
+        "color-profile",
+    ]
+    .contains(&attr.get())
+}
+
+/// Returns true if every `url(…)` in `value` references a local fragment (i.e. starts with `#`).
+/// A value may contain multiple `url()` references (e.g. `filter="url(#blur) url(#contrast)"`);
+/// all of them must pass. Values containing no `url()` references are always safe.
+/// Handles optional surrounding quotes and inner whitespace per the CSS `url()` syntax.
+///
+/// Also rejects values containing alternative CSS image-loading functions (`image()`,
+/// `image-set()`, `cross-fade()`, `src()`) that can reference external URLs but whose
+/// argument syntax differs from `url()`.
+pub fn has_safe_url_func(value: &LowerCaseString) -> bool {
+    let v = value.get();
+
+    if ["image(", "image-set(", "-webkit-image-set(", "cross-fade(", "src("]
+        .iter()
+        .any(|f| v.contains(f))
+    {
+        return false;
+    }
+
+    // Walk every url() in the value; each one must reference a local fragment.
+    // If they don't, we consider them unsafe and return false.
+    let mut rest = v;
+    while let Some(idx) = rest.find("url(") {
+        rest = &rest[idx + 4..];
+        let Some(end) = rest.find(')') else {
+            return false; // malformed url() with no closing parent
+        };
+        let inner = rest[..end].trim().trim_matches(|c| c == '\'' || c == '"').trim();
+        if !inner.starts_with('#') {
+            return false;
+        }
+        rest = &rest[end + 1..];
+    }
+
+    true
 }
 
 /// An string that has been URL-unescaped, so that checking if a URL is safe
