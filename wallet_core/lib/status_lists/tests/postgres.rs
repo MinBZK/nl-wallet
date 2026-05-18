@@ -322,7 +322,7 @@ async fn fetch_attestation_batches(
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-async fn test_service_initializes_status_lists() {
+async fn test_service_initializes_and_republishes_status_lists() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
