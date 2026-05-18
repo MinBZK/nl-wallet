@@ -11,9 +11,14 @@ use quick_xml::events::Event;
 use crate::allow::LowerCaseString;
 use crate::allow::UrlUnescapedString;
 
+/// Maximum allowed SVG input size in bytes.
+pub const MAX_SIZE: usize = 5 * 1024 * 1024;
+
 /// Errors that can occur during sanitization.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("SVG exceeds maximum allowed size of {MAX_SIZE} bytes")]
+    TooLarge,
     #[error("XML error: {0}")]
     Xml(#[from] quick_xml::Error),
     #[error("I/O error: {0}")]
@@ -40,6 +45,10 @@ pub struct SanitizedSvg(String);
 
 impl SanitizedSvg {
     pub fn try_new(input: &str) -> Result<Self, Error> {
+        if input.len() > MAX_SIZE {
+            return Err(Error::TooLarge);
+        }
+
         let mut reader = Reader::from_str(input);
         {
             let cfg = reader.config_mut();
@@ -190,6 +199,22 @@ mod tests {
     // Sanitize the input, panicking if it fails. Returns the contained string for string matching.
     fn sanitize_panicking(input: &str) -> String {
         SanitizedSvg::try_new(input).expect("sanitize failed").0
+    }
+
+    // ── Size limit ────────────────────────────────────────────────────────────
+
+    #[test]
+    fn oversized_svg_rejected() {
+        let payload = "x".repeat(crate::MAX_SIZE + 1);
+        assert!(matches!(SanitizedSvg::try_new(&payload), Err(crate::Error::TooLarge)));
+    }
+
+    #[test]
+    fn exactly_max_size_accepted() {
+        // An input exactly at the limit must not be rejected by the size check
+        // (it may still fail XML parsing, but not with TooLarge).
+        let payload = "x".repeat(crate::MAX_SIZE);
+        assert!(!matches!(SanitizedSvg::try_new(&payload), Err(crate::Error::TooLarge)));
     }
 
     // ── Tag allowlist — including HTML elements and non-ASCII names ───────────
