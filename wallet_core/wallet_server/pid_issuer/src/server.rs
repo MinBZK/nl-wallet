@@ -27,17 +27,19 @@ use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
 use utils::vec_at_least::VecNonEmpty;
 
+pub type PidIssuer<A, UAA> = Issuer<
+    A,
+    PrivateKeyVariant,
+    PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
+    SessionStoreVariant<IssuanceData>,
+    ProofNonceStore,
+    MemoryParStore,
+    MemoryPkceFlowStore,
+    UAA,
+>;
+
 pub async fn serve<A, UAA>(
-    issuer: Issuer<
-        A,
-        PrivateKeyVariant,
-        PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
-        SessionStoreVariant<IssuanceData>,
-        ProofNonceStore,
-        MemoryParStore,
-        MemoryPkceFlowStore,
-        UAA,
-    >,
+    issuer: PidIssuer<A, UAA>,
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
@@ -60,16 +62,7 @@ where
 pub async fn serve_with_listeners<A, UAA>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
-    issuer: Issuer<
-        A,
-        PrivateKeyVariant,
-        PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
-        SessionStoreVariant<IssuanceData>,
-        ProofNonceStore,
-        MemoryParStore,
-        MemoryPkceFlowStore,
-        UAA,
-    >,
+    issuer: PidIssuer<A, UAA>,
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
