@@ -59,8 +59,13 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
             .query()
             .ok_or(WalletIssuanceError::MissingCredentialOfferQuery)?;
 
-        let CredentialOfferContainer { credential_offer } =
-            serde_urlencoded::from_str(query).map_err(WalletIssuanceError::CredentialOfferDeserialization)?;
+        let offer_container = serde_urlencoded::from_str::<CredentialOfferContainer>(query)
+            .map_err(WalletIssuanceError::CredentialOfferDeserialization)?;
+
+        // TODO: Fetch credential offer from URI.
+        let Some(credential_offer) = offer_container.offer() else {
+            unimplemented!("credential offer fetching");
+        };
 
         let pre_authorized_code = credential_offer
             .pre_authorized_code()
@@ -142,8 +147,6 @@ mod test {
     use crate::Format;
     use crate::credential_offer::CredentialOffer;
     use crate::credential_offer::CredentialOfferContainer;
-    use crate::credential_offer::GrantPreAuthorizedCode;
-    use crate::credential_offer::Grants;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::preview::CredentialPreviewResponse;
@@ -297,15 +300,12 @@ mod test {
         let (_server, issuer_identifier, trust_anchor) = start_wiremock_issuer(None).await;
 
         // Construct a credential offer URL with a fake pre-authorized code.
-        let credential_offer = CredentialOffer {
-            credential_issuer: issuer_identifier,
-            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string().into()],
-            grants: Some(Grants::PreAuthorizedCode {
-                pre_authorized_code: GrantPreAuthorizedCode::new("fake_pre_auth_code".to_string().into()),
-            }),
-        };
-        let container = CredentialOfferContainer { credential_offer };
-        let query = serde_urlencoded::to_string(&container).unwrap();
+        let offer_container = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            issuer_identifier,
+            vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            "fake_pre_auth_code".to_string().into(),
+        ));
+        let query = serde_urlencoded::to_string(&offer_container).unwrap();
         let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
 
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
@@ -409,11 +409,11 @@ mod test {
         // Construct a credential offer URL WITHOUT any grants.
         let credential_offer = CredentialOffer {
             credential_issuer: "https://example.com".parse().unwrap(),
-            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string().into()],
+            credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
             grants: None,
         };
-        let container = CredentialOfferContainer { credential_offer };
-        let query = serde_urlencoded::to_string(&container).unwrap();
+        let offer_container = CredentialOfferContainer::new_offer(credential_offer);
+        let query = serde_urlencoded::to_string(&offer_container).unwrap();
         let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
 
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap());

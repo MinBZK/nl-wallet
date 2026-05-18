@@ -1,9 +1,13 @@
 use http_utils::urls::BaseUrl;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 use serde_with::json::JsonString;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
+use strum::EnumString;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
@@ -11,41 +15,96 @@ use crate::token::AuthorizationCode;
 
 pub const OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME: &str = "openid-credential-offer";
 
-/// OpenID4VCI protocol message containing the credential offer.
-/// The Credential Offer is passed as a single URI-encoded parameter containing a JSON-encoded value.
-/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-offer>
-/// Note: the spec says that this may contain a `credential_offer_uri` instead of a `credential_offer`, but we don't
-/// support that (yet).
+/// OpenID4VCI protocol message containing the credential offer. The Credential Offer contains a single URI query
+/// parameter, either `credential_offer` or `credential_offer_uri`.
+///
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1>
 #[serde_as]
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CredentialOfferContainer {
-    #[serde_as(as = "JsonString")]
-    pub credential_offer: CredentialOffer,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum CredentialOfferContainer {
+    Offer {
+        #[serde_as(as = "JsonString")]
+        credential_offer: Box<CredentialOffer>,
+    },
+
+    Uri {
+        credential_offer_uri: BaseUrl,
+    },
 }
 
+impl CredentialOfferContainer {
+    pub fn new_offer(credential_offer: CredentialOffer) -> Self {
+        Self::Offer {
+            credential_offer: Box::new(credential_offer),
+        }
+    }
+
+    pub fn offer(&self) -> Option<&CredentialOffer> {
+        match self {
+            Self::Offer { credential_offer } => Some(credential_offer),
+            Self::Uri { .. } => None,
+        }
+    }
+}
+
+/// An OpenID4VCI Credential Offer, which is the starting point for issuance. It contains information needed for the
+/// Authorization Code flow, the Pre-Authorized Code Flow or both.
+///
+/// https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1
 #[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialOffer {
+    /// The URL of the Credential Issuer, as defined in Section 12.2.1, from which the Wallet is requested to obtain
+    /// one or more Credentials. The Wallet uses it to obtain the Credential Issuer's Metadata following the steps
+    /// defined in Section 12.2.2.
     pub credential_issuer: IssuerIdentifier,
-    pub credential_configuration_ids: Vec<CredentialConfigurationId>,
+
+    /// A non-empty array of unique strings that each identify one of the keys in the name/value pairs stored in the
+    /// credential_configurations_supported Credential Issuer metadata. The Wallet uses these string values to obtain
+    /// the respective object that contains information about the Credential being offered as defined in Section
+    /// 12.2.4. For example, these string values can be used to obtain scope values to be used in the Authorization
+    /// Request.
+    pub credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
+
+    /// Object indicating to the Wallet the Grant Types the Credential Issuer's Authorization Server is prepared to
+    /// process for this Credential Offer.
     pub grants: Option<Grants>,
 }
 
 impl CredentialOffer {
+    pub fn new_pre_authorized(
+        credential_issuer: IssuerIdentifier,
+        credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
+        pre_authorized_code: AuthorizationCode,
+    ) -> Self {
+        Self {
+            credential_issuer,
+            credential_configuration_ids,
+            grants: Some(Grants::new_pre_authorized(pre_authorized_code)),
+        }
+    }
+
     pub fn pre_authorized_code(&self) -> Option<&AuthorizationCode> {
         self.grants.as_ref()?.pre_authorized_code()
     }
 }
 
-/// Grants for a Verifiable Credential.
-/// May contain either or both. If it contains both, it is up to the wallet which one it uses.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+/// Object indicating to the Wallet the Grant Types the Credential Issuer's Authorization Server is prepared to process
+/// for this Credential Offer. Every grant is represented by a name/value pair. The name is the Grant Type identifier;
+/// the value is an object that contains parameters either determining the way the Wallet MUST use the particular grant
+/// and/or parameters the Wallet MUST send with the respective request(s). If grants is not present or is empty, the
+/// Wallet MUST determine the Grant Types the Credential Issuer's Authorization Server supports using the respective
+/// metadata. When multiple grants are present, it is at the Wallet's discretion which one to use.
+///
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-4>
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Grants {
     Both {
+        authorization_code: GrantAuthorizationCode,
         #[serde(rename = "urn:ietf:params:oauth:grant-type:pre-authorized_code")]
         pre_authorized_code: GrantPreAuthorizedCode,
-        authorization_code: GrantAuthorizationCode,
     },
     AuthorizationCode {
         authorization_code: GrantAuthorizationCode,
@@ -57,6 +116,12 @@ pub enum Grants {
 }
 
 impl Grants {
+    pub fn new_pre_authorized(pre_authorized_code: AuthorizationCode) -> Self {
+        Self::PreAuthorizedCode {
+            pre_authorized_code: GrantPreAuthorizedCode::new(pre_authorized_code),
+        }
+    }
+
     pub fn pre_authorized_code(&self) -> Option<&AuthorizationCode> {
         match self {
             Grants::Both {
@@ -68,20 +133,45 @@ impl Grants {
     }
 }
 
+/// Grant Type `authorization_code`.
+///
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-5.1.1>
 #[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GrantAuthorizationCode {
+    /// String value created by the Credential Issuer and opaque to the Wallet that is used to bind the subsequent
+    /// Authorization Request with a context set up during previous process steps. If the Wallet decides to use the
+    /// Authorization Code Flow and received a value for this parameter, it MUST include it in the subsequent
+    /// Authorization Request to the Authorization Server as the `issuer_state` parameter value.
     pub issuer_state: Option<String>,
-    pub authorization_server: Option<BaseUrl>,
+
+    /// Optional string that the Wallet can use to identify the Authorization Server to use with this grant type when
+    /// authorization_servers parameter in the Credential Issuer metadata has multiple entries. It MUST NOT be used
+    /// otherwise. The value of this parameter MUST match with one of the values in the `authorization_servers` array
+    /// obtained from the Credential Issuer metadata.
+    pub authorization_server: Option<IssuerIdentifier>,
 }
 
+/// Grant Type `urn:ietf:params:oauth:grant-type:pre-authorized_code`.
+///
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-5.2.1>
 #[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GrantPreAuthorizedCode {
+    /// The code representing the Credential Issuer's authorization for the Wallet to obtain Credentials of a certain
+    /// type. This code MUST be short lived and single use. If the Wallet decides to use the Pre-Authorized Code Flow,
+    /// this parameter value MUST be included in the subsequent Token Request with the Pre-Authorized Code Flow.
     #[serde(rename = "pre-authorized_code")]
     pub pre_authorized_code: AuthorizationCode,
+
+    /// Object indicating that a Transaction Code is required if present, even if empty.
     pub tx_code: Option<PreAuthTransactionCode>,
-    pub authorization_server: Option<BaseUrl>,
+
+    /// Optional string that the Wallet can use to identify the Authorization Server to use with this grant type when
+    /// authorization_servers parameter in the Credential Issuer metadata has multiple entries. It MUST NOT be used
+    /// otherwise. The value of this parameter MUST match with one of the values in the `authorization_servers` array
+    /// obtained from the Credential Issuer metadata.
+    pub authorization_server: Option<IssuerIdentifier>,
 }
 
 impl GrantPreAuthorizedCode {
@@ -94,12 +184,48 @@ impl GrantPreAuthorizedCode {
     }
 }
 
+/// Object indicating that a Transaction Code is required if present, even if empty. It describes the requirements for a
+/// Transaction Code, which the Authorization Server expects the End-User to present along with the Token Request in a
+/// Pre-Authorized Code Flow. If the Authorization Server does not expect a Transaction Code, this object is absent;
+/// this is the default. The Transaction Code is intended to bind the Pre-Authorized Code to a certain transaction to
+/// prevent replay of this code by an attacker that, for example, scanned the QR code while standing behind the
+/// legitimate End-User. It is RECOMMENDED to send the Transaction Code via a separate channel. If the Wallet decides to
+/// use the Pre-Authorized Code Flow, the Transaction Code value MUST be sent in the tx_code parameter with the
+/// respective Token Request as defined in Section 6.1. If no `length`, `description`, or `input_mode` is given, this
+/// object MAY be empty.
+///
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-5.2.2.2.1>
 #[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct PreAuthTransactionCode {
-    pub input_mode: Option<String>,
-    pub length: Option<u64>,
+    /// String specifying the input character set.
+    pub input_mode: Option<PreAuthTransactionCodeInputMode>,
+
+    /// Integer specifying the length of the Transaction Code. This helps the Wallet to render the input screen and
+    /// improve the user experience.
+    pub length: Option<u8>,
+
+    /// String containing guidance for the Holder of the Wallet on how to obtain the Transaction Code, e.g., describing
+    /// over which communication channel it is delivered. The Wallet is RECOMMENDED to display this description next to
+    /// the Transaction Code input screen to improve the user experience. The length of the string MUST NOT exceed 300
+    /// characters. The description does not support internationalization, however the Issuer MAY detect the Holder's
+    /// language by previous communication or an HTTP Accept-Language header within an HTTP GET request for a
+    /// Credential Offer URI.
     pub description: Option<String>,
+}
+
+/// String specifying the input character set. Possible values are `numeric` (only digits) and `text` (any characters).
+/// The default is `numeric`.
+///
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-5.2.2.2.2.1>
+#[derive(Debug, Clone, Default, PartialEq, Eq, strum::Display, EnumString, SerializeDisplay, DeserializeFromStr)]
+#[strum(serialize_all = "lowercase")]
+pub enum PreAuthTransactionCodeInputMode {
+    #[default]
+    Numeric,
+    Text,
+    #[strum(default)]
+    Other(String),
 }
 
 #[cfg(test)]

@@ -178,8 +178,6 @@ mod tests {
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential_offer::CredentialOffer;
     use openid4vc::credential_offer::CredentialOfferContainer;
-    use openid4vc::credential_offer::GrantPreAuthorizedCode;
-    use openid4vc::credential_offer::Grants;
     use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
     use openid4vc::disclosure_session;
     use openid4vc::disclosure_session::DataDisclosed;
@@ -273,17 +271,15 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup wallet disclosure state
-        let credential_offer = serde_urlencoded::to_string(CredentialOfferContainer {
-            credential_offer: CredentialOffer {
-                credential_issuer: "https://issuer.example.com".parse().unwrap(),
-                credential_configuration_ids: vec![],
-                grants: Some(Grants::PreAuthorizedCode {
-                    pre_authorized_code: GrantPreAuthorizedCode::new("123".to_string().into()),
-                }),
-            },
-        })
+        let credential_offer_query = serde_urlencoded::to_string(CredentialOfferContainer::new_offer(
+            CredentialOffer::new_pre_authorized(
+                "https://issuer.example.com".parse().unwrap(),
+                vec_nonempty!["config_id".to_string().into()],
+                "123".to_string().into(),
+            ),
+        ))
         .unwrap();
-        let credential_offer = format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://?{credential_offer}")
+        let credential_offer = format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://?{credential_offer_query}")
             .parse()
             .unwrap();
 

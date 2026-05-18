@@ -13,8 +13,6 @@ use openid4vc::Format;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::credential_offer::CredentialOfferContainer;
-use openid4vc::credential_offer::GrantPreAuthorizedCode;
-use openid4vc::credential_offer::Grants;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
@@ -23,6 +21,7 @@ use openid4vc::server_state::SessionStoreError;
 use openid4vc::verifier::DisclosureResultHandler;
 use openid4vc::verifier::DisclosureResultHandlerError;
 use openid4vc::verifier::ToPostAuthResponseErrorCode;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error)]
@@ -151,7 +150,7 @@ where
         // Look up the credential configuration ids based on the combination
         // of the format and attestation types of the issuable documents.
         let credential_configuration_ids = to_issue
-            .iter()
+            .nonempty_iter()
             .map(|document| {
                 self.issuer
                     .credential_config_id_by_format_and_attestation_type(document.format, &document.attestation_type)
@@ -163,7 +162,7 @@ where
                         ))
                     })
             })
-            .try_collect()?;
+            .collect::<Result<_, _>>()?;
 
         // Start a new issuance session.
         let token = self
@@ -172,20 +171,16 @@ where
             .await
             .map_err(|err| DisclosureResultHandlerError::new(IssuanceResultHandlerError::SessionStore(err)))?;
 
-        let credential_offer = CredentialOfferContainer {
-            credential_offer: CredentialOffer {
-                credential_issuer: self.issuer.issuer_identifier().clone(),
-                credential_configuration_ids,
-                grants: Some(Grants::PreAuthorizedCode {
-                    pre_authorized_code: GrantPreAuthorizedCode::new(token.into()),
-                }),
-            },
-        };
+        let offer_container = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            self.issuer.issuer_identifier().clone(),
+            credential_configuration_ids,
+            token.into(),
+        ));
 
         // If `serde_urlencoded` would have something like `serde_json::Value` or `ciborium::Value`,
         // then this would be a lot less awkward.
         let query_params = serde_urlencoded::from_str(
-            &serde_urlencoded::to_string(credential_offer)
+            &serde_urlencoded::to_string(offer_container)
                 .map_err(|err| DisclosureResultHandlerError::new(IssuanceResultHandlerError::UrlEncoding(err)))?,
         )
         .map_err(|err| DisclosureResultHandlerError::new(IssuanceResultHandlerError::UrlDecoding(err)))?;
