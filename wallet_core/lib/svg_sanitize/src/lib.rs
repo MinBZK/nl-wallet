@@ -169,7 +169,7 @@ impl SanitizedSvg {
             }
 
             if allow::is_url_func_attr(&attr_name)
-                && !allow::has_safe_url_func(&LowerCaseString::new(unescaped_attr.get()))
+                && !allow::has_safe_url_func(&LowerCaseString::new(unescaped_attr.as_ref()))
             {
                 continue;
             }
