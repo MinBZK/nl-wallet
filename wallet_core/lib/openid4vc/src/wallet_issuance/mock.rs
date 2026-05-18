@@ -1,5 +1,7 @@
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::trust_anchor::TrustAnchors;
+use serde::Deserialize;
+use serde::Serialize;
 use url::Url;
 
 use super::AuthorizationSession;
@@ -11,16 +13,24 @@ use super::credential::CredentialWithMetadata;
 use super::preview::NormalizedCredentialPreview;
 use crate::issuer_identifier::IssuerIdentifier;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MockAuthorizationSessionData {
+    pub auth_url: Url,
+    pub state: String,
+}
+
 mockall::mock! {
     #[derive(Debug)]
     pub IssuanceDiscovery {
         pub fn start_authorization_code_flow_sync(&self) -> Result<MockAuthorizationSession, WalletIssuanceError>;
         pub fn start_with_credential_offer_sync(&self) -> Result<IssuanceFlow<MockAuthorizationSession, MockIssuanceSession>, WalletIssuanceError>;
+        pub fn restore_authorization_session_sync(&self, data: MockAuthorizationSessionData) -> MockAuthorizationSession;
     }
 }
 
 impl IssuanceDiscovery for MockIssuanceDiscovery {
     type Authorization = MockAuthorizationSession;
+    type AuthorizationData = MockAuthorizationSessionData;
     type Issuance = MockIssuanceSession;
 
     async fn start_authorization_code_flow(
@@ -41,21 +51,38 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError> {
         self.start_with_credential_offer_sync()
     }
+
+    fn restore_authorization_session(&self, data: Self::AuthorizationData) -> Self::Authorization {
+        self.restore_authorization_session_sync(data)
+    }
 }
 
 mockall::mock! {
     #[derive(Debug)]
     pub AuthorizationSession {
         pub fn get_auth_url(&self) -> &Url;
+        pub fn get_state(&self) -> &str;
         pub fn start_issuance_sync(&self) -> Result<MockIssuanceSession, WalletIssuanceError>;
     }
 }
 
 impl AuthorizationSession for MockAuthorizationSession {
     type Issuance = MockIssuanceSession;
+    type Persisted = MockAuthorizationSessionData;
 
     fn auth_url(&self) -> &Url {
         self.get_auth_url()
+    }
+
+    fn state(&self) -> &str {
+        self.get_state()
+    }
+
+    fn persist(&self) -> Self::Persisted {
+        MockAuthorizationSessionData {
+            auth_url: self.get_auth_url().clone(),
+            state: self.get_state().to_string(),
+        }
     }
 
     async fn start_issuance(

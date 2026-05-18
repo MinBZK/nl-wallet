@@ -24,6 +24,8 @@ use mdoc::utils::cose::CoseError;
 use reqwest::header::ToStrError;
 use sd_jwt::error::DecoderError;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 use url::Url;
 use utils::single_unique::MultipleItemsFound;
 use wscd::wscd::IssuanceWscd;
@@ -255,7 +257,8 @@ pub enum IssuanceFlow<A, I> {
 
 /// Discovers credential issuer and OAuth authorization server metadata, then starts an issuance flow.
 pub trait IssuanceDiscovery {
-    type Authorization: AuthorizationSession<Issuance = Self::Issuance>;
+    type Authorization: AuthorizationSession<Issuance = Self::Issuance, Persisted = Self::AuthorizationData>;
+    type AuthorizationData: Clone + Debug + Send + Sync + Serialize + DeserializeOwned + 'static;
     type Issuance: IssuanceSession;
 
     /// Fetches issuer and OAuth metadata, constructs a PKCE-protected authorization URL, and returns
@@ -279,6 +282,9 @@ pub trait IssuanceDiscovery {
         redirect_uri: Url,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>;
+
+    /// Rebuilds an [`AuthorizationSession`] from data that was persisted before the app left memory.
+    fn restore_authorization_session(&self, data: Self::AuthorizationData) -> Self::Authorization;
 }
 
 /// Represents an in-progress OAuth authorization code flow.
@@ -288,9 +294,16 @@ pub trait IssuanceDiscovery {
 /// authorization server returns after the user authenticates.
 pub trait AuthorizationSession {
     type Issuance: IssuanceSession;
+    type Persisted: Clone + Debug + Send + Sync + Serialize + DeserializeOwned + 'static;
 
     /// Returns the authorization URL the user should be redirected to.
     fn auth_url(&self) -> &Url;
+
+    /// Returns the OAuth `state` (CSRF token) stored in the PAR-submitted authorization request.
+    fn state(&self) -> &str;
+
+    /// Returns the data needed to resume the authorization code flow after an app restart.
+    fn persist(&self) -> Self::Persisted;
 
     /// Exchanges the authorization code in `received_redirect_uri` for an access token and
     /// credential previews, returning an [`IssuanceSession`].

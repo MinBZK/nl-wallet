@@ -25,6 +25,7 @@ use wallet_configuration::wallet_config::PidAttributesConfigurationError;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::IssuanceError;
+use super::PersistedPinRecoverySessionData;
 use super::Session;
 use super::Wallet;
 use super::WalletRegistration;
@@ -170,6 +171,13 @@ where
 
         info!("PIN recovery DigiD auth URL generated");
         let auth_url = authorization_session.auth_url().clone();
+        self.storage
+            .write()
+            .await
+            .upsert_data(&PersistedPinRecoverySessionData {
+                authorization_session: authorization_session.persist(),
+            })
+            .await?;
         self.session.replace(Session::PinRecovery(PinRecoverySession::OAuth {
             authorization_session,
         }));
@@ -206,6 +214,12 @@ where
         else {
             unreachable!("session contained no PinRecovery OAuth session"); // we just checked this above
         };
+
+        self.storage
+            .write()
+            .await
+            .delete_data::<PersistedPinRecoverySessionData<CID::AuthorizationData>>()
+            .await?;
 
         // Fetch issuance previews
         let config = self.config_repository.get();
@@ -436,11 +450,15 @@ where
 
         // We don't check if the wallet is blocked: PIN recovery is allowed in that case, so cancelling it is too.
 
-        if let Some(Session::PinRecovery(_)) = &self.session {
-            self.session = None;
-        } else {
+        let Some(Session::PinRecovery(_)) = self.session.take() else {
             return Err(PinRecoveryError::SessionState);
-        }
+        };
+
+        self.storage
+            .write()
+            .await
+            .delete_data::<PersistedPinRecoverySessionData<CID::AuthorizationData>>()
+            .await?;
 
         Ok(())
     }
@@ -469,6 +487,7 @@ mod tests {
     use openid4vc::wallet_issuance::authorization::OAuthError;
     use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use rstest::rstest;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -493,6 +512,7 @@ mod tests {
     use crate::storage::RegistrationData;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
+    use crate::wallet::PersistedPinRecoverySessionData;
     use crate::wallet::Session;
     use crate::wallet::recovery_code::RecoveryCodeError;
     use crate::wallet::test::AUTH_URL;
@@ -512,6 +532,7 @@ mod tests {
                 session
                     .expect_get_auth_url()
                     .return_const(Url::parse(AUTH_URL).unwrap());
+                session.expect_get_state().return_const("state".to_string());
                 Ok(session)
             });
     }
@@ -522,19 +543,21 @@ mod tests {
         #[values(None, Some(PinRecoveryData))] pin_recovery_data: Option<PinRecoveryData>,
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        // create_pin_recovery_redirect_uri() is allowed regardless of whether the wallet
-        // was already recovering the PIN.
-        wallet
-            .mut_storage()
-            .expect_fetch_data()
-            .return_once(|| Ok(pin_recovery_data));
+        let _ = pin_recovery_data;
 
         wallet
             .mut_storage()
             .expect_has_any_attestations_with_types()
             .once()
             .return_once(|_| Ok(true));
+        wallet
+            .mut_storage()
+            .expect_upsert_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .return_once(|data| {
+                assert_eq!(data.authorization_session.auth_url.as_str(), AUTH_URL);
+                assert_eq!(data.authorization_session.state, "state");
+                Ok(())
+            });
 
         setup_issuer_metadata_mock(&mut wallet);
 
@@ -568,6 +591,10 @@ mod tests {
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
             authorization_session,
         }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
 
         wallet
             .mut_storage()
@@ -686,6 +713,10 @@ mod tests {
             &wallet.session,
             Some(Session::PinRecovery(PinRecoverySession::Issuance { .. }))
         );
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
 
         wallet.cancel_pin_recovery().await.unwrap();
 
@@ -750,6 +781,10 @@ mod tests {
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
             authorization_session,
         }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
 
         // Pass a redirect URI with `error=access_denied` to simulate user denial
         let denied_redirect = Url::parse(&format!("{AUTH_URL}?error=access_denied&state=whatever")).unwrap();
@@ -789,6 +824,10 @@ mod tests {
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
             authorization_session,
         }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
 
         let err = wallet.continue_pin_recovery(redirect_uri).await.unwrap_err();
 
@@ -834,6 +873,10 @@ mod tests {
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
             authorization_session,
         }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
 
         wallet
             .mut_storage()

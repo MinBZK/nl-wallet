@@ -4,6 +4,7 @@ use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
 use http_utils::reqwest::HttpJsonClient;
 use serde::Deserialize;
+use serde::Serialize;
 use url::Url;
 
 use crate::AuthorizationErrorCode;
@@ -90,6 +91,17 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
     client_id: String,
     redirect_uri: Url,
     pkce_pair: P,
+    state: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HttpAuthorizationSessionData {
+    issuer_metadata: IssuerMetadata,
+    oauth_metadata: AuthorizationServerMetadata,
+    auth_url: Url,
+    client_id: String,
+    redirect_uri: Url,
+    code_verifier: String,
     state: String,
 }
 
@@ -199,11 +211,53 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
     }
 }
 
+impl HttpAuthorizationSession {
+    pub fn restore(http_client: HttpJsonClient, data: HttpAuthorizationSessionData) -> Self {
+        let HttpAuthorizationSessionData {
+            issuer_metadata,
+            oauth_metadata,
+            auth_url,
+            client_id,
+            redirect_uri,
+            code_verifier,
+            state,
+        } = data;
+
+        Self {
+            issuer_metadata,
+            oauth_metadata,
+            http_client,
+            auth_url,
+            client_id,
+            redirect_uri,
+            pkce_pair: S256PkcePair::from_code_verifier(code_verifier),
+            state,
+        }
+    }
+}
+
 impl AuthorizationSession for HttpAuthorizationSession {
     type Issuance = HttpIssuanceSession;
+    type Persisted = HttpAuthorizationSessionData;
 
     fn auth_url(&self) -> &Url {
         &self.auth_url
+    }
+
+    fn state(&self) -> &str {
+        &self.state
+    }
+
+    fn persist(&self) -> Self::Persisted {
+        HttpAuthorizationSessionData {
+            issuer_metadata: self.issuer_metadata.clone(),
+            oauth_metadata: self.oauth_metadata.clone(),
+            auth_url: self.auth_url.clone(),
+            client_id: self.client_id.clone(),
+            redirect_uri: self.redirect_uri.clone(),
+            code_verifier: self.pkce_pair.code_verifier().to_string(),
+            state: self.state.clone(),
+        }
     }
 
     async fn start_issuance(
@@ -251,12 +305,15 @@ mod tests {
     use url::Url;
 
     use super::HttpAuthorizationSession;
+    use super::HttpAuthorizationSessionData;
     use super::OAuthError;
     use crate::AuthorizationErrorCode;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::pkce::MockPkcePair;
+    use crate::pkce::S256PkcePair;
+    use crate::wallet_issuance::AuthorizationSession;
 
     const ISSUER_URL: &str = "https://example.com";
     const CLIENT_ID: &str = "client-1";
@@ -461,6 +518,42 @@ mod tests {
         );
 
         assert_eq!(session.authorization_code(&uri).unwrap().as_ref(), "123");
+    }
+
+    #[tokio::test]
+    async fn test_persist_and_restore() {
+        let persisted = HttpAuthorizationSessionData {
+            issuer_metadata: IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test"),
+            oauth_metadata: AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
+            auth_url: ISSUER_URL.parse().unwrap(),
+            client_id: CLIENT_ID.to_string(),
+            redirect_uri: REDIRECT_URI.parse().unwrap(),
+            code_verifier: "verifier".to_string(),
+            state: CSRF_TOKEN.to_string(),
+        };
+
+        let session = HttpAuthorizationSession {
+            issuer_metadata: persisted.issuer_metadata.clone(),
+            oauth_metadata: persisted.oauth_metadata.clone(),
+            http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
+            auth_url: persisted.auth_url.clone(),
+            client_id: persisted.client_id.clone(),
+            redirect_uri: persisted.redirect_uri.clone(),
+            pkce_pair: S256PkcePair::from_code_verifier(persisted.code_verifier.clone()),
+            state: persisted.state.clone(),
+        };
+
+        let restored = HttpAuthorizationSession::restore(
+            HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
+            session.persist(),
+        );
+        let restored_persisted = restored.persist();
+
+        assert_eq!(restored_persisted.auth_url, persisted.auth_url);
+        assert_eq!(restored_persisted.client_id, persisted.client_id);
+        assert_eq!(restored_persisted.redirect_uri, persisted.redirect_uri);
+        assert_eq!(restored_persisted.code_verifier, persisted.code_verifier);
+        assert_eq!(restored_persisted.state, persisted.state);
     }
 
     #[rstest]
