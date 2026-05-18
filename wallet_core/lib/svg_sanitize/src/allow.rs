@@ -1,15 +1,16 @@
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
-/// Allowed SVG/XML tag names, all lowercase.
+/// Checks if a tag is allowed.
 ///
 /// Deliberately omits:
 /// - `script`, `style`         — code execution / unfiltered CSS
 /// - `use`                     — can cause DoS via recursive expansion
 /// - `animate`, `set`          — can modify href/other attrs dynamically (XSS vector)
 /// - `foreignobject`           — embeds arbitrary HTML
-pub fn allowed_tags() -> &'static HashSet<&'static str> {
+pub fn is_allowed_tag(tag: &str) -> bool {
     static SET: OnceLock<HashSet<&'static str>> = OnceLock::new();
+
     SET.get_or_init(|| {
         HashSet::from([
             // SVG structural
@@ -88,14 +89,16 @@ pub fn allowed_tags() -> &'static HashSet<&'static str> {
             "feturbulence",
         ])
     })
+    .contains(tag)
 }
 
-/// Allowed attribute names, all lowercase.
+/// Checks if an attribute is allowed.
 ///
 /// `style` is included but its value is NOT sanitized (CSS is deferred).
 /// Event handler attributes (`onclick`, `onload`, etc.) are absent.
-pub fn allowed_attrs() -> &'static HashSet<&'static str> {
+pub fn is_allowed_attr(attr: &str) -> bool {
     static SET: OnceLock<HashSet<&'static str>> = OnceLock::new();
+
     SET.get_or_init(|| {
         HashSet::from([
             // Geometry and shape
@@ -351,6 +354,7 @@ pub fn allowed_attrs() -> &'static HashSet<&'static str> {
             // is no legitimate use case that justifies the risk.
         ])
     })
+    .contains(attr)
 }
 
 /// Returns true if this attribute's value must be validated as a URL.

@@ -6,8 +6,6 @@ use quick_xml::events::BytesStart;
 use quick_xml::events::BytesText;
 use quick_xml::events::Event;
 
-use crate::allow::allowed_tags;
-
 /// Errors that can occur during sanitization.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -144,7 +142,7 @@ fn filter_element(e: &BytesStart<'_>) -> Result<Option<BytesStart<'static>>, Err
     let name_str = str::from_utf8(name_bytes.as_ref())?;
     let lower = name_str.to_ascii_lowercase();
 
-    if !allowed_tags().contains(lower.as_str()) {
+    if !allow::is_allowed_tag(lower.as_str()) {
         return Ok(None);
     }
 
@@ -157,8 +155,7 @@ fn filter_element(e: &BytesStart<'_>) -> Result<Option<BytesStart<'static>>, Err
         let attr_name = str::from_utf8(attr.key.as_ref())?;
         let attr_lower = attr_name.to_ascii_lowercase();
 
-        let in_allowlist =
-            allow::allowed_attrs().contains(attr_lower.as_str()) || allow::is_allowed_by_prefix(&attr_lower);
+        let in_allowlist = allow::is_allowed_attr(attr_lower.as_str()) || allow::is_allowed_by_prefix(&attr_lower);
 
         if !in_allowlist {
             continue;
