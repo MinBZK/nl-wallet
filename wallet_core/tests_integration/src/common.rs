@@ -30,14 +30,9 @@ use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use http_utils::urls::disclosure_based_issuance_base_uri;
-use issuance_server::disclosure::AttributesFetcher;
-use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
-use issuer_common::nonce_store::ProofNonceStore;
 use issuer_common::par_store::IssuerParStore;
 use issuer_common::pkce_store::IssuerPkceStore;
-use issuer_common::settings::IssuerSettings;
-use issuer_common::settings::StatusListAttestationSettings;
 use jwt::SignedJwt;
 use openid4vc::authorization::OidcAuthorizationRequest;
 use openid4vc::authorization::VciAuthorizationRequest;
@@ -47,6 +42,7 @@ use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::UpstreamAuthorizationAdapter;
 use openid4vc::issuer::UpstreamResolveError;
+use openid4vc::issuer::WiaConfig;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::openid4vp::ClientId;
 use openid4vc::openid4vp::VpRequestUri;
@@ -69,16 +65,12 @@ use rustls::crypto::ring;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
 use sea_orm::PaginatorTrait;
-use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::Server;
 use server_utils::settings::ServerAuth;
 use server_utils::settings::ServerSettings;
 use server_utils::store::SessionStoreVariant;
 pub use server_utils::store::postgres::new_connection;
 use static_server::settings::Settings as StaticSettings;
-use status_lists::postgres::PostgresStatusListServices;
-use status_lists::serve::create_serve_router;
-use status_lists::settings::StatusListsSettings;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use tokio::net::TcpListener;
 use tokio::time;
@@ -196,10 +188,14 @@ impl DegreeClientIds {
     fn from_settings(settings: &IssuanceServerSettings) -> Self {
         Self {
             mdoc: ClientId::x509_hash_from_certificate(
-                &settings.disclosure_settings["university_mdoc"].key_pair.certificate,
+                &settings.verifier_settings.disclosure_settings["university_mdoc"]
+                    .key_pair
+                    .certificate,
             ),
             sd_jwt: ClientId::x509_hash_from_certificate(
-                &settings.disclosure_settings["university_sd_jwt"].key_pair.certificate,
+                &settings.verifier_settings.disclosure_settings["university_sd_jwt"]
+                    .key_pair
+                    .certificate,
             ),
         }
     }
@@ -305,7 +301,7 @@ pub async fn setup_env(
     (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     verifier_settings: VerifierSettings,
     (issuer_settings, pid_issuable_documents): (PidIssuerSettings, VecNonEmpty<IssuableDocument>),
-    (issuance_server_settings, issuable_documents, di_root_ca, di_tls_config): (
+    (mut issuance_server_settings, issuable_documents, di_root_ca, di_tls_config): (
         IssuanceServerSettings,
         Vec<IssuableDocument>,
         ReqwestTrustAnchor,
@@ -336,27 +332,20 @@ pub async fn setup_env(
     let attestation_server_url =
         start_mock_attestation_server(issuable_documents, di_tls_config, di_root_ca.clone()).await;
 
-    let attributes_fetcher = HttpAttributesFetcher::try_new(
-        issuance_server_settings
-            .disclosure_settings
-            .keys()
-            .map(|id| {
-                (
-                    id.to_string(),
-                    TlsPinningConfig::try_new(attestation_server_url.clone(), vec_nonempty![di_root_ca.clone()])
-                        .unwrap(),
-                )
-            })
-            .collect(),
-    )
-    .unwrap();
+    for config in issuance_server_settings
+        .verifier_settings
+        .disclosure_settings
+        .values_mut()
+    {
+        config.attestation_url_config =
+            TlsPinningConfig::try_new(attestation_server_url.clone(), vec_nonempty![di_root_ca.clone()]).unwrap();
+    }
 
     let verifier_server_urls = start_verification_server(verifier_settings, Some(hsm.clone())).await;
 
     let degree_client_ids = DegreeClientIds::from_settings(&issuance_server_settings);
 
-    let issuance_server_url =
-        start_issuance_server(issuance_server_settings, Some(hsm.clone()), attributes_fetcher).await;
+    let issuance_server_url = start_issuance_server(issuance_server_settings, Some(hsm.clone())).await;
 
     let pid_issuer_url = start_pid_issuer_server(
         issuer_settings,
@@ -740,48 +729,6 @@ async fn get_internal_listener(server_settings: &mut server_utils::settings::Set
     }
 }
 
-async fn get_status_list_service_and_router(
-    storage_url: Url,
-    issuer_settings: &IssuerSettings,
-    status_lists_settings: &StatusListsSettings,
-    hsm: Option<Pkcs11Hsm>,
-) -> (Router, PostgresStatusListServices<PrivateKeyVariant>) {
-    let db_connection = new_connection(storage_url).await.unwrap();
-
-    let status_list_router = create_serve_router(
-        (&issuer_settings.credential_configurations)
-            .into_iter()
-            .map(|(_, settings)| {
-                (
-                    settings.status_list.context_path.as_str(),
-                    settings.status_list.publish_dir.clone(),
-                )
-            }),
-        None,
-    )
-    .unwrap();
-
-    let status_list_configs = StatusListAttestationSettings::settings_into_configs(
-        issuer_settings
-            .credential_configurations
-            .as_ref()
-            .values()
-            .map(|settings| settings.status_list.clone())
-            .collect(),
-        status_lists_settings,
-        issuer_settings.public_url.as_base_url(),
-        hsm,
-    )
-    .await
-    .unwrap();
-
-    let status_list_services = PostgresStatusListServices::try_new(db_connection, status_list_configs)
-        .await
-        .unwrap();
-
-    (status_list_router, status_list_services)
-}
-
 async fn start_mock_attestation_server(
     issuable_documents: Vec<IssuableDocument>,
     tls_server_config: TlsServerConfig,
@@ -808,11 +755,7 @@ async fn start_mock_attestation_server(
     url
 }
 
-pub async fn start_issuance_server(
-    mut settings: IssuanceServerSettings,
-    hsm: Option<Pkcs11Hsm>,
-    attributes_fetcher: impl AttributesFetcher + Sync + 'static,
-) -> IssuerUrl {
+pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Option<Pkcs11Hsm>) -> IssuerUrl {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
     let public_url = local_http_issuer_identifier(public_port);
@@ -822,46 +765,43 @@ pub async fn start_issuance_server(
     let internal_port = internal_listener.as_ref().unwrap().local_addr().unwrap().port();
     let internal_url = local_http_base_url(internal_port);
 
-    let storage_settings = &settings.issuer_settings.server_settings.storage;
+    let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder()).unwrap();
+    let revocation_verifier = settings.to_revocation_verifier(status_list_client);
 
-    let store_connection = server_utils::store::StoreConnection::try_new(storage_settings.url.clone())
+    let serve_status_lists = settings.issuer_settings.status_lists.serve;
+
+    let (issuer, _, store_connection, server_settings) = settings
+        .issuer_settings
+        .into_issuer(hsm.clone(), None, (), |_| (), |_| (), None)
         .await
         .unwrap();
 
-    let issuance_sessions = Arc::new(SessionStoreVariant::new(
-        store_connection.clone(),
-        storage_settings.into(),
-    ));
-    let proof_nonce_store = ProofNonceStore::new(store_connection.clone());
-    let disclosure_settings = Arc::new(SessionStoreVariant::new(
-        store_connection.clone(),
-        storage_settings.into(),
-    ));
+    let issuer = Arc::new(issuer);
 
-    let (status_list_router, status_list_services) = get_status_list_service_and_router(
-        storage_settings.url.clone(),
-        &settings.issuer_settings,
-        &settings.status_lists,
-        hsm.clone(),
-    )
-    .await;
-    let status_list_client = HttpStatusListClient::new(default_reqwest_client_builder()).unwrap();
+    let disclosure_sessions = SessionStoreVariant::new(store_connection, (&server_settings.storage).into());
+
+    let disclosure_router = settings
+        .verifier_settings
+        .into_disclosure_router(
+            hsm,
+            Arc::clone(&issuer),
+            disclosure_sessions,
+            revocation_verifier,
+            &server_settings,
+        )
+        .await
+        .unwrap();
 
     tokio::spawn(
         async move {
             if let Err(error) = issuance_server::server::serve_with_listeners(
                 public_listener,
                 internal_listener,
-                settings,
-                hsm,
-                issuance_sessions,
-                proof_nonce_store,
-                disclosure_settings,
-                attributes_fetcher,
-                status_list_services,
-                Some(status_list_router),
-                status_list_client,
-                create_health_router([]),
+                issuer,
+                server_settings,
+                serve_status_lists,
+                [],
+                disclosure_router,
             )
             .await
             {
@@ -911,13 +851,14 @@ impl UpstreamAuthorizationAdapter for StaticUpstreamAuthorizationAdapter {
     }
 }
 
-pub async fn start_pid_issuer_server<UAA>(
+pub async fn start_pid_issuer_server<A, UAA>(
     mut settings: PidIssuerSettings,
     hsm: Option<Pkcs11Hsm>,
-    attr_service: impl AttributeService + Sync + 'static,
+    attr_service: A,
     upstream_authorization_adapter: UAA,
 ) -> IssuerUrl
 where
+    A: AttributeService + Sync + 'static,
     UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
 {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
@@ -929,44 +870,34 @@ where
     let internal_port = internal_listener.as_ref().unwrap().local_addr().unwrap().port();
     let internal_url = local_http_base_url(internal_port);
 
-    let storage_settings = &settings.issuer_settings.server_settings.storage;
-    let store_connection = server_utils::store::StoreConnection::try_new(storage_settings.url.clone())
+    let serve_status_lists = settings.issuer_settings.status_lists.serve;
+
+    let wia_config = WiaConfig {
+        wia_issuer_pubkey: (&settings.wua_issuer_pubkey.into_inner()).into(),
+    };
+
+    let (issuer, _, _, server_settings) = settings
+        .issuer_settings
+        .into_issuer(
+            hsm,
+            Some(wia_config),
+            attr_service,
+            IssuerParStore::new,
+            IssuerPkceStore::new,
+            Some(upstream_authorization_adapter),
+        )
         .await
         .unwrap();
-
-    let issuance_sessions = Arc::new(SessionStoreVariant::new(
-        store_connection.clone(),
-        storage_settings.into(),
-    ));
-    let proof_nonce_store = ProofNonceStore::new(store_connection.clone());
-    let par_store = Arc::new(IssuerParStore::new(store_connection.clone()));
-    let pkce_store = Arc::new(IssuerPkceStore::new(store_connection.clone()));
-
-    let (status_list_router, status_list_services) = get_status_list_service_and_router(
-        storage_settings.url.clone(),
-        &settings.issuer_settings,
-        &settings.status_lists,
-        hsm.clone(),
-    )
-    .await;
 
     tokio::spawn(
         async move {
             if let Err(error) = pid_issuer::server::serve_with_listeners(
                 public_listener,
                 internal_listener,
-                attr_service,
-                upstream_authorization_adapter,
-                settings.issuer_settings,
-                hsm,
-                issuance_sessions,
-                proof_nonce_store,
-                par_store,
-                pkce_store,
-                settings.wua_issuer_pubkey.into_inner(),
-                status_list_services,
-                Some(status_list_router),
-                create_health_router([]),
+                issuer,
+                server_settings,
+                serve_status_lists,
+                [],
             )
             .await
             {

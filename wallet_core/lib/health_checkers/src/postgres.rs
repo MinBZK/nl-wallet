@@ -18,10 +18,6 @@ impl DatabaseChecker {
 
         Self { name, pool, check }
     }
-
-    pub fn rename(&mut self, name: &'static str) {
-        self.name = name;
-    }
 }
 
 #[async_trait::async_trait]

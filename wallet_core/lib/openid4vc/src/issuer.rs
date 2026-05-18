@@ -18,7 +18,7 @@ use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::DurationRound;
 use chrono::Utc;
-use crypto::EcdsaKeySend;
+use crypto::EcdsaKey;
 use crypto::utils::random_string;
 use derive_more::AsRef;
 use derive_more::Debug;
@@ -41,7 +41,7 @@ use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::Deserialize;
 use serde::Serialize;
-use token_status_list::status_list_service::StatusListServices;
+use token_status_list::status_list_service::StatusListService;
 use tokio::task::AbortHandle;
 use tracing::info;
 use tracing::warn;
@@ -438,21 +438,21 @@ impl AttributeService for () {
     }
 }
 
-pub struct Issuer<K, A, S, N, L, PAS = (), PKS = (), UAA = ()> {
+pub struct Issuer<A, K, L, S, N, PAS = (), PKS = (), UAA = ()> {
     attr_service: A,
-    issuer_data: IssuerData<K>,
+    issuer_data: IssuerData<K, L>,
     sessions: Arc<S>,
     proof_nonce_store: Arc<N>,
-    status_list_services: Arc<L>,
     par_store: Arc<PAS>,
     pkce_flow_store: Arc<PKS>,
     upstream_authorization_adapter: Option<UAA>,
     cleanup_task: AbortHandle,
+    status_list_refresh_tasks: Vec<AbortHandle>,
 }
 
 /// Fields of the [`Issuer`] needed by the issuance functions.
-pub struct IssuerData<K> {
-    credential_configs: CredentialConfigurations<K>,
+pub struct IssuerData<K, L> {
+    credential_configs: CredentialConfigurations<K, L>,
     wia_config: Option<WiaConfig>,
 
     /// Wallet IDs accepted by this server, MUST be used by the wallet as `iss` in its PoP JWTs.
@@ -467,11 +467,11 @@ pub struct IssuerData<K> {
     metadata: IssuerMetadata,
 }
 
-impl<K> IssuerData<K> {
+impl<K, L> IssuerData<K, L> {
     fn credential_configuration_for_preview_state(
         &self,
         preview_state: &CredentialPreviewState,
-    ) -> Option<&CredentialConfiguration<K>> {
+    ) -> Option<&CredentialConfiguration<K, L>> {
         self.credential_configs
             .get_by_configuration_id(&preview_state.credential_configuration_id)
             .and_then(|config| {
@@ -488,14 +488,18 @@ pub struct WiaConfig {
     pub wia_issuer_pubkey: EcdsaDecodingKey,
 }
 
-impl<K, A, S, N, L, PAS, PKS, UAA> Drop for Issuer<K, A, S, N, L, PAS, PKS, UAA> {
+impl<A, K, L, S, N, PAS, PKS, UAA> Drop for Issuer<A, K, L, S, N, PAS, PKS, UAA> {
     fn drop(&mut self) {
         // Stop the tasks at the next .await
         self.cleanup_task.abort();
+
+        for task in &self.status_list_refresh_tasks {
+            task.abort();
+        }
     }
 }
 
-impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA> {
+impl<A, K, L, S, N, PAS, PKS, UAA> Issuer<A, K, L, S, N, PAS, PKS, UAA> {
     pub fn credential_config_id_by_format_and_attestation_type(
         &self,
         format: Format,
@@ -507,27 +511,42 @@ impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA> {
             .map(|(config_id, _config)| config_id)
     }
 
+    pub fn status_lists(&self) -> impl Iterator<Item = &L> {
+        self.issuer_data
+            .credential_configs
+            .configurations()
+            .map(|config| &config.status_list)
+    }
+
+    pub fn accepted_wallet_client_ids(&self) -> impl Iterator<Item = &str> {
+        self.issuer_data.accepted_wallet_client_ids.iter().map(String::as_str)
+    }
+
+    pub fn issuer_identifier(&self) -> &IssuerIdentifier {
+        &self.issuer_data.metadata.credential_issuer
+    }
+
     pub fn metadata(&self) -> &IssuerMetadata {
         &self.issuer_data.metadata
     }
 }
 
-impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
+impl<A, K, L, S, N, PAS, PKS, UAA> Issuer<A, K, L, S, N, PAS, PKS, UAA>
 where
     S: SessionStore<IssuanceData> + Sync + 'static,
     N: NonceStore + Sync + 'static,
+    L: StatusListService,
 {
     #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn try_new(
         issuer_identifier: IssuerIdentifier,
         batch_size: NonZeroU8,
         wallet_client_ids: Vec<String>,
-        credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K>>,
+        credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
         wia_config: Option<WiaConfig>,
         attr_service: A,
         sessions: Arc<S>,
         proof_nonce_store: N,
-        status_list_services: Arc<L>,
         par_store: Arc<PAS>,
         pkce_flow_store: Arc<PKS>,
         upstream_authorization_adapter: Option<UAA>,
@@ -591,16 +610,22 @@ where
             }
         });
 
+        let status_list_refresh_tasks = issuer_data
+            .credential_configs
+            .configurations()
+            .map(|config| config.status_list.start_refresh_job())
+            .collect();
+
         let issuer = Self {
             issuer_data,
             attr_service,
             sessions,
             proof_nonce_store,
-            status_list_services,
             par_store,
             pkce_flow_store,
             upstream_authorization_adapter,
             cleanup_task,
+            status_list_refresh_tasks,
         };
 
         Ok(issuer)
@@ -613,7 +638,7 @@ fn logged_issuance_result<T, E: std::error::Error>(result: Result<T, E>) -> Resu
         .inspect_err(|error| info!("Issuance error: {error}"))
 }
 
-impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
+impl<A, K, L, S, N, PAS, PKS, UAA> Issuer<A, K, L, S, N, PAS, PKS, UAA>
 where
     S: SessionStore<IssuanceData>,
 {
@@ -649,7 +674,7 @@ where
     }
 }
 
-impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
+impl<A, K, L, S, N, PAS, PKS, UAA> Issuer<A, K, L, S, N, PAS, PKS, UAA>
 where
     N: NonceStore,
 {
@@ -662,7 +687,7 @@ where
     }
 }
 
-impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
+impl<A, K, L, S, N, PAS, PKS, UAA> Issuer<A, K, L, S, N, PAS, PKS, UAA>
 where
     A: AttributeService,
 {
@@ -681,7 +706,7 @@ where
     }
 }
 
-impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
+impl<A, K, L, S, N, PAS, PKS, UAA> Issuer<A, K, L, S, N, PAS, PKS, UAA>
 where
     PAS: Store<String, VciAuthorizationRequest>,
 {
@@ -711,7 +736,7 @@ where
     }
 }
 
-impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
+impl<A, K, L, S, N, PAS, PKS, UAA> Issuer<A, K, L, S, N, PAS, PKS, UAA>
 where
     PAS: Store<String, VciAuthorizationRequest>,
     PKS: Store<String, String>,
@@ -777,7 +802,7 @@ where
     }
 }
 
-impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
+impl<A, K, L, S, N, PAS, PKS, UAA> Issuer<A, K, L, S, N, PAS, PKS, UAA>
 where
     S: SessionStore<IssuanceData>,
 {
@@ -857,9 +882,9 @@ where
     }
 }
 
-impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
+impl<A, K, L, S, N, PAS, PKS, UAA> Issuer<A, K, L, S, N, PAS, PKS, UAA>
 where
-    K: EcdsaKeySend,
+    K: EcdsaKey,
     A: AttributeService,
     S: SessionStore<IssuanceData>,
     PKS: Store<String, String>,
@@ -897,10 +922,10 @@ where
     }
 }
 
-impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
+impl<A, K, L, S, N, PAS, PKS, UAA> Issuer<A, K, L, S, N, PAS, PKS, UAA>
 where
-    K: EcdsaKeySend,
     A: AttributeService,
+    K: EcdsaKey,
     S: SessionStore<IssuanceData>,
 {
     /// Process a token request with the upstream code verifier supplied explicitly, bypassing the
@@ -967,13 +992,13 @@ where
     }
 }
 
-impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
+impl<A, K, L, S, N, PAS, PKS, UAA> Issuer<A, K, L, S, N, PAS, PKS, UAA>
 where
-    K: EcdsaKeySend,
     A: AttributeService,
-    N: NonceStore,
+    K: EcdsaKey,
+    L: StatusListService,
     S: SessionStore<IssuanceData>,
-    L: StatusListServices,
+    N: NonceStore,
 {
     pub async fn process_credential(
         &self,
@@ -990,10 +1015,7 @@ where
                 access_token,
                 dpop,
                 &self.issuer_data,
-                IssuerServices {
-                    proof_nonce_store: self.proof_nonce_store.as_ref(),
-                    status_list_services: self.status_list_services.as_ref(),
-                },
+                self.proof_nonce_store.as_ref(),
             )
             .await;
 
@@ -1020,10 +1042,7 @@ where
                 access_token,
                 dpop,
                 &self.issuer_data,
-                IssuerServices {
-                    proof_nonce_store: self.proof_nonce_store.as_ref(),
-                    status_list_services: self.status_list_services.as_ref(),
-                },
+                self.proof_nonce_store.as_ref(),
             )
             .await;
 
@@ -1036,7 +1055,7 @@ where
     }
 }
 
-impl<K, A, S, N, L, PAS, PKS, UAA> Issuer<K, A, S, N, L, PAS, PKS, UAA>
+impl<A, K, L, S, N, PAS, PKS, UAA> Issuer<A, K, L, S, N, PAS, PKS, UAA>
 where
     S: SessionStore<IssuanceData>,
 {
@@ -1102,14 +1121,14 @@ fn utc_now_truncated_to_days() -> DateTime<Utc> {
 
 impl Session<Created> {
     #[expect(clippy::too_many_arguments, reason = "Indirect constructor of a session")]
-    async fn process_token_request<K>(
+    async fn process_token_request<K, L>(
         self,
         token_request: TokenRequest,
         accepted_wallet_client_ids: &[String],
         dpop: Dpop,
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
-        credential_configurations: &CredentialConfigurations<K>,
+        credential_configurations: &CredentialConfigurations<K, L>,
         batch_size: NonZeroU8,
         is_new_session: bool,
         upstream_code_verifier: Option<UpstreamCodeVerifier>,
@@ -1145,8 +1164,8 @@ impl Session<Created> {
         }
     }
 
-    fn credential_preview_state_for_issuable_document<K>(
-        credential_configurations: &CredentialConfigurations<K>,
+    fn credential_preview_state_for_issuable_document<K, L>(
+        credential_configurations: &CredentialConfigurations<K, L>,
         document: IssuableDocument,
         batch_size: NonZeroU8,
     ) -> Result<CredentialPreviewState, TokenRequestError> {
@@ -1183,13 +1202,13 @@ impl Session<Created> {
     }
 
     #[expect(clippy::too_many_arguments, reason = "Cascading effect because of constructor")]
-    async fn process_token_request_inner<K>(
+    async fn process_token_request_inner<K, L>(
         &self,
         token_request: TokenRequest,
         dpop: Dpop,
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
-        credential_configurations: &CredentialConfigurations<K>,
+        credential_configurations: &CredentialConfigurations<K, L>,
         batch_size: NonZeroU8,
         is_new_session: bool,
         upstream_code_verifier: Option<UpstreamCodeVerifier>,
@@ -1269,27 +1288,22 @@ impl TryFrom<SessionState<IssuanceData>> for Session<WaitingForResponse> {
     }
 }
 
-struct IssuerServices<'a, N, S> {
-    proof_nonce_store: &'a N,
-    status_list_services: &'a S,
-}
-
 impl Session<WaitingForResponse> {
-    async fn process_credential<'a, K, N, S>(
+    async fn process_credential<K, L, N>(
         self,
         credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<K>,
-        services: IssuerServices<'a, N, S>,
+        issuer_data: &IssuerData<K, L>,
+        proof_nonce_store: &N,
     ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>)
     where
-        K: EcdsaKeySend,
+        K: EcdsaKey,
         N: NonceStore,
-        S: StatusListServices,
+        L: StatusListService,
     {
         let result = self
-            .process_credential_inner(credential_request, access_token, dpop, issuer_data, services)
+            .process_credential_inner(credential_request, access_token, dpop, issuer_data, proof_nonce_store)
             .await;
 
         // In case of success, transition the session to done. This means the client won't be able to reuse its access
@@ -1332,10 +1346,10 @@ impl Session<WaitingForResponse> {
         Ok(())
     }
 
-    fn verify_wia<K>(
+    fn verify_wia<K, L>(
         &self,
         attestations: Option<&WiaDisclosure>,
-        issuer_data: &IssuerData<K>,
+        issuer_data: &IssuerData<K, L>,
     ) -> Result<Option<Nonce>, CredentialRequestError> {
         let issuer_identifier = issuer_data.metadata.credential_issuer.as_ref();
 
@@ -1356,18 +1370,18 @@ impl Session<WaitingForResponse> {
             .transpose()
     }
 
-    async fn process_credential_inner<'a, K, N, S>(
+    async fn process_credential_inner<K, L, N>(
         &self,
         credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<K>,
-        services: IssuerServices<'a, N, S>,
+        issuer_data: &IssuerData<K, L>,
+        proof_nonce_store: &N,
     ) -> Result<CredentialResponse, CredentialRequestError>
     where
-        K: EcdsaKeySend,
+        K: EcdsaKey,
+        L: StatusListService,
         N: NonceStore,
-        S: StatusListServices,
     {
         let session_data = self.session_data();
 
@@ -1401,8 +1415,7 @@ impl Session<WaitingForResponse> {
         let wia_nonce = self.verify_wia(credential_request.attestations.as_ref(), issuer_data)?;
 
         // Check the validity of all of the nonces used, which may be equal to each other.
-        let nonce_status = services
-            .proof_nonce_store
+        let nonce_status = proof_nonce_store
             .check_nonce_status_and_remove([&request_nonce].iter().copied().chain(wia_nonce.as_ref()))
             .await
             .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
@@ -1417,14 +1430,9 @@ impl Session<WaitingForResponse> {
                 CredentialRequestError::MissingCredentialConfiguration(preview.credential_configuration_id.clone())
             })?;
 
-        let status_claim = services
-            .status_list_services
-            .obtain_status_claims(
-                &credential_config.status_list_group,
-                preview.batch_id,
-                preview.credential_payload.expires,
-                NonZeroUsize::MIN,
-            )
+        let status_claim = credential_config
+            .status_list
+            .obtain_status_claims(preview.batch_id, preview.credential_payload.expires, NonZeroUsize::MIN)
             .await
             .map_err(|err| CredentialRequestError::ObtainStatusClaim(Box::new(err)))?
             .into_first();
@@ -1442,21 +1450,21 @@ impl Session<WaitingForResponse> {
         Ok(credential_response)
     }
 
-    async fn process_batch_credential<'a, K, N, S>(
+    async fn process_batch_credential<K, L, N>(
         self,
         credential_requests: CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<K>,
-        services: IssuerServices<'a, N, S>,
+        issuer_data: &IssuerData<K, L>,
+        proof_nonce_store: &N,
     ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>)
     where
-        K: EcdsaKeySend,
+        K: EcdsaKey,
+        L: StatusListService,
         N: NonceStore,
-        S: StatusListServices,
     {
         let result = self
-            .process_batch_credential_inner(credential_requests, access_token, dpop, issuer_data, services)
+            .process_batch_credential_inner(credential_requests, access_token, dpop, issuer_data, proof_nonce_store)
             .await;
 
         // In case of success, transition the session to done. This means the client won't be able to reuse its access
@@ -1472,18 +1480,18 @@ impl Session<WaitingForResponse> {
         (result, next)
     }
 
-    async fn process_batch_credential_inner<'a, K, N, S>(
+    async fn process_batch_credential_inner<K, L, N>(
         &self,
         credential_requests: CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<K>,
-        services: IssuerServices<'a, N, S>,
+        issuer_data: &IssuerData<K, L>,
+        proof_nonce_store: &N,
     ) -> Result<CredentialResponses, CredentialRequestError>
     where
-        K: EcdsaKeySend,
+        K: EcdsaKey,
+        L: StatusListService,
         N: NonceStore,
-        S: StatusListServices,
     {
         let session_data = self.session_data();
 
@@ -1545,8 +1553,7 @@ impl Session<WaitingForResponse> {
         let wia_nonce = self.verify_wia(credential_requests.attestations.as_ref(), issuer_data)?;
 
         // Check the validity of all of the nonces used, which may be equal to each other.
-        let nonce_status = services
-            .proof_nonce_store
+        let nonce_status = proof_nonce_store
             .check_nonce_status_and_remove(request_nonces.iter().chain(wia_nonce.as_ref()))
             .await
             .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
@@ -1558,10 +1565,9 @@ impl Session<WaitingForResponse> {
         // Obtain a status claim for every attestation copy, linked to a single batch id per preview
         let status_claims = try_join_all(previews_and_holder_pubkeys.iter().map(
             |(preview, credential_config, format_pubkeys)| async move {
-                let claims = services
-                    .status_list_services
+                let claims = credential_config
+                    .status_list
                     .obtain_status_claims(
-                        &credential_config.status_list_group,
                         preview.batch_id,
                         preview.credential_payload.expires,
                         format_pubkeys.len(),
@@ -1653,14 +1659,17 @@ impl CredentialRequest {
 }
 
 impl CredentialResponse {
-    async fn new(
+    async fn new<K, L>(
         credential_format: Format,
         preview_credential_payload: PreviewableCredentialPayload,
         issued_at: DateTime<Utc>,
         holder_pubkey: &VerifyingKey,
-        credential_config: &CredentialConfiguration<impl EcdsaKeySend>,
+        credential_config: &CredentialConfiguration<K, L>,
         status_claim: StatusClaim,
-    ) -> Result<CredentialResponse, CredentialRequestError> {
+    ) -> Result<CredentialResponse, CredentialRequestError>
+    where
+        K: EcdsaKey,
+    {
         let payload = CredentialPayload::from_previewable_credential_payload(
             preview_credential_payload,
             issued_at,
@@ -1677,10 +1686,13 @@ impl CredentialResponse {
         }
     }
 
-    async fn new_for_mdoc(
+    async fn new_for_mdoc<K, L>(
         credential_payload: CredentialPayload,
-        credential_config: &CredentialConfiguration<impl EcdsaKeySend + Sized>,
-    ) -> Result<CredentialResponse, CredentialRequestError> {
+        credential_config: &CredentialConfiguration<K, L>,
+    ) -> Result<CredentialResponse, CredentialRequestError>
+    where
+        K: EcdsaKey,
+    {
         // Construct an mdoc `IssuerSigned` from the contents of `PreviewableCredentialPayload`
         // and the attestation config by signing it.
         let (issuer_signed, _) = credential_payload.into_signed_mdoc(&credential_config.key_pair).await?;
@@ -1688,10 +1700,13 @@ impl CredentialResponse {
         Ok(CredentialResponse::new_immediate(Credential::new_mdoc(issuer_signed)))
     }
 
-    async fn new_for_sd_jwt(
+    async fn new_for_sd_jwt<K, L>(
         credential_payload: CredentialPayload,
-        credential_config: &CredentialConfiguration<impl EcdsaKeySend + Sized>,
-    ) -> Result<CredentialResponse, CredentialRequestError> {
+        credential_config: &CredentialConfiguration<K, L>,
+    ) -> Result<CredentialResponse, CredentialRequestError>
+    where
+        K: EcdsaKey,
+    {
         let signed_sd_jwt = credential_payload
             .into_signed_sd_jwt(credential_config.metadata.normalized(), &credential_config.key_pair)
             .await?;
@@ -1747,6 +1762,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use thiserror::Error;
+    use token_status_list::status_list_service::mock::MockStatusListService;
     use tracing_test::traced_test;
     use url::Url;
     use wscd::mock_remote::MockRemoteWscd;
@@ -1799,7 +1815,7 @@ mod tests {
                 issuance_keypair.certificate().to_owned(),
             )
             .unwrap(),
-            status_list_group: "status_list_group".to_string(),
+            status_list: Arc::new(MockStatusListService::new()),
             valid_days: Days::new(1),
             issuer_uri: "https://example.com".parse().unwrap(),
             attestation_qualification: AttestationQualification::default(),

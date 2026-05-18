@@ -360,7 +360,7 @@ async fn ltc20_test_disclosure_without_pid() {
 
     let client = reqwest::Client::new();
 
-    wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
+    wallet.cancel_session().await.expect("Could not cancel disclosure");
     assert_matches!(
         get_verifier_status(&client, status_url.clone()).await,
         StatusResponse::Cancelled

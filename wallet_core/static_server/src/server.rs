@@ -13,6 +13,7 @@ use http::StatusCode;
 use http::header;
 use http_utils::health::create_health_router;
 use jwt::VerifiedJwt;
+use status_lists::serve::StatusListRouteSource;
 use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
 use tracing::debug;
@@ -37,7 +38,11 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
         .route("/wallet-config", get(configuration))
         .with_state((settings.wallet_config_jwt, config_entity_tag));
 
-    let status_list_router = create_serve_router(std::iter::once(("/wia", settings.wua_publish_dir)), None)?;
+    let status_list_router = create_serve_router([StatusListRouteSource {
+        path: "/wia",
+        publish_dir: settings.wua_publish_dir,
+        ttl: None,
+    }])?;
 
     let app = Router::new()
         .merge(create_health_router([]))

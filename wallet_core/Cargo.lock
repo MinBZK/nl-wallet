@@ -4019,6 +4019,7 @@ dependencies = [
  "db_test",
  "derive_more",
  "futures",
+ "health_checkers",
  "hsm",
  "http_utils",
  "itertools 0.14.0",

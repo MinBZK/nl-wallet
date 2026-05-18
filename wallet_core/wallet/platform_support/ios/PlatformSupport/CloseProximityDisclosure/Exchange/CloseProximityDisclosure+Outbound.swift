@@ -15,7 +15,7 @@ extension CloseProximityDisclosure {
             )
         } catch {
             if isActiveSession(session) {
-                await failSession(session, error: error)
+                await finishSessionOnDisconnectOrFail(session, error: error)
             }
             throw error.asCloseProximityDisclosureError
         }
@@ -32,7 +32,7 @@ extension CloseProximityDisclosure {
             )
         } catch {
             if isActiveSession(session) {
-                await failSession(session, error: error)
+                await finishSessionOnDisconnectOrFail(session, error: error)
             }
             throw error.asCloseProximityDisclosureError
         }

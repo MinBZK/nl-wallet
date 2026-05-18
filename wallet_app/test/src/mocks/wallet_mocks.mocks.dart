@@ -4210,6 +4210,15 @@ class MockWalletCoreApi extends _i1.Mock implements _i33.WalletCoreApi {
           as _i11.Future<void>);
 
   @override
+  _i11.Future<String?> crateApiFullCancelSession() =>
+      (super.noSuchMethod(
+            Invocation.method(#crateApiFullCancelSession, []),
+            returnValue: _i11.Future<String?>.value(),
+            returnValueForMissingStub: _i11.Future<String?>.value(),
+          )
+          as _i11.Future<String?>);
+
+  @override
   _i11.Future<void> crateApiFullCancelWalletTransfer() =>
       (super.noSuchMethod(
             Invocation.method(#crateApiFullCancelWalletTransfer, []),

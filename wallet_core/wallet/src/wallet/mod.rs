@@ -70,6 +70,8 @@ pub use self::registration::WalletRegistrationError;
 pub use self::reset::ResetError;
 pub use self::revocation_code::RevocationCodeError;
 pub use self::state::BlockedReason;
+pub use self::state::CancelSessionError;
+pub use self::state::CheckPreconditionsError;
 pub use self::state::TransferRole;
 pub use self::state::WalletState;
 pub use self::transfer::TransferError;

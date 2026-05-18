@@ -58,16 +58,16 @@ use openid4vc::store::Store;
 use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponse;
-use token_status_list::status_list_service::StatusListServices;
+use token_status_list::status_list_service::StatusListService;
 use tracing::warn;
 
-struct ApplicationState<K, A, S, N, L, PAS, PKS, UAA> {
-    issuer: Arc<Issuer<K, A, S, N, L, PAS, PKS, UAA>>,
+struct ApplicationState<A, K, L, S, N, PAS, PKS, UAA> {
+    issuer: Arc<Issuer<A, K, L, S, N, PAS, PKS, UAA>>,
 }
 
 // Implement `Clone` manually, because `#[derive(Clone)]` unnecessarily adds `Clone` bounds on its type parameters,
 // which we don't want.
-impl<K, A, S, N, L, PAS, PKS, UAA> Clone for ApplicationState<K, A, S, N, L, PAS, PKS, UAA> {
+impl<A, K, L, S, N, PAS, PKS, UAA> Clone for ApplicationState<A, K, L, S, N, PAS, PKS, UAA> {
     fn clone(&self) -> Self {
         Self {
             issuer: self.issuer.clone(),
@@ -75,13 +75,13 @@ impl<K, A, S, N, L, PAS, PKS, UAA> Clone for ApplicationState<K, A, S, N, L, PAS
     }
 }
 
-pub fn create_issuance_router<K, A, S, N, L, PAS, PKS, UAA>(issuer: Arc<Issuer<K, A, S, N, L, PAS, PKS, UAA>>) -> Router
+pub fn create_issuance_router<A, K, L, S, N, PAS, PKS, UAA>(issuer: Arc<Issuer<A, K, L, S, N, PAS, PKS, UAA>>) -> Router
 where
-    K: EcdsaKeySend + Sync + 'static,
     A: AttributeService + Send + Sync + 'static,
+    K: EcdsaKeySend + Sync + 'static,
+    L: StatusListService + Send + Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
     N: NonceStore + Send + Sync + 'static,
-    L: StatusListServices + Send + Sync + 'static,
     PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
     PKS: Store<String, String> + Send + Sync + 'static,
     UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
@@ -111,8 +111,8 @@ where
         .with_state(application_state)
 }
 
-async fn oauth_metadata<K, A, S, N, L, PAS, PKS, UAA>(
-    State(state): State<ApplicationState<K, A, S, N, L, PAS, PKS, UAA>>,
+async fn oauth_metadata<A, K, L, S, N, PAS, PKS, UAA>(
+    State(state): State<ApplicationState<A, K, L, S, N, PAS, PKS, UAA>>,
 ) -> Json<AuthorizationServerMetadata>
 where
     A: AttributeService,
@@ -120,14 +120,14 @@ where
     Json(state.issuer.oauth_metadata())
 }
 
-async fn metadata<K, A, S, N, L, PAS, PKS, UAA>(
-    State(state): State<ApplicationState<K, A, S, N, L, PAS, PKS, UAA>>,
+async fn metadata<A, K, L, S, N, PAS, PKS, UAA>(
+    State(state): State<ApplicationState<A, K, L, S, N, PAS, PKS, UAA>>,
 ) -> Json<IssuerMetadata> {
     Json(state.issuer.metadata().clone())
 }
 
-async fn pushed_authorization_request<K, A, S, N, L, PAS, PKS, UAA>(
-    State(state): State<ApplicationState<K, A, S, N, L, PAS, PKS, UAA>>,
+async fn pushed_authorization_request<A, K, L, S, N, PAS, PKS, UAA>(
+    State(state): State<ApplicationState<A, K, L, S, N, PAS, PKS, UAA>>,
     Form(authorization_request): Form<VciAuthorizationRequest>,
 ) -> Result<(StatusCode, Json<PushedAuthorizationResponse>), ErrorResponse<ParErrorCode>>
 where
@@ -142,8 +142,8 @@ where
     Ok((StatusCode::CREATED, Json(response)))
 }
 
-async fn authorize<K, A, S, N, L, PAS, PKS, UAA>(
-    State(state): State<ApplicationState<K, A, S, N, L, PAS, PKS, UAA>>,
+async fn authorize<A, K, L, S, N, PAS, PKS, UAA>(
+    State(state): State<ApplicationState<A, K, L, S, N, PAS, PKS, UAA>>,
     Query(PushedAuthorizationRequest { request_uri, client_id }): Query<PushedAuthorizationRequest>,
 ) -> Result<Response, ErrorResponse<AuthorizeErrorCode>>
 where
@@ -160,14 +160,14 @@ where
     Ok((StatusCode::FOUND, [(header::LOCATION, redirect_url.to_string())]).into_response())
 }
 
-async fn token<K, A, S, N, L, PAS, PKS, UAA>(
-    State(state): State<ApplicationState<K, A, S, N, L, PAS, PKS, UAA>>,
+async fn token<A, K, L, S, N, PAS, PKS, UAA>(
+    State(state): State<ApplicationState<A, K, L, S, N, PAS, PKS, UAA>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Form(token_request): Form<TokenRequest>,
 ) -> Result<(HeaderMap, Json<TokenResponse>), ErrorResponse<TokenErrorCode>>
 where
-    K: EcdsaKeySend,
     A: AttributeService,
+    K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
     PKS: Store<String, String>,
 {
@@ -184,8 +184,8 @@ where
     Ok((headers, Json(response)))
 }
 
-async fn credential_preview<K, A, S, N, L, PAS, PKS, UAA>(
-    State(state): State<ApplicationState<K, A, S, N, L, PAS, PKS, UAA>>,
+async fn credential_preview<A, K, L, S, N, PAS, PKS, UAA>(
+    State(state): State<ApplicationState<A, K, L, S, N, PAS, PKS, UAA>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<Bearer>>,
     Json(preview_request): Json<CredentialPreviewRequest>,
 ) -> Result<Json<CredentialPreviewResponse>, ErrorResponse<CredentialPreviewErrorCode>>
@@ -202,8 +202,8 @@ where
     Ok(Json(response))
 }
 
-async fn nonce<K, A, S, N, L, PAS, PKS, UAA>(
-    State(state): State<ApplicationState<K, A, S, N, L, PAS, PKS, UAA>>,
+async fn nonce<A, K, L, S, N, PAS, PKS, UAA>(
+    State(state): State<ApplicationState<A, K, L, S, N, PAS, PKS, UAA>>,
 ) -> Result<(TypedHeader<CacheControl>, Json<NonceResponse>), StatusCode>
 where
     N: NonceStore,
@@ -223,18 +223,18 @@ where
     Ok((header, body))
 }
 
-async fn credential<K, A, S, N, L, PAS, PKS, UAA>(
-    State(state): State<ApplicationState<K, A, S, N, L, PAS, PKS, UAA>>,
+async fn credential<A, K, L, S, N, PAS, PKS, UAA>(
+    State(state): State<ApplicationState<A, K, L, S, N, PAS, PKS, UAA>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_request): Json<CredentialRequest>,
 ) -> Result<Json<CredentialResponse>, ErrorResponse<CredentialErrorCode>>
 where
-    K: EcdsaKeySend,
     A: AttributeService,
+    K: EcdsaKeySend,
+    L: StatusListService,
     S: SessionStore<IssuanceData>,
     N: NonceStore,
-    L: StatusListServices,
 {
     let access_token = authorization_header.into();
     let response = state
@@ -246,18 +246,18 @@ where
     Ok(Json(response))
 }
 
-async fn batch_credential<K, A, S, N, L, PAS, PKS, UAA>(
-    State(state): State<ApplicationState<K, A, S, N, L, PAS, PKS, UAA>>,
+async fn batch_credential<A, K, L, S, N, PAS, PKS, UAA>(
+    State(state): State<ApplicationState<A, K, L, S, N, PAS, PKS, UAA>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_requests): Json<CredentialRequests>,
 ) -> Result<Json<CredentialResponses>, ErrorResponse<CredentialErrorCode>>
 where
-    K: EcdsaKeySend,
     A: AttributeService,
+    K: EcdsaKeySend,
+    L: StatusListService,
     S: SessionStore<IssuanceData>,
     N: NonceStore,
-    L: StatusListServices,
 {
     let access_token = authorization_header.into();
     let response = state
@@ -269,8 +269,8 @@ where
     Ok(Json(response))
 }
 
-async fn reject_issuance<K, A, S, N, L, PAS, PKS, UAA>(
-    State(state): State<ApplicationState<K, A, S, N, L, PAS, PKS, UAA>>,
+async fn reject_issuance<A, K, L, S, N, PAS, PKS, UAA>(
+    State(state): State<ApplicationState<A, K, L, S, N, PAS, PKS, UAA>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     uri: Uri,
