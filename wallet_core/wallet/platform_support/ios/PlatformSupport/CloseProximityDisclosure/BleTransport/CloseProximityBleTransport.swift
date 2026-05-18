@@ -5,6 +5,7 @@ private enum CloseProximityBleTransportError: LocalizedError {
     case invalidState(String)
     case invalidIncomingChunk(String)
     case transportClosed
+    case bluetoothUnavailable(CBManagerState)
     case transportFailed(String)
 
     var errorDescription: String? {
@@ -15,6 +16,8 @@ private enum CloseProximityBleTransportError: LocalizedError {
             return "InvalidIncomingChunk: \(reason)"
         case .transportClosed:
             return "TransportClose: Close proximity BLE transport is closed"
+        case .bluetoothUnavailable(let state):
+            return "BluetoothUnavailable: CBPeripheralManager is not powered on: \(state.rawValue)"
         case .transportFailed(let reason):
             return "TransportFailed: \(reason)"
         }
@@ -580,11 +583,7 @@ extension CloseProximityBleTransport: CBPeripheralManagerDelegate {
         case .poweredOn:
             return
         case .resetting, .unauthorized, .unsupported, .poweredOff:
-            fail(
-                CloseProximityBleTransportError.transportFailed(
-                    "CBPeripheralManager is not powered on: \(peripheral.state.rawValue)"
-                )
-            )
+            fail(CloseProximityBleTransportError.bluetoothUnavailable(peripheral.state))
         case .unknown:
             return
         @unknown default:
@@ -637,5 +636,20 @@ extension CloseProximityBleTransport: CBPeripheralManagerDelegate {
         error: Error?
     ) {
         didStartAdvertising(error: error)
+    }
+}
+
+extension Error {
+    var shouldReportCloseProximityClosedUpdate: Bool {
+        guard let error = self as? CloseProximityBleTransportError else {
+            return false
+        }
+
+        switch error {
+        case .transportClosed, .bluetoothUnavailable:
+            return true
+        case .invalidState, .invalidIncomingChunk, .transportFailed:
+            return false
+        }
     }
 }

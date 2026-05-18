@@ -137,7 +137,7 @@ final class CloseProximityDisclosureTests: XCTestCase {
         case connected
         case sessionEstablished(sessionTranscript: [UInt8], deviceRequest: [UInt8])
         case closed
-        case other
+        case error
     }
 
     private final class TestChannel: CloseProximityDisclosureChannel, @unchecked Sendable {
@@ -157,8 +157,8 @@ final class CloseProximityDisclosureTests: XCTestCase {
                     )
                 case .closed:
                     updates.append(.closed)
-                default:
-                    updates.append(.other)
+                case .error:
+                    updates.append(.error)
                 }
             }
 
@@ -302,6 +302,50 @@ final class CloseProximityDisclosureTests: XCTestCase {
         XCTAssertTrue(hasReceivedClosedUpdate)
         let isBleServerActiveAfterStop = await closeProximityDisclosure.isBleServerActiveForTesting()
         XCTAssertFalse(isBleServerActiveAfterStop)
+    }
+
+    func testFinishSessionOnDisconnectOrFailReportsClosedForTransportClosedError() async throws {
+        let closeProximityDisclosure = CloseProximityDisclosure()
+        let channel = TestChannel()
+        let session = makeTestActiveSession(channel: channel)
+        let transportClosedError = try await makeTransportClosedError(from: session.transport)
+
+        XCTAssertTrue(transportClosedError.shouldReportCloseProximityClosedUpdate)
+
+        await closeProximityDisclosure.setActiveSession(session)
+        await closeProximityDisclosure.finishSessionOnDisconnectOrFail(
+            session,
+            error: transportClosedError
+        )
+
+        let updates = await channel.receivedUpdates()
+        XCTAssertEqual(updates, [.closed])
+        let isBleServerActive = await closeProximityDisclosure.isBleServerActiveForTesting()
+        XCTAssertFalse(isBleServerActive)
+    }
+
+    func testFinishSessionOnDisconnectOrFailReportsErrorForNonTransportError() async {
+        let closeProximityDisclosure = CloseProximityDisclosure()
+        let channel = TestChannel()
+        let session = makeTestActiveSession(channel: channel)
+        let unexpectedError = NSError(
+            domain: "CloseProximityDisclosureTests",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "boom"]
+        )
+
+        XCTAssertFalse(unexpectedError.shouldReportCloseProximityClosedUpdate)
+
+        await closeProximityDisclosure.setActiveSession(session)
+        await closeProximityDisclosure.finishSessionOnDisconnectOrFail(
+            session,
+            error: unexpectedError
+        )
+
+        let updates = await channel.receivedUpdates()
+        XCTAssertEqual(updates, [.error])
+        let isBleServerActive = await closeProximityDisclosure.isBleServerActiveForTesting()
+        XCTAssertFalse(isBleServerActive)
     }
 
     func testConcurrentAdvertiseCallsOnSameTransportRejectSecondCaller() async throws {
@@ -750,6 +794,34 @@ final class CloseProximityDisclosureTests: XCTestCase {
         }
     }
 
+    private func makeTestActiveSession(
+        channel: TestChannel
+    ) -> CloseProximityDisclosureActiveSession {
+        let transport = CloseProximityBleTransport(
+            serviceUuid: CBUUID(string: UUID().uuidString)
+        )
+        return CloseProximityDisclosureActiveSession(
+            channel: channel,
+            transport: transport,
+            eDevicePrivateKey: [],
+            encodedDeviceEngagement: []
+        )
+    }
+
+    private func makeTransportClosedError(
+        from transport: CloseProximityBleTransport
+    ) async throws -> Error {
+        try transport.close()
+
+        do {
+            try await transport.waitForConnection()
+            XCTFail("Expected waitForConnection() to throw a transport-closed error")
+            throw TestHarnessError.expectedTransportClosedErrorNotThrown
+        } catch {
+            return error
+        }
+    }
+
     @MainActor
     private func runRawPeripheralManagerCleanupPermutationTest(
         name: String,
@@ -1054,6 +1126,10 @@ final class CloseProximityDisclosureTests: XCTestCase {
             ])
         }
     }
+}
+
+private enum TestHarnessError: Error {
+    case expectedTransportClosedErrorNotThrown
 }
 
 private extension CBManagerState {
