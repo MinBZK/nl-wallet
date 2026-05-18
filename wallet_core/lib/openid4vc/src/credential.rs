@@ -26,6 +26,7 @@ use utils::vec_nonempty;
 
 use crate::Format;
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::token::AuthorizationCode;
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
@@ -212,7 +213,7 @@ pub const OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME: &str = "openid-credential-offe
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialOffer {
     pub credential_issuer: IssuerIdentifier,
-    pub credential_configuration_ids: Vec<String>,
+    pub credential_configuration_ids: Vec<CredentialConfigurationId>,
     pub grants: Option<Grants>,
 }
 

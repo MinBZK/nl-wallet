@@ -18,6 +18,7 @@ use tracing::info;
 use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
 use url::Url;
+use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::PidAttributesConfigurationError;
@@ -161,7 +162,7 @@ where
             .issuance_discovery
             .start_authorization_code_flow(
                 &config.pid_issuance.url,
-                config.pid_issuance.client_id.clone(),
+                String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
             )
             .await
@@ -903,14 +904,13 @@ mod tests {
 
     fn setup_issuance_session(wallet: &mut TestWalletMockStorage) {
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
-        let (pid_issuer, _) = mock_issuance_session(
+        let (pid_issuer, _) = mock_issuance_session([(
             IssuedCredential::SdJwt {
                 key_identifier: "key_id".to_string(),
                 sd_jwt: sd_jwt.clone(),
             },
-            PID_ATTESTATION_TYPE.to_string(),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
-        );
+        )]);
 
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),

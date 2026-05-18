@@ -13,13 +13,13 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(StatusListItem::Table)
                     .if_not_exists()
-                    .col(small_integer(StatusListItem::AttestationTypeId))
+                    .col(small_integer(StatusListItem::AttestationGroupId))
                     .col(big_integer(StatusListItem::SequenceNo))
                     .col(big_integer(StatusListItem::StatusListId))
                     .col(integer(StatusListItem::Index))
                     .primary_key(
                         Index::create()
-                            .col(StatusListItem::AttestationTypeId)
+                            .col(StatusListItem::AttestationGroupId)
                             .col(StatusListItem::SequenceNo),
                     )
                     // Skip foreign keys as it is a big working table
@@ -34,7 +34,7 @@ impl MigrationTrait for Migration {
 #[derive(DeriveIden)]
 pub enum StatusListItem {
     Table,
-    AttestationTypeId,
+    AttestationGroupId,
     SequenceNo,
     StatusListId,
     Index,

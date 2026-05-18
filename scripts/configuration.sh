@@ -102,9 +102,10 @@ export HSM_TOKEN=${HSM_TOKEN:-test_token}
 
 # DIGID_CLIENT_ID=$(uuidgen)
 # export DIGID_CLIENT_ID
+# OAuth client_id used by the pid_issuer when authenticating to nl-rdo-max (DigiD); must match clients.json.
 export DIGID_CLIENT_ID=3e58016e-bc2e-40d5-b4b1-a3e25f6193b9
 
-# Wallet's iss claim in credential proof JWTs sent to the issuer (matches Rust constant NL_WALLET_CLIENT_ID)
+# Wallet's OAuth client_id (PAR) and iss claim in credential proof JWTs (matches Rust constant NL_WALLET_CLIENT_ID)
 export NL_WALLET_CLIENT_ID="https://wallet.edi.rijksoverheid.nl"
 # Wallet client ID used by MockRemoteWscd in integration tests (matches Rust constant MOCK_WALLET_CLIENT_ID)
 export MOCK_WALLET_CLIENT_ID="mock_wallet_client_id"

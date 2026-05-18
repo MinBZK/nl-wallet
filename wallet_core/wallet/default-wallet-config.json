@@ -34,8 +34,7 @@
     }
   },
   "pid_issuance": {
-    "url": "https://localhost:3001/",
-    "client_id": "ff04277f-0cf7-4437-8a95-14737861d306"
+    "url": "https://localhost:3001/"
   },
   "disclosure": {
     "rp_trust_anchors": [

@@ -6,11 +6,11 @@ use indexmap::IndexSet;
 pub use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
 
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::metadata::issuer_metadata::AtLeastTwoU64;
 // Re-exported for convenience
 use crate::metadata::issuer_metadata::BatchCredentialIssuance;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::IssuerMetadata;
-use crate::metadata::issuer_metadata::NonZeroOrOneU64;
 use crate::metadata::issuer_metadata::ProofType;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::token::TokenRequest;
@@ -24,7 +24,8 @@ impl ExtendingVctRetriever for ExtendingVctRetrieverStub {
 }
 
 impl AuthorizationServerMetadata {
-    /// Construct a new `Config` based on the OP's URL and some standardized or reasonable defaults.
+    /// Construct a new `AuthorizationServerMetadata` based on the OP's URL and some standardized or reasonable
+    /// defaults.
     pub fn new_mock(issuer_identifier: IssuerIdentifier) -> Self {
         let issuer_url = issuer_identifier.as_base_url();
         let auth_url = issuer_url.join("/authorize");
@@ -65,11 +66,11 @@ impl IssuerMetadata {
             credential_request_encryption: None,
             credential_response_encryption: None,
             batch_credential_issuance: Some(BatchCredentialIssuance {
-                batch_size: NonZeroOrOneU64::try_new(10.try_into().unwrap()).unwrap(),
+                batch_size: AtLeastTwoU64::try_new(10.try_into().unwrap()).unwrap(),
             }),
             display: None,
             credential_configurations_supported: HashMap::from_iter(vec![(
-                attestation_type.to_string(),
+                attestation_type.to_string().into(),
                 CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
                     attestation_type.to_string(),
                     vec![ProofType::Jwt],

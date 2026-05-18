@@ -11,6 +11,8 @@ use issuer_common::nonce_store::ProofNonceStore;
 use issuer_common::settings::StatusListAttestationSettings;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
+use pid_issuer::pid::digid::DigidAuthorizationAdapter;
+use pid_issuer::pid::digid::DigidMetadataCache;
 use pid_issuer::server;
 use pid_issuer::settings::PidIssuerSettings;
 use server_utils::keys::SecretKeyVariant;
@@ -49,13 +51,16 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     ));
     let proof_nonce_store = ProofNonceStore::new(store_connection.clone());
 
-    let upstream_oauth_identifier = settings.digid.client_settings.oidc_identifier.clone();
+    let digid_metadata_cache =
+        Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings).map_err(anyhow::Error::from)?);
+    let upstream_authorization_adapter =
+        DigidAuthorizationAdapter::new(Arc::clone(&digid_metadata_cache), settings.digid.client_id.clone());
 
     let pid_attr_service = BrpPidAttributeService::try_new(
         HttpBrpClient::new(settings.brp_server),
         &settings.digid.bsn_privkey,
         settings.digid.client_id,
-        settings.digid.client_settings,
+        digid_metadata_cache,
         SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?,
     )?;
 
@@ -76,10 +81,11 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     }?;
     let status_list_configs = StatusListAttestationSettings::settings_into_configs(
         issuer_settings
-            .attestation_settings
+            .credential_configurations
             .as_ref()
-            .iter()
-            .map(|(id, settings)| (id.clone(), settings.status_list.clone())),
+            .values()
+            .map(|settings| settings.status_list.clone())
+            .collect(),
         &settings.status_lists,
         issuer_settings.public_url.as_base_url(),
         hsm.clone(),
@@ -93,7 +99,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         .serve
         .then(|| {
             create_serve_router(
-                (&issuer_settings.attestation_settings)
+                (&issuer_settings.credential_configurations)
                     .into_iter()
                     .map(|(_, settings)| {
                         (
@@ -112,7 +118,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     // This will block until the server shuts down.
     server::serve(
         pid_attr_service,
-        upstream_oauth_identifier,
+        upstream_authorization_adapter,
         issuer_settings,
         hsm,
         sessions,

@@ -103,19 +103,12 @@ values = ["$ISSUER_CA_AKI"]
 
 [[usecases.job_finder.dcql_query.credentials]]
 id = "my_pid"
-format = "mso_mdoc"
-meta = { doctype_value = "urn:eudi:pid:nl:1" }
-claims = [
-    { path = ["urn:eudi:pid:nl:1", "given_name"], intent_to_retain = true },
-    { path = ["urn:eudi:pid:nl:1", "family_name"], intent_to_retain = true }
-]
+format = "dc+sd-jwt"
+meta = { vct_values = ["urn:eudi:pid:nl:1"] }
+claims = [{ path = ["given_name"] }, { path = ["family_name"] }]
 
 [[usecases.job_finder.dcql_query.credentials]]
 id = "my_degree"
-format = "mso_mdoc"
-meta = { doctype_value = "com.example.degree" }
-claims = [
-    { path = ["com.example.degree", "education"], intent_to_retain = true },
-    { path = ["com.example.degree", "university"], intent_to_retain = true },
-    { path = ["com.example.degree", "cum_laude"], intent_to_retain = true }
-]
+format = "dc+sd-jwt"
+meta = { vct_values = ["com.example.degree"] }
+claims = [{ path = ["education"] }, { path = ["university"] }, { path = ["cum_laude"] }]

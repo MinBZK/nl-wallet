@@ -122,7 +122,7 @@ pub fn request_uri_with_verifier_params(mut request_uri: Url, session_type: Sess
             session_type,
             ephemeral_id_params: Some(EphemeralIdParameters {
                 ephemeral_id: vec![42],
-                time: Utc::now(),
+                time: Some(Utc::now()),
             }),
         })
         .unwrap(),

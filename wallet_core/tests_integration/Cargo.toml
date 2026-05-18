@@ -160,7 +160,7 @@ test_common = [
 ]
 
 # Include the fake_digid submodule
-fake_digid = ["dep:reqwest", "http_utils/client", "dep:url", "dep:wallet_configuration"]
+fake_digid = ["dep:tracing", "dep:reqwest", "http_utils/client", "dep:url", "dep:wallet_configuration"]
 
 # Include and run test that depend on an external PostgreSQL database
 db_test = [
@@ -211,12 +211,14 @@ digid_test = [
     "dep:ring",
     "dep:rustls-pki-types",
     "dep:serial_test",
+    "dep:wallet_account",
 ]
 
 # Should be enabled when building the performance_test binary
 performance_test = [
     "apple_app_attest/mock",
     "dcql/mock",
+    "dep:base64",
     "dep:ctor",
     "dep:dotenvy",
     "dep:indexmap",
@@ -246,6 +248,7 @@ performance_test = [
 assert_matches = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
 axum-server = { workspace = true, optional = true }
+base64 = { workspace = true, optional = true }
 ctor = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
 http = { workspace = true, optional = true }
@@ -319,6 +322,7 @@ android_attest = { path = "../lib/android_attest", features = ["serialize_key_at
 hsm = { path = "../lib/hsm", features = ["test"] }
 issuance_server = { path = "../wallet_server/issuance_server" }
 openid4vc = { path = "../lib/openid4vc", features = ["integration"] }
+openid4vc_server = { path = "../lib/openid4vc_server", features = ["issuance"] }
 pid_issuer.path = "../wallet_server/pid_issuer"
 platform_support = { path = "../wallet/platform_support", features = ["persistent_mock_attested_key"] }
 server_utils = { path = "../wallet_server/server_utils", features = ["parsed_key_pair_conversion"] }

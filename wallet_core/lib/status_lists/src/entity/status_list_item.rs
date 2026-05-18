@@ -6,7 +6,7 @@ use sea_orm::entity::prelude::*;
 #[sea_orm(table_name = "status_list_item")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub attestation_type_id: i16,
+    pub attestation_group_id: i16,
     #[sea_orm(primary_key, auto_increment = false)]
     pub sequence_no: i64,
     pub status_list_id: i64,

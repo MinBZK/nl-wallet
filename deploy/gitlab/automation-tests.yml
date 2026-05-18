@@ -320,7 +320,8 @@ run-automation-smoke-test-ios-ont:
       artifacts: false
   script:
     - mv browserstack-config/browserstack-Iphone16Pro-18-NL.yml ./browserstack.yml
-    - ./gradlew --no-daemon --info --stacktrace smokeTestIOS -Dtest.config.platform.name="IOS" -Dtest.config.remote=true -Dfile.encoding=UTF-8
+    - ./gradlew --no-daemon --info --stacktrace smokeTestIOS -Dtest.config.platform.name="IOS" -Dtest.config.remote=true
+      -Dfile.encoding=UTF-8
 
 browsertests-format-lint:
   rules: !reference [.default-or-merge-request, rules]
@@ -428,9 +429,6 @@ run-digid-bridge-test-ont:
     - .env-k8s
   rules: !reference [.default-or-merge-request-manual, rules]
   needs:
-    - job: deploy-apps-ont
-      artifacts: false
-      optional: true
     - job: build-env-ont
       artifacts: true
   variables:
@@ -473,13 +471,10 @@ run-digid-bridge-test-ont:
     - PID_ISSUER__DIGID__CLIENT_SETTINGS__TRUST_ANCHORS="$(kubectl get configmap
       nl-wallet-pid-issuer-digid-http-trust-anchors --output=jsonpath='{.data.trust_anchors}')"
     - export PID_ISSUER__DIGID__CLIENT_SETTINGS__TRUST_ANCHORS
-    - PID_ISSUER__DIGID__CLIENT_ID="$DIGID_CLIENT_ID"
-    - export PID_ISSUER__DIGID__CLIENT_ID
     - PID_ISSUER__DIGID__CLIENT_SETTINGS__OIDC_IDENTIFIER="$DIGID_BASE_URL"
     - export PID_ISSUER__DIGID__CLIENT_SETTINGS__OIDC_IDENTIFIER
-    # Feed the same ont-registered client_id to the test's wallet side; rdo-max sees the wallet's
-    # client_id verbatim (the pid_issuer's OIDC proxy does not rewrite it).
-    - export DIGID_TEST_CLIENT_ID="${PID_ISSUER__DIGID__CLIENT_ID}"
+    - PID_ISSUER__DIGID__CLIENT_ID="$DIGID_CLIENT_ID"
+    - export PID_ISSUER__DIGID__CLIENT_ID
     # Construct the wallet's redirect_uri from UL_HOSTNAME (provided by build-env-ont) so it
     # matches what ont's rdo-max has registered for this client.
     - DIGID_TEST_REDIRECT_URI="https://${UL_HOSTNAME}/deeplink/return-from-digid/"
@@ -493,17 +488,8 @@ run-digid-bridge-test-ont:
     - RUST_BACKTRACE=1 CONFIG_ENV=dev cargo nextest run --package tests_integration --test digid_issuance --features
       digid_test --locked
 
-run-performance-test-ont:
+.run-performance-test-ont-base:
   extends: .env-k8s
-  rules:
-    - !reference [.on-schedule-nightly-performance-test, rules]
-    - !reference [.default-branch, rules]
-  needs:
-    - job: build-performance-test
-      artifacts: true
-    - job: deploy-apps-ont
-      artifacts: false
-      optional: true
   script:
     - START_TIME=$(date -u -d "-1 minute" "+%Y-%m-%d %H:%M:%S")
     - echo "Performance test starting, query range begins at $START_TIME"
@@ -517,6 +503,25 @@ run-performance-test-ont:
       - perf-test-timeframe.txt
     when: on_success
   allow_failure: true
+
+run-performance-test-ont:
+  extends: .run-performance-test-ont-base
+  rules:
+    - !reference [.on-schedule-nightly-performance-test, rules]
+    - !reference [.default-branch, rules]
+  needs:
+    - job: build-performance-test
+      artifacts: true
+    - job: deploy-apps-ont
+      artifacts: false
+
+run-performance-test-ont-manual:
+  extends: .run-performance-test-ont-base
+  rules:
+    - !reference [.merge-request-manual, rules]
+  needs:
+    - job: build-performance-test
+      artifacts: true
 
 retrieve-performance-test-results-ont:
   extends: .env-k8s

@@ -15,7 +15,7 @@ nameOverride: ""
 ## @section Common parameters
 ## @param replicaCount Number of replicas
 ##
-replicaCount: 2
+replicaCount: 1 #TODO (PVW-5910): increase to 2 after implementing a Postgres PAR store
 
 ## @section Image parameters
 ## @param image.repository Repository for the container image
@@ -134,6 +134,12 @@ probes:
 ##
 database:
   secretName: null
+
+## @section Credential parameters
+## Parameters that apply to all credentials
+## @param batchSize The maximum amount of credentials a holder will be able to request
+##
+batchSize: 4
 
 ## @section DigiD parameters
 ## Parameters for the DigiD configuration

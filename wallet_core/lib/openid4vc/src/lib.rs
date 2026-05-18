@@ -6,6 +6,7 @@ pub mod authorization;
 pub mod credential;
 pub mod issuer_identifier;
 pub mod metadata;
+pub mod par;
 pub mod token;
 
 // Cryptographic tools.
@@ -14,6 +15,8 @@ pub mod jwe;
 pub mod pkce;
 
 // Issuance code for the server and client.
+pub mod credential_configurations;
+pub mod issuable_document;
 pub mod issuer;
 pub mod preview;
 pub mod wallet_issuance;
@@ -68,4 +71,13 @@ pub enum Format {
     JwtVc,
     JwtVcJson,
     AcVc, // Anonymous Credentials i.e. Idemix
+}
+
+impl Format {
+    pub fn is_supported(&self) -> bool {
+        match self {
+            Self::MsoMdoc | Self::SdJwt => true,
+            Self::LdpVc | Self::JwtVc | Self::JwtVcJson | Self::AcVc => false,
+        }
+    }
 }

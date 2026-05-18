@@ -12,7 +12,6 @@ use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use ring::hmac;
 use ring::hmac::HMAC_SHA256;
-use sd_jwt_vc_metadata::TypeMetadataChainError;
 
 use crate::settings::PrivateKey;
 use crate::settings::SecretKey;
@@ -54,12 +53,9 @@ impl EcdsaKeySend for PrivateKeyVariant {
 pub enum PrivateKeySettingsError {
     #[error("missing `hsm` settings for hardware key with identifier: {0}")]
     MissingHsmSettings(String),
+
     #[error("invalid certificate settings: {0}")]
     InvalidCertificate(#[from] CertificateError),
-    #[error("missing metadata for attestation type {0}")]
-    MissingMetadata(String),
-    #[error("type metadata is not valid: {0}")]
-    TypeMetadata(#[from] TypeMetadataChainError),
 }
 
 impl PrivateKeyVariant {

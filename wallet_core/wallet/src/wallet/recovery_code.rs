@@ -54,7 +54,7 @@ where
         previews
             .iter()
             .find(|preview| {
-                preview.content.copies_per_format.get(&Format::SdJwt).is_some()
+                preview.content.format == Format::SdJwt
                     && pid_config
                         .sd_jwt
                         .contains_key(&preview.content.credential_payload.attestation_type)

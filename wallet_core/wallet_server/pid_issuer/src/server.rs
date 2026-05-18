@@ -7,9 +7,11 @@ use hsm::service::Pkcs11Hsm;
 use issuer_common::settings::IssuerSettings;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::Issuer;
+use openid4vc::issuer::UpstreamAuthorizationAdapter;
 use openid4vc::issuer::WiaConfig;
-use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::nonce::store::NonceStore;
+use openid4vc::par::MemoryParStore;
+use openid4vc::pkce::store::MemoryPkceFlowStore;
 use openid4vc::server_state::SessionStore;
 use openid4vc_server::issuer::create_issuance_router;
 use server_utils::server::add_cache_control_no_store_layer;
@@ -23,9 +25,9 @@ use token_status_list::status_list_service::StatusListServices;
 use tokio::net::TcpListener;
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve<A, IS, N, L>(
+pub async fn serve<A, IS, N, L, UAA>(
     attr_service: A,
-    upstream_oauth_identifier: IssuerIdentifier,
+    upstream_authorization_adapter: UAA,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
@@ -40,12 +42,13 @@ where
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
     N: NonceStore + Send + Sync + 'static,
     L: StatusListServices + StatusListRevocationService + Send + Sync + 'static,
+    UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
 {
     serve_with_listeners(
         create_wallet_listener(&settings.server_settings.wallet_server).await?,
         create_internal_listener(&settings.server_settings.internal_server).await?,
         attr_service,
-        upstream_oauth_identifier,
+        upstream_authorization_adapter,
         settings,
         hsm,
         issuance_sessions,
@@ -59,11 +62,11 @@ where
 }
 
 #[expect(clippy::too_many_arguments, reason = "Setup function")]
-pub async fn serve_with_listeners<A, IS, N, L>(
+pub async fn serve_with_listeners<A, IS, N, L, UAA>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
     attr_service: A,
-    upstream_oauth_identifier: IssuerIdentifier,
+    upstream_authorization_adapter: UAA,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
@@ -78,23 +81,33 @@ where
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
     N: NonceStore + Send + Sync + 'static,
     L: StatusListServices + StatusListRevocationService + Send + Sync + 'static,
+    UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
 {
     let log_requests = settings.server_settings.log_requests;
 
-    let attestation_config = settings.attestation_settings.parse(&hsm, &settings.metadata).await?;
+    let credential_config_params = settings
+        .credential_configurations
+        .into_params(&hsm, &settings.metadata)
+        .await?;
 
     let status_list_services = Arc::new(status_list_services);
-    let wallet_issuance_router = create_issuance_router(Arc::new(Issuer::new(
+    let par_store = Arc::new(MemoryParStore::default());
+    let pkce_store = Arc::new(MemoryPkceFlowStore::default());
+
+    let wallet_issuance_router = create_issuance_router(Arc::new(Issuer::try_new(
         settings.public_url,
+        settings.batch_size,
         settings.wallet_client_ids,
-        attestation_config,
+        credential_config_params,
         Some(WiaConfig { wia_trust_anchors }),
-        Some(upstream_oauth_identifier),
         attr_service,
         issuance_sessions,
         proof_nonce_store,
         Arc::clone(&status_list_services),
-    )));
+        par_store,
+        pkce_store,
+        Some(upstream_authorization_adapter),
+    )?));
 
     let mut router = add_cache_control_no_store_layer(wallet_issuance_router);
     if let Some(status_list_router) = status_list_router {

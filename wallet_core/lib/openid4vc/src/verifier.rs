@@ -46,6 +46,7 @@ use tracing::debug;
 use tracing::info;
 use tracing::warn;
 use utils::generator::Generator;
+use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::AuthorizationErrorCode;
@@ -519,14 +520,16 @@ pub trait UseCases {
     async fn session(
         &self,
         session_id: &str,
-        url_params: &VerifierUrlParameters,
+        url_params: VerifierUrlParameters,
     ) -> Result<Session<Created>, GetAuthRequestError>;
 
     fn generate_ephemeral_id(
         &self,
         session_token: &SessionToken,
+        session_type: SessionType,
+        session_type_return_url: SessionTypeReturnUrl,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Option<EphemeralIdParameters>;
+    ) -> VerifierUrlParameters;
 }
 
 /// A usecase started by an RP.
@@ -627,12 +630,17 @@ where
     async fn session(
         &self,
         session_id: &str,
-        url_params: &VerifierUrlParameters,
+        url_params: VerifierUrlParameters,
     ) -> Result<Session<Created>, GetAuthRequestError> {
         // Verify the ephemeral ID here as opposed to inside `session.process_get_request()`, so that if the
         // ephemeral ID is too old e.g. because the user's internet connection was very slow, then we don't fail the
         // session. This means that the QR code/UL stays on the website so that the user can try again.
-        Self::verify_ephemeral_id(&self.ephemeral_id_secret, &session_id.to_string().into(), url_params)?;
+        Self::verify_ephemeral_id(
+            &self.ephemeral_id_secret,
+            &session_id.to_string().into(),
+            url_params,
+            &TimeGenerator,
+        )?;
 
         Ok(session_in_state(self.sessions.as_ref(), &SessionToken::from(session_id.to_string())).await?)
     }
@@ -640,14 +648,25 @@ where
     fn generate_ephemeral_id(
         &self,
         session_token: &SessionToken,
+        session_type: SessionType,
+        session_type_return_url: SessionTypeReturnUrl,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Option<EphemeralIdParameters> {
-        let time = time.generate();
+    ) -> VerifierUrlParameters {
+        // only include the time in the ephemeral ID in situations where no return URL is used
+        let time = (!must_use_return_url(session_type_return_url, session_type)).then(|| time.generate());
 
-        Some(EphemeralIdParameters {
-            ephemeral_id: Self::generate_ephemeral_id(&self.ephemeral_id_secret, session_token, &time),
-            time,
-        })
+        VerifierUrlParameters {
+            session_type,
+            ephemeral_id_params: Some(EphemeralIdParameters {
+                ephemeral_id: Self::generate_ephemeral_id(
+                    &self.ephemeral_id_secret,
+                    session_token,
+                    session_type,
+                    time.as_ref(),
+                ),
+                time,
+            }),
+        }
     }
 }
 
@@ -655,47 +674,56 @@ impl<K, S> RpInitiatedUseCases<K, S> {
     fn verify_ephemeral_id(
         ephemeral_id_secret: &hmac::Key,
         session_token: &SessionToken,
-        url_params: &VerifierUrlParameters,
+        VerifierUrlParameters {
+            session_type,
+            ephemeral_id_params,
+        }: VerifierUrlParameters,
+        time: &impl Generator<DateTime<Utc>>,
     ) -> Result<(), GetAuthRequestError> {
-        let ephemeral_id_params = url_params
-            .ephemeral_id_params
-            .as_ref()
-            .ok_or(GetAuthRequestError::QueryParametersMissing)?;
-
-        if Utc::now() - EPHEMERAL_ID_VALIDITY_SECONDS > ephemeral_id_params.time {
-            return Err(GetAuthRequestError::ExpiredEphemeralId(
-                ephemeral_id_params.ephemeral_id.clone(),
-            ));
-        }
+        let ephemeral_id_params = ephemeral_id_params.ok_or(GetAuthRequestError::QueryParametersMissing)?;
         hmac::verify(
             ephemeral_id_secret,
-            &Self::format_ephemeral_id_payload(session_token, &ephemeral_id_params.time),
+            &Self::format_ephemeral_id_payload(session_token, session_type, ephemeral_id_params.time.as_ref()),
             &ephemeral_id_params.ephemeral_id,
         )
         .map_err(|_| GetAuthRequestError::InvalidEphemeralId(ephemeral_id_params.ephemeral_id.clone()))?;
+
+        // only verify the expiry if the time is included in the URL
+        if ephemeral_id_params
+            .time
+            .is_some_and(|t| t < time.generate() - EPHEMERAL_ID_VALIDITY_SECONDS)
+        {
+            return Err(GetAuthRequestError::ExpiredEphemeralId(
+                ephemeral_id_params.ephemeral_id,
+            ));
+        }
 
         Ok(())
     }
 
     // formats the payload to hash to the ephemeral ID in a consistent way
-    fn format_ephemeral_id_payload(session_token: &SessionToken, time: &DateTime<Utc>) -> Vec<u8> {
+    fn format_ephemeral_id_payload(
+        session_token: &SessionToken,
+        session_type: SessionType,
+        time: Option<&DateTime<Utc>>,
+    ) -> Vec<u8> {
+        let mut payload = vec![session_token.to_string(), session_type.to_string()];
         // default (de)serialization of DateTime is the RFC 3339 format
-        format!(
-            "{}|{}",
-            session_token,
-            time.to_rfc3339_opts(SecondsFormat::AutoSi, true)
-        )
-        .into()
+        if let Some(time) = time {
+            payload.push(time.to_rfc3339_opts(SecondsFormat::AutoSi, true));
+        }
+        payload.join("|").into()
     }
 
     fn generate_ephemeral_id(
         ephemeral_id_secret: &hmac::Key,
         session_token: &SessionToken,
-        time: &DateTime<Utc>,
+        session_type: SessionType,
+        time: Option<&DateTime<Utc>>,
     ) -> Vec<u8> {
         hmac::sign(
             ephemeral_id_secret,
-            &Self::format_ephemeral_id_payload(session_token, time),
+            &Self::format_ephemeral_id_payload(session_token, session_type, time),
         )
         .as_ref()
         .to_vec()
@@ -778,7 +806,7 @@ where
     async fn session(
         &self,
         id: &str,
-        _url_params: &VerifierUrlParameters,
+        _url_params: VerifierUrlParameters,
     ) -> Result<Session<Created>, GetAuthRequestError> {
         let usecase = self
             .get(id)
@@ -790,9 +818,14 @@ where
     fn generate_ephemeral_id(
         &self,
         _session_token: &SessionToken,
+        session_type: SessionType,
+        _session_type_return_url: SessionTypeReturnUrl,
         _time: &impl Generator<DateTime<Utc>>,
-    ) -> Option<EphemeralIdParameters> {
-        None
+    ) -> VerifierUrlParameters {
+        VerifierUrlParameters {
+            session_type,
+            ephemeral_id_params: None,
+        }
     }
 }
 
@@ -936,7 +969,8 @@ where
             serde_urlencoded::from_str(query.ok_or(GetAuthRequestError::QueryParametersMissing)?)
                 .map_err(GetAuthRequestError::QueryParametersDeserialization)?;
 
-        let session: Session<Created> = self.use_cases.session(session_id, &url_params).await?;
+        let session_type = url_params.session_type;
+        let session: Session<Created> = self.use_cases.session(session_id, url_params).await?;
         let session_token = &session.state.token;
 
         let response_uri = response_uri_base.join_base_url(&format!("/{session_token}/response_uri"));
@@ -944,7 +978,7 @@ where
         info!("Session({session_token}): get request");
 
         let (result, redirect_uri, next) = match session
-            .process_get_request(response_uri, url_params.session_type, wallet_nonce, &self.use_cases)
+            .process_get_request(response_uri, session_type, wallet_nonce, &self.use_cases)
             .await
         {
             Ok((jws, next)) => (
@@ -1010,11 +1044,23 @@ where
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<StatusResponse, SessionStatusError> {
         let response = match session_or_error(self.sessions.as_ref(), session_token).await?.data {
-            DisclosureData::Created(Created { client_id, .. }) => {
+            DisclosureData::Created(Created {
+                client_id, usecase_id, ..
+            }) => {
                 let ul = session_type
                     .map(|session_type| {
-                        let ephemeral_id = self.use_cases.generate_ephemeral_id(session_token, time);
-                        Self::format_ul(ul_base.clone(), request_uri, ephemeral_id, session_type, &client_id)
+                        let session_type_return_url = self
+                            .use_cases
+                            .get(&usecase_id)
+                            .map(|u| u.data().session_type_return_url)
+                            .unwrap_or_default();
+                        let verifier_url_parameters = self.use_cases.generate_ephemeral_id(
+                            session_token,
+                            session_type,
+                            session_type_return_url,
+                            time,
+                        );
+                        Self::format_ul(ul_base.clone(), request_uri, verifier_url_parameters, &client_id)
                     })
                     .transpose()?;
 
@@ -1102,15 +1148,11 @@ impl<S, US, C> Verifier<S, US, C> {
     fn format_ul(
         base_ul: BaseUrl,
         request_uri: BaseUrl,
-        ephemeral_id_params: Option<EphemeralIdParameters>,
-        session_type: SessionType,
+        verifier_url_params: VerifierUrlParameters,
         client_id: &ClientId,
     ) -> Result<BaseUrl, serde_urlencoded::ser::Error> {
         let mut request_uri = request_uri.into_inner();
-        request_uri.set_query(Some(&serde_urlencoded::to_string(VerifierUrlParameters {
-            session_type,
-            ephemeral_id_params,
-        })?));
+        request_uri.set_query(Some(&serde_urlencoded::to_string(verifier_url_params)?));
 
         let mut ul = base_ul.into_inner();
         ul.set_query(Some(&serde_urlencoded::to_string(VpRequestUri {
@@ -1172,7 +1214,7 @@ pub struct EphemeralIdParameters {
     pub ephemeral_id: Vec<u8>,
 
     // default (de)serialization of DateTime is the RFC 3339 format
-    pub time: DateTime<Utc>,
+    pub time: Option<DateTime<Utc>>,
 }
 
 // Implementation of the typestate state engine follows.
@@ -1340,22 +1382,27 @@ impl Session<Created> {
         session_token: &SessionToken,
         session_type_return_url: SessionTypeReturnUrl,
         session_type: SessionType,
-        return_url: RedirectUriTemplate,
+        redirect_uri_template: RedirectUriTemplate,
     ) -> Option<RedirectUri> {
-        match (session_type_return_url, session_type, return_url) {
-            (SessionTypeReturnUrl::Both, _, return_url_config)
-            | (SessionTypeReturnUrl::SameDevice, SessionType::SameDevice, return_url_config) => {
-                let nonce = random_string(32);
-                let mut redirect_uri = return_url_config.template.into_url(session_token);
-                redirect_uri.query_pairs_mut().append_pair("nonce", &nonce);
-                Some(RedirectUri {
-                    uri: redirect_uri.try_into().unwrap(),
-                    nonce,
-                    share_on_error: return_url_config.share_on_error,
-                })
+        must_use_return_url(session_type_return_url, session_type).then(|| {
+            let nonce = random_string(32);
+            let mut redirect_uri = redirect_uri_template.template.into_url(session_token);
+            redirect_uri.query_pairs_mut().append_pair("nonce", &nonce);
+
+            RedirectUri {
+                uri: redirect_uri.try_into().unwrap(),
+                nonce,
+                share_on_error: redirect_uri_template.share_on_error,
             }
-            (SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, _) => None,
-        }
+        })
+    }
+}
+
+fn must_use_return_url(session_type_return_url: SessionTypeReturnUrl, session_type: SessionType) -> bool {
+    match session_type_return_url {
+        SessionTypeReturnUrl::Both => true,
+        SessionTypeReturnUrl::SameDevice if session_type == SessionType::SameDevice => true,
+        _ => false,
     }
 }
 
@@ -1564,7 +1611,6 @@ mod tests {
     use super::DisclosureData;
     use super::Done;
     use super::EPHEMERAL_ID_VALIDITY_SECONDS;
-    use super::EphemeralIdParameters;
     use super::GetAuthRequestError;
     use super::HashMap;
     use super::NewSessionError;
@@ -1588,6 +1634,7 @@ mod tests {
     use super::WalletAuthResponse;
     use super::WalletInitiatedUseCase;
     use super::WalletInitiatedUseCases;
+    use super::must_use_return_url;
     use crate::ErrorResponse;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::server_state::MemorySessionStore;
@@ -1595,6 +1642,7 @@ mod tests {
     use crate::server_state::SessionToken;
     use crate::server_state::test::memory_session_store_with_mock_time;
     use crate::server_state::test::test_memory_store_with_cleanup_task;
+    use crate::verifier::EphemeralIdParameters;
 
     const DISCLOSURE_USECASE: &str = "example_usecase";
     const DISCLOSURE_USECASE_ALL_REDIRECT_URI: &str = "example_usecase_all_redirect_uri";
@@ -1618,7 +1666,10 @@ mod tests {
         }
     }
 
-    fn create_verifier<G>(sessions: Arc<MemorySessionStore<DisclosureData, G>>) -> TestVerifier<G>
+    fn create_verifier<G>(
+        sessions: Arc<MemorySessionStore<DisclosureData, G>>,
+        session_type_return_url: SessionTypeReturnUrl,
+    ) -> TestVerifier<G>
     where
         G: Generator<DateTime<Utc>> + Send + Sync + 'static,
     {
@@ -1633,7 +1684,7 @@ mod tests {
                 RpInitiatedUseCase::new(
                     UseCaseData::new(
                         generate_reader_mock_with_registration(&ca, reader_registration.clone()).unwrap(),
-                        SessionTypeReturnUrl::SameDevice,
+                        session_type_return_url,
                     ),
                     None,
                     None,
@@ -1646,7 +1697,7 @@ mod tests {
                 RpInitiatedUseCase::new(
                     UseCaseData::new(
                         generate_reader_mock_with_registration(&ca, reader_registration).unwrap(),
-                        SessionTypeReturnUrl::Both,
+                        session_type_return_url,
                     ),
                     None,
                     None,
@@ -1687,7 +1738,7 @@ mod tests {
         #[case] has_return_url: bool,
         #[case] should_succeed: bool,
     ) {
-        let verifier = create_verifier(Default::default());
+        let verifier = create_verifier(Default::default(), SessionTypeReturnUrl::SameDevice);
         let return_url_template = has_return_url.then(|| "https://example.com/{session_token}".parse().unwrap());
 
         let result = verifier
@@ -1708,8 +1759,10 @@ mod tests {
 
     async fn init_and_start_disclosure(
         time: &impl Generator<DateTime<Utc>>,
+        session_type: SessionType,
+        session_type_return_url: SessionTypeReturnUrl,
     ) -> (TestVerifier<TimeGenerator>, SessionToken, BaseUrl) {
-        let verifier = create_verifier(Default::default());
+        let verifier = create_verifier(Default::default(), session_type_return_url);
 
         // Start session
         let session_token = verifier
@@ -1725,7 +1778,7 @@ mod tests {
         let response = verifier
             .status_response(
                 &session_token,
-                Some(SessionType::SameDevice),
+                Some(session_type),
                 &"https://app.example.com/app".parse().unwrap(),
                 format!("https://example.com/disclosure/{session_token}")
                     .parse()
@@ -1750,7 +1803,12 @@ mod tests {
 
     #[tokio::test]
     async fn disclosure() {
-        let (verifier, session_token, request_uri) = init_and_start_disclosure(&TimeGenerator).await;
+        let (verifier, session_token, request_uri) = init_and_start_disclosure(
+            &TimeGenerator,
+            SessionType::SameDevice,
+            SessionTypeReturnUrl::SameDevice,
+        )
+        .await;
 
         // Getting the Authorization Request should succeed
         verifier
@@ -1790,8 +1848,15 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn disclosure_expired_id() {
-        let (verifier, session_token, request_uri) = init_and_start_disclosure(&ExpiredEphemeralIdGenerator).await;
+    async fn disclosure_expired_ephemeral_id() {
+        // ephemeral IDs can only expire if no return URL is used, which is only the case for cross-device sessions
+        // without return URL
+        let (verifier, session_token, request_uri) = init_and_start_disclosure(
+            &ExpiredEphemeralIdGenerator,
+            SessionType::CrossDevice,
+            SessionTypeReturnUrl::SameDevice,
+        )
+        .await;
 
         let error = verifier
             .process_get_request(
@@ -1816,8 +1881,35 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn disclosure_invalid_id() {
-        let (verifier, session_token, request_uri) = init_and_start_disclosure(&TimeGenerator).await;
+    async fn disclosure_ephemeral_id_return_url_does_not_expire() {
+        // ephemeral IDs can only expire if no return URL is used, which is only the case for cross-device sessions
+        // without return URL
+        let (verifier, session_token, request_uri) = init_and_start_disclosure(
+            &ExpiredEphemeralIdGenerator,
+            SessionType::SameDevice,
+            SessionTypeReturnUrl::SameDevice,
+        )
+        .await;
+
+        verifier
+            .process_get_request(
+                session_token.as_ref(),
+                &"https://example.com/disclosure".to_string().parse().unwrap(),
+                request_uri.as_ref().query(),
+                None,
+            )
+            .await
+            .expect("an ephemeral ID in a session with a return URL should not expire");
+    }
+
+    #[tokio::test]
+    async fn disclosure_invalid_ephemeral_id() {
+        let (verifier, session_token, request_uri) = init_and_start_disclosure(
+            &TimeGenerator,
+            SessionType::CrossDevice,
+            SessionTypeReturnUrl::SameDevice,
+        )
+        .await;
 
         let invalid_ephemeral_id = b"\xde\xad\xbe\xef".to_vec();
 
@@ -1869,7 +1961,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_verifier_disclosed_attributes() {
-        let verifier = create_verifier(Default::default());
+        let verifier = create_verifier(Default::default(), SessionTypeReturnUrl::SameDevice);
 
         // Add three sessions to the store:
         // * One with disclosed attributes and a return URL
@@ -1964,19 +2056,23 @@ mod tests {
         let time = time_str.parse().unwrap();
         let client_id: ClientId = "client_id".into();
 
+        let session_type = SessionType::CrossDevice;
         // Create a UL for the wallet, given the provided parameters.
         let verifier_url = Verifier::<(), (), ()>::format_ul(
             "https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
-            Some(EphemeralIdParameters {
-                ephemeral_id: RpInitiatedUseCases::<(), ()>::generate_ephemeral_id(
-                    &ephemeral_id_secret,
-                    &session_token,
-                    &time,
-                ),
-                time,
-            }),
-            SessionType::CrossDevice,
+            VerifierUrlParameters {
+                session_type,
+                ephemeral_id_params: Some(EphemeralIdParameters {
+                    ephemeral_id: RpInitiatedUseCases::<(), ()>::generate_ephemeral_id(
+                        &ephemeral_id_secret,
+                        &session_token,
+                        session_type,
+                        Some(&time),
+                    ),
+                    time: Some(time),
+                }),
+            },
             &client_id,
         )
         .unwrap();
@@ -1984,7 +2080,7 @@ mod tests {
         // Format the ephemeral ID and sign it as a HMAC.
         let ephemeral_id = hmac::sign(
             &ephemeral_id_secret,
-            (session_token.to_string() + "|" + time_str).as_bytes(),
+            (session_token.to_string() + "|" + &session_type.to_string() + "|" + time_str).as_bytes(),
         );
 
         let request_uri: VpRequestUri = serde_urlencoded::from_str(verifier_url.as_ref().query().unwrap()).unwrap();
@@ -2019,8 +2115,10 @@ mod tests {
         let verifier_url = Verifier::<(), (), ()>::format_ul(
             "https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
-            None,
-            SessionType::CrossDevice,
+            VerifierUrlParameters {
+                session_type: SessionType::CrossDevice,
+                ephemeral_id_params: None,
+            },
             &client_id,
         )
         .unwrap();
@@ -2151,7 +2249,7 @@ mod tests {
     async fn test_cleanup_task() {
         let (sessions, mock_time) = memory_session_store_with_mock_time();
         let sessions = Arc::new(sessions);
-        let verifier = create_verifier(Arc::clone(&sessions));
+        let verifier = create_verifier(Arc::clone(&sessions), SessionTypeReturnUrl::SameDevice);
 
         let token = verifier
             .new_session(
@@ -2162,5 +2260,18 @@ mod tests {
             .await
             .unwrap();
         test_memory_store_with_cleanup_task(sessions, token, &mock_time, CLEANUP_INTERVAL).await;
+    }
+
+    #[rstest]
+    #[case(SessionTypeReturnUrl::Both, SessionType::SameDevice, true)]
+    #[case(SessionTypeReturnUrl::Both, SessionType::CrossDevice, true)]
+    #[case(SessionTypeReturnUrl::SameDevice, SessionType::SameDevice, true)]
+    #[case(SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, false)]
+    fn test_must_use_return_url(
+        #[case] session_type_return_url: SessionTypeReturnUrl,
+        #[case] session_type: SessionType,
+        #[case] expected: bool,
+    ) {
+        assert_eq!(must_use_return_url(session_type_return_url, session_type), expected);
     }
 }

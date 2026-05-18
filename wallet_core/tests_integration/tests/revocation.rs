@@ -1,12 +1,12 @@
 use std::time::Duration;
 
 use assert_matches::assert_matches;
-use attestation_data::issuable_document::IssuableDocument;
 use db_test::DbSetup;
 use dcql::CredentialFormat;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use openid4vc::disclosure_session::DisclosureUriSource;
+use openid4vc::issuable_document::IssuableDocument;
 use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
 use serial_test::serial;
 use tests_integration::common::*;
