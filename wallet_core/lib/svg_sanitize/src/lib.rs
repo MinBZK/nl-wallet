@@ -7,6 +7,7 @@ use quick_xml::events::BytesText;
 use quick_xml::events::Event;
 
 use crate::allow::LowerCaseString;
+use crate::allow::UrlUnescapedString;
 
 /// Errors that can occur during sanitization.
 #[derive(Debug, thiserror::Error)]
@@ -160,10 +161,7 @@ fn filter_element(e: &BytesStart<'_>) -> Result<Option<BytesStart<'static>>, Err
         }
 
         if allow::is_url_attr(&attr_name) {
-            // Unescape the value before checking so that encoded payloads like
-            // `java&#115;cript:` are caught by the prefix comparison.
-            let value = attr.unescape_value()?;
-            if !allow::is_safe_url(value.as_ref()) {
+            if !allow::is_safe_url(&UrlUnescapedString::new(&attr)?) {
                 continue;
             }
         }

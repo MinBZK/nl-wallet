@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
+use quick_xml::events::attributes::Attribute;
+
 pub struct LowerCaseString(String);
 
 impl LowerCaseString {
@@ -374,13 +376,29 @@ pub fn is_url_attr(attr: &LowerCaseString) -> bool {
     matches!(attr.get(), "href" | "xlink:href" | "src")
 }
 
+/// An string that has been URL-unescaped, so that checking if a URL is safe
+/// will catch encoded payloads like `java&#115;cript:`.
+pub struct UrlUnescapedString(String);
+
+impl UrlUnescapedString {
+    pub fn new(attr: &Attribute<'_>) -> Result<Self, quick_xml::Error> {
+        Ok(Self(attr.unescape_value()?.to_string()))
+    }
+
+    pub fn get(&self) -> &str {
+        &self.0
+    }
+}
+
 /// Conservative URL allowlist. Permits fragment refs, https, and inert image
 /// data URIs. Blocks http://, javascript:, data:image/svg+xml, /, file://,
 /// vbscript:, etc.
 ///
 /// `data:image/svg+xml` is intentionally excluded: an SVG-in-SVG data URI
 /// executes as a same-origin document in most browsers and is an XSS vector.
-pub fn is_safe_url(value: &str) -> bool {
+pub fn is_safe_url(value: &UrlUnescapedString) -> bool {
+    let value = value.get();
+
     if value.is_empty() {
         return true;
     }
