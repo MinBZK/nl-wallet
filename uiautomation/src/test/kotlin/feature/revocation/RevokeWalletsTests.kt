@@ -17,7 +17,7 @@ import screen.issuance.PersonalizeAuthenticatingWithDigidScreen
 import screen.issuance.PersonalizeInformScreen
 import screen.issuance.PersonalizePidPreviewScreen
 import screen.issuance.PersonalizeSuccessScreen
-import screen.issuance.TransferWalletScreen
+import screen.issuance.StartTransferWalletScreen
 import screen.revocation.RevocationCodeSetupScreen
 import screen.revocation.WalletBlockedByRecoveryCodeScreen
 import screen.revocation.WalletBlockedByUserScreen
@@ -50,7 +50,7 @@ class RevokeWalletsTests : TestBase() {
     private lateinit var digidLoginMockWebPage: DigidLoginMockWebPage
     private lateinit var personalizePidPreviewScreen: PersonalizePidPreviewScreen
     private lateinit var personalizeSuccessScreen: PersonalizeSuccessScreen
-    private lateinit var transferWalletScreen: TransferWalletScreen
+    private lateinit var startTransferWalletScreen: StartTransferWalletScreen
     private lateinit var revocationPortalWebPage: RevocationPortalWebPage
 
     fun setUp(testInfo: TestInfo) {
@@ -70,7 +70,7 @@ class RevokeWalletsTests : TestBase() {
         digidLoginMockWebPage = DigidLoginMockWebPage()
         personalizePidPreviewScreen = PersonalizePidPreviewScreen()
         personalizeSuccessScreen = PersonalizeSuccessScreen()
-        transferWalletScreen = TransferWalletScreen()
+        startTransferWalletScreen = StartTransferWalletScreen()
         revocationPortalWebPage = RevocationPortalWebPage()
     }
 
@@ -94,7 +94,7 @@ class RevokeWalletsTests : TestBase() {
         personalizePidPreviewScreen.switchToNativeContext()
         personalizePidPreviewScreen.clickAcceptButton()
         pinScreen.enterPin(DEFAULT_PIN)
-        transferWalletScreen.createNewWallet()
+        startTransferWalletScreen.createNewWallet()
         personalizeSuccessScreen.clickNextButton()
         dashboardScreen.closeApp()
 
