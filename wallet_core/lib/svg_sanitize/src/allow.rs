@@ -342,7 +342,7 @@ pub fn is_url_func_attr(attr: &LowerCaseString) -> bool {
     .contains(&attr.as_ref().as_str())
 }
 
-/// Returns true if every `url(…)` in `value` references a local fragment (i.e. starts with `#`).
+/// Returns true if every `url(...)` in `value` references a local fragment (i.e. starts with `#`).
 /// A value may contain multiple `url()` references (e.g. `filter="url(#blur) url(#contrast)"`);
 /// all of them must pass. Values containing no `url()` references are always safe.
 /// Handles optional surrounding quotes and inner whitespace per the CSS `url()` syntax.
