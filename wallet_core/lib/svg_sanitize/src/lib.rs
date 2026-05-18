@@ -39,159 +39,157 @@ pub enum Error {
 pub struct SanitizedSvg(String);
 
 impl SanitizedSvg {
-    pub fn try_new(xml: &str) -> Result<Self, Error> {
-        Ok(Self(sanitize(xml)?))
-    }
-}
+    pub fn try_new(input: &str) -> Result<Self, Error> {
+        let mut reader = Reader::from_str(input);
+        {
+            let cfg = reader.config_mut();
+            // Do not synthesize Start+End pairs for self-closing tags; we handle
+            // Empty events explicitly so skip_depth stays correct.
+            cfg.expand_empty_elements = false;
+            // Tolerate mismatched closing tags common in real-world SVG.
+            cfg.check_end_names = false;
+            // Tolerate malformed comments (e.g. `-- ` inside) in adversarial input.
+            cfg.check_comments = false;
+        }
 
-fn sanitize(input: &str) -> Result<String, Error> {
-    let mut reader = Reader::from_str(input);
-    {
-        let cfg = reader.config_mut();
-        // Do not synthesize Start+End pairs for self-closing tags; we handle
-        // Empty events explicitly so skip_depth stays correct.
-        cfg.expand_empty_elements = false;
-        // Tolerate mismatched closing tags common in real-world SVG.
-        cfg.check_end_names = false;
-        // Tolerate malformed comments (e.g. `-- ` inside) in adversarial input.
-        cfg.check_comments = false;
-    }
+        let mut writer = Writer::new(Vec::new());
 
-    let mut writer = Writer::new(Vec::new());
+        // When skip_depth > 0 we are inside a blocked element; all events are discarded
+        // until the matching close tag brings it back to 0.
+        let mut skip_depth: usize = 0;
 
-    // When skip_depth > 0 we are inside a blocked element; all events are discarded
-    // until the matching close tag brings it back to 0.
-    let mut skip_depth: usize = 0;
+        loop {
+            match reader.read_event()? {
+                Event::Eof => break,
 
-    loop {
-        match reader.read_event()? {
-            Event::Eof => break,
+                // Drop DOCTYPE entirely. quick-xml is a pure-Rust non-expanding parser,
+                // so user-defined entities would surface as errors rather than expansions,
+                // but we drop DOCTYPE anyway to prevent any future confusion and to make
+                // the policy explicit.
+                Event::DocType(_) => {}
 
-            // Drop DOCTYPE entirely. quick-xml is a pure-Rust non-expanding parser,
-            // so user-defined entities would surface as errors rather than expansions,
-            // but we drop DOCTYPE anyway to prevent any future confusion and to make
-            // the policy explicit.
-            Event::DocType(_) => {}
+                // Drop comments — they can hide payloads in some parser combinations.
+                Event::Comment(_) => {}
 
-            // Drop comments — they can hide payloads in some parser combinations.
-            Event::Comment(_) => {}
+                // Drop processing instructions (e.g. <?xml-stylesheet href="evil"?>).
+                Event::PI(_) => {}
 
-            // Drop processing instructions (e.g. <?xml-stylesheet href="evil"?>).
-            Event::PI(_) => {}
-
-            // Pass the XML declaration through; it is safe and often required.
-            Event::Decl(d) => {
-                if skip_depth == 0 {
-                    writer.write_event(Event::Decl(d))?;
-                }
-            }
-
-            Event::Text(t) => {
-                if skip_depth == 0 {
-                    writer.write_event(Event::Text(t))?;
-                }
-            }
-
-            // Convert CDATA to escaped text so downstream parsers see a plain text
-            // node rather than a raw CDATA section, which some parsers treat as a
-            // script-injection opportunity.
-            Event::CData(cd) => {
-                if skip_depth == 0 {
-                    let raw = str::from_utf8(cd.as_ref())?;
-                    let text = BytesText::new(raw);
-                    writer.write_event(Event::Text(text))?;
-                }
-            }
-
-            Event::Start(e) => {
-                if skip_depth > 0 {
-                    skip_depth += 1;
-                } else {
-                    match filter_element(&e)? {
-                        Some(clean) => writer.write_event(Event::Start(clean))?,
-                        None => skip_depth += 1,
+                // Pass the XML declaration through; it is safe and often required.
+                Event::Decl(d) => {
+                    if skip_depth == 0 {
+                        writer.write_event(Event::Decl(d))?;
                     }
                 }
-            }
 
-            // Self-closing tags: no matching End event, so skip_depth is unchanged
-            // whether we allow or block the element.
-            Event::Empty(e) => {
-                if skip_depth == 0
-                    && let Some(clean) = filter_element(&e)?
-                {
-                    writer.write_event(Event::Empty(clean))?;
+                Event::Text(t) => {
+                    if skip_depth == 0 {
+                        writer.write_event(Event::Text(t))?;
+                    }
                 }
-            }
 
-            Event::End(e) => {
-                if skip_depth > 0 {
-                    skip_depth -= 1;
-                } else {
-                    writer.write_event(Event::End(e))?;
+                // Convert CDATA to escaped text so downstream parsers see a plain text
+                // node rather than a raw CDATA section, which some parsers treat as a
+                // script-injection opportunity.
+                Event::CData(cd) => {
+                    if skip_depth == 0 {
+                        let raw = str::from_utf8(cd.as_ref())?;
+                        let text = BytesText::new(raw);
+                        writer.write_event(Event::Text(text))?;
+                    }
                 }
+
+                Event::Start(e) => {
+                    if skip_depth > 0 {
+                        skip_depth += 1;
+                    } else {
+                        match Self::filter_element(&e)? {
+                            Some(clean) => writer.write_event(Event::Start(clean))?,
+                            None => skip_depth += 1,
+                        }
+                    }
+                }
+
+                // Self-closing tags: no matching End event, so skip_depth is unchanged
+                // whether we allow or block the element.
+                Event::Empty(e) => {
+                    if skip_depth == 0
+                        && let Some(clean) = Self::filter_element(&e)?
+                    {
+                        writer.write_event(Event::Empty(clean))?;
+                    }
+                }
+
+                Event::End(e) => {
+                    if skip_depth > 0 {
+                        skip_depth -= 1;
+                    } else {
+                        writer.write_event(Event::End(e))?;
+                    }
+                }
+
+                // Drop entity references (&amp;, &lol;, &#65;, etc.). quick-xml
+                // does not expand them — it just emits the name — so there is no
+                // DoS risk, but passing them through would write bare &name; tokens
+                // into the output, producing invalid XML for any entity that is not
+                // predefined. Dropping is the conservative choice.
+                Event::GeneralRef(_) => {}
+            }
+        }
+
+        let bytes = writer.into_inner();
+        let result = str::from_utf8(&bytes).map_err(Error::Utf8)?;
+        Ok(Self(result.to_string()))
+    }
+
+    /// Returns a sanitized copy of the element's `BytesStart` if the tag is allowed,
+    /// or `None` if the entire element (and its children) should be skipped.
+    fn filter_element(e: &BytesStart<'_>) -> Result<Option<BytesStart<'static>>, Error> {
+        let name_bytes = e.local_name();
+        let name_str = str::from_utf8(name_bytes.as_ref())?;
+        let tag_name = LowerCaseString::new(name_str);
+
+        if !allow::is_allowed_tag(&tag_name) {
+            return Ok(None);
+        }
+
+        // Preserve original tag-name casing (SVG/XML is case-sensitive).
+        let mut out = BytesStart::new(name_str.to_owned());
+
+        for attr_result in e.attributes().with_checks(false) {
+            let attr = attr_result.map_err(|e| Error::Xml(quick_xml::Error::InvalidAttr(e)))?;
+            let unescaped_attr = UrlUnescapedString::new(&attr)?;
+            let attr_name = LowerCaseString::new(str::from_utf8(attr.key.as_ref())?);
+
+            if !(allow::is_allowed_attr(&attr_name) || allow::is_allowed_by_prefix(&attr_name)) {
+                continue;
             }
 
-            // Drop entity references (&amp;, &lol;, &#65;, etc.). quick-xml
-            // does not expand them — it just emits the name — so there is no
-            // DoS risk, but passing them through would write bare &name; tokens
-            // into the output, producing invalid XML for any entity that is not
-            // predefined. Dropping is the conservative choice.
-            Event::GeneralRef(_) => {}
+            if allow::is_url_attr(&attr_name) && !allow::is_safe_url(&unescaped_attr) {
+                continue;
+            }
+
+            if allow::is_url_func_attr(&attr_name)
+                && !allow::has_safe_url_func(&LowerCaseString::new(unescaped_attr.get()))
+            {
+                continue;
+            }
+
+            out.push_attribute(attr);
         }
+
+        Ok(Some(out))
     }
-
-    let bytes = writer.into_inner();
-    let result = str::from_utf8(&bytes).map_err(Error::Utf8)?;
-    Ok(result.to_string())
-}
-
-/// Returns a sanitized copy of the element's `BytesStart` if the tag is allowed,
-/// or `None` if the entire element (and its children) should be skipped.
-fn filter_element(e: &BytesStart<'_>) -> Result<Option<BytesStart<'static>>, Error> {
-    let name_bytes = e.local_name();
-    let name_str = str::from_utf8(name_bytes.as_ref())?;
-    let tag_name = LowerCaseString::new(name_str);
-
-    if !allow::is_allowed_tag(&tag_name) {
-        return Ok(None);
-    }
-
-    // Preserve original tag-name casing (SVG/XML is case-sensitive).
-    let mut out = BytesStart::new(name_str.to_owned());
-
-    for attr_result in e.attributes().with_checks(false) {
-        let attr = attr_result.map_err(|e| Error::Xml(quick_xml::Error::InvalidAttr(e)))?;
-        let unescaped_attr = UrlUnescapedString::new(&attr)?;
-        let attr_name = LowerCaseString::new(str::from_utf8(attr.key.as_ref())?);
-
-        if !(allow::is_allowed_attr(&attr_name) || allow::is_allowed_by_prefix(&attr_name)) {
-            continue;
-        }
-
-        if allow::is_url_attr(&attr_name) && !allow::is_safe_url(&unescaped_attr) {
-            continue;
-        }
-
-        if allow::is_url_func_attr(&attr_name) && !allow::has_safe_url_func(&LowerCaseString::new(unescaped_attr.get()))
-        {
-            continue;
-        }
-
-        out.push_attribute(attr);
-    }
-
-    Ok(Some(out))
 }
 
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
 
-    use super::sanitize;
+    use crate::SanitizedSvg;
 
+    // Sanitize the input, panicking if it fails. Returns the contained string for string matching.
     fn sanitize_panicking(input: &str) -> String {
-        sanitize(input).expect("sanitize failed")
+        SanitizedSvg::try_new(input).expect("sanitize failed").0
     }
 
     // ── Tag allowlist — including HTML elements and non-ASCII names ───────────
@@ -507,7 +505,7 @@ mod tests {
         // result is Ok or Err depends on how quick-xml handles undeclared entity
         // references in the body after the DOCTYPE is dropped, which is an
         // implementation detail we don't control or want to pin down.
-        let _ = sanitize(input);
+        let _ = SanitizedSvg::try_new(input);
     }
 
     // ── CDATA ──────────────────────────────────────────────────────────────────
