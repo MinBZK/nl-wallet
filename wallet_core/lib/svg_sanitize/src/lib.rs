@@ -6,6 +6,8 @@ use quick_xml::events::BytesStart;
 use quick_xml::events::BytesText;
 use quick_xml::events::Event;
 
+use crate::allow::LowerCaseString;
+
 /// Errors that can occur during sanitization.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -140,9 +142,9 @@ pub fn sanitize(input: &str) -> Result<String, Error> {
 fn filter_element(e: &BytesStart<'_>) -> Result<Option<BytesStart<'static>>, Error> {
     let name_bytes = e.local_name();
     let name_str = str::from_utf8(name_bytes.as_ref())?;
-    let lower = name_str.to_ascii_lowercase();
+    let tag_name = LowerCaseString::new(name_str);
 
-    if !allow::is_allowed_tag(lower.as_str()) {
+    if !allow::is_allowed_tag(&tag_name) {
         return Ok(None);
     }
 
@@ -151,17 +153,13 @@ fn filter_element(e: &BytesStart<'_>) -> Result<Option<BytesStart<'static>>, Err
 
     for attr_result in e.attributes().with_checks(false) {
         let attr = attr_result.map_err(|e| Error::Xml(quick_xml::Error::InvalidAttr(e)))?;
+        let attr_name = LowerCaseString::new(str::from_utf8(attr.key.as_ref())?);
 
-        let attr_name = str::from_utf8(attr.key.as_ref())?;
-        let attr_lower = attr_name.to_ascii_lowercase();
-
-        let in_allowlist = allow::is_allowed_attr(attr_lower.as_str()) || allow::is_allowed_by_prefix(&attr_lower);
-
-        if !in_allowlist {
+        if !(allow::is_allowed_attr(&attr_name) || allow::is_allowed_by_prefix(&attr_name)) {
             continue;
         }
 
-        if allow::is_url_attr(&attr_lower) {
+        if allow::is_url_attr(&attr_name) {
             // Unescape the value before checking so that encoded payloads like
             // `java&#115;cript:` are caught by the prefix comparison.
             let value = attr.unescape_value()?;

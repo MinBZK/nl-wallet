@@ -1,6 +1,18 @@
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
+pub struct LowerCaseString(String);
+
+impl LowerCaseString {
+    pub fn new<T: Into<String>>(s: T) -> Self {
+        Self(s.into().to_ascii_lowercase())
+    }
+
+    pub fn get(&self) -> &str {
+        &self.0
+    }
+}
+
 /// Checks if a tag is allowed.
 ///
 /// Deliberately omits:
@@ -8,7 +20,7 @@ use std::sync::OnceLock;
 /// - `use`                     — can cause DoS via recursive expansion
 /// - `animate`, `set`          — can modify href/other attrs dynamically (XSS vector)
 /// - `foreignobject`           — embeds arbitrary HTML
-pub fn is_allowed_tag(tag: &str) -> bool {
+pub fn is_allowed_tag(tag: &LowerCaseString) -> bool {
     static SET: OnceLock<HashSet<&'static str>> = OnceLock::new();
 
     SET.get_or_init(|| {
@@ -89,14 +101,14 @@ pub fn is_allowed_tag(tag: &str) -> bool {
             "feturbulence",
         ])
     })
-    .contains(tag)
+    .contains(tag.get())
 }
 
 /// Checks if an attribute is allowed.
 ///
 /// `style` is included but its value is NOT sanitized (CSS is deferred).
 /// Event handler attributes (`onclick`, `onload`, etc.) are absent.
-pub fn is_allowed_attr(attr: &str) -> bool {
+pub fn is_allowed_attr(attr: &LowerCaseString) -> bool {
     static SET: OnceLock<HashSet<&'static str>> = OnceLock::new();
 
     SET.get_or_init(|| {
@@ -354,12 +366,12 @@ pub fn is_allowed_attr(attr: &str) -> bool {
             // is no legitimate use case that justifies the risk.
         ])
     })
-    .contains(attr)
+    .contains(attr.get())
 }
 
 /// Returns true if this attribute's value must be validated as a URL.
-pub fn is_url_attr(lower: &str) -> bool {
-    matches!(lower, "href" | "xlink:href" | "src")
+pub fn is_url_attr(attr: &LowerCaseString) -> bool {
+    matches!(attr.get(), "href" | "xlink:href" | "src")
 }
 
 /// Conservative URL allowlist. Permits fragment refs, https, and inert image
@@ -390,6 +402,6 @@ pub fn is_safe_url(value: &str) -> bool {
 }
 
 /// Allows `aria-*` and `data-*` attributes through regardless of the static set.
-pub fn is_allowed_by_prefix(lower: &str) -> bool {
-    lower.starts_with("aria-") || lower.starts_with("data-")
+pub fn is_allowed_by_prefix(attr: &LowerCaseString) -> bool {
+    attr.get().starts_with("aria-") || attr.get().starts_with("data-")
 }
