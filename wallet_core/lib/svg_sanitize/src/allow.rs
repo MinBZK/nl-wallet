@@ -374,10 +374,15 @@ pub fn is_safe_url(value: &str) -> bool {
     }
 
     // Allow inert raster image data URIs.
-    value.starts_with("data:image/png;")
-        || value.starts_with("data:image/jpeg;")
-        || value.starts_with("data:image/gif;")
-        || value.starts_with("data:image/webp;")
+    [
+        "data:image/png;",
+        "data:image/jpeg;",
+        "data:image/gif;",
+        "data:image/webp;",
+        "data:image/avif",
+    ]
+    .iter()
+    .any(|format| value.starts_with(format))
 }
 
 /// Allows `aria-*` and `data-*` attributes through regardless of the static set.
