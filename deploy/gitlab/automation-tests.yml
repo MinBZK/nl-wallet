@@ -504,10 +504,9 @@ run-digid-bridge-test-ont:
     when: on_success
   allow_failure: true
 
-run-performance-test-ont:
+run-performance-test-ont-pipeline-deploy:
   extends: .run-performance-test-ont-base
   rules:
-    - !reference [.on-schedule-nightly-performance-test, rules]
     - !reference [.default-branch, rules]
   needs:
     - job: build-performance-test
@@ -515,10 +514,11 @@ run-performance-test-ont:
     - job: deploy-apps-ont
       artifacts: false
 
-run-performance-test-ont-manual:
+run-performance-test-ont-existing-deploy:
   extends: .run-performance-test-ont-base
   rules:
-    - !reference [.merge-request-manual, rules]
+    - !reference [.on-schedule-nightly-performance-test, rules]
+    - !reference [.default-or-merge-request-manual, rules]
   needs:
     - job: build-performance-test
       artifacts: true
@@ -528,7 +528,7 @@ retrieve-performance-test-results-ont:
   rules:
     - !reference [.on-schedule-nightly-performance-test, rules]
   needs:
-    - job: run-performance-test-ont
+    - job: run-performance-test-ont-existing-deploy
       artifacts: true
   before_script:
     - python3 -m venv venv
