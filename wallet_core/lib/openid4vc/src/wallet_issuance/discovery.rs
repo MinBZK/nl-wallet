@@ -38,13 +38,14 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
     ) -> Result<Self::Authorization, WalletIssuanceError> {
         let (issuer_metadata, oauth_metadata) = self.fetch_metadata(credential_issuer).await?;
 
-        let session = HttpAuthorizationSession::try_new(
+        let session = HttpAuthorizationSession::create(
             self.http_client.clone(),
             issuer_metadata,
             oauth_metadata,
             client_id,
             redirect_uri,
-        )?;
+        )
+        .await?;
         Ok(session)
     }
 
@@ -229,6 +230,7 @@ mod test {
         });
         if let Some(auth_endpoint) = authorization_endpoint {
             oauth_metadata_json["authorization_endpoint"] = json!(auth_endpoint);
+            oauth_metadata_json["pushed_authorization_request_endpoint"] = json!(server.url("/issuance/par"));
         }
 
         server
@@ -250,6 +252,20 @@ mod test {
                     .json_body(oauth_metadata_json);
             })
             .await;
+
+        if authorization_endpoint.is_some() {
+            server
+                .mock_async(|when, then| {
+                    when.method(POST).path("/issuance/par");
+                    then.status(201)
+                        .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                        .json_body(json!({
+                            "request_uri": "urn:ietf:params:oauth:request_uri:mock-test-uri",
+                            "expires_in": 60,
+                        }));
+                })
+                .await;
+        }
 
         server
             .mock_async(|when, then| {
@@ -328,16 +344,18 @@ mod test {
             .await
             .unwrap();
 
-        // Verify the auth URL points to the expected authorization endpoint.
+        // Verify the auth URL points to the expected authorization endpoint and carries PAR params.
         assert!(auth_session.auth_url().as_str().starts_with(authorization_endpoint));
-
-        // Extract the state from the auth URL to simulate the redirect.
         let auth_params: HashMap<String, String> = auth_session
             .auth_url()
             .query_pairs()
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
-        let state = auth_params.get("state").unwrap();
+        assert!(auth_params.contains_key("request_uri"));
+        assert!(!auth_params.contains_key("state"));
+
+        // State is carried inside the PAR-stored request, not the auth URL; read it from the session.
+        let state = auth_session.state().to_owned();
 
         // Simulate the authorization server redirecting back with a code and state.
         let mut received_redirect_uri = redirect_uri;

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use db_test::DbSetup;
@@ -6,6 +8,7 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use itertools::Itertools;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::IssuanceSession;
@@ -18,13 +21,15 @@ use pid_issuer::pid::constants::PID_BSN;
 use pid_issuer::pid::constants::PID_FAMILY_NAME;
 use pid_issuer::pid::constants::PID_GIVEN_NAME;
 use pid_issuer::pid::constants::PID_RESIDENT_COUNTRY;
+use pid_issuer::pid::digid::DigidAuthorizationAdapter;
+use pid_issuer::pid::digid::DigidMetadataCache;
 use serial_test::serial;
 use server_utils::keys::SecretKeyVariant;
 use server_utils::settings::SecretKey;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
-use tracing::debug;
 use wallet::test::default_wallet_config;
+use wallet_account::NL_WALLET_CLIENT_ID;
 
 /// Test the DigiD connector + BRP proxy integration as consumed by the pid_issuer.
 ///
@@ -57,6 +62,10 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .transpose()
         .unwrap();
 
+    let digid_metadata_cache = Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings.clone()).unwrap());
+    let upstream_authorization_adapter =
+        DigidAuthorizationAdapter::new(Arc::clone(&digid_metadata_cache), settings.digid.client_id.clone());
+
     let issuer_url = start_pid_issuer_server(
         settings.clone(),
         hsm,
@@ -64,7 +73,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             HttpBrpClient::new(settings.brp_server.clone()),
             &settings.digid.bsn_privkey,
             settings.digid.client_id.clone(),
-            settings.digid.client_settings.clone(),
+            digid_metadata_cache,
             SecretKeyVariant::from_settings(
                 SecretKey::Software {
                     secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
@@ -74,6 +83,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             .unwrap(),
         )
         .unwrap(),
+        upstream_authorization_adapter,
     )
     .await;
 
@@ -81,13 +91,6 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
 
     let wallet_config = default_wallet_config();
 
-    // Discover the credential issuer and start authorization code flow. `client_id` and
-    // `redirect_uri` are forwarded verbatim to rdo-max, which validates them against its
-    // registered client — overridable here so CI can point at a deployed rdo-max whose
-    // registered client differs from the local-dev defaults.
-    let client_id = option_env!("DIGID_TEST_CLIENT_ID")
-        .map(str::to_owned)
-        .unwrap_or_else(|| wallet_config.pid_issuance.client_id.clone());
     let redirect_uri = option_env!("DIGID_TEST_REDIRECT_URI")
         .map(|raw| raw.parse().expect("DIGID_TEST_REDIRECT_URI is not a valid URL"))
         .unwrap_or_else(|| {
@@ -100,29 +103,21 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_client);
 
     let authorization_session = credential_issuer_discovery
-        .start_authorization_code_flow(&issuer_url.public, client_id, redirect_uri)
+        .start_authorization_code_flow(&issuer_url.public, String::from(NL_WALLET_CLIENT_ID), redirect_uri)
         .await
         .unwrap();
-
-    debug!(
-        "authorization_url: {}",
-        authorization_session.auth_url().clone().to_string()
-    );
-    debug!(
-        "digid base url: {}",
-        settings
-            .digid
-            .client_settings
-            .oidc_identifier
-            .as_base_url()
-            .clone()
-            .to_string()
-    );
 
     // Do fake DigiD authentication and parse the access token out of the redirect URL
     let redirect_url = fake_digid_auth(
         authorization_session.auth_url().clone(),
-        settings.digid.client_settings.oidc_identifier.as_base_url().clone(),
+        settings.digid.client_settings.oidc_identifier.as_ref(),
+        settings
+            .digid
+            .client_settings
+            .trust_anchors
+            .into_iter()
+            .map(|ta| ta.into_certificate())
+            .collect_vec(),
         "999991772",
     )
     .await;
@@ -135,7 +130,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .unwrap();
 
     let previews = issuance_session.normalized_credential_preview();
-    assert_eq!(previews.len(), 1);
+    assert_eq!(previews.len(), 2);
 
     let payload = &previews[0].content.credential_payload;
     assert_eq!(payload.attestation_type, PID_ATTESTATION_TYPE);

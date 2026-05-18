@@ -8,6 +8,9 @@ use itertools::Itertools;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
+use openid4vc::issuer::UpstreamAuthorizationAdapter;
+use openid4vc::par::MemoryParStore;
+use openid4vc::pkce::store::MemoryPkceFlowStore;
 use openid4vc_server::issuer::create_issuance_router;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::server::add_cache_control_no_store_layer;
@@ -24,13 +27,16 @@ use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
 use utils::vec_at_least::VecNonEmpty;
 
-pub async fn serve<A>(
+pub async fn serve<A, UAA>(
     issuer: Issuer<
         A,
         PrivateKeyVariant,
         PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
         SessionStoreVariant<IssuanceData>,
         ProofNonceStore,
+        MemoryParStore,
+        MemoryPkceFlowStore,
+        UAA,
     >,
     server_settings: Settings,
     serve_status_lists: bool,
@@ -38,6 +44,7 @@ pub async fn serve<A>(
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
+    UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
 {
     serve_with_listeners(
         create_wallet_listener(&server_settings.wallet_server).await?,
@@ -50,7 +57,7 @@ where
     .await
 }
 
-pub async fn serve_with_listeners<A>(
+pub async fn serve_with_listeners<A, UAA>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
     issuer: Issuer<
@@ -59,6 +66,9 @@ pub async fn serve_with_listeners<A>(
         PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
         SessionStoreVariant<IssuanceData>,
         ProofNonceStore,
+        MemoryParStore,
+        MemoryPkceFlowStore,
+        UAA,
     >,
     server_settings: Settings,
     serve_status_lists: bool,
@@ -66,6 +76,7 @@ pub async fn serve_with_listeners<A>(
 ) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
+    UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
 {
     let status_list_services = VecNonEmpty::try_from(issuer.status_lists().cloned().collect_vec())?;
 

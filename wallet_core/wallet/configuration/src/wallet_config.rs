@@ -159,7 +159,6 @@ pub struct PidAttributePaths {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PidIssuanceConfiguration {
     pub url: IssuerIdentifier,
-    pub client_id: String,
 }
 
 #[serde_as]

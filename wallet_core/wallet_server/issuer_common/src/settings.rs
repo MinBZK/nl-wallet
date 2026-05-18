@@ -406,12 +406,12 @@ impl IssuerSettings {
         Ok(())
     }
 
-    pub async fn into_issuer<A>(
+    pub async fn into_issuer<A, PAS, PKS, UAA>(
         self,
         hsm: Option<Pkcs11Hsm>,
         wia_config: Option<WiaConfig>,
-        upstream_oauth_identifier: Option<IssuerIdentifier>,
         attr_service: A,
+        upstream_authorization_adapter: Option<UAA>,
     ) -> Result<
         (
             Issuer<
@@ -420,13 +420,20 @@ impl IssuerSettings {
                 PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
                 SessionStoreVariant<IssuanceData>,
                 ProofNonceStore,
+                PAS,
+                PKS,
+                UAA,
             >,
             Vec<DatabaseChecker>,
             StoreConnection,
             Settings,
         ),
         IssuerSettingsError,
-    > {
+    >
+    where
+        PAS: Default,
+        PKS: Default,
+    {
         let mut database_checkers = Vec::with_capacity(1);
 
         let store_connection = StoreConnection::try_new(self.server_settings.storage.url.clone())
@@ -473,16 +480,21 @@ impl IssuerSettings {
             .await
             .map_err(IssuerSettingsError::CredentialConfigurationParameters)?;
 
+        let par_store = PAS::default();
+        let pkce_flow_store = PKS::default();
+
         let issuer = Issuer::try_new(
             self.public_url,
             self.batch_size,
             self.wallet_client_ids,
             config_params,
             wia_config,
-            upstream_oauth_identifier,
             attr_service,
             Arc::new(sessions),
             proof_nonce_store,
+            Arc::new(par_store),
+            Arc::new(pkce_flow_store),
+            upstream_authorization_adapter,
         )
         .map_err(IssuerSettingsError::CredentialConfigurations)?;
 

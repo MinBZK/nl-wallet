@@ -329,10 +329,12 @@ mod tests {
             vec![],
             [("credential_config_id".to_string().into(), config_params)].into(),
             None,
-            None,
             (),
             sessions,
             MemoryNonceStore::new(),
+            Arc::new(()),
+            Arc::new(()),
+            None,
         )
         .unwrap()
     }

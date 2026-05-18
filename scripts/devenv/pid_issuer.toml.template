@@ -1,4 +1,5 @@
 public_url = 'http://${SERVICES_HOST}:${PID_ISSUER_PORT}/'
+wallet_client_ids = ["${NL_WALLET_CLIENT_ID}"]
 issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 
 brp_server = 'http://${SERVICES_HOST}:${BRP_SERVER_PORT}'

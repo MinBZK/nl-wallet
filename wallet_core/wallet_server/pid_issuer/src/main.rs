@@ -1,9 +1,13 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use health_checkers::hsm::HsmChecker;
 use hsm::service::Pkcs11Hsm;
 use openid4vc::issuer::WiaConfig;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
+use pid_issuer::pid::digid::DigidAuthorizationAdapter;
+use pid_issuer::pid::digid::DigidMetadataCache;
 use pid_issuer::server;
 use pid_issuer::settings::PidIssuerSettings;
 use server_utils::keys::SecretKeyVariant;
@@ -29,19 +33,27 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     let wia_config = WiaConfig {
         wia_issuer_pubkey: (&settings.wua_issuer_pubkey.into_inner()).into(),
     };
-    let upstream_oauth_identifier = settings.digid.client_settings.oidc_identifier.clone();
+
+    let digid_metadata_cache = Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings)?);
+    let upstream_authorization_adapter =
+        DigidAuthorizationAdapter::new(Arc::clone(&digid_metadata_cache), settings.digid.client_id.clone());
 
     let pid_attr_service = BrpPidAttributeService::try_new(
         HttpBrpClient::new(settings.brp_server),
         &settings.digid.bsn_privkey,
         settings.digid.client_id,
-        settings.digid.client_settings,
+        digid_metadata_cache,
         SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?,
     )?;
 
     let (issuer, database_checkers, _, server_settings) = settings
         .issuer_settings
-        .into_issuer(hsm, Some(wia_config), Some(upstream_oauth_identifier), pid_attr_service)
+        .into_issuer(
+            hsm,
+            Some(wia_config),
+            pid_attr_service,
+            Some(upstream_authorization_adapter),
+        )
         .await?;
 
     let health_checkers = health_checkers::boxed(hsm_checker)
