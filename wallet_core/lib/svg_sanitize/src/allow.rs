@@ -1,17 +1,15 @@
 use std::collections::HashSet;
 use std::sync::OnceLock;
 
+use derive_more::AsRef;
 use quick_xml::events::attributes::Attribute;
 
+#[derive(Debug, Clone, AsRef)]
 pub struct LowerCaseString(String);
 
 impl LowerCaseString {
     pub fn new<T: Into<String>>(s: T) -> Self {
         Self(s.into().to_ascii_lowercase())
-    }
-
-    pub fn get(&self) -> &str {
-        &self.0
     }
 }
 
@@ -93,7 +91,7 @@ pub fn is_allowed_tag(tag: &LowerCaseString) -> bool {
             "feturbulence",
         ])
     })
-    .contains(tag.get())
+    .contains(tag.as_ref().as_str())
 }
 
 /// Checks if an attribute is allowed.
@@ -319,12 +317,12 @@ pub fn is_allowed_attr(attr: &LowerCaseString) -> bool {
             // is no legitimate use case that justifies the risk.
         ])
     })
-    .contains(attr.get())
+    .contains(attr.as_ref().as_str())
 }
 
 /// Returns true if this attribute's value must be validated as a URL.
 pub fn is_url_attr(attr: &LowerCaseString) -> bool {
-    ["href", "xlink:href", "src"].contains(&attr.get())
+    ["href", "xlink:href", "src"].contains(&attr.as_ref().as_str())
 }
 
 /// Returns true if this attribute's value may contain CSS `url()` references
@@ -341,7 +339,7 @@ pub fn is_url_func_attr(attr: &LowerCaseString) -> bool {
         "marker-end",
         "color-profile",
     ]
-    .contains(&attr.get())
+    .contains(&attr.as_ref().as_str())
 }
 
 /// Returns true if every `url(…)` in `value` references a local fragment (i.e. starts with `#`).
@@ -353,7 +351,7 @@ pub fn is_url_func_attr(attr: &LowerCaseString) -> bool {
 /// `image-set()`, `cross-fade()`, `src()`) that can reference external URLs but whose
 /// argument syntax differs from `url()`.
 pub fn has_safe_url_func(value: &LowerCaseString) -> bool {
-    let v = value.get();
+    let v = value.as_ref().as_str();
 
     if ["image(", "image-set(", "-webkit-image-set(", "cross-fade(", "src("]
         .iter()
@@ -428,5 +426,5 @@ pub fn is_safe_url(value: &UrlUnescapedString) -> bool {
 
 /// Allows `aria-*` and `data-*` attributes through regardless of the static set.
 pub fn is_allowed_by_prefix(attr: &LowerCaseString) -> bool {
-    attr.get().starts_with("aria-") || attr.get().starts_with("data-")
+    attr.as_ref().starts_with("aria-") || attr.as_ref().starts_with("data-")
 }
