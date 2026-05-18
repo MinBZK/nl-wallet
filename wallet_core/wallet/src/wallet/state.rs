@@ -5,6 +5,7 @@ use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
 use tracing::info;
@@ -17,19 +18,22 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::Wallet;
 use crate::account_provider::AccountProviderClient;
+use crate::errors::ChangePinError;
 use crate::errors::StorageError;
 use crate::errors::UpdatePolicyError;
+use crate::instruction::InstructionClient;
+use crate::instruction::InstructionClientParameters;
 use crate::pin::change::ChangePinStorage;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::PinRecoveryData;
+use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::storage::TransferData;
 use crate::storage::TransferKeyData;
 use crate::wallet::DisclosureError;
 use crate::wallet::IssuanceError;
 use crate::wallet::Session;
-use crate::wallet::disclosure::AttestedKeyAndRegistrationData;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -110,6 +114,13 @@ pub enum TransferRole {
     Source,
     Destination,
 }
+
+#[expect(type_alias_bounds, reason = "without this bound it doesn't compile")]
+pub(crate) type AttestedKeyRegistrationDataAndConfig<AKH: AttestedKeyHolder> = (
+    Arc<AttestedKey<AKH::AppleKey, AKH::GoogleKey>>,
+    RegistrationData,
+    Arc<WalletConfiguration>,
+);
 
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
@@ -221,7 +232,7 @@ where
 
     pub(super) async fn check_accept_session_preconditions(
         &mut self,
-    ) -> Result<(AttestedKeyAndRegistrationData<AKH>, Arc<WalletConfiguration>), CheckPreconditionsError>
+    ) -> Result<AttestedKeyRegistrationDataAndConfig<AKH>, CheckPreconditionsError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -249,7 +260,32 @@ where
             return Err(CheckPreconditionsError::Locked);
         }
 
-        Ok(((Arc::clone(attested_key), registration_data.to_owned()), config))
+        Ok((Arc::clone(attested_key), registration_data.to_owned(), config))
+    }
+
+    pub(super) async fn prepare_remote_instruction_client(
+        &mut self,
+        pin: String,
+        (attested_key, registration_data, config): AttestedKeyRegistrationDataAndConfig<AKH>,
+    ) -> Result<InstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC>, ChangePinError>
+    where
+        CR: Repository<Arc<WalletConfiguration>>,
+        APC: AccountProviderClient,
+    {
+        let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
+
+        self.new_instruction_client(
+            pin,
+            attested_key,
+            InstructionClientParameters::new(
+                registration_data.wallet_id,
+                registration_data.pin_salt,
+                registration_data.wallet_certificate,
+                config.account_server.http_config.clone(),
+                instruction_result_public_key,
+            ),
+        )
+        .await
     }
 
     #[instrument(skip_all)]

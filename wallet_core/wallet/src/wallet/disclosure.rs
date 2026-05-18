@@ -36,7 +36,6 @@ use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::disclosure_session::VpVerifierError;
 use openid4vc::verifier::SessionType;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
-use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureError as PlatformCloseProximityDisclosureError;
@@ -68,7 +67,6 @@ use crate::attestation::AttestationPresentation;
 use crate::attestation::AttestationPresentationConfig;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
-use crate::instruction::InstructionClientParameters;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
@@ -76,12 +74,12 @@ use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::DisclosableAttestation;
 use crate::storage::PartialAttestation;
-use crate::storage::RegistrationData;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::wallet::HistoryError;
 use crate::wallet::Session;
 use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureError;
+use crate::wallet::state::AttestedKeyRegistrationDataAndConfig;
 use crate::wallet::state::CheckPreconditionsError;
 
 #[derive(Debug, Clone)]
@@ -446,10 +444,6 @@ pub(super) fn requested_attribute_paths<'a, T: AttestationRequest + 'a>(
     })
 }
 
-#[expect(type_alias_bounds, reason = "without this bound it doesn't compile")]
-pub(crate) type AttestedKeyAndRegistrationData<AKH: AttestedKeyHolder> =
-    (Arc<AttestedKey<AKH::AppleKey, AKH::GoogleKey>>, RegistrationData);
-
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
@@ -487,34 +481,6 @@ where
             .collect();
 
         (attestation_presentations, result)
-    }
-
-    pub(super) async fn prepare_remote_wscd(
-        &mut self,
-        pin: String,
-        (attested_key, registration_data): AttestedKeyAndRegistrationData<AKH>,
-    ) -> Result<RemoteEcdsaWscd<S, AKH::AppleKey, AKH::GoogleKey, APC>, DisclosureError>
-    where
-        APC: AccountProviderClient,
-    {
-        let config = self.config_repository.get();
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
-
-        let remote_instruction = self
-            .new_instruction_client(
-                pin,
-                attested_key,
-                InstructionClientParameters::new(
-                    registration_data.wallet_id,
-                    registration_data.pin_salt,
-                    registration_data.wallet_certificate,
-                    config.account_server.http_config.clone(),
-                    instruction_result_public_key,
-                ),
-            )
-            .await?;
-
-        Ok(RemoteEcdsaWscd::new(remote_instruction))
     }
 
     /// Helper method that fetches attestation from the database based on their attestation type, filters out any of
@@ -793,7 +759,7 @@ where
     {
         info!("Accepting disclosure");
 
-        let (attested_key_and_registration_data, _) = self.check_accept_session_preconditions().await?;
+        let attested_key_registration_data_and_config = self.check_accept_session_preconditions().await?;
 
         // We have to take ownership of the disclosure session here, so that `session`
         // below doesn't borrow from `self`, as we also borrow mutably from `self` here.
@@ -804,7 +770,7 @@ where
                     selected_indices,
                     pin,
                     RedirectUriPurpose::Browser,
-                    attested_key_and_registration_data,
+                    attested_key_registration_data_and_config,
                 )
                 .await
             }
@@ -813,7 +779,7 @@ where
                     session,
                     selected_indices,
                     pin,
-                    attested_key_and_registration_data,
+                    attested_key_registration_data_and_config,
                 )
                 .await?;
 
@@ -833,7 +799,7 @@ where
         selected_indices: &[usize],
         pin: String,
         redirect_uri_purpose: RedirectUriPurpose,
-        attested_key_and_registration_data: AttestedKeyAndRegistrationData<AKH>,
+        attested_key_registration_data_and_config: AttestedKeyRegistrationDataAndConfig<AKH>,
     ) -> Result<Option<Url>, DisclosureError>
     where
         S: Storage,
@@ -856,11 +822,14 @@ where
         }
 
         // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
-        let remote_wscd = match self.prepare_remote_wscd(pin, attested_key_and_registration_data).await {
-            Ok(ok) => ok,
+        let remote_wscd = match self
+            .prepare_remote_instruction_client(pin, attested_key_registration_data_and_config)
+            .await
+        {
+            Ok(remote_instruction_client) => RemoteEcdsaWscd::new(remote_instruction_client),
             Err(e) => {
                 self.session.replace(Session::Disclosure(session));
-                return Err(e);
+                return Err(e.into());
             }
         };
 

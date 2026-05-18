@@ -80,7 +80,7 @@ where
     ) -> Result<Vec<AttestationPresentation>, DisclosureBasedIssuanceError> {
         info!("Continuing disclosure based issuance");
 
-        let (attested_key_and_registration_data, config) = self.check_accept_session_preconditions().await?;
+        let (attested_key, registration_data, config) = self.check_accept_session_preconditions().await?;
 
         info!("Checking if a disclosure session is present");
         let Some(Session::Disclosure(session)) = self.session.take() else {
@@ -100,7 +100,7 @@ where
                 selected_indices,
                 pin,
                 RedirectUriPurpose::Issuance,
-                attested_key_and_registration_data,
+                (attested_key, registration_data, Arc::clone(&config)),
             )
             .await
         {

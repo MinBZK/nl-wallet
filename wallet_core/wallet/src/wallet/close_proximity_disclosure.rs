@@ -60,6 +60,7 @@ use crate::account_provider::AccountProviderClient;
 use crate::errors::InstructionError;
 use crate::errors::RemoteEcdsaKeyError;
 use crate::errors::UpdatePolicyError;
+use crate::instruction::RemoteEcdsaWscd;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::DisclosableAttestation;
@@ -67,11 +68,11 @@ use crate::storage::PartialAttestation;
 use crate::storage::Storage;
 use crate::wallet::DisclosureError;
 use crate::wallet::Session;
-use crate::wallet::disclosure::AttestedKeyAndRegistrationData;
 use crate::wallet::disclosure::RedirectUriPurpose;
 use crate::wallet::disclosure::WalletDisclosureAttestations;
 use crate::wallet::disclosure::instruction_error_from_signing_error;
 use crate::wallet::disclosure::requested_attribute_paths;
+use crate::wallet::state::AttestedKeyRegistrationDataAndConfig;
 
 #[derive(Debug)]
 pub enum CloseProximityDisclosureUpdate {
@@ -465,7 +466,7 @@ where
         close_proximity_session: CloseProximityDisclosureSession,
         selected_indices: &[usize],
         pin: String,
-        attested_key_and_registration_data: AttestedKeyAndRegistrationData<AKH>,
+        attested_key_registration_data_and_config: AttestedKeyRegistrationDataAndConfig<AKH>,
     ) -> Result<(), DisclosureError>
     where
         S: Storage,
@@ -488,12 +489,15 @@ where
         let reader_certificate = verifier_certificate.certificate().clone();
 
         // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
-        let remote_wscd = match self.prepare_remote_wscd(pin, attested_key_and_registration_data).await {
-            Ok(ok) => ok,
+        let remote_wscd = match self
+            .prepare_remote_instruction_client(pin, attested_key_registration_data_and_config)
+            .await
+        {
+            Ok(remote_instruction_client) => RemoteEcdsaWscd::new(remote_instruction_client),
             Err(e) => {
                 self.session
                     .replace(Session::CloseProximityDisclosure(close_proximity_session));
-                return Err(e);
+                return Err(e.into());
             }
         };
 

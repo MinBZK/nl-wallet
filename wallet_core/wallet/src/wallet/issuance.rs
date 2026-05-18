@@ -54,7 +54,6 @@ use crate::errors::ChangePinError;
 use crate::errors::HistoryError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClient;
-use crate::instruction::InstructionClientParameters;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
@@ -443,25 +442,14 @@ where
     {
         info!("Accepting issuance");
 
-        let ((attested_key, registration_data), config) = self.check_accept_session_preconditions().await?;
+        let (attested_key, registration_data, config) = self.check_accept_session_preconditions().await?;
 
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
-
-        let remote_instruction = self
-            .new_instruction_client(
-                pin,
-                attested_key,
-                InstructionClientParameters::new(
-                    registration_data.wallet_id.clone(),
-                    registration_data.pin_salt.clone(),
-                    registration_data.wallet_certificate.clone(),
-                    config.account_server.http_config.clone(),
-                    instruction_result_public_key,
-                ),
-            )
+        // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
+        let remote_instruction_client = self
+            .prepare_remote_instruction_client(pin, (attested_key, registration_data, Arc::clone(&config)))
             .await?;
 
-        let remote_wscd = RemoteEcdsaWscd::new(remote_instruction.clone());
+        let remote_wscd = RemoteEcdsaWscd::new(remote_instruction_client.clone());
 
         info!("Checking if there is an active issuance session");
         let Some(Session::Issuance(WalletIssuanceSession::Issuance {
@@ -508,7 +496,7 @@ where
             info!("This is a PID issuance session, therefore disclosing recovery code");
             self.disclose_recovery_code(
                 &config.pid_attributes,
-                &remote_instruction,
+                &remote_instruction_client,
                 &issued_credentials_with_metadata,
             )
             .await?
