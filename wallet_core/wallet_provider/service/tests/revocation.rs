@@ -23,9 +23,9 @@ use p256::ecdsa::SigningKey;
 use rstest::rstest;
 use status_lists::config::StatusListConfig;
 use status_lists::postgres::PostgresStatusListService;
+use status_lists::postgres::revocation_helper::PostgresRevocationHelper;
 use status_lists::publish::PublishDir;
 use token_status_list::status_list::StatusType;
-use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListToken;
 use utils::generator::mock::MockTimeGenerator;
@@ -67,13 +67,16 @@ use wallet_provider_service::wia_issuer::mock::MockWiaIssuer;
 async fn setup_state(
     db_setup: &DbSetup,
     publish_dir: PublishDir,
-) -> UserState<
-    Repositories,
-    StubWalletFlags,
-    MockPkcs11Client<HsmError>,
-    MockWiaIssuer,
-    PostgresStatusListService<SigningKey, StubWalletFlags>,
-> {
+) -> (
+    UserState<
+        Repositories,
+        StubWalletFlags,
+        MockPkcs11Client<HsmError>,
+        MockWiaIssuer,
+        PostgresStatusListService<SigningKey, StubWalletFlags>,
+    >,
+    PostgresRevocationHelper,
+) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let db: Db = db_from_setup(db_setup).await;
 
@@ -86,26 +89,31 @@ async fn setup_state(
         refresh_threshold: Duration::from_secs(600),
         ttl: None,
         base_url: "https://example.com/".parse().unwrap(),
+        context_path: "tsl".to_string(),
         publish_dir,
         key_pair,
     };
 
+    let db_connection = db.to_connection();
     let flags = StubWalletFlags::default();
-    let service = PostgresStatusListService::try_new(db.to_connection(), &random_string(20), config, flags.clone())
+    let service = PostgresStatusListService::try_new(&random_string(20), db_connection.clone(), config, flags.clone())
         .await
         .unwrap();
     try_join_all(service.initialize_lists().await.unwrap()).await.unwrap();
 
     let hsm = setup_hsm().await;
 
-    user_state(
+    let state = user_state(
         Repositories::from(db),
         flags,
         hsm,
         "wrapping_key_identifier".to_owned(),
         vec![],
         service,
-    )
+    );
+    let helper = PostgresRevocationHelper::new(db_connection);
+
+    (state, helper)
 }
 
 async fn register_wallets_with_wias(
@@ -174,6 +182,7 @@ async fn status_type_for_claim(StatusClaim::StatusList(claim): &StatusClaim, pub
         )
 }
 
+#[expect(clippy::too_many_arguments, reason = "Test function")]
 async fn verify_revocation(
     wallet_ids: impl IntoIterator<Item = &WalletId>,
     expected_revocation_reason: Option<RevocationReason>,
@@ -186,6 +195,7 @@ async fn verify_revocation(
         MockWiaIssuer,
         PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
+    revocation_helper: &PostgresRevocationHelper,
     expected_status_type: StatusType,
 ) {
     // verify wallet revocation
@@ -212,9 +222,8 @@ async fn verify_revocation(
     .await;
 
     // verify wia revocation
-    let status_list_service = &user_state.status_list_service;
     join_all(wia_id_and_claim.into_iter().map(async |(wia_id, wia_claim)| {
-        let batch = status_list_service.get_attestation_batch(*wia_id).await.unwrap();
+        let batch = revocation_helper.get_attestation_batch(*wia_id).await.unwrap();
         assert_eq!(expected_status_type == StatusType::Invalid, batch.is_revoked);
 
         // only verify status list content if publish dir is provided
@@ -315,7 +324,7 @@ async fn test_revoke_wallet(#[case] wias_per_wallet: Vec<usize>, #[case] indices
     let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
+    let (user_state, revocation_helper) = setup_state(&db_setup, publish_dir.clone()).await;
 
     let (wallets, wias) = register_wallets_with_wias(wias_per_wallet, &user_state).await;
 
@@ -326,6 +335,7 @@ async fn test_revoke_wallet(#[case] wias_per_wallet: Vec<usize>, #[case] indices
         wias.iter().flatten(),
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Valid,
     )
     .await;
@@ -352,6 +362,7 @@ async fn test_revoke_wallet(#[case] wias_per_wallet: Vec<usize>, #[case] indices
         revoked_wia_ids.iter(),
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Invalid,
     )
     .await;
@@ -361,6 +372,7 @@ async fn test_revoke_wallet(#[case] wias_per_wallet: Vec<usize>, #[case] indices
         non_revoked_wia_ids.iter(),
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Valid,
     )
     .await;
@@ -380,6 +392,7 @@ async fn test_revoke_wallet(#[case] wias_per_wallet: Vec<usize>, #[case] indices
         revoked_wia_ids.iter(),
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Invalid,
     )
     .await;
@@ -389,6 +402,7 @@ async fn test_revoke_wallet(#[case] wias_per_wallet: Vec<usize>, #[case] indices
         non_revoked_wia_ids.iter(),
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Valid,
     )
     .await;
@@ -399,7 +413,7 @@ async fn test_revoke_wallet_not_found() {
     let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
+    let (user_state, revocation_helper) = setup_state(&db_setup, publish_dir.clone()).await;
 
     let (wallets, wias) = register_wallets_with_wias(vec![1], &user_state).await;
     let wias = wias.into_iter().flatten().collect_vec();
@@ -411,6 +425,7 @@ async fn test_revoke_wallet_not_found() {
         &wias,
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Valid,
     )
     .await;
@@ -449,6 +464,7 @@ async fn test_revoke_wallet_not_found() {
         &wias,
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Valid,
     )
     .await;
@@ -459,7 +475,7 @@ async fn test_revoke_wallet_wia_error() {
     let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
+    let (user_state, revocation_helper) = setup_state(&db_setup, publish_dir.clone()).await;
 
     let (wallets, wias) = register_wallets_with_wias(vec![1], &user_state).await;
 
@@ -470,6 +486,7 @@ async fn test_revoke_wallet_wia_error() {
         wias.iter().flatten(),
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Valid,
     )
     .await;
@@ -499,6 +516,7 @@ async fn test_revoke_wallet_wia_error() {
         wias.iter().flatten(),
         None, // no publish dir available anymore
         &user_state,
+        &revocation_helper,
         StatusType::Invalid,
     )
     .await;
@@ -509,7 +527,7 @@ async fn test_revoke_wallet_by_revocation_code() {
     let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
+    let (user_state, revocation_helper) = setup_state(&db_setup, publish_dir.clone()).await;
 
     let (wallets_with_codes, wias) =
         register_wallets_to_revoke_with_revocation_codes(vec![4], &user_state, REVOCATION_CODE_KEY_IDENTIFIER).await;
@@ -524,6 +542,7 @@ async fn test_revoke_wallet_by_revocation_code() {
         &wias,
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Valid,
     )
     .await;
@@ -547,6 +566,7 @@ async fn test_revoke_wallet_by_revocation_code() {
         &wias,
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Invalid,
     )
     .await;
@@ -573,6 +593,7 @@ async fn test_revoke_wallet_by_revocation_code() {
         &wias,
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Invalid,
     )
     .await;
@@ -583,7 +604,7 @@ async fn test_revoke_wallet_by_revocation_code_not_found() {
     let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
+    let (user_state, revocation_helper) = setup_state(&db_setup, publish_dir.clone()).await;
 
     let (_wallets_with_codes, wias) =
         register_wallets_to_revoke_with_revocation_codes(vec![1], &user_state, REVOCATION_CODE_KEY_IDENTIFIER).await;
@@ -614,6 +635,7 @@ async fn test_revoke_wallet_by_revocation_code_not_found() {
         &wias,
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Valid,
     )
     .await;
@@ -624,7 +646,7 @@ async fn test_revoke_wallet_by_revocation_code_hsm_error() {
     let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(&db_setup, publish_dir).await;
+    let (user_state, _) = setup_state(&db_setup, publish_dir).await;
 
     // remove the symmetric key, so sign_hmac will fail
     user_state
@@ -649,7 +671,7 @@ async fn test_revoke_wallet_by_revocation_code_wia_error() {
     let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
+    let (user_state, revocation_helper) = setup_state(&db_setup, publish_dir.clone()).await;
 
     let (wallets_with_codes, wias) =
         register_wallets_to_revoke_with_revocation_codes(vec![1], &user_state, REVOCATION_CODE_KEY_IDENTIFIER).await;
@@ -663,6 +685,7 @@ async fn test_revoke_wallet_by_revocation_code_wia_error() {
         &wias,
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Valid,
     )
     .await;
@@ -695,6 +718,7 @@ async fn test_revoke_wallet_by_revocation_code_wia_error() {
         &wias,
         None, // publish dir is gone
         &user_state,
+        &revocation_helper,
         StatusType::Invalid,
     )
     .await;
@@ -705,7 +729,7 @@ async fn test_revoke_wallet_by_recovery_code() {
     let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
+    let (user_state, revocation_helper) = setup_state(&db_setup, publish_dir.clone()).await;
 
     let (wallet_ids, wias) = register_wallets_with_wias(vec![1, 1, 1], &user_state).await;
 
@@ -716,6 +740,7 @@ async fn test_revoke_wallet_by_recovery_code() {
         wias.iter().flatten(),
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Valid,
     )
     .await;
@@ -767,6 +792,7 @@ async fn test_revoke_wallet_by_recovery_code() {
         &revoked_wia_ids,
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Invalid,
     )
     .await;
@@ -777,6 +803,7 @@ async fn test_revoke_wallet_by_recovery_code() {
         &non_revoked_wia_ids,
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Valid,
     )
     .await;
@@ -797,6 +824,7 @@ async fn test_revoke_wallet_by_recovery_code() {
         &revoked_wia_ids,
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Invalid,
     )
     .await;
@@ -806,6 +834,7 @@ async fn test_revoke_wallet_by_recovery_code() {
         &non_revoked_wia_ids,
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Valid,
     )
     .await;
@@ -816,7 +845,7 @@ async fn test_list_and_remove_denied_recovery_codes_service() {
     let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(&db_setup, publish_dir).await;
+    let (user_state, _) = setup_state(&db_setup, publish_dir).await;
 
     let recovery_code: RecoveryCode = random_string(64).into();
 
@@ -851,7 +880,7 @@ async fn test_remove_nonexistent_denied_recovery_code_service() {
     let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(&db_setup, publish_dir).await;
+    let (user_state, _) = setup_state(&db_setup, publish_dir).await;
 
     let recovery_code = random_string(64).into();
 
@@ -873,7 +902,7 @@ async fn test_revoke_solution() {
 
     let temp_dir = tempfile::tempdir().unwrap();
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
-    let user_state = setup_state(&db_setup, publish_dir.clone()).await;
+    let (user_state, revocation_helper) = setup_state(&db_setup, publish_dir.clone()).await;
 
     let (wallet_ids, wias) = register_wallets_with_wias(vec![1, 1, 1], &user_state).await;
 
@@ -884,6 +913,7 @@ async fn test_revoke_solution() {
         wias.iter().flatten(),
         Some(&publish_dir),
         &user_state,
+        &revocation_helper,
         StatusType::Valid,
     )
     .await;

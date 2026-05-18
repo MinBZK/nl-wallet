@@ -20,6 +20,7 @@ pub struct StatusListConfig<K> {
     pub ttl: Option<Duration>,
 
     pub base_url: BaseUrl,
+    pub context_path: String,
     pub publish_dir: PublishDir,
     pub key_pair: KeyPair<K>,
 }

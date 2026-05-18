@@ -80,7 +80,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -282629852;
+  int get rustContentHash => 879366194;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -104,6 +104,8 @@ abstract class WalletCoreApi extends BaseApi {
   Future<void> crateApiFullCancelIssuance();
 
   Future<void> crateApiFullCancelPinRecovery();
+
+  Future<String?> crateApiFullCancelSession();
 
   Future<void> crateApiFullCancelWalletTransfer();
 
@@ -373,6 +375,29 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullCancelPinRecoveryConstMeta => const TaskConstMeta(
     debugName: "cancel_pin_recovery",
+    argNames: [],
+  );
+
+  @override
+  Future<String?> crateApiFullCancelSession() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__full__cancel_session(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_opt_String,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullCancelSessionConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullCancelSessionConstMeta => const TaskConstMeta(
+    debugName: "cancel_session",
     argNames: [],
   );
 

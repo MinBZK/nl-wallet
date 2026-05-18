@@ -8,20 +8,19 @@ object AppiumServiceProvider {
     var service: AppiumDriverLocalService? = null
         private set
 
-    fun startService() {
-        if (service != null) throw UnsupportedOperationException("Service already running!")
-
-        val serviceBuilder = AppiumServiceBuilder()
-            .usingAnyFreePort() // Use any port, in case the default 4723 is already taken
-            .withArgument(GeneralServerFlag.ALLOW_INSECURE, "chromedriver_autodownload")
-            .withArgument(GeneralServerFlag.DEBUG_LOG_SPACING)
-            .withArgument(GeneralServerFlag.LOG_LEVEL, "info")
-            .withArgument(GeneralServerFlag.RELAXED_SECURITY)
-            .withArgument(GeneralServerFlag.SESSION_OVERRIDE)
-
-        val built = AppiumDriverLocalService.buildService(serviceBuilder)
-            ?: throw IllegalStateException("Appium driver is not started!")
-        service = built.also { it.start() }
+    fun startService(sessionOverride: Boolean = true) {
+        if (service != null) return
+        service = AppiumDriverLocalService.buildService(
+            AppiumServiceBuilder()
+                .usingAnyFreePort()
+                .withArgument(GeneralServerFlag.ALLOW_INSECURE, "chromedriver_autodownload")
+                .withArgument(GeneralServerFlag.DEBUG_LOG_SPACING)
+                .withArgument(GeneralServerFlag.LOG_LEVEL, "info")
+                .withArgument(GeneralServerFlag.RELAXED_SECURITY)
+                // SESSION_OVERRIDE omitted when false — two concurrent sessions must coexist
+                .apply { if (sessionOverride) withArgument(GeneralServerFlag.SESSION_OVERRIDE) }
+        )?.also { it.start() } ?: throw IllegalStateException("Failed to build Appium service")
+        Runtime.getRuntime().addShutdownHook(Thread { stopService() })
     }
 
     fun stopService() {

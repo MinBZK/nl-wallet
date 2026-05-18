@@ -80,14 +80,15 @@ async fn do_registration(
         ttl: None,
 
         base_url: "http://example.com".parse().unwrap(), // unused
+        context_path: "tsl".to_string(),
         publish_dir: std::env::temp_dir().to_path_buf().try_into().unwrap(),
         key_pair, // unused
     };
 
     let flags = StubWalletFlags::default();
     let status_list_service = PostgresStatusListService::try_new(
-        db_connection,
         WIA_ATTESTATION_TYPE_IDENTIFIER,
+        db_connection,
         wia_status_list_config,
         flags.clone(),
     )

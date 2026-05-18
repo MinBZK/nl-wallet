@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::num::NonZeroU8;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
@@ -12,16 +13,24 @@ use derive_more::Debug;
 use derive_more::From;
 use derive_more::IntoIterator;
 use futures::future::try_join_all;
+use health_checkers::postgres::DatabaseChecker;
+use hsm::service::HsmError;
 use hsm::service::Pkcs11Hsm;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::HttpsUri;
 use itertools::Itertools;
 use openid4vc::Format;
 use openid4vc::credential_configurations::CredentialConfigurationParameters;
+use openid4vc::credential_configurations::CredentialConfigurationsError;
+use openid4vc::issuer::IssuanceData;
+use openid4vc::issuer::Issuer;
+use openid4vc::issuer::WiaConfig;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+use sea_orm::DatabaseConnection;
+use sea_orm::DbErr;
 use serde::Deserialize;
 use serde_with::TryFromInto;
 use serde_with::serde_as;
@@ -31,13 +40,20 @@ use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
-use status_lists::config::StatusListConfig;
-use status_lists::config::StatusListConfigs;
+use server_utils::store::SessionStoreVariant;
+use server_utils::store::StoreConnection;
+use server_utils::store::StoreError;
+use server_utils::store::postgres::new_connection;
+use status_lists::postgres::NoRevokeAll;
+use status_lists::postgres::PostgresStatusListService;
+use status_lists::postgres::StatusListServiceError;
 use status_lists::publish::PublishDir;
 use status_lists::settings::ExpiryLessThanTtl;
 use status_lists::settings::StatusListsSettings;
 use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
+
+use crate::nonce_store::ProofNonceStore;
 
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
@@ -65,6 +81,8 @@ pub struct IssuerSettings {
     #[serde(flatten)]
     #[debug(skip)]
     pub server_settings: Settings,
+
+    pub status_lists: StatusListsSettings,
 }
 
 #[derive(Debug, Clone, AsRef)]
@@ -182,61 +200,88 @@ pub enum CredentialConfigurationsSettingsError {
 
     #[error("could not compile SD-JWT VC Type Metadata chain: {0}")]
     TypeMetadataChain(#[source] TypeMetadataDocumentsError),
+
+    #[error("could not initialize status: {0}")]
+    StatusList(#[source] StatusListAttestationSettingsError),
 }
 
 impl CredentialConfigurationsSettings {
     pub async fn into_params(
         self,
-        hsm: &Option<Pkcs11Hsm>,
+        status_list_connection: DatabaseConnection,
+        public_url: BaseUrl,
+        hsm: Option<Pkcs11Hsm>,
+        status_list_settings: &StatusListsSettings,
         metadata_by_vct: &TypeMetadataByVct,
     ) -> Result<
-        HashMap<CredentialConfigurationId, CredentialConfigurationParameters<PrivateKeyVariant>>,
+        HashMap<
+            CredentialConfigurationId,
+            CredentialConfigurationParameters<
+                PrivateKeyVariant,
+                PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
+            >,
+        >,
         CredentialConfigurationsSettingsError,
     > {
         let Self(inner) = self;
 
-        let config_params = try_join_all(inner.into_iter().map(|(config_id, settings)| {
-            async move {
-                // Take the SAN from the settings if specified, or otherwise take the first SAN from the
-                // certificate. NB: the settings validation function will have verified before
-                // this that the certificate contains just one SAN.
-                let issuer_uri = match settings.certificate_san {
-                    Some(san) => san,
-                    None => {
-                        let san_dns_name_or_uris = settings
+        let config_count = inner.len();
+        let config_params = try_join_all(
+            inner
+                .into_iter()
+                .zip_eq(itertools::repeat_n(
+                    (status_list_connection, public_url, hsm),
+                    config_count,
+                ))
+                .map(|((config_id, settings), (status_list_connection, public_url, hsm))| {
+                    async move {
+                        // Take the SAN from the settings if specified, or otherwise take the first SAN from the
+                        // certificate. NB: the settings validation function will have verified before
+                        // this that the certificate contains just one SAN.
+                        let issuer_uri = match settings.certificate_san {
+                            Some(san) => san,
+                            None => {
+                                let san_dns_name_or_uris = settings
+                                    .keypair
+                                    .certificate
+                                    .san_dns_name_or_uris()
+                                    .map_err(CredentialConfigurationsSettingsError::CertificateSanDns)?;
+
+                                san_dns_name_or_uris.first().clone()
+                            }
+                        };
+
+                        let metadata_documents = metadata_by_vct
+                            .to_metadata_documents(&settings.attestation_type)
+                            .map_err(CredentialConfigurationsSettingsError::TypeMetadataChain)?;
+
+                        let key_pair = settings
                             .keypair
-                            .certificate
-                            .san_dns_name_or_uris()
-                            .map_err(CredentialConfigurationsSettingsError::CertificateSanDns)?;
+                            .parse(hsm.clone())
+                            .await
+                            .map_err(CredentialConfigurationsSettingsError::PrivateKey)?;
 
-                        san_dns_name_or_uris.first().clone()
+                        let status_list = settings
+                            .status_list
+                            .into_service(status_list_connection, public_url, hsm, status_list_settings)
+                            .await
+                            .map_err(CredentialConfigurationsSettingsError::StatusList)?;
+
+                        let params = CredentialConfigurationParameters {
+                            format: settings.format,
+                            attestation_type: settings.attestation_type,
+                            key_pair,
+                            status_list,
+                            valid_days: Days::new(settings.valid_days),
+                            issuer_uri,
+                            attestation_qualification: settings.attestation_qualification,
+                            metadata_documents,
+                        };
+
+                        Ok::<_, CredentialConfigurationsSettingsError>((config_id, params))
                     }
-                };
-
-                let metadata_documents = metadata_by_vct
-                    .to_metadata_documents(&settings.attestation_type)
-                    .map_err(CredentialConfigurationsSettingsError::TypeMetadataChain)?;
-
-                let key_pair = settings
-                    .keypair
-                    .parse(hsm.clone())
-                    .await
-                    .map_err(CredentialConfigurationsSettingsError::PrivateKey)?;
-
-                let params = CredentialConfigurationParameters {
-                    format: settings.format,
-                    attestation_type: settings.attestation_type,
-                    key_pair,
-                    valid_days: Days::new(settings.valid_days),
-                    status_list_group: settings.status_list.group_name,
-                    issuer_uri,
-                    attestation_qualification: settings.attestation_qualification,
-                    metadata_documents,
-                };
-
-                Ok::<_, CredentialConfigurationsSettingsError>((config_id, params))
-            }
-        }))
+                }),
+        )
         .await?
         .into_iter()
         .collect();
@@ -246,7 +291,7 @@ impl CredentialConfigurationsSettings {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum IssuerSettingsError {
+pub enum IssuerSettingsValidationError {
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
     #[error("error verifying certificate: {0}")]
@@ -268,8 +313,35 @@ pub enum IssuerSettingsError {
     },
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum IssuerSettingsError {
+    #[error("could not initialize HSM: {0}")]
+    Hsm(#[source] HsmError),
+
+    #[error("could not initialize credential configuration parameters: {0}")]
+    CredentialConfigurationParameters(#[source] CredentialConfigurationsSettingsError),
+
+    #[error("could not initialize storage: {0}")]
+    Storage(#[source] StoreError),
+
+    #[error("could not connect to status list database: {0}")]
+    StatusListDatabase(#[source] DbErr),
+
+    #[error("could not parse status list settings: {0}")]
+    StatusListSettings(#[source] StatusListAttestationSettingsError),
+
+    #[error("could not initialize status list service: {0}")]
+    StatusLists(#[source] StatusListServiceError),
+
+    #[error("no database configured for status lists")]
+    NoStatusListDatabase,
+
+    #[error("could not initialize credential configurations: {0}")]
+    CredentialConfigurations(#[source] CredentialConfigurationsError),
+}
+
 impl IssuerSettings {
-    pub fn validate(&self) -> Result<(), IssuerSettingsError> {
+    pub fn validate(&self) -> Result<(), IssuerSettingsValidationError> {
         tracing::debug!("verifying issuer settings");
 
         for (config_id, attestation) in self.credential_configurations.as_ref() {
@@ -282,7 +354,7 @@ impl IssuerSettings {
                     .as_ref()
                     .contains(certificate_san)
                 {
-                    return Err(IssuerSettingsError::CertificateMissingSan {
+                    return Err(IssuerSettingsValidationError::CertificateMissingSan {
                         config_id: config_id.clone(),
                         san: certificate_san.clone(),
                     });
@@ -290,7 +362,7 @@ impl IssuerSettings {
             } else {
                 // If not, then there must be only one SAN in the certificate so there is no disambiguation.
                 if attestation.keypair.certificate.san_dns_name_or_uris()?.len().get() > 1 {
-                    return Err(IssuerSettingsError::CertificateSanUnspecified {
+                    return Err(IssuerSettingsValidationError::CertificateSanUnspecified {
                         config_id: config_id.clone(),
                     });
                 }
@@ -323,7 +395,7 @@ impl IssuerSettings {
             let attestation_dn = attestation.keypair.certificate.distinguished_name()?;
             let status_list_dn = attestation.status_list.keypair.certificate.distinguished_name()?;
             if attestation_dn != status_list_dn {
-                return Err(IssuerSettingsError::CertificatesSubjectNameMismatch {
+                return Err(IssuerSettingsValidationError::CertificatesSubjectNameMismatch {
                     config_id: config_id.clone(),
                     attestation: attestation_dn,
                     status_list: status_list_dn,
@@ -333,15 +405,113 @@ impl IssuerSettings {
 
         Ok(())
     }
+
+    pub async fn into_issuer<A, PAS, PKS, UAA>(
+        self,
+        hsm: Option<Pkcs11Hsm>,
+        wia_config: Option<WiaConfig>,
+        attr_service: A,
+        upstream_authorization_adapter: Option<UAA>,
+    ) -> Result<
+        (
+            Issuer<
+                A,
+                PrivateKeyVariant,
+                PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
+                SessionStoreVariant<IssuanceData>,
+                ProofNonceStore,
+                PAS,
+                PKS,
+                UAA,
+            >,
+            Vec<DatabaseChecker>,
+            StoreConnection,
+            Settings,
+        ),
+        IssuerSettingsError,
+    >
+    where
+        PAS: Default,
+        PKS: Default,
+    {
+        let mut database_checkers = Vec::with_capacity(1);
+
+        let store_connection = StoreConnection::try_new(self.server_settings.storage.url.clone())
+            .await
+            .map_err(IssuerSettingsError::Storage)?;
+
+        if let StoreConnection::Postgres(connection) = &store_connection {
+            let name = if self.status_lists.storage_url.is_some() {
+                "db-stores"
+            } else {
+                "db"
+            };
+
+            database_checkers.push(DatabaseChecker::new(name, connection));
+        }
+
+        let sessions = SessionStoreVariant::new(store_connection.clone(), (&self.server_settings.storage).into());
+        let proof_nonce_store = ProofNonceStore::new(store_connection.clone());
+
+        let status_list_connection = match (&store_connection, self.status_lists.storage_url.clone()) {
+            (_, Some(url)) => {
+                let connection = new_connection(url)
+                    .await
+                    .map_err(IssuerSettingsError::StatusListDatabase)?;
+                database_checkers.push(DatabaseChecker::new("db-status-list", &connection));
+
+                connection
+            }
+            (StoreConnection::Postgres(connection), None) => connection.clone(),
+            _ => {
+                return Err(IssuerSettingsError::NoStatusListDatabase);
+            }
+        };
+
+        let config_params = self
+            .credential_configurations
+            .into_params(
+                status_list_connection,
+                self.public_url.as_base_url().clone(),
+                hsm,
+                &self.status_lists,
+                &self.metadata,
+            )
+            .await
+            .map_err(IssuerSettingsError::CredentialConfigurationParameters)?;
+
+        let par_store = PAS::default();
+        let pkce_flow_store = PKS::default();
+
+        let issuer = Issuer::try_new(
+            self.public_url,
+            self.batch_size,
+            self.wallet_client_ids,
+            config_params,
+            wia_config,
+            attr_service,
+            Arc::new(sessions),
+            proof_nonce_store,
+            Arc::new(par_store),
+            Arc::new(pkce_flow_store),
+            upstream_authorization_adapter,
+        )
+        .map_err(IssuerSettingsError::CredentialConfigurations)?;
+
+        Ok((issuer, database_checkers, store_connection, self.server_settings))
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum StatusListAttestationSettingsError {
     #[error("incorrectly configured attestation status list expiration: {0}")]
-    ExpiryLessThanTtl(#[from] ExpiryLessThanTtl),
+    ExpiryLessThanTtl(#[source] ExpiryLessThanTtl),
 
     #[error("incorrectly configured attestation status list private key or certificate: {0}")]
-    PrivateKey(#[from] PrivateKeySettingsError),
+    PrivateKey(#[source] PrivateKeySettingsError),
+
+    #[error("could not initialize status list database: {0}")]
+    Service(#[source] DbErr),
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -365,42 +535,29 @@ pub struct StatusListAttestationSettings {
 }
 
 impl StatusListAttestationSettings {
-    pub async fn settings_into_configs(
-        attestation_settings: Vec<StatusListAttestationSettings>,
-        status_list_settings: &StatusListsSettings,
-        public_url: &BaseUrl,
-        hsm: Option<Pkcs11Hsm>,
-    ) -> Result<StatusListConfigs<PrivateKeyVariant>, StatusListAttestationSettingsError> {
-        let attestation_count = attestation_settings.len();
-        let group_names_and_config = try_join_all(
-            attestation_settings
-                .into_iter()
-                .zip_eq(itertools::repeat_n(hsm, attestation_count))
-                .map(|(attestation, hsm)| {
-                    attestation.into_group_name_and_config(status_list_settings, public_url, hsm)
-                }),
-        )
-        .await?;
-
-        Ok(group_names_and_config.into_iter().collect::<HashMap<_, _>>().into())
-    }
-
-    async fn into_group_name_and_config(
+    async fn into_service(
         self,
-        status_list_settings: &StatusListsSettings,
-        public_url: &BaseUrl,
+        connection: DatabaseConnection,
+        public_url: BaseUrl,
         hsm: Option<Pkcs11Hsm>,
-    ) -> Result<(String, StatusListConfig<PrivateKeyVariant>), StatusListAttestationSettingsError> {
-        let base_url = self
-            .base_url
-            .as_ref()
-            .unwrap_or(public_url)
-            .join_base_url(&self.context_path);
-        let key_pair = self.keypair.parse(hsm).await?;
+        status_list_settings: &StatusListsSettings,
+    ) -> Result<PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>, StatusListAttestationSettingsError> {
+        let base_url = self.base_url.unwrap_or(public_url);
+        let key_pair = self
+            .keypair
+            .parse(hsm)
+            .await
+            .map_err(StatusListAttestationSettingsError::PrivateKey)?;
 
-        let config = status_list_settings.to_config(base_url, self.publish_dir, key_pair)?;
+        let config = status_list_settings
+            .to_config(base_url, self.context_path, self.publish_dir, key_pair)
+            .map_err(StatusListAttestationSettingsError::ExpiryLessThanTtl)?;
 
-        Ok((self.group_name, config))
+        let service = PostgresStatusListService::try_new(&self.group_name, connection, config, NoRevokeAll)
+            .await
+            .map_err(StatusListAttestationSettingsError::Service)?;
+
+        Ok(service)
     }
 }
 
@@ -408,6 +565,7 @@ impl StatusListAttestationSettings {
 mod tests {
     use std::collections::HashMap;
     use std::num::NonZeroU8;
+    use std::num::NonZeroU16;
 
     use assert_matches::assert_matches;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -429,12 +587,15 @@ mod tests {
     use server_utils::settings::Settings;
     use server_utils::settings::Storage;
     use status_lists::publish::PublishDir;
+    use status_lists::settings::StatusListsSettings;
+    use utils::num::NonZeroU31;
+    use utils::num::Ratio;
 
     use super::CredentialConfigurationSettings;
     use super::IssuerSettings;
     use super::StatusListAttestationSettings;
     use super::TypeMetadataByVct;
-    use crate::settings::IssuerSettingsError;
+    use crate::settings::IssuerSettingsValidationError;
 
     fn mock_settings(issuer_ca: &Ca) -> IssuerSettings {
         let keypair = generate_issuer_mock_with_registration(issuer_ca, IssuerRegistration::new_mock())
@@ -495,6 +656,15 @@ mod tests {
                 issuer_trust_anchors: vec![issuer_ca.to_borrowing_trust_anchor()],
                 hsm: None,
             },
+            status_lists: StatusListsSettings {
+                storage_url: None,
+                list_size: NonZeroU31::try_new(100_000).unwrap(),
+                create_threshold_ratio: Ratio::try_new(0.1).unwrap(),
+                expiry_in_hours: NonZeroU16::new(24).unwrap(),
+                refresh_threshold_ratio: Ratio::try_new(0.25).unwrap(),
+                ttl_in_minutes: None,
+                serve: true,
+            },
         }
     }
 
@@ -513,7 +683,7 @@ mod tests {
 
         assert_matches!(
             settings.validate().expect_err("should fail"),
-            IssuerSettingsError::CertificateVerification(CertificateVerificationError::MissingTrustAnchors)
+            IssuerSettingsValidationError::CertificateVerification(CertificateVerificationError::MissingTrustAnchors)
         );
     }
 
@@ -570,7 +740,7 @@ mod tests {
 
         assert_matches!(
             settings.validate().expect_err("should fail"),
-            IssuerSettingsError::CertificateVerification(
+            IssuerSettingsValidationError::CertificateVerification(
                 CertificateVerificationError::NoCertificateType(CertificateTypeError::IssuerRegistrationNotFound, key)
             ) if key == "no_registration_sdjwt"
         );
@@ -589,7 +759,7 @@ mod tests {
         settings.credential_configurations = HashMap::from([(typ.clone(), attestation_settings)]).into();
 
         let error = settings.validate().expect_err("should fail");
-        assert_matches!(error, IssuerSettingsError::CertificateMissingSan { san, .. } if san == wrong_san);
+        assert_matches!(error, IssuerSettingsValidationError::CertificateMissingSan { san, .. } if san == wrong_san);
     }
 
     #[test]
@@ -605,7 +775,7 @@ mod tests {
         let error = settings.validate().expect_err("should fail");
         assert_matches!(
             error,
-            IssuerSettingsError::CertificateVerification(
+            IssuerSettingsValidationError::CertificateVerification(
                 CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key)
             ) if key == "pid_sdjwt"
         );
@@ -632,7 +802,7 @@ mod tests {
         let error = settings.validate().expect_err("should fail");
         assert_matches!(
             error,
-            IssuerSettingsError::CertificatesSubjectNameMismatch { config_id, attestation, status_list }
+            IssuerSettingsValidationError::CertificatesSubjectNameMismatch { config_id, attestation, status_list }
                 if config_id.as_ref() == "pid_sdjwt" &&
                     attestation == "CN=cert.issuer.example.com" &&
                     status_list == "CN=different.example.com"

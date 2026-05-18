@@ -54,7 +54,6 @@ use crate::errors::ChangePinError;
 use crate::errors::HistoryError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionClient;
-use crate::instruction::InstructionClientParameters;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaWscd;
@@ -69,21 +68,14 @@ use crate::wallet::Session;
 use crate::wallet::attestations::AttestationsError;
 use crate::wallet::notifications::NotificationsError;
 use crate::wallet::recovery_code::RecoveryCodeError;
+use crate::wallet::state::CheckPreconditionsError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum IssuanceError {
+    #[error("preconditions failed: {0}")]
     #[category(expected)]
-    #[error("app version is blocked")]
-    VersionBlocked,
-
-    #[error("wallet is not registered")]
-    #[category(expected)]
-    NotRegistered,
-
-    #[error("wallet is locked")]
-    #[category(expected)]
-    Locked,
+    CheckPreconditions(#[from] CheckPreconditionsError),
 
     #[error("issuance session is not in the correct state")]
     #[category(expected)]
@@ -154,9 +146,6 @@ pub enum IssuanceError {
 
     #[error("JWT credential error: {0}")]
     JwtCredential(#[from] JwtError),
-
-    #[error("error fetching update policy: {0}")]
-    UpdatePolicy(#[from] UpdatePolicyError),
 
     #[error("error converting credential payload to attestation: {error}")]
     #[category(critical)]
@@ -254,20 +243,7 @@ where
     pub async fn create_pid_issuance_auth_url(&mut self, purpose: PidIssuancePurpose) -> Result<Url, IssuanceError> {
         info!("Generating DigiD auth URL, starting OAuth discovery");
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(IssuanceError::VersionBlocked);
-        }
-
-        info!("Checking if registered");
-        if !self.registration.is_registered() {
-            return Err(IssuanceError::NotRegistered);
-        }
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(IssuanceError::Locked);
-        }
+        self.check_session_preconditions()?;
 
         info!("Checking if there is an active session");
         if self.session.is_some() {
@@ -315,31 +291,13 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn cancel_issuance(&mut self) -> Result<(), IssuanceError> {
+    pub(super) async fn cancel_issuance<AS, IS: IssuanceSession>(
+        &mut self,
+        session: WalletIssuanceSession<AS, IS>,
+    ) -> Result<(), IssuanceError> {
         info!("Issuance cancelled / rejected");
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(IssuanceError::VersionBlocked);
-        }
-
-        info!("Checking if registered");
-        if !self.registration.is_registered() {
-            return Err(IssuanceError::NotRegistered);
-        }
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(IssuanceError::Locked);
-        }
-
-        info!("Checking if there is an active issuance session");
-        if !matches!(self.session, Some(Session::Issuance(..))) {
-            return Err(IssuanceError::SessionState);
-        }
-
-        let session = self.session.take().unwrap();
-        if let Session::Issuance(WalletIssuanceSession::Issuance { protocol_state, .. }) = session {
+        if let WalletIssuanceSession::Issuance { protocol_state, .. } = session {
             let organization = protocol_state.issuer_registration().organization.clone();
 
             info!("Rejecting issuance");
@@ -363,20 +321,7 @@ where
     ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
         info!("Received redirect URI, processing URI and retrieving access token");
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(IssuanceError::VersionBlocked);
-        }
-
-        info!("Checking if registered");
-        if !self.registration.is_registered() {
-            return Err(IssuanceError::NotRegistered);
-        }
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(IssuanceError::Locked);
-        }
+        self.check_session_preconditions()?;
 
         info!("Checking if there is an active OAuth issuance session");
         if !matches!(
@@ -497,47 +442,14 @@ where
     {
         info!("Accepting issuance");
 
-        let config = self.config_repository.get();
+        let (attested_key, registration_data, config) = self.check_accept_session_preconditions().await?;
 
-        info!("Fetching update policy");
-        self.update_policy_repository
-            .fetch(&config.update_policy_server.http_config)
+        // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
+        let remote_instruction_client = self
+            .prepare_remote_instruction_client(pin, (attested_key, registration_data, Arc::clone(&config)))
             .await?;
 
-        info!("Checking if blocked");
-        if self.is_blocked() {
-            return Err(IssuanceError::VersionBlocked);
-        }
-
-        info!("Checking if registered");
-        let (attested_key, registration_data) = self
-            .registration
-            .as_key_and_registration_data()
-            .ok_or_else(|| IssuanceError::NotRegistered)?;
-        let attested_key = Arc::clone(attested_key);
-
-        info!("Checking if locked");
-        if self.lock.is_locked() {
-            return Err(IssuanceError::Locked);
-        }
-
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
-
-        let remote_instruction = self
-            .new_instruction_client(
-                pin,
-                attested_key,
-                InstructionClientParameters::new(
-                    registration_data.wallet_id.clone(),
-                    registration_data.pin_salt.clone(),
-                    registration_data.wallet_certificate.clone(),
-                    config.account_server.http_config.clone(),
-                    instruction_result_public_key,
-                ),
-            )
-            .await?;
-
-        let remote_wscd = RemoteEcdsaWscd::new(remote_instruction.clone());
+        let remote_wscd = RemoteEcdsaWscd::new(remote_instruction_client.clone());
 
         info!("Checking if there is an active issuance session");
         let Some(Session::Issuance(WalletIssuanceSession::Issuance {
@@ -584,7 +496,7 @@ where
             info!("This is a PID issuance session, therefore disclosing recovery code");
             self.disclose_recovery_code(
                 &config.pid_attributes,
-                &remote_instruction,
+                &remote_instruction_client,
                 &issued_credentials_with_metadata,
             )
             .await?
@@ -814,6 +726,7 @@ mod tests {
     use crate::storage::RegistrationData;
     use crate::storage::StorageState;
     use crate::storage::StoredAttestation;
+    use crate::wallet::state::CancelSessionError;
     use crate::wallet::test::AUTH_URL;
     use crate::wallet::test::create_example_credential_payload;
     use crate::wallet::test::create_example_pid_credential_payload;
@@ -898,7 +811,10 @@ mod tests {
             .await
             .expect_err("PID issuance auth URL generation should have resulted in error");
 
-        assert_matches!(error, IssuanceError::Locked);
+        assert_matches!(
+            error,
+            IssuanceError::CheckPreconditions(CheckPreconditionsError::Locked)
+        );
     }
 
     #[rstest]
@@ -916,7 +832,10 @@ mod tests {
             .await
             .expect_err("PID issuance auth URL generation should have resulted in error");
 
-        assert_matches!(error, IssuanceError::NotRegistered);
+        assert_matches!(
+            error,
+            IssuanceError::CheckPreconditions(CheckPreconditionsError::NotRegistered)
+        );
     }
 
     #[rstest]
@@ -979,7 +898,7 @@ mod tests {
         assert!(wallet.session.is_some());
 
         // Cancelling PID issuance should clear this session.
-        wallet.cancel_issuance().await.expect("Could not cancel PID issuance");
+        wallet.cancel_session().await.expect("Could not cancel PID issuance");
 
         assert!(wallet.session.is_none());
     }
@@ -1003,7 +922,7 @@ mod tests {
         }));
 
         // Cancelling PID issuance should not fail.
-        wallet.cancel_issuance().await.expect("Could not cancel PID issuance");
+        wallet.cancel_session().await.expect("Could not cancel PID issuance");
 
         assert!(wallet.session.is_none());
     }
@@ -1017,11 +936,14 @@ mod tests {
 
         // Cancelling PID issuance on a locked wallet should result in an error.
         let error = wallet
-            .cancel_issuance()
+            .cancel_session()
             .await
             .expect_err("Cancelling PID issuance should have resulted in an error");
 
-        assert_matches!(error, IssuanceError::Locked);
+        assert_matches!(
+            error,
+            CancelSessionError::Preconditions(CheckPreconditionsError::Locked)
+        );
     }
 
     #[tokio::test]
@@ -1031,11 +953,14 @@ mod tests {
 
         // Cancelling PID issuance on an unregistered wallet should result in an error.
         let error = wallet
-            .cancel_issuance()
+            .cancel_session()
             .await
             .expect_err("Cancelling PID issuance should have resulted in an error");
 
-        assert_matches!(error, IssuanceError::NotRegistered);
+        assert_matches!(
+            error,
+            CancelSessionError::Preconditions(CheckPreconditionsError::NotRegistered)
+        );
     }
 
     #[tokio::test]
@@ -1046,11 +971,11 @@ mod tests {
         // Cancelling PID issuance on a wallet with no
         // active DigiD session should result in an error.
         let error = wallet
-            .cancel_issuance()
+            .cancel_session()
             .await
             .expect_err("Cancelling PID issuance should have resulted in an error");
 
-        assert_matches!(error, IssuanceError::SessionState);
+        assert_matches!(error, CancelSessionError::SessionState);
     }
 
     const REDIRECT_URI: &str = "redirect://here";
@@ -1140,7 +1065,10 @@ mod tests {
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
-        assert_matches!(error, IssuanceError::Locked);
+        assert_matches!(
+            error,
+            IssuanceError::CheckPreconditions(CheckPreconditionsError::Locked)
+        );
     }
 
     #[tokio::test]
@@ -1154,7 +1082,10 @@ mod tests {
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
-        assert_matches!(error, IssuanceError::NotRegistered);
+        assert_matches!(
+            error,
+            IssuanceError::CheckPreconditions(CheckPreconditionsError::NotRegistered)
+        );
     }
 
     #[tokio::test]
@@ -1342,11 +1273,11 @@ mod tests {
 
         // Canceling PID issuance on a wallet should forward this error.
         let error = wallet
-            .cancel_issuance()
+            .cancel_session()
             .await
             .expect_err("Rejecting PID issuance should have resulted in an error");
 
-        assert_matches!(error, IssuanceError::IssuerServer { .. });
+        assert_matches!(error, CancelSessionError::Issuance(IssuanceError::IssuerServer { .. }));
     }
 
     const PIN: &str = "051097";
@@ -1549,7 +1480,10 @@ mod tests {
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
-        assert_matches!(error, IssuanceError::NotRegistered);
+        assert_matches!(
+            error,
+            IssuanceError::CheckPreconditions(CheckPreconditionsError::NotRegistered)
+        );
     }
 
     #[tokio::test]
@@ -1565,7 +1499,10 @@ mod tests {
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
-        assert_matches!(error, IssuanceError::Locked);
+        assert_matches!(
+            error,
+            IssuanceError::CheckPreconditions(CheckPreconditionsError::Locked)
+        );
 
         assert!(wallet.has_registration());
         assert!(wallet.is_locked());

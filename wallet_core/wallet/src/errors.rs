@@ -9,7 +9,9 @@ pub mod openid4vc {
     pub use openid4vc::disclosure_session::VpMessageClientErrorType;
     pub use openid4vc::disclosure_session::VpVerifierError;
     pub use openid4vc::errors::AuthorizationErrorCode;
+    pub use openid4vc::errors::DisclosureErrorResponse;
     pub use openid4vc::errors::ErrorResponse;
+    pub use openid4vc::errors::PostAuthResponseErrorCode;
     pub use openid4vc::wallet_issuance::WalletIssuanceError;
     pub use openid4vc::wallet_issuance::authorization::OAuthError;
 }
@@ -26,6 +28,8 @@ pub use crate::repository::HttpClientError;
 pub use crate::storage::KeyFileError;
 pub use crate::storage::StorageError;
 pub use crate::update_policy::UpdatePolicyError;
+pub use crate::wallet::CancelSessionError;
+pub use crate::wallet::CheckPreconditionsError;
 pub use crate::wallet::CloseProximityDisclosureError;
 pub use crate::wallet::DeleteAttestationError;
 pub use crate::wallet::DisclosureBasedIssuanceError;

@@ -2094,6 +2094,28 @@ pub(crate) mod tests {
             .expect("Could not fetch unique attestations by types");
 
         assert!(fetched_unique.is_empty());
+
+        // Should not return not yet valid attestations.
+        let fetched = storage
+            .fetch_valid_unique_attestations_by_types_and_format(
+                &attestation_types,
+                CredentialFormat::SdJwt,
+                MockTimeGenerator::new(Utc.timestamp_nanos(0)),
+            )
+            .await
+            .expect("Could not fetch unique attestations by types and format");
+        assert!(fetched.is_empty());
+
+        // Should not return expired attestations.
+        let fetched = storage
+            .fetch_valid_unique_attestations_by_types_and_format(
+                &attestation_types,
+                CredentialFormat::SdJwt,
+                MockTimeGenerator::new(Utc::now() + Days::new(366)),
+            )
+            .await
+            .expect("Could not fetch unique attestations by types and format");
+        assert!(fetched.is_empty());
     }
 
     #[tokio::test]

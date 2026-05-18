@@ -1,5 +1,4 @@
 use std::num::NonZeroUsize;
-use std::sync::Arc;
 use std::time::Duration;
 
 use crypto::server_keys::generate::Ca;
@@ -20,18 +19,15 @@ use status_lists::postgres::NoRevokeAll;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::publish::PublishDir;
 use status_lists::revoke::create_revocation_router;
-use token_status_list::status_list_service::StatusListRevocationService;
 use tokio::net::TcpListener;
 use url::Url;
 use utils::num::NonZeroU31;
 use utils::num::U31;
+use utils::vec_nonempty;
 use uuid::Uuid;
 
-async fn setup_revocation_server<L>(service: Arc<L>) -> anyhow::Result<Url>
-where
-    L: StatusListRevocationService + Send + Sync + 'static,
-{
-    let (router, _) = create_revocation_router(service);
+async fn setup_revocation_server(service: PostgresStatusListService<SigningKey, NoRevokeAll>) -> anyhow::Result<Url> {
+    let (router, _) = create_revocation_router(vec_nonempty![service]);
     let listener = TcpListener::bind(("127.0.0.1", 0)).await?;
     let port = listener.local_addr()?.port();
     tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
@@ -53,7 +49,7 @@ pub async fn fetch_attestation_batch(
 async fn setup_revocation_test(
     db_setup: &DbSetup,
     publish_dir: PublishDir,
-) -> (Arc<PostgresStatusListService<SigningKey, NoRevokeAll>>, Url) {
+) -> (PostgresStatusListService<SigningKey, NoRevokeAll>, Url) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
 
     let key_pair = ca.generate_status_list_mock().unwrap();
@@ -65,18 +61,18 @@ async fn setup_revocation_test(
         refresh_threshold: Duration::from_secs(600),
         ttl: None,
         base_url: "https://example.com/".parse().unwrap(),
+        context_path: "tsl".to_string(),
         publish_dir,
         key_pair,
     };
 
     let connection = connection_from_url(db_setup.status_lists_url()).await;
-    let service = PostgresStatusListService::try_new(connection.clone(), &random_string(20), config, NoRevokeAll)
+    let service = PostgresStatusListService::try_new(&random_string(20), connection.clone(), config, NoRevokeAll)
         .await
         .unwrap();
     try_join_all(service.initialize_lists().await.unwrap()).await.unwrap();
 
-    let service = Arc::new(service);
-    let revoke_endpoint = setup_revocation_server(Arc::clone(&service)).await.unwrap();
+    let revoke_endpoint = setup_revocation_server(service.clone()).await.unwrap();
 
     (service, revoke_endpoint)
 }

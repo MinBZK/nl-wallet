@@ -1,8 +1,6 @@
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::convert::Infallible;
 use std::ffi::OsStr;
-use std::hash::Hash;
 use std::io::ErrorKind;
 use std::num::NonZeroUsize;
 use std::path::Path;
@@ -25,7 +23,6 @@ use crypto::utils::random_string;
 use db_test::DbName;
 use db_test::DbSetup;
 use db_test::connection_from_url;
-use futures::future::join_all;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use jwt::DEFAULT_VALIDATIONS;
@@ -41,21 +38,18 @@ use sea_orm::QueryOrder;
 use sea_orm::QuerySelect;
 use sea_orm::sea_query::Expr;
 use status_lists::config::StatusListConfig;
-use status_lists::config::StatusListConfigs;
 use status_lists::entity::attestation_batch;
 use status_lists::entity::attestation_batch_list_indices;
 use status_lists::entity::attestation_group;
 use status_lists::entity::status_list;
 use status_lists::entity::status_list_item;
 use status_lists::postgres::PostgresStatusListService;
-use status_lists::postgres::PostgresStatusListServices;
 use status_lists::postgres::RevokeAll;
 use status_lists::publish::PublishDir;
 use tempfile::TempDir;
 use token_status_list::status_list::Bits;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
-use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use token_status_list::status_list_token::StatusListToken;
 use token_status_list::status_list_token::TOKEN_STATUS_LIST_JWT_TYP;
@@ -97,16 +91,15 @@ async fn create_status_list_service(
         expiry: Duration::from_secs(3600),
         refresh_threshold: Duration::from_secs(600),
         ttl,
-        base_url: format!("https://example.com/tsl/{}", attestation_group)
-            .as_str()
-            .parse()?,
+        base_url: "https://example.com/tsl/".parse()?,
+        context_path: attestation_group.clone(),
         publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf())?,
         key_pair: ca.generate_status_list_mock()?,
     };
     let revoke_all = RevokeAllBool::default();
     let service = PostgresStatusListService::try_new(
-        connection.clone(),
         &attestation_group,
+        connection.clone(),
         config.clone(),
         revoke_all.clone(),
     )
@@ -122,7 +115,7 @@ async fn recreate_status_list_service(
     config: StatusListConfig<SigningKey>,
     revoke_all: RevokeAllBool,
 ) -> anyhow::Result<PostgresStatusListService<SigningKey, RevokeAllBool>> {
-    let service = PostgresStatusListService::try_new(connection.clone(), attestation_group, config, revoke_all).await?;
+    let service = PostgresStatusListService::try_new(attestation_group, connection.clone(), config, revoke_all).await?;
     try_join_all(service.initialize_lists().await?).await?;
 
     Ok(service)
@@ -240,47 +233,38 @@ async fn assert_published_list(
     assert_eq!(published, expected);
 }
 
-async fn modified_timestamps<P>(paths: impl IntoIterator<Item = P>) -> Vec<(P, Option<SystemTime>)>
-where
-    P: AsRef<Path>,
-{
-    join_all(paths.into_iter().map(|path| async move {
-        let before = match tokio::fs::metadata(path.as_ref()).await {
-            Ok(metadata) => Some(metadata.modified().unwrap()),
-            Err(err) if err.kind() == ErrorKind::NotFound => None,
-            Err(err) => panic!("Could not read path: {err}"),
-        };
-        (path, before)
-    }))
-    .await
+async fn modified_timestamp(path: &Path) -> Option<SystemTime> {
+    match tokio::fs::metadata(path).await {
+        Ok(metadata) => Some(metadata.modified().unwrap()),
+        Err(err) if err.kind() == ErrorKind::NotFound => None,
+        Err(err) => panic!("Could not read path: {err}"),
+    }
 }
 
-async fn wait_for_refresh<F, P>(start_refresh_job: F, paths: impl IntoIterator<Item = P>) -> Result<(), Elapsed>
+async fn wait_for_refresh<P, F>(path: P, start_refresh_job: F) -> Result<(), Elapsed>
 where
-    F: FnOnce() -> Vec<AbortHandle>,
-    P: AsRef<Path> + Eq + Hash,
+    P: AsRef<Path>,
+    F: FnOnce() -> AbortHandle,
 {
-    let befores = modified_timestamps(paths).await.into_iter().collect::<HashMap<_, _>>();
-    let handles = start_refresh_job();
+    let before = modified_timestamp(path.as_ref()).await;
+    let handle = start_refresh_job();
 
     let result = tokio::time::timeout(Duration::from_secs(3), async {
         let mut interval = tokio::time::interval(Duration::from_millis(100));
         loop {
             interval.tick().await;
-            let refreshed = modified_timestamps(befores.keys())
-                .await
-                .into_iter()
-                .all(|(path, current)| current != befores[path]);
-            if refreshed {
+
+            let current = modified_timestamp(path.as_ref()).await;
+
+            if current != before {
                 break;
             }
         }
     })
     .await;
 
-    for handle in handles {
-        handle.abort();
-    }
+    handle.abort();
+
     result
 }
 
@@ -326,14 +310,15 @@ async fn fetch_attestation_batches(
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-async fn test_service_initializes_status_lists() {
+async fn test_service_initializes_and_republishes_status_lists() {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_group, config, _, _) = create_status_list_service(&ca, &connection, 10, 1, None, &publish_dir)
-        .await
-        .unwrap();
+    let (attestation_group, config, _, service) =
+        create_status_list_service(&ca, &connection, 10, 1, None, &publish_dir)
+            .await
+            .unwrap();
 
     // Check if attestation group is correctly created
     let attestation_group = attestation_group::Entity::find()
@@ -349,67 +334,16 @@ async fn test_service_initializes_status_lists() {
     assert_eq!(db_lists.len(), 1);
     assert_status_list_items(&connection, &db_lists[0], 10, 10, 10, false).await;
     assert_empty_published_list(&config, &db_lists[0]).await;
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
-    let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let db_setup = DbSetup::create_clean_only([DbName::IssuanceServer]).await;
-    let connection = connection_from_url(db_setup.status_lists_url()).await;
-
-    let key_pair = ca.generate_status_list_mock().unwrap();
-    let publish_dir = tempfile::tempdir().unwrap();
-    let configs: StatusListConfigs<SigningKey> = itertools::repeat_n(key_pair, 2)
-        .map(|key_pair| {
-            let attestation_group = random_string(20);
-            let config = StatusListConfig {
-                list_size: NonZeroU31::try_new(4).unwrap(),
-                create_threshold: U31::ONE,
-                expiry: Duration::from_secs(3600),
-                refresh_threshold: Duration::from_secs(600),
-                ttl: None,
-                base_url: "https://example.com/tsl".parse().unwrap(),
-                publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf()).unwrap(),
-                key_pair,
-            };
-            (attestation_group, config)
-        })
-        .collect::<HashMap<_, _>>()
-        .into();
-    let service = PostgresStatusListServices::try_new(connection.clone(), configs.clone())
-        .await
-        .unwrap();
-    try_join_all(service.initialize_lists().await.unwrap()).await.unwrap();
-
-    // Check if attestation groups are correctly created
-    let attestation_groups = attestation_group::Entity::find()
-        .filter(attestation_group::Column::Name.is_in(configs.as_ref().keys()))
-        .all(&connection)
-        .await
-        .unwrap();
-
-    // Check if status lists are correctly initialized
-    let mut paths = Vec::new();
-    for attestation_group in &attestation_groups {
-        let db_lists = fetch_status_list(&connection, attestation_group.id).await;
-        assert_eq!(db_lists.len(), 1);
-        assert_status_list_items(&connection, &db_lists[0], 4, 4, 4, false).await;
-        assert_empty_published_list(&configs.as_ref()[&attestation_group.name], &db_lists[0]).await;
-        paths.push(publish_dir.path().join(format!("{}.jwt", db_lists[0].external_id)));
-    }
 
     // Clean published files and start refresh job
+    let path = publish_dir.path().join(format!("{}.jwt", db_lists[0].external_id));
     clean_publish_dir(publish_dir.path().to_path_buf()).await;
-    wait_for_refresh(|| service.start_refresh_jobs(), paths.iter())
-        .await
-        .unwrap();
+    wait_for_refresh(path, || service.start_refresh_job()).await.unwrap();
 
     // Check if status lists are correctly republished
-    for attestation_group in attestation_groups {
-        let db_lists = fetch_status_list(&connection, attestation_group.id).await;
-        assert_eq!(db_lists.len(), 1);
-        assert_empty_published_list(&configs.as_ref()[&attestation_group.name], &db_lists[0]).await;
-    }
+    let db_lists = fetch_status_list(&connection, attestation_group.id).await;
+    assert_eq!(db_lists.len(), 1);
+    assert_empty_published_list(&config, &db_lists[0]).await;
 
     // Check republish
     service.republish_all(true).await.unwrap();
@@ -529,11 +463,11 @@ async fn test_service_create_status_claims() {
     assert_eq!(claims.len(), 2.try_into().unwrap());
     assert_matches!(&claims[0], StatusClaim::StatusList(list) if *list == StatusListClaim {
         idx: db_list_items[1].index as u32,
-        uri: config.base_url.join(&db_lists[0].external_id),
+        uri: config.base_url.join_base_url(&attestation_group).join(&db_lists[0].external_id),
     });
     assert_matches!(&claims[1], StatusClaim::StatusList(list) if *list == StatusListClaim {
         idx: db_list_items[2].index as u32,
-        uri: config.base_url.join(&db_lists[0].external_id),
+        uri: config.base_url.join_base_url(&attestation_group).join(&db_lists[0].external_id),
     });
 
     // Check if database attestation batch is correctly stored
@@ -596,11 +530,11 @@ async fn test_service_create_status_claims_creates_in_flight_if_needed() {
     assert_eq!(claims.len(), 2.try_into().unwrap());
     assert_matches!(&claims[0], StatusClaim::StatusList(list) if *list == StatusListClaim {
         idx: db_old_list_items[7].index as u32,
-        uri: config.base_url.join(&db_lists[0].external_id),
+        uri: config.base_url.join_base_url(&attestation_group).join(&db_lists[0].external_id),
     });
     assert_matches!(&claims[1], StatusClaim::StatusList(list) if *list == StatusListClaim {
         idx: db_new_list_items[0].index as u32,
-        uri: config.base_url.join(&db_lists[1].external_id),
+        uri: config.base_url.join_base_url(&attestation_group).join(&db_lists[1].external_id),
     });
 
     // Check if database attestation batch is correctly stored
@@ -646,7 +580,10 @@ async fn test_service_create_status_claims_concurrently() {
     assert_eq!(db_lists.len(), 1); // No new list creation scheduled
     let mut db_list_items = assert_status_list_items(&connection, &db_lists[0], 3, 24, 24, false).await;
 
-    let url = config.base_url.join(&db_lists[0].external_id);
+    let url = config
+        .base_url
+        .join_base_url(&attestation_group)
+        .join(&db_lists[0].external_id);
     let db_claims = db_list_items
         .drain(0..(concurrent * num_copies.get()))
         .map(|item| {
@@ -701,7 +638,12 @@ async fn test_service_revoke_attestation_batches_multiple_lists() {
 
     let list_urls = db_lists
         .iter()
-        .map(|list| config.base_url.join(&list.external_id))
+        .map(|list| {
+            config
+                .base_url
+                .join_base_url(&attestation_group)
+                .join(&list.external_id)
+        })
         .collect::<Vec<_>>();
     assert_published_list(
         &config,
@@ -806,9 +748,7 @@ async fn test_service_refresh_status_list_if_expired(#[case] expiry: Option<Date
     let path = publish_dir.path().join(format!("{}.jwt", db_lists[0].external_id));
     republish_list_with_expiry(&path, &config.key_pair, expiry).await;
 
-    wait_for_refresh(|| [service.start_refresh_job()].into(), [&path])
-        .await
-        .unwrap();
+    wait_for_refresh(path, || service.start_refresh_job()).await.unwrap();
     assert_published_list(&config, &db_lists[0], []).await;
 }
 

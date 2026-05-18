@@ -18,11 +18,13 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use etag::EntityTag;
+use itertools::Itertools;
 use mediatype::MediaType;
 use mediatype::MediaTypeList;
 use mediatype::Name;
 use tower_http::compression::CompressionLayer;
 
+use crate::config::StatusListConfig;
 use crate::publish::PublishDir;
 
 const ALL_MEDIA_TYPE: MediaType = MediaType::new(Name::new_unchecked("*"), Name::new_unchecked("*"));
@@ -41,54 +43,87 @@ struct RouterState {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[cfg_attr(test, derive(PartialEq))]
 pub enum RouterError {
     #[error("empty path")]
     EmptyPath,
+
+    #[error("path does not start with slash: {0}")]
+    NoSlashPrefix(String),
+
     #[error("duplicate context path `{0}` for same publish dir: {1} vs {2}")]
     DuplicatePath(String, PublishDir, PublishDir),
 }
 
+#[derive(Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq))]
+pub struct StatusListRouteSource<'a> {
+    pub path: &'a str,
+    pub publish_dir: PublishDir,
+    pub ttl: Option<Duration>,
+}
+
+impl<K> StatusListConfig<K> {
+    pub fn to_route_source(&self) -> StatusListRouteSource<'_> {
+        StatusListRouteSource {
+            path: &self.context_path,
+            publish_dir: self.publish_dir.clone(),
+            ttl: self.ttl,
+        }
+    }
+}
+
 fn check_serve_directories<'a>(
-    serve_dirs: impl IntoIterator<Item = (&'a str, PublishDir)>,
-) -> Result<HashMap<&'a str, PublishDir>, RouterError> {
-    let iter = serve_dirs.into_iter();
-    let mut result = HashMap::with_capacity(iter.size_hint().0);
-    for (path, publish_dir) in iter {
-        if path.is_empty() {
+    route_sources: impl IntoIterator<Item = StatusListRouteSource<'a>>,
+) -> Result<HashMap<&'a str, StatusListRouteSource<'a>>, RouterError> {
+    let iter = route_sources.into_iter();
+    let (size_hint_lower, _) = iter.size_hint();
+
+    let mut result = HashMap::<_, StatusListRouteSource<'_>>::with_capacity(size_hint_lower);
+
+    for route_source in iter {
+        if route_source.path.is_empty() {
             return Err(RouterError::EmptyPath);
         }
-        if let Some(inserted_dir) = result.remove(&path)
-            && inserted_dir != publish_dir
-        {
-            return Err(RouterError::DuplicatePath(path.to_string(), inserted_dir, publish_dir));
+
+        if !route_source.path.starts_with('/') {
+            return Err(RouterError::NoSlashPrefix(route_source.path.to_string()));
         }
-        result.insert(path, publish_dir);
+
+        if let Some(existing_dir) = result.remove(route_source.path)
+            && existing_dir.publish_dir != route_source.publish_dir
+        {
+            return Err(RouterError::DuplicatePath(
+                route_source.path.to_string(),
+                existing_dir.publish_dir,
+                route_source.publish_dir,
+            ));
+        }
+
+        result.insert(route_source.path, route_source);
     }
+
     Ok(result)
 }
 
 pub fn create_serve_router<'a>(
-    serve_dirs: impl IntoIterator<Item = (&'a str, PublishDir)>,
-    ttl: Option<Duration>,
+    route_sources: impl IntoIterator<Item = StatusListRouteSource<'a>>,
 ) -> Result<Router, RouterError> {
-    let cache_control = match ttl {
-        None => "no-cache".to_string(),
-        Some(ttl) => format!("max-age={}; must-revalidate", ttl.as_secs()),
-    };
-    // Convert to HeaderValue, unwrap is safe since strings are ASCII
-    let cache_control = HeaderValue::from_str(&cache_control).unwrap();
+    // Convert to HeaderValue, unwrap is safe since string is ASCII.
     let content_type = HeaderValue::from_str(&STATUSLIST_JWT_MEDIA_TYPE.to_string()).unwrap();
 
-    let serve_dirs = check_serve_directories(serve_dirs)?;
-    Ok(serve_dirs
+    let route_sources = check_serve_directories(route_sources)?;
+    let route_count = route_sources.len();
+
+    let router = route_sources
         .into_iter()
-        .fold(Router::new(), |router, (path, publish_dir)| {
+        .zip_eq(itertools::repeat_n(content_type, route_count))
+        .fold(Router::new(), |router, ((path, route_source), content_type)| {
             let state = RouterState {
-                publish_dir: Arc::new(publish_dir),
-                cache_control: cache_control.clone(),
-                content_type: content_type.clone(),
+                publish_dir: Arc::new(route_source.publish_dir),
+                cache_control: cache_control_header_for_ttl(route_source.ttl),
+                content_type,
             };
+
             router.nest(
                 path,
                 Router::new().route("/{id}", get(serve_status_list)).with_state(state),
@@ -96,7 +131,19 @@ pub fn create_serve_router<'a>(
         })
         .layer(middleware::from_fn(add_vary_header))
         // The HTTP response SHOULD use gzip Content-Encoding as defined in [RFC9110].
-        .layer(CompressionLayer::new()))
+        .layer(CompressionLayer::new());
+
+    Ok(router)
+}
+
+fn cache_control_header_for_ttl(ttl: Option<Duration>) -> HeaderValue {
+    let cache_control = match ttl {
+        None => "no-cache",
+        Some(ttl) => &format!("max-age={}; must-revalidate", ttl.as_secs()),
+    };
+
+    // Convert to HeaderValue, unwrap is safe since string is ASCII.
+    HeaderValue::from_str(cache_control).unwrap()
 }
 
 async fn add_vary_header(request: Request, next: Next) -> Response {
@@ -195,33 +242,68 @@ mod tests {
     fn check_serve_dir_errors_on_empty_path() {
         let dir = PublishDir::try_new(std::env::temp_dir()).unwrap();
 
-        let result = check_serve_directories([("", dir.clone())]);
+        let result = check_serve_directories([StatusListRouteSource {
+            path: "",
+            publish_dir: dir,
+            ttl: None,
+        }]);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), RouterError::EmptyPath);
+        assert_matches!(result.unwrap_err(), RouterError::EmptyPath);
+    }
+
+    #[test]
+    fn check_serve_dir_errors_on_path_without_slahs_prefix() {
+        let path = "path";
+        let dir = PublishDir::try_new(std::env::temp_dir()).unwrap();
+
+        let result = check_serve_directories([StatusListRouteSource {
+            path,
+            publish_dir: dir,
+            ttl: None,
+        }]);
+        assert!(result.is_err());
+        assert_matches!(result.unwrap_err(), RouterError::NoSlashPrefix(error_path) if error_path == path);
     }
 
     #[test]
     fn check_serve_dir_allow_duplicate_path_for_same_publish_dir() {
-        let path = "path";
+        let path = "/path";
         let dir = PublishDir::try_new(std::env::temp_dir()).unwrap();
 
-        let result = check_serve_directories([(path, dir.clone()), (path, dir.clone())]);
+        let route_source = StatusListRouteSource {
+            path,
+            publish_dir: dir.clone(),
+            ttl: None,
+        };
+        let result = check_serve_directories([route_source.clone(), route_source.clone()]);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), [(path, dir)].into());
+        assert_eq!(result.unwrap(), [(path, route_source)].into());
     }
 
     #[test]
     fn check_serve_dir_err_on_duplicate_path_for_different_publish_dir() {
         let tmp = tempfile::tempdir().unwrap();
-        let path = "path";
+        let path = "/path";
         let dir_a = PublishDir::try_new(std::env::temp_dir()).unwrap();
         let dir_b = PublishDir::try_new(tmp.path().to_path_buf()).unwrap();
 
-        let result = check_serve_directories([(path, dir_a.clone()), (path, dir_b.clone())]);
+        let route_source_a = StatusListRouteSource {
+            path,
+            publish_dir: dir_a.clone(),
+            ttl: None,
+        };
+        let route_source_b = StatusListRouteSource {
+            path,
+            publish_dir: dir_b.clone(),
+            ttl: None,
+        };
+
+        let result = check_serve_directories([route_source_a, route_source_b]);
         assert!(result.is_err());
-        assert_eq!(
+        assert_matches!(
             result.unwrap_err(),
-            RouterError::DuplicatePath(path.to_string(), dir_a, dir_b)
+            RouterError::DuplicatePath(error_path, error_dir_a, error_dir_b)
+                if error_path == path && error_dir_a == dir_a && error_dir_b == dir_b
         );
     }
 

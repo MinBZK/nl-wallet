@@ -22,7 +22,6 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
-use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
 use tracing::warn;
 use utils::generator::Generator;
@@ -1285,7 +1284,7 @@ impl HandleInstruction for DeleteKeys {
 async fn check_recovery_code<T, R, F, H>(
     wallet_user: &WalletUser,
     disclosed: &RecoveryCode,
-    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListRevocationService>,
+    user_state: &UserState<R, F, H, impl WiaIssuer, impl StatusListService>,
     generators: &impl Generator<DateTime<Utc>>,
 ) -> Result<(), InstructionError>
 where

@@ -436,7 +436,11 @@ where
 
         // We don't check if the wallet is blocked: PIN recovery is allowed in that case, so cancelling it is too.
 
-        self.session = None;
+        if let Some(Session::PinRecovery(_)) = &self.session {
+            self.session = None;
+        } else {
+            return Err(PinRecoveryError::SessionState);
+        }
 
         Ok(())
     }
