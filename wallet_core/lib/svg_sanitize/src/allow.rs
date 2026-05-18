@@ -22,6 +22,9 @@ impl LowerCaseString {
 /// - `use`                     — can cause DoS via recursive expansion
 /// - `animate`, `set`          — can modify href/other attrs dynamically (XSS vector)
 /// - `foreignobject`           — embeds arbitrary HTML
+/// - `animatecolor`, `tref`, `font`, `glyph`, `glyphref`,
+///   `altglyph`, `altglyphdef`, `altglyphitem`, `hkern`, `vkern`
+///                             — deprecated in SVG 2.0; no modern use
 pub fn is_allowed_tag(tag: &LowerCaseString) -> bool {
     static SET: OnceLock<HashSet<&'static str>> = OnceLock::new();
 
@@ -31,7 +34,6 @@ pub fn is_allowed_tag(tag: &LowerCaseString) -> bool {
             "svg",
             "defs",
             "g",
-            "symbol",
             "view",
             "switch",
             "metadata",
@@ -47,7 +49,6 @@ pub fn is_allowed_tag(tag: &LowerCaseString) -> bool {
             "text",
             "tspan",
             "textpath",
-            "tref",
             "title",
             "desc",
             // Links and images
@@ -64,19 +65,9 @@ pub fn is_allowed_tag(tag: &LowerCaseString) -> bool {
             "mask",
             "clippath",
             // Safe animation subset (no attribute-mutating elements)
-            "animatecolor",
             "animatemotion",
             "animatetransform",
             "mpath",
-            // Typography
-            "font",
-            "glyph",
-            "glyphref",
-            "altglyph",
-            "altglyphdef",
-            "altglyphitem",
-            "hkern",
-            "vkern",
             // Filter primitives — stored lowercase; input is lowercased before lookup
             "feblend",
             "fecolormatrix",
@@ -278,45 +269,8 @@ pub fn is_allowed_attr(attr: &LowerCaseString) -> bool {
             "startoffset",
             // Clippath
             "clippathunits",
-            // Glyph / font
-            "g1",
-            "g2",
-            "glyph-name",
-            "glyphref",
-            "u1",
-            "u2",
-            "unicode",
-            "horiz-adv-x",
-            "horiz-origin-x",
-            "horiz-origin-y",
-            "vert-adv-y",
-            "vert-origin-x",
-            "vert-origin-y",
+            // Text presentation (deprecated in SVG 2 but valid on text/tspan)
             "kerning",
-            "accent-height",
-            "ascent",
-            "descent",
-            "cap-height",
-            "x-height",
-            "stemh",
-            "stemv",
-            "ideographic",
-            "alphabetic",
-            "mathematical",
-            "hanging",
-            "underline-position",
-            "underline-thickness",
-            "strikethrough-position",
-            "strikethrough-thickness",
-            "overline-position",
-            "overline-thickness",
-            "units-per-em",
-            "panose-1",
-            "widths",
-            "bbox",
-            "unicode-range",
-            "font-face-name",
-            "font-face-uri",
             // Symbol / view
             "zoomandpan",
             // Animation (safe subset)
