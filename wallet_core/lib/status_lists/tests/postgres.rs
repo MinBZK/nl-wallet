@@ -1,8 +1,6 @@
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::convert::Infallible;
 use std::ffi::OsStr;
-use std::hash::Hash;
 use std::io::ErrorKind;
 use std::num::NonZeroUsize;
 use std::path::Path;
@@ -25,7 +23,6 @@ use crypto::utils::random_string;
 use db_test::DbName;
 use db_test::DbSetup;
 use db_test::connection_from_url;
-use futures::future::join_all;
 use futures::future::try_join_all;
 use itertools::Itertools;
 use jwt::DEFAULT_VALIDATIONS;
@@ -236,47 +233,38 @@ async fn assert_published_list(
     assert_eq!(published, expected);
 }
 
-async fn modified_timestamps<P>(paths: impl IntoIterator<Item = P>) -> Vec<(P, Option<SystemTime>)>
-where
-    P: AsRef<Path>,
-{
-    join_all(paths.into_iter().map(|path| async move {
-        let before = match tokio::fs::metadata(path.as_ref()).await {
-            Ok(metadata) => Some(metadata.modified().unwrap()),
-            Err(err) if err.kind() == ErrorKind::NotFound => None,
-            Err(err) => panic!("Could not read path: {err}"),
-        };
-        (path, before)
-    }))
-    .await
+async fn modified_timestamp(path: &Path) -> Option<SystemTime> {
+    match tokio::fs::metadata(path).await {
+        Ok(metadata) => Some(metadata.modified().unwrap()),
+        Err(err) if err.kind() == ErrorKind::NotFound => None,
+        Err(err) => panic!("Could not read path: {err}"),
+    }
 }
 
-async fn wait_for_refresh<F, P>(start_refresh_job: F, paths: impl IntoIterator<Item = P>) -> Result<(), Elapsed>
+async fn wait_for_refresh<P, F>(path: P, start_refresh_job: F) -> Result<(), Elapsed>
 where
-    F: FnOnce() -> Vec<AbortHandle>,
-    P: AsRef<Path> + Eq + Hash,
+    P: AsRef<Path>,
+    F: FnOnce() -> AbortHandle,
 {
-    let befores = modified_timestamps(paths).await.into_iter().collect::<HashMap<_, _>>();
-    let handles = start_refresh_job();
+    let before = modified_timestamp(path.as_ref()).await;
+    let handle = start_refresh_job();
 
     let result = tokio::time::timeout(Duration::from_secs(3), async {
         let mut interval = tokio::time::interval(Duration::from_millis(100));
         loop {
             interval.tick().await;
-            let refreshed = modified_timestamps(befores.keys())
-                .await
-                .into_iter()
-                .all(|(path, current)| current != befores[path]);
-            if refreshed {
+
+            let current = modified_timestamp(path.as_ref()).await;
+
+            if current != before {
                 break;
             }
         }
     })
     .await;
 
-    for handle in handles {
-        handle.abort();
-    }
+    handle.abort();
+
     result
 }
 
@@ -350,9 +338,7 @@ async fn test_service_initializes_and_republishes_status_lists() {
     // Clean published files and start refresh job
     let path = publish_dir.path().join(format!("{}.jwt", db_lists[0].external_id));
     clean_publish_dir(publish_dir.path().to_path_buf()).await;
-    wait_for_refresh(|| vec![service.start_refresh_job()], [&path])
-        .await
-        .unwrap();
+    wait_for_refresh(path, || service.start_refresh_job()).await.unwrap();
 
     // Check if status lists are correctly republished
     let db_lists = fetch_status_list(&connection, attestation_group.id).await;
@@ -762,9 +748,7 @@ async fn test_service_refresh_status_list_if_expired(#[case] expiry: Option<Date
     let path = publish_dir.path().join(format!("{}.jwt", db_lists[0].external_id));
     republish_list_with_expiry(&path, &config.key_pair, expiry).await;
 
-    wait_for_refresh(|| [service.start_refresh_job()].into(), [&path])
-        .await
-        .unwrap();
+    wait_for_refresh(path, || service.start_refresh_job()).await.unwrap();
     assert_published_list(&config, &db_lists[0], []).await;
 }
 
