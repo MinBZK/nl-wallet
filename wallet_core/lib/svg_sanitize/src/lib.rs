@@ -34,11 +34,7 @@ pub enum Error {
 /// - Comments and processing instructions are dropped.
 /// - CDATA sections are converted to escaped text nodes.
 /// - `<use>`, `<animate>`, `<set>`, `<script>`, `<style>`, and `<foreignObject>` are blocked.
-///
-/// # Known limitation
-/// The `style` attribute is passed through without CSS sanitization. Avoid this crate
-/// if you need to block CSS-based attacks (e.g. `expression()`, `url()`). CSS sanitization
-/// may be added in a future version.
+/// - The `style` and `class` attributes are stripped; the renderer does not support CSS.
 #[derive(Clone, Debug, AsRef, Into)]
 pub struct SanitizedSvg(String);
 
@@ -266,6 +262,20 @@ mod tests {
     fn style_element_blocked() {
         let out = sanitize_panicking(r#"<svg><style>* { fill: red }</style><rect/></svg>"#);
         assert!(!out.contains("<style"), "got: {out}");
+    }
+
+    #[test]
+    fn style_attr_stripped() {
+        let out = sanitize_panicking(r#"<svg><rect style="fill:red" width="10" height="10"/></svg>"#);
+        assert!(!out.contains("style"), "got: {out}");
+        assert!(out.contains("<rect"), "got: {out}");
+    }
+
+    #[test]
+    fn class_attr_stripped() {
+        let out = sanitize_panicking(r#"<svg><rect class="highlight" width="10" height="10"/></svg>"#);
+        assert!(!out.contains("class"), "got: {out}");
+        assert!(out.contains("<rect"), "got: {out}");
     }
 
     #[test]

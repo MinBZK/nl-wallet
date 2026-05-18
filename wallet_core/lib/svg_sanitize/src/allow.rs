@@ -98,7 +98,8 @@ pub fn is_allowed_tag(tag: &LowerCaseString) -> bool {
 
 /// Checks if an attribute is allowed.
 ///
-/// `style` is included but its value is NOT sanitized (CSS is deferred).
+/// `style` and `class` are excluded: the renderer does not support CSS, so
+/// both are useless and would otherwise be an unfiltered injection surface.
 /// Event handler attributes (`onclick`, `onload`, etc.) are absent.
 pub fn is_allowed_attr(attr: &LowerCaseString) -> bool {
     static SET: OnceLock<HashSet<&'static str>> = OnceLock::new();
@@ -181,8 +182,6 @@ pub fn is_allowed_attr(attr: &LowerCaseString) -> bool {
             "visibility",
             "word-spacing",
             "writing-mode",
-            // Style (CSS content unfiltered — known gap, future work)
-            "style",
             // Layout and transform
             "alignment-baseline",
             "baseline-shift",
@@ -192,7 +191,6 @@ pub fn is_allowed_attr(attr: &LowerCaseString) -> bool {
             "preserveaspectratio",
             // Identity and linking
             "id",
-            "class",
             "name",
             "lang",
             "tabindex",
