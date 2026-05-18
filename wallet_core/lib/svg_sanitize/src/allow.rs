@@ -412,7 +412,6 @@ pub fn is_safe_url(value: &UrlUnescapedString) -> bool {
         return true;
     }
 
-    // Allow inert raster image data URIs.
     [
         "data:image/png;",
         "data:image/jpeg;",
@@ -421,7 +420,7 @@ pub fn is_safe_url(value: &UrlUnescapedString) -> bool {
         "data:image/avif",
     ]
     .iter()
-    .any(|format| value.starts_with(format))
+    .any(|format| value.to_ascii_lowercase().starts_with(format))
 }
 
 /// Allows `aria-*` and `data-*` attributes through regardless of the static set.
