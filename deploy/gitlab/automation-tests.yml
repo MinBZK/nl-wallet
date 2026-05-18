@@ -502,7 +502,6 @@ run-digid-bridge-test-ont:
     paths:
       - perf-test-timeframe.txt
     when: on_success
-  allow_failure: true
 
 run-performance-test-ont-pipeline-deploy:
   extends: .run-performance-test-ont-base
@@ -513,6 +512,7 @@ run-performance-test-ont-pipeline-deploy:
       artifacts: true
     - job: deploy-apps-ont
       artifacts: false
+  allow_failure: false
 
 run-performance-test-ont-existing-deploy:
   extends: .run-performance-test-ont-base
@@ -522,6 +522,7 @@ run-performance-test-ont-existing-deploy:
   needs:
     - job: build-performance-test
       artifacts: true
+  allow_failure: true
 
 retrieve-performance-test-results-ont:
   extends: .env-k8s
