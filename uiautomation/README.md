@@ -8,6 +8,7 @@ code base using Appium and BrowserStack.
 - [Prerequisites for installation on MacOS](#prerequisites-for-installation-on-macos)
 - [Appium Setup](#appium-setup)
 - [Run Automation Tests](#run-automation-tests)
+- [Two-Device Tests](#two-device-tests)
 - [Test Annotations](#test-annotations)
 
 ## Prerequisites for installation on MacOS
@@ -175,6 +176,40 @@ Remote test run example:
 ```bash
 ./gradlew test --tests suite.FullTestSuite
     -Dtest.config.remote=true
+```
+
+## Two-Device Tests
+
+Two-device tests simulate a cross-device transfer flow by running against a
+source device and a destination device simultaneously. They are tagged with
+`twoDevice` and use the dedicated `twoDeviceTest` Gradle task.
+
+### Required system properties
+
+| Property | Description |
+|---|---|
+| `test.config.source.name` | Device name of the source device |
+| `test.config.source.platform.name` | Platform of the source device (`android` or `ios`) |
+| `test.config.source.platform.version` | OS version of the source device |
+| `test.config.source.udid` | UDID of the source device |
+| `test.config.destination.name` | Device name of the destination device |
+| `test.config.destination.platform.name` | Platform of the destination device (`android` or `ios`) |
+| `test.config.destination.platform.version` | OS version of the destination device |
+| `test.config.destination.udid` | UDID of the destination device |
+
+### Run example
+
+```bash
+./gradlew twoDeviceTest
+    -Dtest.config.app.identifier="nl.ictu.edi.wallet.latest"
+    -Dtest.config.source.name="Pixel 7"
+    -Dtest.config.source.platform.name="android"
+    -Dtest.config.source.platform.version="14.0"
+    -Dtest.config.source.udid="emulator-5554"
+    -Dtest.config.destination.name="Pixel 6"
+    -Dtest.config.destination.platform.name="android"
+    -Dtest.config.destination.platform.version="14.0"
+    -Dtest.config.destination.udid="emulator-5556"
 ```
 
 ## Test Annotations

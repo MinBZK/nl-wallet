@@ -26,7 +26,7 @@ import screen.issuance.PersonalizeInformScreen
 import screen.issuance.PersonalizePidDataIncorrectScreen
 import screen.issuance.PersonalizePidPreviewScreen
 import screen.issuance.PersonalizeSuccessScreen
-import screen.issuance.TransferWalletScreen
+import screen.issuance.StartTransferWalletScreen
 import screen.security.PinScreen
 import screen.web.digid.DigidLoginMockWebPage
 import screen.web.digid.DigidLoginStartWebPage
@@ -45,7 +45,7 @@ class PidIssuanceTests : TestBase() {
     private lateinit var dashboardScreen: DashboardScreen
     private lateinit var pinScreen: PinScreen
     private lateinit var noInternetErrorScreen: NoInternetErrorScreen
-    private lateinit var transferWalletScreen: TransferWalletScreen
+    private lateinit var startTransferWalletScreen: StartTransferWalletScreen
 
     private lateinit var gbaData: GbaDataHelper
 
@@ -63,7 +63,7 @@ class PidIssuanceTests : TestBase() {
         pinScreen = PinScreen()
         dashboardScreen = DashboardScreen()
         noInternetErrorScreen = NoInternetErrorScreen()
-        transferWalletScreen = TransferWalletScreen()
+        startTransferWalletScreen = StartTransferWalletScreen()
         digidLoginStartWebPage = DigidLoginStartWebPage()
 
         gbaData = GbaDataHelper()
@@ -117,7 +117,7 @@ class PidIssuanceTests : TestBase() {
         assertTrue(pinScreen.personalizeConfirmPinScreenVisible(), "confirm screen not visible")
 
         pinScreen.enterPin(DEFAULT_PIN)
-        transferWalletScreen.createNewWallet()
+        startTransferWalletScreen.createNewWallet()
         assertAll(
             { assertTrue(personalizeSuccessScreen.visible(), "personalize loading screen is not visible") },
             { assertTrue(personalizeSuccessScreen.successMessageVisible(), "success text is not visible") },

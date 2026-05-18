@@ -92,7 +92,7 @@ open class MobileActions {
 
                 repeat(8) { // cap attempts to avoid infinite loops
                     val matches = driver.findElements(AppiumBy.iOSNsPredicateString(predicate))
-                    if (matches.any { it.isDisplayed }) return matches.first()
+                    matches.firstOrNull { it.isDisplayed }?.let { return it }
                     (driver as JavascriptExecutor).executeScript(
                         "mobile: swipe",
                         mapOf("element" to scroll.id, "direction" to "up")
@@ -119,15 +119,16 @@ open class MobileActions {
                 val quotedText = quoteForIos(text)
                 val scroll = driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeScrollView[1]")) as RemoteWebElement
                 val predicate = "name CONTAINS $quotedText"
-                (driver as JavascriptExecutor).executeScript(
-                    "mobile: scroll",
-                    mapOf(
-                        "element" to scroll.id,
-                        "predicateString" to predicate,
-                        "toVisible" to true
+
+                repeat(8) {
+                    val matches = driver.findElements(AppiumBy.iOSNsPredicateString(predicate))
+                    matches.firstOrNull { it.isDisplayed }?.let { return it }
+                    (driver as JavascriptExecutor).executeScript(
+                        "mobile: swipe",
+                        mapOf("element" to scroll.id, "direction" to "up")
                     )
-                )
-                driver.findElement(AppiumBy.iOSNsPredicateString(predicate))
+                }
+                throw NoSuchElementException("Couldn't bring element containing '$text' into view")
             }
             else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
@@ -376,8 +377,8 @@ open class MobileActions {
         findElementByPartialText(partialText).click()
     }
 
-    fun clickElementWithText(text: String) {
-        findElementByText(text).click()
+    fun clickElementWithText(text: String, timeoutInSeconds: Long = 5) {
+        findElementByText(text, timeoutInSeconds).click()
     }
 
     fun elementContainingTextVisible(partialText: String): Boolean {
@@ -398,9 +399,9 @@ open class MobileActions {
         }
     }
 
-    fun elementWithTextVisible(text: String): Boolean {
+    fun elementWithTextVisible(text: String, timeoutInSeconds: Long = 5): Boolean {
         return try {
-            findElementByText(text).isDisplayed
+            findElementByText(text, timeoutInSeconds).isDisplayed
         } catch (e: Exception) {
             println("Element not found or error occurred: ${e.message}")
             false

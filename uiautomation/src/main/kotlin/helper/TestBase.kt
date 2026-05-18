@@ -1,6 +1,10 @@
 package helper
 
 import com.codeborne.selenide.Selenide
+import com.codeborne.selenide.WebDriverRunner
+import data.TestConfigRepository.Companion.testConfig
+import driver.LocalMobileDriver
+import io.appium.java_client.AppiumDriver
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.extension.ExtendWith
@@ -10,19 +14,21 @@ import util.TestInfoHandler.Companion.processTestInfo
 open class TestBase {
 
     fun startDriver(testInfo: TestInfo) {
-        // Process session name, platform, language and locale
         processTestInfo(testInfo)
-
-        // Start driver
-        Selenide.open()
+        if (testConfig.remote) {
+            Selenide.open()
+        } else {
+            WebDriverRunner.setWebDriver(LocalMobileDriver.createDriver())
+        }
     }
 
+    // Drivers created with Selenide's WebDriverRunner.setWebDriver() can/should be closed with Selenide.closeWebDriver()
     @AfterEach
     fun closeDriver() {
-        try {
-            Selenide.closeWindow()
-        } catch (e: Exception) {
-            // Ignore
+        if (!testConfig.remote) {
+            try {
+                clearBrowser(WebDriverRunner.getWebDriver() as AppiumDriver)
+            } catch (_: Exception) {}
         }
         Selenide.closeWebDriver()
     }

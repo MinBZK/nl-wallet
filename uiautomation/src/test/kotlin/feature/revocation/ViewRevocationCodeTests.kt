@@ -14,7 +14,7 @@ import screen.issuance.PersonalizeAuthenticatingWithDigidScreen
 import screen.issuance.PersonalizeInformScreen
 import screen.issuance.PersonalizePidPreviewScreen
 import screen.issuance.PersonalizeSuccessScreen
-import screen.issuance.TransferWalletScreen
+import screen.issuance.StartTransferWalletScreen
 import screen.menu.MenuScreen
 import screen.revocation.RevocationCodeSettingsScreen
 import screen.revocation.RevocationCodeSetupScreen
@@ -36,7 +36,7 @@ class ViewRevocationCodeTests : TestBase() {
     private lateinit var personalizeAuthenticatingWithDigidScreen: PersonalizeAuthenticatingWithDigidScreen
     private lateinit var digidLoginMockWebPage: DigidLoginMockWebPage
     private lateinit var personalizePidPreviewScreen: PersonalizePidPreviewScreen
-    private lateinit var transferWalletScreen: TransferWalletScreen
+    private lateinit var startTransferWalletScreen: StartTransferWalletScreen
     private lateinit var personalizeSuccessScreen: PersonalizeSuccessScreen
     private lateinit var menuScreen: MenuScreen
     private lateinit var settingsScreen: SettingsScreen
@@ -52,7 +52,7 @@ class ViewRevocationCodeTests : TestBase() {
         personalizeAuthenticatingWithDigidScreen = PersonalizeAuthenticatingWithDigidScreen()
         digidLoginMockWebPage = DigidLoginMockWebPage()
         personalizePidPreviewScreen = PersonalizePidPreviewScreen()
-        transferWalletScreen = TransferWalletScreen()
+        startTransferWalletScreen = StartTransferWalletScreen()
         personalizeSuccessScreen = PersonalizeSuccessScreen()
         menuScreen = MenuScreen()
         settingsScreen = SettingsScreen()
@@ -78,7 +78,7 @@ class ViewRevocationCodeTests : TestBase() {
         personalizePidPreviewScreen.switchToNativeContext()
         personalizePidPreviewScreen.clickAcceptButton()
         pinScreen.enterPin(DEFAULT_PIN)
-        transferWalletScreen.createNewWallet()
+        startTransferWalletScreen.createNewWallet()
         personalizeSuccessScreen.clickNextButton()
         dashboardScreen.clickMenuButton()
         menuScreen.clickSettingsButton()
