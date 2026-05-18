@@ -1222,25 +1222,21 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     CloseProximityDisclosureFlutterUpdate apiObj,
     wire_cst_close_proximity_disclosure_flutter_update wireObj,
   ) {
-    if (apiObj is CloseProximityDisclosureFlutterUpdate_Connecting) {
+    if (apiObj is CloseProximityDisclosureFlutterUpdate_Connected) {
       wireObj.tag = 0;
       return;
     }
-    if (apiObj is CloseProximityDisclosureFlutterUpdate_Connected) {
+    if (apiObj is CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived) {
       wireObj.tag = 1;
       return;
     }
-    if (apiObj is CloseProximityDisclosureFlutterUpdate_DeviceRequestReceived) {
-      wireObj.tag = 2;
-      return;
-    }
     if (apiObj is CloseProximityDisclosureFlutterUpdate_Disconnected) {
-      wireObj.tag = 3;
+      wireObj.tag = 2;
       return;
     }
     if (apiObj is CloseProximityDisclosureFlutterUpdate_Errored) {
       var pre_error = cst_encode_String(apiObj.error);
-      wireObj.tag = 4;
+      wireObj.tag = 3;
       wireObj.kind.Errored.error = pre_error;
       return;
     }

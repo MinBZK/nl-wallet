@@ -1,18 +1,16 @@
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use error_category::ErrorCategory;
 use http_utils::reqwest::HttpJsonClient;
-use indexmap::IndexSet;
-use jwt::nonce::Nonce;
-use rustls_pki_types::TrustAnchor;
+use serde::Deserialize;
 use url::Url;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
-use crate::authorization::AuthorizationRequest;
 use crate::authorization::AuthorizationResponse;
-use crate::authorization::PkceCodeChallenge;
-use crate::authorization::ResponseType;
+use crate::authorization::PushedAuthorizationResponse;
+use crate::authorization::VciAuthorizationRequest;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::pkce::PkcePair;
@@ -24,6 +22,18 @@ use crate::wallet_issuance::AuthorizationSession;
 use crate::wallet_issuance::WalletIssuanceError;
 use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
 use crate::wallet_issuance::issuance_session::HttpVcMessageClient;
+
+#[derive(Deserialize, Debug, Clone, PartialEq, strum::EnumString)]
+#[strum(serialize_all = "snake_case")]
+pub enum ParErrorCode {
+    InvalidClient,
+    ServerError,
+
+    // Catch-all variant, in case the issuer sends an error code that the holder is not aware of.
+    // Note that this is never to be used by the issuer, as this will lead to a panic.
+    #[strum(default)]
+    Other(String),
+}
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
@@ -56,6 +66,14 @@ pub enum OAuthError {
     #[category(critical)]
     NoAuthorizationEndpoint,
 
+    #[error("config has no pushed authorization request endpoint")]
+    #[category(critical)]
+    NoPushedAuthorizationEndpoint,
+
+    #[error("pushed authorization request rejected: {0:?}")]
+    #[category(expected)]
+    PushedAuthorizationRequest(Box<ErrorResponse<ParErrorCode>>),
+
     #[error("user denied authentication")]
     #[category(expected)]
     Denied,
@@ -68,7 +86,7 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
     oauth_metadata: AuthorizationServerMetadata,
     http_client: HttpJsonClient,
 
-    pub auth_url: Url,
+    auth_url: Url,
     client_id: String,
     redirect_uri: Url,
     pkce_pair: P,
@@ -76,36 +94,43 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
 }
 
 impl<P: PkcePair> HttpAuthorizationSession<P> {
-    /// Create a new authorization server session and compute the authorization URL.
-    /// Returns an error if the provider has no authorization endpoint or the URL cannot be encoded.
-    pub(super) fn try_new(
+    /// POST the authorization parameters to the PAR endpoint, then build the authorization URL
+    /// using the returned `request_uri`. Returns an error if the provider has no PAR endpoint,
+    /// the PAR request is rejected, or the URL cannot be constructed.
+    pub(super) async fn create(
         http_client: HttpJsonClient,
         issuer_metadata: IssuerMetadata,
         oauth_metadata: AuthorizationServerMetadata,
         client_id: String,
         redirect_uri: Url,
-    ) -> Result<Self, OAuthError> {
+    ) -> Result<Self, WalletIssuanceError> {
         let pkce_pair = P::generate();
         let state = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
-        let nonce = Nonce::new_random();
 
-        let mut scopes = IndexSet::with_capacity(1);
-        scopes.insert("openid".to_string());
+        let par_request =
+            VciAuthorizationRequest::for_par(client_id.clone(), redirect_uri.clone(), state.clone(), &pkce_pair);
 
-        let params = AuthorizationRequest {
-            response_type: ResponseType::Code.into(),
-            client_id: client_id.clone(),
-            redirect_uri: Some(redirect_uri.clone()),
-            state: Some(state.clone()),
-            authorization_details: None,
-            request_uri: None,
-            code_challenge: Some(PkceCodeChallenge::S256 {
-                code_challenge: pkce_pair.code_challenge().to_string(),
-            }),
-            scope: Some(scopes), /* TODO (PVW-5572): remove. "openid" scope should be an implementation detail of the
-                                  * pid_issuer. Currently necessary because nl-rdo-max requires it. */
-            nonce: Some(nonce), // TODO (PVW-5572): remove. Is not part of openid4vci spec
-            response_mode: None,
+        let par_endpoint = oauth_metadata
+            .pushed_authorization_request_endpoint
+            .as_ref()
+            .ok_or(OAuthError::NoPushedAuthorizationEndpoint)?;
+
+        let response = http_client
+            .post(par_endpoint.as_str(), |builder| builder.form(&par_request))
+            .await
+            .map_err(WalletIssuanceError::Network)?;
+
+        let par_response = if response.status().is_success() {
+            response
+                .json::<PushedAuthorizationResponse>()
+                .await
+                .map_err(WalletIssuanceError::Network)?
+        } else {
+            let error = response
+                .json::<ErrorResponse<ParErrorCode>>()
+                .await
+                .map_err(WalletIssuanceError::Network)?;
+            return Err(OAuthError::PushedAuthorizationRequest(Box::new(error)).into());
         };
 
         let mut auth_url = oauth_metadata
@@ -113,9 +138,10 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             .clone()
             .ok_or(OAuthError::NoAuthorizationEndpoint)?;
 
-        auth_url.set_query(Some(
-            &serde_urlencoded::to_string(params).map_err(OAuthError::AuthRequestUrlEncoding)?,
-        ));
+        auth_url
+            .query_pairs_mut()
+            .append_pair("client_id", &client_id)
+            .append_pair("request_uri", &par_response.request_uri);
 
         Ok(Self {
             issuer_metadata,
@@ -169,10 +195,14 @@ impl AuthorizationSession for HttpAuthorizationSession {
         &self.auth_url
     }
 
+    fn state(&self) -> &str {
+        &self.state
+    }
+
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         let authorization_code = self.authorization_code(received_redirect_uri)?;
         let message_client = HttpVcMessageClient::new(self.http_client);
@@ -202,9 +232,14 @@ mod tests {
     use std::collections::HashMap;
 
     use assert_matches::assert_matches;
+    use http::header;
+    use http_utils::httpmock::httpmock_reqwest_client_builder;
     use http_utils::reqwest::HttpJsonClient;
     use http_utils::reqwest::default_reqwest_client_builder;
+    use httpmock::Method::POST;
+    use httpmock::MockServer;
     use rstest::rstest;
+    use serde_json::json;
     use serial_test::serial;
     use url::Url;
 
@@ -213,6 +248,7 @@ mod tests {
     use crate::AuthorizationErrorCode;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
+    use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::pkce::MockPkcePair;
 
     const ISSUER_URL: &str = "https://example.com";
@@ -220,6 +256,7 @@ mod tests {
     const REDIRECT_URI: &str = "redirect://here";
     const CSRF_TOKEN: &str = "csrf_token";
     const CODE: &str = "code";
+    const PAR_REQUEST_URI: &str = "urn:ietf:params:oauth:request_uri:test-12345";
 
     pub fn url_with_query_pairs(mut url: Url, query_pairs: &[(&str, &str)]) -> Url {
         if !query_pairs.is_empty() {
@@ -275,35 +312,54 @@ mod tests {
     #[tokio::test]
     #[serial(MockPkcePair)]
     async fn test_auth_url() {
+        let server = MockServer::start_async().await;
+
+        server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/par");
+                then.status(201)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .json_body(json!({
+                        "request_uri": PAR_REQUEST_URI,
+                        "expires_in": 60,
+                    }));
+            })
+            .await;
+
+        let issuer_identifier = server.base_url().parse().unwrap();
+        let mut oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
+        oauth_metadata.pushed_authorization_request_endpoint = Some(server.url("/issuance/par").parse().unwrap());
+        oauth_metadata.authorization_endpoint = Some(server.url("/issuance/authorize").parse().unwrap());
+
         let pkce_context = MockPkcePair::generate_context();
         pkce_context.expect().return_once(|| {
             let mut pkce_pair = MockPkcePair::new();
             pkce_pair.expect_code_challenge().return_const("challenge".to_string());
             pkce_pair
         });
-        let session = HttpAuthorizationSession::<MockPkcePair>::try_new(
-            HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
-            IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test"),
-            AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
-            CLIENT_ID.to_string(),
+
+        let session = HttpAuthorizationSession::<MockPkcePair>::create(
+            HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            IssuerMetadata::new_mock(server.base_url().parse().unwrap(), "test"),
+            oauth_metadata,
+            MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
         )
+        .await
         .unwrap();
 
         let params: HashMap<_, _> = session.auth_url.query_pairs().collect();
 
-        assert_eq!(params.get("response_type").map(|v| v.as_ref()), Some("code"));
-        assert_eq!(params.get("client_id").map(|v| v.as_ref()), Some(CLIENT_ID));
-        assert_eq!(params.get("redirect_uri").map(|v| v.as_ref()), Some(REDIRECT_URI));
-        assert_eq!(params.get("code_challenge_method").map(|v| v.as_ref()), Some("S256"));
-        assert_eq!(params.get("code_challenge").map(|v| v.as_ref()), Some("challenge"));
-        assert_eq!(params.get("scope").map(|v| v.as_ref()), Some("openid"));
-        assert!(params.contains_key("state"));
-        assert!(params.contains_key("nonce"));
+        // Auth URL after PAR carries only client_id + request_uri (RFC 9126 §4)
+        assert_eq!(params.get("client_id").map(|v| v.as_ref()), Some(MOCK_WALLET_CLIENT_ID));
+        assert_eq!(params.get("request_uri").map(|v| v.as_ref()), Some(PAR_REQUEST_URI));
+        assert!(!params.contains_key("code_challenge"));
+        assert!(!params.contains_key("state"));
+        assert!(!params.contains_key("redirect_uri"));
     }
 
-    #[test]
-    fn test_matches_received_redirect_uri() {
+    #[tokio::test]
+    async fn test_matches_received_redirect_uri() {
         let session = create_session();
 
         assert!(session.matches_received_redirect_uri(&Url::parse(REDIRECT_URI).unwrap()));
@@ -316,8 +372,8 @@ mod tests {
         assert!(!session.matches_received_redirect_uri(&Url::parse("scheme://host/path").unwrap()));
     }
 
-    #[test]
-    fn test_redirect_uri_mismatch() {
+    #[tokio::test]
+    async fn test_redirect_uri_mismatch() {
         let session = create_session();
         let uri = Url::parse("http://not-the-redirect-uri.com").unwrap();
 
@@ -326,8 +382,8 @@ mod tests {
         assert_matches!(error, OAuthError::RedirectUriMismatch);
     }
 
-    #[test]
-    fn test_error() {
+    #[tokio::test]
+    async fn test_error() {
         let session = create_session();
         let uri = url_with_query_pairs(
             Url::parse(REDIRECT_URI).unwrap(),
@@ -347,8 +403,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_state_mismatch() {
+    #[tokio::test]
+    async fn test_state_mismatch() {
         let session = create_session();
         let uri = url_with_query_pairs(
             Url::parse(REDIRECT_URI).unwrap(),
@@ -360,8 +416,8 @@ mod tests {
         assert_matches!(error, OAuthError::StateTokenMismatch);
     }
 
-    #[test]
-    fn test_missing_code() {
+    #[tokio::test]
+    async fn test_missing_code() {
         let session = create_session();
         let uri = url_with_query_pairs(Url::parse(REDIRECT_URI).unwrap(), &[("state", CSRF_TOKEN)]);
 
@@ -370,8 +426,8 @@ mod tests {
         assert_matches!(error, OAuthError::AuthResponseUrlDecoding(err) if err.to_string() == "missing field `code`");
     }
 
-    #[test]
-    fn test_get_authorization_url() {
+    #[tokio::test]
+    async fn test_get_authorization_url() {
         let session = create_session();
         let uri = url_with_query_pairs(
             Url::parse(REDIRECT_URI).unwrap(),

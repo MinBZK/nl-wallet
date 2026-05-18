@@ -44,7 +44,7 @@ use status_lists::config::StatusListConfig;
 use status_lists::config::StatusListConfigs;
 use status_lists::entity::attestation_batch;
 use status_lists::entity::attestation_batch_list_indices;
-use status_lists::entity::attestation_type;
+use status_lists::entity::attestation_group;
 use status_lists::entity::status_list;
 use status_lists::entity::status_list_item;
 use status_lists::postgres::PostgresStatusListService;
@@ -90,14 +90,14 @@ async fn create_status_list_service(
     RevokeAllBool,
     PostgresStatusListService<SigningKey, RevokeAllBool>,
 )> {
-    let attestation_type = random_string(20);
+    let attestation_group = random_string(20);
     let config = StatusListConfig {
         list_size: NonZeroU31::try_new(list_size)?,
         create_threshold: U31::try_new(create_threshold)?,
         expiry: Duration::from_secs(3600),
         refresh_threshold: Duration::from_secs(600),
         ttl,
-        base_url: format!("https://example.com/tsl/{}", attestation_type)
+        base_url: format!("https://example.com/tsl/{}", attestation_group)
             .as_str()
             .parse()?,
         publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf())?,
@@ -106,23 +106,23 @@ async fn create_status_list_service(
     let revoke_all = RevokeAllBool::default();
     let service = PostgresStatusListService::try_new(
         connection.clone(),
-        &attestation_type,
+        &attestation_group,
         config.clone(),
         revoke_all.clone(),
     )
     .await?;
     try_join_all(service.initialize_lists().await?).await?;
 
-    Ok((attestation_type, config, revoke_all, service))
+    Ok((attestation_group, config, revoke_all, service))
 }
 
 async fn recreate_status_list_service(
     connection: &DatabaseConnection,
-    attestation_type: &str,
+    attestation_group: &str,
     config: StatusListConfig<SigningKey>,
     revoke_all: RevokeAllBool,
 ) -> anyhow::Result<PostgresStatusListService<SigningKey, RevokeAllBool>> {
-    let service = PostgresStatusListService::try_new(connection.clone(), attestation_type, config, revoke_all).await?;
+    let service = PostgresStatusListService::try_new(connection.clone(), attestation_group, config, revoke_all).await?;
     try_join_all(service.initialize_lists().await?).await?;
 
     Ok(service)
@@ -146,11 +146,11 @@ async fn clean_publish_dir(path: PathBuf) {
     .unwrap();
 }
 
-async fn attestation_type_id(connection: &DatabaseConnection, name: &str) -> i16 {
-    attestation_type::Entity::find()
+async fn attestation_group_id(connection: &DatabaseConnection, name: &str) -> i16 {
+    attestation_group::Entity::find()
         .select_only()
-        .column(attestation_type::Column::Id)
-        .filter(attestation_type::Column::Name.eq(name))
+        .column(attestation_group::Column::Id)
+        .filter(attestation_group::Column::Name.eq(name))
         .into_tuple()
         .one(connection)
         .await
@@ -286,7 +286,7 @@ where
 
 async fn fetch_status_list(connection: &DatabaseConnection, type_id: i16) -> Vec<status_list::Model> {
     status_list::Entity::find()
-        .filter(status_list::Column::AttestationTypeId.eq(type_id))
+        .filter(status_list::Column::AttestationGroupId.eq(type_id))
         .order_by_asc(status_list::Column::NextSequenceNo)
         .all(connection)
         .await
@@ -297,17 +297,17 @@ async fn update_availability_of_status_list(connection: &DatabaseConnection, typ
     // Make second list empty
     let result = status_list::Entity::update_many()
         .col_expr(status_list::Column::Available, Expr::value(availability))
-        .filter(status_list::Column::AttestationTypeId.eq(type_id))
+        .filter(status_list::Column::AttestationGroupId.eq(type_id))
         .exec(connection)
         .await
         .unwrap();
     match result.rows_affected {
         0 => panic!(
-            "Not updated availability of status list for attestation type {}",
+            "Not updated availability of status list for attestation group {}",
             type_id
         ),
         1 => (),
-        no => panic!("Updated {} status lists for attestation type {}", no, type_id),
+        no => panic!("Updated {} status lists for attestation group {}", no, type_id),
     }
 }
 
@@ -331,21 +331,21 @@ async fn test_service_initializes_status_lists() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, _, _) = create_status_list_service(&ca, &connection, 10, 1, None, &publish_dir)
+    let (attestation_group, config, _, _) = create_status_list_service(&ca, &connection, 10, 1, None, &publish_dir)
         .await
         .unwrap();
 
-    // Check if attestation type is correctly created
-    let attestation_type = attestation_type::Entity::find()
-        .filter(attestation_type::Column::Name.eq(attestation_type))
+    // Check if attestation group is correctly created
+    let attestation_group = attestation_group::Entity::find()
+        .filter(attestation_group::Column::Name.eq(attestation_group))
         .one(&connection)
         .await
         .unwrap()
         .unwrap();
-    assert_eq!(attestation_type.next_sequence_no, 10);
+    assert_eq!(attestation_group.next_sequence_no, 10);
 
     // Check if status lists are correctly initialized
-    let db_lists = fetch_status_list(&connection, attestation_type.id).await;
+    let db_lists = fetch_status_list(&connection, attestation_group.id).await;
     assert_eq!(db_lists.len(), 1);
     assert_status_list_items(&connection, &db_lists[0], 10, 10, 10, false).await;
     assert_empty_published_list(&config, &db_lists[0]).await;
@@ -359,10 +359,9 @@ async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
 
     let key_pair = ca.generate_status_list_mock().unwrap();
     let publish_dir = tempfile::tempdir().unwrap();
-    let configs: StatusListConfigs<SigningKey> = (0..2)
-        .zip_eq(itertools::repeat_n(key_pair, 2))
-        .map(|(_, key_pair)| {
-            let attestation_type = random_string(20);
+    let configs: StatusListConfigs<SigningKey> = itertools::repeat_n(key_pair, 2)
+        .map(|key_pair| {
+            let attestation_group = random_string(20);
             let config = StatusListConfig {
                 list_size: NonZeroU31::try_new(4).unwrap(),
                 create_threshold: U31::ONE,
@@ -373,7 +372,7 @@ async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
                 publish_dir: PublishDir::try_new(publish_dir.path().to_path_buf()).unwrap(),
                 key_pair,
             };
-            (attestation_type, config)
+            (attestation_group, config)
         })
         .collect::<HashMap<_, _>>()
         .into();
@@ -382,20 +381,20 @@ async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
         .unwrap();
     try_join_all(service.initialize_lists().await.unwrap()).await.unwrap();
 
-    // Check if attestation types are correctly created
-    let attestation_types = attestation_type::Entity::find()
-        .filter(attestation_type::Column::Name.is_in(configs.as_ref().keys()))
+    // Check if attestation groups are correctly created
+    let attestation_groups = attestation_group::Entity::find()
+        .filter(attestation_group::Column::Name.is_in(configs.as_ref().keys()))
         .all(&connection)
         .await
         .unwrap();
 
     // Check if status lists are correctly initialized
     let mut paths = Vec::new();
-    for attestation_type in &attestation_types {
-        let db_lists = fetch_status_list(&connection, attestation_type.id).await;
+    for attestation_group in &attestation_groups {
+        let db_lists = fetch_status_list(&connection, attestation_group.id).await;
         assert_eq!(db_lists.len(), 1);
         assert_status_list_items(&connection, &db_lists[0], 4, 4, 4, false).await;
-        assert_empty_published_list(&configs.as_ref()[&attestation_type.name], &db_lists[0]).await;
+        assert_empty_published_list(&configs.as_ref()[&attestation_group.name], &db_lists[0]).await;
         paths.push(publish_dir.path().join(format!("{}.jwt", db_lists[0].external_id)));
     }
 
@@ -406,10 +405,10 @@ async fn test_multiple_services_initializes_status_lists_and_refresh_job() {
         .unwrap();
 
     // Check if status lists are correctly republished
-    for attestation_type in attestation_types {
-        let db_lists = fetch_status_list(&connection, attestation_type.id).await;
+    for attestation_group in attestation_groups {
+        let db_lists = fetch_status_list(&connection, attestation_group.id).await;
         assert_eq!(db_lists.len(), 1);
-        assert_empty_published_list(&configs.as_ref()[&attestation_type.name], &db_lists[0]).await;
+        assert_empty_published_list(&configs.as_ref()[&attestation_group.name], &db_lists[0]).await;
     }
 
     // Check republish
@@ -422,12 +421,12 @@ async fn test_service_initializes_schedule_housekeeping_empty() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, revoke_all, _) =
+    let (attestation_group, config, revoke_all, _) =
         create_status_list_service(&ca, &connection, 5, 2, None, &publish_dir)
             .await
             .unwrap();
 
-    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    let type_id = attestation_group_id(&connection, &attestation_group).await;
 
     // Make list empty
     update_availability_of_status_list(&connection, type_id, 0).await;
@@ -437,7 +436,7 @@ async fn test_service_initializes_schedule_housekeeping_empty() {
         list_size: 6.try_into().unwrap(),
         ..config
     };
-    let _ = recreate_status_list_service(&connection, &attestation_type, config, revoke_all).await;
+    let _ = recreate_status_list_service(&connection, &attestation_group, config, revoke_all).await;
 
     // Old list should be empty and new list should be created
     let db_lists = fetch_status_list(&connection, type_id).await;
@@ -452,12 +451,12 @@ async fn test_service_initializes_schedule_housekeeping_almost_empty() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, revoke_all, _) =
+    let (attestation_group, config, revoke_all, _) =
         create_status_list_service(&ca, &connection, 5, 2, None, &publish_dir)
             .await
             .unwrap();
 
-    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    let type_id = attestation_group_id(&connection, &attestation_group).await;
 
     // Make list almost empty
     update_availability_of_status_list(&connection, type_id, 1).await;
@@ -467,7 +466,7 @@ async fn test_service_initializes_schedule_housekeeping_almost_empty() {
         list_size: 7.try_into().unwrap(),
         ..config
     };
-    let _ = recreate_status_list_service(&connection, &attestation_type, config, revoke_all).await;
+    let _ = recreate_status_list_service(&connection, &attestation_group, config, revoke_all).await;
 
     // New list should be created, but old one still has available items
     let db_lists = fetch_status_list(&connection, type_id).await;
@@ -482,15 +481,15 @@ async fn test_service_initializes_schedule_housekeeping_full() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, revoke_all, _) =
+    let (attestation_group, config, revoke_all, _) =
         create_status_list_service(&ca, &connection, 5, 2, None, &publish_dir)
             .await
             .unwrap();
 
-    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    let type_id = attestation_group_id(&connection, &attestation_group).await;
 
     // Recreate list with large list size
-    let _ = recreate_status_list_service(&connection, &attestation_type, config, revoke_all).await;
+    let _ = recreate_status_list_service(&connection, &attestation_group, config, revoke_all).await;
 
     // Full list should still be same
     let db_lists = fetch_status_list(&connection, type_id).await;
@@ -504,11 +503,12 @@ async fn test_service_create_status_claims() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, _, service) = create_status_list_service(&ca, &connection, 9, 5, None, &publish_dir)
-        .await
-        .unwrap();
+    let (attestation_group, config, _, service) =
+        create_status_list_service(&ca, &connection, 9, 5, None, &publish_dir)
+            .await
+            .unwrap();
 
-    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    let type_id = attestation_group_id(&connection, &attestation_group).await;
     update_availability_of_status_list(&connection, type_id, 8).await;
 
     // Obtain claims for attestation batch
@@ -563,11 +563,12 @@ async fn test_service_create_status_claims_creates_in_flight_if_needed() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, _, service) = create_status_list_service(&ca, &connection, 8, 1, None, &publish_dir)
-        .await
-        .unwrap();
+    let (attestation_group, config, _, service) =
+        create_status_list_service(&ca, &connection, 8, 1, None, &publish_dir)
+            .await
+            .unwrap();
 
-    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    let type_id = attestation_group_id(&connection, &attestation_group).await;
     update_availability_of_status_list(&connection, type_id, 1).await;
 
     // Fetch items of current list now, since they will be deleted
@@ -625,12 +626,12 @@ async fn test_service_create_status_claims_concurrently() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, _, service) =
+    let (attestation_group, config, _, service) =
         create_status_list_service(&ca, &connection, 24, 2, None, &publish_dir)
             .await
             .unwrap();
 
-    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    let type_id = attestation_group_id(&connection, &attestation_group).await;
 
     // Obtain claims for multiple attestation batches
     let concurrent = 7;
@@ -667,12 +668,12 @@ async fn test_service_revoke_attestation_batches_multiple_lists() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, revoke_all, _) =
+    let (attestation_group, config, revoke_all, _) =
         create_status_list_service(&ca, &connection, 4, 1, Some(Duration::from_secs(300)), &publish_dir)
             .await
             .unwrap();
 
-    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    let type_id = attestation_group_id(&connection, &attestation_group).await;
 
     // Ensure we have two lists and change list size for new list
     update_availability_of_status_list(&connection, type_id, 1).await;
@@ -680,7 +681,7 @@ async fn test_service_revoke_attestation_batches_multiple_lists() {
         list_size: 10.try_into().unwrap(),
         ..config
     };
-    let service = recreate_status_list_service(&connection, attestation_type.as_ref(), config.clone(), revoke_all)
+    let service = recreate_status_list_service(&connection, attestation_group.as_ref(), config.clone(), revoke_all)
         .await
         .unwrap();
 
@@ -728,11 +729,12 @@ async fn test_service_revoke_attestation_batches_concurrently() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, _, service) = create_status_list_service(&ca, &connection, 9, 1, None, &publish_dir)
-        .await
-        .unwrap();
+    let (attestation_group, config, _, service) =
+        create_status_list_service(&ca, &connection, 9, 1, None, &publish_dir)
+            .await
+            .unwrap();
 
-    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    let type_id = attestation_group_id(&connection, &attestation_group).await;
 
     // Obtain claims for multiple attestation batches
     let concurrent = 7;
@@ -792,11 +794,12 @@ async fn test_service_refresh_status_list_if_expired(#[case] expiry: Option<Date
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, _, service) = create_status_list_service(&ca, &connection, 3, 1, None, &publish_dir)
-        .await
-        .unwrap();
+    let (attestation_group, config, _, service) =
+        create_status_list_service(&ca, &connection, 3, 1, None, &publish_dir)
+            .await
+            .unwrap();
 
-    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    let type_id = attestation_group_id(&connection, &attestation_group).await;
     let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 1);
 
@@ -815,13 +818,13 @@ async fn test_service_republish_status_list_with_revoke_all_set() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, revoke_all, service) =
+    let (attestation_group, config, revoke_all, service) =
         create_status_list_service(&ca, &connection, 5, 1, None, &publish_dir)
             .await
             .unwrap();
 
     // Check if status lists are correctly initialized
-    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    let type_id = attestation_group_id(&connection, &attestation_group).await;
     let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 1);
     assert_status_list_items(&connection, &db_lists[0], 5, 5, 5, false).await;
@@ -849,7 +852,7 @@ async fn test_service_new_status_list_with_revoke_all_set() {
     let db_setup = DbSetup::create().await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, revoke_all, service) =
+    let (attestation_group, config, revoke_all, service) =
         create_status_list_service(&ca, &connection, 2, 1, None, &publish_dir)
             .await
             .unwrap();
@@ -866,7 +869,7 @@ async fn test_service_new_status_list_with_revoke_all_set() {
     try_join_all(tasks.into_iter()).await.unwrap();
 
     // Check if status lists are correctly initialized
-    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    let type_id = attestation_group_id(&connection, &attestation_group).await;
     let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 2);
     assert_status_list_items(&connection, &db_lists[1], 2, 2, 4, false).await;
@@ -881,12 +884,12 @@ async fn test_service_revoke_all() {
     let db_setup = DbSetup::create_clean_only([DbName::IssuanceServer]).await;
     let connection = connection_from_url(db_setup.status_lists_url()).await;
     let publish_dir = tempfile::tempdir().unwrap();
-    let (attestation_type, config, revoke_all, _service) =
+    let (attestation_group, config, revoke_all, _service) =
         create_status_list_service(&ca, &connection, 2, 1, None, &publish_dir)
             .await
             .unwrap();
 
-    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    let type_id = attestation_group_id(&connection, &attestation_group).await;
 
     // Ensure we have two lists and change list size for new list
     update_availability_of_status_list(&connection, type_id, 0).await;
@@ -896,7 +899,7 @@ async fn test_service_revoke_all() {
     };
     let service = recreate_status_list_service(
         &connection,
-        attestation_type.as_ref(),
+        attestation_group.as_ref(),
         config.clone(),
         revoke_all.clone(),
     )
@@ -904,7 +907,7 @@ async fn test_service_revoke_all() {
     .unwrap();
 
     // Check if status lists are correctly initialized
-    let type_id = attestation_type_id(&connection, &attestation_type).await;
+    let type_id = attestation_group_id(&connection, &attestation_group).await;
     let db_lists = fetch_status_list(&connection, type_id).await;
     assert_eq!(db_lists.len(), 2);
     assert_status_list_items(&connection, &db_lists[1], 9, 9, 11, false).await;

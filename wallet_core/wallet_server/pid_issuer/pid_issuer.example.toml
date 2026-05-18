@@ -3,11 +3,19 @@
 # The wallet must be able to reach the server at this URL
 public_url = 'http://localhost:8001/'
 
+# OAuth client_id(s) that the wallet is allowed to use when sending a PAR request to this server.
+# Must match the client_id configured in the wallet's pid_issuance settings.
+# Distinct from [digid] client_id, which is used when forwarding authorization to the upstream IdP.
+wallet_client_ids = [""]
+
 issuer_trust_anchors = ["MII..."] # CAs for issuer certificates
 wua_issuer_pubkey = ""            # Public key of the WUA issuer
 
 # Files containing SD-JWT Type Metadata documents
 metadata = ["com_example_pid_metadata.json", "com_example_address_metadata.json"]
+
+# The maximum amount of credentials a holder will be able to request, in the range 1-255
+batch_size = 10
 
 [storage]
 url = 'postgres://postgres:postgres@localhost:5432/pid_issuer' # or 'memory://'
@@ -37,6 +45,8 @@ secret_key_type = "software"                                                    
 
 [digid]
 bsn_privkey = ""
+# OAuth client_id used when forwarding authorization to DigiD (nl-rdo-max). Must be registered in
+# DigiD's clients.json. Different from wallet_client_ids above.
 client_id = ""
 
 [digid.client_settings]
@@ -48,29 +58,33 @@ oidc_identifier = "https://localhost:8006"
 # the same host in practice.
 trust_anchors = [""]
 
-[attestation_settings."com.example.pid"]
+[credential_configurations."com.example.pid_sdjwt"]
+format = "dc+sd-jwt"
+attestation_type = "com.example.pid"
 valid_days = 365
-copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
-attestation_qualification = "QEAA"                      # QEAA, PuB-EAA or EAA (default)
+attestation_qualification = "QEAA"   # QEAA, PuB-EAA or EAA (default)
 private_key_type = "hsm"
-private_key = "pid_issuer_key"                          # label for the private key in the HSM
+private_key = "pid_issuer_key"       # label for the private key in the HSM
 certificate = "MIJ..."
 
-[attestation_settings."com.example.address"]
+[credential_configurations."com.example.pid_mdoc"]
+format = "mso_mdoc"
+attestation_type = "com.example.pid"
 valid_days = 365
-copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"
-private_key = "MIG..."                                  # DER-encoded private key
+private_key = "MIG..."               # DER-encoded private key
 certificate = "MIJ..."
 
-[attestation_settings."com.example.pid".status_list]
+[credential_configurations."com.example.pid_sdjwt".status_list]
+group_name = "com.example.pid_sdjwt"
 context_path = "/tsl"
 publish_dir = "/srv/html/tsl"
 private_key_type = "software"
 private_key = "MIG..."
 certificate = "MIJ..."
 
-[attestation_settings."com.example.address".status_list]
+[credential_configurations."com.example.pid_mdoc".status_list]
+group_name = "com.example.pid_mdoc"
 context_path = "/tsl"
 publish_dir = "/srv/html/tsl"
 private_key_type = "software"

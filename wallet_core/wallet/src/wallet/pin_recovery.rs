@@ -18,6 +18,7 @@ use tracing::info;
 use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
 use url::Url;
+use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::PidAttributesConfigurationError;
@@ -161,7 +162,7 @@ where
             .issuance_discovery
             .start_authorization_code_flow(
                 &config.pid_issuance.url,
-                config.pid_issuance.client_id.clone(),
+                String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
             )
             .await
@@ -209,7 +210,7 @@ where
         // Fetch issuance previews
         let config = self.config_repository.get();
         let issuance_session = authorization_session
-            .start_issuance(&redirect_uri, &config.issuer_trust_anchors())
+            .start_issuance(&redirect_uri, config.issuer_trust_anchors())
             .await
             .map_err(|e| match e {
                 WalletIssuanceError::OAuth(OAuthError::Denied) => PinRecoveryError::DeniedDigiD,
@@ -337,7 +338,7 @@ where
         self.storage.write().await.upsert_data(&PinRecoveryData).await?;
 
         let issuance_result = issuance_session
-            .accept_issuance(&config.issuer_trust_anchors(), &pin_recovery_wscd, true)
+            .accept_issuance(config.issuer_trust_anchors(), &pin_recovery_wscd, true)
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, issuance_session));
 
@@ -458,6 +459,7 @@ mod tests {
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use jwt::UnverifiedJwt;
     use jwt::nonce::Nonce;
+    use jwt::wia::WiaDisclosure;
     use openid4vc::Format;
     use openid4vc::wallet_issuance::WalletIssuanceError;
     use openid4vc::wallet_issuance::authorization::OAuthError;
@@ -474,7 +476,6 @@ mod tests {
     use wallet_account::messages::instructions::DiscloseRecoveryCodePinRecovery;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::registration::WalletCertificateClaims;
-    use wscd::Poa;
     use wscd::wscd::IssuanceWscd;
 
     use super::PinRecoveryError;
@@ -903,14 +904,13 @@ mod tests {
 
     fn setup_issuance_session(wallet: &mut TestWalletMockStorage) {
         let (sd_jwt, _metadata) = create_example_pid_sd_jwt();
-        let (pid_issuer, _) = mock_issuance_session(
+        let (pid_issuer, _) = mock_issuance_session([(
             IssuedCredential::SdJwt {
                 key_identifier: "key_id".to_string(),
                 sd_jwt: sd_jwt.clone(),
             },
-            PID_ATTESTATION_TYPE.to_string(),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
-        );
+        )]);
 
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::Issuance {
             pid_config: wallet.config_repository.get().pid_attributes.clone(),
@@ -923,15 +923,17 @@ mod tests {
 
     impl IssuanceWscd for MockPinWscd {
         type Error = Infallible;
-        type Poa = Poa;
 
         async fn perform_issuance(
             &self,
             _count: NonZeroUsize,
             _aud: String,
             _nonce: Option<Nonce>,
-            _include_wia: bool,
-        ) -> Result<wscd::wscd::IssuanceResult<Self::Poa>, Self::Error> {
+        ) -> Result<wscd::wscd::IssuanceResult, Self::Error> {
+            unimplemented!()
+        }
+
+        async fn issue_wia(&self, _aud: String, _nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
             unimplemented!()
         }
     }

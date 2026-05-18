@@ -1,5 +1,5 @@
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use rustls_pki_types::TrustAnchor;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use url::Url;
 
 use crate::issuer_identifier::IssuerIdentifier;
@@ -35,7 +35,7 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
         &self,
         _redirect_uri: &Url,
         _client_id: String,
-        _trust_anchors: &[TrustAnchor<'_>],
+        _trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         self.start_pre_authorized_code_flow_sync()
     }
@@ -45,6 +45,7 @@ mockall::mock! {
     #[derive(Debug)]
     pub AuthorizationSession {
         pub fn get_auth_url(&self) -> &Url;
+        pub fn get_state(&self) -> &str;
         pub fn start_issuance_sync(&self) -> Result<MockIssuanceSession, WalletIssuanceError>;
     }
 }
@@ -56,10 +57,14 @@ impl AuthorizationSession for MockAuthorizationSession {
         self.get_auth_url()
     }
 
+    fn state(&self) -> &str {
+        self.get_state()
+    }
+
     async fn start_issuance(
         self,
         _received_redirect_uri: &Url,
-        _trust_anchors: &[TrustAnchor<'_>],
+        _trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         self.start_issuance_sync()
     }
@@ -83,7 +88,7 @@ mockall::mock! {
 impl IssuanceSession for MockIssuanceSession {
     async fn accept_issuance<W>(
         &mut self,
-        _: &[TrustAnchor<'_>],
+        _: &[BorrowingTrustAnchor],
         _: &W,
         _: bool,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError> {

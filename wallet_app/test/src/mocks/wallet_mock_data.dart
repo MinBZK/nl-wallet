@@ -1,5 +1,6 @@
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
+import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_display_metadata.dart';
@@ -19,6 +20,8 @@ import 'package:wallet/src/theme/dark_wallet_theme.dart';
 import 'package:wallet/src/theme/light_wallet_theme.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/wallet_assets.dart';
+
+class MockWalletCard extends Mock implements WalletCard {}
 
 abstract class WalletMockData {
   static Locale testLocale = const Locale('en');

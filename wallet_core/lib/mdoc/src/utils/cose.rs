@@ -19,6 +19,7 @@ use coset::iana;
 use coset::sig_structure_data;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
@@ -29,7 +30,6 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Verifier;
 use ring::hmac;
-use rustls_pki_types::TrustAnchor;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use utils::generator::Generator;
@@ -263,7 +263,7 @@ impl<T> MdocCose<CoseSign1, T> {
         &self,
         usage: CertificateUsage,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor],
+        trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<T, CoseError>
     where
         T: DeserializeOwned,
@@ -581,7 +581,7 @@ mod tests {
         let header_cert = cose.signing_cert().unwrap();
         assert_eq!(issuer_key_pair.certificate().as_ref(), header_cert.as_ref());
 
-        cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &[ca.to_trust_anchor()])
+        cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &[ca.to_borrowing_trust_anchor()])
             .unwrap();
     }
 

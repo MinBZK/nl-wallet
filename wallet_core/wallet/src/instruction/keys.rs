@@ -12,14 +12,14 @@ use crypto::wscd::WscdPoa;
 use derive_more::Constructor;
 use jwt::UnverifiedJwt;
 use jwt::nonce::Nonce;
+use jwt::wia::WiaDisclosure;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature;
 use parking_lot::Mutex;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
+use wallet_account::messages::instructions::IssueWia;
 use wallet_account::messages::instructions::PerformIssuance;
-use wallet_account::messages::instructions::PerformIssuanceWithWia;
-use wallet_account::messages::instructions::PerformIssuanceWithWiaResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::StartPinRecovery;
 use wallet_account::messages::registration::WalletCertificateClaims;
@@ -124,36 +124,30 @@ where
     A: AccountProviderClient,
 {
     type Error = RemoteEcdsaKeyError;
-    type Poa = Poa;
 
     async fn perform_issuance(
         &self,
         key_count: NonZeroUsize,
         aud: String,
         nonce: Option<Nonce>,
-        include_wia: bool,
-    ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
-        let issuance_instruction = PerformIssuance { key_count, aud, nonce };
-        let (issuance_result, wia) = if !include_wia {
-            (self.instruction_client.send(issuance_instruction).await?, None)
-        } else {
-            let PerformIssuanceWithWiaResult {
-                issuance_result,
-                wia_disclosure,
-            } = self
-                .instruction_client
-                .send(PerformIssuanceWithWia { issuance_instruction })
-                .await?;
-
-            (issuance_result, Some(wia_disclosure))
-        };
+    ) -> Result<IssuanceResult, Self::Error> {
+        let issuance_result = self
+            .instruction_client
+            .send(PerformIssuance { key_count, aud, nonce })
+            .await?;
 
         Ok(IssuanceResult::new(
             issuance_result.key_identifiers,
             issuance_result.pops,
-            issuance_result.poa,
-            wia,
         ))
+    }
+
+    async fn issue_wia(&self, aud: String, nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
+        Ok(self
+            .instruction_client
+            .send(IssueWia { nonce, aud })
+            .await?
+            .wia_disclosure)
     }
 }
 
@@ -195,7 +189,7 @@ impl<S, AK, GK, A> PinRecoveryRemoteEcdsaWscd<S, AK, GK, A> {
     }
 }
 
-pub trait PinRecoveryWscd: IssuanceWscd<Poa = Poa> {
+pub trait PinRecoveryWscd: IssuanceWscd {
     fn certificates(self) -> Vec<UnverifiedJwt<WalletCertificateClaims>>;
 }
 
@@ -207,38 +201,36 @@ where
     A: AccountProviderClient,
 {
     type Error = RemoteEcdsaKeyError;
-    type Poa = Poa;
 
     async fn perform_issuance(
         &self,
         key_count: std::num::NonZeroUsize,
         aud: String,
         nonce: Option<Nonce>,
-        include_wia: bool,
-    ) -> Result<IssuanceResult<Self::Poa>, Self::Error> {
-        if !include_wia {
-            panic!("include_wia must always be true for PinRecoveryRemoteEcdsaWscd")
-        }
-
+    ) -> Result<IssuanceResult, Self::Error> {
         let result = self
             .instruction_client
             .send(StartPinRecovery {
-                issuance_with_wia_instruction: PerformIssuanceWithWia {
-                    issuance_instruction: PerformIssuance { key_count, aud, nonce },
-                },
+                issuance_instruction: PerformIssuance { key_count, aud, nonce },
                 pin_pubkey: self.pin_key.into(),
             })
             .await?;
 
         self.certificates.lock().push(result.certificate);
 
-        let issuance_result = result.issuance_with_wia_result.issuance_result;
+        let issuance_result = result.issuance_result;
         Ok(IssuanceResult::new(
             issuance_result.key_identifiers,
             issuance_result.pops,
-            issuance_result.poa,
-            Some(result.issuance_with_wia_result.wia_disclosure),
         ))
+    }
+
+    async fn issue_wia(&self, aud: String, nonce: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
+        Ok(self
+            .instruction_client
+            .send(IssueWia { nonce, aud })
+            .await?
+            .wia_disclosure)
     }
 }
 

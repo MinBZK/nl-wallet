@@ -7,7 +7,6 @@ pub mod preview;
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;
 
-use std::collections::HashSet;
 use std::fmt::Debug;
 
 use attestation_data::attributes::AttributesError;
@@ -15,18 +14,16 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::MdocCredentialPayloadError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use error_category::ErrorCategory;
-use itertools::Itertools;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
 use reqwest::header::ToStrError;
-use rustls_pki_types::TrustAnchor;
 use sd_jwt::error::DecoderError;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use url::Url;
 use utils::single_unique::MultipleItemsFound;
-use wscd::Poa;
 use wscd::wscd::IssuanceWscd;
 
 use crate::CredentialErrorCode;
@@ -100,6 +97,10 @@ pub enum WalletIssuanceError {
     #[error("generating credential private keys failed: {0}")]
     #[category(pd)]
     PrivateKeyGeneration(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
+    #[error("WIA issuance failed: {0}")]
+    #[category(pd)]
+    WiaIssuance(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
     #[error("public key contained in mdoc not equal to expected value")]
     #[category(critical)]
@@ -180,9 +181,9 @@ pub enum WalletIssuanceError {
     #[error("error converting SD-JWT to a CredentialPayload: {0}")]
     SdJwtCredentialPayloadError(#[from] SdJwtCredentialPayloadError),
 
-    #[error("unsupported credential format(s) proposed for credential \"{}\": {}", .0, .1.iter().join(", "))]
+    #[error("unsupported credential format proposed for credential \"{0}\": {1}")]
     #[category(pd)]
-    UnsupportedCredentialFormat(String, HashSet<Format>),
+    UnsupportedCredentialFormat(String, Format),
 
     #[error("different issuer registrations found in credential previews")]
     #[category(critical)]
@@ -227,7 +228,7 @@ pub trait IssuanceDiscovery {
         &self,
         redirect_uri: &Url,
         client_id: String,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 }
 
@@ -242,12 +243,15 @@ pub trait AuthorizationSession {
     /// Returns the authorization URL the user should be redirected to.
     fn auth_url(&self) -> &Url;
 
+    /// Returns the OAuth `state` (CSRF token) stored in the PAR-submitted authorization request.
+    fn state(&self) -> &str;
+
     /// Exchanges the authorization code in `received_redirect_uri` for an access token and
     /// credential previews, returning an [`IssuanceSession`].
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 }
 
@@ -255,12 +259,12 @@ pub trait AuthorizationSession {
 pub trait IssuanceSession {
     async fn accept_issuance<W>(
         &mut self,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
         wscd: &W,
         include_wia: bool,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
     where
-        W: IssuanceWscd<Poa = Poa>;
+        W: IssuanceWscd;
 
     async fn reject_issuance(self) -> Result<(), WalletIssuanceError>;
 

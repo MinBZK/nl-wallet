@@ -1,19 +1,25 @@
+use std::sync::Arc;
+
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesHandlingError;
-use attestation_data::issuable_document::IssuableDocument;
 use attestation_types::claim_path::ClaimPath;
 use crypto::x509::CertificateError;
 use hsm::service::HsmError;
 use jwk_simple::Key;
+use openid4vc::Format;
+use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
+use openid4vc::issuer::UpstreamCodeVerifier;
 use openid4vc::token::TokenRequest;
+use openid4vc::token::TokenRequestGrantType;
 use server_utils::keys::SecretKeyVariant;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
 use super::digid;
+use super::digid::DigidMetadataCache;
 use super::digid::OpenIdClient;
 use crate::pid::brp::client::BrpClient;
 use crate::pid::brp::client::BrpError;
@@ -21,30 +27,41 @@ use crate::pid::brp::client::HttpBrpClient;
 use crate::pid::constants::PID_ATTESTATION_TYPE;
 use crate::pid::constants::PID_BSN;
 use crate::pid::constants::PID_RECOVERY_CODE;
-use crate::settings::DigidClientSettings;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("DigiD error: {0}")]
-    Digid(#[from] digid::Error),
+    Digid(#[source] digid::Error),
+
     #[error("could not find attributes for BSN")]
     NoAttributesFound,
+
     #[error("error retrieving from BRP: {0}")]
-    Brp(#[from] BrpError),
+    Brp(#[source] BrpError),
+
     #[error("error creating issuable documents")]
     InvalidIssuableDocuments,
+
     #[error("certificate error: {0}")]
-    Certificate(#[from] CertificateError),
+    Certificate(#[source] CertificateError),
+
     #[error("could not find BSN attribute")]
     NoBsnFound,
+
     #[error("error retrieving BSN: {0}")]
     RetrievingBsn(#[source] AttributesHandlingError),
+
     #[error("BSN attribute had unexpected type (expected string)")]
     BsnUnexpectedType,
+
     #[error("failed to compute BSN HMAC: {0}")]
-    Hmac(#[from] HsmError),
+    Hmac(#[source] HsmError),
+
     #[error("error inserting recovery code: {0}")]
     InsertingRecoveryCode(#[source] AttributesHandlingError),
+
+    #[error("invalid grant type")]
+    InvalidGrantType,
 }
 
 pub struct BrpPidAttributeService {
@@ -58,12 +75,12 @@ impl BrpPidAttributeService {
         brp_client: HttpBrpClient,
         bsn_privkey: &Key,
         client_id: impl Into<String>,
-        digid_client_settings: DigidClientSettings,
+        digid_metadata_cache: Arc<DigidMetadataCache>,
         recovery_code_secret_key: SecretKeyVariant,
     ) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
-            openid_client: OpenIdClient::try_new(bsn_privkey, client_id, digid_client_settings)?,
+            openid_client: OpenIdClient::try_new(bsn_privkey, client_id, digid_metadata_cache).map_err(Error::Digid)?,
             recovery_code_secret_key,
         })
     }
@@ -72,9 +89,23 @@ impl BrpPidAttributeService {
 impl AttributeService for BrpPidAttributeService {
     type Error = Error;
 
-    async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Error> {
-        let bsn = self.openid_client.bsn(token_request).await?;
-        let mut persons = self.brp_client.get_person_by_bsn(&bsn).await?;
+    async fn attributes(
+        &self,
+        token_request: TokenRequest,
+        upstream_code_verifier: Option<UpstreamCodeVerifier>,
+    ) -> Result<VecNonEmpty<IssuableDocument>, Error> {
+        let authorization_code = match token_request.grant_type {
+            TokenRequestGrantType::AuthorizationCode { code } => code,
+            _ => return Err(Error::InvalidGrantType),
+        };
+        let code_verifier = upstream_code_verifier.map(String::from);
+
+        let bsn = self
+            .openid_client
+            .bsn(authorization_code, code_verifier, token_request.redirect_uri)
+            .await
+            .map_err(Error::Digid)?;
+        let mut persons = self.brp_client.get_person_by_bsn(&bsn).await.map_err(Error::Brp)?;
 
         if persons.persons.len() != 1 {
             return Err(Error::NoAttributesFound);
@@ -84,10 +115,19 @@ impl AttributeService for BrpPidAttributeService {
 
         let attributes = Self::insert_recovery_code(person.into_attributes(), &self.recovery_code_secret_key).await?;
 
-        let issuable_document = IssuableDocument::try_new_with_random_id(PID_ATTESTATION_TYPE.to_string(), attributes)
-            .map_err(|_| Error::InvalidIssuableDocuments)?;
+        // Supply both a SD-JWT and Mdoc PID credential, based on the same set of attributes.
+        let issuable_documents = vec_nonempty![
+            IssuableDocument::try_new_with_random_id(
+                Format::SdJwt,
+                PID_ATTESTATION_TYPE.to_string(),
+                attributes.clone()
+            )
+            .map_err(|_| Error::InvalidIssuableDocuments)?,
+            IssuableDocument::try_new_with_random_id(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string(), attributes)
+                .map_err(|_| Error::InvalidIssuableDocuments)?,
+        ];
 
-        Ok(vec_nonempty![issuable_document])
+        Ok(issuable_documents)
     }
 }
 
@@ -105,7 +145,9 @@ impl BrpPidAttributeService {
             _ => return Err(Error::BsnUnexpectedType),
         };
 
-        let recovery_code = AttributeValue::Text(hex::encode(secret_key.sign_hmac(bsn.as_bytes()).await?));
+        let recovery_code = AttributeValue::Text(hex::encode(
+            secret_key.sign_hmac(bsn.as_bytes()).await.map_err(Error::Hmac)?,
+        ));
 
         attributes
             .insert(

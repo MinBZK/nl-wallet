@@ -5,6 +5,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use coset::RegisteredLabelWithPrivate;
 use coset::iana::Algorithm;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
 use crypto::x509::KeyIdentifier;
 use futures::future::try_join_all;
@@ -13,7 +14,6 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::SecretKey;
 use p256::ecdsa::VerifyingKey;
-use rustls_pki_types::TrustAnchor;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
@@ -116,7 +116,7 @@ impl DeviceResponse {
         eph_reader_key: Option<&SecretKey>,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
         revocation_verifier: &RevocationVerifier<C>,
     ) -> Result<Vec<DisclosedDocument>>
     where
@@ -139,7 +139,7 @@ impl DeviceResponse {
         eph_reader_key: Option<&SecretKey>,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
         revocation_verifier: &RevocationVerifier<C>,
         supported_algorithms: &SupportedAlgorithms,
     ) -> Result<Vec<DisclosedDocument>>
@@ -227,7 +227,7 @@ impl IssuerSigned {
         &self,
         validity: ValidityRequirement,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor],
+        trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<IssuerSignedVerificationResult> {
         let TaggedBytes(mso) =
             self.issuer_auth
@@ -315,7 +315,7 @@ impl Document {
         eph_reader_key: Option<&SecretKey>,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
         revocation_verifier: &RevocationVerifier<C>,
         supported_algorithms: &SupportedAlgorithms,
     ) -> Result<DisclosedDocument>
@@ -541,7 +541,7 @@ mod tests {
                 Some(&eph_reader_key),
                 &DeviceAuthenticationBytes::example().0.0.session_transcript,
                 &IsoCertTimeGenerator,
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
                 ))),

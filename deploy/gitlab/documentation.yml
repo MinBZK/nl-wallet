@@ -43,7 +43,6 @@ build-documentation:
     when: always
     paths:
       - wallet_docs/_build/html
-  allow_failure: true
 
 publish-documentation:
   rules: !reference [.default-branch, rules]

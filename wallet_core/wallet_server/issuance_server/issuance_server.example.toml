@@ -28,6 +28,9 @@ wallet_client_ids = ["https://wallet.edi.rijksoverheid.nl"]
 # Files containing SD-JWT Type Metadata documents for issued attestations
 metadata = ["com_example_address_metadata.json"]
 
+# The maximum amount of credentials a holder will be able to request, in the range 1-255
+batch_size = 10
+
 # Public and private endpoint for the issuer
 [wallet_server]
 ip = "127.0.0.1"
@@ -100,13 +103,14 @@ error_ttl_in_sec = 0
 # * trust_anchors: An array of trusted CAs used to talk to the server
 #
 
-# Configuration fields for attestation_settings
+# Configuration fields for credential_configurations
+# * format: Credential format, either "dc+sd-jwt" or "mso_mdoc"
+# * attestation_type: The "vct" or "doc_type" value respectively
 # * private_key_type: Can be hsm or software, when hsm private_key
 #   should contain a string identifying the private key in the HSM
 # * private_key: Base64 encoded DER format private key, or string
 # * certificate: Base64 encoded DER format certificate
 # * valid_days: How long are these attestations valid, in days
-# * copies_per_format: How many copies of mso_mdoc, dc+sd-jwt? default is 4
 # * status_list_base_url: The url where status list objects can get fetched
 #
 
@@ -137,15 +141,17 @@ base_url = "https://some-attestation-server.example.com"
 trust_anchors = ["MIJ..."]
 
 # Example attestation settings for a "com.example.degree"
-[attestation_settings."com.example.degree"]
+[credential_configurations."com.example.degree"]
+format = "dc+sd-jwt"
+attestation_type = "com.example.degree"
 valid_days = 365
-copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"
 private_key = "MIG..."
 certificate = "MIJ..."
 
 # Example "com.example.degree" associated status list settings
-[attestation_settings."com.example.degree".status_list]
+[credential_configurations."com.example.degree".status_list]
+group_name = "com.example.degree"
 context_path = "/tsl"
 publish_dir = "/srv/html/tsl"
 private_key_type = "software"

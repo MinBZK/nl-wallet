@@ -10,11 +10,19 @@ mod device_signed;
 mod document;
 mod issuer_signed;
 mod mdoc;
+mod session;
 
 #[cfg(any(test, feature = "test"))]
 pub use device_retrieval::test::create_doc_request;
 pub use issuer_signed::claim_path_to_mdoc_path;
 pub use mdoc::PartialMdoc;
+pub use session::SessionDecryptedMessage;
+pub use session::SessionEncryption;
+pub use session::SessionEncryptionError;
+pub use session::SessionRole;
+pub use session::SessionStatus;
+pub use session::encode_status;
+pub use session::extract_e_reader_key;
 
 #[cfg(test)]
 mod iso_tests;

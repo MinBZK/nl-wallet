@@ -11,6 +11,7 @@ use attestation_data::disclosure::DisclosedAttestations;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use dcql::CredentialQueryIdentifier;
@@ -47,7 +48,6 @@ use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use mdoc::utils::serialization::CborBase64;
 use p256::ecdsa::VerifyingKey;
-use rustls_pki_types::TrustAnchor;
 use sd_jwt::key_binding_jwt::KbVerificationOptions;
 use sd_jwt::sd_jwt::UnverifiedSdJwtPresentation;
 use serde::Deserialize;
@@ -74,7 +74,7 @@ use utils::vec_nonempty;
 use wscd::Poa;
 use wscd::PoaVerificationError;
 
-use crate::authorization::AuthorizationRequest;
+use crate::authorization::AuthorizationRequestBase;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
 use crate::cose::CoseAlgorithmIdentifier;
@@ -139,7 +139,10 @@ pub struct VpAuthorizationRequest {
     pub aud: VpAuthorizationRequestAudience,
 
     #[serde(flatten)]
-    pub oauth_request: AuthorizationRequest,
+    pub oauth_request: AuthorizationRequestBase,
+
+    pub nonce: Option<Nonce>,
+    pub response_mode: Option<ResponseMode>,
 
     /// Contains requirements on the credentials and/or attributes to be disclosed.
     pub dcql_query: Query,
@@ -423,7 +426,7 @@ impl VpAuthorizationRequest {
     /// the specified trust anchors.
     pub fn try_new(
         jws: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
-        trust_anchors: &[TrustAnchor],
+        trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
         let mut validation_options = AUD_VALIDATIONS.to_owned();
         validation_options.set_audience(&[VpAuthorizationRequestAudience::SelfIssued.to_string()]);
@@ -576,31 +579,15 @@ impl NormalizedVpAuthorizationRequest {
     }
 
     fn try_from(vp_auth_request: VpAuthorizationRequest) -> Result<Self, AuthRequestValidationError> {
-        // Check absence of fields that must not be present in an OpenID4VP Authorization Request
-        if vp_auth_request.oauth_request.authorization_details.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("authorization_details"));
-        }
-        if vp_auth_request.oauth_request.code_challenge.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("code_challenge"));
-        }
-        if vp_auth_request.oauth_request.redirect_uri.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("redirect_uri"));
-        }
-        if vp_auth_request.oauth_request.scope.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("scope"));
-        }
-        if vp_auth_request.oauth_request.request_uri.is_some() {
-            return Err(AuthRequestValidationError::UnexpectedField("request_uri"));
-        }
         if vp_auth_request.transaction_data.is_some() {
             return Err(AuthRequestValidationError::UnsupportedField("transaction_data"));
         }
 
         // Check presence of fields that must be present in an OpenID4VP Authorization Request
-        if vp_auth_request.oauth_request.nonce.is_none() {
+        if vp_auth_request.nonce.is_none() {
             return Err(AuthRequestValidationError::ExpectedFieldMissing("nonce"));
         }
-        if vp_auth_request.oauth_request.response_mode.is_none() {
+        if vp_auth_request.response_mode.is_none() {
             return Err(AuthRequestValidationError::ExpectedFieldMissing("response_mode"));
         }
         if vp_auth_request.response_uri.is_none() {
@@ -618,11 +605,11 @@ impl NormalizedVpAuthorizationRequest {
                 found: serde_json::to_string(&vp_auth_request.oauth_request.response_type).unwrap(),
             });
         }
-        if vp_auth_request.oauth_request.response_mode.unwrap() != ResponseMode::DirectPostJwt {
+        if vp_auth_request.response_mode.unwrap() != ResponseMode::DirectPostJwt {
             return Err(AuthRequestValidationError::UnsupportedFieldValue {
                 field: "response_mode",
                 expected: "direct_post.jwt",
-                found: serde_json::to_string(&vp_auth_request.oauth_request.response_mode).unwrap(),
+                found: serde_json::to_string(&vp_auth_request.response_mode).unwrap(),
             });
         }
         let jwks = &client_metadata.jwks.keys;
@@ -658,7 +645,7 @@ impl NormalizedVpAuthorizationRequest {
 
         Ok(NormalizedVpAuthorizationRequest {
             client_id,
-            nonce: vp_auth_request.oauth_request.nonce.unwrap(),
+            nonce: vp_auth_request.nonce.unwrap(),
             encryption_pubkey,
             credential_requests: vp_auth_request.dcql_query.try_into()?,
             response_uri: vp_auth_request.response_uri.unwrap(),
@@ -692,18 +679,9 @@ impl From<NormalizedVpAuthorizationRequest> for VpAuthorizationRequest {
     fn from(value: NormalizedVpAuthorizationRequest) -> Self {
         Self {
             aud: VpAuthorizationRequestAudience::SelfIssued,
-            oauth_request: AuthorizationRequest {
-                response_type: ResponseType::VpToken.into(),
-                client_id: value.client_id.to_string(),
-                nonce: Some(value.nonce),
-                response_mode: Some(ResponseMode::DirectPostJwt),
-                redirect_uri: None,
-                state: value.state,
-                authorization_details: None,
-                request_uri: None,
-                code_challenge: None,
-                scope: None,
-            },
+            oauth_request: AuthorizationRequestBase::for_vp(value.client_id.to_string(), value.state),
+            nonce: Some(value.nonce),
+            response_mode: Some(ResponseMode::DirectPostJwt),
             dcql_query: value.credential_requests.into(),
             client_metadata: Some(value.client_metadata),
             response_uri: Some(value.response_uri),
@@ -862,7 +840,7 @@ impl VpAuthorizationResponse {
         auth_request: &NormalizedVpAuthorizationRequest,
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
         extending_vct_values: &impl ExtendingVctRetriever,
         revocation_verifier: &RevocationVerifier<C>,
         accept_undetermined_revocation_status: bool,
@@ -901,7 +879,7 @@ impl VpAuthorizationResponse {
         auth_request: &NormalizedVpAuthorizationRequest,
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
         extending_vct_values: &impl ExtendingVctRetriever,
         revocation_verifier: &RevocationVerifier<C>,
         accept_undetermined_revocation_status: bool,
@@ -1042,7 +1020,7 @@ impl VpAuthorizationResponse {
         device_response: &DeviceResponse,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
         revocation_verifier: &RevocationVerifier<C>,
     ) -> Result<Vec<(VerifyingKey, DisclosedAttestation)>, AuthResponseError>
     where
@@ -1073,7 +1051,7 @@ impl VpAuthorizationResponse {
         unverified_presentation: UnverifiedSdJwtPresentation,
         auth_request: &NormalizedVpAuthorizationRequest,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
         revocation_verifier: &RevocationVerifier<C>,
     ) -> Result<(VerifyingKey, DisclosedAttestation), AuthResponseError>
     where
@@ -1168,6 +1146,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
+    use crypto::trust_anchor::BorrowingTrustAnchor;
     use crypto::x509::CertificateUsage;
     use dcql::CredentialFormat;
     use dcql::CredentialQueryIdentifier;
@@ -1186,7 +1165,6 @@ mod tests {
     use mdoc::holder::Mdoc;
     use mdoc::holder::disclosure::PartialMdoc;
     use rstest::rstest;
-    use rustls_pki_types::TrustAnchor;
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::examples::WITH_KB_SD_JWT;
     use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
@@ -1202,7 +1180,7 @@ mod tests {
     use utils::vec_nonempty;
     use wscd::Poa;
     use wscd::mock_remote::MockRemoteWscd;
-    use wscd::wscd::JwtPoaInput;
+    use wscd::poa::JwtPoaInput;
 
     use super::AuthRequestValidationError;
     use super::AuthResponseError;
@@ -1321,7 +1299,7 @@ mod tests {
     }
 
     fn setup_mdoc() -> (
-        TrustAnchor<'static>,
+        BorrowingTrustAnchor,
         KeyPair,
         JweEcdhSecretKey,
         NormalizedVpAuthorizationRequest,
@@ -1332,13 +1310,13 @@ mod tests {
     fn setup_with_credential_requests(
         credential_requests: NormalizedCredentialRequests,
     ) -> (
-        TrustAnchor<'static>,
+        BorrowingTrustAnchor,
         KeyPair,
         JweEcdhSecretKey,
         NormalizedVpAuthorizationRequest,
     ) {
         let ca = Ca::generate("myca", Default::default()).unwrap();
-        let trust_anchor = ca.to_trust_anchor().to_owned();
+        let trust_anchor = ca.to_borrowing_trust_anchor();
         let rp_keypair = ca.generate_reader_mock().unwrap();
 
         let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
@@ -2317,7 +2295,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
@@ -2427,7 +2405,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
@@ -2585,7 +2563,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
@@ -2634,7 +2612,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
@@ -2658,7 +2636,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
@@ -2687,7 +2665,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &[ca.to_trust_anchor()],
+                &[ca.to_borrowing_trust_anchor()],
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),

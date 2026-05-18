@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::Router;
-use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::service::Pkcs11Hsm;
 use http_utils::health::create_health_router;
 use openid4vc::server_state::SessionStore;
@@ -79,12 +78,7 @@ where
         settings.public_url.join_base_url("disclosure/sessions"),
         settings.universal_link_base_url,
         usecases,
-        settings
-            .server_settings
-            .issuer_trust_anchors
-            .iter()
-            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
-            .collect(),
+        settings.server_settings.issuer_trust_anchors,
         settings.wallet_client_ids,
         settings.extending_vct_values.unwrap_or_default(),
     )

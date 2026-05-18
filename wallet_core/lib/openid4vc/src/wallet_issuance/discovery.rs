@@ -1,5 +1,5 @@
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use http_utils::reqwest::HttpJsonClient;
-use rustls_pki_types::TrustAnchor;
 use url::Url;
 
 use crate::credential::CredentialOfferContainer;
@@ -38,13 +38,14 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
     ) -> Result<Self::Authorization, WalletIssuanceError> {
         let (issuer_metadata, oauth_metadata) = self.fetch_metadata(credential_issuer).await?;
 
-        let session = HttpAuthorizationSession::try_new(
+        let session = HttpAuthorizationSession::create(
             self.http_client.clone(),
             issuer_metadata,
             oauth_metadata,
             client_id,
             redirect_uri,
-        )?;
+        )
+        .await?;
         Ok(session)
     }
 
@@ -52,7 +53,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         &self,
         redirect_uri: &Url,
         client_id: String,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         let query = redirect_uri
             .query()
@@ -120,6 +121,7 @@ mod test {
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::BorrowingTrustAnchor;
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
     use http_utils::reqwest::HttpJsonClient;
@@ -127,8 +129,6 @@ mod test {
     use httpmock::Method::GET;
     use httpmock::Method::POST;
     use httpmock::MockServer;
-    use indexmap::IndexMap;
-    use rustls_pki_types::TrustAnchor;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -159,14 +159,14 @@ mod test {
     /// and a credential preview endpoint. Returns the server, issuer identifier, and trust anchor.
     async fn start_wiremock_issuer(
         authorization_endpoint: Option<&str>,
-    ) -> (MockServer, IssuerIdentifier, TrustAnchor<'static>) {
+    ) -> (MockServer, IssuerIdentifier, BorrowingTrustAnchor) {
         let server = MockServer::start_async().await;
         let issuer_identifier = server.base_url().parse::<IssuerIdentifier>().unwrap();
 
         // Create CA and issuer certificate for the credential preview.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_pid_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
-        let trust_anchor = ca.to_trust_anchor().to_owned();
+        let trust_anchor = ca.to_borrowing_trust_anchor();
 
         // Create type metadata for the credential preview.
         let (_, _, type_metadata_documents) =
@@ -181,7 +181,8 @@ mod test {
 
         let preview = CredentialPreview {
             content: CredentialPreviewContent {
-                copies_per_format: IndexMap::from([(Format::MsoMdoc, NonZeroU8::new(4).unwrap())]),
+                format: Format::MsoMdoc,
+                batch_size: NonZeroU8::new(4).unwrap(),
                 credential_payload,
                 issuer_certificate: issuance_keypair.certificate().clone(),
             },
@@ -229,6 +230,7 @@ mod test {
         });
         if let Some(auth_endpoint) = authorization_endpoint {
             oauth_metadata_json["authorization_endpoint"] = json!(auth_endpoint);
+            oauth_metadata_json["pushed_authorization_request_endpoint"] = json!(server.url("/issuance/par"));
         }
 
         server
@@ -250,6 +252,20 @@ mod test {
                     .json_body(oauth_metadata_json);
             })
             .await;
+
+        if authorization_endpoint.is_some() {
+            server
+                .mock_async(|when, then| {
+                    when.method(POST).path("/issuance/par");
+                    then.status(201)
+                        .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                        .json_body(json!({
+                            "request_uri": "urn:ietf:params:oauth:request_uri:mock-test-uri",
+                            "expires_in": 60,
+                        }));
+                })
+                .await;
+        }
 
         server
             .mock_async(|when, then| {
@@ -283,7 +299,7 @@ mod test {
         // Construct a credential offer URL with a fake pre-authorized code.
         let credential_offer = CredentialOffer {
             credential_issuer: issuer_identifier,
-            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string()],
+            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string().into()],
             grants: Some(Grants::PreAuthorizedCode {
                 pre_authorized_code: GrantPreAuthorizedCode::new("fake_pre_auth_code".to_string().into()),
             }),
@@ -328,16 +344,18 @@ mod test {
             .await
             .unwrap();
 
-        // Verify the auth URL points to the expected authorization endpoint.
+        // Verify the auth URL points to the expected authorization endpoint and carries PAR params.
         assert!(auth_session.auth_url().as_str().starts_with(authorization_endpoint));
-
-        // Extract the state from the auth URL to simulate the redirect.
         let auth_params: HashMap<String, String> = auth_session
             .auth_url()
             .query_pairs()
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .collect();
-        let state = auth_params.get("state").unwrap();
+        assert!(auth_params.contains_key("request_uri"));
+        assert!(!auth_params.contains_key("state"));
+
+        // State is carried inside the PAR-stored request, not the auth URL; read it from the session.
+        let state = auth_session.state().to_owned();
 
         // Simulate the authorization server redirecting back with a code and state.
         let mut received_redirect_uri = redirect_uri;
@@ -391,7 +409,7 @@ mod test {
         // Construct a credential offer URL WITHOUT any grants.
         let credential_offer = CredentialOffer {
             credential_issuer: "https://example.com".parse().unwrap(),
-            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string()],
+            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string().into()],
             grants: None,
         };
         let container = CredentialOfferContainer { credential_offer };

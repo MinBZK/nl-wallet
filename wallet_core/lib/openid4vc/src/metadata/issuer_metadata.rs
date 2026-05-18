@@ -3,6 +3,9 @@ use std::num::NonZeroU64;
 use std::ops::Not;
 
 use attestation_types::claim_path::ClaimPath;
+use derive_more::AsRef;
+use derive_more::Display;
+use derive_more::From;
 use derive_more::Into;
 use http_utils::data_uri::DataUri;
 use itertools::Itertools;
@@ -30,6 +33,10 @@ use crate::jose::JwsAlgorithm;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 use crate::metadata::well_known::WellKnownMetadata;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, From, Into, Display, Serialize, Deserialize)]
+#[as_ref(str)]
+pub struct CredentialConfigurationId(String);
 
 /// Credential issuer metadata, as per
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-12.2.4>.
@@ -99,7 +106,7 @@ pub struct IssuerMetadata {
     /// Wallet which Credential is being offered. The value is an object that contains metadata about a specific
     /// Credential.
     #[serde_as(as = "MapPreventDuplicates<_, _>")]
-    pub credential_configurations_supported: HashMap<String, CredentialConfiguration>,
+    pub credential_configurations_supported: HashMap<CredentialConfigurationId, CredentialConfiguration>,
 
     /// URL of the credential issuer's credential preview endpoint. This URL MUST use the https scheme and MAY contain
     /// port, path and query parameter components.
@@ -126,7 +133,7 @@ impl IssuerMetadata {
     }
 
     /// Returns the maximum batch size that issuer supports. If it does not support batch issuance, this returns 1.
-    // TODO (PVW-5554): Use this value for determining the amount of proofs to include.
+    // TODO (PVW-5634): Use this value for determining the amount of proofs to include.
     pub fn batch_size(&self) -> NonZeroU64 {
         self.batch_credential_issuance
             .map(|batch_issuance| batch_issuance.batch_size.into())
@@ -187,24 +194,24 @@ pub struct CredentialResponseEncryption {
 
 #[derive(Debug, thiserror::Error)]
 #[error("batch size must be 2 or greater, received: {0}")]
-pub struct NonZeroOrOneU64Error(NonZeroU64);
+pub struct AtLeastTwoU64Error(NonZeroU64);
 
 #[derive(Debug, Clone, Copy, Into, Serialize, Deserialize)]
 #[serde(try_from = "NonZeroU64", into = "NonZeroU64")]
-pub struct NonZeroOrOneU64(NonZeroU64);
+pub struct AtLeastTwoU64(NonZeroU64);
 
-impl NonZeroOrOneU64 {
-    pub fn try_new(size: NonZeroU64) -> Result<Self, NonZeroOrOneU64Error> {
+impl AtLeastTwoU64 {
+    pub fn try_new(size: NonZeroU64) -> Result<Self, AtLeastTwoU64Error> {
         if size.get() < 2 {
-            return Err(NonZeroOrOneU64Error(size));
+            return Err(AtLeastTwoU64Error(size));
         }
 
         Ok(Self(size))
     }
 }
 
-impl TryFrom<NonZeroU64> for NonZeroOrOneU64 {
-    type Error = NonZeroOrOneU64Error;
+impl TryFrom<NonZeroU64> for AtLeastTwoU64 {
+    type Error = AtLeastTwoU64Error;
 
     fn try_from(value: NonZeroU64) -> Result<Self, Self::Error> {
         Self::try_new(value)
@@ -219,7 +226,7 @@ impl TryFrom<NonZeroU64> for NonZeroOrOneU64 {
 pub struct BatchCredentialIssuance {
     // Integer value specifying the maximum array size for the proofs parameter in a Credential Request. It MUST be 2
     // or greater.
-    pub batch_size: NonZeroOrOneU64,
+    pub batch_size: AtLeastTwoU64,
 }
 
 /// Display properties of a Credential Issuer for a certain language.
@@ -917,7 +924,7 @@ mod tests {
         assert_eq!(metadata.credential_configurations_supported.len(), 1);
         let (config_id, config) = metadata.credential_configurations_supported.iter().next().unwrap();
 
-        assert_eq!(config_id, "SD_JWT_VC_example_in_OpenID4VCI");
+        assert_eq!(config_id.as_ref(), "SD_JWT_VC_example_in_OpenID4VCI");
         assert_matches!(
             &config.format,
             CredentialFormat::SdJwt {

@@ -11,7 +11,7 @@ pub trait StatusListServices: StatusListRevocationService {
 
     async fn obtain_status_claims(
         &self,
-        attestation_type: &str,
+        attestation_group: &str,
         batch_id: Uuid,
         expires: Option<DateTimeSeconds>,
         copies: NonZeroUsize,
@@ -125,7 +125,7 @@ pub mod mock {
 
             async fn obtain_status_claims(
                 &self,
-                attestation_type: &str,
+                attestation_group: &str,
                 batch_id: Uuid,
                 expires: Option<DateTimeSeconds>,
                 copies: NonZeroUsize,

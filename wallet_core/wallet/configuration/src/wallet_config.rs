@@ -14,7 +14,6 @@ use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use jwt::JwtTyp;
 use openid4vc::issuer_identifier::IssuerIdentifier;
-use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
@@ -47,11 +46,8 @@ pub struct WalletConfiguration {
 impl JwtTyp for WalletConfiguration {}
 
 impl WalletConfiguration {
-    pub fn issuer_trust_anchors(&self) -> Vec<TrustAnchor<'_>> {
-        self.issuer_trust_anchors
-            .iter()
-            .map(|anchor| anchor.as_trust_anchor().clone())
-            .collect()
+    pub fn issuer_trust_anchors(&self) -> &[BorrowingTrustAnchor] {
+        &self.issuer_trust_anchors
     }
 }
 
@@ -163,7 +159,6 @@ pub struct PidAttributePaths {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PidIssuanceConfiguration {
     pub url: IssuerIdentifier,
-    pub client_id: String,
 }
 
 #[serde_as]
@@ -175,10 +170,7 @@ pub struct DisclosureConfiguration {
 }
 
 impl DisclosureConfiguration {
-    pub fn rp_trust_anchors(&self) -> Vec<TrustAnchor<'_>> {
-        self.rp_trust_anchors
-            .iter()
-            .map(|anchor| anchor.as_trust_anchor().clone())
-            .collect()
+    pub fn rp_trust_anchors(&self) -> &[BorrowingTrustAnchor] {
+        &self.rp_trust_anchors
     }
 }

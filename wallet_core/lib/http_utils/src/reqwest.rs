@@ -236,7 +236,7 @@ pub fn client_builder_accept_json(builder: ClientBuilder) -> ClientBuilder {
 }
 
 #[derive(Debug, Clone)]
-pub struct HttpJsonClient(reqwest::Client);
+pub struct HttpJsonClient(Client);
 
 impl HttpJsonClient {
     pub fn try_new(client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {

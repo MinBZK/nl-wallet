@@ -5,13 +5,13 @@ use attestation_data::verifier_certificate::VerifierCertificate;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::CredentialEcdsaKey;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::wscd::DisclosureWscd;
 use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::disclosure::PartialMdoc;
 use nutype::nutype;
-use rustls_pki_types::TrustAnchor;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
@@ -48,7 +48,7 @@ pub trait DisclosureClient {
         &self,
         request_uri_query: &str,
         uri_source: DisclosureUriSource,
-        trust_anchors: &[TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<Self::Session, VpSessionError>;
 }
 

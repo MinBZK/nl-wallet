@@ -657,6 +657,7 @@ dependencies = [
  "serde_valid",
  "serde_with",
  "ssri",
+ "strum 0.28.0",
  "thiserror 2.0.17",
  "time",
  "token_status_list",
@@ -2038,6 +2039,7 @@ dependencies = [
  "serde",
  "serde_urlencoded",
  "serde_valid",
+ "serde_with",
  "server_utils",
  "strum 0.28.0",
  "tokio",
@@ -2465,7 +2467,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -3945,7 +3947,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -3980,6 +3982,7 @@ dependencies = [
  "p256",
  "reqwest",
  "rustls-pki-types",
+ "sd_jwt_vc_metadata",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -4017,7 +4020,6 @@ dependencies = [
  "futures",
  "hsm",
  "http_utils",
- "indexmap 2.12.1",
  "itertools 0.14.0",
  "jwt",
  "openid4vc",
@@ -4026,6 +4028,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
+ "serde_with",
  "server_utils",
  "status_lists",
  "thiserror 2.0.17",
@@ -4492,6 +4495,7 @@ dependencies = [
 name = "mdoc"
 version = "0.6.0-dev"
 dependencies = [
+ "aes-gcm",
  "assert_matches",
  "attestation_types",
  "base64 0.22.1",
@@ -4512,6 +4516,7 @@ dependencies = [
  "nom 8.0.0",
  "nutype",
  "p256",
+ "parking_lot",
  "rand_core 0.6.4",
  "regex",
  "ring",
@@ -4775,7 +4780,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -5162,6 +5167,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "serde_urlencoded",
+ "serde_valid",
  "serde_with",
  "serial_test",
  "ssri",
@@ -5192,9 +5198,12 @@ dependencies = [
  "dcql",
  "http",
  "http_utils",
+ "indexmap 2.12.1",
  "jwt",
  "openid4vc",
  "p256",
+ "rand_core 0.6.4",
+ "reqwest",
  "ring",
  "rstest",
  "rustls-pki-types",
@@ -5211,15 +5220,14 @@ dependencies = [
 
 [[package]]
 name = "openssl"
-version = "0.10.78"
+version = "0.10.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f38c4372413cdaaf3cc79dd92d29d7d9f5ab09b51b10dded508fb90bb70b9222"
+checksum = "bf0b434746ee2832f4f0baf10137e1cabb18cbe6912c69e2e33263c45250f542"
 dependencies = [
  "bitflags 2.10.0",
  "cfg-if",
  "foreign-types",
  "libc",
- "once_cell",
  "openssl-macros",
  "openssl-sys",
 ]
@@ -5252,9 +5260,9 @@ dependencies = [
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.114"
+version = "0.9.115"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13ce1245cd07fcc4cfdb438f7507b0c7e4f3849a69fd84d52374c66d83741bb6"
+checksum = "158fe5b292746440aa6e7a7e690e55aeb72d41505e2804c23c6973ad0e9c9781"
 dependencies = [
  "cc",
  "libc",
@@ -5663,6 +5671,7 @@ dependencies = [
  "jsonwebtoken",
  "jwe",
  "jwk-simple",
+ "jwt",
  "openid4vc",
  "openid4vc_server",
  "p256",
@@ -5680,6 +5689,7 @@ dependencies = [
  "url",
  "utils",
  "utoipa-swagger-ui",
+ "uuid",
 ]
 
 [[package]]
@@ -5774,12 +5784,15 @@ dependencies = [
  "futures",
  "jni",
  "log",
+ "mdoc",
  "mockall",
  "p256",
  "parking_lot",
+ "rand 0.8.5",
  "rand_core 0.6.4",
  "rustls-pki-types",
  "serde",
+ "serde_bytes",
  "serde_json",
  "serde_with",
  "thiserror 2.0.17",
@@ -6087,7 +6100,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -6575,13 +6588,13 @@ dependencies = [
 
 [[package]]
 name = "rpassword"
-version = "7.4.0"
+version = "7.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66d4c8b64f049c6721ec8ccec37ddfc3d641c4a7fca57e8f2a89de509c73df39"
+checksum = "5ac5b223d9738ef56e0b98305410be40fa0941bf6036c56f1506751e43552d64"
 dependencies = [
  "libc",
  "rtoolbox",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6742,7 +6755,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -7595,7 +7608,6 @@ dependencies = [
  "parking_lot",
  "ring",
  "rustls-pki-types",
- "sd_jwt_vc_metadata",
  "sea-orm",
  "serde",
  "serde_json",
@@ -8323,7 +8335,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -8404,6 +8416,7 @@ dependencies = [
  "audit_log",
  "axum",
  "axum-server",
+ "base64 0.22.1",
  "crypto",
  "ctor",
  "db_test",

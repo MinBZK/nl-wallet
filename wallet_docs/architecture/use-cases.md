@@ -7,7 +7,6 @@ diagrams are provided.
 :maxdepth: 1
 :caption: Use cases
 :glob:
-use-cases/close-proximity-disclosure
 use-cases/disclosure-based-issuance
 use-cases/disclosure-with-openid4vp
 use-cases/issuance-with-openid4vci
@@ -16,4 +15,9 @@ use-cases/pin-validation
 use-cases/wallet-creation
 use-cases/wallet-provider-instruction
 use-cases/recovery_usecases
+```
+
+```{toctree}
+:hidden:
+use-cases/close-proximity-disclosure
 ```

@@ -1,3 +1,4 @@
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::utils as crypto_utils;
 use crypto::x509::BorrowingCertificate;
 use dcql::CredentialFormat;
@@ -130,7 +131,7 @@ where
         &self,
         uri_query: &str,
         uri_source: DisclosureUriSource,
-        trust_anchors: &[rustls_pki_types::TrustAnchor<'_>],
+        trust_anchors: &[BorrowingTrustAnchor],
     ) -> Result<Self::Session, VpSessionError> {
         info!("start disclosure session");
 
@@ -576,7 +577,7 @@ mod tests {
             &verifier_session.normalized_auth_request(wallet_nonce),
             &[MOCK_WALLET_CLIENT_ID.to_string()],
             &MockTimeGenerator::default(),
-            &[ca.to_trust_anchor()],
+            &[ca.to_borrowing_trust_anchor()],
             &ExtendingVctRetrieverStub,
             &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 ca.generate_status_list_mock().unwrap(),

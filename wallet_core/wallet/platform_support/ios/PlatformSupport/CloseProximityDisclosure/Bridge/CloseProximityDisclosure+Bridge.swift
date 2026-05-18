@@ -14,29 +14,28 @@ extension CloseProximityDisclosure: CloseProximityDisclosureBridge {
     }
 
     func sendDeviceResponse(deviceResponse: [UInt8]) async throws {
-        let sessionState = try requireActiveSessionState()
-        let establishedSessionContext = try establishedSessionContextOrFail(sessionState.session)
+        let session = try requireActiveSession()
+        let _ = try sessionCryptoOrFail(for: session)
         // Stop listening for reader messages at this point, we are just going to write
-        await cancelBackgroundTasks(sessionState)
-        try requireSessionIsActive(sessionState.session)
+        await cancelBackgroundTasks(session)
+        try requireSessionIsActive(session)
         try await sendDeviceResponse(
-            session: sessionState.session,
-            establishedSessionContext: establishedSessionContext,
+            session: session,
             deviceResponse: deviceResponse
         )
-        await finishSession(sessionState.session, update: CloseProximityDisclosureUpdate.closed)
+        await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
     }
 
     func sendSessionTermination() async throws {
-        let sessionState = try requireActiveSessionState()
-        let _ = try establishedSessionContextOrFail(sessionState.session)
+        let session = try requireActiveSession()
+        let _ = try sessionCryptoOrFail(for: session)
         // Stop listening for reader messages at this point, we are just going to write
-        await cancelBackgroundTasks(sessionState)
-        try requireSessionIsActive(sessionState.session)
+        await cancelBackgroundTasks(session)
+        try requireSessionIsActive(session)
         try await sendSessionTermination(
-            session: sessionState.session
+            session: session
         )
-        await finishSession(sessionState.session, update: CloseProximityDisclosureUpdate.closed)
+        await finishSession(session, update: CloseProximityDisclosureUpdate.closed)
     }
 
     func stopBleServer() async throws {

@@ -55,6 +55,7 @@ use utils::vec_at_least::VecAtLeastN;
 use utils::vec_at_least::VecAtLeastTwo;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
+use wallet_account::messages::errors::AccountRevokedData;
 use wallet_configuration::wallet_config::PidAttributePaths;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -217,6 +218,22 @@ impl DisclosureError {
             }
             | Self::VpClient(VpClientError::Request(error)) => error.redirect_uri().map(AsRef::as_ref),
             _ => None,
+        }
+    }
+
+    pub fn session_type(&self) -> Option<SessionType> {
+        match self {
+            Self::VpClient(VpClientError::DisclosureUriSourceMismatch(session_type, _)) => Some(*session_type),
+            Self::CloseProximityDisclosureSessionError(_) => Some(SessionType::CrossDevice),
+            _ => None,
+        }
+    }
+
+    pub fn revocation_data(&self) -> Option<AccountRevokedData> {
+        if let Self::Instruction(InstructionError::AccountRevoked(data)) = self {
+            Some(*data)
+        } else {
+            None
         }
     }
 }
@@ -670,7 +687,7 @@ where
             .start(
                 disclosure_uri_query,
                 source,
-                &wallet_config.disclosure.rp_trust_anchors(),
+                wallet_config.disclosure.rp_trust_anchors(),
             )
             .await?;
 

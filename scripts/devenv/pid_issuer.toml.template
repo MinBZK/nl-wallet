@@ -1,4 +1,5 @@
 public_url = 'http://${SERVICES_HOST}:${PID_ISSUER_PORT}/'
+wallet_client_ids = ["${NL_WALLET_CLIENT_ID}"]
 issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 
 brp_server = 'http://${SERVICES_HOST}:${BRP_SERVER_PORT}'
@@ -8,6 +9,8 @@ metadata = [
     "${ISSUER_METADATA_PID_PATH}",
     "${ISSUER_METADATA_PID_NL_PATH}",
 ]
+
+batch_size = 4
 
 [storage]
 url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/pid_issuer'
@@ -41,15 +44,34 @@ user_pin = "${HSM_USER_PIN}"
 max_sessions = 3
 max_session_lifetime_in_sec = 900
 
-[attestation_settings."urn:eudi:pid:nl:1"]
+[credential_configurations."pid_nl_mdoc"]
+format = "mso_mdoc"
+attestation_type = "urn:eudi:pid:nl:1"
 valid_days = 365
-copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 attestation_qualification = "QEAA"
 private_key_type = "hsm"
 private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"
 
-[attestation_settings."urn:eudi:pid:nl:1".status_list]
+[credential_configurations."pid_nl_mdoc".status_list]
+group_name = "pid_nl_mdoc"
+context_path = "/tsl"
+publish_dir = "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
+private_key_type = "software"
+private_key = "${PID_ISSUER_TSL_KEY}"
+certificate = "${PID_ISSUER_TSL_CRT}"
+
+[credential_configurations."pid_nl_sd_jwt"]
+format = "dc+sd-jwt"
+attestation_type = "urn:eudi:pid:nl:1"
+valid_days = 365
+attestation_qualification = "QEAA"
+private_key_type = "hsm"
+private_key = "${PID_ISSUER_KEY}"
+certificate = "${PID_ISSUER_CRT}"
+
+[credential_configurations."pid_nl_sd_jwt".status_list]
+group_name = "pid_nl_sd_jwt"
 context_path = "/tsl"
 publish_dir = "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
 private_key_type = "software"

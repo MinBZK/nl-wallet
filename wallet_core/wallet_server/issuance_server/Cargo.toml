@@ -70,4 +70,7 @@ indexmap.workspace = true
 p256.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
+attestation_data = { path = "../../lib/attestation_data", features = ["generate", "mock"] }
+crypto = { path = "../../lib/crypto", features = ["generate", "mock"] }
+sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
 token_status_list = { path = "../../lib/token_status_list", features = ["mock"] }
