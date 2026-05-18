@@ -1,25 +1,13 @@
 use std::num::NonZeroUsize;
 
 use attestation_types::status_claim::StatusClaim;
+use tokio::task::AbortHandle;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
 #[trait_variant::make(Send)]
-pub trait StatusListServices: StatusListRevocationService {
-    type Error: std::error::Error + Send + Sync + 'static;
-
-    async fn obtain_status_claims(
-        &self,
-        attestation_group: &str,
-        batch_id: Uuid,
-        expires: Option<DateTimeSeconds>,
-        copies: NonZeroUsize,
-    ) -> Result<VecNonEmpty<StatusClaim>, Self::Error>;
-}
-
-#[trait_variant::make(Send)]
-pub trait StatusListService: StatusListRevocationService {
+pub trait StatusListService {
     type Error: std::error::Error + Send + Sync + 'static;
 
     async fn obtain_status_claims(
@@ -28,6 +16,11 @@ pub trait StatusListService: StatusListRevocationService {
         expires: Option<DateTimeSeconds>,
         copies: NonZeroUsize,
     ) -> Result<VecNonEmpty<StatusClaim>, Self::Error>;
+
+    fn start_refresh_job(&self) -> AbortHandle;
+
+    async fn republish_all(&self, force: bool) -> Result<(), RevocationError>;
+    async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError>;
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -55,21 +48,6 @@ impl axum::response::IntoResponse for RevocationError {
     }
 }
 
-#[cfg_attr(feature = "axum", derive(serde::Serialize, serde::Deserialize, utoipa::ToSchema))]
-pub struct BatchIsRevoked {
-    pub batch_id: Uuid,
-    pub is_revoked: bool,
-}
-
-#[trait_variant::make(Send)]
-pub trait StatusListRevocationService {
-    async fn republish_all(&self, force: bool) -> Result<(), RevocationError>;
-    async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError>;
-
-    async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError>;
-    async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError>;
-}
-
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
     use std::convert::Infallible;
@@ -95,6 +73,7 @@ pub mod mock {
     }
 
     mock! {
+        #[derive(Debug)]
         pub StatusListService {}
 
         impl StatusListService for StatusListService {
@@ -106,38 +85,11 @@ pub mod mock {
                 expires: Option<DateTimeSeconds>,
                 copies: NonZeroUsize,
             ) -> Result<VecNonEmpty<StatusClaim>, Infallible>;
-        }
 
-        impl StatusListRevocationService for StatusListService {
+            fn start_refresh_job(&self) -> AbortHandle;
+
             async fn republish_all(&self, force: bool) -> Result<(), RevocationError>;
             async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError>;
-
-            async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError>;
-            async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError>;
-        }
-    }
-
-    mock! {
-        pub StatusListServices {}
-
-        impl StatusListServices for StatusListServices {
-            type Error = Infallible;
-
-            async fn obtain_status_claims(
-                &self,
-                attestation_group: &str,
-                batch_id: Uuid,
-                expires: Option<DateTimeSeconds>,
-                copies: NonZeroUsize,
-            ) -> Result<VecNonEmpty<StatusClaim>, Infallible>;
-        }
-
-        impl StatusListRevocationService for StatusListServices {
-            async fn republish_all(&self, force: bool) -> Result<(), RevocationError>;
-            async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError>;
-
-            async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError>;
-            async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError>;
         }
     }
 }

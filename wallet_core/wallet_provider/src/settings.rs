@@ -244,6 +244,9 @@ impl TryFrom<Vec<u8>> for AndroidRootPublicKey {
 
 #[derive(Debug, thiserror::Error)]
 pub enum WiaStatusListsSettingsError {
+    #[error("base URL does not contain path element(s): {0}")]
+    BaseUrlWithoutPath(BaseUrl),
+
     #[error("incorrectly configured WIA expiration: {0}")]
     ExpiryLessThanTtl(#[from] ExpiryLessThanTtl),
 
@@ -256,11 +259,20 @@ impl WiaStatusListsSettings {
         self,
         hsm: Pkcs11Hsm,
     ) -> Result<StatusListConfig<HsmEcdsaKey>, WiaStatusListsSettingsError> {
+        let context_path = self
+            .base_url
+            .as_ref()
+            .path_segments()
+            .unwrap()
+            .next_back()
+            .ok_or(WiaStatusListsSettingsError::BaseUrlWithoutPath(self.base_url.clone()))?
+            .to_string();
+
         let key_pair = KeyPair::new(HsmEcdsaKey::new(self.key_identifier, hsm), self.key_certificate).await?;
 
         let config = self
             .list_settings
-            .to_config(self.base_url, self.publish_dir, key_pair)?;
+            .to_config(self.base_url, context_path, self.publish_dir, key_pair)?;
 
         Ok(config)
     }

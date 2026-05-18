@@ -10,6 +10,7 @@ use hsm::service::Pkcs11Hsm;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use status_lists::postgres::PostgresStatusListService;
+use tokio::task::AbortHandle;
 use tracing::info;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
@@ -56,6 +57,13 @@ pub struct RouterState<GRC, PIC> {
     pub certificate_signing_key: WalletCertificateSigning,
     pub user_state: ProductionUserState,
     pub max_transfer_upload_size_in_bytes: usize,
+    status_list_refresh_task: AbortHandle,
+}
+
+impl<GRC, PIC> Drop for RouterState<GRC, PIC> {
+    fn drop(&mut self) {
+        self.status_list_refresh_task.abort();
+    }
 }
 
 impl<GRC, PIC> RouterState<GRC, PIC> {
@@ -137,14 +145,14 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         let flags = WalletRepoFlags::try_new(repositories.clone(), settings.flags_refresh_delay).await?;
         flags.start_refresh_job();
         let status_list_service = PostgresStatusListService::try_new(
-            db.to_connection(),
             WIA_ATTESTATION_TYPE_IDENTIFIER,
+            db.to_connection(),
             settings.wua_status_list.into_config(wallet_user_hsm.clone()).await?,
             flags.clone(),
         )
         .await?;
         status_list_service.initialize_lists().await?;
-        status_list_service.start_refresh_job();
+        let status_list_refresh_task = status_list_service.start_refresh_job();
 
         let pin_policy = PinPolicy::new(
             settings.pin_policy.rounds,
@@ -181,6 +189,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 pid_issuer_trust_anchors: settings.pid_issuer_trust_anchors,
                 status_list_service,
             },
+            status_list_refresh_task,
         };
 
         Ok(state)

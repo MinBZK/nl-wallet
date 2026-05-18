@@ -44,22 +44,19 @@ use sea_orm::sqlx::types::chrono::NaiveDate;
 use token_status_list::status_list::PackedStatusList;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
-use token_status_list::status_list_service::BatchIsRevoked;
 use token_status_list::status_list_service::RevocationError;
-use token_status_list::status_list_service::StatusListRevocationService;
 use token_status_list::status_list_service::StatusListService;
-use token_status_list::status_list_service::StatusListServices;
 use token_status_list::status_list_token::StatusListToken;
 use token_status_list::status_list_token::StatusListTokenBuilder;
 use tokio::task::AbortHandle;
 use tokio::task::JoinError;
 use tokio::task::JoinHandle;
+use url::Url;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
 use crate::config::StatusListConfig;
-use crate::config::StatusListConfigs;
 use crate::entity::attestation_batch;
 use crate::entity::attestation_batch_list_indices;
 use crate::entity::attestation_group;
@@ -68,6 +65,9 @@ use crate::entity::status_list_item;
 use crate::publish::LockVersion;
 use crate::publish::PublishLockError;
 use crate::refresh::RefreshControl;
+
+#[cfg(feature = "revocation_helper")]
+pub mod revocation_helper;
 
 /// Length of the external id for status lists used in the url (alphanumeric characters)
 const EXTERNAL_ID_SIZE: usize = 12;
@@ -96,12 +96,6 @@ impl RevokeAll for NoRevokeAll {
         Ok(false)
     }
 }
-
-/// StatusListService implementation using Postgres for multiple attestation groups.
-///
-/// See [PostgresStatusListService] for more.
-#[derive(Debug)]
-pub struct PostgresStatusListServices<K>(HashMap<String, PostgresStatusListService<K, NoRevokeAll>>);
 
 /// StatusListService implementation using Postgres.
 ///
@@ -168,9 +162,6 @@ pub enum StatusListServiceError {
     #[error("could write JWT: {0}")]
     JWT(#[from] JwtError),
 
-    #[error("no status lists in config")]
-    NoStatusLists,
-
     #[error("no status list available and could not create one")]
     NoStatusListAvailable,
 
@@ -182,9 +173,6 @@ pub enum StatusListServiceError {
 
     #[error("too many claims requested: {0}")]
     TooManyClaimsRequested(usize),
-
-    #[error("unknown attestation group: {0}")]
-    UnknownAttestationGroup(String),
 }
 
 struct Publisher<'a, K, R> {
@@ -216,122 +204,6 @@ impl<'a, K, R> Clone for Publisher<'a, K, R> {
 
 impl<'a, K, R> Copy for Publisher<'a, K, R> {}
 
-impl<K> StatusListServices for PostgresStatusListServices<K>
-where
-    K: EcdsaKeySend + Sync + 'static,
-{
-    type Error = StatusListServiceError;
-
-    async fn obtain_status_claims(
-        &self,
-        attestation_group: &str,
-        batch_id: Uuid,
-        expires: Option<DateTimeSeconds>,
-        copies: NonZeroUsize,
-    ) -> Result<VecNonEmpty<StatusClaim>, Self::Error> {
-        tracing::debug!(
-            "Obtaining status claims for {} with {} copies",
-            attestation_group,
-            copies
-        );
-
-        let service = self
-            .0
-            .get(attestation_group)
-            .ok_or(StatusListServiceError::UnknownAttestationGroup(
-                attestation_group.to_string(),
-            ))?;
-
-        service
-            .obtain_status_claims_and_scheduled_tasks(batch_id, expires, copies)
-            .await
-            .map(|(claims, _)| claims)
-    }
-}
-
-impl<K> StatusListRevocationService for PostgresStatusListServices<K>
-where
-    K: EcdsaKeySend + Sync + 'static,
-{
-    async fn republish_all(&self, force: bool) -> Result<(), RevocationError> {
-        join_all(self.services().map(|service| service.republish_all(force)))
-            .await
-            .into_iter()
-            .fold_ok((), |_, _| ())
-    }
-
-    async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), RevocationError> {
-        // Each service is responsible for revoking and publishing the status list it is configured for.
-        try_join_all(
-            self.services()
-                .map(|service| async { service.revoke_attestation_batches(batch_ids.clone()).await }),
-        )
-        .await?;
-
-        Ok(())
-    }
-
-    async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError> {
-        self.first_service().get_attestation_batch(batch_id).await
-    }
-
-    async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError> {
-        self.first_service().list_attestation_batches().await
-    }
-}
-
-impl<K> PostgresStatusListServices<K> {
-    pub async fn try_new(
-        connection: DatabaseConnection,
-        configs: StatusListConfigs<K>,
-    ) -> Result<Self, StatusListServiceError> {
-        if configs.as_ref().is_empty() {
-            return Err(StatusListServiceError::NoStatusLists);
-        }
-
-        let attestation_group_ids = initialize_attestation_group_ids(&connection, configs.types()).await?;
-        let services = configs
-            .into_iter()
-            .map(|(attestation_group, config)| {
-                let attestation_group_id = *attestation_group_ids
-                    .get(&attestation_group)
-                    .expect("attestation_group_ids should have entry for initialized types");
-                let service = PostgresStatusListService {
-                    connection: connection.clone(),
-                    attestation_group_id,
-                    config: Arc::new(config),
-                    revoke_all: NoRevokeAll,
-                };
-                (attestation_group, service)
-            })
-            .collect();
-        Ok(PostgresStatusListServices(services))
-    }
-}
-
-impl<K> PostgresStatusListServices<K>
-where
-    K: EcdsaKeySend + Sync + 'static,
-{
-    pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
-        let results = try_join_all(self.0.values().map(|service| service.initialize_lists())).await?;
-        Ok(results.into_iter().flat_map(|tasks| tasks.into_iter()).collect())
-    }
-
-    fn services(&self) -> impl Iterator<Item = &PostgresStatusListService<K, NoRevokeAll>> {
-        self.0.values()
-    }
-
-    fn first_service(&self) -> &PostgresStatusListService<K, NoRevokeAll> {
-        // in the constructor we ensure that at least one service is present
-        self.0.values().next().expect("at least one service should be present")
-    }
-
-    pub fn start_refresh_jobs(&self) -> Vec<AbortHandle> {
-        self.0.values().map(|service| service.start_refresh_job()).collect()
-    }
-}
-
 impl<K, R> StatusListService for PostgresStatusListService<K, R>
 where
     K: EcdsaKeySend + Sync + 'static,
@@ -350,13 +222,11 @@ where
             .await
             .map(|(claims, _)| claims)
     }
-}
 
-impl<K, R> StatusListRevocationService for PostgresStatusListService<K, R>
-where
-    K: EcdsaKeySend + Sync + 'static,
-    R: RevokeAll + Clone + Sync + 'static,
-{
+    fn start_refresh_job(&self) -> AbortHandle {
+        self.start_refresh_job()
+    }
+
     #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
     async fn republish_all(&self, force: bool) -> Result<(), RevocationError> {
         if force {
@@ -378,6 +248,7 @@ where
             .select_column(status_list::Column::Id)
             .select_column(status_list::Column::ExternalId)
             .select_column(status_list::Column::Size)
+            .filter(status_list::Column::AttestationGroupId.eq(self.attestation_group_id))
             .into_tuple::<(i64, String, i32)>()
             .stream(&self.connection)
             .await
@@ -450,45 +321,15 @@ where
 
         Ok(())
     }
-
-    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
-    async fn get_attestation_batch(&self, batch_id: Uuid) -> Result<BatchIsRevoked, RevocationError> {
-        attestation_batch::Entity::find()
-            .filter(attestation_batch::Column::BatchId.eq(batch_id))
-            .select_only()
-            .select_column(attestation_batch::Column::BatchId)
-            .select_column(attestation_batch::Column::IsRevoked)
-            .into_tuple()
-            .one(&self.connection)
-            .await
-            .map_err(|e| RevocationError::InternalError(Box::new(e)))?
-            .map(|(batch_id, is_revoked)| BatchIsRevoked { batch_id, is_revoked })
-            .ok_or_else(|| RevocationError::BatchIdNotFound(batch_id))
-    }
-
-    #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
-    async fn list_attestation_batches(&self) -> Result<Vec<BatchIsRevoked>, RevocationError> {
-        Ok(attestation_batch::Entity::find()
-            .select_only()
-            .select_column(attestation_batch::Column::BatchId)
-            .select_column(attestation_batch::Column::IsRevoked)
-            .into_tuple()
-            .all(&self.connection)
-            .await
-            .map_err(|e| RevocationError::InternalError(Box::new(e)))?
-            .into_iter()
-            .map(|(batch_id, is_revoked)| BatchIsRevoked { batch_id, is_revoked })
-            .collect())
-    }
 }
 
 impl<K, R> PostgresStatusListService<K, R> {
     pub async fn try_new(
-        connection: DatabaseConnection,
         attestation_group: &str,
+        connection: DatabaseConnection,
         config: StatusListConfig<K>,
         revoke_all: R,
-    ) -> Result<Self, StatusListServiceError> {
+    ) -> Result<Self, DbErr> {
         let attestation_groups = vec![attestation_group];
         let attestation_group_ids = initialize_attestation_group_ids(&connection, attestation_groups).await?;
 
@@ -502,6 +343,17 @@ impl<K, R> PostgresStatusListService<K, R> {
             config: Arc::new(config),
             revoke_all,
         })
+    }
+
+    pub fn config(&self) -> &StatusListConfig<K> {
+        &self.config
+    }
+
+    fn external_id_url(&self, external_id: &str) -> Url {
+        self.config
+            .base_url
+            .join_base_url(&self.config.context_path)
+            .join(external_id)
     }
 }
 
@@ -549,7 +401,7 @@ where
         let claims = lists_with_items
             .into_iter()
             .flat_map(|(list, items)| {
-                let url = self.config.base_url.join(&list.external_id);
+                let url = self.external_id_url(&list.external_id);
                 items.into_iter().map(move |item| {
                     StatusClaim::StatusList(StatusListClaim {
                         idx: item.index as u32,
@@ -1038,7 +890,7 @@ where
 
         // Build new status list
         let expires = Utc::now() + self.config.expiry;
-        let sub = self.config.base_url.join(external_id);
+        let sub = self.external_id_url(external_id);
         let packed = if is_revoked_all {
             PackedStatusList::all_invalid(self.config.list_size.as_usize())
         } else {
@@ -1089,7 +941,7 @@ where
             .lock_for(external_id)
             .with_lock_if_newer(version, async || {
                 // Build packed status list
-                let sub = self.config.base_url.join(external_id);
+                let sub = self.external_id_url(external_id);
                 let builder = tokio::task::spawn_blocking(move || {
                     let mut status_list = StatusList::new(size);
                     for index in result.into_iter().flatten() {
@@ -1115,7 +967,7 @@ where
             .publish_dir
             .lock_for(external_id)
             .with_lock_if_newer(version, async || {
-                let sub = self.config.base_url.join(external_id);
+                let sub = self.external_id_url(external_id);
                 let builder = StatusListToken::builder(sub, PackedStatusList::all_invalid(size));
                 self.sign_and_write_token(builder, expires, external_id).await
             })
@@ -1238,7 +1090,8 @@ mod tests {
                 expiry: Duration::from_secs(3600),
                 refresh_threshold: Duration::from_secs(600),
                 ttl: None,
-                base_url: "https://example.com/tsl".parse().unwrap(),
+                base_url: "https://example.com/".parse().unwrap(),
+                context_path: "tsl".to_string(),
                 publish_dir: PublishDir::try_new(std::env::temp_dir()).unwrap(),
                 key_pair: Ca::generate_issuer_mock_ca()
                     .unwrap()
@@ -1248,17 +1101,6 @@ mod tests {
             .into(),
             revoke_all: NoRevokeAll,
         }
-    }
-
-    #[tokio::test]
-    async fn test_service_obtain_status_claims_uninitialized_attestation_group() {
-        let service = PostgresStatusListServices([("pid".to_string(), mock_service())].into());
-
-        let batch_id = Uuid::new_v4();
-        let result = service
-            .obtain_status_claims("invalid", batch_id, None, NonZeroUsize::MIN)
-            .await;
-        assert_matches!(result, Err(StatusListServiceError::UnknownAttestationGroup(attestation_group)) if attestation_group == "invalid");
     }
 
     #[tokio::test]

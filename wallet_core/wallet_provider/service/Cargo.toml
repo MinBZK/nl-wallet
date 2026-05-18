@@ -52,19 +52,19 @@ mock = [
     "wallet_provider_domain/mock",
     "wallet_provider_persistence/mock",
 ]
-# Include and run test that depend on an external PostgreSQL database
 db_test = [
     "dep:db_test",
     "mock",
     "mock_secure_keys",
     "dep:tempfile",
+    "status_lists/revocation_helper",
     "tokio/macros",
     "tokio/rt-multi-thread",
     "tokio/time",
     "tracing-subscriber/ansi",
     "tracing-subscriber/env-filter",
     "wallet_provider_persistence/test",
-]
+] # Include and run test that depend on an external PostgreSQL database
 
 [dependencies]
 base64.workspace = true

@@ -9,7 +9,7 @@ use derive_more::Debug;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::urls::BaseUrl;
 use issuer_common::settings::IssuerSettings;
-use issuer_common::settings::IssuerSettingsError;
+use issuer_common::settings::IssuerSettingsValidationError;
 use jwk_simple::Key;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::server_state::SessionStoreTimeouts;
@@ -21,7 +21,6 @@ use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::SecretKey;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
-use status_lists::settings::StatusListsSettings;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -41,8 +40,6 @@ pub struct PidIssuerSettings {
 
     #[serde(flatten)]
     pub issuer_settings: IssuerSettings,
-
-    pub status_lists: StatusListsSettings,
 }
 
 #[serde_as]
@@ -65,7 +62,7 @@ pub struct DigidClientSettings {
 }
 
 impl ServerSettings for PidIssuerSettings {
-    type ValidationError = IssuerSettingsError;
+    type ValidationError = IssuerSettingsValidationError;
 
     fn new(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError> {
         let default_store_timeouts = SessionStoreTimeouts::default();
@@ -120,7 +117,7 @@ impl ServerSettings for PidIssuerSettings {
         Ok(config)
     }
 
-    fn validate(&self) -> Result<(), IssuerSettingsError> {
+    fn validate(&self) -> Result<(), IssuerSettingsValidationError> {
         self.issuer_settings.validate()
     }
 

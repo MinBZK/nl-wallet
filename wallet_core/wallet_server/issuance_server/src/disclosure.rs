@@ -86,9 +86,9 @@ impl AttributesFetcher for HttpAttributesFetcher {
 
 /// Receives disclosed attributes, exchanges those for attestations to be issued, and creates a new issuance session
 /// by implementing [`DisclosureResultHandler`].
-pub struct IssuanceResultHandler<AF, K, AS, S, N, L> {
+pub struct IssuanceResultHandler<AF, AS, K, L, S, N> {
     pub attributes_fetcher: AF,
-    pub issuer: Arc<Issuer<K, AS, S, N, L>>,
+    pub issuer: Arc<Issuer<AS, K, L, S, N>>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -122,14 +122,14 @@ impl ToPostAuthResponseErrorCode for IssuanceResultHandlerError {
 }
 
 #[async_trait]
-impl<AF, K, AS, S, N, L> DisclosureResultHandler for IssuanceResultHandler<AF, K, AS, S, N, L>
+impl<AF, AS, K, L, S, N> DisclosureResultHandler for IssuanceResultHandler<AF, AS, K, L, S, N>
 where
     AF: AttributesFetcher + Sync,
-    K: Send + Sync,
     AS: Send + Sync,
+    K: Send + Sync,
+    L: Send + Sync,
     S: SessionStore<IssuanceData> + Sync,
     N: Send + Sync,
-    L: Send + Sync,
 {
     async fn disclosure_result(
         &self,
@@ -174,7 +174,7 @@ where
 
         let credential_offer = CredentialOfferContainer {
             credential_offer: CredentialOffer {
-                credential_issuer: self.issuer.metadata().credential_issuer.clone(),
+                credential_issuer: self.issuer.issuer_identifier().clone(),
                 credential_configuration_ids,
                 grants: Some(Grants::PreAuthorizedCode {
                     pre_authorized_code: GrantPreAuthorizedCode::new(token.into()),
@@ -230,7 +230,7 @@ mod tests {
     use openid4vc::verifier::DisclosureResultHandler;
     use p256::ecdsa::SigningKey;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
-    use token_status_list::status_list_service::mock::MockStatusListServices;
+    use token_status_list::status_list_service::mock::MockStatusListService;
     use token_status_list::verification::verifier::RevocationStatus;
     use utils::vec_nonempty;
 
@@ -297,12 +297,16 @@ mod tests {
         }
     }
 
-    type MockIssuer =
-        Issuer<SigningKey, (), MemorySessionStore<IssuanceData>, MemoryNonceStore, MockStatusListServices>;
+    type MockIssuer = Issuer<(), SigningKey, MockStatusListService, MemorySessionStore<IssuanceData>, MemoryNonceStore>;
 
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
+
+        let mut status_list = MockStatusListService::new();
+        status_list
+            .expect_start_refresh_job()
+            .return_once(|| tokio::task::spawn(async {}).abort_handle());
 
         let config_params = CredentialConfigurationParameters {
             format: Format::SdJwt,
@@ -312,8 +316,8 @@ mod tests {
                 issuance_keypair.certificate().to_owned(),
             )
             .unwrap(),
+            status_list,
             valid_days: Days::new(1),
-            status_list_group: "status_list_group".to_string(),
             issuer_uri: "https://example.com".parse().unwrap(),
             attestation_qualification: AttestationQualification::default(),
             metadata_documents: TypeMetadataDocuments::degree_example().1,
@@ -328,7 +332,6 @@ mod tests {
             (),
             sessions,
             MemoryNonceStore::new(),
-            Arc::new(MockStatusListServices::default()),
             Arc::new(()),
             Arc::new(()),
             None,
