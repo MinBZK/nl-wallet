@@ -206,7 +206,6 @@ impl Credential {
     }
 }
 
-pub const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";
 pub const OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME: &str = "openid-credential-offer";
 
 #[skip_serializing_none]
