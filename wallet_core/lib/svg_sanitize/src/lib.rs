@@ -539,30 +539,23 @@ mod tests {
     }
 
     // ── Valid content passes through ───────────────────────────────────────────
+    //
+    // The sanitizer is a streaming re-serializer: for content that passes the
+    // allowlists, output is byte-identical to input. Tests here exploit that
+    // property and use assert_eq! on compact (no inter-element whitespace)
+    // input strings, which is stricter than substring checks.
 
-    #[test]
-    fn valid_svg_passes_through() {
-        let input = r#"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
-  <circle cx="50" cy="50" r="40" fill="red"/>
-  <rect x="10" y="10" width="80" height="80" stroke="blue" fill="none"/>
-</svg>"#;
-        let out = sanitize_panicking(input);
-        assert!(out.contains(r#"<circle"#), "got: {out}");
-        assert!(out.contains(r#"fill="red""#), "got: {out}");
-        assert!(out.contains(r#"<rect"#), "got: {out}");
-    }
-
-    #[test]
-    fn aria_attrs_pass_through() {
-        let out = sanitize_panicking(r#"<svg><rect aria-label="box" aria-hidden="true"/></svg>"#);
-        assert!(out.contains("aria-label"), "got: {out}");
-        assert!(out.contains("aria-hidden"), "got: {out}");
-    }
-
-    #[test]
-    fn data_attrs_pass_through() {
-        let out = sanitize_panicking(r#"<svg><rect data-id="42" data-color="blue"/></svg>"#);
-        assert!(out.contains("data-id"), "got: {out}");
-        assert!(out.contains("data-color"), "got: {out}");
+    #[rstest]
+    #[case::simple_svg(r#"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="40" fill="red"/><rect x="10" y="10" width="80" height="80" stroke="blue" fill="none"/></svg>"#)]
+    #[case::gradient(r#"<svg xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="0" gradientUnits="objectBoundingBox"><stop offset="0%" stop-color="red" stop-opacity="1"/><stop offset="100%" stop-color="blue" stop-opacity="0.5"/></linearGradient><radialGradient id="rg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="white"/><stop offset="1" stop-color="black"/></radialGradient></defs><rect fill="url(#lg)" width="100" height="50"/><circle fill="url(#rg)" cx="50" cy="75" r="25"/></svg>"#)]
+    #[case::filter(r#"<svg xmlns="http://www.w3.org/2000/svg"><defs><filter id="f"><feGaussianBlur stdDeviation="3" in="SourceGraphic" result="blurred"/><feBlend in="SourceGraphic" in2="blurred" mode="normal"/></filter></defs><rect filter="url(#f)" width="100" height="100"/></svg>"#)]
+    #[case::text_attrs(r#"<svg xmlns="http://www.w3.org/2000/svg"><text font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle" x="50" y="20">Hello <tspan font-style="italic" fill="red">world</tspan></text></svg>"#)]
+    #[case::transform_and_viewbox(r#"<svg viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"><g transform="translate(10, 10) scale(2)"><rect x="0" y="0" width="40" height="40" transform="rotate(45, 20, 20)"/></g></svg>"#)]
+    #[case::clippath_and_mask(r#"<svg xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="clip"><circle cx="50" cy="50" r="40"/></clipPath><mask id="msk"><rect width="100" height="100" fill="white"/></mask></defs><rect clip-path="url(#clip)" mask="url(#msk)" width="100" height="100"/></svg>"#)]
+    #[case::animation_elements(r##"<svg xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="50" r="10"><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="2s" repeatCount="indefinite"/></circle><path id="track" d="M10,50 Q50,10 90,50"/><circle r="5"><animateMotion dur="3s" repeatCount="indefinite"><mpath href="#track"/></animateMotion></circle></svg>"##)]
+    #[case::aria_attrs(r#"<svg><rect aria-label="box" aria-hidden="true"/></svg>"#)]
+    #[case::data_attrs(r#"<svg><rect data-id="42" data-color="blue"/></svg>"#)]
+    fn valid_svg_passes_through(#[case] input: &str) {
+        assert_eq!(sanitize_panicking(input), input);
     }
 }
