@@ -35,6 +35,8 @@ pub fn version() -> &'static Version {
     &CURRENT_VERSION
 }
 
+// Temporarily hack to prevent backwards compatibility problems by including
+// db version identifier. Should be removed when doing PVW-4707.
 pub fn db_version_identifier() -> &'static str {
     // In our own builds the git repo is always available, but this is not
     // necessarily true for other environments. For those we fall back to
