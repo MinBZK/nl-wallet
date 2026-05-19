@@ -29,7 +29,7 @@ if [[ -z $crate || $crate == 'issuer_common' ]]; then
     rm -f "$BASE_DIR/wallet_core/wallet_server/issuer_common/src/entity"/*
     sea-orm-cli generate entity \
         --database-url "postgres://$DB_USERNAME:$DB_PASSWORD@$DB_HOST:$DB_PORT/pid_issuer" \
-        --ignore-tables "seaql_migrations,attestation_batch,attestation_batch_list_indices,attestation_group,attestation_type,session_state,status_list,status_list_item" \
+        --ignore-tables "seaql_migrations,attestation_batch,attestation_batch_list_indices,attestation_group,session_state,status_list,status_list_item" \
         --output-dir "$BASE_DIR/wallet_core/wallet_server/issuer_common/src/entity"
     cargo +nightly fmt --manifest-path "$BASE_DIR/wallet_core/wallet_server/issuer_common/Cargo.toml"
 fi

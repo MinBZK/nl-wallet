@@ -47,8 +47,6 @@ pub async fn serve<A, UAA>(
 where
     A: AttributeService + Send + Sync + 'static,
     UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
-    // P: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
-    // PK: Store<String, String> + Send + Sync + 'static,
 {
     serve_with_listeners(
         create_wallet_listener(&server_settings.wallet_server).await?,
