@@ -32,7 +32,6 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 use p256::ecdsa::signature::Verifier;
 use ring::hmac;
-use rustls_pki_types::CertificateDer;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use utils::generator::Generator;
@@ -277,11 +276,7 @@ impl<T> MdocCose<CoseSign1, T> {
         let (cert, chain) = self.x5chain()?.into_nonempty_iter().next();
 
         let chain = chain.into_iter().collect_vec();
-
-        let intermediate_certs = chain
-            .iter()
-            .map(|c| CertificateDer::from_slice(c.as_ref()))
-            .collect_vec();
+        let intermediate_certs = chain.iter().map(BorrowingCertificate::as_der).cloned().collect_vec();
 
         // Verify the certificate against the trusted IACAs
         cert.verify(usage, &intermediate_certs, time, trust_anchors)
