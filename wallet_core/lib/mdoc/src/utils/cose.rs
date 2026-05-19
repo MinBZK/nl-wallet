@@ -239,6 +239,7 @@ impl<T> MdocCose<CoseSign1, T> {
         Ok(cose.into())
     }
 
+    /// Get the [`BorrowingCertificate`] chain from the unsigned COSE header field `x5chain`.
     pub fn x5chain(&self) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError>
     where
         T: DeserializeOwned,
@@ -247,34 +248,19 @@ impl<T> MdocCose<CoseSign1, T> {
 
         match header_item {
             Value::Bytes(bytes) => Ok(vec_nonempty![BorrowingCertificate::from_der(bytes.clone())?]),
-            Value::Array(items) => items
-                .iter()
-                .map(|item| {
-                    let bytes = item.as_bytes().ok_or(CoseError::CertificateUnexpectedHeaderType)?;
-                    Ok(BorrowingCertificate::from_der(bytes.clone())?)
-                })
-                .collect::<Result<Vec<_>, CoseError>>()?
-                .try_into()
-                .map_err(|_| CoseError::EmptyCertificateChain),
+            Value::Array(items) => {
+                let certificates: Vec<_> = items
+                    .iter()
+                    .map(|item| {
+                        item.as_bytes()
+                            .ok_or(CoseError::CertificateUnexpectedHeaderType)
+                            .and_then(|bytes| Ok(BorrowingCertificate::from_der(bytes.clone())?))
+                    })
+                    .try_collect()?;
+                certificates.try_into().map_err(|_| CoseError::EmptyCertificateChain)
+            }
             _ => Err(CoseError::CertificateUnexpectedHeaderType),
         }
-    }
-
-    /// Get the [`Certificate`] containing the public key with which the MSO is signed from the unsigned COSE header.
-    pub fn signing_cert(&self) -> Result<BorrowingCertificate, CoseError>
-    where
-        T: DeserializeOwned,
-    {
-        let cert_bts = self
-            .unprotected_header_item(&Label::Int(COSE_X5CHAIN_HEADER_LABEL))?
-            .as_bytes()
-            .ok_or(CoseError::CertificateUnexpectedHeaderType)?;
-
-        // The standard defining the above COSE header label (https://datatracker.ietf.org/doc/draft-ietf-cose-x509/)
-        // allows multiple certificates being present in the header, but ISO 18013-5 doesn't.
-        // So we can parse the bytes as a certificate.
-        let cert = BorrowingCertificate::from_der(cert_bts.to_vec())?;
-        Ok(cert)
     }
 
     /// Verify the COSE against the specified trust anchors, using the certificate(s) in the `x5chain` COSE header
@@ -606,7 +592,7 @@ mod tests {
             .unwrap();
 
         // Certificate should be present in the unprotected headers
-        let header_cert = cose.signing_cert().unwrap();
+        let header_cert = cose.x5chain().unwrap().into_first();
         assert_eq!(issuer_key_pair.certificate().as_ref(), header_cert.as_ref());
 
         cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &[ca.to_borrowing_trust_anchor()])

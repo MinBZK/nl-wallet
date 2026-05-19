@@ -95,7 +95,8 @@ impl Mdoc {
     }
 
     pub fn issuer_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
-        self.issuer_signed.issuer_auth.signing_cert()
+        let x5chain = self.issuer_signed.issuer_auth.x5chain()?;
+        Ok(x5chain.into_first())
     }
 
     pub fn type_metadata_integrity(&self) -> Result<&Integrity, Error> {

@@ -50,7 +50,7 @@ impl DocRequest {
                 // Perform verification and return the `Certificate`.
                 let cose = reader_auth.clone_with_payload(serialization::cbor_serialize(&reader_auth_payload)?);
                 cose.verify_against_trust_anchors(CertificateUsage::ReaderAuth, time, trust_anchors)?;
-                let cert = cose.signing_cert()?;
+                let cert = cose.x5chain()?.into_first();
 
                 Ok(cert)
             })
