@@ -6,7 +6,6 @@ use derive_more::Constructor;
 use openid4vc::Format;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
-use openid4vc::issuer::UpstreamCodeVerifier;
 use openid4vc::token::TokenRequest;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -56,11 +55,7 @@ impl Default for MockAttributeService {
 impl AttributeService for MockAttributeService {
     type Error = Infallible;
 
-    async fn attributes(
-        &self,
-        _token_request: TokenRequest,
-        _upstream_code_verifier: Option<UpstreamCodeVerifier>,
-    ) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
+    async fn attributes(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
         let Self(documents) = self;
 
         // Create a copy of the document having a new random id, ensuring unique batch_ids

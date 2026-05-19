@@ -11,7 +11,6 @@ use jwk_simple::Key;
 use openid4vc::Format;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
-use openid4vc::issuer::UpstreamCodeVerifier;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use server_utils::keys::SecretKeyVariant;
@@ -89,20 +88,21 @@ impl BrpPidAttributeService {
 impl AttributeService for BrpPidAttributeService {
     type Error = Error;
 
-    async fn attributes(
-        &self,
-        token_request: TokenRequest,
-        upstream_code_verifier: Option<UpstreamCodeVerifier>,
-    ) -> Result<VecNonEmpty<IssuableDocument>, Error> {
+    async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Error> {
         let authorization_code = match token_request.grant_type {
             TokenRequestGrantType::AuthorizationCode { code } => code,
             _ => return Err(Error::InvalidGrantType),
         };
-        let code_verifier = upstream_code_verifier.map(String::from);
 
+        // `code_verifier` carries the upstream code verifier here: the issuer's `/token` handler
+        // verified the wallet's PKCE and substituted the upstream value into this field.
         let bsn = self
             .openid_client
-            .bsn(authorization_code, code_verifier, token_request.redirect_uri)
+            .bsn(
+                authorization_code,
+                token_request.code_verifier,
+                token_request.redirect_uri,
+            )
             .await
             .map_err(Error::Digid)?;
         let mut persons = self.brp_client.get_person_by_bsn(&bsn).await.map_err(Error::Brp)?;

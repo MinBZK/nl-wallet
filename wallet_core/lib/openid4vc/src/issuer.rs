@@ -21,10 +21,7 @@ use chrono::Utc;
 use crypto::EcdsaKey;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_string;
-use derive_more::AsRef;
 use derive_more::Debug;
-use derive_more::From;
-use derive_more::Into;
 use futures::TryFutureExt;
 use futures::future::try_join_all;
 use futures::join;
@@ -406,34 +403,19 @@ pub struct Session<S: IssuanceState> {
     pub state: SessionState<S>,
 }
 
-/// A PKCE `code_verifier` that the `/token` handler decoupled from the wallet's pair, forwarded
-/// through the [`Issuer`] to the [`AttributeService`] for use against the upstream OIDC provider.
-///
-/// The [`Issuer`] never inspects this value — it is an opaque pass-through.
-#[derive(Debug, Clone, From, AsRef, Into)]
-pub struct UpstreamCodeVerifier(String);
-
 /// Implementations of this trait are responsible for determining the attributes to be issued, given the session and
 /// the token request. See for example the [`BrpPidAttributeService`].
 #[trait_variant::make(Send)]
 pub trait AttributeService {
     type Error: std::error::Error + Send + Sync + 'static;
 
-    async fn attributes(
-        &self,
-        token_request: TokenRequest,
-        upstream_code_verifier: Option<UpstreamCodeVerifier>,
-    ) -> Result<VecNonEmpty<IssuableDocument>, Self::Error>;
+    async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error>;
 }
 
 impl AttributeService for () {
     type Error = Infallible;
 
-    async fn attributes(
-        &self,
-        _: TokenRequest,
-        _: Option<UpstreamCodeVerifier>,
-    ) -> Result<VecNonEmpty<IssuableDocument>, Infallible> {
+    async fn attributes(&self, _: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Infallible> {
         unimplemented!("() AttributeService does not provide attributes")
     }
 }
@@ -893,32 +875,32 @@ where
     /// grant type is `authorization_code`. Pre-authorized-code grants bypass PKCE entirely.
     pub async fn process_token_request(
         &self,
-        token_request: TokenRequest,
+        mut token_request: TokenRequest,
         dpop: Dpop,
     ) -> Result<(TokenResponse, String), TokenRequestError> {
-        let upstream_code_verifier = match &token_request.grant_type {
-            TokenRequestGrantType::AuthorizationCode { .. } => {
-                let wallet_code_verifier = token_request
-                    .code_verifier
-                    .as_ref()
-                    .ok_or(TokenRequestError::MissingCodeVerifier)?;
-                let wallet_code_challenge = S256PkcePair::challenge_for(wallet_code_verifier);
+        // The wallet ↔ issuer PKCE check (RFC 7636) is generic and stays here: consuming the bridge
+        // entry keyed by the wallet's code challenge *is* that verification. The stored value is the
+        // upstream code verifier; relay it onward via `code_verifier` (the field the upstream token
+        // exchange uses), keeping the bridge an upstream-OIDC detail the rest of the issuer and the
+        // attribute service stay out of.
+        if let TokenRequestGrantType::AuthorizationCode { .. } = &token_request.grant_type {
+            let wallet_code_verifier = token_request
+                .code_verifier
+                .as_ref()
+                .ok_or(TokenRequestError::MissingCodeVerifier)?;
+            let wallet_code_challenge = S256PkcePair::challenge_for(wallet_code_verifier);
 
-                let verifier = self
-                    .pkce_flow_store
-                    .consume(&wallet_code_challenge)
-                    .await
-                    .map_err(|error| TokenRequestError::PkceStore(Box::new(error)))?
-                    .map(UpstreamCodeVerifier::from)
-                    .ok_or(TokenRequestError::PkceVerificationFailed)?;
+            let upstream_code_verifier = self
+                .pkce_flow_store
+                .consume(&wallet_code_challenge)
+                .await
+                .map_err(|error| TokenRequestError::PkceStore(Box::new(error)))?
+                .ok_or(TokenRequestError::PkceVerificationFailed)?;
 
-                Some(verifier)
-            }
-            TokenRequestGrantType::PreAuthorizedCode { .. } => None,
-        };
+            token_request.code_verifier = Some(upstream_code_verifier);
+        }
 
-        self.process_token_request_with_verifier(token_request, dpop, upstream_code_verifier)
-            .await
+        self.process_token_request_without_pkce(token_request, dpop).await
     }
 }
 
@@ -928,16 +910,14 @@ where
     K: EcdsaKey,
     S: SessionStore<IssuanceData>,
 {
-    /// Process a token request with the upstream code verifier supplied explicitly, bypassing the
-    /// PKCE bridge.
+    /// Process a token request without consuming the wallet ↔ upstream PKCE bridge.
     ///
     /// Production code should call [`Self::process_token_request`] instead; this entry point exists
     /// for tests that drive the issuer without an authorization flow having occurred.
-    async fn process_token_request_with_verifier(
+    async fn process_token_request_without_pkce(
         &self,
         token_request: TokenRequest,
         dpop: Dpop,
-        upstream_code_verifier: Option<UpstreamCodeVerifier>,
     ) -> Result<(TokenResponse, String), TokenRequestError> {
         let session_token = token_request.code().clone().into();
 
@@ -974,7 +954,6 @@ where
                 &self.issuer_data.credential_configs,
                 self.issuer_data.batch_size,
                 is_new_session,
-                upstream_code_verifier,
             )
             .await;
 
@@ -1131,7 +1110,6 @@ impl Session<Created> {
         credential_configurations: &CredentialConfigurations<K, L>,
         batch_size: NonZeroU8,
         is_new_session: bool,
-        upstream_code_verifier: Option<UpstreamCodeVerifier>,
     ) -> Result<(TokenResponse, String, Session<WaitingForResponse>), (TokenRequestError, Session<Done>)> {
         let result = self
             .process_token_request_inner(
@@ -1142,7 +1120,6 @@ impl Session<Created> {
                 credential_configurations,
                 batch_size,
                 is_new_session,
-                upstream_code_verifier,
             )
             .await;
 
@@ -1211,7 +1188,6 @@ impl Session<Created> {
         credential_configurations: &CredentialConfigurations<K, L>,
         batch_size: NonZeroU8,
         is_new_session: bool,
-        upstream_code_verifier: Option<UpstreamCodeVerifier>,
     ) -> Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError> {
         // Pre-populated sessions (e.g. disclosure-based issuance) must use PreAuthorizedCode.
         // New sessions (authorization code flow) must use AuthorizationCode.
@@ -1241,7 +1217,7 @@ impl Session<Created> {
         let issuables = match &self.session_data().issuable_documents {
             Some(docs) => docs.clone(),
             None => attr_service
-                .attributes(token_request, upstream_code_verifier)
+                .attributes(token_request)
                 .await
                 .map_err(|e| TokenRequestError::AttributeService(Box::new(e)))?,
         };
@@ -1968,7 +1944,7 @@ mod tests {
         ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError> {
             let (token_response, dpop_nonce) = self
                 .issuer
-                .process_token_request_with_verifier(token_request.clone(), dpop_header.clone(), None)
+                .process_token_request_without_pkce(token_request.clone(), dpop_header.clone())
                 .await
                 .map_err(|err| WalletIssuanceError::TokenRequest(Box::new(err.into())))?;
             Ok((token_response, Some(dpop_nonce)))
