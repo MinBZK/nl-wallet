@@ -11,6 +11,7 @@ use config::ConfigError;
 use crypto::p256_der::DerSigningKey;
 use crypto::server_keys::KeyPair as ParsedKeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
@@ -200,12 +201,15 @@ pub fn verify_key_pairs(
         return Err(CertificateVerificationError::MissingTrustAnchors);
     }
 
+    let trust_anchors = TrustAnchors::try_from(trust_anchors.to_vec())
+        .map_err(|e| CertificateVerificationError::InvalidCertificate(e, "trust_anchors".to_string()))?;
+
     for (key_pair_id, key_pair) in key_pairs {
         tracing::debug!("verifying certificate of {key_pair_id}");
 
         key_pair
             .certificate
-            .verify(usage, &[], time, trust_anchors)
+            .verify(usage, &[], time, &trust_anchors)
             .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.to_string()))?;
 
         if CertificateType::has_certificate_type(usage) {

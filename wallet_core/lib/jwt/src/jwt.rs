@@ -11,6 +11,7 @@ use crypto::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
@@ -25,7 +26,6 @@ use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
-use rustls_pki_types::CertificateDer;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -224,18 +224,11 @@ where
         // Verify the certificate chain against the trust anchors.
         let leaf_cert = certificates.first();
 
+        let intermediate_certs: Vec<BorrowingCertificate> = certificates.iter().skip(1).cloned().collect();
+        let trust_anchors =
+            TrustAnchors::try_from(trust_anchors.to_vec()).map_err(JwtX5cError::CertificateValidation)?;
         leaf_cert
-            .verify(
-                certificate_usage,
-                &certificates
-                    .iter()
-                    .skip(1)
-                    .map(AsRef::as_ref)
-                    .map(CertificateDer::from_slice)
-                    .collect_vec(),
-                time,
-                trust_anchors,
-            )
+            .verify(certificate_usage, &intermediate_certs, time, &trust_anchors)
             .map_err(JwtX5cError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.

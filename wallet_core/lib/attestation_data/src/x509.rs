@@ -147,6 +147,7 @@ mod test {
     use chrono::Duration;
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateConfiguration;
     use time::OffsetDateTime;
     use time::macros::datetime;
@@ -171,7 +172,7 @@ mod test {
                 CertificateUsage::Mdl,
                 &[],
                 &TimeGenerator,
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap(),
             )
             .unwrap();
 
@@ -206,7 +207,7 @@ mod test {
                 CertificateUsage::Mdl,
                 &[],
                 &TimeGenerator,
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap(),
             )
             .unwrap();
 
@@ -234,7 +235,7 @@ mod test {
                 CertificateUsage::ReaderAuth,
                 &[],
                 &TimeGenerator,
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap(),
             )
             .unwrap();
 
@@ -269,7 +270,7 @@ mod test {
                 CertificateUsage::ReaderAuth,
                 &[],
                 &TimeGenerator,
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap(),
             )
             .unwrap();
 

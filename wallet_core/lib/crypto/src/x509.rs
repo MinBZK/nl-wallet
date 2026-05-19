@@ -1,4 +1,5 @@
-use std::collections::HashSet;
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::iter::once;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -25,7 +26,6 @@ use p256::pkcs8::der::Decode;
 use p256::pkcs8::der::SliceReader;
 use p256::pkcs8::der::asn1::Utf8StringRef;
 use rustls_pki_types::CertificateDer;
-use rustls_pki_types::TrustAnchor;
 use rustls_pki_types::UnixTime;
 use rustls_pki_types::pem::PemObject;
 use serde::Deserialize;
@@ -36,7 +36,6 @@ use serde_with::SerializeDisplay;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 use webpki::EndEntityCert;
-use webpki::anchor_from_trusted_cert;
 use webpki::ring::ECDSA_P256_SHA256;
 use x509_parser::asn1_rs::SerializeError;
 use x509_parser::asn1_rs::ToDer;
@@ -55,7 +54,7 @@ use x509_parser::x509::X509Name;
 use yoke::Yoke;
 use yoke::Yokeable;
 
-use crate::trust_anchor::BorrowingTrustAnchor;
+use crate::trust_anchor::TrustAnchors;
 
 /// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
 /// [`Certificate::verify()`] receives this as parameter and enforces that it is present in the certificate
@@ -263,25 +262,28 @@ impl BorrowingCertificate {
     pub fn verify(
         &self,
         usage: CertificateUsage,
-        intermediate_certs: &[CertificateDer],
+        intermediate_certs: &[BorrowingCertificate],
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
     ) -> Result<(), CertificateError> {
-        let leaf = CertificateDer::from_slice(self.as_ref());
-        let chain = once(&leaf).chain(intermediate_certs).collect_vec();
+        let chain = once(self).chain(intermediate_certs).collect_vec();
 
         // HAIP 1.0 requires that the x5c header does not contain the trust anchor.
-        if chain_does_contain_trust_anchors(&chain, trust_anchors)? {
+        if chain_does_contain_trust_anchors(&chain, trust_anchors) {
             return Err(CertificateError::TrustAnchorInChain);
         }
 
-        let trust_anchor_refs: Vec<TrustAnchor<'_>> =
-            trust_anchors.iter().map(|a| a.as_trust_anchor().clone()).collect();
+        let intermediate_certs = intermediate_certs
+            .iter()
+            .map(BorrowingCertificate::as_der)
+            .cloned()
+            .collect_vec();
+
         self.end_entity_certificate()
             .verify_for_usage(
                 &[ECDSA_P256_SHA256],
-                &trust_anchor_refs,
-                intermediate_certs,
+                trust_anchors.trust_anchors(),
+                intermediate_certs.as_slice(),
                 // unwrap is safe here because we assume the time that is generated lies after the epoch
                 UnixTime::since_unix_epoch(Duration::from_secs(time.generate().timestamp().try_into().unwrap())),
                 webpki::KeyUsage::required(usage.eku()),
@@ -436,53 +438,8 @@ impl BorrowingCertificate {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct TrustAnchorWithIssuer<'a> {
-    ta: TrustAnchor<'a>,
-    issuer: &'a [u8],
-}
-
-impl<'a> TryFrom<&'a CertificateDer<'a>> for TrustAnchorWithIssuer<'a> {
-    type Error = CertificateError;
-
-    fn try_from(cert: &'a CertificateDer<'a>) -> Result<Self, Self::Error> {
-        let ta =
-            anchor_from_trusted_cert(cert).map_err(|error| CertificateError::CertificateParsing(Box::new(error)))?;
-        let (_, x509_cert) = X509Certificate::from_der(cert.as_bytes())?;
-        Ok(Self {
-            ta,
-            issuer: x509_cert.issuer.as_raw(),
-        })
-    }
-}
-
-impl<'a> TryFrom<&'a BorrowingTrustAnchor> for TrustAnchorWithIssuer<'a> {
-    type Error = CertificateError;
-
-    fn try_from(ta: &'a BorrowingTrustAnchor) -> Result<Self, Self::Error> {
-        let (_, ta_x509) = X509Certificate::from_der(ta.as_ref())?;
-        Ok(Self {
-            ta: ta.as_trust_anchor().clone(),
-            issuer: ta_x509.issuer.as_raw(),
-        })
-    }
-}
-
-fn chain_does_contain_trust_anchors(
-    chain: &[&CertificateDer],
-    trust_anchors: &[BorrowingTrustAnchor],
-) -> Result<bool, CertificateError> {
-    // TODO (PVW-5933): Performance improvement to avoid building a HashSet for every invocation.
-    let ta_with_issuers: HashSet<TrustAnchorWithIssuer> = trust_anchors.iter().map(TryFrom::try_from).try_collect()?;
-
-    for cert in chain {
-        let cert_as_trust_anchor = TrustAnchorWithIssuer::try_from(*cert)?;
-
-        if ta_with_issuers.contains(&cert_as_trust_anchor) {
-            return Ok(true);
-        }
-    }
-    Ok(false)
+fn chain_does_contain_trust_anchors(chain: &[&BorrowingCertificate], trust_anchors: &TrustAnchors) -> bool {
+    chain.iter().any(|cert| trust_anchors.certificates().contains(*cert))
 }
 
 impl Clone for BorrowingCertificate {
@@ -519,6 +476,12 @@ impl PartialEq for BorrowingCertificate {
 }
 
 impl Eq for BorrowingCertificate {}
+
+impl Hash for BorrowingCertificate {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.as_ref().hash(state);
+    }
+}
 
 fn x509_common_names<'a>(x509name: &'a X509Name) -> Result<Vec<&'a str>, CertificateError> {
     x509name
@@ -619,6 +582,8 @@ mod test {
 
     use super::*;
     use crate::server_keys::generate::Ca;
+    use crate::trust_anchor::BorrowingTrustAnchor;
+    use crate::trust_anchor::TrustAnchors;
     use crate::utils::sha256;
 
     struct MdlExtension;
@@ -725,7 +690,7 @@ mod test {
                 CertificateUsage::Mdl,
                 &[],
                 &TimeGenerator,
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap(),
             )
             .expect_err("Expected verify to fail")
     }
@@ -824,6 +789,7 @@ mod test {
         let (new_ca, cross_cert_der) = old_ca
             .generate_root_and_cross_cert("new_ca", CertificateUsage::Mdl, Default::default())
             .unwrap();
+        let cross_cert = BorrowingCertificate::from_certificate_der(cross_cert_der).unwrap();
 
         // Both leaves are signed by the new CA key (same key in cross-cert and self-signed cert).
         let leaf = new_ca
@@ -838,9 +804,9 @@ mod test {
         leaf.certificate()
             .verify(
                 CertificateUsage::Mdl,
-                from_ref(&cross_cert_der),
+                from_ref(&cross_cert),
                 &time,
-                from_ref(&old_ca_ta),
+                &TrustAnchors::try_from(vec![old_ca_ta.clone()]).unwrap(),
             )
             .expect("leaf should verify against old CA via cross-cert intermediate");
 
@@ -850,15 +816,20 @@ mod test {
         leaf.certificate()
             .verify(
                 CertificateUsage::Mdl,
-                &[cross_cert_der.clone(), new_ca.certificate().clone()],
+                &[cross_cert, new_ca.as_borrowing_certificate().unwrap()],
                 &time,
-                &[old_ca_ta],
+                &TrustAnchors::try_from(vec![old_ca_ta]).unwrap(),
             )
             .expect("leaf should still verify when self-signed new CA cert is added to intermediates");
 
         // Phase 3: leaf verified directly against the new CA trust anchor (no intermediates).
         leaf.certificate()
-            .verify(CertificateUsage::Mdl, &[], &time, from_ref(&new_ca_ta))
+            .verify(
+                CertificateUsage::Mdl,
+                &[],
+                &time,
+                &TrustAnchors::try_from(vec![new_ca_ta]).unwrap(),
+            )
             .expect("leaf should verify against self-signed new CA");
     }
 
@@ -867,24 +838,30 @@ mod test {
         let ca = Ca::generate("ca", Default::default()).unwrap();
         let trust_anchor = ca.to_borrowing_trust_anchor();
 
-        assert!(!chain_does_contain_trust_anchors(&[], &[trust_anchor]).unwrap());
+        assert!(!chain_does_contain_trust_anchors(&[], &TrustAnchors::try_from(vec![trust_anchor]).unwrap()));
     }
 
     #[test]
     fn chain_does_not_contain_trust_anchor_when_no_trust_anchors() {
         let ca = Ca::generate("ca", Default::default()).unwrap();
-        let cert = ca.certificate().clone();
+        let cert = ca.as_borrowing_certificate().unwrap();
 
-        assert!(!chain_does_contain_trust_anchors(&[&cert], &[]).unwrap());
+        assert!(!chain_does_contain_trust_anchors(
+            &[&cert],
+            &TrustAnchors::try_from(Vec::<BorrowingTrustAnchor>::new()).unwrap(),
+        ));
     }
 
     #[test]
     fn chain_does_contain_trust_anchor_when_ca_is_in_chain() {
         let ca = Ca::generate("ca", Default::default()).unwrap();
-        let ca_cert = ca.certificate().clone();
+        let ca_cert = ca.as_borrowing_certificate().unwrap();
         let trust_anchor = ca.to_borrowing_trust_anchor();
 
-        assert!(chain_does_contain_trust_anchors(&[&ca_cert], &[trust_anchor]).unwrap());
+        assert!(chain_does_contain_trust_anchors(
+            &[&ca_cert],
+            &TrustAnchors::try_from(vec![trust_anchor]).unwrap(),
+        ));
     }
 
     #[test]
@@ -894,7 +871,7 @@ mod test {
         // CA
         let ca = Ca::generate_with_intermediate_count("ca", CertificateConfiguration::default(), 2).unwrap();
         let ca_ta = ca.to_borrowing_trust_anchor();
-        let ca_cert = ca.certificate();
+        let ca_cert = ca.as_borrowing_certificate().unwrap();
 
         // Intermediate
         let intermediate_ca = ca
@@ -905,7 +882,7 @@ mod test {
             )
             .unwrap();
         let intermediate_ta = intermediate_ca.to_borrowing_trust_anchor();
-        let intermediate_cert = intermediate_ca.certificate();
+        let intermediate_cert = intermediate_ca.as_borrowing_certificate().unwrap();
 
         // Leaf
         let leaf_key_pair = intermediate_ca
@@ -915,38 +892,49 @@ mod test {
                 CertificateConfiguration::default(),
             )
             .unwrap();
-        let leaf_cert = CertificateDer::from_slice(leaf_key_pair.certificate().as_ref());
+        let leaf_cert = leaf_key_pair.certificate();
 
         // Verify with intermediate in the trust anchors
-        assert!(!chain_does_contain_trust_anchors(&[&leaf_cert], from_ref(&intermediate_ta)).unwrap());
+        assert!(!chain_does_contain_trust_anchors(
+            &[leaf_cert],
+            &TrustAnchors::try_from(vec![intermediate_ta.clone()]).unwrap(),
+        ));
         // Verify full chain with intermediates
-        assert!(!chain_does_contain_trust_anchors(&[&leaf_cert, intermediate_cert], from_ref(&ca_ta)).unwrap());
+        assert!(!chain_does_contain_trust_anchors(
+            &[leaf_cert, &intermediate_cert],
+            &TrustAnchors::try_from(vec![ca_ta.clone()]).unwrap(),
+        ));
         // Verify duplicate intermediate is detected
-        assert!(
-            chain_does_contain_trust_anchors(
-                &[&leaf_cert, intermediate_cert],
-                &[intermediate_ta.clone(), ca_ta.clone()],
-            )
-            .unwrap()
-        );
+        assert!(chain_does_contain_trust_anchors(
+            &[leaf_cert, &intermediate_cert],
+            &TrustAnchors::try_from(vec![intermediate_ta.clone(), ca_ta.clone()]).unwrap(),
+        ));
         // Verify duplicate ca is detected
-        assert!(chain_does_contain_trust_anchors(&[&leaf_cert, intermediate_cert, ca_cert], from_ref(&ca_ta)).unwrap());
+        assert!(chain_does_contain_trust_anchors(
+            &[leaf_cert, &intermediate_cert, &ca_cert],
+            &TrustAnchors::try_from(vec![ca_ta.clone()]).unwrap(),
+        ));
 
         // Verify whole chain with leaf, intermediate and ca trust anchor
         leaf_key_pair
             .certificate()
             .verify(
                 CertificateUsage::ReaderAuth,
-                &[intermediate_ca.certificate().clone()],
+                from_ref(&intermediate_cert),
                 &time,
-                from_ref(&ca_ta),
+                &TrustAnchors::try_from(vec![ca_ta.clone()]).unwrap(),
             )
             .expect("should verify");
 
         // Verify leaf with only intermediate as trust anchor
         leaf_key_pair
             .certificate()
-            .verify(CertificateUsage::ReaderAuth, &[], &time, from_ref(&intermediate_ta))
+            .verify(
+                CertificateUsage::ReaderAuth,
+                &[],
+                &time,
+                &TrustAnchors::try_from(vec![intermediate_ta.clone()]).unwrap(),
+            )
             .expect("should verify");
 
         // Verify whole chain with intermediate both in intermediates and trust anchors
@@ -954,9 +942,9 @@ mod test {
             .certificate()
             .verify(
                 CertificateUsage::ReaderAuth,
-                &[intermediate_ca.certificate().clone()],
+                from_ref(&intermediate_cert),
                 &time,
-                &[intermediate_ta, ca_ta.clone()],
+                &TrustAnchors::try_from(vec![intermediate_ta, ca_ta.clone()]).unwrap(),
             )
             .expect_err("should detect TrustAnchorInChain");
         assert_matches!(error, CertificateError::TrustAnchorInChain);
@@ -966,9 +954,9 @@ mod test {
             .certificate()
             .verify(
                 CertificateUsage::ReaderAuth,
-                &[intermediate_ca.certificate().clone(), ca.certificate().clone()],
+                &[intermediate_cert, ca_cert],
                 &time,
-                &[ca_ta],
+                &TrustAnchors::try_from(vec![ca_ta]).unwrap(),
             )
             .expect_err("should detect TrustAnchorInChain");
         assert_matches!(error, CertificateError::TrustAnchorInChain);

@@ -21,6 +21,7 @@ use coset::sig_structure_data;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
@@ -273,10 +274,10 @@ impl<T> MdocCose<CoseSign1, T> {
         let (cert, chain) = self.x5chain()?.into_nonempty_iter().next();
 
         let chain = chain.into_iter().collect_vec();
-        let intermediate_certs = chain.iter().map(BorrowingCertificate::as_der).cloned().collect_vec();
+        let trust_anchors = TrustAnchors::try_from(trust_anchors.to_vec())?;
 
         // Verify the certificate against the trusted IACAs
-        cert.verify(usage, &intermediate_certs, time, trust_anchors)
+        cert.verify(usage, &chain, time, &trust_anchors)
             .map_err(CoseError::Certificate)?;
 
         // Grab the certificate's public key and verify the Cose

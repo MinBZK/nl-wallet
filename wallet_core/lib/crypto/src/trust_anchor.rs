@@ -3,12 +3,17 @@ use std::hash::Hasher;
 use std::sync::Arc;
 
 use derive_more::Debug;
+use indexmap::IndexSet;
+use itertools::Itertools;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
 use webpki::Error;
 use webpki::anchor_from_trusted_cert;
 use yoke::Yoke;
 use yoke::Yokeable;
+
+use crate::x509::BorrowingCertificate;
+use crate::x509::CertificateError;
 
 #[derive(Yokeable, Debug, Clone)]
 struct ParsedTrustAnchor<'a> {
@@ -76,5 +81,68 @@ impl TryFrom<Vec<u8>> for BorrowingTrustAnchor {
 impl From<BorrowingTrustAnchor> for Vec<u8> {
     fn from(value: BorrowingTrustAnchor) -> Self {
         value.as_ref().to_vec()
+    }
+}
+
+pub struct TrustAnchors {
+    certificates: IndexSet<BorrowingCertificate>,
+    trust_anchors: Vec<TrustAnchor<'static>>,
+}
+
+impl TrustAnchors {
+    pub fn trust_anchors(&self) -> &[TrustAnchor<'static>] {
+        self.trust_anchors.as_slice()
+    }
+
+    pub fn certificates(&self) -> &IndexSet<BorrowingCertificate> {
+        &self.certificates
+    }
+}
+
+impl TryFrom<Vec<Vec<u8>>> for TrustAnchors {
+    type Error = CertificateError;
+
+    fn try_from(input: Vec<Vec<u8>>) -> Result<Self, Self::Error> {
+        let certificates: IndexSet<BorrowingCertificate> =
+            input.into_iter().map(BorrowingCertificate::from_der).try_collect()?;
+
+        let trust_anchors: Vec<_> = certificates
+            .iter()
+            .map(BorrowingCertificate::as_der)
+            .map(webpki::anchor_from_trusted_cert)
+            .map_ok(|ta| ta.to_owned())
+            .try_collect()
+            .map_err(|e| CertificateError::CertificateParsing(Box::new(e)))?;
+
+        let result = Self {
+            certificates,
+            trust_anchors,
+        };
+
+        Ok(result)
+    }
+}
+
+impl From<TrustAnchors> for Vec<Vec<u8>> {
+    fn from(value: TrustAnchors) -> Self {
+        value.certificates.into_iter().map(|c| c.to_vec()).collect()
+    }
+}
+
+impl TryFrom<Vec<BorrowingTrustAnchor>> for TrustAnchors {
+    type Error = CertificateError;
+
+    fn try_from(trust_anchors: Vec<BorrowingTrustAnchor>) -> Result<Self, Self::Error> {
+        let certificates: IndexSet<BorrowingCertificate> = trust_anchors
+            .iter()
+            .map(|ta| BorrowingCertificate::from_der(ta.as_ref()))
+            .try_collect()?;
+
+        let owned_anchors = trust_anchors.iter().map(|ta| ta.to_owned_trust_anchor()).collect();
+
+        Ok(Self {
+            certificates,
+            trust_anchors: owned_anchors,
+        })
     }
 }
