@@ -5,6 +5,7 @@ use chrono::Duration;
 use chrono::Utc;
 use crypto::keys::SecureEcdsaKey;
 use crypto::server_keys::KeyPair;
+use crypto::x509::CertificateError;
 use derive_more::Constructor;
 use hsm::keys::HsmEcdsaKey;
 use hsm::model::wrapped_key::WrappedKey;
@@ -54,6 +55,10 @@ pub enum HsmWiaIssuerError {
     KeyConversion(#[from] JwtError),
     #[error("public key error: {0}")]
     PublicKeyError(Box<dyn Error + Send + Sync + 'static>),
+    #[error("Missing Common Name in WIA issuance certificate")]
+    MissingCommonName,
+    #[error("WIA issuance certificate error: {0}")]
+    WiaCertificateError(#[source] CertificateError),
 }
 
 impl<H, K> WiaIssuer for HsmWiaIssuer<H, K>
@@ -72,10 +77,18 @@ where
         let pubkey = *wrapped_privkey.public_key();
 
         let wia_exp = (Utc::now() + WIA_VALIDITY).into();
+        let iss = self
+            .keypair
+            .certificate()
+            .common_name()
+            .map_err(HsmWiaIssuerError::WiaCertificateError)?
+            .ok_or(HsmWiaIssuerError::MissingCommonName)?
+            .to_string();
 
         let jwt = SignedJwt::sign_with_certificate(
             &WiaClaims::new(
                 &pubkey,
+                iss,
                 self.sub.clone(),
                 wia_exp,
                 self.wallet_info.clone(),
@@ -134,6 +147,7 @@ pub mod mock {
             let jwt = SignedJwt::sign_with_certificate(
                 &WiaClaims::new(
                     pubkey,
+                    keypair.certificate().common_name().unwrap().unwrap().to_string(),
                     "sub".to_string(),
                     exp,
                     WiaWalletInfo::new_mock(),

@@ -29,7 +29,8 @@ use crate::pop::JwtPopClaims;
 pub struct WiaClaims {
     pub cnf: ConfirmationClaim,
 
-    // Standard JWT fields, without `iss`; that is derived from the `x5c` certs
+    // Standard JWT fields.
+    pub iss: String,
     pub sub: String,
     pub exp: DateTimeSeconds,
     pub iat: Option<DateTimeSeconds>,
@@ -66,6 +67,7 @@ pub struct ClientStatus {
 impl WiaClaims {
     pub fn new(
         holder_pubkey: &VerifyingKey,
+        iss: String,
         sub: String,
         exp: DateTimeSeconds,
         wallet_info: WiaWalletInfo,
@@ -75,6 +77,7 @@ impl WiaClaims {
 
         Ok(Self {
             cnf: ConfirmationClaim::from_verifying_key(holder_pubkey)?,
+            iss,
             sub,
             exp,
             iat: Some(now),
@@ -211,11 +214,13 @@ mod tests {
     use crate::wia::WiaWalletInfo;
 
     const AUD: &str = "https://issuer.example.com/";
+    const ISS: &str = "https://wia-issuer.example.com/";
     const WALLET_CLIENT_ID: &str = "wallet-client";
 
     fn make_wia(wia_keypair: &KeyPair, holder_pubkey: &VerifyingKey) -> UnverifiedJwt<WiaClaims, HeaderWithX5c> {
         let wia_claims = WiaClaims::new(
             holder_pubkey,
+            ISS.to_string(),
             WALLET_CLIENT_ID.to_string(),
             (Utc::now() + Duration::hours(1)).into(),
             WiaWalletInfo::new_mock(),

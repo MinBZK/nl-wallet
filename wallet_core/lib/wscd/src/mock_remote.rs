@@ -189,6 +189,7 @@ impl IssuanceWscd for MockRemoteWscd {
         let wia = SignedJwt::sign_with_certificate(
             &WiaClaims::new(
                 wia_key.verifying_key(),
+                wia_keypair.certificate().common_name().unwrap().unwrap().to_string(),
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 exp.into(),
                 WiaWalletInfo::new_mock(),
