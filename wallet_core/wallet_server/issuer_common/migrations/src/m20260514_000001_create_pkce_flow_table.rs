@@ -33,16 +33,6 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        manager
-            .create_index(
-                Index::create()
-                    .table(PkceFlow::Table)
-                    .name("pkce_flow_expires_at")
-                    .col(PkceFlow::ExpiresAt)
-                    .to_owned(),
-            )
-            .await?;
-
         Ok(())
     }
 }

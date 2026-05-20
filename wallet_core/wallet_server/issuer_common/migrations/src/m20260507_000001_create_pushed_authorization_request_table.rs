@@ -37,16 +37,6 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        manager
-            .create_index(
-                Index::create()
-                    .table(PushedAuthorizationRequest::Table)
-                    .name("pushed_authorization_request_expires_at")
-                    .col(PushedAuthorizationRequest::ExpiresAt)
-                    .to_owned(),
-            )
-            .await?;
-
         Ok(())
     }
 }
