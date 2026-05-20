@@ -95,18 +95,17 @@ base64_url_decode "$JWT_PAYLOAD" > "${OUTPUT_LOCATION}/wallet-config.json"
 
 # Output config_server_configuratino JSON
 jq -n \
-    --arg env "$WALLET_ENV" \
-    --arg url "https://${STATIC_HOSTNAME}/config/v1/" \
-    --arg ca "$(IFS="|" ; echo "${CONFIG_SERVER_CAS[*]}")" \
-    --arg pubkey "${CONFIG_PUBLIC_KEY}" \
-    --argjson freq 3600 \
     '{
         "environment": $env,
         "http_config": {
             "base_url": $url,
-            "trust_anchors": [$ca]
+            "trust_anchors": $ARGS.positional
         },
         "signing_public_key": $pubkey,
-        "update_frequency_in_sec": $freq
+        "update_frequency_in_sec": 3600
     }' \
+    --arg env "$WALLET_ENV" \
+    --arg url "https://${STATIC_HOSTNAME}/config/v1/" \
+    --arg pubkey "${CONFIG_PUBLIC_KEY}" \
+    --args "${CONFIG_SERVER_CAS[@]}" \
     > "${OUTPUT_LOCATION}/config-server-config.json"
