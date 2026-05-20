@@ -26,6 +26,7 @@ serde_json.workspace = true
 serde_with = { workspace = true, features = ["macros"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
+tokio = { workspace = true, features = ["rt"] }
 tracing.workspace = true
 trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }

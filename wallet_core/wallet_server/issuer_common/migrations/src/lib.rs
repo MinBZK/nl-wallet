@@ -2,6 +2,8 @@ use async_trait::async_trait;
 use sea_orm_migration::prelude::*;
 
 mod m20220101_000001_create_proof_nonce_table;
+mod m20260507_000001_create_pushed_authorization_request_table;
+mod m20260514_000001_create_pkce_flow_table;
 
 pub struct Migrator;
 
@@ -17,4 +19,15 @@ impl MigratorTrait for Migrator {
 
         migrations
     }
+}
+
+/// Migrations for the OpenID4VCI Authorization Phase tables (PAR + PKCE).
+///
+/// Only consumers that implement the Authorization Phase need to apply these on
+/// top of the shared [`Migrator`].
+pub fn authorization_phase_migrations() -> Vec<Box<dyn MigrationTrait>> {
+    vec![
+        Box::new(m20260507_000001_create_pushed_authorization_request_table::Migration),
+        Box::new(m20260514_000001_create_pkce_flow_table::Migration),
+    ]
 }

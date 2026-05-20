@@ -65,7 +65,7 @@ use token_status_list::verification::verifier::RevocationStatus;
 use tokio::fs;
 use tracing::warn;
 #[cfg(not(debug_assertions))]
-use utils::built_info::version_identifier;
+use utils::built_info::db_version_identifier;
 use utils::generator::Generator;
 use uuid::Uuid;
 
@@ -152,8 +152,8 @@ impl<K> DatabaseStorage<K> {
             }
             _ => {
                 // Temporarily hack to prevent backwards compatibility problems by including
-                // full version identifier. Should be removed when doing PVW-4707.
-                let version = version_identifier().expect("Version expected for release build");
+                // db version identifier. Should be removed when doing PVW-4707.
+                let version = db_version_identifier();
                 self.storage_path.join(format!("{name}-{version}.{DATABASE_FILE_EXT}"))
             }
         }
@@ -2094,6 +2094,28 @@ pub(crate) mod tests {
             .expect("Could not fetch unique attestations by types");
 
         assert!(fetched_unique.is_empty());
+
+        // Should not return not yet valid attestations.
+        let fetched = storage
+            .fetch_valid_unique_attestations_by_types_and_format(
+                &attestation_types,
+                CredentialFormat::SdJwt,
+                MockTimeGenerator::new(Utc.timestamp_nanos(0)),
+            )
+            .await
+            .expect("Could not fetch unique attestations by types and format");
+        assert!(fetched.is_empty());
+
+        // Should not return expired attestations.
+        let fetched = storage
+            .fetch_valid_unique_attestations_by_types_and_format(
+                &attestation_types,
+                CredentialFormat::SdJwt,
+                MockTimeGenerator::new(Utc::now() + Days::new(366)),
+            )
+            .await
+            .expect("Could not fetch unique attestations by types and format");
+        assert!(fetched.is_empty());
     }
 
     #[tokio::test]

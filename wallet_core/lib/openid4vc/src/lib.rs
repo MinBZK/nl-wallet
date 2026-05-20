@@ -36,6 +36,7 @@ pub mod jose;
 pub mod nonce;
 mod recurring_task;
 pub mod server_state;
+pub mod store;
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;

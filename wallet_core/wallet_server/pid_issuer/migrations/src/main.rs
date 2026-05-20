@@ -1,4 +1,4 @@
-use issuer_common_migrations::Migrator;
+use pid_issuer_migrations::Migrator;
 
 #[tokio::main]
 async fn main() {

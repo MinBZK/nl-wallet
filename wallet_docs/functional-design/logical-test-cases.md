@@ -786,8 +786,6 @@ instructs user to choose a new PIN<br>
 
 ### LTC62
 
-% manual
-
 #### Transfer wallet
 
 **Given** user has an existing active source wallet<br>
@@ -802,8 +800,6 @@ instructs user to choose a new PIN<br>
 
 ### LTC63
 
-% manual
-
 #### Stop transfer flow on source device
 
 **Given** user has an existing active source wallet<br>
@@ -815,8 +811,6 @@ instructs user to choose a new PIN<br>
 ---
 
 ### LTC64
-
-% manual
 
 #### Stop transfer flow on destination device
 

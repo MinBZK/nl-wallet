@@ -8,7 +8,9 @@ use url::Url;
 use wallet::AccountRevokedData;
 use wallet::attestation_data::LocalizedStrings;
 use wallet::errors::AccountProviderError;
+use wallet::errors::CancelSessionError;
 use wallet::errors::ChangePinError;
+use wallet::errors::CheckPreconditionsError;
 use wallet::errors::CloseProximityDisclosureError;
 use wallet::errors::DeleteAttestationError;
 use wallet::errors::DisclosureBasedIssuanceError;
@@ -144,6 +146,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .or_else(|e| e.downcast::<IssuanceError>().map(Self::from))
             .or_else(|e| e.downcast::<DisclosureError>().map(Self::from))
             .or_else(|e| e.downcast::<DisclosureBasedIssuanceError>().map(Self::from))
+            .or_else(|e| e.downcast::<CancelSessionError>().map(Self::from))
             .or_else(|e| e.downcast::<HistoryError>().map(Self::from))
             .or_else(|e| e.downcast::<ResetError>().map(Self::from))
             .or_else(|e| e.downcast::<url::ParseError>().map(Self::from))
@@ -262,10 +265,10 @@ impl FlutterApiErrorFields for IssuanceError {
         }
 
         match self {
-            IssuanceError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            IssuanceError::NotRegistered | IssuanceError::Locked | IssuanceError::SessionState => {
-                FlutterApiErrorType::WalletState
+            IssuanceError::CheckPreconditions(CheckPreconditionsError::VersionBlocked) => {
+                FlutterApiErrorType::VersionBlocked
             }
+            IssuanceError::CheckPreconditions(_) | IssuanceError::SessionState => FlutterApiErrorType::WalletState,
             IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(_))) => {
                 FlutterApiErrorType::RedirectUri
             }
@@ -274,13 +277,30 @@ impl FlutterApiErrorFields for IssuanceError {
             IssuanceError::AttestationPreview(_)
             | IssuanceError::Attestation { .. }
             | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
-            IssuanceError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
             IssuanceError::DeniedDigiD => FlutterApiErrorType::DeniedDigid,
             IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
                 FlutterApiErrorType::WrongDigid
             }
             IssuanceError::Instruction(error) => FlutterApiErrorType::from(error),
-            _ => FlutterApiErrorType::Generic,
+            IssuanceError::PidAlreadyPresent
+            | IssuanceError::NoPidPresent
+            | IssuanceError::IssuerMetadataDiscovery(_)
+            | IssuanceError::Signature(_)
+            | IssuanceError::MissingSignature
+            | IssuanceError::AttestationStorage(_)
+            | IssuanceError::AttestationQuery(_)
+            | IssuanceError::KeyNotFound(_)
+            | IssuanceError::Attestations(_)
+            | IssuanceError::Notifications(_)
+            | IssuanceError::Events(_)
+            | IssuanceError::ChangePin(_)
+            | IssuanceError::JwtCredential(_)
+            | IssuanceError::Certificate(_)
+            | IssuanceError::MissingPidSdJwt
+            | IssuanceError::RecoveryCodeDisclosure(_)
+            | IssuanceError::TransferDataStorage(_)
+            | IssuanceError::IssuanceSession(_)
+            | IssuanceError::RecoveryCode(_) => FlutterApiErrorType::Generic,
         }
     }
 
@@ -339,10 +359,10 @@ fn type_for_vp_message_client(error: &VpMessageClientError) -> Option<FlutterApi
 impl FlutterApiErrorFields for DisclosureError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
-            DisclosureError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            DisclosureError::NotRegistered | DisclosureError::Locked | DisclosureError::SessionState => {
-                FlutterApiErrorType::WalletState
+            DisclosureError::CheckPreconditions(CheckPreconditionsError::VersionBlocked) => {
+                FlutterApiErrorType::VersionBlocked
             }
+            DisclosureError::CheckPreconditions(_) | DisclosureError::SessionState => FlutterApiErrorType::WalletState,
             DisclosureError::VpClient(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
                 FlutterApiErrorType::DisclosureSourceMismatch
             }
@@ -358,7 +378,6 @@ impl FlutterApiErrorFields for DisclosureError {
                 detect_networking_error(error).unwrap_or(FlutterApiErrorType::Verifier)
             }
             DisclosureError::Instruction(error) => FlutterApiErrorType::from(error),
-            DisclosureError::UpdatePolicy(error) => FlutterApiErrorType::from(error),
             DisclosureError::NonSelectivelyDisclosableClaim(_, _)
             | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _)
             | DisclosureError::DisclosureUriQuery(_)
@@ -481,6 +500,7 @@ struct DisclosureBasedIssuanceErrorData {
 impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
+            Self::CheckPreconditions(error) => error.typ(),
             Self::Disclosure(error) => error.typ(),
             Self::Issuance(error) => error.typ(),
             Self::MissingRedirectUri(_) | Self::UnexpectedScheme(_, _) => FlutterApiErrorType::Issuer,
@@ -489,6 +509,7 @@ impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
 
     fn data(&self) -> serde_json::Value {
         match self {
+            Self::CheckPreconditions(error) => error.data(),
             Self::Disclosure(error) => error.data(),
             Self::Issuance(error) => error.data(),
             Self::MissingRedirectUri(organization) | Self::UnexpectedScheme(_, organization) => {
@@ -497,6 +518,37 @@ impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
                 })
                 .unwrap()
             }
+        }
+    }
+}
+
+impl FlutterApiErrorFields for CheckPreconditionsError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            CheckPreconditionsError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            CheckPreconditionsError::NotRegistered | CheckPreconditionsError::Locked => {
+                FlutterApiErrorType::WalletState
+            }
+            CheckPreconditionsError::UpdatePolicy(error) => error.into(),
+        }
+    }
+}
+
+impl FlutterApiErrorFields for CancelSessionError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            CancelSessionError::Preconditions(error) => error.typ(),
+            CancelSessionError::Issuance(error) => error.typ(),
+            CancelSessionError::Disclosure(error) => error.typ(),
+            CancelSessionError::SessionState => FlutterApiErrorType::WalletState,
+        }
+    }
+
+    fn data(&self) -> serde_json::Value {
+        match self {
+            CancelSessionError::Issuance(error) => error.data(),
+            CancelSessionError::Disclosure(error) => error.data(),
+            CancelSessionError::SessionState | CancelSessionError::Preconditions(_) => serde_json::Value::Null,
         }
     }
 }
@@ -735,7 +787,9 @@ mod tests {
     use wallet::AccountRevokedData;
     use wallet::RevocationReason;
     use wallet::attestation_data::AttributeValue;
+    use wallet::errors::CancelSessionError;
     use wallet::errors::ChangePinError;
+    use wallet::errors::CheckPreconditionsError;
     use wallet::errors::DeleteAttestationError;
     use wallet::errors::DisclosureError;
     use wallet::errors::InstructionError;
@@ -746,8 +800,12 @@ mod tests {
     use wallet::errors::TransferError;
     use wallet::errors::WalletUnlockError;
     use wallet::errors::openid4vc::AuthorizationErrorCode;
+    use wallet::errors::openid4vc::DisclosureErrorResponse;
     use wallet::errors::openid4vc::ErrorResponse;
     use wallet::errors::openid4vc::OAuthError;
+    use wallet::errors::openid4vc::PostAuthResponseErrorCode;
+    use wallet::errors::openid4vc::VpClientError;
+    use wallet::errors::openid4vc::VpMessageClientError;
     use wallet::errors::openid4vc::WalletIssuanceError;
 
     use super::FlutterApiError;
@@ -755,23 +813,27 @@ mod tests {
 
     // TODO: (PVW-4073) Add more error test cases.
     #[rstest]
-    #[case(
-        IssuanceError::VersionBlocked,
+    #[case::issuance_checkpreconditions_versionblocked(
+        IssuanceError::CheckPreconditions(CheckPreconditionsError::VersionBlocked),
         FlutterApiErrorType::VersionBlocked,
         serde_json::Value::Null
     )]
-    #[case(
-        IssuanceError::NotRegistered,
+    #[case::issuance_checkpreconditions_notregistered(
+        IssuanceError::CheckPreconditions(CheckPreconditionsError::NotRegistered),
         FlutterApiErrorType::WalletState,
         serde_json::Value::Null
     )]
-    #[case(IssuanceError::Locked, FlutterApiErrorType::WalletState, serde_json::Value::Null)]
-    #[case(
+    #[case::issuance_checkpreconditions_locked(
+        IssuanceError::CheckPreconditions(CheckPreconditionsError::Locked),
+        FlutterApiErrorType::WalletState,
+        serde_json::Value::Null
+    )]
+    #[case::issuance_sessionstate(
         IssuanceError::SessionState,
         FlutterApiErrorType::WalletState,
         serde_json::Value::Null
     )]
-    #[case(
+    #[case::issuance_oauth_session(
         IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(
             Box::new(ErrorResponse {
                 error: AuthorizationErrorCode::InvalidRequest,
@@ -782,8 +844,8 @@ mod tests {
         FlutterApiErrorType::RedirectUri,
         json!({"redirect_error": "invalid_request"})
     )]
-    #[case(
-    IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(
+    #[case::issuance_oauth_session_other(
+        IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(
             Box::new(ErrorResponse {
                 error: AuthorizationErrorCode::Other("some_error".to_string()),
                 error_description: None,
@@ -793,12 +855,12 @@ mod tests {
         FlutterApiErrorType::RedirectUri,
         json!({"redirect_error": "some_error"})
     )]
-    #[case(
+    #[case::issuance_missingsignature(
         IssuanceError::MissingSignature,
         FlutterApiErrorType::Generic,
         serde_json::Value::Null
     )]
-    #[case(
+    #[case::issuance::recoverycode(
         IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode {
             expected: AttributeValue::Text("a".to_string()),
             received: AttributeValue::Text("b".to_string())
@@ -806,104 +868,179 @@ mod tests {
         FlutterApiErrorType::WrongDigid,
         serde_json::Value::Null
     )]
-    #[case(
+    #[case::issuance_instruction(
         IssuanceError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
             revocation_reason: RevocationReason::UserRequest,
             can_register_new_account: true
         })),
         FlutterApiErrorType::Revoked,
-        json!({"revocation_data": {
-            "revocation_reason": "user_request",
-            "can_register_new_account": true
-        }})
+        json!({
+            "revocation_data": {
+                "revocation_reason": "user_request",
+                "can_register_new_account": true
+            }
+        })
     )]
-    #[case(
+    #[case::unlock_instruction(
         WalletUnlockError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
             revocation_reason: RevocationReason::UserRequest,
             can_register_new_account: true
         })),
         FlutterApiErrorType::Revoked,
-        json!({"revocation_data": {
-            "revocation_reason": "user_request",
-            "can_register_new_account": true
-        }})
+        json!({
+            "revocation_data": {
+                "revocation_reason": "user_request",
+                "can_register_new_account": true
+            }
+        })
     )]
-    #[case(
+    #[case::disclosure_instruction(
         DisclosureError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
             revocation_reason: RevocationReason::UserRequest,
             can_register_new_account: true
         })),
         FlutterApiErrorType::Revoked,
-        json!({"revocation_data": {
-            "revocation_reason": "user_request",
-            "can_register_new_account": true
-        }})
+        json!({
+            "revocation_data": {
+                "revocation_reason": "user_request",
+                "can_register_new_account": true
+            }
+        })
     )]
-    #[case(
+    #[case::disclosure_returnurl(
+        DisclosureError::VpClient(VpClientError::Request(VpMessageClientError::AuthPostResponse(
+            Box::new(
+                DisclosureErrorResponse {
+                    error_response: ErrorResponse {
+                        error: PostAuthResponseErrorCode::CancelledSession,
+                        error_description: None,
+                        error_uri: None
+                    },
+                    redirect_uri: Some("http://example.com/redirect_uri".parse().unwrap())
+                }
+            )
+        ))),
+        FlutterApiErrorType::CancelledSession,
+        json!({ "return_url": "http://example.com/redirect_uri" })
+    )]
+    #[case::cancel_versionblocked(
+        CancelSessionError::Preconditions(CheckPreconditionsError::VersionBlocked),
+        FlutterApiErrorType::VersionBlocked,
+        serde_json::Value::Null
+    )]
+    #[case::cancel_disclosure(
+        CancelSessionError::Disclosure(
+            DisclosureError::VpClient(VpClientError::Request(VpMessageClientError::AuthPostResponse(
+                Box::new(
+                    DisclosureErrorResponse {
+                        error_response: ErrorResponse {
+                            error: PostAuthResponseErrorCode::CancelledSession,
+                            error_description: None,
+                            error_uri: None
+                        },
+                        redirect_uri: Some("http://example.com/redirect_uri".parse().unwrap())
+                    }
+                )
+            )))
+        ),
+        FlutterApiErrorType::CancelledSession,
+        json!({ "return_url": "http://example.com/redirect_uri" })
+    )]
+    #[case::cancel_issuance(
+        CancelSessionError::Issuance(
+            IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(
+                Box::new(ErrorResponse {
+                    error: AuthorizationErrorCode::Other("some_error".to_string()),
+                    error_description: None,
+                    error_uri: None,
+                })
+            )))
+        ),
+        FlutterApiErrorType::RedirectUri,
+        json!({ "redirect_error": "some_error" })
+    )]
+    #[case::cancel_state(
+        CancelSessionError::SessionState,
+        FlutterApiErrorType::WalletState,
+        serde_json::Value::Null
+    )]
+    #[case::changepin_instruction(
         ChangePinError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
             revocation_reason: RevocationReason::UserRequest,
             can_register_new_account: true
         })),
         FlutterApiErrorType::Revoked,
-        json!({"revocation_data": {
-            "revocation_reason": "user_request",
-            "can_register_new_account": true
-        }})
+        json!({
+            "revocation_data": {
+                "revocation_reason": "user_request",
+                "can_register_new_account": true
+            }
+        })
     )]
-    #[case(
+    #[case::pinrecovery_discloserecoverycode(
         PinRecoveryError::DiscloseRecoveryCode(InstructionError::AccountRevoked(AccountRevokedData {
             revocation_reason: RevocationReason::UserRequest,
             can_register_new_account: true
         })),
         FlutterApiErrorType::Revoked,
-        json!({"revocation_data": {
-            "revocation_reason": "user_request",
-            "can_register_new_account": true
-        }})
+        json!({
+            "revocation_data": {
+                "revocation_reason": "user_request",
+                "can_register_new_account": true
+            }
+        })
     )]
-    #[case(
+    #[case::pinrecovery_issuance(
         PinRecoveryError::Issuance(IssuanceError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
             revocation_reason: RevocationReason::UserRequest,
             can_register_new_account: true
         }))),
         FlutterApiErrorType::Revoked,
-        json!({"revocation_data": {
-            "revocation_reason": "user_request",
-            "can_register_new_account": true
-        }})
+        json!({
+            "revocation_data": {
+                "revocation_reason": "user_request",
+                "can_register_new_account": true
+            }
+        })
     )]
-    #[case(
+    #[case::transfer_instruction(
         TransferError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
             revocation_reason: RevocationReason::UserRequest,
             can_register_new_account: true
         })),
         FlutterApiErrorType::Revoked,
-        json!({"revocation_data": {
-            "revocation_reason": "user_request",
-            "can_register_new_account": true
-        }})
+        json!({
+            "revocation_data": {
+                "revocation_reason": "user_request",
+                "can_register_new_account": true
+            }
+        })
     )]
-    #[case(
+    #[case::revocation_unlock(
         RevocationCodeError::Unlock(WalletUnlockError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
             revocation_reason: RevocationReason::UserRequest,
             can_register_new_account: true
         }))),
         FlutterApiErrorType::Revoked,
-        json!({"revocation_data": {
-            "revocation_reason": "user_request",
-            "can_register_new_account": true
-        }})
+        json!({
+            "revocation_data": {
+                "revocation_reason": "user_request",
+                "can_register_new_account": true
+            }
+        })
     )]
-    #[case(
+    #[case::deleteattestation_instruction(
         DeleteAttestationError::Instruction(InstructionError::AccountRevoked(AccountRevokedData {
             revocation_reason: RevocationReason::UserRequest,
             can_register_new_account: true
         })),
         FlutterApiErrorType::Revoked,
-        json!({"revocation_data": {
-            "revocation_reason": "user_request",
-            "can_register_new_account": true
-        }})
+        json!({
+            "revocation_data": {
+                "revocation_reason": "user_request",
+                "can_register_new_account": true
+            }
+        })
     )]
     fn test_errors<E>(
         #[case] source_error: E,

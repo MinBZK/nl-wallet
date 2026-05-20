@@ -14,7 +14,7 @@ enum class OnboardingNavigatorScreen {
     DigidLoginMockWebPage,
     PersonalizePidPreview,
     PersonalizeConfirmIssuance,
-    PersonalizeSuccess,
     PersonalizeTransferWallet,
+    PersonalizeSuccess,
     Dashboard,
 }

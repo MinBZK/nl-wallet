@@ -22,7 +22,7 @@ use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
-use token_status_list::status_list_service::mock::MockStatusListServices;
+use token_status_list::status_list_service::mock::MockStatusListService;
 use token_status_list::status_list_service::mock::generate_status_claims;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
@@ -30,6 +30,7 @@ use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
 use crate::Format;
+use crate::authorization::VciAuthorizationRequest;
 use crate::credential_configurations::CredentialConfigurationParameters;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::AttributeService;
@@ -41,20 +42,19 @@ use crate::issuer::WiaConfig;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::nonce::memory_store::MemoryNonceStore;
-use crate::par::ParStore;
-use crate::pkce::store::PkceFlowStore;
 use crate::server_state::MemorySessionStore;
+use crate::store::Store;
 use crate::token::TokenRequest;
 
 pub const MOCK_ATTESTATION_TYPES: [&str; 2] = ["com.example.pid", "com.example.address"];
 pub const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
 pub type MockIssuer<G = TimeGenerator, PAS = (), PKS = (), UAA = ()> = Issuer<
-    SigningKey,
     MockAttrService,
+    SigningKey,
+    MockStatusListService,
     MemorySessionStore<IssuanceData, G>,
     MemoryNonceStore,
-    MockStatusListServices,
     PAS,
     PKS,
     UAA,
@@ -130,8 +130,8 @@ pub fn setup_mock_issuer<G, PAS, PKS, UAA>(
 ) -> (MockIssuer<G, PAS, PKS, UAA>, BorrowingTrustAnchor, KeyPair)
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
-    PAS: ParStore + Send + Sync + 'static,
-    PKS: PkceFlowStore + Send + Sync + 'static,
+    PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
+    PKS: Store<String, String> + Send + Sync + 'static,
     UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
 {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -143,6 +143,17 @@ where
         .iter()
         .copied()
         .map(|attestation_type| {
+            let mut status_list = MockStatusListService::new();
+            status_list.expect_obtain_status_claims().returning(|_, _, copies| {
+                let uri = format!("https://tsl.example.com/{}", attestation_type.replace(':', "-"))
+                    .parse()
+                    .unwrap();
+                Ok(generate_status_claims(&uri, copies))
+            });
+            status_list
+                .expect_start_refresh_job()
+                .return_once(|| tokio::task::spawn(async {}).abort_handle());
+
             let (_, _, metadata_documents) =
                 TypeMetadataDocuments::from_single_example(mock_type_metadata(attestation_type));
 
@@ -155,7 +166,7 @@ where
                 )
                 .unwrap(),
                 valid_days: Days::new(365),
-                status_list_group: attestation_type.to_string(),
+                status_list,
                 issuer_uri: issuance_keypair
                     .certificate()
                     .san_dns_name_or_uris()
@@ -169,16 +180,6 @@ where
         })
         .collect();
 
-    let mut status_list_service = MockStatusListServices::default();
-    status_list_service
-        .expect_obtain_status_claims()
-        .returning(|attestation_type, _, _, copies| {
-            let uri = format!("https://tsl.example.com/{}", attestation_type.replace(':', "-"))
-                .parse()
-                .unwrap();
-            Ok(generate_status_claims(&uri, copies))
-        });
-
     let issuer = MockIssuer::try_new(
         issuer_identifier,
         NonZeroU8::new(4).unwrap(),
@@ -190,7 +191,6 @@ where
         attr_service,
         sessions,
         MemoryNonceStore::new(),
-        Arc::new(status_list_service),
         par_store,
         pkce_flow_store,
         upstream_authorization_adapter,
