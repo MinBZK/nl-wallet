@@ -31,6 +31,8 @@ use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use issuance_server::settings::IssuanceServerSettings;
+use issuer_common::par_store::IssuerParStore;
+use issuer_common::pkce_store::IssuerPkceStore;
 use jwt::SignedJwt;
 use openid4vc::authorization::OidcAuthorizationRequest;
 use openid4vc::authorization::VciAuthorizationRequest;
@@ -770,7 +772,7 @@ pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Op
 
     let (issuer, _, store_connection, server_settings) = settings
         .issuer_settings
-        .into_issuer(hsm.clone(), None, (), None)
+        .into_issuer(hsm.clone(), None, (), |_| (), |_| (), None)
         .await
         .unwrap();
 
@@ -880,6 +882,8 @@ where
             hsm,
             Some(wia_config),
             attr_service,
+            IssuerParStore::new,
+            IssuerPkceStore::new,
             Some(upstream_authorization_adapter),
         )
         .await

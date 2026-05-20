@@ -80,11 +80,8 @@ use crate::nonce::store::NonceStore;
 use crate::nonce::store::NonceStoreError;
 use crate::par;
 use crate::par::PAR_TTL;
-use crate::par::ParStore;
 use crate::pkce::PkcePair;
 use crate::pkce::S256PkcePair;
-use crate::pkce::store::PKCE_FLOW_TTL;
-use crate::pkce::store::PkceFlowStore;
 use crate::preview::CredentialPreviewRequest;
 use crate::preview::CredentialPreviewResponse;
 use crate::recurring_task::start_recurring_task;
@@ -96,6 +93,7 @@ use crate::server_state::SessionState;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
 use crate::server_state::SessionToken;
+use crate::store::Store;
 use crate::token::AccessToken;
 use crate::token::AuthorizationCode;
 use crate::token::CredentialPreview;
@@ -710,7 +708,7 @@ where
 
 impl<A, K, L, S, N, PAS, PKS, UAA> Issuer<A, K, L, S, N, PAS, PKS, UAA>
 where
-    PAS: ParStore,
+    PAS: Store<String, VciAuthorizationRequest>,
 {
     pub async fn process_pushed_authorization_request(
         &self,
@@ -725,10 +723,9 @@ where
         }
 
         let request_uri = par::generate_request_uri();
-        let expires_at = Utc::now() + PAR_TTL;
 
         self.par_store
-            .store(request_uri.clone(), request, expires_at)
+            .store(request_uri.clone(), request)
             .await
             .map_err(|error| ParError::Store(Box::new(error)))?;
 
@@ -741,8 +738,8 @@ where
 
 impl<A, K, L, S, N, PAS, PKS, UAA> Issuer<A, K, L, S, N, PAS, PKS, UAA>
 where
-    PAS: ParStore,
-    PKS: PkceFlowStore,
+    PAS: Store<String, VciAuthorizationRequest>,
+    PKS: Store<String, String>,
     UAA: UpstreamAuthorizationAdapter,
 {
     /// Consume the PAR, swap the wallet's PKCE challenge for an upstream one (storing the upstream
@@ -786,11 +783,7 @@ where
             };
 
             self.pkce_flow_store
-                .store(
-                    wallet_code_challenge,
-                    upstream_pkce.into_code_verifier(),
-                    Utc::now() + PKCE_FLOW_TTL,
-                )
+                .store(wallet_code_challenge, upstream_pkce.into_code_verifier())
                 .await
                 .map_err(|error| AuthorizeError::PkceStore(Box::new(error)))?;
         }
@@ -894,7 +887,7 @@ where
     K: EcdsaKey,
     A: AttributeService,
     S: SessionStore<IssuanceData>,
-    PKS: PkceFlowStore,
+    PKS: Store<String, String>,
 {
     /// Process a token request, performing the wallet ↔ upstream PKCE bridge consumption when the
     /// grant type is `authorization_code`. Pre-authorized-code grants bypass PKCE entirely.

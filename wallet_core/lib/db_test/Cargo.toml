@@ -27,5 +27,6 @@ xxhash-rust = { workspace = true, features = ["xxh3"] }
 
 audit_log_migrations.path = "../../wallet_provider/audit_log/migrations"
 issuer_common_migrations.path = "../../wallet_server/issuer_common/migrations"
+pid_issuer_migrations.path = "../../wallet_server/pid_issuer/migrations"
 server_utils_migrations.path = "../../wallet_server/server_utils/migrations"
 wallet_provider_migrations.path = "../../wallet_provider/migrations"

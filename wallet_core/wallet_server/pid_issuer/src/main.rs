@@ -3,6 +3,8 @@ use std::sync::Arc;
 use anyhow::Result;
 use health_checkers::hsm::HsmChecker;
 use hsm::service::Pkcs11Hsm;
+use issuer_common::par_store::IssuerParStore;
+use issuer_common::pkce_store::IssuerPkceStore;
 use openid4vc::issuer::WiaConfig;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
@@ -52,6 +54,8 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
             hsm,
             Some(wia_config),
             pid_attr_service,
+            IssuerParStore::new,
+            IssuerPkceStore::new,
             Some(upstream_authorization_adapter),
         )
         .await?;

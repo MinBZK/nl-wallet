@@ -24,10 +24,11 @@ use openid4vc::issuer::UpstreamAuthorizationAdapter;
 use openid4vc::issuer::UpstreamResolveError;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
-use openid4vc::par::MemoryParStore;
-use openid4vc::pkce::store::MemoryPkceFlowStore;
+use openid4vc::par::PAR_TTL;
+use openid4vc::pkce::PKCE_FLOW_TTL;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionToken;
+use openid4vc::store::MemoryStore;
 use openid4vc::test::MOCK_ATTESTATION_TYPES;
 use openid4vc::test::MockAttrService;
 use openid4vc::test::MockIssuer;
@@ -108,7 +109,14 @@ async fn start_server(
     attestation_count: NonZeroUsize,
     upstream_authorization_endpoint: Option<Url>,
 ) -> (
-    Arc<MockIssuer<TimeGenerator, MemoryParStore, MemoryPkceFlowStore, StaticAuthorizationAdapter>>,
+    Arc<
+        MockIssuer<
+            TimeGenerator,
+            MemoryStore<String, VciAuthorizationRequest>,
+            MemoryStore<String, String>,
+            StaticAuthorizationAdapter,
+        >,
+    >,
     BorrowingTrustAnchor,
     IssuerIdentifier,
     SigningKey,
@@ -121,8 +129,8 @@ async fn start_server(
     let issuer_identifier: IssuerIdentifier = format!("https://localhost:{port}").parse().unwrap();
 
     let sessions = Arc::new(MemorySessionStore::default());
-    let par_store = Arc::new(MemoryParStore::default());
-    let pkce_store = Arc::new(MemoryPkceFlowStore::default());
+    let par_store = Arc::new(MemoryStore::new(PAR_TTL));
+    let pkce_store = Arc::new(MemoryStore::new(PKCE_FLOW_TTL));
 
     let adapter = upstream_authorization_endpoint.map(StaticAuthorizationAdapter::new);
     let (issuer, trust_anchor, wia_issuer_privkey) = setup_mock_issuer(

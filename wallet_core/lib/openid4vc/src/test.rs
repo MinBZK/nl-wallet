@@ -31,6 +31,7 @@ use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
 use crate::Format;
+use crate::authorization::VciAuthorizationRequest;
 use crate::credential_configurations::CredentialConfigurationParameters;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::AttributeService;
@@ -42,9 +43,8 @@ use crate::issuer::WiaConfig;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::nonce::memory_store::MemoryNonceStore;
-use crate::par::ParStore;
-use crate::pkce::store::PkceFlowStore;
 use crate::server_state::MemorySessionStore;
+use crate::store::Store;
 use crate::token::TokenRequest;
 
 pub const MOCK_ATTESTATION_TYPES: [&str; 2] = ["com.example.pid", "com.example.address"];
@@ -131,8 +131,8 @@ pub fn setup_mock_issuer<G, PAS, PKS, UAA>(
 ) -> (MockIssuer<G, PAS, PKS, UAA>, BorrowingTrustAnchor, SigningKey)
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
-    PAS: ParStore + Send + Sync + 'static,
-    PKS: PkceFlowStore + Send + Sync + 'static,
+    PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
+    PKS: Store<String, String> + Send + Sync + 'static,
     UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
 {
     let ca = Ca::generate_issuer_mock_ca().unwrap();

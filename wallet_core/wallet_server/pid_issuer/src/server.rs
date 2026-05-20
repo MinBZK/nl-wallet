@@ -4,13 +4,13 @@ use anyhow::Result;
 use http_utils::health::HealthChecker;
 use http_utils::health::create_health_router;
 use issuer_common::nonce_store::ProofNonceStore;
+use issuer_common::par_store::IssuerParStore;
+use issuer_common::pkce_store::IssuerPkceStore;
 use itertools::Itertools;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::UpstreamAuthorizationAdapter;
-use openid4vc::par::MemoryParStore;
-use openid4vc::pkce::store::MemoryPkceFlowStore;
 use openid4vc_server::issuer::create_issuance_router;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::server::add_cache_control_no_store_layer;
@@ -33,8 +33,8 @@ pub type PidIssuer<A, UAA> = Issuer<
     PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
     SessionStoreVariant<IssuanceData>,
     ProofNonceStore,
-    MemoryParStore,
-    MemoryPkceFlowStore,
+    IssuerParStore,
+    IssuerPkceStore,
     UAA,
 >;
 

@@ -1942,6 +1942,7 @@ dependencies = [
  "audit_log_migrations",
  "bollard",
  "issuer_common_migrations",
+ "pid_issuer_migrations",
  "rand 0.8.5",
  "sea-orm",
  "sea-orm-migration",
@@ -5697,6 +5698,7 @@ dependencies = [
 name = "pid_issuer_migrations"
 version = "0.6.0-dev"
 dependencies = [
+ "async-trait",
  "issuer_common_migrations",
  "sea-orm-migration",
  "tokio",

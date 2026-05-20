@@ -406,11 +406,14 @@ impl IssuerSettings {
         Ok(())
     }
 
+    #[expect(clippy::too_many_arguments)]
     pub async fn into_issuer<A, PAS, PKS, UAA>(
         self,
         hsm: Option<Pkcs11Hsm>,
         wia_config: Option<WiaConfig>,
         attr_service: A,
+        par_store: impl FnOnce(StoreConnection) -> PAS,
+        pkce_flow_store: impl FnOnce(StoreConnection) -> PKS,
         upstream_authorization_adapter: Option<UAA>,
     ) -> Result<
         (
@@ -429,11 +432,7 @@ impl IssuerSettings {
             Settings,
         ),
         IssuerSettingsError,
-    >
-    where
-        PAS: Default,
-        PKS: Default,
-    {
+    > {
         let mut database_checkers = Vec::with_capacity(1);
 
         let store_connection = StoreConnection::try_new(self.server_settings.storage.url.clone())
@@ -480,8 +479,8 @@ impl IssuerSettings {
             .await
             .map_err(IssuerSettingsError::CredentialConfigurationParameters)?;
 
-        let par_store = PAS::default();
-        let pkce_flow_store = PKS::default();
+        let par_store = par_store(store_connection.clone());
+        let pkce_flow_store = pkce_flow_store(store_connection.clone());
 
         let issuer = Issuer::try_new(
             self.public_url,

@@ -51,11 +51,10 @@ use openid4vc::metadata::issuer_metadata::IssuerMetadata;
 use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
 use openid4vc::nonce::response::NonceResponse;
 use openid4vc::nonce::store::NonceStore;
-use openid4vc::par::ParStore;
-use openid4vc::pkce::store::PkceFlowStore;
 use openid4vc::preview::CredentialPreviewRequest;
 use openid4vc::preview::CredentialPreviewResponse;
 use openid4vc::server_state::SessionStore;
+use openid4vc::store::Store;
 use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponse;
@@ -83,8 +82,8 @@ where
     L: StatusListService + Send + Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
     N: NonceStore + Send + Sync + 'static,
-    PAS: ParStore + Send + Sync + 'static,
-    PKS: PkceFlowStore + Send + Sync + 'static,
+    PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
+    PKS: Store<String, String> + Send + Sync + 'static,
     UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
 {
     let application_state = ApplicationState { issuer };
@@ -132,7 +131,7 @@ async fn pushed_authorization_request<A, K, L, S, N, PAS, PKS, UAA>(
     Form(authorization_request): Form<VciAuthorizationRequest>,
 ) -> Result<(StatusCode, Json<PushedAuthorizationResponse>), ErrorResponse<ParErrorCode>>
 where
-    PAS: ParStore,
+    PAS: Store<String, VciAuthorizationRequest>,
 {
     let response = state
         .issuer
@@ -148,8 +147,8 @@ async fn authorize<A, K, L, S, N, PAS, PKS, UAA>(
     Query(PushedAuthorizationRequest { request_uri, client_id }): Query<PushedAuthorizationRequest>,
 ) -> Result<Response, ErrorResponse<AuthorizeErrorCode>>
 where
-    PAS: ParStore,
-    PKS: PkceFlowStore,
+    PAS: Store<String, VciAuthorizationRequest>,
+    PKS: Store<String, String>,
     UAA: UpstreamAuthorizationAdapter,
 {
     let redirect_url = state
@@ -170,7 +169,7 @@ where
     A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    PKS: PkceFlowStore,
+    PKS: Store<String, String>,
 {
     let (response, dpop_nonce) = state
         .issuer
