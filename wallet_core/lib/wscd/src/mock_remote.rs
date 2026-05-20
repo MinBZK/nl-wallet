@@ -190,11 +190,11 @@ impl IssuanceWscd for MockRemoteWscd {
             &WiaClaims::new(
                 wia_key.verifying_key(),
                 MOCK_WALLET_CLIENT_ID.to_string(),
-                exp,
+                exp.into(),
                 WiaWalletInfo::new_mock(),
                 ClientStatus {
                     status: StatusClaim::new_mock(),
-                    exp,
+                    exp: exp.into(),
                 },
             )
             .unwrap(),

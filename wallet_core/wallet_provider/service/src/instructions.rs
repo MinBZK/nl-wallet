@@ -534,7 +534,7 @@ where
 
     let (wia_wrapped_key, wia) = user_state
         .wia_issuer
-        .issue_wia(exp, status_claim)
+        .issue_wia(exp.into(), status_claim)
         .await
         .map_err(|e| InstructionError::WiaIssuance(Box::new(e)))?;
 

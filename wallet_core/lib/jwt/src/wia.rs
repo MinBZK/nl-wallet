@@ -1,9 +1,7 @@
 use std::sync::LazyLock;
 
 use attestation_types::status_claim::StatusClaim;
-use chrono::DateTime;
 use chrono::Utc;
-use chrono::serde::ts_seconds;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
 use derive_more::Constructor;
@@ -13,6 +11,7 @@ use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
+use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::TimeGenerator;
 
 use crate::DEFAULT_VALIDATIONS;
@@ -32,12 +31,9 @@ pub struct WiaClaims {
 
     // Standard JWT fields, without `iss`; that is derived from the `x5c` certs
     pub sub: String,
-    #[serde(with = "ts_seconds")]
-    pub exp: DateTime<Utc>,
-    #[serde(with = "ts_seconds")]
-    pub iat: DateTime<Utc>,
-    #[serde(with = "ts_seconds")]
-    pub nbf: DateTime<Utc>,
+    pub exp: DateTimeSeconds,
+    pub iat: Option<DateTimeSeconds>,
+    pub nbf: Option<DateTimeSeconds>,
 
     #[serde(flatten)]
     pub wallet_info: WiaWalletInfo,
@@ -64,24 +60,25 @@ pub struct ClientStatus {
 
     // The duration for which the WP will track revocation status in the `status` URL.
     // (Distinct in terms of semantics as well as value from the top level WIA `exp` claim, which is max 24h.)
-    #[serde(with = "ts_seconds")]
-    pub exp: DateTime<Utc>,
+    pub exp: DateTimeSeconds,
 }
 
 impl WiaClaims {
     pub fn new(
         holder_pubkey: &VerifyingKey,
         sub: String,
-        exp: DateTime<Utc>,
+        exp: DateTimeSeconds,
         wallet_info: WiaWalletInfo,
         client_status: ClientStatus,
     ) -> Result<Self, JwtError> {
+        let now = Utc::now().into();
+
         Ok(Self {
             cnf: ConfirmationClaim::from_verifying_key(holder_pubkey)?,
             sub,
             exp,
-            iat: Utc::now(),
-            nbf: Utc::now(),
+            iat: Some(now),
+            nbf: Some(now),
             wallet_info,
             client_status,
         })
@@ -209,11 +206,11 @@ mod tests {
         let wia_claims = WiaClaims::new(
             holder_pubkey,
             WALLET_CLIENT_ID.to_string(),
-            Utc::now() + Duration::hours(1),
+            (Utc::now() + Duration::hours(1)).into(),
             WiaWalletInfo::new_mock(),
             ClientStatus {
                 status: StatusClaim::new_mock(),
-                exp: Utc::now() + Duration::days(365),
+                exp: (Utc::now() + Duration::days(365)).into(),
             },
         )
         .unwrap();

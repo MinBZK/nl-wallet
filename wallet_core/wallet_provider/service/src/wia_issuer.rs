@@ -1,7 +1,6 @@
 use std::error::Error;
 
 use attestation_types::status_claim::StatusClaim;
-use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
 use crypto::keys::SecureEcdsaKey;
@@ -19,6 +18,7 @@ use jwt::wia::ClientStatus;
 use jwt::wia::WiaClaims;
 use jwt::wia::WiaWalletInfo;
 use p256::ecdsa::VerifyingKey;
+use utils::date_time_seconds::DateTimeSeconds;
 
 // used as the identifier for a WIA specific token status list
 pub const WIA_ATTESTATION_TYPE_IDENTIFIER: &str = "wia";
@@ -31,7 +31,7 @@ pub trait WiaIssuer {
 
     async fn issue_wia(
         &self,
-        exp: DateTime<Utc>,
+        exp: DateTimeSeconds,
         status_claim: StatusClaim,
     ) -> Result<(WrappedKey, UnverifiedJwt<WiaClaims, HeaderWithX5c>), Self::Error>;
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
@@ -65,13 +65,13 @@ where
 
     async fn issue_wia(
         &self,
-        wallet_exp: DateTime<Utc>,
+        wallet_exp: DateTimeSeconds,
         status_claim: StatusClaim,
     ) -> Result<(WrappedKey, UnverifiedJwt<WiaClaims, HeaderWithX5c>), Self::Error> {
         let wrapped_privkey = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
         let pubkey = *wrapped_privkey.public_key();
 
-        let wia_exp = Utc::now() + WIA_VALIDITY;
+        let wia_exp = (Utc::now() + WIA_VALIDITY).into();
 
         let jwt = SignedJwt::sign_with_certificate(
             &WiaClaims::new(
@@ -102,8 +102,6 @@ pub mod mock {
     use std::convert::Infallible;
 
     use attestation_types::status_claim::StatusClaim;
-    use chrono::DateTime;
-    use chrono::Utc;
     use crypto::server_keys::generate::Ca;
     use hsm::model::wrapped_key::WrappedKey;
     use jwt::SignedJwt;
@@ -114,6 +112,7 @@ pub mod mock {
     use jwt::wia::WiaWalletInfo;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+    use utils::date_time_seconds::DateTimeSeconds;
 
     use super::WiaIssuer;
 
@@ -124,7 +123,7 @@ pub mod mock {
 
         async fn issue_wia(
             &self,
-            exp: DateTime<Utc>,
+            exp: DateTimeSeconds,
             status_claim: StatusClaim,
         ) -> Result<(WrappedKey, UnverifiedJwt<WiaClaims, HeaderWithX5c>), Self::Error> {
             let privkey = SigningKey::random(&mut OsRng);
@@ -196,7 +195,7 @@ mod tests {
         };
 
         let (wia_privkey, wia) = wia_issuer
-            .issue_wia(Utc::now() + Duration::from_secs(600), StatusClaim::new_mock())
+            .issue_wia((Utc::now() + Duration::from_secs(600)).into(), StatusClaim::new_mock())
             .await
             .unwrap();
 
@@ -213,6 +212,6 @@ mod tests {
 
         // Check that the fields have the expected contents
         assert_eq!(wia_claims.sub, sub.to_string());
-        assert!(wia_claims.exp > Utc::now());
+        assert!(*wia_claims.exp.as_ref() > Utc::now());
     }
 }
