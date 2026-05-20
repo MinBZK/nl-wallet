@@ -150,6 +150,8 @@ where
     async fn cleanup(&self) -> Result<(), Self::Error> {
         match &self.backend {
             ParStoreBackend::Postgres(connection) => {
+                // TODO (PVW-5911): limit the number of deleted rows by selecting ids (using FOR UPDATE SKIP LOCKED)
+                // and then delete
                 let result = PushedAuthorizationRequest::delete_many()
                     .filter(pushed_authorization_request::Column::ExpiresAt.lt(self.now()))
                     .exec(connection)

@@ -143,6 +143,8 @@ where
     async fn cleanup(&self) -> Result<(), Self::Error> {
         match &self.backend {
             PkceStoreBackend::Postgres(connection) => {
+                // TODO (PVW-5911): limit the number of deleted rows by selecting ids (using FOR UPDATE SKIP LOCKED)
+                // and then delete
                 let result = PkceFlow::delete_many()
                     .filter(pkce_flow::Column::ExpiresAt.lt(self.now()))
                     .exec(connection)
