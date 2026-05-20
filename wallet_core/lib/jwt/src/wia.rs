@@ -152,7 +152,9 @@ pub static WIA_JWT_VALIDATIONS: LazyLock<Validation> = LazyLock::new(|| {
     let mut validations = DEFAULT_VALIDATIONS.to_owned();
     validations.leeway = 0;
 
-    // Enforce validity of exp and nbf. (Presence is already enforced by the presence of the fields.)
+    // Enforce validity of exp and nbf, and presence of exp.
+    // (nbf is optional, but if it is present, it needs to be valid.)
+    validations.set_required_spec_claims(&["exp"]);
     validations.validate_exp = true;
     validations.validate_nbf = true;
 
