@@ -2155,7 +2155,7 @@ impl SseDecode for crate::models::image::Image {
         let mut tag_ = <i32>::sse_decode(deserializer);
         match tag_ {
             0 => {
-                let mut var_xml = <String>::sse_decode(deserializer);
+                let mut var_xml = <crate::models::image::SanitizedSvg>::sse_decode(deserializer);
                 return crate::models::image::Image::Svg { xml: var_xml };
             }
             1 => {
@@ -2695,6 +2695,14 @@ impl SseDecode for crate::models::revocation::RevocationStatus {
             3 => crate::models::revocation::RevocationStatus::Corrupted,
             _ => unreachable!("Invalid variant for RevocationStatus: {}", inner),
         };
+    }
+}
+
+impl SseDecode for crate::models::image::SanitizedSvg {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_field0 = <String>::sse_decode(deserializer);
+        return crate::models::image::SanitizedSvg(var_field0);
     }
 }
 
@@ -3727,6 +3735,18 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::revocation::RevocationStat
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::image::SanitizedSvg {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [self.0.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::image::SanitizedSvg {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::image::SanitizedSvg> for crate::models::image::SanitizedSvg {
+    fn into_into_dart(self) -> crate::models::image::SanitizedSvg {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosureResult {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -4446,7 +4466,7 @@ impl SseEncode for crate::models::image::Image {
         match self {
             crate::models::image::Image::Svg { xml } => {
                 <i32>::sse_encode(0, serializer);
-                <String>::sse_encode(xml, serializer);
+                <crate::models::image::SanitizedSvg>::sse_encode(xml, serializer);
             }
             crate::models::image::Image::Png { data } => {
                 <i32>::sse_encode(1, serializer);
@@ -4899,6 +4919,13 @@ impl SseEncode for crate::models::revocation::RevocationStatus {
             },
             serializer,
         );
+    }
+}
+
+impl SseEncode for crate::models::image::SanitizedSvg {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.0, serializer);
     }
 }
 
@@ -5480,6 +5507,13 @@ mod io {
             CstDecode::<crate::models::revocation::RevocationStatus>::cst_decode(*wrap).into()
         }
     }
+    impl CstDecode<crate::models::image::SanitizedSvg> for *mut wire_cst_sanitized_svg {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::image::SanitizedSvg {
+            let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
+            CstDecode::<crate::models::image::SanitizedSvg>::cst_decode(*wrap).into()
+        }
+    }
     impl CstDecode<u64> for *mut u64 {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> u64 {
@@ -5957,6 +5991,12 @@ mod io {
                 }
                 _ => unreachable!(),
             }
+        }
+    }
+    impl CstDecode<crate::models::image::SanitizedSvg> for wire_cst_sanitized_svg {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::image::SanitizedSvg {
+            crate::models::image::SanitizedSvg(self.field0.cst_decode())
         }
     }
     impl CstDecode<crate::models::disclosure::StartDisclosureResult> for wire_cst_start_disclosure_result {
@@ -6498,6 +6538,18 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
+    impl NewWithNullPtr for wire_cst_sanitized_svg {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                field0: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_sanitized_svg {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
     impl NewWithNullPtr for wire_cst_start_disclosure_result {
         fn new_with_null_ptr() -> Self {
             Self {
@@ -7020,6 +7072,11 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_sanitized_svg() -> *mut wire_cst_sanitized_svg {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_sanitized_svg::new_with_null_ptr())
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_u_64(value: u64) -> *mut u64 {
         flutter_rust_bridge::for_generated::new_leak_box_ptr(value)
     }
@@ -7470,7 +7527,7 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_Image_Svg {
-        xml: *mut wire_cst_list_prim_u_8_strict,
+        xml: *mut wire_cst_sanitized_svg,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -7729,6 +7786,11 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_RevocationCodeResult_InstructionError {
         error: *mut wire_cst_wallet_instruction_error,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_sanitized_svg {
+        field0: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

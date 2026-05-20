@@ -116,6 +116,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   RevocationStatus dco_decode_box_autoadd_revocation_status(dynamic raw);
 
   @protected
+  SanitizedSvg dco_decode_box_autoadd_sanitized_svg(dynamic raw);
+
+  @protected
   BigInt dco_decode_box_autoadd_u_64(dynamic raw);
 
   @protected
@@ -287,6 +290,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   RevocationStatus dco_decode_revocation_status(dynamic raw);
 
   @protected
+  SanitizedSvg dco_decode_sanitized_svg(dynamic raw);
+
+  @protected
   StartDisclosureResult dco_decode_start_disclosure_result(dynamic raw);
 
   @protected
@@ -401,6 +407,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   RevocationStatus sse_decode_box_autoadd_revocation_status(SseDeserializer deserializer);
+
+  @protected
+  SanitizedSvg sse_decode_box_autoadd_sanitized_svg(SseDeserializer deserializer);
 
   @protected
   BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
@@ -574,6 +583,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   RevocationStatus sse_decode_revocation_status(SseDeserializer deserializer);
+
+  @protected
+  SanitizedSvg sse_decode_sanitized_svg(SseDeserializer deserializer);
 
   @protected
   StartDisclosureResult sse_decode_start_disclosure_result(SseDeserializer deserializer);
@@ -776,6 +788,14 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ffi.Pointer<ffi.Int32> cst_encode_box_autoadd_revocation_status(RevocationStatus raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return wire.cst_new_box_autoadd_revocation_status(cst_encode_revocation_status(raw));
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_sanitized_svg> cst_encode_box_autoadd_sanitized_svg(SanitizedSvg raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ptr = wire.cst_new_box_autoadd_sanitized_svg();
+    cst_api_fill_to_wire_sanitized_svg(raw, ptr.ref);
+    return ptr;
   }
 
   @protected
@@ -1195,6 +1215,14 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_box_autoadd_sanitized_svg(
+    SanitizedSvg apiObj,
+    ffi.Pointer<wire_cst_sanitized_svg> wireObj,
+  ) {
+    cst_api_fill_to_wire_sanitized_svg(apiObj, wireObj.ref);
+  }
+
+  @protected
   void cst_api_fill_to_wire_box_autoadd_wallet_instruction_error(
     WalletInstructionError apiObj,
     ffi.Pointer<wire_cst_wallet_instruction_error> wireObj,
@@ -1330,7 +1358,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   @protected
   void cst_api_fill_to_wire_image(Image apiObj, wire_cst_image wireObj) {
     if (apiObj is Image_Svg) {
-      var pre_xml = cst_encode_String(apiObj.xml);
+      var pre_xml = cst_encode_box_autoadd_sanitized_svg(apiObj.xml);
       wireObj.tag = 0;
       wireObj.kind.Svg.xml = pre_xml;
       return;
@@ -1485,6 +1513,11 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.InstructionError.error = pre_error;
       return;
     }
+  }
+
+  @protected
+  void cst_api_fill_to_wire_sanitized_svg(SanitizedSvg apiObj, wire_cst_sanitized_svg wireObj) {
+    wireObj.field0 = cst_encode_String(apiObj.field0);
   }
 
   @protected
@@ -1858,6 +1891,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_box_autoadd_revocation_status(RevocationStatus self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_sanitized_svg(SanitizedSvg self, SseSerializer serializer);
+
+  @protected
   void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
 
   @protected
@@ -2030,6 +2066,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_revocation_status(RevocationStatus self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_sanitized_svg(SanitizedSvg self, SseSerializer serializer);
 
   @protected
   void sse_encode_start_disclosure_result(StartDisclosureResult self, SseSerializer serializer);
@@ -3217,6 +3256,17 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_box_autoadd_revocation_status = _cst_new_box_autoadd_revocation_statusPtr
       .asFunction<ffi.Pointer<ffi.Int32> Function(int)>();
 
+  ffi.Pointer<wire_cst_sanitized_svg> cst_new_box_autoadd_sanitized_svg() {
+    return _cst_new_box_autoadd_sanitized_svg();
+  }
+
+  late final _cst_new_box_autoadd_sanitized_svgPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_sanitized_svg> Function()>>(
+        'frbgen_wallet_core_cst_new_box_autoadd_sanitized_svg',
+      );
+  late final _cst_new_box_autoadd_sanitized_svg = _cst_new_box_autoadd_sanitized_svgPtr
+      .asFunction<ffi.Pointer<wire_cst_sanitized_svg> Function()>();
+
   ffi.Pointer<ffi.Uint64> cst_new_box_autoadd_u_64(
     int value,
   ) {
@@ -3537,8 +3587,12 @@ final class wire_cst_attestation_identity extends ffi.Struct {
   external AttestationIdentityKind kind;
 }
 
+final class wire_cst_sanitized_svg extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
 final class wire_cst_Image_Svg extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> xml;
+  external ffi.Pointer<wire_cst_sanitized_svg> xml;
 }
 
 final class wire_cst_Image_Png extends ffi.Struct {

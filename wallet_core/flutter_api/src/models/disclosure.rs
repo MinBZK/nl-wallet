@@ -1,4 +1,6 @@
 use itertools::Itertools;
+use svg_sanitize::SanitizedSvg;
+use tracing::warn;
 use url::Url;
 use wallet::AttributesNotAvailable;
 use wallet::CloseProximityDisclosureUpdate;
@@ -123,13 +125,17 @@ impl From<RPLocalizedStrings> for Vec<LocalizedString> {
     }
 }
 
-impl From<wallet::attestation_data::Image> for Image {
-    fn from(value: wallet::attestation_data::Image) -> Self {
-        match value {
-            wallet::attestation_data::Image::Svg(xml) => Image::Svg { xml },
+impl TryFrom<wallet::attestation_data::Image> for Image {
+    type Error = svg_sanitize::Error;
+
+    fn try_from(value: wallet::attestation_data::Image) -> Result<Self, Self::Error> {
+        Ok(match value {
+            wallet::attestation_data::Image::Svg(xml) => Image::Svg {
+                xml: SanitizedSvg::try_new(&xml)?.into(),
+            },
             wallet::attestation_data::Image::Png(data) => Image::Png { data },
             wallet::attestation_data::Image::Jpeg(data) => Image::Jpeg { data },
-        }
+        })
     }
 }
 
@@ -139,7 +145,11 @@ impl From<Box<wallet::attestation_data::Organization>> for Organization {
             legal_name: RPLocalizedStrings(value.legal_name).into(),
             display_name: RPLocalizedStrings(value.display_name).into(),
             description: RPLocalizedStrings(value.description).into(),
-            image: value.logo.map(|logo| logo.into()),
+            image: value.logo.and_then(|l| {
+                Image::try_from(l)
+                    .inspect_err(|e| warn!("error converting logo, not showing: {e}"))
+                    .ok()
+            }),
             kvk: value.kvk,
             city: value.city.map(|city| RPLocalizedStrings(city).into()),
             category: RPLocalizedStrings(value.category).into(),

@@ -2032,6 +2032,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  SanitizedSvg dco_decode_box_autoadd_sanitized_svg(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_sanitized_svg(raw);
+  }
+
+  @protected
   BigInt dco_decode_box_autoadd_u_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_u_64(raw);
@@ -2216,7 +2222,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (raw[0]) {
       case 0:
         return Image_Svg(
-          xml: dco_decode_String(raw[1]),
+          xml: dco_decode_box_autoadd_sanitized_svg(raw[1]),
         );
       case 1:
         return Image_Png(
@@ -2565,6 +2571,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   RevocationStatus dco_decode_revocation_status(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return RevocationStatus.values[raw as int];
+  }
+
+  @protected
+  SanitizedSvg dco_decode_sanitized_svg(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1) throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return SanitizedSvg(
+      field0: dco_decode_String(arr[0]),
+    );
   }
 
   @protected
@@ -2991,6 +3007,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  SanitizedSvg sse_decode_box_autoadd_sanitized_svg(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_sanitized_svg(deserializer));
+  }
+
+  @protected
   BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_u_64(deserializer));
@@ -3188,7 +3210,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        var var_xml = sse_decode_String(deserializer);
+        var var_xml = sse_decode_box_autoadd_sanitized_svg(deserializer);
         return Image_Svg(xml: var_xml);
       case 1:
         var var_data = sse_decode_list_prim_u_8_strict(deserializer);
@@ -3654,6 +3676,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
     return RevocationStatus.values[inner];
+  }
+
+  @protected
+  SanitizedSvg sse_decode_sanitized_svg(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_field0 = sse_decode_String(deserializer);
+    return SanitizedSvg(field0: var_field0);
   }
 
   @protected
@@ -4281,6 +4310,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_box_autoadd_sanitized_svg(SanitizedSvg self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_sanitized_svg(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_u_64(self, serializer);
@@ -4439,7 +4474,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (self) {
       case Image_Svg(xml: final xml):
         sse_encode_i_32(0, serializer);
-        sse_encode_String(xml, serializer);
+        sse_encode_box_autoadd_sanitized_svg(xml, serializer);
       case Image_Png(data: final data):
         sse_encode_i_32(1, serializer);
         sse_encode_list_prim_u_8_strict(data, serializer);
@@ -4816,6 +4851,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_revocation_status(RevocationStatus self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_sanitized_svg(SanitizedSvg self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.field0, serializer);
   }
 
   @protected

@@ -13,7 +13,7 @@ sealed class Image with _$Image {
   const Image._();
 
   const factory Image.svg({
-    required String xml,
+    required SanitizedSvg xml,
   }) = Image_Svg;
   const factory Image.png({
     required Uint8List data,
@@ -45,4 +45,19 @@ class ImageWithMetadata {
           runtimeType == other.runtimeType &&
           image == other.image &&
           altText == other.altText;
+}
+
+class SanitizedSvg {
+  final String field0;
+
+  const SanitizedSvg({
+    required this.field0,
+  });
+
+  @override
+  int get hashCode => field0.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is SanitizedSvg && runtimeType == other.runtimeType && field0 == other.field0;
 }
