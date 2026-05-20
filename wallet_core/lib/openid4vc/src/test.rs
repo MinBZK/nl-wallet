@@ -31,6 +31,7 @@ use utils::vec_nonempty;
 
 use crate::Format;
 use crate::authorization::VciAuthorizationRequest;
+use crate::authorizing_issuer::AuthorizingIssuer;
 use crate::credential_configurations::CredentialConfigurationParameters;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::AttributeService;
@@ -48,7 +49,10 @@ use crate::token::TokenRequest;
 pub const MOCK_ATTESTATION_TYPES: [&str; 2] = ["com.example.pid", "com.example.address"];
 pub const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
-pub type MockIssuer<G = TimeGenerator, PAS = (), PKS = (), UAA = ()> = Issuer<
+pub type MockIssuer<G = TimeGenerator> =
+    Issuer<MockAttrService, SigningKey, MockStatusListService, MemorySessionStore<IssuanceData, G>, MemoryNonceStore>;
+
+pub type MockAuthorizingIssuer<G, PAS, PKS, UAA> = AuthorizingIssuer<
     MockAttrService,
     SigningKey,
     MockStatusListService,
@@ -113,21 +117,14 @@ impl AttributeService for MockAttrService {
     }
 }
 
-#[expect(clippy::too_many_arguments, reason = "Test setup helper")]
-pub fn setup_mock_issuer<G, PAS, PKS, UAA>(
+pub fn setup_mock_issuer<G>(
     issuer_identifier: IssuerIdentifier,
     attr_service: MockAttrService,
     attestation_count: NonZeroUsize,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
-    par_store: Arc<PAS>,
-    pkce_flow_store: Arc<PKS>,
-    upstream_authorization_adapter: Option<UAA>,
-) -> (MockIssuer<G, PAS, PKS, UAA>, TrustAnchors, KeyPair)
+) -> (MockIssuer<G>, TrustAnchors, KeyPair)
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
-    PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
-    PKS: Store<String, String> + Send + Sync + 'static,
-    UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
 {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
@@ -186,11 +183,41 @@ where
         attr_service,
         sessions,
         MemoryNonceStore::new(),
-        par_store,
-        pkce_flow_store,
-        upstream_authorization_adapter,
     )
     .unwrap();
 
     (issuer, trust_anchors, wia_keypair)
+}
+
+#[expect(clippy::too_many_arguments, reason = "Test setup helper")]
+pub fn setup_mock_authorizing_issuer<G, PAS, PKS, UAA>(
+    issuer_identifier: IssuerIdentifier,
+    attr_service: MockAttrService,
+    attestation_count: NonZeroUsize,
+    sessions: Arc<MemorySessionStore<IssuanceData, G>>,
+    par_store: Arc<PAS>,
+    pkce_flow_store: Arc<PKS>,
+    upstream_authorization_adapter: UAA,
+) -> (
+    MockAuthorizingIssuer<G, PAS, PKS, UAA>,
+    TrustAnchors,
+    KeyPair,
+)
+where
+    G: Generator<DateTime<Utc>> + Send + Sync + 'static,
+    PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
+    PKS: Store<String, String> + Send + Sync + 'static,
+    UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
+{
+    let (issuer, trust_anchor, wia_keypair) =
+        setup_mock_issuer(issuer_identifier, attr_service, attestation_count, sessions);
+
+    let authorizing_issuer = AuthorizingIssuer::new(
+        Arc::new(issuer),
+        par_store,
+        pkce_flow_store,
+        upstream_authorization_adapter,
+    );
+
+    (authorizing_issuer, trust_anchor, wia_keypair)
 }

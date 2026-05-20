@@ -772,7 +772,7 @@ pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Op
 
     let (issuer, _, store_connection, server_settings) = settings
         .issuer_settings
-        .into_issuer(hsm.clone(), None, (), |_| (), |_| (), None)
+        .into_issuer(hsm.clone(), None, ())
         .await
         .unwrap();
 
@@ -878,13 +878,13 @@ where
 
     let (issuer, _, _, server_settings) = settings
         .issuer_settings
-        .into_issuer(
+        .into_authorizing_issuer(
             hsm,
             Some(wia_config),
             attr_service,
             IssuerParStore::new,
             IssuerPkceStore::new,
-            Some(upstream_authorization_adapter),
+            upstream_authorization_adapter,
         )
         .await
         .unwrap();

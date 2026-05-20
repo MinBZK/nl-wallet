@@ -50,13 +50,13 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
 
     let (issuer, database_checkers, _, server_settings) = settings
         .issuer_settings
-        .into_issuer(
+        .into_authorizing_issuer(
             hsm,
             Some(wia_config),
             pid_attr_service,
             IssuerParStore::new,
             IssuerPkceStore::new,
-            Some(upstream_authorization_adapter),
+            upstream_authorization_adapter,
         )
         .await?;
 

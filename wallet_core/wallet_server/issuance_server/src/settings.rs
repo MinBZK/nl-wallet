@@ -58,9 +58,6 @@ pub type IssuanceServerIssuer = Issuer<
     PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
     SessionStoreVariant<IssuanceData>,
     ProofNonceStore,
-    (),
-    (),
-    (),
 >;
 
 #[derive(Debug, Clone, Deserialize)]

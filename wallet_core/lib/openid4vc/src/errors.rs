@@ -262,8 +262,7 @@ impl From<AuthorizeError> for ErrorResponse<AuthorizeErrorCode> {
                 AuthorizeError::UnknownRequestUri(_) | AuthorizeError::UnsupportedCodeChallenge => {
                     AuthorizeErrorCode::InvalidRequest
                 }
-                AuthorizeError::NoUpstreamAdapter
-                | AuthorizeError::ParStore(_)
+                AuthorizeError::ParStore(_)
                 | AuthorizeError::PkceStore(_)
                 | AuthorizeError::UpstreamResolve(_)
                 | AuthorizeError::Encode(_) => AuthorizeErrorCode::ServerError,

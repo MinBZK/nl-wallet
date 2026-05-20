@@ -7,10 +7,11 @@ use issuer_common::nonce_store::ProofNonceStore;
 use issuer_common::par_store::IssuerParStore;
 use issuer_common::pkce_store::IssuerPkceStore;
 use itertools::Itertools;
+use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
-use openid4vc::issuer::Issuer;
 use openid4vc::issuer::UpstreamAuthorizationAdapter;
+use openid4vc_server::issuer::create_authorization_router;
 use openid4vc_server::issuer::create_issuance_router;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::server::add_cache_control_no_store_layer;
@@ -27,7 +28,7 @@ use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
 use utils::vec_at_least::VecNonEmpty;
 
-pub type PidIssuer<A, UAA> = Issuer<
+pub type PidIssuer<A, UAA> = AuthorizingIssuer<
     A,
     PrivateKeyVariant,
     PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
@@ -71,10 +72,13 @@ where
     A: AttributeService + Send + Sync + 'static,
     UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
 {
-    let status_list_services = VecNonEmpty::try_from(issuer.status_lists().cloned().collect_vec())?;
+    let authorizing_issuer = Arc::new(issuer);
 
-    let issuance_router = create_issuance_router(Arc::new(issuer));
-    let mut router = add_cache_control_no_store_layer(issuance_router);
+    let status_list_services = VecNonEmpty::try_from(authorizing_issuer.inner().status_lists().cloned().collect_vec())?;
+
+    let issuance_router = create_issuance_router(Arc::clone(authorizing_issuer.inner()));
+    let authorization_router = create_authorization_router(Arc::clone(&authorizing_issuer));
+    let mut router = add_cache_control_no_store_layer(issuance_router.merge(authorization_router));
 
     if serve_status_lists {
         let status_list_router = create_serve_router(

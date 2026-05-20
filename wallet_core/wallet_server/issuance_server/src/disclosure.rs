@@ -332,9 +332,6 @@ mod tests {
             (),
             sessions,
             MemoryNonceStore::new(),
-            Arc::new(()),
-            Arc::new(()),
-            None,
         )
         .unwrap()
     }

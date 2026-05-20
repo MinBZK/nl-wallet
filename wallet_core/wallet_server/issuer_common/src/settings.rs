@@ -20,6 +20,7 @@ use http_utils::urls::BaseUrl;
 use http_utils::urls::HttpsUri;
 use itertools::Itertools;
 use openid4vc::Format;
+use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::credential_configurations::CredentialConfigurationParameters;
 use openid4vc::credential_configurations::CredentialConfigurationsError;
 use openid4vc::issuer::IssuanceData;
@@ -406,15 +407,11 @@ impl IssuerSettings {
         Ok(())
     }
 
-    #[expect(clippy::too_many_arguments)]
-    pub async fn into_issuer<A, PAS, PKS, UAA>(
+    pub async fn into_issuer<A>(
         self,
         hsm: Option<Pkcs11Hsm>,
         wia_config: Option<WiaConfig>,
         attr_service: A,
-        par_store: impl FnOnce(StoreConnection) -> PAS,
-        pkce_flow_store: impl FnOnce(StoreConnection) -> PKS,
-        upstream_authorization_adapter: Option<UAA>,
     ) -> Result<
         (
             Issuer<
@@ -423,9 +420,6 @@ impl IssuerSettings {
                 PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
                 SessionStoreVariant<IssuanceData>,
                 ProofNonceStore,
-                PAS,
-                PKS,
-                UAA,
             >,
             Vec<DatabaseChecker>,
             StoreConnection,
@@ -479,9 +473,6 @@ impl IssuerSettings {
             .await
             .map_err(IssuerSettingsError::CredentialConfigurationParameters)?;
 
-        let par_store = par_store(store_connection.clone());
-        let pkce_flow_store = pkce_flow_store(store_connection.clone());
-
         let issuer = Issuer::try_new(
             self.public_url,
             self.batch_size,
@@ -491,13 +482,56 @@ impl IssuerSettings {
             attr_service,
             Arc::new(sessions),
             proof_nonce_store,
-            Arc::new(par_store),
-            Arc::new(pkce_flow_store),
-            upstream_authorization_adapter,
         )
         .map_err(IssuerSettingsError::CredentialConfigurations)?;
 
         Ok((issuer, database_checkers, store_connection, self.server_settings))
+    }
+
+    /// Build an [`AuthorizingIssuer`] (upstream-OIDC Authorization Phase) wrapping the inner
+    /// [`Issuer`] produced by [`Self::into_issuer`], plus the PAR and PKCE bridge stores and the
+    /// upstream authorization adapter.
+    #[expect(clippy::too_many_arguments)]
+    pub async fn into_authorizing_issuer<A, PAS, PKS, UAA>(
+        self,
+        hsm: Option<Pkcs11Hsm>,
+        wia_config: Option<WiaConfig>,
+        attr_service: A,
+        par_store: impl FnOnce(StoreConnection) -> PAS,
+        pkce_flow_store: impl FnOnce(StoreConnection) -> PKS,
+        upstream_authorization_adapter: UAA,
+    ) -> Result<
+        (
+            AuthorizingIssuer<
+                A,
+                PrivateKeyVariant,
+                PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
+                SessionStoreVariant<IssuanceData>,
+                ProofNonceStore,
+                PAS,
+                PKS,
+                UAA,
+            >,
+            Vec<DatabaseChecker>,
+            StoreConnection,
+            Settings,
+        ),
+        IssuerSettingsError,
+    > {
+        let (issuer, database_checkers, store_connection, server_settings) =
+            self.into_issuer(hsm, wia_config, attr_service).await?;
+
+        let par_store = Arc::new(par_store(store_connection.clone()));
+        let pkce_flow_store = Arc::new(pkce_flow_store(store_connection.clone()));
+
+        let authorizing_issuer = AuthorizingIssuer::new(
+            Arc::new(issuer),
+            par_store,
+            pkce_flow_store,
+            upstream_authorization_adapter,
+        );
+
+        Ok((authorizing_issuer, database_checkers, store_connection, server_settings))
     }
 }
 
