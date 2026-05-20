@@ -24,6 +24,7 @@ use hsm::settings::Hsm;
 use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use serde::Deserialize;
+use serde::Deserializer;
 use serde_with::DurationMilliSeconds;
 use serde_with::DurationSeconds;
 use serde_with::base64::Base64;
@@ -83,7 +84,13 @@ pub struct WiaSettings {
     #[serde_as(as = "Base64")]
     pub wia_certificate: BorrowingCertificate,
     pub wia_signing_key_identifier: String,
-    pub wia_valid_days: u64,
+
+    #[serde(
+        rename = "wia_status_tracking_validity_in_days",
+        deserialize_with = "deserialize_duration_days"
+    )]
+    pub wia_status_tracking_validity: Duration,
+
     pub wia_status_list: WiaStatusListsSettings,
     pub wia_wallet_name: String,
     pub wia_wallet_link: Option<BaseUrl>,
@@ -166,6 +173,11 @@ pub struct Android {
 #[derive(Clone, From, Into)]
 pub struct AndroidRootPublicKey(RootPublicKey);
 
+fn deserialize_duration_days<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Duration, D::Error> {
+    let days = u64::deserialize(deserializer)?;
+    Ok(Duration::from_hours(days * 24))
+}
+
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Config::builder()
@@ -187,7 +199,7 @@ impl Settings {
             .set_default("wia_status_list.refresh_threshold_ratio", 0.25)?
             .set_default("wia_status_list.key_identifier", "wia_tsl_key")?
             .set_default("wia_signing_key_identifier", "wia_signing_key")?
-            .set_default("wia_valid_days", 365)?
+            .set_default("wia_status_tracking_validity_in_days", 365)?
             .set_default("wia_wallet_name", "NL Wallet")?
             .set_default("wia_wallet_link", "https://wallet.edi.rijksoverheid.nl")?
             .set_default(

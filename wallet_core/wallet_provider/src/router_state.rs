@@ -2,7 +2,6 @@ use std::error::Error;
 
 use android_attest::root_public_key::RootPublicKey;
 use audit_log::model::PostgresAuditLog;
-use chrono::Days;
 use chrono::Duration;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
@@ -198,7 +197,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 flags,
                 wallet_user_hsm,
                 wia_issuer,
-                wia_validity: Days::new(settings.wia_settings.wia_valid_days),
+                wia_status_tracking_validity: settings.wia_settings.wia_status_tracking_validity,
                 wrapping_key_identifier: settings.attestation_wrapping_key_identifier,
                 pid_issuer_trust_anchors: settings.pid_issuer_trust_anchors,
                 status_list_service,

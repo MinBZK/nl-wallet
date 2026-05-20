@@ -28,7 +28,6 @@ use attestation_data::attributes::AttributesError;
 use attestation_types::claim_path::ClaimPath;
 use base64::prelude::*;
 use chrono::DateTime;
-use chrono::Days;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
 use crypto::trust_anchor::BorrowingTrustAnchor;
@@ -522,7 +521,7 @@ pub struct UserState<R, F, H, W, S> {
     pub flags: F,
     pub wallet_user_hsm: H,
     pub wia_issuer: W,
-    pub wia_validity: Days,
+    pub wia_status_tracking_validity: Duration,
     pub wrapping_key_identifier: String,
     pub pid_issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
     pub status_list_service: S,
@@ -1804,7 +1803,7 @@ pub mod mock {
             flags,
             wallet_user_hsm,
             wia_issuer: MockWiaIssuer,
-            wia_validity: Days::new(1),
+            wia_status_tracking_validity: Duration::from_hours(24),
             wrapping_key_identifier,
             pid_issuer_trust_anchors,
             status_list_service,
@@ -1951,6 +1950,7 @@ mod tests {
     use std::num::NonZeroUsize;
     use std::sync::Arc;
     use std::sync::Mutex;
+    use std::time::Duration;
 
     use android_attest::attestation_extension::key_description::KeyDescription;
     use android_attest::mock_chain::MockCaChain;
@@ -1965,7 +1965,6 @@ mod tests {
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use base64::prelude::*;
     use chrono::DateTime;
-    use chrono::Days;
     use chrono::TimeZone;
     use chrono::Utc;
     use crypto::keys::EcdsaKey;
@@ -2145,7 +2144,7 @@ mod tests {
             flags: StubWalletFlags::default(),
             wallet_user_hsm: hsm,
             wia_issuer: MockWiaIssuer,
-            wia_validity: Days::new(1),
+            wia_status_tracking_validity: Duration::from_hours(24),
             wrapping_key_identifier: wrapping_key_identifier.to_string(),
             pid_issuer_trust_anchors: vec![], // not needed in these tests
             status_list_service: MockStatusListService::default(),
@@ -3607,7 +3606,7 @@ mod tests {
             flags: StubWalletFlags::default(),
             wallet_user_hsm: user_state.wallet_user_hsm,
             wia_issuer: user_state.wia_issuer,
-            wia_validity: Days::new(1),
+            wia_status_tracking_validity: Duration::from_hours(24),
             wrapping_key_identifier: user_state.wrapping_key_identifier,
             pid_issuer_trust_anchors: user_state.pid_issuer_trust_anchors,
             status_list_service: user_state.status_list_service,
@@ -3707,7 +3706,7 @@ mod tests {
             flags: StubWalletFlags::default(),
             wallet_user_hsm: setup_hsm().await,
             wia_issuer: MockWiaIssuer,
-            wia_validity: Days::new(1),
+            wia_status_tracking_validity: Duration::from_hours(24),
             wrapping_key_identifier: "my_wrapping_key_identifier".to_string(),
             pid_issuer_trust_anchors: vec![],
             status_list_service: MockStatusListService::default(),

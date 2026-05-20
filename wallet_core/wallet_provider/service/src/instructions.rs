@@ -512,7 +512,7 @@ where
 {
     // generate WIA ID
     let wia_id = Uuid::new_v4();
-    let exp = Utc::now() + user_state.wia_validity;
+    let exp = Utc::now() + user_state.wia_status_tracking_validity;
     let status_claim = user_state
         .status_list_service
         .obtain_status_claims(

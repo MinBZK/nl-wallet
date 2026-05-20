@@ -22,6 +22,9 @@ revocation_code_key_identifier = "revocation_code_key"
 # Identifier for key used to issue WIAs to wallets
 wia_signing_key_identifier = "wia_signing_key"
 
+# Number of days a WIA remains valid for status tracking purposes
+# wia_status_tracking_validity_in_days = 365
+
 # Human-readable name of the wallet solution
 wia_wallet_name = "NL Wallet"
 

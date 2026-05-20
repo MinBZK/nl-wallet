@@ -6,6 +6,7 @@ pin_public_disclosure_protection_key_identifier = "pin_public_disclosure_protect
 
 wia_signing_key_identifier = "wia_signing_key"
 wia_certificate = "${WP_WIA_CERTIFICATE}"
+# wia_status_tracking_validity_in_days = 365
 # wia_wallet_name = "NL Wallet"
 # wia_wallet_link = "https://wallet.edi.rijksoverheid.nl"
 wia_wallet_version = "${WALLET_VERSION}"
