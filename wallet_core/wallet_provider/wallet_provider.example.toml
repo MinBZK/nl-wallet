@@ -25,17 +25,23 @@ wia_signing_key_identifier = "wia_signing_key"
 # Number of days a WIA remains valid for status tracking purposes
 # wia_status_tracking_validity_in_days = 365
 
+# Certificate with which the WIA is signed
+wia_certificate = "MIIBlDCC..."
+
+# How long the revocation status of the WIA is tracked and published
+# wia_status_tracking_validity_in_days = 365
+
 # Human-readable name of the wallet solution
-wia_wallet_name = "NL Wallet"
+# wia_wallet_name = "NL Wallet"
 
 # URL linking to the wallet solution (optional)
-wia_wallet_link = "https://wallet.edi.rijksoverheid.nl"
+# wia_wallet_link = "https://wallet.edi.rijksoverheid.nl"
 
 # Version of the wallet solution
 wia_wallet_version = "1.0.0"
 
 # Certification information for the wallet solution
-wia_wallet_solution_certification_information = "https://wallet.edi.rijksoverheid.nl"
+# wia_wallet_solution_certification_information = "https://wallet.edi.rijksoverheid.nl"
 
 # Delay in seconds for background job that refreshes flags
 # flags_refresh_delay_in_seconds = 300
