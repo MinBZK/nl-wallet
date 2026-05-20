@@ -400,8 +400,8 @@ function generate_wallet_provider_tsl_key_pair {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca tsl-cert \
         --public-key-file "${TARGET_DIR}/wallet_provider/wia_tsl.pub.pem" \
-        --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
-        --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
+        --ca-key-file "${TARGET_DIR}/ca.wia.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.wia.crt.pem" \
         --common-name "wia-issuer.example.com" \
         --file-prefix "${TARGET_DIR}/wallet_provider/wia_tsl" \
         --force
