@@ -182,7 +182,7 @@ impl IssuanceWscd for MockRemoteWscd {
         let wia_keypair = self
             .wia_keypair
             .clone()
-            .unwrap_or(Ca::generate_issuer_mock_ca().unwrap().generate_wia_mock().unwrap());
+            .unwrap_or_else(|| Ca::generate_issuer_mock_ca().unwrap().generate_wia_mock().unwrap());
 
         let exp = Utc::now() + Duration::from_secs(600);
 
