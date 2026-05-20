@@ -110,11 +110,11 @@ pub enum WiaError {
     #[error("nonce is missing from WIA payload")]
     MissingNonce,
     #[error("JWK conversion error: {0}")]
-    JwkConversion(#[from] JwkConversionError),
+    JwkConversion(#[source] JwkConversionError),
     #[error("JWT error: {0}")]
-    Jwt(#[from] JwtError),
+    Jwt(#[source] JwtError),
     #[error("JWT with certificate error: {0}")]
-    JwtX5c(#[from] JwtX5cError),
+    JwtX5c(#[source] JwtX5cError),
 }
 
 impl WiaDisclosure {
@@ -124,19 +124,28 @@ impl WiaDisclosure {
         expected_aud: &str,
         accepted_wallet_client_ids: &[String],
     ) -> Result<(VerifyingKey, Nonce), WiaError> {
-        let (_, verified_wia_claims) = self.0.parse_and_verify_against_trust_anchors(
-            trust_anchors,
-            &TimeGenerator,
-            CertificateUsage::Wia,
-            &WIA_JWT_VALIDATIONS,
-        )?;
-        let wia_pubkey = verified_wia_claims.cnf.verifying_key()?;
+        let (_, verified_wia_claims) = self
+            .0
+            .parse_and_verify_against_trust_anchors(
+                trust_anchors,
+                &TimeGenerator,
+                CertificateUsage::Wia,
+                &WIA_JWT_VALIDATIONS,
+            )
+            .map_err(WiaError::JwtX5c)?;
+        let wia_pubkey = verified_wia_claims
+            .cnf
+            .verifying_key()
+            .map_err(WiaError::JwkConversion)?;
         tracing::debug!("WIA status claim: {:?}", verified_wia_claims.client_status.status);
 
         let mut validations = DEFAULT_VALIDATIONS.to_owned();
         validations.set_audience(&[expected_aud]);
         validations.set_issuer(accepted_wallet_client_ids);
-        let (_, wia_disclosure_claims) = self.1.parse_and_verify(&(&wia_pubkey).into(), &validations)?;
+        let (_, wia_disclosure_claims) = self
+            .1
+            .parse_and_verify(&(&wia_pubkey).into(), &validations)
+            .map_err(WiaError::Jwt)?;
 
         let nonce = wia_disclosure_claims.nonce.ok_or(WiaError::MissingNonce)?;
 
