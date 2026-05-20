@@ -92,10 +92,7 @@ spec:
             - name: PID_ISSUER__BRP_SERVER
               value: "http://brpproxy/"
             - name: PID_ISSUER__WIA_TRUST_ANCHORS
-              valueFrom:
-                configMapKeyRef:
-                  name: nl-wallet-pid-issuer-wia-trust-anchors
-                  key: wia_trust_anchors
+              value: {{ join "," .Values.wiaTrustAnchors | quote }}
             - name: PID_ISSUER__METADATA
               value: "eudi:pid:1.json,eudi:pid:nl:1.json"
             - name: PID_ISSUER__BATCH_SIZE
