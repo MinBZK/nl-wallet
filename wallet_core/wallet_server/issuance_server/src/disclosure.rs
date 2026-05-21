@@ -214,6 +214,7 @@ mod tests {
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential_configurations::CredentialConfigurationParameters;
     use openid4vc::credential_offer::CredentialOffer;
+    use openid4vc::credential_offer::Grants;
     use openid4vc::issuable_document::IssuableDocument;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;
@@ -353,11 +354,13 @@ mod tests {
             .unwrap();
         let credential_offer: CredentialOffer = serde_json::from_str(&query_params["credential_offer"]).unwrap();
 
-        let code = credential_offer.grants.as_ref().unwrap().pre_authorized_code().unwrap();
+        let Grants::PreAuthorizedCode { pre_authorized_code } = credential_offer.grants.unwrap() else {
+            panic!()
+        };
 
         // The session handler should have inserted a new issuance session in the session store.
         let IssuanceData::Created(session) = sessions
-            .get(&SessionToken::from(code.as_ref().to_string()))
+            .get(&SessionToken::from(pre_authorized_code.pre_authorized_code))
             .await
             .unwrap()
             .unwrap()

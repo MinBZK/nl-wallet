@@ -342,7 +342,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .map(|url| url.clone().into_url())
             .ok_or(WalletIssuanceError::NoCredentialPreviewEndpoint)?; // TODO (PVW-5559): skip preview when no credential preview endpoint
 
-        // TODO: Get the credential configuration ids from the `CredentialOffer` instead.
+        // TODO (PVW-5856): Get the credential configuration ids from the `CredentialOffer` instead.
         let credential_configuration_ids: VecNonEmpty<CredentialConfigurationId> = issuer_metadata
             .credential_configurations_supported
             .keys()

@@ -193,10 +193,6 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     NoCredentialConfigurationsSupported,
 
-    #[error("no Authorization Code found in Credential Offer")]
-    #[category(critical)]
-    MissingPreAuthorizedCodeGrant,
-
     #[error("missing query in credential offer URI")]
     #[category(critical)]
     MissingCredentialOfferQuery,
@@ -204,6 +200,15 @@ pub enum WalletIssuanceError {
     #[error("failed to deserialize credential offer: {0}")]
     #[category(pd)]
     CredentialOfferDeserialization(#[source] serde_urlencoded::de::Error),
+
+    #[error("no grants found in Credential Offer")]
+    #[category(critical)]
+    MissingCredentialOfferGrants,
+
+    // TODO (PVW-5832): Remove when implementing CredentialOffer Authorization Code flow.
+    #[error("no Pre-Authorized Code found in Credential Offer")]
+    #[category(critical)]
+    MissingCredentialOfferPreAuthorizedCode,
 }
 
 /// Discovers credential issuer and OAuth authorization server metadata, then starts an issuance flow.

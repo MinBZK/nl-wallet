@@ -39,13 +39,6 @@ impl CredentialOfferContainer {
             credential_offer: Box::new(credential_offer),
         }
     }
-
-    pub fn offer(&self) -> Option<&CredentialOffer> {
-        match self {
-            Self::Offer { credential_offer } => Some(credential_offer),
-            Self::Uri { .. } => None,
-        }
-    }
 }
 
 /// An OpenID4VCI Credential Offer, which is the starting point for issuance. It contains information needed for the
@@ -84,10 +77,6 @@ impl CredentialOffer {
             grants: Some(Grants::new_pre_authorized(pre_authorized_code)),
         }
     }
-
-    pub fn pre_authorized_code(&self) -> Option<&AuthorizationCode> {
-        self.grants.as_ref()?.pre_authorized_code()
-    }
 }
 
 /// Object indicating to the Wallet the Grant Types the Credential Issuer's Authorization Server is prepared to process
@@ -119,16 +108,6 @@ impl Grants {
     pub fn new_pre_authorized(pre_authorized_code: AuthorizationCode) -> Self {
         Self::PreAuthorizedCode {
             pre_authorized_code: GrantPreAuthorizedCode::new(pre_authorized_code),
-        }
-    }
-
-    pub fn pre_authorized_code(&self) -> Option<&AuthorizationCode> {
-        match self {
-            Grants::Both {
-                pre_authorized_code, ..
-            } => Some(&pre_authorized_code.pre_authorized_code),
-            Grants::PreAuthorizedCode { pre_authorized_code } => Some(&pre_authorized_code.pre_authorized_code),
-            Grants::AuthorizationCode { .. } => None,
         }
     }
 }
@@ -285,11 +264,6 @@ mod tests {
 
         let credential_offer = serde_json::from_value::<CredentialOffer>(credential_offer_json.clone())
             .expect("should be able to deserialize CredentialOffer");
-
-        assert_eq!(
-            credential_offer.pre_authorized_code().map(AsRef::as_ref),
-            Some("oaKazRN8I0IbtZ0C7JuMn5")
-        );
 
         assert_eq!(
             credential_offer.credential_issuer.as_ref(),

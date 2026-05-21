@@ -148,8 +148,9 @@ where
 fn convert_and_enrich_error(error: WalletIssuanceError, organization: &Organization) -> DisclosureBasedIssuanceError {
     match error {
         WalletIssuanceError::MissingCredentialOfferQuery
-        | WalletIssuanceError::MissingPreAuthorizedCodeGrant
-        | WalletIssuanceError::CredentialOfferDeserialization(_) => {
+        | WalletIssuanceError::CredentialOfferDeserialization(_)
+        | WalletIssuanceError::MissingCredentialOfferGrants
+        | WalletIssuanceError::MissingCredentialOfferPreAuthorizedCode => {
             DisclosureBasedIssuanceError::Issuance(IssuanceError::IssuerServer {
                 error,
                 organization: Box::new(organization.clone()),
