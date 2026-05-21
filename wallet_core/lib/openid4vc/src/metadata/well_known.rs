@@ -19,6 +19,34 @@ impl WellKnownPath {
             Self::OpenidConfiguration => "openid-configuration",
         }
     }
+
+    fn url(self, issuer: &IssuerIdentifier) -> Url {
+        let url = issuer.as_base_url();
+        match self {
+            Self::CredentialIssuer | Self::OauthAuthorizationServer => {
+                let url = url.as_ref();
+                let path = strip_trailing_slash(url.path());
+                // Both paths are already safe url encoded
+                url.join(&format!("/.well-known/{}{path}", self.as_str())).unwrap()
+            }
+            Self::OpenidConfiguration => {
+                // OpenID Connect Discovery specifies this way, but
+                // OAuth 2.0 Authorization Server Metadata [RFC-8414] specifies the same
+                // identifier to be constructed like `oauth-authorization-server`.
+                // We choose to only follow OIDC Discovery for the only implementation
+                // is in our own pid-issuer.
+                issuer.as_base_url().join(&format!("/.well-known/{}", self.as_str()))
+            }
+        }
+    }
+}
+
+fn strip_trailing_slash(path: &str) -> &str {
+    if path.ends_with('/') {
+        path.split_at(path.len() - 1).0
+    } else {
+        path
+    }
 }
 
 pub trait WellKnownMetadata {
@@ -37,13 +65,6 @@ pub enum WellKnownError {
     },
 }
 
-/// Constructs a well-known metadata URL by appending the well-known path to the issuer identifier.
-fn well_known_url(issuer: &IssuerIdentifier, suffix: WellKnownPath) -> Url {
-    // TODO (PVW-5527): spec-compliant URL construction (inserting the well-known path between host and path
-    // components as per the OpenID4VCI specification) is tracked in PVW-5527.
-    issuer.as_base_url().join(&format!("/.well-known/{}", suffix.as_str()))
-}
-
 pub async fn fetch_well_known<T>(
     client: &HttpJsonClient,
     issuer: &IssuerIdentifier,
@@ -52,7 +73,7 @@ pub async fn fetch_well_known<T>(
 where
     T: DeserializeOwned + WellKnownMetadata,
 {
-    let url = well_known_url(issuer, path);
+    let url = path.url(issuer);
     let metadata: T = client.get(url).await?;
     if metadata.issuer_identifier() != issuer {
         return Err(WellKnownError::IssuerIdentifierMismatch {
@@ -65,35 +86,61 @@ where
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use super::*;
 
     fn issuer(s: &str) -> IssuerIdentifier {
         s.parse().unwrap()
     }
 
-    #[test]
-    fn test_well_known_url_no_path() {
-        let url = well_known_url(&issuer("https://example.com/"), WellKnownPath::CredentialIssuer);
-        assert_eq!(url.as_str(), "https://example.com/.well-known/openid-credential-issuer");
+    #[rstest]
+    #[case(WellKnownPath::CredentialIssuer, "openid-credential-issuer")]
+    #[case(WellKnownPath::OauthAuthorizationServer, "oauth-authorization-server")]
+    #[case(WellKnownPath::OpenidConfiguration, "openid-configuration")]
+    fn test_well_known_url_no_path(#[case] path: WellKnownPath, #[case] suffix: &str) {
+        let issuer = issuer("https://example.com/");
+        let url = path.url(&issuer);
+        assert_eq!(url.as_str(), format!("https://example.com/.well-known/{suffix}"));
     }
 
     #[test]
-    fn test_well_known_url_with_path() {
-        // Note: spec-compliant behavior would insert the well-known path before the tenant segment
-        // (PVW-5527). This test documents the current (non-compliant) behavior.
-        let url = well_known_url(&issuer("https://example.com/tenant"), WellKnownPath::CredentialIssuer);
+    fn test_well_known_openid4ci_url_with_path() {
+        let issuer = issuer("https://example.com/tenant");
+        let url = WellKnownPath::CredentialIssuer.url(&issuer);
         assert_eq!(
             url.as_str(),
-            "https://example.com/tenant/.well-known/openid-credential-issuer"
+            "https://example.com/.well-known/openid-credential-issuer/tenant"
         );
     }
 
     #[test]
-    fn test_well_known_url_oauth_suffix() {
-        let url = well_known_url(&issuer("https://example.com/"), WellKnownPath::OauthAuthorizationServer);
+    fn test_well_known_openid4ci_url_with_path_and_trailing_slash() {
+        let issuer = issuer("https://example.com/tenant/");
+        let url = WellKnownPath::CredentialIssuer.url(&issuer);
         assert_eq!(
             url.as_str(),
-            "https://example.com/.well-known/oauth-authorization-server"
+            "https://example.com/.well-known/openid-credential-issuer/tenant"
+        );
+    }
+
+    #[test]
+    fn test_well_known_oauth_url_with_path() {
+        let issuer = issuer("https://example.com/tenant");
+        let url = WellKnownPath::OauthAuthorizationServer.url(&issuer);
+        assert_eq!(
+            url.as_str(),
+            "https://example.com/.well-known/oauth-authorization-server/tenant"
+        );
+    }
+
+    #[test]
+    fn test_well_known_oidc_url_with_path() {
+        let issuer = issuer("https://example.com/tenant");
+        let url = WellKnownPath::OpenidConfiguration.url(&issuer);
+        assert_eq!(
+            url.as_str(),
+            "https://example.com/tenant/.well-known/openid-configuration"
         );
     }
 }
