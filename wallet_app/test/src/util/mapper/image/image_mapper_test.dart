@@ -13,7 +13,7 @@ void main() {
   });
 
   test('validate svg mapper', () {
-    const input = Image.svg(xml: '<svg></svg>');
+    const input = Image.svg(xml: SanitizedSvg(field0: '<svg></svg>'));
     const expectedOutput = SvgImage('<svg></svg>');
     expect(mapper.map(input), expectedOutput);
   });
