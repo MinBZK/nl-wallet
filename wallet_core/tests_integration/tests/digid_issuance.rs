@@ -8,12 +8,13 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use issuer_common::pkce_store::IssuerPkceStore;
 use itertools::Itertools;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
-use pid_issuer::pid::attributes::BrpPidAttributeService;
+use pid_issuer::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow;
 use pid_issuer::pid::brp::client::HttpBrpClient;
 use pid_issuer::pid::constants::PID_ADDRESS_GROUP;
 use pid_issuer::pid::constants::PID_ATTESTATION_TYPE;
@@ -21,11 +22,11 @@ use pid_issuer::pid::constants::PID_BSN;
 use pid_issuer::pid::constants::PID_FAMILY_NAME;
 use pid_issuer::pid::constants::PID_GIVEN_NAME;
 use pid_issuer::pid::constants::PID_RESIDENT_COUNTRY;
-use pid_issuer::pid::digid::DigidAuthorizationAdapter;
 use pid_issuer::pid::digid::DigidMetadataCache;
 use serial_test::serial;
 use server_utils::keys::SecretKeyVariant;
 use server_utils::settings::SecretKey;
+use server_utils::store::StoreConnection;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::test::default_wallet_config;
@@ -63,29 +64,29 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .unwrap();
 
     let digid_metadata_cache = Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings.clone()).unwrap());
-    let upstream_authorization_adapter =
-        DigidAuthorizationAdapter::new(Arc::clone(&digid_metadata_cache), settings.digid.client_id.clone());
-
-    let issuer_url = start_pid_issuer_server(
-        settings.clone(),
-        hsm,
-        BrpPidAttributeService::try_new(
-            HttpBrpClient::new(settings.brp_server.clone()),
-            &settings.digid.bsn_privkey,
-            settings.digid.client_id.clone(),
-            digid_metadata_cache,
-            SecretKeyVariant::from_settings(
-                SecretKey::Software {
-                    secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
-                },
-                None,
-            )
+    let pkce_store = Arc::new(IssuerPkceStore::new(
+        StoreConnection::try_new(settings.issuer_settings.server_settings.storage.url.clone())
+            .await
             .unwrap(),
+    ));
+
+    let flow = UpstreamOidcAuthorizationCodeFlow::try_new(
+        HttpBrpClient::new(settings.brp_server.clone()),
+        &settings.digid.bsn_privkey,
+        settings.digid.client_id.clone(),
+        digid_metadata_cache,
+        SecretKeyVariant::from_settings(
+            SecretKey::Software {
+                secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
+            },
+            None,
         )
         .unwrap(),
-        upstream_authorization_adapter,
+        pkce_store,
     )
-    .await;
+    .unwrap();
+
+    let issuer_url = start_pid_issuer_server(settings.clone(), hsm, flow).await;
 
     start_gba_hc_converter(gba_hc_converter_settings()).await;
 

@@ -339,6 +339,9 @@ pub enum IssuerSettingsError {
 
     #[error("could not initialize credential configurations: {0}")]
     CredentialConfigurations(#[source] CredentialConfigurationsError),
+
+    #[error("could not initialize authorization code flow: {0}")]
+    AuthorizationCodeFlow(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 impl IssuerSettings {
@@ -407,15 +410,13 @@ impl IssuerSettings {
         Ok(())
     }
 
-    pub async fn into_issuer<A>(
+    pub async fn into_issuer(
         self,
         hsm: Option<Pkcs11Hsm>,
         wia_config: Option<WiaConfig>,
-        attr_service: A,
     ) -> Result<
         (
             Issuer<
-                A,
                 PrivateKeyVariant,
                 PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
                 SessionStoreVariant<IssuanceData>,
@@ -479,7 +480,6 @@ impl IssuerSettings {
             self.wallet_client_ids,
             config_params,
             wia_config,
-            attr_service,
             Arc::new(sessions),
             proof_nonce_store,
         )
@@ -488,48 +488,42 @@ impl IssuerSettings {
         Ok((issuer, database_checkers, store_connection, self.server_settings))
     }
 
-    /// Build an [`AuthorizingIssuer`] (upstream-OIDC Authorization Phase) wrapping the inner
-    /// [`Issuer`] produced by [`Self::into_issuer`], plus the PAR and PKCE bridge stores and the
-    /// upstream authorization adapter.
-    #[expect(clippy::too_many_arguments)]
-    pub async fn into_authorizing_issuer<A, PAS, PKS, UAA>(
+    /// Build an [`AuthorizingIssuer`] (auth-code Authorization Phase) wrapping the inner [`Issuer`]
+    /// produced by [`Self::into_issuer`], plus the PAR store and an [`AuthorizationCodeFlow`]
+    /// implementation. The `flow` closure receives the same [`StoreConnection`] used for sessions
+    /// + PAR so the impl can construct its own stores (e.g. the wallet ↔ upstream PKCE bridge).
+    pub async fn into_authorizing_issuer<PAS, AF, E>(
         self,
         hsm: Option<Pkcs11Hsm>,
         wia_config: Option<WiaConfig>,
-        attr_service: A,
         par_store: impl FnOnce(StoreConnection) -> PAS,
-        pkce_flow_store: impl FnOnce(StoreConnection) -> PKS,
-        upstream_authorization_adapter: UAA,
+        flow: impl FnOnce(StoreConnection) -> Result<AF, E>,
     ) -> Result<
         (
             AuthorizingIssuer<
-                A,
                 PrivateKeyVariant,
                 PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
                 SessionStoreVariant<IssuanceData>,
                 ProofNonceStore,
                 PAS,
-                PKS,
-                UAA,
+                AF,
             >,
             Vec<DatabaseChecker>,
             StoreConnection,
             Settings,
         ),
         IssuerSettingsError,
-    > {
-        let (issuer, database_checkers, store_connection, server_settings) =
-            self.into_issuer(hsm, wia_config, attr_service).await?;
+    >
+    where
+        E: std::error::Error + Send + Sync + 'static,
+    {
+        let (issuer, database_checkers, store_connection, server_settings) = self.into_issuer(hsm, wia_config).await?;
 
         let par_store = Arc::new(par_store(store_connection.clone()));
-        let pkce_flow_store = Arc::new(pkce_flow_store(store_connection.clone()));
+        let flow =
+            flow(store_connection.clone()).map_err(|e| IssuerSettingsError::AuthorizationCodeFlow(Box::new(e)))?;
 
-        let authorizing_issuer = AuthorizingIssuer::new(
-            Arc::new(issuer),
-            par_store,
-            pkce_flow_store,
-            upstream_authorization_adapter,
-        );
+        let authorizing_issuer = AuthorizingIssuer::new(Arc::new(issuer), par_store, flow);
 
         Ok((authorizing_issuer, database_checkers, store_connection, server_settings))
     }

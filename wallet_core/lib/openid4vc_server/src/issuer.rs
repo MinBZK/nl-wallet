@@ -1,5 +1,3 @@
-#![expect(clippy::type_complexity, reason = "AuthorizingIssuer has 8 generic parameters")]
-
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -36,6 +34,7 @@ use openid4vc::TokenErrorCode;
 use openid4vc::authorization::PushedAuthorizationRequest;
 use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::authorization::VciAuthorizationRequest;
+use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
@@ -44,10 +43,8 @@ use openid4vc::credential::CredentialResponses;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::DPOP_NONCE_HEADER_NAME;
 use openid4vc::dpop::Dpop;
-use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
-use openid4vc::issuer::UpstreamAuthorizationAdapter;
 use openid4vc::metadata::issuer_metadata::IssuerMetadata;
 use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
 use openid4vc::nonce::response::NonceResponse;
@@ -63,13 +60,13 @@ use token_status_list::status_list_service::StatusListService;
 use tracing::warn;
 
 /// Axum state for the Issuance Phase router (and the pre-authorized-code `/token` route).
-struct IssuanceState<A, K, L, S, N> {
-    issuer: Arc<Issuer<A, K, L, S, N>>,
+struct IssuanceState<K, L, S, N> {
+    issuer: Arc<Issuer<K, L, S, N>>,
 }
 
 // Implement `Clone` manually, because `#[derive(Clone)]` unnecessarily adds `Clone` bounds on its type parameters,
 // which we don't want.
-impl<A, K, L, S, N> Clone for IssuanceState<A, K, L, S, N> {
+impl<K, L, S, N> Clone for IssuanceState<K, L, S, N> {
     fn clone(&self) -> Self {
         Self {
             issuer: self.issuer.clone(),
@@ -78,13 +75,13 @@ impl<A, K, L, S, N> Clone for IssuanceState<A, K, L, S, N> {
 }
 
 /// Axum state for the Authorization Phase router.
-struct AuthorizationState<A, K, L, S, N, PAS, PKS, UAA> {
-    authorizing_issuer: Arc<AuthorizingIssuer<A, K, L, S, N, PAS, PKS, UAA>>,
+struct AuthorizationState<K, L, S, N, PAS, AF> {
+    authorizing_issuer: Arc<AuthorizingIssuer<K, L, S, N, PAS, AF>>,
 }
 
 // Implement `Clone` manually, because `#[derive(Clone)]` unnecessarily adds `Clone` bounds on its type parameters,
 // which we don't want.
-impl<A, K, L, S, N, PAS, PKS, UAA> Clone for AuthorizationState<A, K, L, S, N, PAS, PKS, UAA> {
+impl<K, L, S, N, PAS, AF> Clone for AuthorizationState<K, L, S, N, PAS, AF> {
     fn clone(&self) -> Self {
         Self {
             authorizing_issuer: self.authorizing_issuer.clone(),
@@ -92,13 +89,12 @@ impl<A, K, L, S, N, PAS, PKS, UAA> Clone for AuthorizationState<A, K, L, S, N, P
     }
 }
 
-/// Issuance Phase endpoints (token / credential / nonce / metadata). Does **not** include
-/// `/issuance/token`; that route is supplied per deployment by either
-/// [`create_authorization_router`] (upstream-OIDC: PKCE bridge + delegate) or
-/// [`create_pre_authorized_token_router`] (pre-authorized-code: no PKCE).
-pub fn create_issuance_router<A, K, L, S, N>(issuer: Arc<Issuer<A, K, L, S, N>>) -> Router
+/// Issuance Phase endpoints (credential / nonce / metadata). Does **not** include the token endpoint;
+/// that route is supplied per deployment by either [`create_authorization_router`] (the AF provisions
+/// issuables for the auth-code flow) or [`create_pre_authorized_token_router`] (pre-authorized-code:
+/// no provisioning, session pre-populated externally).
+pub fn create_issuance_router<K, L, S, N>(issuer: Arc<Issuer<K, L, S, N>>) -> Router
 where
-    A: AttributeService + Send + Sync + 'static,
     K: EcdsaKeySend + Sync + 'static,
     L: StatusListService + Send + Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
@@ -117,10 +113,10 @@ where
 }
 
 /// The pre-authorized-code-grant `/token` route: delegates straight to the inner [`Issuer`]
-/// without any PKCE bridge consumption. Used by deployments that have no upstream OIDC server.
-pub fn create_pre_authorized_token_router<A, K, L, S, N>(issuer: Arc<Issuer<A, K, L, S, N>>) -> Router
+/// without any flow involvement. Used by deployments that pre-populate the session externally
+/// (e.g. via `IssuanceResultHandler`).
+pub fn create_pre_authorized_token_router<K, L, S, N>(issuer: Arc<Issuer<K, L, S, N>>) -> Router
 where
-    A: AttributeService + Send + Sync + 'static,
     K: EcdsaKeySend + Sync + 'static,
     L: Send + Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
@@ -131,21 +127,17 @@ where
         .with_state(IssuanceState { issuer })
 }
 
-/// Authorization Phase endpoints (PAR / authorize / OAuth metadata) plus the upstream-OIDC
-/// `/issuance/token` route, which consumes the wallet ↔ upstream PKCE bridge before delegating
-/// to the inner [`Issuer`].
-pub fn create_authorization_router<A, K, L, S, N, PAS, PKS, UAA>(
-    authorizing_issuer: Arc<AuthorizingIssuer<A, K, L, S, N, PAS, PKS, UAA>>,
+/// Authorization Phase endpoints (par / authorize / token (delegated to AF)).
+pub fn create_authorization_router<K, L, S, N, PAS, AF>(
+    authorizing_issuer: Arc<AuthorizingIssuer<K, L, S, N, PAS, AF>>,
 ) -> Router
 where
-    A: AttributeService + Send + Sync + 'static,
     K: EcdsaKeySend + Sync + 'static,
     L: Send + Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
     N: Send + Sync + 'static,
     PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
-    PKS: Store<String, String> + Send + Sync + 'static,
-    UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
+    AF: AuthorizationCodeFlow + Send + Sync + 'static,
 {
     Router::new()
         .route("/issuance/par", post(pushed_authorization_request))
@@ -154,12 +146,18 @@ where
         .with_state(AuthorizationState { authorizing_issuer })
 }
 
-async fn metadata<A, K, L, S, N>(State(state): State<IssuanceState<A, K, L, S, N>>) -> Json<IssuerMetadata> {
+async fn metadata<K, L, S, N>(State(state): State<IssuanceState<K, L, S, N>>) -> Json<IssuerMetadata> {
     Json(state.issuer.metadata().clone())
 }
 
-async fn credential_preview<A, K, L, S, N>(
-    State(state): State<IssuanceState<A, K, L, S, N>>,
+async fn oauth_metadata<K, L, S, N>(
+    State(state): State<IssuanceState<K, L, S, N>>,
+) -> Json<AuthorizationServerMetadata> {
+    Json(state.issuer.oauth_metadata())
+}
+
+async fn credential_preview<K, L, S, N>(
+    State(state): State<IssuanceState<K, L, S, N>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<Bearer>>,
     Json(preview_request): Json<CredentialPreviewRequest>,
 ) -> Result<Json<CredentialPreviewResponse>, ErrorResponse<CredentialPreviewErrorCode>>
@@ -176,8 +174,8 @@ where
     Ok(Json(response))
 }
 
-async fn nonce<A, K, L, S, N>(
-    State(state): State<IssuanceState<A, K, L, S, N>>,
+async fn nonce<K, L, S, N>(
+    State(state): State<IssuanceState<K, L, S, N>>,
 ) -> Result<(TypedHeader<CacheControl>, Json<NonceResponse>), StatusCode>
 where
     N: NonceStore,
@@ -197,14 +195,13 @@ where
     Ok((header, body))
 }
 
-async fn credential<A, K, L, S, N>(
-    State(state): State<IssuanceState<A, K, L, S, N>>,
+async fn credential<K, L, S, N>(
+    State(state): State<IssuanceState<K, L, S, N>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_request): Json<CredentialRequest>,
 ) -> Result<Json<CredentialResponse>, ErrorResponse<CredentialErrorCode>>
 where
-    A: AttributeService,
     K: EcdsaKeySend,
     L: StatusListService,
     S: SessionStore<IssuanceData>,
@@ -220,14 +217,13 @@ where
     Ok(Json(response))
 }
 
-async fn batch_credential<A, K, L, S, N>(
-    State(state): State<IssuanceState<A, K, L, S, N>>,
+async fn batch_credential<K, L, S, N>(
+    State(state): State<IssuanceState<K, L, S, N>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_requests): Json<CredentialRequests>,
 ) -> Result<Json<CredentialResponses>, ErrorResponse<CredentialErrorCode>>
 where
-    A: AttributeService,
     K: EcdsaKeySend,
     L: StatusListService,
     S: SessionStore<IssuanceData>,
@@ -243,8 +239,8 @@ where
     Ok(Json(response))
 }
 
-async fn reject_issuance<A, K, L, S, N>(
-    State(state): State<IssuanceState<A, K, L, S, N>>,
+async fn reject_issuance<K, L, S, N>(
+    State(state): State<IssuanceState<K, L, S, N>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     uri: Uri,
@@ -253,10 +249,9 @@ where
     S: SessionStore<IssuanceData>,
 {
     // `process_reject_issuance` expects the endpoint name relative to the issuance server_url
-    // (e.g. "credential" or "batch_credential"), which it then joins with that base for DPoP
-    // URL verification. The raw `uri.path()` is `/issuance/credential` here, so strip the
-    // `/issuance/` prefix; the leading-slash-only fallback covers cases where the path is
-    // already nest-relative.
+    // (e.g. "credential" or "batch_credential"), which it joins with that base for DPoP
+    // URL verification. Strip the `/issuance/` prefix; the leading-slash-only fallback covers
+    // the legacy nested-router case where the path is already nest-relative.
     let endpoint_name = uri
         .path()
         .strip_prefix("/issuance/")
@@ -272,13 +267,12 @@ where
     Ok(StatusCode::NO_CONTENT)
 }
 
-async fn token_pre_authorized<A, K, L, S, N>(
-    State(state): State<IssuanceState<A, K, L, S, N>>,
+async fn token_pre_authorized<K, L, S, N>(
+    State(state): State<IssuanceState<K, L, S, N>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Form(token_request): Form<TokenRequest>,
 ) -> Result<(HeaderMap, Json<TokenResponse>), ErrorResponse<TokenErrorCode>>
 where
-    A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
 {
@@ -295,17 +289,8 @@ where
     Ok((headers, Json(response)))
 }
 
-async fn oauth_metadata<A, K, L, S, N>(
-    State(state): State<IssuanceState<A, K, L, S, N>>,
-) -> Json<AuthorizationServerMetadata>
-where
-    A: AttributeService,
-{
-    Json(state.issuer.oauth_metadata())
-}
-
-async fn pushed_authorization_request<A, K, L, S, N, PAS, PKS, UAA>(
-    State(state): State<AuthorizationState<A, K, L, S, N, PAS, PKS, UAA>>,
+async fn pushed_authorization_request<K, L, S, N, PAS, AF>(
+    State(state): State<AuthorizationState<K, L, S, N, PAS, AF>>,
     Form(authorization_request): Form<VciAuthorizationRequest>,
 ) -> Result<(StatusCode, Json<PushedAuthorizationResponse>), ErrorResponse<ParErrorCode>>
 where
@@ -320,14 +305,13 @@ where
     Ok((StatusCode::CREATED, Json(response)))
 }
 
-async fn authorize<A, K, L, S, N, PAS, PKS, UAA>(
-    State(state): State<AuthorizationState<A, K, L, S, N, PAS, PKS, UAA>>,
+async fn authorize<K, L, S, N, PAS, AF>(
+    State(state): State<AuthorizationState<K, L, S, N, PAS, AF>>,
     Query(PushedAuthorizationRequest { request_uri, client_id }): Query<PushedAuthorizationRequest>,
 ) -> Result<Response, ErrorResponse<AuthorizeErrorCode>>
 where
     PAS: Store<String, VciAuthorizationRequest>,
-    PKS: Store<String, String>,
-    UAA: UpstreamAuthorizationAdapter,
+    AF: AuthorizationCodeFlow,
 {
     let redirect_url = state
         .authorizing_issuer
@@ -338,16 +322,15 @@ where
     Ok((StatusCode::FOUND, [(header::LOCATION, redirect_url.to_string())]).into_response())
 }
 
-async fn token<A, K, L, S, N, PAS, PKS, UAA>(
-    State(state): State<AuthorizationState<A, K, L, S, N, PAS, PKS, UAA>>,
+async fn token<K, L, S, N, PAS, AF>(
+    State(state): State<AuthorizationState<K, L, S, N, PAS, AF>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Form(token_request): Form<TokenRequest>,
 ) -> Result<(HeaderMap, Json<TokenResponse>), ErrorResponse<TokenErrorCode>>
 where
-    A: AttributeService,
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
-    PKS: Store<String, String>,
+    AF: AuthorizationCodeFlow,
 {
     let (response, dpop_nonce) = state
         .authorizing_issuer

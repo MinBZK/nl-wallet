@@ -32,7 +32,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
     let hsm_checker = hsm.as_ref().map(HsmChecker::new);
 
     let (issuer, database_checkers, store_connection, server_settings) =
-        settings.issuer_settings.into_issuer(hsm.clone(), None, ()).await?;
+        settings.issuer_settings.into_issuer(hsm.clone(), None).await?;
 
     let issuer = Arc::new(issuer);
 

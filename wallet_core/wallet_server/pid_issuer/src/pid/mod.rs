@@ -1,4 +1,4 @@
-pub mod attributes;
+pub mod auth_code_flow;
 pub mod brp;
 pub mod constants;
 pub mod digid;

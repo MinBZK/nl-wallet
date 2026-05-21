@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::tls_pinned_client_builder;
-use indexmap::IndexSet;
 use jsonwebtoken::Algorithm;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::algorithm::RsaAlgorithm;
@@ -10,11 +9,6 @@ use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweRsaPrivateKey;
 use jwe::error::RsaPrivateJwkError;
 use jwk_simple::Key;
-use jwt::nonce::Nonce;
-use openid4vc::authorization::OidcAuthorizationRequest;
-use openid4vc::authorization::VciAuthorizationRequest;
-use openid4vc::issuer::UpstreamAuthorizationAdapter;
-use openid4vc::issuer::UpstreamResolveError;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::oauth_metadata::OidcProviderMetadata;
 use openid4vc::metadata::well_known;
@@ -81,52 +75,6 @@ impl DigidMetadataCache {
 
     pub fn http_client(&self) -> &HttpJsonClient {
         &self.http_client
-    }
-}
-
-/// Implements [`UpstreamAuthorizationAdapter`] by performing OIDC discovery against the configured
-/// upstream issuer on the first call. The discovery result is cached in the shared
-/// [`DigidMetadataCache`] for the lifetime of the process.
-pub struct DigidAuthorizationAdapter {
-    cache: Arc<DigidMetadataCache>,
-    client_id: String,
-}
-
-impl DigidAuthorizationAdapter {
-    pub fn new(cache: Arc<DigidMetadataCache>, client_id: impl Into<String>) -> Self {
-        Self {
-            cache,
-            client_id: client_id.into(),
-        }
-    }
-}
-
-impl UpstreamAuthorizationAdapter for DigidAuthorizationAdapter {
-    async fn adapt(
-        &self,
-        mut request: VciAuthorizationRequest,
-    ) -> Result<(Url, OidcAuthorizationRequest), UpstreamResolveError> {
-        let metadata = self
-            .cache
-            .metadata()
-            .await
-            .map_err(|e| UpstreamResolveError::Discovery(Box::new(e)))?;
-
-        let authorization_endpoint = metadata
-            .as_ref()
-            .authorization_endpoint
-            .clone()
-            .ok_or(UpstreamResolveError::NoAuthorizationEndpoint)?;
-
-        request.oauth_request.client_id = self.client_id.clone();
-        request.scope = Some(IndexSet::from_iter([String::from("openid")]));
-
-        let oidc_request = OidcAuthorizationRequest {
-            vci_request: request,
-            nonce: Some(Nonce::new_random()),
-        };
-
-        Ok((authorization_endpoint, oidc_request))
     }
 }
 

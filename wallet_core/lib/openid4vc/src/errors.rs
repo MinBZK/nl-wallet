@@ -198,14 +198,11 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
             error: match err {
                 TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
                 | TokenRequestError::AttributesError(_)
-                | TokenRequestError::AttributeService(_)
-                | TokenRequestError::CredentialTypeNotOffered(_, _)
-                | TokenRequestError::PkceStore(_) => TokenErrorCode::ServerError,
+                | TokenRequestError::AuthorizationCodeFlow(_)
+                | TokenRequestError::CredentialTypeNotOffered(_, _) => TokenErrorCode::ServerError,
                 TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
                 TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
-                TokenRequestError::MissingCodeVerifier | TokenRequestError::PkceVerificationFailed => {
-                    TokenErrorCode::InvalidGrant
-                }
+                TokenRequestError::SessionNotFound => TokenErrorCode::InvalidGrant,
             },
             error_description: Some(description),
             error_uri: None,
@@ -259,13 +256,12 @@ impl From<AuthorizeError> for ErrorResponse<AuthorizeErrorCode> {
         ErrorResponse {
             error: match err {
                 AuthorizeError::InvalidClient(_) => AuthorizeErrorCode::InvalidClient,
-                AuthorizeError::UnknownRequestUri(_) | AuthorizeError::UnsupportedCodeChallenge => {
+                AuthorizeError::UnknownRequestUri(_) | AuthorizeError::MissingRedirectUri => {
                     AuthorizeErrorCode::InvalidRequest
                 }
-                AuthorizeError::ParStore(_)
-                | AuthorizeError::PkceStore(_)
-                | AuthorizeError::UpstreamResolve(_)
-                | AuthorizeError::Encode(_) => AuthorizeErrorCode::ServerError,
+                AuthorizeError::ParStore(_) | AuthorizeError::AuthorizationCodeFlow(_) | AuthorizeError::Encode(_) => {
+                    AuthorizeErrorCode::ServerError
+                }
             },
             error_description: Some(description),
             error_uri: None,

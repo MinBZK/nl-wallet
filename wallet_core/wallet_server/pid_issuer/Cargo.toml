@@ -46,6 +46,7 @@ reqwest.workspace = true
 ring.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
+serde_urlencoded.workspace = true
 serde_with = { workspace = true, features = ["base64", "json"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net", "sync"] }

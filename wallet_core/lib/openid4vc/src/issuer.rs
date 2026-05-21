@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::convert::Infallible;
 use std::error::Error as StdError;
 use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
@@ -42,15 +41,12 @@ use token_status_list::status_list_service::StatusListService;
 use tokio::task::AbortHandle;
 use tracing::info;
 use tracing::warn;
-use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
 use crate::Format;
-use crate::authorization::OidcAuthorizationRequest;
-use crate::authorization::VciAuthorizationRequest;
 use crate::credential::Credential;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
@@ -89,7 +85,6 @@ use crate::token::AuthorizationCode;
 use crate::token::CredentialPreview;
 use crate::token::CredentialPreviewContent;
 use crate::token::TokenRequest;
-use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
 
 /// The cleanup task that removes stale sessions runs every so often.
@@ -130,23 +125,17 @@ pub enum TokenRequestError {
         actual: &'static str,
     },
 
-    #[error("failed to get attributes to be issued: {0}")]
-    AttributeService(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("authorization code flow error: {0}")]
+    AuthorizationCodeFlow(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
+    #[error("session not found for the supplied code")]
+    SessionNotFound,
 
     #[error("attributes do not match type metadata: {0}")]
     AttributesError(#[source] AttributesError),
 
     #[error("credential type in format \"{0}\" not offered: {1}")]
     CredentialTypeNotOffered(Format, String),
-
-    #[error("missing code_verifier")]
-    MissingCodeVerifier,
-
-    #[error("consuming PKCE bridge entry failed: {0}")]
-    PkceStore(#[source] Box<dyn StdError + Send + Sync + 'static>),
-
-    #[error("PKCE verification failed")]
-    PkceVerificationFailed,
 }
 
 /// Errors that can occur during processing of a Pushed Authorization Request.
@@ -168,42 +157,17 @@ pub enum AuthorizeError {
     #[error("request_uri not found or expired: {0}")]
     UnknownRequestUri(String),
 
-    #[error("only S256 code_challenge_method is supported")]
-    UnsupportedCodeChallenge,
-
     #[error("consuming PAR request failed: {0}")]
     ParStore(#[source] Box<dyn StdError + Send + Sync + 'static>),
 
-    #[error("storing PKCE bridge entry failed: {0}")]
-    PkceStore(#[source] Box<dyn StdError + Send + Sync + 'static>),
+    #[error("authorization code flow error: {0}")]
+    AuthorizationCodeFlow(#[source] Box<dyn StdError + Send + Sync + 'static>),
 
-    #[error("adapting authorization request for upstream failed: {0}")]
-    UpstreamResolve(#[source] UpstreamResolveError),
+    #[error("the authorization request has no redirect_uri")]
+    MissingRedirectUri,
 
     #[error("encoding authorization request as query string failed: {0}")]
     Encode(#[source] serde_urlencoded::ser::Error),
-}
-
-/// Error returned by [`UpstreamAuthorizationAdapter::adapt`].
-#[derive(Debug, thiserror::Error)]
-pub enum UpstreamResolveError {
-    #[error("upstream metadata discovery failed: {0}")]
-    Discovery(Box<dyn StdError + Send + Sync>),
-
-    #[error("upstream metadata has no authorization_endpoint")]
-    NoAuthorizationEndpoint,
-}
-
-/// Adapts the wallet's authorization request to what the upstream OIDC provider expects.
-///
-/// The implementer resolves the upstream authorization endpoint (e.g. via OIDC discovery)
-/// and rewrites the request.
-#[trait_variant::make(Send)]
-pub trait UpstreamAuthorizationAdapter {
-    async fn adapt(
-        &self,
-        request: VciAuthorizationRequest,
-    ) -> Result<(Url, OidcAuthorizationRequest), UpstreamResolveError>;
 }
 
 /// Errors that can occur during handling of the (batch) credential request.
@@ -300,7 +264,7 @@ pub enum CredentialPreviewError {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
-    pub issuable_documents: Option<VecNonEmpty<IssuableDocument>>,
+    pub issuable_documents: VecNonEmpty<IssuableDocument>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -384,25 +348,7 @@ pub struct Session<S: IssuanceState> {
     pub state: SessionState<S>,
 }
 
-/// Implementations of this trait are responsible for determining the attributes to be issued, given the session and
-/// the token request. See for example the [`BrpPidAttributeService`].
-#[trait_variant::make(Send)]
-pub trait AttributeService {
-    type Error: std::error::Error + Send + Sync + 'static;
-
-    async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error>;
-}
-
-impl AttributeService for () {
-    type Error = Infallible;
-
-    async fn attributes(&self, _: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Infallible> {
-        unimplemented!("() AttributeService does not provide attributes")
-    }
-}
-
-pub struct Issuer<A, K, L, S, N> {
-    attr_service: A,
+pub struct Issuer<K, L, S, N> {
     issuer_data: IssuerData<K, L>,
     sessions: Arc<S>,
     proof_nonce_store: Arc<N>,
@@ -448,7 +394,7 @@ pub struct WiaConfig {
     pub wia_trust_anchors: TrustAnchors,
 }
 
-impl<A, K, L, S, N> Drop for Issuer<A, K, L, S, N> {
+impl<K, L, S, N> Drop for Issuer<K, L, S, N> {
     fn drop(&mut self) {
         // Stop the tasks at the next .await
         self.cleanup_task.abort();
@@ -459,7 +405,7 @@ impl<A, K, L, S, N> Drop for Issuer<A, K, L, S, N> {
     }
 }
 
-impl<A, K, L, S, N> Issuer<A, K, L, S, N> {
+impl<K, L, S, N> Issuer<K, L, S, N> {
     pub fn credential_config_id_by_format_and_attestation_type(
         &self,
         format: Format,
@@ -491,7 +437,7 @@ impl<A, K, L, S, N> Issuer<A, K, L, S, N> {
     }
 }
 
-impl<A, K, L, S, N> Issuer<A, K, L, S, N>
+impl<K, L, S, N> Issuer<K, L, S, N>
 where
     S: SessionStore<IssuanceData> + Sync + 'static,
     N: NonceStore + Sync + 'static,
@@ -504,7 +450,6 @@ where
         wallet_client_ids: Vec<String>,
         credential_config_params: HashMap<CredentialConfigurationId, CredentialConfigurationParameters<K, L>>,
         wia_config: Option<WiaConfig>,
-        attr_service: A,
         sessions: Arc<S>,
         proof_nonce_store: N,
     ) -> Result<Self, CredentialConfigurationsError> {
@@ -575,7 +520,6 @@ where
 
         let issuer = Self {
             issuer_data,
-            attr_service,
             sessions,
             proof_nonce_store,
             cleanup_task,
@@ -592,7 +536,7 @@ fn logged_issuance_result<T, E: std::error::Error>(result: Result<T, E>) -> Resu
         .inspect_err(|error| info!("Issuance error: {error}"))
 }
 
-impl<A, K, L, S, N> Issuer<A, K, L, S, N>
+impl<K, L, S, N> Issuer<K, L, S, N>
 where
     S: SessionStore<IssuanceData>,
 {
@@ -601,17 +545,20 @@ where
         to_issue: VecNonEmpty<IssuableDocument>,
     ) -> Result<SessionToken, SessionStoreError> {
         let token = SessionToken::new_random();
-
-        let session = SessionState::new(
-            token.clone(),
-            IssuanceData::Created(Created {
-                issuable_documents: Some(to_issue),
-            }),
-        );
-
-        self.sessions.write(session, true).await?;
-
+        self.new_session_with_token(token.clone(), to_issue).await?;
         Ok(token)
+    }
+
+    /// Create a session with a caller-supplied [`SessionToken`]. Used by the auth-code-flow
+    /// provisioner (`AuthorizingIssuer`), which keys the session by the wallet-facing
+    /// authorization code so the inner `/token` lookup finds it.
+    pub async fn new_session_with_token(
+        &self,
+        token: SessionToken,
+        issuable_documents: VecNonEmpty<IssuableDocument>,
+    ) -> Result<(), SessionStoreError> {
+        let session = SessionState::new(token, IssuanceData::Created(Created { issuable_documents }));
+        self.sessions.write(session, true).await
     }
 
     async fn get_session(
@@ -628,7 +575,7 @@ where
     }
 }
 
-impl<A, K, L, S, N> Issuer<A, K, L, S, N>
+impl<K, L, S, N> Issuer<K, L, S, N>
 where
     N: NonceStore,
 {
@@ -641,10 +588,7 @@ where
     }
 }
 
-impl<A, K, L, S, N> Issuer<A, K, L, S, N>
-where
-    A: AttributeService,
-{
+impl<K, L, S, N> Issuer<K, L, S, N> {
     pub fn oauth_metadata(&self) -> AuthorizationServerMetadata {
         let issuer_url = self.issuer_data.metadata.credential_issuer.as_base_url();
 
@@ -660,7 +604,7 @@ where
     }
 }
 
-impl<A, K, L, S, N> Issuer<A, K, L, S, N>
+impl<K, L, S, N> Issuer<K, L, S, N>
 where
     S: SessionStore<IssuanceData>,
 {
@@ -740,13 +684,14 @@ where
     }
 }
 
-impl<A, K, L, S, N> Issuer<A, K, L, S, N>
+impl<K, L, S, N> Issuer<K, L, S, N>
 where
-    A: AttributeService,
     K: EcdsaKey,
     S: SessionStore<IssuanceData>,
 {
-    /// Process a token request.
+    /// Process a token request. The issuable documents should already have been preloaded and stored in the session by
+    /// a flow-specific provisioner: `AuthorizingIssuer` for the auth-code flow and `IssuanceResultHandler` for the
+    /// pre-authorized-code flow.
     pub async fn process_token_request(
         &self,
         token_request: TokenRequest,
@@ -754,49 +699,34 @@ where
     ) -> Result<(TokenResponse, String), TokenRequestError> {
         let session_token = token_request.code().clone().into();
 
-        // Retrieve the session from the session store, if present. It need not be, depending on the implementation of
-        // the attribute service.
-        let maybe_session = self
+        let session = self
             .sessions
             .get(&session_token)
             .await
-            .map_err(IssuanceError::SessionStore)?;
-
-        let (is_new_session, session) = match maybe_session {
-            Some(session) => (false, session),
-            None => (
-                true,
-                SessionState::<IssuanceData>::new(
-                    session_token,
-                    IssuanceData::Created(Created {
-                        issuable_documents: None,
-                    }),
-                ),
-            ),
-        };
+            .map_err(IssuanceError::SessionStore)?
+            .ok_or(TokenRequestError::SessionNotFound)?;
 
         let session: Session<Created> = session.try_into().map_err(TokenRequestError::IssuanceError)?;
 
-        let result = session
-            .process_token_request(
-                token_request,
-                &self.issuer_data.accepted_wallet_client_ids,
-                dpop,
-                &self.attr_service,
-                &self.issuer_data.server_url,
-                &self.issuer_data.credential_configs,
-                self.issuer_data.batch_size,
-                is_new_session,
-            )
-            .await;
+        let result = session.process_token_request(
+            &token_request,
+            &self.issuer_data.accepted_wallet_client_ids,
+            dpop,
+            &self.issuer_data.server_url,
+            &self.issuer_data.credential_configs,
+            self.issuer_data.batch_size,
+        );
 
         let (response, next) = match result {
             Ok((response, dpop_nonce, next)) => (Ok((response, dpop_nonce)), next.into()),
-            Err((err, next)) => (Err(err), next.into()),
+            Err(boxed) => {
+                let (err, next) = *boxed;
+                (Err(err), next.into())
+            }
         };
 
         self.sessions
-            .write(next, is_new_session)
+            .write(next, false)
             .await
             .map_err(|e| TokenRequestError::IssuanceError(IssuanceError::SessionStore(e)))?;
 
@@ -804,9 +734,8 @@ where
     }
 }
 
-impl<A, K, L, S, N> Issuer<A, K, L, S, N>
+impl<K, L, S, N> Issuer<K, L, S, N>
 where
-    A: AttributeService,
     K: EcdsaKey,
     L: StatusListService,
     S: SessionStore<IssuanceData>,
@@ -867,7 +796,7 @@ where
     }
 }
 
-impl<A, K, L, S, N> Issuer<A, K, L, S, N>
+impl<K, L, S, N> Issuer<K, L, S, N>
 where
     S: SessionStore<IssuanceData>,
 {
@@ -931,32 +860,25 @@ fn utc_now_truncated_to_days() -> DateTime<Utc> {
         .expect("should never exceed Unix time bounds")
 }
 
+/// Outcome of [`Session<Created>::process_token_request`]: either the access-token response
+/// paired with the `WaitingForResponse` session, or the error paired with the failed session
+/// the framework should persist in its place. The `Err` variant is boxed to keep the size of
+/// the `Result` reasonable.
+type ProcessTokenRequest =
+    Result<(TokenResponse, String, Session<WaitingForResponse>), Box<(TokenRequestError, Session<Done>)>>;
+
 impl Session<Created> {
     #[expect(clippy::too_many_arguments, reason = "Indirect constructor of a session")]
-    async fn process_token_request<K, L>(
+    fn process_token_request<K, L>(
         self,
-        token_request: TokenRequest,
+        token_request: &TokenRequest,
         accepted_wallet_client_ids: &[String],
         dpop: Dpop,
-        attr_service: &impl AttributeService,
         server_url: &BaseUrl,
         credential_configurations: &CredentialConfigurations<K, L>,
         batch_size: NonZeroU8,
-        is_new_session: bool,
-    ) -> Result<(TokenResponse, String, Session<WaitingForResponse>), (TokenRequestError, Session<Done>)> {
-        let result = self
-            .process_token_request_inner(
-                token_request,
-                dpop,
-                attr_service,
-                server_url,
-                credential_configurations,
-                batch_size,
-                is_new_session,
-            )
-            .await;
-
-        match result {
+    ) -> ProcessTokenRequest {
+        match self.try_process_token_request(token_request, dpop, server_url, credential_configurations, batch_size) {
             Ok((token_response, credential_previews, dpop_pubkey, dpop_nonce)) => {
                 let next = self.transition(WaitingForResponse {
                     access_token: token_response.access_token.clone(),
@@ -969,9 +891,39 @@ impl Session<Created> {
             }
             Err(err) => {
                 let next = self.transition_fail(&err);
-                Err((err, next))
+                Err(Box::new((err, next)))
             }
         }
+    }
+
+    /// Verify DPoP, build credential previews from the session's pre-provisioned issuables, and
+    /// generate a fresh access token + DPoP nonce.
+    fn try_process_token_request<K, L>(
+        &self,
+        token_request: &TokenRequest,
+        dpop: Dpop,
+        server_url: &BaseUrl,
+        credential_configurations: &CredentialConfigurations<K, L>,
+        batch_size: NonZeroU8,
+    ) -> Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError> {
+        let dpop_public_key = dpop
+            .verify(&server_url.join("token"), &Method::POST, None)
+            .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
+
+        let code = token_request.code().clone();
+        let issuables = self.session_data().issuable_documents.clone();
+
+        let preview_states = issuables
+            .into_nonempty_iter()
+            .map(|document| {
+                Self::credential_preview_state_for_issuable_document(credential_configurations, document, batch_size)
+            })
+            .collect::<Result<VecNonEmpty<_>, TokenRequestError>>()?;
+
+        let dpop_nonce = random_string(32);
+        let token_response = TokenResponse::new(AccessToken::new(&code));
+
+        Ok((token_response, preview_states, dpop_public_key, dpop_nonce))
     }
 
     fn credential_preview_state_for_issuable_document<K, L>(
@@ -1009,64 +961,6 @@ impl Session<Created> {
         };
 
         Ok(state)
-    }
-
-    #[expect(clippy::too_many_arguments, reason = "Cascading effect because of constructor")]
-    async fn process_token_request_inner<K, L>(
-        &self,
-        token_request: TokenRequest,
-        dpop: Dpop,
-        attr_service: &impl AttributeService,
-        server_url: &BaseUrl,
-        credential_configurations: &CredentialConfigurations<K, L>,
-        batch_size: NonZeroU8,
-        is_new_session: bool,
-    ) -> Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError> {
-        // Pre-populated sessions (e.g. disclosure-based issuance) must use PreAuthorizedCode.
-        // New sessions (authorization code flow) must use AuthorizationCode.
-        match (&token_request.grant_type, is_new_session) {
-            (TokenRequestGrantType::AuthorizationCode { .. }, true)
-            | (TokenRequestGrantType::PreAuthorizedCode { .. }, false) => {}
-            (TokenRequestGrantType::PreAuthorizedCode { .. }, true) => {
-                return Err(TokenRequestError::UnexpectedGrantType {
-                    expected: "authorization_code",
-                    actual: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
-                });
-            }
-            (TokenRequestGrantType::AuthorizationCode { .. }, false) => {
-                return Err(TokenRequestError::UnexpectedGrantType {
-                    expected: "urn:ietf:params:oauth:grant-type:pre-authorized_code",
-                    actual: "authorization_code",
-                });
-            }
-        }
-
-        let dpop_public_key = dpop
-            .verify(&server_url.join("token"), &Method::POST, None)
-            .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
-
-        let code = token_request.code().clone();
-
-        let issuables = match &self.session_data().issuable_documents {
-            Some(docs) => docs.clone(),
-            None => attr_service
-                .attributes(token_request)
-                .await
-                .map_err(|e| TokenRequestError::AttributeService(Box::new(e)))?,
-        };
-
-        let preview_states = issuables
-            .into_nonempty_iter()
-            .map(|document| {
-                Self::credential_preview_state_for_issuable_document(credential_configurations, document, batch_size)
-            })
-            .collect::<Result<VecNonEmpty<_>, TokenRequestError>>()?;
-
-        let dpop_nonce = random_string(32);
-
-        let token_response = TokenResponse::new(AccessToken::new(&code));
-
-        Ok((token_response, preview_states, dpop_public_key, dpop_nonce))
     }
 }
 
@@ -1593,7 +1487,6 @@ mod tests {
     use crate::server_state::MemorySessionStore;
     use crate::server_state::test::memory_session_store_with_mock_time;
     use crate::server_state::test::test_memory_store_with_cleanup_task;
-    use crate::test::MockAttrService;
     use crate::test::MockIssuer;
     use crate::test::mock_issuable_documents;
     use crate::test::setup_mock_issuer;
@@ -1673,9 +1566,6 @@ mod tests {
         let issuer_identifier: IssuerIdentifier = "https://example.com/".parse().unwrap();
         let (issuer, trust_anchor, wia_keypair) = setup_mock_issuer(
             issuer_identifier.clone(),
-            MockAttrService {
-                documents: mock_issuable_documents(NonZeroUsize::MIN),
-            },
             NonZeroUsize::MIN,
             Arc::new(MemorySessionStore::default()),
         );
@@ -1772,6 +1662,17 @@ mod tests {
             token_request: &TokenRequest,
             dpop_header: &Dpop,
         ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError> {
+            // Stand in for the `AuthorizationCodeFlow` provisioner: write a
+            // session keyed by the token request's code with preloaded issuables before invoking
+            // the inner `/token` path (which now requires the session to already exist).
+            self.issuer
+                .new_session_with_token(
+                    token_request.code().clone().into(),
+                    mock_issuable_documents(NonZeroUsize::MIN),
+                )
+                .await
+                .unwrap();
+
             let (token_response, dpop_nonce) = self
                 .issuer
                 .process_token_request(token_request.clone(), dpop_header.clone())
@@ -1939,9 +1840,6 @@ mod tests {
 
         let (issuer, _, _) = setup_mock_issuer(
             "https://example.com/".parse().unwrap(),
-            MockAttrService {
-                documents: documents.clone(),
-            },
             NonZeroUsize::MIN,
             sessions.clone(),
         );

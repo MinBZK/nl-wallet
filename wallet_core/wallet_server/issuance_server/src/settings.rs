@@ -53,7 +53,6 @@ use crate::disclosure::HttpAttributesFetcher;
 use crate::disclosure::IssuanceResultHandler;
 
 pub type IssuanceServerIssuer = Issuer<
-    (),
     PrivateKeyVariant,
     PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
     SessionStoreVariant<IssuanceData>,

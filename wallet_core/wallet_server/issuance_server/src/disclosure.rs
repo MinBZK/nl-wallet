@@ -86,9 +86,9 @@ impl AttributesFetcher for HttpAttributesFetcher {
 
 /// Receives disclosed attributes, exchanges those for attestations to be issued, and creates a new issuance session
 /// by implementing [`DisclosureResultHandler`].
-pub struct IssuanceResultHandler<AF, AS, K, L, S, N> {
+pub struct IssuanceResultHandler<AF, K, L, S, N> {
     pub attributes_fetcher: AF,
-    pub issuer: Arc<Issuer<AS, K, L, S, N>>,
+    pub issuer: Arc<Issuer<K, L, S, N>>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -122,10 +122,9 @@ impl ToPostAuthResponseErrorCode for IssuanceResultHandlerError {
 }
 
 #[async_trait]
-impl<AF, AS, K, L, S, N> DisclosureResultHandler for IssuanceResultHandler<AF, AS, K, L, S, N>
+impl<AF, K, L, S, N> DisclosureResultHandler for IssuanceResultHandler<AF, K, L, S, N>
 where
     AF: AttributesFetcher + Sync,
-    AS: Send + Sync,
     K: Send + Sync,
     L: Send + Sync,
     S: SessionStore<IssuanceData> + Sync,
@@ -297,7 +296,7 @@ mod tests {
         }
     }
 
-    type MockIssuer = Issuer<(), SigningKey, MockStatusListService, MemorySessionStore<IssuanceData>, MemoryNonceStore>;
+    type MockIssuer = Issuer<SigningKey, MockStatusListService, MemorySessionStore<IssuanceData>, MemoryNonceStore>;
 
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -329,7 +328,6 @@ mod tests {
             vec![],
             [("credential_config_id".to_string().into(), config_params)].into(),
             None,
-            (),
             sessions,
             MemoryNonceStore::new(),
         )
@@ -369,7 +367,7 @@ mod tests {
         };
 
         // The session should contain an issuable attestation with our earlier disclosed attestation type.
-        let issuable = session.issuable_documents.as_ref().unwrap().as_ref().first().unwrap();
+        let issuable = session.issuable_documents.as_ref().first().unwrap();
         assert_eq!(issuable.attestation_type, mock_disclosed_type);
     }
 

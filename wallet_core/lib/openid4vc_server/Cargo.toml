@@ -50,6 +50,7 @@ rand_core.workspace = true
 reqwest.workspace = true
 rstest.workspace = true
 serde_urlencoded.workspace = true
+thiserror.workspace = true
 tokio = { workspace = true, features = ["test-util", "macros", "net"] }
 url = { workspace = true, features = ["serde"] }
 

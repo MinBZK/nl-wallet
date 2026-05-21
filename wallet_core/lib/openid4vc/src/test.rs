@@ -31,13 +31,13 @@ use utils::vec_nonempty;
 
 use crate::Format;
 use crate::authorization::VciAuthorizationRequest;
+use crate::authorization_code_flow::AuthorizationCodeFlow;
+use crate::authorization_code_flow::AuthorizeOutcome;
 use crate::authorizing_issuer::AuthorizingIssuer;
 use crate::credential_configurations::CredentialConfigurationParameters;
 use crate::issuable_document::IssuableDocument;
-use crate::issuer::AttributeService;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
-use crate::issuer::UpstreamAuthorizationAdapter;
 use crate::issuer::WiaConfig;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
@@ -50,17 +50,15 @@ pub const MOCK_ATTESTATION_TYPES: [&str; 2] = ["com.example.pid", "com.example.a
 pub const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
 pub type MockIssuer<G = TimeGenerator> =
-    Issuer<MockAttrService, SigningKey, MockStatusListService, MemorySessionStore<IssuanceData, G>, MemoryNonceStore>;
+    Issuer<SigningKey, MockStatusListService, MemorySessionStore<IssuanceData, G>, MemoryNonceStore>;
 
-pub type MockAuthorizingIssuer<G, PAS, PKS, UAA> = AuthorizingIssuer<
-    MockAttrService,
+pub type MockAuthorizingIssuer<G, PAS, AF> = AuthorizingIssuer<
     SigningKey,
     MockStatusListService,
     MemorySessionStore<IssuanceData, G>,
     MemoryNonceStore,
     PAS,
-    PKS,
-    UAA,
+    AF,
 >;
 
 pub fn mock_type_metadata(vct: &str) -> TypeMetadata {
@@ -105,21 +103,31 @@ pub fn mock_issuable_documents(document_count: NonZeroUsize) -> VecNonEmpty<Issu
         .unwrap()
 }
 
-pub struct MockAttrService {
+/// Mock implementation of [`AuthorizationCodeFlow`] returning preconfigured issuables. `authorize`
+/// returns the configured `AuthorizeOutcome` so tests can drive both the redirect and the
+/// immediate-code branches.
+pub struct MockAuthorizationCodeFlow {
+    pub authorize_outcome: AuthorizeOutcome,
     pub documents: VecNonEmpty<IssuableDocument>,
 }
 
-impl AttributeService for MockAttrService {
+impl AuthorizationCodeFlow for MockAuthorizationCodeFlow {
     type Error = std::convert::Infallible;
 
-    async fn attributes(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
+    async fn authorize(&self, _request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error> {
+        Ok(match &self.authorize_outcome {
+            AuthorizeOutcome::RedirectTo(url) => AuthorizeOutcome::RedirectTo(url.clone()),
+            AuthorizeOutcome::IssuedCode(code) => AuthorizeOutcome::IssuedCode(code.clone()),
+        })
+    }
+
+    async fn issuables(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
         Ok(self.documents.clone())
     }
 }
 
 pub fn setup_mock_issuer<G>(
     issuer_identifier: IssuerIdentifier,
-    attr_service: MockAttrService,
     attestation_count: NonZeroUsize,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
 ) -> (MockIssuer<G>, TrustAnchors, KeyPair)
@@ -180,7 +188,6 @@ where
         Some(WiaConfig {
             wia_trust_anchors: trust_anchors.clone(),
         }),
-        attr_service,
         sessions,
         MemoryNonceStore::new(),
     )
@@ -189,35 +196,21 @@ where
     (issuer, trust_anchors, wia_keypair)
 }
 
-#[expect(clippy::too_many_arguments, reason = "Test setup helper")]
-pub fn setup_mock_authorizing_issuer<G, PAS, PKS, UAA>(
+pub fn setup_mock_authorizing_issuer<G, PAS, AF>(
     issuer_identifier: IssuerIdentifier,
-    attr_service: MockAttrService,
     attestation_count: NonZeroUsize,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
     par_store: Arc<PAS>,
-    pkce_flow_store: Arc<PKS>,
-    upstream_authorization_adapter: UAA,
-) -> (
-    MockAuthorizingIssuer<G, PAS, PKS, UAA>,
-    TrustAnchors,
-    KeyPair,
-)
+    flow: AF,
+) -> (MockAuthorizingIssuer<G, PAS, AF>, TrustAnchors, KeyPair)
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
     PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
-    PKS: Store<String, String> + Send + Sync + 'static,
-    UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
+    AF: AuthorizationCodeFlow + Send + Sync + 'static,
 {
-    let (issuer, trust_anchor, wia_keypair) =
-        setup_mock_issuer(issuer_identifier, attr_service, attestation_count, sessions);
+    let (issuer, trust_anchor, wia_keypair) = setup_mock_issuer(issuer_identifier, attestation_count, sessions);
 
-    let authorizing_issuer = AuthorizingIssuer::new(
-        Arc::new(issuer),
-        par_store,
-        pkce_flow_store,
-        upstream_authorization_adapter,
-    );
+    let authorizing_issuer = AuthorizingIssuer::new(Arc::new(issuer), par_store, flow);
 
     (authorizing_issuer, trust_anchor, wia_keypair)
 }

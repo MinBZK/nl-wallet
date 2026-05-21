@@ -5,12 +5,10 @@ use http_utils::health::HealthChecker;
 use http_utils::health::create_health_router;
 use issuer_common::nonce_store::ProofNonceStore;
 use issuer_common::par_store::IssuerParStore;
-use issuer_common::pkce_store::IssuerPkceStore;
 use itertools::Itertools;
+use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
-use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
-use openid4vc::issuer::UpstreamAuthorizationAdapter;
 use openid4vc_server::issuer::create_authorization_router;
 use openid4vc_server::issuer::create_issuance_router;
 use server_utils::keys::PrivateKeyVariant;
@@ -28,26 +26,23 @@ use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
 use utils::vec_at_least::VecNonEmpty;
 
-pub type PidIssuer<A, UAA> = AuthorizingIssuer<
-    A,
+pub type PidIssuer<AF> = AuthorizingIssuer<
     PrivateKeyVariant,
     PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
     SessionStoreVariant<IssuanceData>,
     ProofNonceStore,
     IssuerParStore,
-    IssuerPkceStore,
-    UAA,
+    AF,
 >;
 
-pub async fn serve<A, UAA>(
-    issuer: PidIssuer<A, UAA>,
+pub async fn serve<AF>(
+    issuer: PidIssuer<AF>,
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
 ) -> Result<()>
 where
-    A: AttributeService + Send + Sync + 'static,
-    UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
+    AF: AuthorizationCodeFlow + Send + Sync + 'static,
 {
     serve_with_listeners(
         create_wallet_listener(&server_settings.wallet_server).await?,
@@ -60,17 +55,16 @@ where
     .await
 }
 
-pub async fn serve_with_listeners<A, UAA>(
+pub async fn serve_with_listeners<AF>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
-    issuer: PidIssuer<A, UAA>,
+    issuer: PidIssuer<AF>,
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
 ) -> Result<()>
 where
-    A: AttributeService + Send + Sync + 'static,
-    UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
+    AF: AuthorizationCodeFlow + Send + Sync + 'static,
 {
     let authorizing_issuer = Arc::new(issuer);
 
