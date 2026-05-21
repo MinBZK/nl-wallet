@@ -236,6 +236,28 @@ be set to the same value as the Credential Configuration identifier.</p></li>
 <li><p>Related to the previous change, the <code class="docutils literal notranslate"><span class="pre">IssuerDocument</span></code> the attestation server
 provides in the context of disclosure-based issuance has had the <code class="docutils literal notranslate"><span class="pre">format</span></code>
 field added.</p></li>
+<li><p>The Wallet Instance Attestation (WIA) configuration has changed, reflecting
+a rename from WUA (Wallet Unit Attestation) and the addition of wallet
+metadata fields:</p>
+<ul class="simple">
+<li><p>In the <strong>Wallet Provider</strong> configuration, all <code class="docutils literal notranslate"><span class="pre">wua_*</span></code> fields have been
+renamed to <code class="docutils literal notranslate"><span class="pre">wia_*</span></code>, and the <code class="docutils literal notranslate"><span class="pre">[wua_status_lists]</span></code> section has been renamed
+to <code class="docutils literal notranslate"><span class="pre">[wia_status_list]</span></code>. Additionally:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">wua_issuer_identifier</span></code> has been replaced by four wallet metadata
+fields: <code class="docutils literal notranslate"><span class="pre">wia_wallet_name</span></code>, <code class="docutils literal notranslate"><span class="pre">wia_wallet_version</span></code>,
+<code class="docutils literal notranslate"><span class="pre">wia_wallet_link</span></code> (optional), and
+<code class="docutils literal notranslate"><span class="pre">wia_wallet_solution_certification_information</span></code>.</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">wia_certificate</span></code> field (base64-encoded DER X.509 certificate)
+must now be provided. The WIA JWT is signed using a certificate
+chain (<code class="docutils literal notranslate"><span class="pre">x5c</span></code> header) instead of a bare key.</p></li>
+</ul>
+</li>
+<li><p>In the <strong>PID Issuer</strong> configuration, <code class="docutils literal notranslate"><span class="pre">wua_issuer_pubkey</span></code> has been
+replaced by <code class="docutils literal notranslate"><span class="pre">wia_trust_anchors</span></code>, a list of base64-encoded DER X.509
+CA certificates used to validate WIA tokens.</p></li>
+</ul>
+</li>
 </ul>
 </section>
 <section id="new-features">
