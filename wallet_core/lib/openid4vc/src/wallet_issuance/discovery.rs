@@ -195,6 +195,7 @@ mod test {
     use std::collections::HashMap;
     use std::num::NonZeroU8;
 
+    use assert_matches::assert_matches;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
@@ -463,7 +464,7 @@ mod test {
             .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[])
             .await;
 
-        assert!(matches!(result, Err(WalletIssuanceError::MissingCredentialOfferQuery)));
+        assert_matches!(result, Err(WalletIssuanceError::MissingCredentialOfferQuery));
     }
 
     #[tokio::test]
@@ -475,10 +476,7 @@ mod test {
             .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[])
             .await;
 
-        assert!(matches!(
-            result,
-            Err(WalletIssuanceError::CredentialOfferDeserialization(_))
-        ));
+        assert_matches!(result, Err(WalletIssuanceError::CredentialOfferDeserialization(_)));
     }
 
     #[tokio::test]
@@ -502,7 +500,7 @@ mod test {
             .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[])
             .await;
 
-        assert!(matches!(result, Err(WalletIssuanceError::MissingCredentialOfferGrants)));
+        assert_matches!(result, Err(WalletIssuanceError::MissingCredentialOfferGrants));
     }
 
     #[tokio::test]
@@ -532,10 +530,7 @@ mod test {
             .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[])
             .await;
 
-        assert!(matches!(
-            result,
-            Err(WalletIssuanceError::CredentialOfferTxCodeUnsupported)
-        ));
+        assert_matches!(result, Err(WalletIssuanceError::CredentialOfferTxCodeUnsupported));
     }
 
     #[tokio::test]
@@ -564,9 +559,9 @@ mod test {
             .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[])
             .await;
 
-        assert!(matches!(
+        assert_matches!(
             result,
             Err(WalletIssuanceError::MissingCredentialOfferPreAuthorizedCode)
-        ));
+        );
     }
 }
