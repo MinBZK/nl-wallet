@@ -146,16 +146,25 @@ impl VcMessageClient for HttpVcMessageClient {
                     .header(DPOP_HEADER_NAME, dpop_header.to_string())
                     .form(token_request)
             })
-            .map_err(WalletIssuanceError::from)
+            .map_err(WalletIssuanceError::TokenRequestHttp)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
+
                 if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<ErrorResponse<TokenErrorCode>>().await?;
+                    let error = response
+                        .json::<ErrorResponse<TokenErrorCode>>()
+                        .await
+                        .map_err(WalletIssuanceError::TokenRequestHttp)?;
+
                     Err(WalletIssuanceError::TokenRequest(Box::new(error)))
                 } else {
                     let dpop_nonce = Self::dpop_nonce(&response)?;
-                    let deserialized = response.json::<TokenResponse>().await?;
+                    let deserialized = response
+                        .json::<TokenResponse>()
+                        .await
+                        .map_err(WalletIssuanceError::TokenRequestHttp)?;
+
                     Ok((deserialized, dpop_nonce))
                 }
             })
@@ -172,15 +181,24 @@ impl VcMessageClient for HttpVcMessageClient {
             .post(url.as_ref(), |builder| {
                 builder.bearer_auth(access_token.as_ref()).json(preview_request)
             })
-            .map_err(WalletIssuanceError::from)
+            .map_err(WalletIssuanceError::CredentialPreviewHttp)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
+
                 if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<ErrorResponse<CredentialPreviewErrorCode>>().await?;
-                    Err(WalletIssuanceError::CredentialPreviewRequest(Box::new(error)))
+                    let error = response
+                        .json::<ErrorResponse<CredentialPreviewErrorCode>>()
+                        .await
+                        .map_err(WalletIssuanceError::CredentialPreviewHttp)?;
+
+                    Err(WalletIssuanceError::CredentialPreview(Box::new(error)))
                 } else {
-                    let response = response.json().await?;
+                    let response = response
+                        .json()
+                        .await
+                        .map_err(WalletIssuanceError::CredentialPreviewHttp)?;
+
                     Ok(response)
                 }
             })
@@ -188,10 +206,16 @@ impl VcMessageClient for HttpVcMessageClient {
     }
 
     async fn request_nonce(&self, url: Url) -> Result<(NonceResponse, Option<String>), WalletIssuanceError> {
-        let response = self.http_client.post(url, identity).await?.error_for_status()?;
+        let response = self
+            .http_client
+            .post(url, identity)
+            .await
+            .map_err(WalletIssuanceError::NonceHttp)?
+            .error_for_status()
+            .map_err(WalletIssuanceError::NonceHttp)?;
 
         let dpop_nonce = Self::dpop_nonce(&response)?;
-        let nonce_response = response.json().await?;
+        let nonce_response = response.json().await.map_err(WalletIssuanceError::NonceHttp)?;
 
         Ok((nonce_response, dpop_nonce))
     }
@@ -225,13 +249,18 @@ impl VcMessageClient for HttpVcMessageClient {
                     .header(DPOP_HEADER_NAME, dpop_header)
                     .header(AUTHORIZATION, access_token_header)
             })
-            .map_err(WalletIssuanceError::from)
+            .map_err(WalletIssuanceError::CredentialRejectionHttp)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
+
                 if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<ErrorResponse<CredentialErrorCode>>().await?;
-                    Err(WalletIssuanceError::CredentialRequest(Box::new(error)))
+                    let error = response
+                        .json::<ErrorResponse<CredentialErrorCode>>()
+                        .await
+                        .map_err(WalletIssuanceError::CredentialRejectionHttp)?;
+
+                    Err(WalletIssuanceError::CredentialRejection(Box::new(error)))
                 } else {
                     Ok(())
                 }
@@ -256,15 +285,24 @@ impl HttpVcMessageClient {
                     .header(AUTHORIZATION, access_token_header)
                     .json(request)
             })
-            .map_err(WalletIssuanceError::from)
+            .map_err(WalletIssuanceError::CredentialRequestHttp)
             .and_then(|response| async {
                 // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
                 let status = response.status();
+
                 if status.is_client_error() || status.is_server_error() {
-                    let error = response.json::<ErrorResponse<CredentialErrorCode>>().await?;
+                    let error = response
+                        .json::<ErrorResponse<CredentialErrorCode>>()
+                        .await
+                        .map_err(WalletIssuanceError::CredentialRequestHttp)?;
+
                     Err(WalletIssuanceError::CredentialRequest(Box::new(error)))
                 } else {
-                    let response = response.json().await?;
+                    let response = response
+                        .json()
+                        .await
+                        .map_err(WalletIssuanceError::CredentialRequestHttp)?;
+
                     Ok(response)
                 }
             })
@@ -395,7 +433,8 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         let issuer_registration = credential_previews
             .iter()
             .map(|preview| preview.issuer_registration())
-            .collect::<Result<Vec<_>, _>>()?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(WalletIssuanceError::CredentialPreviewVerification)?
             .iter()
             .single_unique()
             .map_err(WalletIssuanceError::DifferentIssuerRegistrations)?
@@ -406,7 +445,9 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .into_iter()
             .map(|preview| {
                 // Verify the issuer certificate against the trust anchors.
-                preview.verify(trust_anchors)?;
+                preview
+                    .verify(trust_anchors)
+                    .map_err(WalletIssuanceError::CredentialPreviewVerification)?;
                 let state = NormalizedCredentialPreview::try_new(preview)?;
                 Ok::<_, WalletIssuanceError>(state)
             })
@@ -1066,7 +1107,7 @@ mod tests {
 
         assert_matches!(
             error,
-            WalletIssuanceError::CredentialPreview(CredentialPreviewError::Certificate(
+            WalletIssuanceError::CredentialPreviewVerification(CredentialPreviewError::Certificate(
                 CertificateError::Verification(_)
             ))
         );

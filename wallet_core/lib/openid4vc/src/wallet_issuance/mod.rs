@@ -56,10 +56,6 @@ pub enum WalletIssuanceError {
     #[error("JWT error: {0}")]
     Jwt(#[from] JwtError),
 
-    #[error("http request failed: {0}")]
-    #[category(expected)]
-    Network(#[from] reqwest::Error),
-
     #[error("missing c_nonce")]
     #[category(critical)]
     MissingNonce,
@@ -86,13 +82,45 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     AttributesVerification(#[from] AttributesError),
 
-    #[error("error requesting access token: {0:?}")]
+    #[error("could not push authorization request to server: {0:?}")]
+    #[category(expected)]
+    ParHttp(#[source] reqwest::Error),
+
+    #[error("could not retrieve access token from issuer: {0:?}")]
+    #[category(expected)]
+    TokenRequestHttp(#[source] reqwest::Error),
+
+    #[error("retrieving access token from issuer reported an error: {0:?}")]
     #[category(pd)]
     TokenRequest(Box<ErrorResponse<TokenErrorCode>>),
 
-    #[error("error requesting credentials: {0:?}")]
+    #[error("could not retrieve credential preview from issuer: {0:?}")]
+    #[category(expected)]
+    CredentialPreviewHttp(#[source] reqwest::Error),
+
+    #[error("retrieving credential preview from issuer reported an error: {0:?}")]
+    #[category(pd)]
+    CredentialPreview(Box<ErrorResponse<CredentialPreviewErrorCode>>),
+
+    #[error("could not retrieve nonce from issuer: {0:?}")]
+    #[category(expected)]
+    NonceHttp(#[source] reqwest::Error),
+
+    #[error("could not retrieve credential(s) from issuer: {0:?}")]
+    #[category(expected)]
+    CredentialRequestHttp(#[source] reqwest::Error),
+
+    #[error("retrieving credential(s) from issuer reported an error: {0:?}")]
     #[category(pd)]
     CredentialRequest(Box<ErrorResponse<CredentialErrorCode>>),
+
+    #[error("could not reject credential(s) from issuer: {0:?}")]
+    #[category(expected)]
+    CredentialRejectionHttp(#[source] reqwest::Error),
+
+    #[error("rejecting credential(s) from issuer reported an error: {0:?}")]
+    #[category(pd)]
+    CredentialRejection(Box<ErrorResponse<CredentialErrorCode>>),
 
     #[error("generating credential private keys failed: {0}")]
     #[category(pd)]
@@ -123,7 +151,7 @@ pub enum WalletIssuanceError {
     HeaderToStr(#[from] ToStrError),
 
     #[error("error verifying credential preview: {0}")]
-    CredentialPreview(#[from] CredentialPreviewError),
+    CredentialPreviewVerification(#[source] CredentialPreviewError),
 
     #[error("error retrieving issuer certificate from issued mdoc: {0}")]
     IssuerCertificate(#[source] CoseError),
@@ -166,10 +194,6 @@ pub enum WalletIssuanceError {
     #[error("issuer has no nonce endpoint, yet one of the credential configurations require cryptographic binding")]
     #[category(critical)]
     NoNonceEndpoint,
-
-    #[error("error requesting credential preview: {0:?}")]
-    #[category(pd)]
-    CredentialPreviewRequest(Box<ErrorResponse<CredentialPreviewErrorCode>>),
 
     #[error("malformed attribute: random too short (was {0}; minimum {1}")]
     #[category(critical)]

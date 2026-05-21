@@ -118,18 +118,18 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         let response = http_client
             .post(par_endpoint.as_str(), |builder| builder.form(&par_request))
             .await
-            .map_err(WalletIssuanceError::Network)?;
+            .map_err(WalletIssuanceError::ParHttp)?;
 
         let par_response = if response.status().is_success() {
             response
                 .json::<PushedAuthorizationResponse>()
                 .await
-                .map_err(WalletIssuanceError::Network)?
+                .map_err(WalletIssuanceError::ParHttp)?
         } else {
             let error = response
                 .json::<ErrorResponse<ParErrorCode>>()
                 .await
-                .map_err(WalletIssuanceError::Network)?;
+                .map_err(WalletIssuanceError::ParHttp)?;
             return Err(OAuthError::PushedAuthorizationRequest(Box::new(error)).into());
         };
 

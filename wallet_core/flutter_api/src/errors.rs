@@ -273,7 +273,11 @@ impl FlutterApiErrorFields for IssuanceError {
                 FlutterApiErrorType::RedirectUri
             }
             IssuanceError::IssuanceSession(WalletIssuanceError::TokenRequest(_))
-            | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(_)) => FlutterApiErrorType::Server,
+            | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialPreview(_))
+            | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(_))
+            | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRejection(_)) => {
+                FlutterApiErrorType::Server
+            }
             IssuanceError::AttestationPreview(_)
             | IssuanceError::Attestation { .. }
             | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
