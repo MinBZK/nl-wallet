@@ -39,6 +39,10 @@ impl CredentialOfferContainer {
             credential_offer: Box::new(credential_offer),
         }
     }
+
+    pub fn new_uri(credential_offer_uri: BaseUrl) -> Self {
+        Self::Uri { credential_offer_uri }
+    }
 }
 
 /// An OpenID4VCI Credential Offer, which is the starting point for issuance. It contains information needed for the

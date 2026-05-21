@@ -225,6 +225,10 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     CredentialOfferDeserialization(#[source] serde_urlencoded::de::Error),
 
+    #[error("could not retrieve credential offer from issuer: {0:?}")]
+    #[category(expected)]
+    CredentialOfferHttp(#[source] reqwest::Error),
+
     #[error("no grants found in Credential Offer")]
     #[category(critical)]
     MissingCredentialOfferGrants,
