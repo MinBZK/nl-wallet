@@ -205,6 +205,10 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     MissingCredentialOfferGrants,
 
+    #[error("a Credential Offer containing a Pre-Authorized code with a Transaction Code is unsupported")]
+    #[category(critical)]
+    CredentialOfferTxCodeUnsupported,
+
     // TODO (PVW-5832): Remove when implementing CredentialOffer Authorization Code flow.
     #[error("no Pre-Authorized Code found in Credential Offer")]
     #[category(critical)]

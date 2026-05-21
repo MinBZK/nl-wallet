@@ -140,6 +140,10 @@ impl HttpIssuanceDiscovery {
                 pre_authorized_code, ..
             }
             | Grants::PreAuthorizedCode { pre_authorized_code } => {
+                if pre_authorized_code.tx_code.is_some() {
+                    return Err(WalletIssuanceError::CredentialOfferTxCodeUnsupported);
+                }
+
                 let flow = CredentialOfferFlow::PreAuthorizedCode {
                     pre_authorized_code: pre_authorized_code.pre_authorized_code,
                 };
@@ -218,7 +222,9 @@ mod test {
     use crate::credential_offer::CredentialOffer;
     use crate::credential_offer::CredentialOfferContainer;
     use crate::credential_offer::GrantAuthorizationCode;
+    use crate::credential_offer::GrantPreAuthorizedCode;
     use crate::credential_offer::Grants;
+    use crate::credential_offer::PreAuthTransactionCode;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::preview::CredentialPreviewResponse;
@@ -495,6 +501,36 @@ mod test {
             .await;
 
         assert!(matches!(result, Err(WalletIssuanceError::MissingCredentialOfferGrants)));
+    }
+
+    #[tokio::test]
+    async fn pre_authorized_code_flow_credential_offer_tx_code() {
+        // Construct a Pre-Authorized Code Credential Offer with a Transaction Code.
+        let credential_offer = CredentialOffer {
+            credential_issuer: "https://example.com".parse().unwrap(),
+            credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            grants: Some(Grants::PreAuthorizedCode {
+                pre_authorized_code: GrantPreAuthorizedCode {
+                    pre_authorized_code: "code".to_string().into(),
+                    tx_code: Some(PreAuthTransactionCode::default()),
+                    authorization_server: None,
+                },
+            }),
+        };
+        let offer_container = CredentialOfferContainer::new_offer(credential_offer);
+        let query = serde_urlencoded::to_string(&offer_container).unwrap();
+        let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
+
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap());
+
+        let result = discovery
+            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[])
+            .await;
+
+        assert!(matches!(
+            result,
+            Err(WalletIssuanceError::CredentialOfferTxCodeUnsupported)
+        ));
     }
 
     #[tokio::test]
