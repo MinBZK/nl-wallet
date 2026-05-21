@@ -19,11 +19,29 @@ pin_public_disclosure_protection_key_identifier = "pin_public_disclosure_protect
 # Identifier for key used to generate revocation code HMACs that are stored in the database
 revocation_code_key_identifier = "revocation_code_key"
 
-# Identifier for key used to issue WUAs to wallets
-wua_signing_key_identifier = "wua_signing_key"
+# Identifier for key used to issue WIAs to wallets
+wia_signing_key_identifier = "wia_signing_key"
 
-# Identifier for the WUA issuer.
-wua_issuer_identifier = "wua-issuer.example.com"
+# Number of days a WIA remains valid for status tracking purposes
+# wia_status_tracking_validity_in_days = 365
+
+# Certificate with which the WIA is signed
+wia_certificate = "MIIBlDCC..."
+
+# How long the revocation status of the WIA is tracked and published
+# wia_status_tracking_validity_in_days = 365
+
+# Human-readable name of the wallet solution
+# wia_wallet_name = "NL Wallet"
+
+# URL linking to the wallet solution (optional)
+# wia_wallet_link = "https://wallet.edi.rijksoverheid.nl"
+
+# Version of the wallet solution
+wia_wallet_version = "1.0.0"
+
+# Certification information for the wallet solution
+# wia_wallet_solution_certification_information = "https://wallet.edi.rijksoverheid.nl"
 
 # Delay in seconds for background job that refreshes flags
 # flags_refresh_delay_in_seconds = 300
@@ -38,8 +56,8 @@ wua_issuer_identifier = "wua-issuer.example.com"
 [recovery_code_paths]
 "urn:eudi:pid:nl:1" = ["recovery_code"]
 
-# Status List configuration for the WUA
-[wua_status_lists]
+# Status List configuration for the WIA
+[wia_status_list]
 # Base URL for the Status List Claims
 base_url = "http://cdn.example.com/tsl"
 # Directory to publish the Status List Tokens

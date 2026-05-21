@@ -4,7 +4,7 @@ issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 
 brp_server = 'http://${SERVICES_HOST}:${BRP_SERVER_PORT}'
 
-wua_issuer_pubkey = "${WP_WUA_PUBLIC_KEY}"
+wia_trust_anchors = ["${WIA_CA_CRT}"]
 metadata = [
     "${ISSUER_METADATA_PID_PATH}",
     "${ISSUER_METADATA_PID_NL_PATH}",

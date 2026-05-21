@@ -8,6 +8,8 @@ use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteWscd as DisclosureMockRemoteWscd;
 use crypto::mock_remote::MockRemoteWscdError;
 use crypto::p256_der::verifying_key_sha256;
+use crypto::server_keys::KeyPair;
+use crypto::server_keys::generate::Ca;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
@@ -17,8 +19,10 @@ use itertools::Itertools;
 use jwt::SignedJwt;
 use jwt::nonce::Nonce;
 use jwt::pop::JwtPopClaims;
+use jwt::wia::ClientStatus;
 use jwt::wia::WiaClaims;
 use jwt::wia::WiaDisclosure;
+use jwt::wia::WiaWalletInfo;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
@@ -39,7 +43,7 @@ pub const MOCK_WALLET_CLIENT_ID: &str = "mock_wallet_client_id";
 #[derive(Debug)]
 pub struct MockRemoteWscd {
     pub disclosure: DisclosureMockRemoteWscd,
-    wia_signing_key: Option<SigningKey>,
+    wia_keypair: Option<KeyPair>,
 }
 
 impl MockRemoteWscd {
@@ -52,13 +56,13 @@ impl MockRemoteWscd {
     fn new_signing_keys(signing_keys: HashMap<String, SigningKey>) -> Self {
         Self {
             disclosure: DisclosureMockRemoteWscd::new_signing_keys(signing_keys),
-            wia_signing_key: None,
+            wia_keypair: None,
         }
     }
 
-    pub fn new_with_wia_signing_key(wia_signing_key: SigningKey) -> Self {
+    pub fn new_with_wia_keypair(wia_keypair: KeyPair) -> Self {
         Self {
-            wia_signing_key: Some(wia_signing_key),
+            wia_keypair: Some(wia_keypair),
             ..Default::default()
         }
     }
@@ -175,18 +179,27 @@ impl IssuanceWscd for MockRemoteWscd {
         let wia_key = SigningKey::random(&mut OsRng);
         let wia_key = MockRemoteEcdsaKey::new(verifying_key_sha256(wia_key.verifying_key()), wia_key);
 
-        // If no WIA signing key is configured, just use the WIA's private key to sign it
-        let wia_signing_key = self.wia_signing_key.as_ref().unwrap_or(&wia_key.key);
+        let wia_keypair = self
+            .wia_keypair
+            .clone()
+            .unwrap_or_else(|| Ca::generate_issuer_mock_ca().unwrap().generate_wia_mock().unwrap());
 
-        let wia = SignedJwt::sign(
+        let exp = Utc::now() + Duration::from_secs(600);
+
+        let wia = SignedJwt::sign_with_certificate(
             &WiaClaims::new(
                 wia_key.verifying_key(),
+                wia_keypair.certificate().common_name().unwrap().unwrap().to_string(),
                 MOCK_WALLET_CLIENT_ID.to_string(),
-                Utc::now() + Duration::from_secs(600),
-                StatusClaim::new_mock(),
+                exp.into(),
+                WiaWalletInfo::new_mock(),
+                ClientStatus {
+                    status: StatusClaim::new_mock(),
+                    exp: exp.into(),
+                },
             )
             .unwrap(),
-            wia_signing_key,
+            &wia_keypair,
         )
         .now_or_never()
         .unwrap()

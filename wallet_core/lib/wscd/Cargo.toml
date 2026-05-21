@@ -14,7 +14,7 @@ doctest = false
 # Include examples from the ISO specification
 examples = ["crypto/examples"]
 # Include MockRemoteEcdsaKey type and MockRemoteWscd implementation of Wscd for testing
-mock = ["dep:parking_lot", "dep:rand_core", "chrono/now", "attestation_types/mock", "crypto/mock"]
+mock = ["dep:parking_lot", "dep:rand_core", "chrono/now", "attestation_types/mock", "crypto/mock", "jwt/mock"]
 
 [dependencies]
 derive_more = { workspace = true, features = ["as_ref", "from", "constructor"] }
@@ -44,3 +44,4 @@ tokio = { workspace = true, features = ["macros"] }
 
 attestation_types = { path = "../attestation_types", features = ["mock"] }
 crypto = { path = "../crypto", features = ["mock"] }
+jwt = { path = "../jwt", features = ["mock"] }

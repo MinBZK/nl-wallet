@@ -113,12 +113,16 @@ spec:
             - name: WALLET_PROVIDER__REVOKE_SOLUTION_ENABLED
               value: {{ .Values.revokeSolutionEnabled | quote }}
 
-            - name: WALLET_PROVIDER__WUA_STATUS_LIST__BASE_URL
-              value: {{ .Values.wuaStatusList.baseUrl }}
-            - name: WALLET_PROVIDER__WUA_STATUS_LIST__PUBLISH_DIR
+            - name: WALLET_PROVIDER__WIA_CERTIFICATE
+              value: {{ .Values.wiaCertificate }}
+            - name: WALLET_PROVIDER__WIA_WALLET_VERSION
+              value: {{ .Values.wiaWalletVersion }}
+            - name: WALLET_PROVIDER__WIA_STATUS_LIST__BASE_URL
+              value: {{ .Values.wiaStatusList.baseUrl }}
+            - name: WALLET_PROVIDER__WIA_STATUS_LIST__PUBLISH_DIR
               value: "/status-lists"
-            - name: WALLET_PROVIDER__WUA_STATUS_LIST__KEY_CERTIFICATE
-              value: {{ .Values.wuaStatusList.certificate }}
+            - name: WALLET_PROVIDER__WIA_STATUS_LIST__KEY_CERTIFICATE
+              value: {{ .Values.wiaStatusList.certificate }}
 
             - name: WALLET_PROVIDER__STRUCTURED_LOGGING
               value: "true"
@@ -142,7 +146,7 @@ spec:
               subPath: wallet_provider.toml
             - name: status-lists
               mountPath: /status-lists
-              subPath: {{ .Values.wuaStatusList.volumeClaimPath  }}
+              subPath: {{ .Values.wiaStatusList.volumeClaimPath  }}
 
       initContainers:
         - name: {{ include "common.names.fullname" . }}-log
@@ -178,4 +182,4 @@ spec:
             name: {{ include "common.names.fullname" . }}
         - name: status-lists
           persistentVolumeClaim:
-            claimName: {{ .Values.wuaStatusList.volumeClaimName }}
+            claimName: {{ .Values.wiaStatusList.volumeClaimName }}

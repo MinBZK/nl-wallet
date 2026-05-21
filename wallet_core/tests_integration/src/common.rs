@@ -873,7 +873,7 @@ where
     let serve_status_lists = settings.issuer_settings.status_lists.serve;
 
     let wia_config = WiaConfig {
-        wia_issuer_pubkey: (&settings.wua_issuer_pubkey.into_inner()).into(),
+        wia_trust_anchors: settings.wia_trust_anchors,
     };
 
     let (issuer, _, _, server_settings) = settings

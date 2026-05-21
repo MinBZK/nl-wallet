@@ -317,6 +317,7 @@ async fn test_wia_status() {
             .dangerous_parse_unverified()
             .unwrap()
             .1
+            .client_status
             .status,
         StatusClaim::StatusList(_)
     ));

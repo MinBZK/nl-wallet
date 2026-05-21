@@ -88,8 +88,8 @@ pub struct AccountServerConfiguration {
     #[serde_as(as = "Base64")]
     pub instruction_result_public_key: DerVerifyingKey,
     #[debug(skip)]
-    #[serde_as(as = "Base64")]
-    pub wua_public_key: DerVerifyingKey,
+    #[serde_as(as = "Vec<Base64>")]
+    pub wia_trust_anchors: Vec<BorrowingTrustAnchor>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

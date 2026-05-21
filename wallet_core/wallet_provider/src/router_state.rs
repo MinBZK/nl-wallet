@@ -2,11 +2,12 @@ use std::error::Error;
 
 use android_attest::root_public_key::RootPublicKey;
 use audit_log::model::PostgresAuditLog;
-use chrono::Days;
 use chrono::Duration;
 use crypto::keys::EcdsaKey;
+use crypto::server_keys::KeyPair;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::Pkcs11Hsm;
+use jwt::wia::WiaWalletInfo;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use status_lists::postgres::PostgresStatusListService;
@@ -16,6 +17,7 @@ use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::generator::UuidV4AndTimeGenerator;
 use uuid::Uuid;
+use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
@@ -147,7 +149,11 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         let status_list_service = PostgresStatusListService::try_new(
             WIA_ATTESTATION_TYPE_IDENTIFIER,
             db.to_connection(),
-            settings.wua_status_list.into_config(wallet_user_hsm.clone()).await?,
+            settings
+                .wia_settings
+                .wia_status_list
+                .into_config(wallet_user_hsm.clone())
+                .await?,
             flags.clone(),
         )
         .await?;
@@ -166,10 +172,25 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         );
 
         let wia_issuer = HsmWiaIssuer::new(
-            HsmEcdsaKey::new(settings.wua_signing_key_identifier, wallet_user_hsm.clone()),
-            settings.wua_issuer_identifier,
+            KeyPair::new(
+                HsmEcdsaKey::new(
+                    settings.wia_settings.wia_signing_key_identifier,
+                    wallet_user_hsm.clone(),
+                ),
+                settings.wia_settings.wia_certificate,
+            )
+            .await?,
+            NL_WALLET_CLIENT_ID.to_string(),
             wallet_user_hsm.clone(),
             settings.attestation_wrapping_key_identifier.clone(),
+            WiaWalletInfo {
+                wallet_name: settings.wia_settings.wia_wallet_name,
+                wallet_link: settings.wia_settings.wia_wallet_link,
+                wallet_version: settings.wia_settings.wia_wallet_version,
+                wallet_solution_certification_information: settings
+                    .wia_settings
+                    .wia_wallet_solution_certification_information,
+            },
         );
 
         let state = RouterState {
@@ -184,7 +205,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 flags,
                 wallet_user_hsm,
                 wia_issuer,
-                wia_validity: Days::new(settings.wua_valid_days),
+                wia_status_tracking_validity: settings.wia_settings.wia_status_tracking_validity,
                 wrapping_key_identifier: settings.attestation_wrapping_key_identifier,
                 pid_issuer_trust_anchors: settings.pid_issuer_trust_anchors,
                 status_list_service,

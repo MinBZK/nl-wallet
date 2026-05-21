@@ -356,6 +356,7 @@ pub mod generate {
         pub const ISSUANCE_CA_CN: &str = "ca.issuer.example.com";
         pub const ISSUANCE_CERT_CN: &str = "cert.issuer.example.com";
         pub const PID_ISSUER_CERT_CN: &str = "pid.example.com";
+        pub const WIA_CERT_CN: &str = "wia.example.com";
 
         pub const RP_CA_CN: &str = "ca.rp.example.com";
         pub const RP_CERT_CN: &str = "cert.rp.example.com";
@@ -385,6 +386,10 @@ pub mod generate {
 
             pub fn generate_issuer_mock(&self) -> Result<KeyPair, CertificateError> {
                 self.generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+            }
+
+            pub fn generate_wia_mock(&self) -> Result<KeyPair, CertificateError> {
+                self.generate_key_pair(WIA_CERT_CN, CertificateUsage::Wia, Default::default())
             }
 
             pub fn generate_reader_mock(&self) -> Result<KeyPair, CertificateError> {

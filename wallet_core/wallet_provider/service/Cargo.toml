@@ -44,6 +44,7 @@ mock = [
     "attestation_types/test_pid_constants",
     "crypto/generate",
     "crypto/mock_secure_keys",
+    "jwt/mock",
     "mock_play_integrity",
     "platform_support/mock_attested_key_apple",
     "sd_jwt/examples",
@@ -129,7 +130,7 @@ attestation_data = { path = "../../lib/attestation_data", features = ["mock", "g
 attestation_types = { path = "../../lib/attestation_types", features = ["test_pid_constants"] }
 audit_log = { path = "../audit_log", features = ["mock"] }
 crypto = { path = "../../lib/crypto", features = ["mock_secure_keys"] }
-jwt = { path = "../../lib/jwt", features = ["test"] }
+jwt = { path = "../../lib/jwt", features = ["test", "mock"] }
 platform_support = { path = "../../wallet/platform_support", features = ["mock_attested_key_apple"] }
 sd_jwt = { path = "../../lib/sd_jwt", features = ["examples"] }
 token_status_list = { path = "../../lib/token_status_list", features = ["mock"] }

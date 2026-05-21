@@ -311,15 +311,23 @@ fi
 ISSUER_CA_CRT=$(< "${TARGET_DIR}/ca.issuer.crt.der" ${BASE64})
 export ISSUER_CA_CRT
 
-# Generate key for WUA signing
-generate_wp_signing_key wua_signing
-WP_WUA_PUBLIC_KEY=$(< "${TARGET_DIR}/wallet_provider/wua_signing.pub.der" ${BASE64})
-export WP_WUA_PUBLIC_KEY
+# Generate root CA and certificate for WIA
+if [[ ! -f "${TARGET_DIR}/ca.wia.key.pem" ]]; then
+    generate_wia_root_ca
+else
+    echo -e "${INFO}Target file '${TARGET_DIR}/ca.wia.key.pem' already exists, not (re-)generating issuer root CA"
+fi
+WIA_CA_CRT=$(< "${TARGET_DIR}/ca.wia.crt.der" ${BASE64})
+export WIA_CA_CRT
 
-# Generate key for WUA tsl
+generate_wia_key_pair
+WP_WIA_CERTIFICATE=$(< "${TARGET_DIR}/wallet_provider/wia_signing_key.crt.der" ${BASE64})
+export WP_WIA_CERTIFICATE
+
+# Generate key for WIA tsl
 generate_wallet_provider_tsl_key_pair
-WUA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/wua_tsl.crt.der" ${BASE64})
-export WUA_TSL_CRT
+WIA_TSL_CRT=$(< "${TARGET_DIR}/wallet_provider/wia_tsl.crt.der" ${BASE64})
+export WIA_TSL_CRT
 
 # Generate pid issuer key and cert
 generate_pid_issuer_key_pair
@@ -559,6 +567,9 @@ ANDROID_ROOT_RSA_PUBKEY=$(openssl rsa -pubin -in "${SCRIPTS_DIR}/../wallet_core/
 export ANDROID_ROOT_RSA_PUBKEY
 ANDROID_ROOT_EC_PUBKEY=$(openssl ec -pubin -in "${SCRIPTS_DIR}/../wallet_core/lib/android_attest/assets/google_hardware_attestation_root_ec_pubkey.pem" -outform DER | ${BASE64})
 export ANDROID_ROOT_EC_PUBKEY
+
+WALLET_VERSION=$(grep '^version:' "${BASE_DIR}/wallet_app/pubspec.yaml" | awk '{print $2}')
+export WALLET_VERSION
 
 render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_provider.toml"
 render_template "${DEVENV}/wallet_provider.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_provider.toml"

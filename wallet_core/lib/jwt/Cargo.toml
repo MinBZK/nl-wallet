@@ -12,6 +12,7 @@ doctest = false
 
 [features]
 test = []
+mock = []
 
 [dependencies]
 base64.workspace = true
@@ -30,6 +31,7 @@ tracing.workspace = true
 attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
 error_category.path = "../error_category"
+http_utils.path = "../http_utils"
 utils.path = "../utils"
 
 [dev-dependencies]
@@ -40,5 +42,6 @@ rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 tokio-test.workspace = true
 
+attestation_types = { path = "../attestation_types", features = ["mock"] }
 crypto = { path = "../crypto", features = ["generate", "mock", "mock_secure_keys"] }
 utils.path = "../utils"

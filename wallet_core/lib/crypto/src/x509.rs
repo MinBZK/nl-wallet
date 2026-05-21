@@ -65,6 +65,7 @@ pub enum CertificateUsage {
     Mdl,
     ReaderAuth,
     OAuthStatusSigning,
+    Wia,
 }
 
 #[rustfmt::skip]
@@ -76,6 +77,8 @@ mod extended_key_usage_oid {
     pub const EXTENDED_KEY_USAGE_READER_AUTH: &Oid = &oid!(1.0.18013.5.1.6);
     // The .127 is made up, the real child node is TDB
     pub const EXTENDED_KEY_USAGE_TSL: &Oid = &oid!(1.3.6.1.5.5.7.3.127);
+    // The .128 is made up, the real child node is TBD
+    pub const EXTENDED_KEY_USAGE_WIA: &Oid = &oid!(1.3.6.1.5.5.7.3.128);
 }
 
 impl CertificateUsage {
@@ -113,6 +116,7 @@ impl CertificateUsage {
             CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
             CertificateUsage::ReaderAuth => EXTENDED_KEY_USAGE_READER_AUTH,
             CertificateUsage::OAuthStatusSigning => EXTENDED_KEY_USAGE_TSL,
+            CertificateUsage::Wia => EXTENDED_KEY_USAGE_WIA,
         }
         .as_bytes()
     }

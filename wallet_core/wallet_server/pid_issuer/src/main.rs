@@ -33,7 +33,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     let hsm_checker = hsm.as_ref().map(HsmChecker::new);
 
     let wia_config = WiaConfig {
-        wia_issuer_pubkey: (&settings.wua_issuer_pubkey.into_inner()).into(),
+        wia_trust_anchors: settings.wia_trust_anchors,
     };
 
     let digid_metadata_cache = Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings)?);

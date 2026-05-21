@@ -24,6 +24,7 @@ use hsm::settings::Hsm;
 use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use serde::Deserialize;
+use serde::Deserializer;
 use serde_with::DurationMilliSeconds;
 use serde_with::DurationSeconds;
 use serde_with::base64::Base64;
@@ -47,9 +48,6 @@ pub struct Settings {
     pub pin_pubkey_encryption_key_identifier: String,
     pub pin_public_disclosure_protection_key_identifier: String,
     pub revocation_code_key_identifier: String,
-    pub wua_signing_key_identifier: String,
-    pub wua_issuer_identifier: String,
-    pub wua_valid_days: u64,
     pub recovery_code_paths: HashMap<String, VecNonEmpty<String>>,
     pub database: DatabaseSettings,
     pub audit_log: DatabaseSettings,
@@ -65,7 +63,8 @@ pub struct Settings {
     pub flags_refresh_delay: Duration,
     pub revoke_solution_enabled: bool,
 
-    pub wua_status_list: WiaStatusListsSettings,
+    #[serde(flatten)]
+    pub wia_settings: WiaSettings,
 
     #[serde(rename = "instruction_challenge_timeout_in_ms")]
     #[serde_as(as = "DurationMilliSeconds")]
@@ -77,6 +76,26 @@ pub struct Settings {
 
     pub ios: Ios,
     pub android: Android,
+}
+
+#[serde_as]
+#[derive(Clone, Deserialize)]
+pub struct WiaSettings {
+    #[serde_as(as = "Base64")]
+    pub wia_certificate: BorrowingCertificate,
+    pub wia_signing_key_identifier: String,
+
+    #[serde(
+        rename = "wia_status_tracking_validity_in_days",
+        deserialize_with = "deserialize_duration_days"
+    )]
+    pub wia_status_tracking_validity: Duration,
+
+    pub wia_status_list: WiaStatusListsSettings,
+    pub wia_wallet_name: String,
+    pub wia_wallet_link: Option<BaseUrl>,
+    pub wia_wallet_version: String,
+    pub wia_wallet_solution_certification_information: String,
 }
 
 #[derive(Clone, Deserialize)]
@@ -154,6 +173,11 @@ pub struct Android {
 #[derive(Clone, From, Into)]
 pub struct AndroidRootPublicKey(RootPublicKey);
 
+fn deserialize_duration_days<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Duration, D::Error> {
+    let days = u64::deserialize(deserializer)?;
+    Ok(Duration::from_hours(days * 24))
+}
+
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Config::builder()
@@ -169,14 +193,19 @@ impl Settings {
                 "pin_public_disclosure_protection_key",
             )?
             .set_default("revocation_code_key_identifier", "revocation_code_key")?
-            .set_default("wua_status_list.list_size", 100_000)?
-            .set_default("wua_status_list.create_threshold_ratio", 0.01)?
-            .set_default("wua_status_list.expiry_in_hours", 24)?
-            .set_default("wua_status_list.refresh_threshold_ratio", 0.25)?
-            .set_default("wua_status_list.key_identifier", "wua_tsl_key")?
-            .set_default("wua_signing_key_identifier", "wua_signing_key")?
-            .set_default("wua_issuer_identifier", "wua-issuer.example.com")?
-            .set_default("wua_valid_days", 365)?
+            .set_default("wia_status_list.list_size", 100_000)?
+            .set_default("wia_status_list.create_threshold_ratio", 0.01)?
+            .set_default("wia_status_list.expiry_in_hours", 24)?
+            .set_default("wia_status_list.refresh_threshold_ratio", 0.25)?
+            .set_default("wia_status_list.key_identifier", "wia_tsl_key")?
+            .set_default("wia_signing_key_identifier", "wia_signing_key")?
+            .set_default("wia_status_tracking_validity_in_days", 365)?
+            .set_default("wia_wallet_name", "NL Wallet")?
+            .set_default("wia_wallet_link", "https://wallet.edi.rijksoverheid.nl")?
+            .set_default(
+                "wia_wallet_solution_certification_information",
+                "https://wallet.edi.rijksoverheid.nl",
+            )?
             .set_default("audit_log.options.connect_timeout_in_sec", "3")?
             .set_default("audit_log.options.max_connections", "10")?
             .set_default("database.options.connect_timeout_in_sec", "3")?

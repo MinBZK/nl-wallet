@@ -511,7 +511,7 @@ where
 {
     // generate WIA ID
     let wia_id = Uuid::new_v4();
-    let exp = Utc::now() + user_state.wia_validity;
+    let exp = Utc::now() + user_state.wia_status_tracking_validity;
     let status_claim = user_state
         .status_list_service
         .obtain_status_claims(
@@ -533,7 +533,7 @@ where
 
     let (wia_wrapped_key, wia) = user_state
         .wia_issuer
-        .issue_wia(exp, status_claim)
+        .issue_wia(exp.into(), status_claim)
         .await
         .map_err(|e| InstructionError::WiaIssuance(Box::new(e)))?;
 
