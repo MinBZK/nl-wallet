@@ -6,6 +6,7 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::BorrowingCertificate;
 use ssri::Integrity;
 use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmpty;
 
 use super::HolderError;
 use crate::errors::Error;
@@ -94,9 +95,12 @@ impl Mdoc {
         (mso, private_key_id, issuer_signed)
     }
 
+    pub fn issuer_certificate_chain(&self) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError> {
+        self.issuer_signed.issuer_auth.x5chain()
+    }
+
     pub fn issuer_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
-        let x5chain = self.issuer_signed.issuer_auth.x5chain()?;
-        Ok(x5chain.into_first())
+        self.issuer_certificate_chain().map(VecNonEmpty::into_first)
     }
 
     pub fn type_metadata_integrity(&self) -> Result<&Integrity, Error> {
