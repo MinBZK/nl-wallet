@@ -29,6 +29,7 @@ pub mod test {
             String::from("client-1"),
             "uri://redirect_uri".parse().unwrap(),
             String::from("state"),
+            None,
             &S256PkcePair::generate(),
         )
     }

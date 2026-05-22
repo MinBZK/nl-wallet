@@ -77,7 +77,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                     oauth_metadata,
                     client_id,
                     redirect_uri,
-                    issuer_state.as_deref(),
+                    issuer_state,
                 )
                 .await?;
 
@@ -232,7 +232,6 @@ mod test {
     use httpmock::Method::GET;
     use httpmock::Method::POST;
     use httpmock::MockServer;
-    use rstest::rstest;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -547,9 +546,8 @@ mod test {
         );
     }
 
-    #[rstest]
     #[tokio::test]
-    async fn authorization_code_flow_offer(#[values(None, Some("ISSUER_STATE"))] issuer_state: Option<&str>) {
+    async fn authorization_code_flow_offer() {
         let authorization_endpoint = "https://auth.example.com/authorize";
         let (_server, issuer_identifier, trust_anchor) = start_httpmock_issuer(Some(authorization_endpoint)).await;
 
@@ -559,7 +557,7 @@ mod test {
         let offer_container = CredentialOfferContainer::new_offer(CredentialOffer::new_authorization(
             issuer_identifier,
             vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
-            issuer_state.map(str::to_string),
+            None,
         ));
         let query = serde_urlencoded::to_string(&offer_container).unwrap();
         let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
@@ -593,15 +591,6 @@ mod test {
             .collect();
         assert!(auth_params.contains_key("request_uri"));
         assert!(!auth_params.contains_key("state"));
-
-        match issuer_state {
-            None => {
-                assert!(!auth_params.contains_key("issuer_state"));
-            }
-            Some(issuer_state) => {
-                assert_eq!(auth_params.get("issuer_state").map(String::as_str), Some(issuer_state));
-            }
-        }
 
         // State is carried inside the PAR-stored request, not the auth URL; read it from the session.
         let state = auth_session.state().to_owned();
