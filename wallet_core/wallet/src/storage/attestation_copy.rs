@@ -130,15 +130,15 @@ fn attestation_presentation_from_sd_jwt(
 impl StoredAttestation {
     /// Extract the [`IssuerRegistration`] from a stored attestation by parsing it from the issuer certificate.
     fn issuer_registration(&self) -> IssuerRegistration {
-        let issuer_certificate = match self {
+        let issuer_leaf_certificate = match self {
             Self::MsoMdoc { mdoc } => &mdoc
-                .issuer_certificate()
+                .issuer_leaf_certificate()
                 .expect("a stored mdoc attestation should always contain an issuer certificate"),
-            Self::SdJwt { sd_jwt, .. } => sd_jwt.issuer_certificate(),
+            Self::SdJwt { sd_jwt, .. } => sd_jwt.issuer_leaf_certificate(),
         };
 
         // Note that this means that an `IssuerRegistration` should ALWAYS be backwards compatible.
-        IssuerRegistration::from_certificate(issuer_certificate)
+        IssuerRegistration::from_certificate(issuer_leaf_certificate)
             .expect("a stored attestation should always contain a valid IssuerRegistration")
             .expect("a stored attestation should always contain an IssuerRegistration")
     }

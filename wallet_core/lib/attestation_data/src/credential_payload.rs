@@ -845,7 +845,7 @@ mod test {
             .expect("the IssuerSigned sent in the preview should be valid");
 
         // The issuer certificate generated above should be included in the IssuerAuth
-        assert_eq!(verified_sd_jwt.issuer_certificate(), issuance_key.certificate());
+        assert_eq!(verified_sd_jwt.issuer_leaf_certificate(), issuance_key.certificate());
 
         let claims = verified_sd_jwt.claims();
         assert_eq!(claims.vct, payload_preview.attestation_type);

@@ -99,7 +99,7 @@ impl Mdoc {
         self.issuer_signed.issuer_auth.x5chain()
     }
 
-    pub fn issuer_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
+    pub fn issuer_leaf_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
         self.issuer_certificate_chain().map(VecNonEmpty::into_first)
     }
 

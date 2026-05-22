@@ -154,7 +154,7 @@ impl TryFrom<VerifiedSdJwtPresentation> for DisclosedAttestation {
     fn try_from(sd_jwt_presentation: VerifiedSdJwtPresentation) -> Result<Self, Self::Error> {
         let attributes = DisclosedAttributes::SdJwt(sd_jwt_presentation.sd_jwt().decoded_claims()?.try_into()?);
         let ca = sd_jwt_presentation
-            .issuer_certificate()
+            .issuer_leaf_certificate()
             .issuer_common_names()?
             .first()
             .ok_or(DisclosedAttestationError::EmptyIssuerCommonName)?

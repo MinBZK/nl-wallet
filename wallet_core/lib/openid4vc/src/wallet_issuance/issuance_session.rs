@@ -765,7 +765,7 @@ impl Credential {
                     preview,
                     verifying_key,
                     issued_credential_payload,
-                    sd_jwt.issuer_certificate(),
+                    sd_jwt.issuer_leaf_certificate(),
                 )?;
 
                 // Verify whether each claims selective disclosability matches the metadata.
