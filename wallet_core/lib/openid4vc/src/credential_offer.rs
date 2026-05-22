@@ -4,6 +4,7 @@ use serde::Serialize;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 use serde_with::json::JsonString;
+use serde_with::rust::deserialize_ignore_any;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use strum::EnumString;
@@ -49,7 +50,6 @@ impl CredentialOfferContainer {
 /// Authorization Code flow, the Pre-Authorized Code Flow or both.
 ///
 /// https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1
-#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialOffer {
     /// The URL of the Credential Issuer, as defined in Section 12.2.1, from which the Wallet is requested to obtain
@@ -66,6 +66,7 @@ pub struct CredentialOffer {
 
     /// Object indicating to the Wallet the Grant Types the Credential Issuer's Authorization Server is prepared to
     /// process for this Credential Offer.
+    #[serde(skip_serializing_if = "CredentialOffer::grants_is_none_or_other")]
     pub grants: Option<Grants>,
 }
 
@@ -80,6 +81,13 @@ impl CredentialOffer {
             credential_configuration_ids,
             grants: Some(Grants::new_pre_authorized(pre_authorized_code)),
         }
+    }
+
+    fn grants_is_none_or_other(grants: &Option<Grants>) -> bool {
+        grants
+            .as_ref()
+            .map(|grants| matches!(grants, Grants::Other))
+            .unwrap_or(true)
     }
 }
 
@@ -106,6 +114,8 @@ pub enum Grants {
         #[serde(rename = "urn:ietf:params:oauth:grant-type:pre-authorized_code")]
         pre_authorized_code: GrantPreAuthorizedCode,
     },
+    #[serde(deserialize_with = "deserialize_ignore_any")]
+    Other,
 }
 
 impl Grants {
@@ -243,6 +253,14 @@ mod tests {
             serde_json::from_value::<Grants>(json).unwrap(),
             Grants::AuthorizationCode { .. }
         );
+
+        let json = json!({});
+        assert_matches!(serde_json::from_value::<Grants>(json).unwrap(), Grants::Other);
+
+        let json = json!({
+            "foo": "bar"
+        });
+        assert_matches!(serde_json::from_value::<Grants>(json).unwrap(), Grants::Other);
     }
 
     #[test]

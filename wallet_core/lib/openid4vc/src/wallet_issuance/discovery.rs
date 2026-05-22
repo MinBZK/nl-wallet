@@ -168,6 +168,7 @@ impl HttpIssuanceDiscovery {
 
                 (authorization_code.authorization_server, flow)
             }
+            Grants::Other => return Err(WalletIssuanceError::MissingCredentialOfferGrants),
         };
 
         let normalized = NormalizedCredentialOffer {
