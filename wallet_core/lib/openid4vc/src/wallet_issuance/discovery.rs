@@ -144,7 +144,7 @@ impl HttpIssuanceDiscovery {
             // (source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-2.3)
             // "When multiple grants are present, it is at the Wallet's discretion which one to use."
             //
-            // Since there is no point in making the using go through an OAuth authorization flow when they have already
+            // Since there is no point in making the user go through an OAuth authorization flow when they have already
             // been pre-authorized, we always choose the pre-authorized code if the `CredentialOffer` contains both
             // options.
             Grants::Both {
