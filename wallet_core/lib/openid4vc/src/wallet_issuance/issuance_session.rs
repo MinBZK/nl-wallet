@@ -725,10 +725,11 @@ impl Credential {
                     return Err(WalletIssuanceError::AttributeRandomLength(min, ATTR_RANDOM_LENGTH));
                 }
 
-                let credential_issuer_certificate = &issuer_signed
+                let credential_issuer_certificate = issuer_signed
                     .issuer_auth
-                    .signing_cert()
-                    .map_err(WalletIssuanceError::IssuerCertificate)?;
+                    .x5chain()
+                    .map_err(WalletIssuanceError::IssuerCertificate)?
+                    .into_first();
 
                 // Construct the new mdoc; this also verifies it against the trust anchors.
                 let mdoc = Mdoc::new(key_identifier, *issuer_signed, &TimeGenerator, trust_anchors)
@@ -741,7 +742,7 @@ impl Credential {
                     preview,
                     verifying_key,
                     issued_credential_payload,
-                    credential_issuer_certificate,
+                    &credential_issuer_certificate,
                 )?;
 
                 Ok(IssuedCredential::MsoMdoc { mdoc })
@@ -764,7 +765,7 @@ impl Credential {
                     preview,
                     verifying_key,
                     issued_credential_payload,
-                    sd_jwt.issuer_certificate(),
+                    sd_jwt.issuer_leaf_certificate(),
                 )?;
 
                 // Verify whether each claims selective disclosability matches the metadata.

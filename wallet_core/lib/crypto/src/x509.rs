@@ -308,6 +308,10 @@ impl BorrowingCertificate {
         self.as_ref().to_vec()
     }
 
+    pub fn as_der<'a>(&'a self) -> &'a CertificateDer<'a> {
+        self.0.backing_cart()
+    }
+
     pub fn subject(&self) -> Result<IndexMap<String, &str>, CertificateError> {
         self.x509_certificate()
             .subject

@@ -69,10 +69,11 @@ pub trait Example {
 #[cfg(any(test, feature = "test"))]
 mod test {
     use crypto::server_keys::generate::Ca;
+    use utils::vec_nonempty;
 
     use super::DeviceResponse;
     use super::Example;
-    use crate::iso::disclosure::IssuerSigned;
+    use crate::utils::cose;
 
     impl DeviceResponse {
         pub async fn example_resigned(ca: &Ca) -> Self {
@@ -83,8 +84,7 @@ mod test {
                 let new_key = ca.generate_issuer_mock().unwrap();
                 let new_cert = new_key.certificate();
 
-                doc.issuer_signed.issuer_auth.0.unprotected =
-                    IssuerSigned::create_unprotected_header(new_cert.to_vec());
+                doc.issuer_signed.issuer_auth.0.unprotected = cose::header_with_x5chain(&vec_nonempty![new_cert]);
 
                 doc.issuer_signed.resign(&new_key).await.unwrap();
             }

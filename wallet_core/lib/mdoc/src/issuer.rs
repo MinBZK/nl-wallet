@@ -1,6 +1,3 @@
-use ciborium::value::Value;
-use coset::Header;
-use coset::HeaderBuilder;
 #[cfg(any(test, feature = "test"))]
 use crypto::keys::EcdsaKey;
 #[cfg(any(test, feature = "test"))]
@@ -9,15 +6,8 @@ use crypto::server_keys::KeyPair;
 #[cfg(any(test, feature = "test"))]
 use crate::Result;
 use crate::iso::*;
-use crate::utils::cose::COSE_X5CHAIN_HEADER_LABEL;
 
 impl IssuerSigned {
-    pub fn create_unprotected_header(x5chain: Vec<u8>) -> Header {
-        HeaderBuilder::new()
-            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(x5chain))
-            .build()
-    }
-
     #[cfg(any(test, feature = "test"))]
     pub async fn resign(&mut self, key: &KeyPair<impl EcdsaKey>) -> Result<()> {
         use attestation_types::qualification::AttestationQualification;

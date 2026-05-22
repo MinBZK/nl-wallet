@@ -1238,7 +1238,7 @@ fn create_attestation_copy_models(
         .map(|credential| match credential {
             IssuedCredential::MsoMdoc { mdoc } => {
                 let issuer_certificate_dn = mdoc
-                    .issuer_certificate()
+                    .issuer_leaf_certificate()
                     .expect("an mdoc attestation should always contain a valid issuer certificate at this point")
                     .distinguished_name_canonical()
                     .expect("the issuer certificate should contain a valid DN at this point");
@@ -1270,7 +1270,7 @@ fn create_attestation_copy_models(
             }
             IssuedCredential::SdJwt { key_identifier, sd_jwt } => {
                 let issuer_certificate_dn = sd_jwt
-                    .issuer_certificate()
+                    .issuer_leaf_certificate()
                     .distinguished_name_canonical()
                     .expect("the issuer certificate should contain a valid DN at this point");
                 let attestation_bytes = sd_jwt.to_string().into_bytes();
@@ -2391,8 +2391,8 @@ pub(crate) mod tests {
 
         let normalized_metadata = VerifiedTypeMetadataDocuments::nl_pid_example().to_normalized().unwrap();
 
-        let issuer_certificate = sd_jwt.issuer_certificate();
-        let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)
+        let issuer_leaf_certificate = sd_jwt.issuer_leaf_certificate();
+        let issuer_registration = IssuerRegistration::from_certificate(issuer_leaf_certificate)
             .unwrap()
             .unwrap();
 
@@ -2539,8 +2539,8 @@ pub(crate) mod tests {
 
                 let normalized_metadata = VerifiedTypeMetadataDocuments::nl_pid_example().to_normalized().unwrap();
 
-                let issuer_certificate = sd_jwt.issuer_certificate();
-                let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)
+                let issuer_leaf_certificate = sd_jwt.issuer_leaf_certificate();
+                let issuer_registration = IssuerRegistration::from_certificate(issuer_leaf_certificate)
                     .unwrap()
                     .unwrap();
 

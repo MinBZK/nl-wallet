@@ -250,7 +250,7 @@ impl IssuerSigned {
             .transpose()?
             .unwrap_or_default();
 
-        let signing_cert = self.issuer_auth.signing_cert()?;
+        let signing_cert = self.issuer_auth.x5chain()?.into_first();
         let ca_cns = signing_cert.issuer_common_names()?;
         let ca_common_name = ca_cns
             .into_iter()
@@ -377,7 +377,7 @@ impl Document {
         }
         debug!("signature valid");
 
-        let issuer_certificate = &self.issuer_signed.issuer_auth.signing_cert()?;
+        let issuer_certificate = &self.issuer_signed.issuer_auth.x5chain()?.into_first();
 
         let revocation_status = match &mso.status {
             Some(status_claim) => {
