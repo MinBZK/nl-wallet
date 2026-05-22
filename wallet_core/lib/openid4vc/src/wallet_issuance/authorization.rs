@@ -103,6 +103,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         oauth_metadata: AuthorizationServerMetadata,
         client_id: String,
         redirect_uri: Url,
+        issuer_state: Option<&str>,
     ) -> Result<Self, WalletIssuanceError> {
         let pkce_pair = P::generate();
         let state = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
@@ -138,10 +139,23 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             .clone()
             .ok_or(OAuthError::NoAuthorizationEndpoint)?;
 
-        auth_url
-            .query_pairs_mut()
-            .append_pair("client_id", &client_id)
-            .append_pair("request_uri", &par_response.request_uri);
+        {
+            let mut query_pairs = auth_url.query_pairs_mut();
+
+            query_pairs
+                .append_pair("client_id", &client_id)
+                .append_pair("request_uri", &par_response.request_uri);
+
+            // According to the OpenID4VCI 1.0 specification:
+            // (source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-5.1.3-2.1)
+            //
+            // String value identifying a certain processing context at the Credential Issuer. A value for this
+            // parameter is typically passed in a Credential Offer from the Credential Issuer to the Wallet. This
+            // request parameter is used to pass the issuer_state value back to the Credential Issuer.
+            if let Some(issuer_state) = issuer_state {
+                query_pairs.append_pair("issuer_state", issuer_state);
+            }
+        }
 
         Ok(Self {
             issuer_metadata,
@@ -229,6 +243,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
     use std::collections::HashMap;
 
     use assert_matches::assert_matches;
@@ -344,6 +359,7 @@ mod tests {
             oauth_metadata,
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
+            Some("foobar"),
         )
         .await
         .unwrap();
@@ -356,6 +372,7 @@ mod tests {
         assert!(!params.contains_key("code_challenge"));
         assert!(!params.contains_key("state"));
         assert!(!params.contains_key("redirect_uri"));
+        assert_eq!(params.get("issuer_state"), Some(&Cow::Borrowed("foobar")));
     }
 
     #[tokio::test]
