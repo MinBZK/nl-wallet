@@ -41,7 +41,8 @@ div[role="contentinfo"] {
 img[alt=c4_legend] { width: 45%; text-align: right; border: 1px gray solid; margin-left: auto; display: block; }
 
 .ltc-implementations,
-.ltc-covers {
+.ltc-covers,
+.error-references {
     margin-top: 1rem;
     margin-bottom: 0.5rem;
     padding: 0.6rem 0.8rem;
@@ -51,14 +52,17 @@ img[alt=c4_legend] { width: 45%; text-align: right; border: 1px gray solid; marg
 
 .ltc-implementations { border-left: 3px solid #4a90d9; }
 .ltc-covers          { border-left: 3px solid #4ab04a; }
+.error-references    { border-left: 3px solid #4a90d9; }
 
 .ltc-implementations summary,
-.ltc-covers summary {
+.ltc-covers summary,
+.error-references summary {
     cursor: pointer;
 }
 
 .ltc-implementations ul,
-.ltc-covers ul {
+.ltc-covers ul,
+.error-references ul {
     margin-top: 0.4rem;
 }
 
@@ -80,6 +84,7 @@ img[alt=c4_legend] { width: 45%; text-align: right; border: 1px gray solid; marg
 }
 
 .ltc-implementations a:hover,
-.ltc-covers a:hover {
+.ltc-covers a:hover,
+.error-references a:hover {
     text-decoration: underline;
 }
