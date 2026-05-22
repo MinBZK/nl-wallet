@@ -236,11 +236,12 @@ pub enum WalletIssuanceError {
     #[error("a Credential Offer containing a Pre-Authorized code with a Transaction Code is unsupported")]
     #[category(critical)]
     CredentialOfferTxCodeUnsupported,
+}
 
-    // TODO (PVW-5832): Remove when implementing CredentialOffer Authorization Code flow.
-    #[error("no Pre-Authorized Code found in Credential Offer")]
-    #[category(critical)]
-    MissingCredentialOfferPreAuthorizedCode,
+#[derive(Debug)]
+pub enum IssuanceFlow<A, I> {
+    AuthorizationCode { authorization_session: A },
+    PreAuthorizedCode { issuance_session: I },
 }
 
 /// Discovers credential issuer and OAuth authorization server metadata, then starts an issuance flow.
@@ -258,15 +259,17 @@ pub trait IssuanceDiscovery {
         redirect_uri: Url,
     ) -> Result<Self::Authorization, WalletIssuanceError>;
 
-    /// Parses the credential offer from the redirect URI, fetches issuer and OAuth metadata,
-    /// exchanges the pre-authorized code for an access token, and returns an [`IssuanceSession`]
-    /// ready to request credentials.
-    async fn start_pre_authorized_code_flow(
+    /// Parses the credential offer from the redirect URI, fetches issuer and OAuth metadata and then either returns an
+    /// [`AuthorizationSession`] the caller can use to redirect the user into a web-based OAuth flow (if the Credential
+    /// Offer contains an Authorization Code) or immediately returns an [`IssuanceSession`] that contains the caller
+    /// can use to request issued credentials (if the Credential Offer contains a Pre-Authorized Code).
+    async fn start_with_credential_offer(
         &self,
-        redirect_uri: &Url,
+        offer_uri: &Url,
         client_id: String,
-        trust_anchors: &[BorrowingTrustAnchor],
-    ) -> Result<Self::Issuance, WalletIssuanceError>;
+        redirect_uri: Url,
+        issuer_trust_anchors: &[BorrowingTrustAnchor],
+    ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>;
 }
 
 /// Represents an in-progress OAuth authorization code flow.

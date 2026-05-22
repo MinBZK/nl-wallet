@@ -4,6 +4,7 @@ use attestation_data::auth::Organization;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
+use http_utils::urls;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::disclosure_session::DisclosureClient;
@@ -11,6 +12,7 @@ use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use platform_support::attested_key::AttestedKeyHolder;
 use tracing::info;
@@ -25,6 +27,7 @@ use super::Wallet;
 use super::disclosure::RedirectUriPurpose;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationPresentation;
+use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::errors::UpdatePolicyError;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
@@ -40,6 +43,10 @@ pub enum DisclosureBasedIssuanceError {
 
     #[error("disclosure failed: {0}")]
     Disclosure(#[from] DisclosureError),
+
+    #[error("no Pre-Authorized Code flow received in Credential Offer")]
+    #[category(critical)]
+    NoPreAuthorizedCode(Box<Organization>),
 
     #[error("retrieving attribute previews failed: {0}")]
     Issuance(#[source] IssuanceError),
@@ -123,15 +130,20 @@ where
             Err(err) => Err(err)?,
         };
 
-        let issuance_session = self
+        let flow = self
             .issuance_discovery
-            .start_pre_authorized_code_flow(
+            .start_with_credential_offer(
                 &redirect_uri,
                 NL_WALLET_CLIENT_ID.to_string(),
+                urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
                 config.issuer_trust_anchors(),
             )
             .await
             .map_err(|e| convert_and_enrich_error(e, &organization))?;
+
+        let IssuanceFlow::PreAuthorizedCode { issuance_session } = flow else {
+            return Err(DisclosureBasedIssuanceError::NoPreAuthorizedCode(organization));
+        };
 
         let previews = self
             .issuance_process_previews(
@@ -150,8 +162,7 @@ fn convert_and_enrich_error(error: WalletIssuanceError, organization: &Organizat
         WalletIssuanceError::MissingCredentialOfferQuery
         | WalletIssuanceError::CredentialOfferDeserialization(_)
         | WalletIssuanceError::MissingCredentialOfferGrants
-        | WalletIssuanceError::CredentialOfferTxCodeUnsupported
-        | WalletIssuanceError::MissingCredentialOfferPreAuthorizedCode => {
+        | WalletIssuanceError::CredentialOfferTxCodeUnsupported => {
             DisclosureBasedIssuanceError::Issuance(IssuanceError::IssuerServer {
                 error,
                 organization: Box::new(organization.clone()),
@@ -189,6 +200,7 @@ mod tests {
     use openid4vc::verifier::DisclosureResultHandlerError;
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::verifier::ToPostAuthResponseErrorCode;
+    use openid4vc::wallet_issuance::IssuanceFlow;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -296,17 +308,21 @@ mod tests {
         let credential_preview = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::MsoMdoc);
         wallet
             .issuance_discovery
-            .expect_start_pre_authorized_code_flow_sync()
+            .expect_start_with_credential_offer_sync()
             .return_once(move || {
-                let mut client = MockIssuanceSession::new();
+                let mut issuance_session = MockIssuanceSession::new();
 
-                client
+                issuance_session
                     .expect_normalized_credential_previews()
                     .return_const(vec![credential_preview]);
 
-                client.expect_issuer().return_const(IssuerRegistration::new_mock());
+                issuance_session
+                    .expect_issuer()
+                    .return_const(IssuerRegistration::new_mock());
 
-                Ok(client)
+                let mock = IssuanceFlow::PreAuthorizedCode { issuance_session };
+
+                Ok(mock)
             });
 
         wallet

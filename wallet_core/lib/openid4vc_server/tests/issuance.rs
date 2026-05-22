@@ -37,6 +37,7 @@ use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredential;
@@ -316,10 +317,22 @@ async fn pre_authorized_code_flow(
     );
 
     let trust_anchors = &[trust_anchor];
-    let mut session = discovery
-        .start_pre_authorized_code_flow(&credential_offer_url, MOCK_WALLET_CLIENT_ID.to_string(), trust_anchors)
+    let flow = discovery
+        .start_with_credential_offer(
+            &credential_offer_url,
+            MOCK_WALLET_CLIENT_ID.to_string(),
+            "https://wallet.example.com/callback".parse().unwrap(),
+            trust_anchors,
+        )
         .await
         .unwrap();
+
+    let IssuanceFlow::PreAuthorizedCode {
+        issuance_session: mut session,
+    } = flow
+    else {
+        panic!("should have received Pre-Authorized Code flow");
+    };
 
     let copy_count = 4;
     let wscd = MockRemoteWscd::new_with_wia_keypair(wia_keypair);
@@ -348,10 +361,22 @@ async fn reject_issuance() {
     );
 
     let trust_anchors = &[trust_anchor];
-    let session = discovery
-        .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), trust_anchors)
+    let flow = discovery
+        .start_with_credential_offer(
+            &offer_url,
+            MOCK_WALLET_CLIENT_ID.to_string(),
+            "https://wallet.example.com/callback".parse().unwrap(),
+            trust_anchors,
+        )
         .await
         .unwrap();
+
+    let IssuanceFlow::PreAuthorizedCode {
+        issuance_session: session,
+    } = flow
+    else {
+        panic!("should have received Pre-Authorized Code flow");
+    };
 
     session.reject_issuance().await.unwrap();
 }

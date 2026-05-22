@@ -70,6 +70,18 @@ pub struct CredentialOffer {
 }
 
 impl CredentialOffer {
+    pub fn new_authorization(
+        credential_issuer: IssuerIdentifier,
+        credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
+        issuer_state: Option<String>,
+    ) -> Self {
+        Self {
+            credential_issuer,
+            credential_configuration_ids,
+            grants: Some(Grants::new_authorization(issuer_state)),
+        }
+    }
+
     pub fn new_pre_authorized(
         credential_issuer: IssuerIdentifier,
         credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
@@ -109,6 +121,12 @@ pub enum Grants {
 }
 
 impl Grants {
+    pub fn new_authorization(issuer_state: Option<String>) -> Self {
+        Self::AuthorizationCode {
+            authorization_code: GrantAuthorizationCode::new(issuer_state),
+        }
+    }
+
     pub fn new_pre_authorized(pre_authorized_code: AuthorizationCode) -> Self {
         Self::PreAuthorizedCode {
             pre_authorized_code: GrantPreAuthorizedCode::new(pre_authorized_code),
@@ -133,6 +151,15 @@ pub struct GrantAuthorizationCode {
     /// otherwise. The value of this parameter MUST match with one of the values in the `authorization_servers` array
     /// obtained from the Credential Issuer metadata.
     pub authorization_server: Option<IssuerIdentifier>,
+}
+
+impl GrantAuthorizationCode {
+    pub fn new(issuer_state: Option<String>) -> Self {
+        Self {
+            issuer_state,
+            authorization_server: None,
+        }
+    }
 }
 
 /// Grant Type `urn:ietf:params:oauth:grant-type:pre-authorized_code`.

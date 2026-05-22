@@ -2,19 +2,20 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use url::Url;
 
+use super::AuthorizationSession;
+use super::IssuanceDiscovery;
+use super::IssuanceFlow;
+use super::IssuanceSession;
+use super::WalletIssuanceError;
+use super::credential::CredentialWithMetadata;
+use super::preview::NormalizedCredentialPreview;
 use crate::issuer_identifier::IssuerIdentifier;
-use crate::wallet_issuance::AuthorizationSession;
-use crate::wallet_issuance::IssuanceDiscovery;
-use crate::wallet_issuance::IssuanceSession;
-use crate::wallet_issuance::WalletIssuanceError;
-use crate::wallet_issuance::credential::CredentialWithMetadata;
-use crate::wallet_issuance::preview::NormalizedCredentialPreview;
 
 mockall::mock! {
     #[derive(Debug)]
     pub IssuanceDiscovery {
         pub fn start_authorization_code_flow_sync(&self) -> Result<MockAuthorizationSession, WalletIssuanceError>;
-        pub fn start_pre_authorized_code_flow_sync(&self) -> Result<MockIssuanceSession, WalletIssuanceError>;
+        pub fn start_with_credential_offer_sync(&self) -> Result<IssuanceFlow<MockAuthorizationSession, MockIssuanceSession>, WalletIssuanceError>;
     }
 }
 
@@ -31,13 +32,14 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
         self.start_authorization_code_flow_sync()
     }
 
-    async fn start_pre_authorized_code_flow(
+    async fn start_with_credential_offer(
         &self,
-        _redirect_uri: &Url,
+        _offer_uri: &Url,
         _client_id: String,
-        _trust_anchors: &[BorrowingTrustAnchor],
-    ) -> Result<Self::Issuance, WalletIssuanceError> {
-        self.start_pre_authorized_code_flow_sync()
+        _redirect_uri: Url,
+        _issuer_trust_anchors: &[BorrowingTrustAnchor],
+    ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError> {
+        self.start_with_credential_offer_sync()
     }
 }
 
