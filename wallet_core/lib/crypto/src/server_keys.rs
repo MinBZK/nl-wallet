@@ -185,6 +185,10 @@ pub mod generate {
             &self.certificate
         }
 
+        pub fn as_borrowing_certificate(&self) -> Result<BorrowingCertificate, CertificateError> {
+            BorrowingCertificate::from_der(self.certificate().as_ref())
+        }
+
         pub fn borrowing_trust_anchor(&self) -> &BorrowingTrustAnchor {
             &self.borrowing_trust_anchor
         }

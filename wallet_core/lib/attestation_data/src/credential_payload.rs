@@ -20,6 +20,7 @@ use mdoc::IssuerSigned;
 use mdoc::MobileSecurityObject;
 use mdoc::MobileSecurityObjectVersion;
 use mdoc::holder::Mdoc;
+use mdoc::utils::cose;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::cose::CoseKey;
 use mdoc::utils::cose::MdocCose;
@@ -43,6 +44,7 @@ use serde_with::skip_serializing_none;
 use ssri::Integrity;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::generator::Generator;
+use utils::vec_nonempty;
 
 use crate::attributes::Attributes;
 use crate::attributes::AttributesError;
@@ -435,7 +437,7 @@ impl CredentialPayload {
             type_metadata_integrity: Some(self.vct_integrity),
         };
 
-        let header = IssuerSigned::create_unprotected_header(issuer_keypair.certificate().to_vec());
+        let header = cose::header_with_x5chain(&vec_nonempty![issuer_keypair.certificate()]);
         let mso = TaggedBytes(mso);
         let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
             MdocCose::sign(&mso, header, issuer_keypair, true).await?;
@@ -809,7 +811,7 @@ mod test {
 
         // The issuer certificate generated above should be included in the IssuerAuth
         assert_eq!(
-            &issuer_signed.issuer_auth.signing_cert().unwrap(),
+            &issuer_signed.issuer_auth.x5chain().unwrap().into_first(),
             issuance_key.certificate()
         );
 
@@ -843,7 +845,7 @@ mod test {
             .expect("the IssuerSigned sent in the preview should be valid");
 
         // The issuer certificate generated above should be included in the IssuerAuth
-        assert_eq!(verified_sd_jwt.issuer_certificate(), issuance_key.certificate());
+        assert_eq!(verified_sd_jwt.issuer_leaf_certificate(), issuance_key.certificate());
 
         let claims = verified_sd_jwt.claims();
         assert_eq!(claims.vct, payload_preview.attestation_type);
