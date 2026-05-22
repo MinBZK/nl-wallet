@@ -204,10 +204,7 @@ pub const COSE_X5CHAIN_HEADER_LABEL: i64 = 33;
 const ONE: NonZeroUsize = NonZeroUsize::new(1usize).expect("1 is non-zero");
 
 pub fn header_with_x5chain(chain: &VecNonEmpty<&BorrowingCertificate>) -> Header {
-    #[expect(clippy::trivially_copy_pass_by_ref)]
-    fn cbor_encode(c: &&BorrowingCertificate) -> Value {
-        Value::Bytes(c.to_vec())
-    }
+    let cbor_encode = |c: &&BorrowingCertificate| Value::Bytes(c.to_vec());
 
     if chain.len() == ONE {
         let cert = chain.first();
