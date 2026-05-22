@@ -6,6 +6,7 @@ use attestation_data::x509::CertificateTypeError;
 use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateError;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use server_utils::settings::CertificateVerificationError;
@@ -37,7 +38,7 @@ fn test_settings_success() {
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.to_borrowing_trust_anchor()];
+    settings.reader_trust_anchors = TrustAnchors::from(&reader_ca);
 
     settings.validate().expect("should succeed");
 }
@@ -55,7 +56,7 @@ fn test_settings_no_reader_trust_anchors() {
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![];
+    settings.reader_trust_anchors = TrustAnchors::empty();
 
     let error = settings.validate().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::MissingTrustAnchors);
@@ -78,7 +79,7 @@ fn test_settings_no_reader_registration() {
     usecases.insert("no_registration".to_string(), to_use_case(reader_cert_no_registration));
 
     settings.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.to_borrowing_trust_anchor()];
+    settings.reader_trust_anchors = TrustAnchors::from(&reader_ca);
 
     let error = settings.validate().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::NoCertificateType(CertificateTypeError::ReaderRegistrationNotFound, key) if key == "no_registration");
@@ -101,7 +102,7 @@ fn test_settings_wrong_reader_ca() {
     usecases.insert("wrong_ca".to_string(), to_use_case(reader_cert_wrong_ca));
 
     settings.usecases = usecases.into();
-    settings.reader_trust_anchors = vec![reader_ca.to_borrowing_trust_anchor()];
+    settings.reader_trust_anchors = TrustAnchors::from(&reader_ca);
 
     let error = settings.validate().expect_err("should fail");
     assert_matches!(

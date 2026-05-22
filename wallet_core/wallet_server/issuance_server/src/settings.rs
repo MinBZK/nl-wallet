@@ -7,7 +7,7 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use dcql::Query;
 use dcql::normalized::UnsupportedDcqlFeatures;
@@ -31,7 +31,6 @@ use openid4vc::verifier::WalletInitiatedUseCase;
 use openid4vc::verifier::WalletInitiatedUseCases;
 use openid4vc_server::verifier::VerifierFactory;
 use serde::Deserialize;
-use serde_with::base64::Base64;
 use serde_with::serde_as;
 use server_utils::keys::PrivateKeySettingsError;
 use server_utils::keys::PrivateKeyVariant;
@@ -84,9 +83,8 @@ pub struct VerifierSettings {
 
     /// Reader trust anchors are used to verify the keys and certificates in the `disclosure_settings` configuration on
     /// application startup.
-    #[serde_as(as = "Vec<Base64>")]
     #[debug(skip)]
-    pub reader_trust_anchors: Vec<BorrowingTrustAnchor>,
+    pub reader_trust_anchors: TrustAnchors,
 
     pub universal_link_base_url: BaseUrl,
 

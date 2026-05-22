@@ -686,12 +686,7 @@ mod test {
         let issuer_key_pair = ca.generate_key_pair("mycert", mdl, config).unwrap();
         issuer_key_pair
             .certificate()
-            .verify(
-                CertificateUsage::Mdl,
-                &[],
-                &TimeGenerator,
-                &TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap(),
-            )
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &TrustAnchors::from(&ca))
             .expect_err("Expected verify to fail")
     }
 
@@ -838,7 +833,10 @@ mod test {
         let ca = Ca::generate("ca", Default::default()).unwrap();
         let trust_anchor = ca.to_borrowing_trust_anchor();
 
-        assert!(!chain_does_contain_trust_anchors(&[], &TrustAnchors::try_from(vec![trust_anchor]).unwrap()));
+        assert!(!chain_does_contain_trust_anchors(
+            &[],
+            &TrustAnchors::try_from(vec![trust_anchor]).unwrap()
+        ));
     }
 
     #[test]

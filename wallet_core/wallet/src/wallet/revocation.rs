@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
 use futures::StreamExt;
 use openid4vc::disclosure_session::DisclosureClient;
@@ -270,7 +270,7 @@ where
     async fn check_revocation(
         revocation_info: RevocationInfo,
         revocation_verifier: &RevocationVerifier<SLC>,
-        issuer_trust_anchors: &[BorrowingTrustAnchor],
+        issuer_trust_anchors: &TrustAnchors,
         time_generator: &impl Generator<DateTime<Utc>>,
     ) -> (Uuid, RevocationStatus)
     where
@@ -341,7 +341,7 @@ mod tests {
         let keypair = ca.generate_status_list_mock().unwrap();
 
         let mut wallet_config = default_wallet_config();
-        wallet_config.issuer_trust_anchors = vec![ca.to_borrowing_trust_anchor()];
+        wallet_config.issuer_trust_anchors = TrustAnchors::from(&ca);
         let config_repo = Arc::new(TestConfigRepo(parking_lot::RwLock::new(wallet_config)));
 
         let (_, _, status_list_token) = create_status_list_token(&keypair, None, None).await;

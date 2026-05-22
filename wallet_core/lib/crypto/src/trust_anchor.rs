@@ -2,11 +2,17 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::sync::Arc;
 
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use derive_more::Debug;
 use indexmap::IndexSet;
 use itertools::Itertools;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::Serializer;
 use webpki::Error;
 use webpki::anchor_from_trusted_cert;
 use yoke::Yoke;
@@ -84,12 +90,31 @@ impl From<BorrowingTrustAnchor> for Vec<u8> {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct TrustAnchors {
+    #[debug(skip)]
     certificates: IndexSet<BorrowingCertificate>,
+    #[debug(skip)]
     trust_anchors: Vec<TrustAnchor<'static>>,
 }
 
+impl PartialEq for TrustAnchors {
+    fn eq(&self, other: &Self) -> bool {
+        self.certificates == other.certificates
+    }
+}
+
+impl Eq for TrustAnchors {}
+
 impl TrustAnchors {
+    #[cfg(feature = "mock")]
+    pub fn empty() -> Self {
+        Self {
+            certificates: Default::default(),
+            trust_anchors: Default::default(),
+        }
+    }
+
     pub fn trust_anchors(&self) -> &[TrustAnchor<'static>] {
         self.trust_anchors.as_slice()
     }
@@ -105,7 +130,14 @@ impl TryFrom<Vec<Vec<u8>>> for TrustAnchors {
     fn try_from(input: Vec<Vec<u8>>) -> Result<Self, Self::Error> {
         let certificates: IndexSet<BorrowingCertificate> =
             input.into_iter().map(BorrowingCertificate::from_der).try_collect()?;
+        certificates.try_into()
+    }
+}
 
+impl TryFrom<IndexSet<BorrowingCertificate>> for TrustAnchors {
+    type Error = CertificateError;
+
+    fn try_from(certificates: IndexSet<BorrowingCertificate>) -> Result<Self, Self::Error> {
         let trust_anchors: Vec<_> = certificates
             .iter()
             .map(BorrowingCertificate::as_der)
@@ -144,5 +176,44 @@ impl TryFrom<Vec<BorrowingTrustAnchor>> for TrustAnchors {
             certificates,
             trust_anchors: owned_anchors,
         })
+    }
+}
+
+impl Serialize for TrustAnchors {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let base64_strings: Vec<String> = self
+            .certificates
+            .iter()
+            .map(|c| BASE64_STANDARD.encode(c.as_ref()))
+            .collect();
+        base64_strings.serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for TrustAnchors {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let base64_strings: Vec<String> = Vec::deserialize(deserializer)?;
+        let der_bytes: Vec<Vec<u8>> = base64_strings
+            .iter()
+            .map(|s| BASE64_STANDARD.decode(s).map_err(serde::de::Error::custom))
+            .collect::<Result<_, _>>()?;
+        TrustAnchors::try_from(der_bytes).map_err(serde::de::Error::custom)
+    }
+}
+
+#[cfg(all(feature = "mock", feature = "generate"))]
+pub mod mock {
+    use indexmap::IndexSet;
+
+    use crate::server_keys::generate::Ca;
+    use crate::trust_anchor::TrustAnchors;
+
+    impl From<&Ca> for TrustAnchors {
+        fn from(value: &Ca) -> Self {
+            // This implementation is meant for unit and integration tests, it expects a proper `Ca` with a valid
+            // certificate. So the unwraps here
+            let certs = IndexSet::from_iter([value.as_borrowing_certificate().unwrap()]);
+            certs.try_into().unwrap()
+        }
     }
 }

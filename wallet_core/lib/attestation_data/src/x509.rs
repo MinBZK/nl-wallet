@@ -168,12 +168,7 @@ mod test {
 
         issuer_key_pair
             .certificate()
-            .verify(
-                CertificateUsage::Mdl,
-                &[],
-                &TimeGenerator,
-                &TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap(),
-            )
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &TrustAnchors::from(&ca))
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original Mdl usage
@@ -203,12 +198,7 @@ mod test {
 
         issuer_key_pair
             .certificate()
-            .verify(
-                CertificateUsage::Mdl,
-                &[],
-                &TimeGenerator,
-                &TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap(),
-            )
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &TrustAnchors::from(&ca))
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original Mdl usage
@@ -235,7 +225,7 @@ mod test {
                 CertificateUsage::ReaderAuth,
                 &[],
                 &TimeGenerator,
-                &TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap(),
+                &TrustAnchors::from(&ca),
             )
             .unwrap();
 
@@ -270,7 +260,7 @@ mod test {
                 CertificateUsage::ReaderAuth,
                 &[],
                 &TimeGenerator,
-                &TrustAnchors::try_from(vec![ca.to_borrowing_trust_anchor()]).unwrap(),
+                &TrustAnchors::from(&ca),
             )
             .unwrap();
 

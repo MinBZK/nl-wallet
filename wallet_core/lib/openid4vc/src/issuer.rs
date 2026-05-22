@@ -19,7 +19,7 @@ use chrono::DateTime;
 use chrono::DurationRound;
 use chrono::Utc;
 use crypto::EcdsaKey;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_string;
 use derive_more::AsRef;
 use derive_more::Debug;
@@ -485,7 +485,7 @@ impl<K, L> IssuerData<K, L> {
 
 pub struct WiaConfig {
     /// Public key of the WIA issuer.
-    pub wia_trust_anchors: Vec<BorrowingTrustAnchor>,
+    pub wia_trust_anchors: TrustAnchors,
 }
 
 impl<A, K, L, S, N, PAS, PKS, UAA> Drop for Issuer<A, K, L, S, N, PAS, PKS, UAA> {
@@ -1757,7 +1757,7 @@ mod tests {
     use chrono::Timelike;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::BorrowingTrustAnchor;
+    use crypto::trust_anchor::TrustAnchors;
     use derive_more::Debug;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use thiserror::Error;
@@ -1860,7 +1860,7 @@ mod tests {
 
     // Error injection tests
 
-    fn setup_simple_mock_issuer() -> (MockIssuer, BorrowingTrustAnchor, IssuerIdentifier, KeyPair) {
+    fn setup_simple_mock_issuer() -> (MockIssuer, TrustAnchors, IssuerIdentifier, KeyPair) {
         let issuer_identifier: IssuerIdentifier = "https://example.com/".parse().unwrap();
         let (issuer, trust_anchor, wia_keypair) = setup_mock_issuer(
             issuer_identifier.clone(),
@@ -2045,10 +2045,9 @@ mod tests {
     async fn start_and_accept_err(
         message_client: VcMessageClientStub,
         issuer_identifier: IssuerIdentifier,
-        trust_anchor: BorrowingTrustAnchor,
+        trust_anchors: TrustAnchors,
         wia_keypair: KeyPair,
     ) -> WalletIssuanceError {
-        let trust_anchors = &[trust_anchor];
         let issuer_metadata = message_client.issuer.metadata().clone();
         let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
         let mut session = HttpIssuanceSession::create(
@@ -2056,13 +2055,13 @@ mod tests {
             issuer_metadata,
             oauth_metadata,
             TokenRequest::new_mock(),
-            trust_anchors,
+            &trust_anchors,
         )
         .await
         .unwrap();
 
         let wscd = MockRemoteWscd::new_with_wia_keypair(wia_keypair);
-        session.accept_issuance(trust_anchors, &wscd, true).await.unwrap_err()
+        session.accept_issuance(&trust_anchors, &wscd, true).await.unwrap_err()
     }
 
     #[tokio::test]

@@ -13,7 +13,7 @@ use axum::routing::delete;
 use axum::routing::get;
 use axum::routing::post;
 use crypto::keys::EcdsaKeySend;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use dcql::unique_id_vec::UniqueIdVec;
 use http::HeaderMap;
 use http::HeaderValue;
@@ -66,7 +66,7 @@ pub struct VerifierFactory<US> {
     public_url: BaseUrl,
     disclosure_base_deep_link: BaseUrl,
     use_cases: US,
-    issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
+    issuer_trust_anchors: TrustAnchors,
     accepted_wallet_client_ids: Vec<String>,
     extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
 }
@@ -86,7 +86,7 @@ where
         public_url: BaseUrl,
         disclosure_base_deep_link: BaseUrl,
         use_cases: US,
-        issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
+        issuer_trust_anchors: TrustAnchors,
         accepted_wallet_client_ids: Vec<String>,
         extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
     ) -> Self {

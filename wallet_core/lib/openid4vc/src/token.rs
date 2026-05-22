@@ -5,7 +5,6 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::x509::CertificateType;
 use attestation_data::x509::CertificateTypeError;
-use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_string;
 use crypto::utils::sha256;
@@ -175,7 +174,7 @@ pub struct CredentialPreview {
 }
 
 impl CredentialPreview {
-    pub fn verify(&self, trust_anchors: &[BorrowingTrustAnchor]) -> Result<(), CredentialPreviewError> {
+    pub fn verify(&self, trust_anchors: &TrustAnchors) -> Result<(), CredentialPreviewError> {
         let Self { content, .. } = self;
 
         // Verify the issuer certificates that the issuer presents for each credential to be issued.
@@ -189,7 +188,7 @@ impl CredentialPreview {
         // have produced an mdoc against that certificate.
         content
             .issuer_certificate
-            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &TrustAnchors::try_from(trust_anchors.to_vec())?)?;
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)?;
 
         // Verify that the issuer_uri is among the SAN DNS names or URIs in the issuer_certificate
         if !content

@@ -14,7 +14,7 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::MdocCredentialPayloadError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
@@ -228,7 +228,7 @@ pub trait IssuanceDiscovery {
         &self,
         redirect_uri: &Url,
         client_id: String,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 }
 
@@ -251,7 +251,7 @@ pub trait AuthorizationSession {
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 }
 
@@ -259,7 +259,7 @@ pub trait AuthorizationSession {
 pub trait IssuanceSession {
     async fn accept_issuance<W>(
         &mut self,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
         wscd: &W,
         include_wia: bool,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>

@@ -20,7 +20,6 @@ use coset::iana;
 use coset::sig_structure_data;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
-use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
@@ -266,7 +265,7 @@ impl<T> MdocCose<CoseSign1, T> {
         &self,
         usage: CertificateUsage,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
     ) -> Result<T, CoseError>
     where
         T: DeserializeOwned,
@@ -274,10 +273,9 @@ impl<T> MdocCose<CoseSign1, T> {
         let (cert, chain) = self.x5chain()?.into_nonempty_iter().next();
 
         let chain = chain.into_iter().collect_vec();
-        let trust_anchors = TrustAnchors::try_from(trust_anchors.to_vec())?;
 
         // Verify the certificate against the trusted IACAs
-        cert.verify(usage, &chain, time, &trust_anchors)
+        cert.verify(usage, &chain, time, trust_anchors)
             .map_err(CoseError::Certificate)?;
 
         // Grab the certificate's public key and verify the Cose
@@ -476,6 +474,7 @@ mod tests {
     use coset::HeaderBuilder;
     use coset::Label;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateUsage;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -588,7 +587,7 @@ mod tests {
         let header_cert = cose.x5chain().unwrap().into_first();
         assert_eq!(issuer_key_pair.certificate().as_ref(), header_cert.as_ref());
 
-        cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &[ca.to_borrowing_trust_anchor()])
+        cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &TrustAnchors::from(&ca))
             .unwrap();
     }
 
@@ -648,11 +647,8 @@ mod tests {
         assert_eq!(intermediate_certificate.as_ref(), chain[1].as_ref());
 
         // Verify signed COSE
-        let result = cose.verify_against_trust_anchors(
-            CertificateUsage::Mdl,
-            &TimeGenerator,
-            &[root_ca.to_borrowing_trust_anchor()],
-        );
+        let result =
+            cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &TrustAnchors::from(&root_ca));
         assert_eq!(result.unwrap(), ToyMessage::default());
     }
 
@@ -680,11 +676,7 @@ mod tests {
 
         // Verification should fail because the intermediate cert is absent from the chain
         assert!(matches!(
-            cose.verify_against_trust_anchors(
-                CertificateUsage::Mdl,
-                &TimeGenerator,
-                &[root_ca.to_borrowing_trust_anchor()],
-            ),
+            cose.verify_against_trust_anchors(CertificateUsage::Mdl, &TimeGenerator, &TrustAnchors::from(&root_ca),),
             Err(CoseError::Certificate(_))
         ));
     }
