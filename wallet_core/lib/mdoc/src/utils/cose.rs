@@ -611,34 +611,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn x5chain_multiple_certs() {
-        let ca = Ca::generate("ca.example.com", Default::default()).unwrap();
-        let issuer_key_pair = ca
-            .generate_key_pair("cert.example.com", CertificateUsage::Mdl, Default::default())
-            .unwrap();
-        let other_ca = Ca::generate("other-ca.example.com", Default::default()).unwrap();
-        let other_key_pair = other_ca
-            .generate_key_pair("other-cert.example.com", CertificateUsage::Mdl, Default::default())
-            .unwrap();
-
-        let cert1 = issuer_key_pair.certificate();
-        let cert2 = other_key_pair.certificate();
-        let header = cose::header_with_x5chain(&vec_nonempty![cert1, cert2]);
-        let cose: MdocCose<_, ToyMessage> =
-            MdocCose::sign(&ToyMessage::default(), header, issuer_key_pair.private_key(), true)
-                .await
-                .unwrap();
-
-        let chain = cose.x5chain().unwrap();
-        assert_eq!(chain.len().get(), 2);
-        assert_eq!(cert1.as_ref(), chain[0].as_ref());
-        assert_eq!(cert2.as_ref(), chain[1].as_ref());
-    }
-
-    #[tokio::test]
     async fn verify_against_trust_anchors_with_intermediate_cert() {
         // Root CA that permits one level of intermediate CAs
         let root_ca = Ca::generate_with_intermediate_count("root-ca.example.com", Default::default(), 1).unwrap();
+
+        // Intermediate CA and cert
         let intermediate_ca = root_ca
             .generate_intermediate(
                 "intermediate-ca.example.com",
@@ -646,21 +623,28 @@ mod tests {
                 Default::default(),
             )
             .unwrap();
+        let intermediate_certificate = intermediate_ca.as_borrowing_certificate().unwrap();
+
+        // Leaf key pair and
         let leaf_key_pair = intermediate_ca
             .generate_key_pair("leaf.example.com", CertificateUsage::Mdl, Default::default())
             .unwrap();
+        let leaf_certificate = leaf_key_pair.certificate();
 
         // x5chain: [leaf_cert, intermediate_cert]
-        let header = cose::header_with_x5chain(&vec_nonempty![
-            leaf_key_pair.certificate(),
-            &intermediate_ca.as_borrowing_certificate().unwrap(),
-        ]);
+        let header = cose::header_with_x5chain(&vec_nonempty![leaf_certificate, &intermediate_certificate]);
 
         // Sign COSE and include x5chain header
         let cose: MdocCose<_, ToyMessage> =
             MdocCose::sign(&ToyMessage::default(), header, leaf_key_pair.private_key(), true)
                 .await
                 .unwrap();
+
+        //
+        let chain = cose.x5chain().unwrap();
+        assert_eq!(chain.len().get(), 2);
+        assert_eq!(leaf_certificate.as_ref(), chain[0].as_ref());
+        assert_eq!(intermediate_certificate.as_ref(), chain[1].as_ref());
 
         // Verify signed COSE
         let result = cose.verify_against_trust_anchors(
