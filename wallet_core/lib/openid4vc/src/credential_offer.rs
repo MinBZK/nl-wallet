@@ -225,8 +225,10 @@ pub enum PreAuthTransactionCodeInputMode {
 mod tests {
     use assert_matches::assert_matches;
     use serde_json::json;
+    use url::Url;
 
     use super::CredentialOffer;
+    use super::CredentialOfferContainer;
     use super::Grants;
     use super::PreAuthTransactionCodeInputMode;
 
@@ -264,7 +266,7 @@ mod tests {
     }
 
     #[test]
-    fn test_credential_offer_serialization() {
+    fn test_credential_offer_deserialization() {
         // Source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-6
         let credential_offer_json = json!({
             "credential_issuer": "https://credential-issuer.example.com",
@@ -306,25 +308,86 @@ mod tests {
 
         assert_eq!(grant_pre_auth.pre_authorized_code.as_ref(), "oaKazRN8I0IbtZ0C7JuMn5");
 
+        let Some(tx_code) = &grant_pre_auth.tx_code else {
+            panic!("JSON should contain Pre-Authorized Code transaction code");
+        };
+
+        assert_eq!(tx_code.input_mode, Some(PreAuthTransactionCodeInputMode::Numeric));
+        assert_eq!(tx_code.length, Some(4));
         assert_eq!(
-            grant_pre_auth
-                .tx_code
-                .as_ref()
-                .and_then(|tx_code| tx_code.input_mode.as_ref()),
-            Some(&PreAuthTransactionCodeInputMode::Numeric)
-        );
-        assert_eq!(
-            grant_pre_auth.tx_code.as_ref().and_then(|tx_code| tx_code.length),
-            Some(4)
-        );
-        assert_eq!(
-            grant_pre_auth
-                .tx_code
-                .as_ref()
-                .and_then(|tx_code| tx_code.description.as_deref()),
+            tx_code.description.as_deref(),
             Some("Please provide the one-time code that was sent via e-mail")
         );
 
         assert_eq!(serde_json::to_value(credential_offer).unwrap(), credential_offer_json);
+    }
+
+    #[test]
+    fn test_credential_offer_container_by_value_deserialization() {
+        // Source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.2-3
+        let offer_uri = "openid-credential-offer://?credential_offer=%7B%22credential_issuer%22:%22https:\
+                         //credential-issuer.example.com%22,%22credential_configuration_ids%22:%5B%22org.\
+                         iso.18013.5.1.mDL%22%5D,%22grants%22:%7B%22urn:ietf:params:oauth:grant-type:pre-\
+                         authorized_code%22:%7B%22pre-authorized_code%22:%22oaKazRN8I0IbtZ0C7JuMn5%22,%22\
+                         tx_code%22:%7B%22input_mode%22:%22text%22,%22description%22:%22Please%20enter%20\
+                         the%20serial%20number%20of%20your%20physical%20drivers%20license%22%7D%7D%7D%7D";
+
+        let uri = offer_uri.parse::<Url>().unwrap();
+        let offer_container = serde_urlencoded::from_str::<CredentialOfferContainer>(uri.query().unwrap())
+            .expect("should be able to deserialize CredentialOfferContainer");
+
+        let CredentialOfferContainer::Offer { credential_offer } = offer_container else {
+            panic!("URI should contain Credential Offer by value");
+        };
+
+        assert_eq!(
+            credential_offer.credential_issuer.as_ref(),
+            "https://credential-issuer.example.com"
+        );
+        assert!(
+            credential_offer
+                .credential_configuration_ids
+                .iter()
+                .map(AsRef::as_ref)
+                .eq(["org.iso.18013.5.1.mDL"])
+        );
+
+        let grant_pre_auth = match credential_offer.grants {
+            Some(Grants::PreAuthorizedCode { pre_authorized_code }) => pre_authorized_code,
+            _ => panic!("URI should contain Pre-Authorized Code grant"),
+        };
+
+        assert_eq!(grant_pre_auth.pre_authorized_code.as_ref(), "oaKazRN8I0IbtZ0C7JuMn5");
+
+        let Some(tx_code) = grant_pre_auth.tx_code else {
+            panic!("URI should contain Pre-Authorized Code transaction code");
+        };
+
+        assert_eq!(tx_code.input_mode, Some(PreAuthTransactionCodeInputMode::Text));
+        assert!(tx_code.length.is_none());
+        assert_eq!(
+            tx_code.description.as_deref(),
+            Some("Please enter the serial number of your physical drivers license")
+        );
+    }
+
+    #[test]
+    fn test_credential_offer_container_by_reference_deserialization() {
+        // Source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.3-7
+        let offer_uri = "openid-credential-offer://?credential_offer_uri=https%3A%2F%2Fserver%2Eexample%2Ecom%\
+                         2Fcredential-offer%2FGkurKxf5T0Y-mnPFCHqWOMiZi4VS138cQO_V7PZHAdM";
+
+        let uri = offer_uri.parse::<Url>().unwrap();
+        let offer_container = serde_urlencoded::from_str::<CredentialOfferContainer>(uri.query().unwrap())
+            .expect("should be able to deserialize CredentialOfferContainer");
+
+        let CredentialOfferContainer::Uri { credential_offer_uri } = offer_container else {
+            panic!("URI should contain Credential Offer by reference");
+        };
+
+        assert_eq!(
+            credential_offer_uri.as_ref().as_str(),
+            "https://server.example.com/credential-offer/GkurKxf5T0Y-mnPFCHqWOMiZi4VS138cQO_V7PZHAdM"
+        );
     }
 }
