@@ -571,7 +571,7 @@ pub fn mock_issuance_session(
 
                         (
                             mdoc.doc_type().to_string(),
-                            mdoc.issuer_certificate().unwrap(),
+                            mdoc.issuer_leaf_certificate().unwrap(),
                             Some(exp),
                             Some(nbf),
                         )
@@ -581,7 +581,7 @@ pub fn mock_issuance_session(
 
                         (
                             claims.vct.clone(),
-                            sd_jwt.issuer_certificate().clone(),
+                            sd_jwt.issuer_leaf_certificate().clone(),
                             claims.exp,
                             claims.nbf,
                         )

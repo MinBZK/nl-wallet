@@ -6,6 +6,7 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::BorrowingCertificate;
 use ssri::Integrity;
 use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmpty;
 
 use super::HolderError;
 use crate::errors::Error;
@@ -94,8 +95,12 @@ impl Mdoc {
         (mso, private_key_id, issuer_signed)
     }
 
-    pub fn issuer_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
-        self.issuer_signed.issuer_auth.signing_cert()
+    pub fn issuer_certificate_chain(&self) -> Result<VecNonEmpty<BorrowingCertificate>, CoseError> {
+        self.issuer_signed.issuer_auth.x5chain()
+    }
+
+    pub fn issuer_leaf_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
+        self.issuer_certificate_chain().map(VecNonEmpty::into_first)
     }
 
     pub fn type_metadata_integrity(&self) -> Result<&Integrity, Error> {
@@ -124,6 +129,7 @@ mod test {
     use indexmap::IndexMap;
     use ssri::Integrity;
     use utils::generator::Generator;
+    use utils::vec_nonempty;
 
     use super::Mdoc;
     use crate::iso::disclosure::IssuerSigned;
@@ -134,6 +140,7 @@ mod test {
     use crate::iso::mdocs::MobileSecurityObject;
     use crate::iso::mdocs::MobileSecurityObjectVersion;
     use crate::iso::mdocs::ValidityInfo;
+    use crate::utils::cose;
     use crate::utils::cose::CoseKey;
     use crate::utils::cose::MdocCose;
     use crate::utils::serialization::TaggedBytes;
@@ -186,7 +193,7 @@ mod test {
                 type_metadata_integrity: Some(metadata_integrity),
             };
 
-            let header = IssuerSigned::create_unprotected_header(issuer_key_pair.certificate().to_vec());
+            let header = cose::header_with_x5chain(&vec_nonempty![issuer_key_pair.certificate()]);
             let mso_tagged = TaggedBytes(mso);
             let issuer_auth = MdocCose::sign(&mso_tagged, header, &issuer_key_pair, true)
                 .now_or_never()

@@ -130,15 +130,15 @@ fn attestation_presentation_from_sd_jwt(
 impl StoredAttestation {
     /// Extract the [`IssuerRegistration`] from a stored attestation by parsing it from the issuer certificate.
     fn issuer_registration(&self) -> IssuerRegistration {
-        let issuer_certificate = match self {
+        let issuer_leaf_certificate = match self {
             Self::MsoMdoc { mdoc } => &mdoc
-                .issuer_certificate()
+                .issuer_leaf_certificate()
                 .expect("a stored mdoc attestation should always contain an issuer certificate"),
-            Self::SdJwt { sd_jwt, .. } => sd_jwt.issuer_certificate(),
+            Self::SdJwt { sd_jwt, .. } => sd_jwt.issuer_leaf_certificate(),
         };
 
         // Note that this means that an `IssuerRegistration` should ALWAYS be backwards compatible.
-        IssuerRegistration::from_certificate(issuer_certificate)
+        IssuerRegistration::from_certificate(issuer_leaf_certificate)
             .expect("a stored attestation should always contain a valid IssuerRegistration")
             .expect("a stored attestation should always contain an IssuerRegistration")
     }
@@ -158,17 +158,19 @@ impl StoredAttestationCopy {
     ///
     /// (Note that if an AKI is checked against a certificate that has no AKI, this is not a match.)
     pub fn matches_any_aki(&self, aki: &[KeyIdentifier]) -> bool {
+        let certificate_chain = match &self.attestation {
+            StoredAttestation::MsoMdoc { mdoc } => &mdoc
+                .issuer_certificate_chain()
+                .expect("stored mdoc should have a valid certificate"),
+            StoredAttestation::SdJwt { sd_jwt, .. } => sd_jwt.issuer_certificate_chain(),
+        };
+
         aki.is_empty()
-            || aki.iter().any(|key_id| match &self.attestation {
-                StoredAttestation::MsoMdoc { mdoc } => mdoc
-                    .issuer_certificate()
-                    .expect("stored mdoc should have a valid certificate")
-                    .authority_key_id()
-                    .is_some_and(|cert_key_id| cert_key_id == *key_id),
-                StoredAttestation::SdJwt { sd_jwt, .. } => sd_jwt.issuer_certificate_chain().iter().any(|cert| {
+            || aki.iter().any(|key_id| {
+                certificate_chain.iter().any(|cert| {
                     cert.authority_key_id()
                         .is_some_and(|cert_key_id| cert_key_id == *key_id)
-                }),
+                })
             })
     }
 

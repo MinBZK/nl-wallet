@@ -26,6 +26,7 @@ extensions = [
     'sphinx.builders.linkcheck',
     'sphinxcontrib.mermaid',
     'ltc_linker',
+    'error_linker',
 ]
 
 source_suffix = {

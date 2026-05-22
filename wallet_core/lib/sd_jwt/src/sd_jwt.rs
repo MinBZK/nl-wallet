@@ -351,7 +351,7 @@ impl<C> VerifiedSdJwt<C, HeaderWithX5c> {
         &self.issuer_signed.header().x5c
     }
 
-    pub fn issuer_certificate(&self) -> &BorrowingCertificate {
+    pub fn issuer_leaf_certificate(&self) -> &BorrowingCertificate {
         self.issuer_signed.header().x5c.first()
     }
 
@@ -601,8 +601,8 @@ impl<C, H> VerifiedSdJwtPresentation<C, H> {
 }
 
 impl<C> VerifiedSdJwtPresentation<C, HeaderWithX5c> {
-    pub fn issuer_certificate(&self) -> &BorrowingCertificate {
-        self.sd_jwt.issuer_certificate()
+    pub fn issuer_leaf_certificate(&self) -> &BorrowingCertificate {
+        self.sd_jwt.issuer_leaf_certificate()
     }
 }
 
