@@ -108,14 +108,6 @@ pub struct TrustAnchors {
     trust_anchors: Vec<TrustAnchor<'static>>,
 }
 
-impl PartialEq for TrustAnchors {
-    fn eq(&self, other: &Self) -> bool {
-        self.certificates == other.certificates
-    }
-}
-
-impl Eq for TrustAnchors {}
-
 impl TrustAnchors {
     #[cfg(feature = "mock")]
     pub fn empty() -> Self {
@@ -137,6 +129,14 @@ impl TrustAnchors {
         self.certificates.contains(certificate)
     }
 }
+
+impl PartialEq for TrustAnchors {
+    fn eq(&self, other: &Self) -> bool {
+        self.certificates == other.certificates
+    }
+}
+
+impl Eq for TrustAnchors {}
 
 impl TryFrom<Vec<Vec<u8>>> for TrustAnchors {
     type Error = CertificateError;
@@ -169,12 +169,7 @@ impl TryFrom<IndexSet<BorrowingCertificate>> for TrustAnchors {
     }
 }
 
-impl From<TrustAnchors> for Vec<Vec<u8>> {
-    fn from(value: TrustAnchors) -> Self {
-        value.certificates.into_iter().map(|c| c.to_vec()).collect()
-    }
-}
-
+#[cfg(feature = "examples")]
 impl TryFrom<Vec<BorrowingTrustAnchor>> for TrustAnchors {
     type Error = CertificateError;
 
