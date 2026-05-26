@@ -388,8 +388,8 @@ window.addEventListener("load", load);
     <link rel="author" title="About these documents" href="../../about.html" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Core Assurance Goal for the EUDI Wallet" href="../gsn-overview.html" />
-    <link rel="prev" title="Wallet recovery" href="recovery_usecases.html" /> 
+    <link rel="next" title="Disclosure-based Issuance" href="disclosure-based-issuance.html" />
+    <link rel="prev" title="Relevant Use Cases" href="../use-cases.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -422,14 +422,15 @@ window.addEventListener("load", load);
 <li class="toctree-l1"><a class="reference internal" href="../../get-started/create-an-issuer.html">Create an Issuer</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Architecture</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../architecture-overview.html">Overview in C4</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../c4/system-context.html">System Context (C4)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../c4/software-system.html">Software System overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../c4/software-system.html#external-systems-wallet-provider">External systems (Wallet Provider)</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../use-cases.html">Relevant Use Cases</a><ul>
+<li class="toctree-l1 current"><a class="reference internal" href="../use-cases.html">Relevant Use Cases</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Disclosure with ISO 18013-5 (close proximity)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="disclosure-based-issuance.html">Disclosure-based Issuance</a></li>
 <li class="toctree-l2"><a class="reference internal" href="disclosure-with-openid4vp.html">Disclosure with OpenID4VP</a></li>
 <li class="toctree-l2"><a class="reference internal" href="issuance-with-openid4vci.html">Issuance with OpenID4VCI</a></li>
@@ -555,6 +556,7 @@ window.addEventListener("load", load);
              
   <section id="disclosure-with-iso-18013-5-close-proximity">
 <h1>Disclosure with ISO 18013-5 (close proximity)<a class="headerlink" href="#disclosure-with-iso-18013-5-close-proximity" title="Link to this heading"></a></h1>
+<p>This diagram shows how close proximity disclosure is implemented. The flow assumes QR-based device engagement followed by BLE-based device retrieval. This combination is consistent with ISO/IEC 18013-5 proximity presentation, where QR code is one of the standard engagement channels and BLE is one of the standard proximity retrieval transports. For the holder, this combination forms the minimal supported method set for compliance with the selected close proximity disclosure profile.</p>
 <section id="high-level-overview">
 <h2>High level overview<a class="headerlink" href="#high-level-overview" title="Link to this heading"></a></h2>
 <pre  class="mermaid">
@@ -600,9 +602,23 @@ window.addEventListener("load", load);
     wallet--&gt;&gt;-user: Render &quot;attributes disclosed&quot;
 
     reader--&gt;&gt;reader: verify DeviceResponse
-    </pre></section>
+    </pre><ol class="arabic simple">
+<li><p>The user starts the proximity flow in the wallet by choosing the action that shows a QR code for disclosure. This is the entry into the ISO 18013-5 proximity presentation flow represented in the diagrams.</p></li>
+<li><p>The wallet generates a fresh ephemeral device key (<code class="docutils literal notranslate"><span class="pre">eDeviceKey</span></code>), starts the BLE server, and encodes the resulting <code class="docutils literal notranslate"><span class="pre">DeviceEngagement</span></code> into a QR code. In ISO 18013-5, device engagement carries the information needed to set up secure close proximity retrieval and QR code is one of the engagement technologies defined for that phase.</p></li>
+<li><p>The user presents that QR code to the reader. The reader scans it, extracts the <code class="docutils literal notranslate"><span class="pre">DeviceEngagement</span></code>, and uses the advertised connection data to connect to the wallet over BLE. The wallet then updates the UI to show that the device is connected.</p></li>
+<li><p>Once the transport layer is available, the reader sends a <code class="docutils literal notranslate"><span class="pre">SessionEstablishment</span></code> message that contains its ephemeral public key (<code class="docutils literal notranslate"><span class="pre">eReaderKey</span></code>) and an encrypted <code class="docutils literal notranslate"><span class="pre">DeviceRequest</span></code>. On the reader side, this is the point where the reader has already prepared its request and derived the session keys needed to protect the message.</p></li>
+<li><p>After receiving <code class="docutils literal notranslate"><span class="pre">SessionEstablishment</span></code>, the wallet computes the <code class="docutils literal notranslate"><span class="pre">SessionTranscript</span></code>, derives the same session keys, and decrypts the <code class="docutils literal notranslate"><span class="pre">DeviceRequest</span></code>. The session transcript is a central input for both reader authentication and later device authentication.</p></li>
+<li><p>When the request has been decrypted successfully, the wallet notifies the UI that the device request has been received. The frontend then triggers continuation of the close-proximity disclosure flow, at which point the wallet has both the request payload and the transcript material needed to evaluate whether the request is authentic and can be fulfilled.</p></li>
+<li><p>The wallet verifies the <code class="docutils literal notranslate"><span class="pre">ReaderAuth</span></code> contained in the <code class="docutils literal notranslate"><span class="pre">DeviceRequest</span></code> and determines which locally stored attributes could fulfill the request and also if the reader is allowed to request these attributes. In ISO 18013-5 terms, <code class="docutils literal notranslate"><span class="pre">ReaderAuth</span></code> binds the request to the current <code class="docutils literal notranslate"><span class="pre">SessionTranscript</span></code> and the request bytes, so the wallet can check that the request really came from the reader identity associated with the supplied certificate chain.</p></li>
+<li><p>The wallet shows the reader information and the attributes that would be disclosed, so that the user can see what is being shared and also the identity information of the party which will receive the data.</p></li>
+<li><p>The user reviews the request and approves disclosure with a PIN. The approval step is the user-authorisation gate before the wallet is allowed to release the requested attributes.</p></li>
+<li><p>The wallet signs the <code class="docutils literal notranslate"><span class="pre">DeviceAuthenticationBytes</span></code> using the <code class="docutils literal notranslate"><span class="pre">WSCA</span></code>, constructs the <code class="docutils literal notranslate"><span class="pre">DeviceResponse</span></code>, and prepares a <code class="docutils literal notranslate"><span class="pre">PoA</span></code> where the requested presentation requires proof that multiple attestations are associated with the same secure cryptographic environment. <code class="docutils literal notranslate"><span class="pre">DeviceAuthenticationBytes</span></code> cryptographically binds the disclosed device-signed data to the <code class="docutils literal notranslate"><span class="pre">SessionTranscript</span></code> and document type, which is what the reader will later verify.</p></li>
+<li><p>The wallet sends the encrypted <code class="docutils literal notranslate"><span class="pre">DeviceResponse</span></code> with <code class="docutils literal notranslate"><span class="pre">PoA</span></code> back to the reader and updates the UI to show that the attributes have been disclosed. The reader then verifies the response, including the authenticated device-signed data and any accompanying proof material.</p></li>
+</ol>
+</section>
 <section id="detailed-sequence-diagram">
 <h2>Detailed sequence diagram<a class="headerlink" href="#detailed-sequence-diagram" title="Link to this heading"></a></h2>
+<p>The next diagram expands the same disclosure into the internal responsibilities of the app UI layer, the shared wallet core, the native platform support layer, and the reader application. It also shows the main cancellation branches that can occur before disclosure is completed.</p>
 <pre  class="mermaid">
         sequenceDiagram
     %% Force ordering by explicitly setting up participants
@@ -710,7 +726,22 @@ window.addEventListener("load", load);
     wallet_core--&gt;&gt;-wallet_app: Success
 
 wallet_app--&gt;&gt;-user: Render &quot;attributes disclosed&quot;
-    </pre></section>
+    </pre><ol class="arabic simple">
+<li><p>The user starts the flow in <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code>, which immediately delegates the protocol work to <code class="docutils literal notranslate"><span class="pre">wallet_core</span></code> through <code class="docutils literal notranslate"><span class="pre">startProximityDisclosure()</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wallet_core</span></code> asks <code class="docutils literal notranslate"><span class="pre">platform_support</span></code> to <code class="docutils literal notranslate"><span class="pre">startQrEngagement</span></code>. The platform layer generates a fresh <code class="docutils literal notranslate"><span class="pre">eDeviceKey</span></code> and starts the BLE server, then returns the resulting <code class="docutils literal notranslate"><span class="pre">DeviceEngagement</span></code> to <code class="docutils literal notranslate"><span class="pre">wallet_core</span></code>. <code class="docutils literal notranslate"><span class="pre">wallet_core</span></code> forwards it as <code class="docutils literal notranslate"><span class="pre">QrContents</span></code> to <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code>, which renders the QR code and prompts the user to show it to the reader.</p></li>
+<li><p>The reader scans the QR code, extracts the <code class="docutils literal notranslate"><span class="pre">DeviceEngagement</span></code>, and uses the advertised connection data to open a BLE connection to <code class="docutils literal notranslate"><span class="pre">platform_support</span></code>. The transport state then flows upward from <code class="docutils literal notranslate"><span class="pre">platform_support</span></code> to <code class="docutils literal notranslate"><span class="pre">wallet_core</span></code> and on to <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code>, so the UI can reflect the transport setup before session establishment begins.</p></li>
+<li><p>The reader then sends <code class="docutils literal notranslate"><span class="pre">SessionEstablishment</span> <span class="pre">{</span> <span class="pre">eReaderKey,</span> <span class="pre">encrypted</span> <span class="pre">DeviceRequest</span> <span class="pre">}</span></code> to <code class="docutils literal notranslate"><span class="pre">platform_support</span></code>. The native layer derives the session key, decrypts the <code class="docutils literal notranslate"><span class="pre">DeviceRequest</span></code>, and returns <code class="docutils literal notranslate"><span class="pre">SessionEstablished</span> <span class="pre">{</span> <span class="pre">DeviceRequest,</span> <span class="pre">SessionTranscript</span> <span class="pre">}</span></code> to <code class="docutils literal notranslate"><span class="pre">wallet_core</span></code>. In protocol terms, this is the transition from transport setup into protected request processing.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wallet_core</span></code> signals <code class="docutils literal notranslate"><span class="pre">DeviceRequestReceived</span></code> to the UI, after which the UI calls <code class="docutils literal notranslate"><span class="pre">continueCloseProximity()</span></code>. The core then verifies <code class="docutils literal notranslate"><span class="pre">ReaderAuth</span></code> and looks up candidate attributes in storage that could fullfill the request. <code class="docutils literal notranslate"><span class="pre">ReaderAuth</span></code> is the reader-side authentication proof that binds the request to the current session.</p></li>
+<li><p>If any requested attributes are unavailable, the core stops before user consent. It logs the cancellation, tells the UI which requested items cannot be satisfied, and, after user acknowledgement, sends a session-termination message and stops BLE. No user approval is requested for a request that cannot be fulfilled.</p></li>
+<li><p>If the request can be satisfied, <code class="docutils literal notranslate"><span class="pre">wallet_core</span></code> enriches the request with the actual local attribute values and returns <code class="docutils literal notranslate"><span class="pre">StartDisclosureResult</span></code> plus the candidate set to the UI. The purpose of this step is to move from a purely syntactic request to a user-facing disclosure choice based on real wallet contents.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> first renders reader information. This is the relying-party review step, where the user can decide whether the requesting reader is acceptable before looking at the attribute disclosure.</p></li>
+<li><p>If the user rejects the reader, the flow is cancelled. The core logs the cancellation, sends a session-termination message to the reader side and stops the BLE server. This branch prevents any further disclosure processing after requester rejection.</p></li>
+<li><p>If the user accepts the reader, the app renders the attributes to be shared. The user then gets a second approval point focused specifically on the requested claims. This corresponds to selective disclosure and explicit user authorisation before release.</p></li>
+<li><p>If the user rejects attribute sharing, the implementation follows the same cancellation path as reader rejection: cancel, terminate the session, and stop BLE.</p></li>
+<li><p>If the user accepts the disclosure of the requested attributes, the user can also select which attestation to share the attributes from (in the case that there are multiple). After this, the app asks for the PIN and calls <code class="docutils literal notranslate"><span class="pre">acceptDisclosure(pin,</span> <span class="pre">selected)</span></code>. At that point, <code class="docutils literal notranslate"><span class="pre">wallet_core</span></code> performs the critical cryptographic step: it signs <code class="docutils literal notranslate"><span class="pre">DeviceAuthenticationBytes</span></code> and, where applicable, <code class="docutils literal notranslate"><span class="pre">PoA</span></code> using the <code class="docutils literal notranslate"><span class="pre">WSCA</span></code>, and then constructs the <code class="docutils literal notranslate"><span class="pre">DeviceResponse</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wallet_core</span></code> hands the completed response to <code class="docutils literal notranslate"><span class="pre">platform_support</span></code>, which sends the encrypted <code class="docutils literal notranslate"><span class="pre">DeviceResponse</span></code> to the reader application and then stops the BLE server. The reader verifies the response, <code class="docutils literal notranslate"><span class="pre">wallet_core</span></code> logs the successful session, and <code class="docutils literal notranslate"><span class="pre">wallet_app</span></code> renders the final “attributes disclosed” screen.</p></li>
+</ol>
+</section>
 <section id="key-usage-during-disclosure">
 <h2>Key usage during disclosure<a class="headerlink" href="#key-usage-during-disclosure" title="Link to this heading"></a></h2>
 <p>Key usage is the same as in
@@ -722,8 +753,8 @@ wallet_app--&gt;&gt;-user: Render &quot;attributes disclosed&quot;
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="recovery_usecases.html" class="btn btn-neutral float-left" title="Wallet recovery" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../gsn-overview.html" class="btn btn-neutral float-right" title="Core Assurance Goal for the EUDI Wallet" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../use-cases.html" class="btn btn-neutral float-left" title="Relevant Use Cases" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="disclosure-based-issuance.html" class="btn btn-neutral float-right" title="Disclosure-based Issuance" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
