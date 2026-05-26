@@ -9,7 +9,6 @@ developmentStatus: development
 platforms:
   - android
   - ios
-  - web
 
 categories:
   - identity-management
@@ -18,8 +17,8 @@ categories:
 description:
   nl:
     shortDescription: >-
-      Een veilige digitale wallet voor Nederlandse burgers om persoonlijke
-      identiteitsdocumenten en -gegevens op te slaan en te delen.
+      Een veilige digitale wallet voor Nederlandse burgers om persoonlijke identiteitsdocumenten en -gegevens op te
+      slaan en te delen.
     longDescription: |
       NL Wallet is een veilige app op je telefoon waarmee je belangrijke
       persoonlijke informatie op één plek kunt bewaren, zoals je naam, leeftijd
@@ -54,8 +53,7 @@ description:
 
   en:
     shortDescription: >-
-      A secure digital wallet for Dutch nationals to store and share personal
-      identity documents and attributes.
+      A secure digital wallet for Dutch nationals to store and share personal identity documents and attributes.
     longDescription: |
       NL Wallet is a secure app on your phone that lets you keep important
       personal information in one place, such as your name, age, or official
