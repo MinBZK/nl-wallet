@@ -14,6 +14,7 @@ use config::Environment;
 use config::File;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use derive_more::From;
@@ -71,8 +72,7 @@ pub struct Settings {
     pub instruction_challenge_timeout: Duration,
 
     /// Issuer trust anchors are used to validate the received PID SD JWT with Recovery Code disclosure
-    #[serde_as(as = "Vec<Base64>")]
-    pub pid_issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
+    pub pid_issuer_trust_anchors: TrustAnchors,
 
     pub ios: Ios,
     pub android: Android,

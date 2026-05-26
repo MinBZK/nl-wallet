@@ -4,7 +4,7 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use derive_more::Debug;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::urls::BaseUrl;
@@ -32,8 +32,7 @@ pub struct PidIssuerSettings {
     pub brp_server: BaseUrl,
 
     #[debug(skip)]
-    #[serde_as(as = "Vec<Base64>")]
-    pub wia_trust_anchors: Vec<BorrowingTrustAnchor>,
+    pub wia_trust_anchors: TrustAnchors,
 
     #[debug(skip)]
     pub recovery_code: SecretKey,

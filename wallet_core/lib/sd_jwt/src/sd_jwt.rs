@@ -12,7 +12,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use crypto::CredentialEcdsaKey;
 use crypto::EcdsaKey;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use crypto::x509::BorrowingCertificate;
@@ -169,7 +169,7 @@ impl UnverifiedSdJwt {
     /// producing a [`VerifiedSdJwt`].
     pub fn into_verified_against_trust_anchors(
         self,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VerifiedSdJwt, DecoderError> {
         let issuer_signed = self.issuer_signed.into_verified_against_trust_anchors(
@@ -513,7 +513,7 @@ impl UnverifiedSdJwtPresentation {
     /// 3) parsing/verifying disclosures.
     pub async fn into_verified_against_trust_anchors<C>(
         self,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
         kb_verification_options: &KbVerificationOptions<'_>,
         time: &impl Generator<DateTime<Utc>>,
         revocation_verifier: &RevocationVerifier<C>,

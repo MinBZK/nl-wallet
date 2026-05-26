@@ -10,7 +10,7 @@ use chrono::Utc;
 use config::ConfigError;
 use crypto::p256_der::DerSigningKey;
 use crypto::server_keys::KeyPair as ParsedKeyPair;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
@@ -32,7 +32,6 @@ use crate::keys::PrivateKeyVariant;
 pub const NL_WALLET_CLIENT_ID: &str = "https://wallet.edi.rijksoverheid.nl";
 
 /// Settings shared by all variants of issuer/verifier servers.
-#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Settings {
     // used by the wallet, MUST be reachable from the public internet.
@@ -50,8 +49,7 @@ pub struct Settings {
 
     /// Issuer trust anchors are used to validate the keys and certificates in the issuer's private_keys configuration
     /// on application startup and the issuer of the disclosed attributes during disclosure sessions.
-    #[serde_as(as = "Vec<Base64>")]
-    pub issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
+    pub issuer_trust_anchors: TrustAnchors,
 
     /// Optional HSM settings in which private keys can be stored
     pub hsm: Option<Hsm>,
@@ -192,7 +190,7 @@ pub trait ServerSettings: Sized {
 
 pub fn verify_key_pairs(
     key_pairs: &[(&str, &KeyPair)],
-    trust_anchors: &[BorrowingTrustAnchor],
+    trust_anchors: &TrustAnchors,
     usage: CertificateUsage,
     time: &impl Generator<DateTime<Utc>>,
 ) -> Result<(), CertificateVerificationError> {

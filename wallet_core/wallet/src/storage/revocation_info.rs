@@ -2,7 +2,7 @@ use attestation_types::status_claim::StatusClaim;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::DistinguishedName;
 use entity::revocation_info;
 use token_status_list::verification::client::StatusListClient;
@@ -27,7 +27,7 @@ impl RevocationInfo {
 
     pub async fn verify_revocation(
         &self,
-        issuer_trust_anchors: &[BorrowingTrustAnchor],
+        issuer_trust_anchors: &TrustAnchors,
         revocation_verifier: &RevocationVerifier<impl StatusListClient>,
         time: &impl Generator<DateTime<Utc>>,
     ) -> RevocationStatus {
@@ -62,6 +62,7 @@ mod test {
     use assert_matches::assert_matches;
     use attestation_types::status_claim::StatusClaim;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
     use futures::FutureExt;
     use token_status_list::verification::client::mock::StatusListClientStub;
     use token_status_list::verification::verifier::RevocationStatus;
@@ -76,7 +77,7 @@ mod test {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuer_cert = ca.generate_status_list_mock().unwrap();
         let issuer_cert_dn = issuer_cert.certificate().distinguished_name_canonical().unwrap();
-        let issuer_trust_anchors = &[ca.to_borrowing_trust_anchor()];
+        let issuer_trust_anchors = TrustAnchors::from(&ca);
 
         let revocation_verifier =
             RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(issuer_cert)));
@@ -85,7 +86,7 @@ mod test {
 
         let status = revocation_info
             .verify_revocation(
-                issuer_trust_anchors,
+                &issuer_trust_anchors,
                 &revocation_verifier,
                 &MockTimeGenerator::default(),
             )

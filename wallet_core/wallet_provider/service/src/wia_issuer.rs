@@ -182,6 +182,7 @@ mod tests {
     use attestation_types::status_claim::StatusClaim;
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateUsage;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
@@ -215,7 +216,7 @@ mod tests {
 
         let (_, wia_claims) = wia
             .parse_and_verify_against_trust_anchors(
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
                 &TimeGenerator,
                 CertificateUsage::Wia,
                 &WIA_JWT_VALIDATIONS,

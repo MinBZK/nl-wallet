@@ -24,7 +24,7 @@ use chrono::Utc;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use dcql::CredentialFormat;
 use dcql::CredentialQuery;
 use dcql::Query;
@@ -119,7 +119,7 @@ async fn internal_server_settings_and_listener() -> (ServerAuth, Option<TcpListe
 async fn wallet_server_settings_and_listener(
     internal_server: ServerAuth,
     request: &StartDisclosureRequest,
-) -> (VerifierSettings, TcpListener, Ca, BorrowingTrustAnchor) {
+) -> (VerifierSettings, TcpListener, Ca, TrustAnchors) {
     // Set up the listener.
     let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
     let addr = listener.local_addr().unwrap();
@@ -130,13 +130,13 @@ async fn wallet_server_settings_and_listener(
 
     // Create the issuer CA and derive the trust anchors from it.
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuer_trust_anchors = vec![issuer_ca.to_borrowing_trust_anchor()];
+    let issuer_trust_anchors = TrustAnchors::from(&issuer_ca);
 
     // Create the RP CA, derive the trust anchor from it and generate
     // a reader registration, based on the example items request.
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
-    let reader_trust_anchors = vec![rp_ca.to_borrowing_trust_anchor()];
-    let rp_trust_anchor = rp_ca.to_borrowing_trust_anchor();
+    let reader_trust_anchors = TrustAnchors::from(&rp_ca);
+    let rp_trust_anchor = TrustAnchors::from(&rp_ca);
     let reader_registration = ReaderRegistration::mock_from_dcql_query(request.dcql_query.as_ref().unwrap());
 
     // Set up the use case, based on RP CA and reader registration.
@@ -587,14 +587,7 @@ async fn get_status_ok(client: &Client, status_url: Url) -> StatusResponse {
 async fn start_disclosure<S>(
     disclosure_sessions: Arc<S>,
     request: &StartDisclosureRequest,
-) -> (
-    VerifierSettings,
-    Client,
-    SessionToken,
-    BaseUrl,
-    Ca,
-    BorrowingTrustAnchor,
-)
+) -> (VerifierSettings, Client, SessionToken, BaseUrl, Ca, TrustAnchors)
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
@@ -894,7 +887,7 @@ async fn perform_full_disclosure(
     };
     let disclosure_client = VpDisclosureClient::new_with_client(default_reqwest_client_builder()).unwrap();
     let disclosure_session = disclosure_client
-        .start(&request_uri_query, uri_source, &[rp_trust_anchor])
+        .start(&request_uri_query, uri_source, &rp_trust_anchor)
         .await
         .expect("disclosure session should start at client side");
 
@@ -1090,7 +1083,7 @@ async fn test_disclosed_attributes_failed_session() {
     let request_uri_query = ul.as_ref().query().unwrap().to_string();
     let disclosure_client = VpDisclosureClient::new_with_client(default_reqwest_client_builder()).unwrap();
     let disclosure_session = disclosure_client
-        .start(&request_uri_query, DisclosureUriSource::QrCode, &[rp_trust_anchor])
+        .start(&request_uri_query, DisclosureUriSource::QrCode, &rp_trust_anchor)
         .await
         .expect("disclosure session should start at client side");
 

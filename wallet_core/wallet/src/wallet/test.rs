@@ -23,6 +23,7 @@ use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificateExtension;
 use dcql::CredentialFormat;
 use futures::future::FutureExt;
@@ -321,8 +322,8 @@ fn create_wallet_configuration() -> WalletConfiguration {
     config.account_server.certificate_public_key = (*keys.certificate_signing_key.verifying_key()).into();
     config.account_server.instruction_result_public_key = (*keys.instruction_result_signing_key.verifying_key()).into();
 
-    config.issuer_trust_anchors = vec![ISSUER_KEY.trust_anchor.clone()];
-    config.disclosure.rp_trust_anchors = vec![READER_CA.to_borrowing_trust_anchor()];
+    config.issuer_trust_anchors = TrustAnchors::try_from(vec![ISSUER_KEY.trust_anchor.clone()]).unwrap();
+    config.disclosure.rp_trust_anchors = TrustAnchors::from(&*READER_CA);
 
     config
 }

@@ -5,7 +5,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use coset::RegisteredLabelWithPrivate;
 use coset::iana::Algorithm;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use crypto::x509::KeyIdentifier;
 use futures::future::try_join_all;
@@ -116,7 +116,7 @@ impl DeviceResponse {
         eph_reader_key: Option<&SecretKey>,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
         revocation_verifier: &RevocationVerifier<C>,
     ) -> Result<Vec<DisclosedDocument>>
     where
@@ -139,7 +139,7 @@ impl DeviceResponse {
         eph_reader_key: Option<&SecretKey>,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
         revocation_verifier: &RevocationVerifier<C>,
         supported_algorithms: &SupportedAlgorithms,
     ) -> Result<Vec<DisclosedDocument>>
@@ -227,7 +227,7 @@ impl IssuerSigned {
         &self,
         validity: ValidityRequirement,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
     ) -> Result<IssuerSignedVerificationResult> {
         let TaggedBytes(mso) =
             self.issuer_auth
@@ -315,7 +315,7 @@ impl Document {
         eph_reader_key: Option<&SecretKey>,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
         revocation_verifier: &RevocationVerifier<C>,
         supported_algorithms: &SupportedAlgorithms,
     ) -> Result<DisclosedDocument>
@@ -541,7 +541,7 @@ mod tests {
                 Some(&eph_reader_key),
                 &DeviceAuthenticationBytes::example().0.0.session_transcript,
                 &IsoCertTimeGenerator,
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
                 ))),

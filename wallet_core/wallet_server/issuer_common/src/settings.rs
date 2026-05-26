@@ -573,6 +573,7 @@ mod tests {
     use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+    use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
     use http_utils::urls::HttpsUri;
@@ -652,7 +653,7 @@ mod tests {
                     successful_deletion_minutes: 10.try_into().unwrap(),
                     failed_deletion_minutes: 10.try_into().unwrap(),
                 },
-                issuer_trust_anchors: vec![issuer_ca.to_borrowing_trust_anchor()],
+                issuer_trust_anchors: TrustAnchors::from(issuer_ca),
                 hsm: None,
             },
             status_lists: StatusListsSettings {
@@ -678,7 +679,7 @@ mod tests {
         let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
         let mut settings = mock_settings(&issuer_ca);
 
-        settings.server_settings.issuer_trust_anchors = vec![];
+        settings.server_settings.issuer_trust_anchors = TrustAnchors::empty();
 
         assert_matches!(
             settings.validate().expect_err("should fail"),
@@ -700,7 +701,7 @@ mod tests {
             .expect("generate tsl cert failed")
             .into();
 
-        settings.server_settings.issuer_trust_anchors = vec![issuer_ca.to_borrowing_trust_anchor()];
+        settings.server_settings.issuer_trust_anchors = TrustAnchors::from(&issuer_ca);
         settings.credential_configurations = HashMap::from([(
             "no_registration_sdjwt".to_string().into(),
             CredentialConfigurationSettings {

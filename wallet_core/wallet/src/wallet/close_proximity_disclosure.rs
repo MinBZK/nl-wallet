@@ -10,7 +10,7 @@ use attestation_data::x509::CertificateTypeError;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::CredentialEcdsaKey;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
 use crypto::x509::CertificateError;
 use derive_more::IsVariant;
@@ -747,7 +747,7 @@ pub fn verify_device_request(
     device_request: &DeviceRequest,
     session_transcript: &SessionTranscript,
     time: &impl Generator<DateTime<Utc>>,
-    trust_anchors: &[BorrowingTrustAnchor],
+    trust_anchors: &TrustAnchors,
 ) -> Result<VerifierCertificate, CloseProximityDisclosureError> {
     // Verify all `DocRequest` entries and make sure the resulting certificates are all exactly equal.
     let certificate = device_request
@@ -809,7 +809,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::p256_der::DerSignature;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::BorrowingTrustAnchor;
+    use crypto::trust_anchor::TrustAnchors;
     use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
@@ -1416,7 +1416,7 @@ mod tests {
     async fn setup_device_request(
         items_requests: Vec<ItemsRequest>,
         device_engagement: Option<DeviceEngagement>,
-    ) -> (DeviceRequest, SessionTranscript, Vec<BorrowingTrustAnchor>) {
+    ) -> (DeviceRequest, SessionTranscript, TrustAnchors) {
         let mut reader_registration = ReaderRegistration::new_mock();
         items_requests.clone().into_iter().for_each(|items_request| {
             let (doc_type, claims) = items_request.into_doctype_and_claims();
@@ -1438,7 +1438,7 @@ mod tests {
         .unwrap();
 
         let device_request = DeviceRequest::from_doc_requests(doc_requests);
-        let trust_anchors = vec![READER_CA.to_borrowing_trust_anchor()];
+        let trust_anchors = TrustAnchors::from(&*READER_CA);
 
         (device_request, session_transcript, trust_anchors)
     }
@@ -1517,7 +1517,7 @@ mod tests {
         let doc_request2 = create_doc_request(items_request2, &session_transcript, &key_pair2).await;
 
         let device_request = DeviceRequest::from_doc_requests(vec_nonempty![doc_request1, doc_request2]);
-        let trust_anchors = [READER_CA.to_borrowing_trust_anchor()];
+        let trust_anchors = TrustAnchors::from(&*READER_CA);
 
         let result = verify_device_request(
             &device_request,
@@ -1543,7 +1543,7 @@ mod tests {
         let doc_requests = create_doc_request(items_request, &session_transcript, &key_pair).await;
 
         let device_request = DeviceRequest::from_doc_requests(vec_nonempty![doc_requests]);
-        let trust_anchors = vec![READER_CA.to_borrowing_trust_anchor()];
+        let trust_anchors = TrustAnchors::from(&*READER_CA);
 
         let result = verify_device_request(
             &device_request,

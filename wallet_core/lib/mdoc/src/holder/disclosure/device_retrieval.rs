@@ -1,7 +1,7 @@
 use attestation_types::claim_path::ClaimPath;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use utils::generator::Generator;
@@ -36,7 +36,7 @@ impl DocRequest {
         &self,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
     ) -> Result<Option<BorrowingCertificate>> {
         // If reader authentication is present, verify it and return the certificate.
         self.reader_auth
@@ -118,6 +118,7 @@ pub mod test {
 mod tests {
     use assert_matches::assert_matches;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
     use utils::generator::TimeGenerator;
 
     use super::*;
@@ -129,7 +130,7 @@ mod tests {
         // Create a CA, certificate and private key and trust anchors.
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let private_key = ca.generate_reader_mock().unwrap();
-        let trust_anchors = &[ca.to_borrowing_trust_anchor()];
+        let trust_anchors = TrustAnchors::from(&ca);
 
         // Create a basic session transcript, item request and a `DocRequest`.
         let session_transcript = SessionTranscript::new_mock();
@@ -138,18 +139,14 @@ mod tests {
 
         // Verification of the `DocRequest` should succeed and return the certificate contained within it.
         let certificate = doc_request
-            .verify(&session_transcript, &TimeGenerator, trust_anchors)
+            .verify(&session_transcript, &TimeGenerator, &trust_anchors)
             .expect("Could not verify DeviceRequest");
 
         assert_matches!(certificate, Some(cert) if cert == private_key.into());
 
         let other_ca = Ca::generate_reader_mock_ca().unwrap();
         let error = doc_request
-            .verify(
-                &session_transcript,
-                &TimeGenerator,
-                &[other_ca.to_borrowing_trust_anchor()],
-            )
+            .verify(&session_transcript, &TimeGenerator, &TrustAnchors::from(&other_ca))
             .expect_err("Verifying DeviceRequest should have resulted in an error");
 
         assert_matches!(error, Error::Cose(_));
@@ -161,7 +158,7 @@ mod tests {
         };
 
         let no_certificate = doc_request
-            .verify(&session_transcript, &TimeGenerator, trust_anchors)
+            .verify(&session_transcript, &TimeGenerator, &trust_anchors)
             .expect("Could not verify DeviceRequest");
 
         assert!(no_certificate.is_none());
