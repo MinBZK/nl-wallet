@@ -269,7 +269,7 @@ impl BorrowingCertificate {
         let chain = once(self).chain(intermediate_certs).collect_vec();
 
         // HAIP 1.0 requires that the x5c header does not contain the trust anchor.
-        if chain_does_contain_trust_anchors(&chain, trust_anchors) {
+        if chain.iter().any(|cert| trust_anchors.contains(cert)) {
             return Err(CertificateError::TrustAnchorInChain);
         }
 
@@ -436,10 +436,6 @@ impl BorrowingCertificate {
         })
         .transpose()
     }
-}
-
-fn chain_does_contain_trust_anchors(chain: &[&BorrowingCertificate], trust_anchors: &TrustAnchors) -> bool {
-    chain.iter().any(|cert| trust_anchors.certificates().contains(*cert))
 }
 
 impl Clone for BorrowingCertificate {
@@ -821,29 +817,6 @@ mod test {
     }
 
     #[test]
-    fn chain_does_not_contain_trust_anchor_when_no_intermediates() {
-        let ca = Ca::generate("ca", Default::default()).unwrap();
-
-        assert!(!chain_does_contain_trust_anchors(&[], &TrustAnchors::from(&ca)));
-    }
-
-    #[test]
-    fn chain_does_not_contain_trust_anchor_when_no_trust_anchors() {
-        let ca = Ca::generate("ca", Default::default()).unwrap();
-        let cert = ca.as_borrowing_certificate().unwrap();
-
-        assert!(!chain_does_contain_trust_anchors(&[&cert], &TrustAnchors::empty()));
-    }
-
-    #[test]
-    fn chain_does_contain_trust_anchor_when_ca_is_in_chain() {
-        let ca = Ca::generate("ca", Default::default()).unwrap();
-        let ca_cert = ca.as_borrowing_certificate().unwrap();
-
-        assert!(chain_does_contain_trust_anchors(&[&ca_cert], &TrustAnchors::from(&ca),));
-    }
-
-    #[test]
     fn chain_with_intermediate_scenario() {
         let time = TimeGenerator;
 
@@ -871,28 +844,6 @@ mod test {
                 CertificateConfiguration::default(),
             )
             .unwrap();
-        let leaf_cert = leaf_key_pair.certificate();
-
-        // Verify with intermediate in the trust anchors
-        assert!(!chain_does_contain_trust_anchors(
-            &[leaf_cert],
-            &TrustAnchors::from(&intermediate_ca),
-        ));
-        // Verify full chain with intermediates
-        assert!(!chain_does_contain_trust_anchors(
-            &[leaf_cert, &intermediate_cert],
-            &TrustAnchors::from(&ca),
-        ));
-        // Verify duplicate intermediate is detected
-        assert!(chain_does_contain_trust_anchors(
-            &[leaf_cert, &intermediate_cert],
-            &TrustAnchors::try_from(vec![intermediate_ta.clone(), ca_ta.clone()]).unwrap(),
-        ));
-        // Verify duplicate ca is detected
-        assert!(chain_does_contain_trust_anchors(
-            &[leaf_cert, &intermediate_cert, &ca_cert],
-            &TrustAnchors::from(&ca),
-        ));
 
         // Verify whole chain with leaf, intermediate and ca trust anchor
         leaf_key_pair

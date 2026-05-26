@@ -194,7 +194,7 @@ pub fn verify_key_pairs(
     usage: CertificateUsage,
     time: &impl Generator<DateTime<Utc>>,
 ) -> Result<(), CertificateVerificationError> {
-    if trust_anchors.certificates().is_empty() {
+    if trust_anchors.is_empty() {
         return Err(CertificateVerificationError::MissingTrustAnchors);
     }
 

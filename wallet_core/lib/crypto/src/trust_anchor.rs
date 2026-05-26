@@ -119,8 +119,12 @@ impl TrustAnchors {
         self.trust_anchors.as_slice()
     }
 
-    pub fn certificates(&self) -> &IndexSet<BorrowingCertificate> {
-        &self.certificates
+    pub fn is_empty(&self) -> bool {
+        self.trust_anchors.is_empty()
+    }
+
+    pub fn contains(&self, certificate: &BorrowingCertificate) -> bool {
+        self.certificates.contains(certificate)
     }
 }
 
