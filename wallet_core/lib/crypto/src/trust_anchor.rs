@@ -90,6 +90,16 @@ impl From<BorrowingTrustAnchor> for Vec<u8> {
     }
 }
 
+/// A collection of trust anchors for HAIP compliant chain validation.
+///
+/// Internally this type stores:
+/// - the original [`BorrowingCertificate`]s, used to verify the HAIP requirement that certificates in the chain should
+///   not appear as trust anchor as well
+/// - the pre-parsed [`TrustAnchor<'static>`] values used for certificate chain validation using webpki
+///
+/// Parsing happens once at construction/deserialization time, so callers pay no per-call overhead.
+///
+/// Serialises to and Deserializes from a JSON array of standard base64-encoded DER certificates.
 #[derive(Clone, Debug)]
 pub struct TrustAnchors {
     #[debug(skip)]
@@ -215,7 +225,7 @@ pub mod mock {
     impl From<&Ca> for TrustAnchors {
         fn from(value: &Ca) -> Self {
             // This implementation is meant for unit and integration tests, it expects a proper `Ca` with a valid
-            // certificate. So the unwraps here
+            // certificate, hence the `unwrap`s.
             let certs = IndexSet::from_iter([value.as_borrowing_certificate().unwrap()]);
             certs.try_into().unwrap()
         }
