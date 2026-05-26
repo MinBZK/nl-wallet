@@ -50,4 +50,12 @@
     <packageUrl regex="true">^pkg:cocoapods/root_jailbreak_sniffer@.*$</packageUrl>
     <cve>CVE-2026-24811</cve>
   </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive (Drupal)
+    ]]></notes>
+    <packageUrl regex="true">^pkg:cocoapods/video_player_avfoundation@.*$</packageUrl>
+    <cve>CVE-2015-3362</cve>
+  </suppress>
 </suppressions>
