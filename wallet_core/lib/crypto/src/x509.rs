@@ -282,7 +282,7 @@ impl BorrowingCertificate {
         self.end_entity_certificate()
             .verify_for_usage(
                 &[ECDSA_P256_SHA256],
-                trust_anchors.trust_anchors(),
+                trust_anchors.as_trust_anchor_slice(),
                 intermediate_certs.as_slice(),
                 // unwrap is safe here because we assume the time that is generated lies after the epoch
                 UnixTime::since_unix_epoch(Duration::from_secs(time.generate().timestamp().try_into().unwrap())),

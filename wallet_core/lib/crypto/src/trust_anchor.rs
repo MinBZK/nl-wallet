@@ -115,7 +115,7 @@ impl TrustAnchors {
         }
     }
 
-    pub fn trust_anchors(&self) -> &[TrustAnchor<'static>] {
+    pub fn as_trust_anchor_slice(&self) -> &[TrustAnchor<'static>] {
         self.trust_anchors.as_slice()
     }
 

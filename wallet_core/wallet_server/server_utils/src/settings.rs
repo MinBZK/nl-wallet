@@ -32,7 +32,6 @@ use crate::keys::PrivateKeyVariant;
 pub const NL_WALLET_CLIENT_ID: &str = "https://wallet.edi.rijksoverheid.nl";
 
 /// Settings shared by all variants of issuer/verifier servers.
-#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Settings {
     // used by the wallet, MUST be reachable from the public internet.
