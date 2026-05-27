@@ -161,6 +161,11 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         })
     }
 
+    #[cfg(any(test, feature = "test"))]
+    pub fn state(&self) -> &str {
+        &self.state
+    }
+
     fn matches_received_redirect_uri(&self, received_redirect_uri: &Url) -> bool {
         received_redirect_uri.as_str().starts_with(self.redirect_uri.as_str())
     }
@@ -199,10 +204,6 @@ impl AuthorizationSession for HttpAuthorizationSession {
 
     fn auth_url(&self) -> &Url {
         &self.auth_url
-    }
-
-    fn state(&self) -> &str {
-        &self.state
     }
 
     async fn start_issuance(

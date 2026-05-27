@@ -47,7 +47,6 @@ mockall::mock! {
     #[derive(Debug)]
     pub AuthorizationSession {
         pub fn get_auth_url(&self) -> &Url;
-        pub fn get_state(&self) -> &str;
         pub fn start_issuance_sync(&self) -> Result<MockIssuanceSession, WalletIssuanceError>;
     }
 }
@@ -57,10 +56,6 @@ impl AuthorizationSession for MockAuthorizationSession {
 
     fn auth_url(&self) -> &Url {
         self.get_auth_url()
-    }
-
-    fn state(&self) -> &str {
-        self.get_state()
     }
 
     async fn start_issuance(
