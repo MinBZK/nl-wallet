@@ -519,7 +519,7 @@ impl IssuerSettings {
     {
         let (issuer, database_checkers, store_connection, server_settings) = self.into_issuer(hsm, wia_config).await?;
 
-        let par_store = Arc::new(par_store(store_connection.clone()));
+        let par_store = par_store(store_connection.clone());
         let flow =
             flow(store_connection.clone()).map_err(|e| IssuerSettingsError::AuthorizationCodeFlow(Box::new(e)))?;
 

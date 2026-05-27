@@ -184,7 +184,7 @@ async fn start_server(
         // Authorization-code flow: wrap the inner issuer in an `AuthorizingIssuer` and mount both
         // the authorization router (PAR / authorize / PKCE-bridged token) and the issuance router.
         Some(upstream) => {
-            let par_store = Arc::new(MemoryStore::new(PAR_TTL));
+            let par_store = MemoryStore::new(PAR_TTL);
             let flow = StaticAuthorizationCodeFlow::new(upstream, mock_documents);
 
             let (authorizing_issuer, trust_anchor, wia_issuer_keypair) =

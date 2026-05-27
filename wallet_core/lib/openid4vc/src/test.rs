@@ -200,7 +200,7 @@ pub fn setup_mock_authorizing_issuer<G, PAS, AF>(
     issuer_identifier: IssuerIdentifier,
     attestation_count: NonZeroUsize,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
-    par_store: Arc<PAS>,
+    par_store: PAS,
     flow: AF,
 ) -> (MockAuthorizingIssuer<G, PAS, AF>, TrustAnchors, KeyPair)
 where

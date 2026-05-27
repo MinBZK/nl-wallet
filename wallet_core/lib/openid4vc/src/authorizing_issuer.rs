@@ -63,12 +63,12 @@ pub enum AuthorizeError {
 /// Authorization Phase wrapper around an Issuance Phase [`Issuer`].
 pub struct AuthorizingIssuer<K, L, S, N, PAS, AF> {
     issuer: Arc<Issuer<K, L, S, N>>,
-    par_store: Arc<PAS>,
+    par_store: PAS,
     flow: AF,
 }
 
 impl<K, L, S, N, PAS, AF> AuthorizingIssuer<K, L, S, N, PAS, AF> {
-    pub fn new(issuer: Arc<Issuer<K, L, S, N>>, par_store: Arc<PAS>, flow: AF) -> Self {
+    pub fn new(issuer: Arc<Issuer<K, L, S, N>>, par_store: PAS, flow: AF) -> Self {
         Self {
             issuer,
             par_store,
