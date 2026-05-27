@@ -327,6 +327,7 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
+    use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
@@ -378,7 +379,7 @@ mod tests {
             StubWalletFlags::default(),
             hsm,
             WRAPPING_KEY_IDENTIFIER.to_string(),
-            vec![],
+            TrustAnchors::empty(),
             MockStatusListService::default(),
         )
     }

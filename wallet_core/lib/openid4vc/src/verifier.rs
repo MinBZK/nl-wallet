@@ -14,7 +14,7 @@ use chrono::Utc;
 use crypto::EcdsaKeySend;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_string;
 use dcql::Query;
 use dcql::disclosure::ExtendingVctRetriever;
@@ -860,7 +860,7 @@ pub struct Verifier<S, US, C> {
     use_cases: US,
     sessions: Arc<S>,
     cleanup_task: AbortHandle,
-    trust_anchors: Vec<BorrowingTrustAnchor>,
+    trust_anchors: TrustAnchors,
     #[debug(skip)]
     result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
     accepted_wallet_client_ids: Vec<String>,
@@ -896,7 +896,7 @@ where
     pub fn new(
         use_cases: US,
         sessions: Arc<S>,
-        trust_anchors: Vec<BorrowingTrustAnchor>,
+        trust_anchors: TrustAnchors,
         result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
         accepted_wallet_client_ids: Vec<String>,
         extending_vct_values_store: HashMap<String, VecNonEmpty<String>>,
@@ -1432,7 +1432,7 @@ impl Session<WaitingForResponse> {
         wallet_response: WalletAuthResponse,
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
         result_handler: Option<&(dyn DisclosureResultHandler + Send + Sync)>,
         extending_vct_values: &impl ExtendingVctRetriever,
         revocation_verifier: &RevocationVerifier<C>,
@@ -1587,6 +1587,7 @@ mod tests {
     use chrono::Duration;
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
     use dcql::Query;
     use dcql::normalized::NormalizedCredentialRequests;
     use dcql::unique_id_vec::UniqueIdVec;
@@ -1675,7 +1676,7 @@ mod tests {
     {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
-        let trust_anchors = vec![ca.to_borrowing_trust_anchor()];
+        let trust_anchors = TrustAnchors::from(&ca);
         let reader_registration = ReaderRegistration::new_mock();
 
         let use_cases = HashMap::from([
@@ -2149,7 +2150,7 @@ mod tests {
     async fn test_session_creation_by_usecase() {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
-        let trust_anchors = vec![ca.to_borrowing_trust_anchor()];
+        let trust_anchors = TrustAnchors::from(&ca);
         let reader_registration = ReaderRegistration::new_mock();
 
         let use_cases = HashMap::from([(

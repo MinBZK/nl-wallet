@@ -2,7 +2,7 @@ use std::sync::LazyLock;
 
 use attestation_types::status_claim::StatusClaim;
 use chrono::Utc;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use derive_more::Constructor;
 use http_utils::urls::BaseUrl;
@@ -123,7 +123,7 @@ pub enum WiaError {
 impl WiaDisclosure {
     pub fn verify(
         &self,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
         expected_aud: &str,
         accepted_wallet_client_ids: &[String],
     ) -> Result<(VerifyingKey, Nonce), WiaError> {
@@ -197,6 +197,7 @@ mod tests {
     use chrono::Utc;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
     use futures::FutureExt;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
@@ -261,7 +262,7 @@ mod tests {
         );
 
         let (_, nonce) = disclosure
-            .verify(&[ca.to_borrowing_trust_anchor()], AUD, &[WALLET_CLIENT_ID.to_string()])
+            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID.to_string()])
             .unwrap();
 
         assert!(!nonce.as_ref().is_empty());
@@ -280,7 +281,7 @@ mod tests {
         );
 
         let error = disclosure
-            .verify(&[ca.to_borrowing_trust_anchor()], AUD, &[WALLET_CLIENT_ID.to_string()])
+            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID.to_string()])
             .unwrap_err();
 
         assert_matches!(error, WiaError::Jwt(_));
@@ -298,7 +299,7 @@ mod tests {
         );
 
         let error = disclosure
-            .verify(&[ca.to_borrowing_trust_anchor()], AUD, &[WALLET_CLIENT_ID.to_string()])
+            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID.to_string()])
             .unwrap_err();
 
         assert_matches!(error, WiaError::Jwt(_));
@@ -316,7 +317,7 @@ mod tests {
         );
 
         let error = disclosure
-            .verify(&[ca.to_borrowing_trust_anchor()], AUD, &["other-client".to_string()])
+            .verify(&TrustAnchors::from(&ca), AUD, &["other-client".to_string()])
             .unwrap_err();
 
         assert_matches!(error, WiaError::Jwt(_));
@@ -334,7 +335,7 @@ mod tests {
         );
 
         let error = disclosure
-            .verify(&[ca.to_borrowing_trust_anchor()], AUD, &[WALLET_CLIENT_ID.to_string()])
+            .verify(&TrustAnchors::from(&ca), AUD, &[WALLET_CLIENT_ID.to_string()])
             .unwrap_err();
 
         assert_matches!(error, WiaError::MissingNonce);

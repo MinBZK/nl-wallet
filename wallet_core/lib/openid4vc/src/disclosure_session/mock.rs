@@ -3,7 +3,7 @@ use std::hash::Hash;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::CredentialEcdsaKey;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequests;
 use http_utils::urls::BaseUrl;
@@ -30,7 +30,7 @@ mockall::mock! {
             &self,
             request_uri_query: &str,
             uri_source: DisclosureUriSource,
-            trust_anchors: &[BorrowingTrustAnchor],
+            trust_anchors: &TrustAnchors,
         ) -> Result<MockDisclosureSession, VpSessionError>;
     }
 }

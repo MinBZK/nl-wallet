@@ -30,7 +30,7 @@ use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono::serde::ts_seconds;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use derive_more::Constructor;
 use derive_more::From;
 use futures::TryFutureExt;
@@ -523,7 +523,7 @@ pub struct UserState<R, F, H, W, S> {
     pub wia_issuer: W,
     pub wia_status_tracking_validity: Duration,
     pub wrapping_key_identifier: String,
-    pub pid_issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
+    pub pid_issuer_trust_anchors: TrustAnchors,
     pub status_list_service: S,
 }
 
@@ -1795,7 +1795,7 @@ pub mod mock {
         flags: F,
         wallet_user_hsm: MockPkcs11Client<HsmError>,
         wrapping_key_identifier: String,
-        pid_issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
+        pid_issuer_trust_anchors: TrustAnchors,
         status_list_service: S,
     ) -> UserState<R, F, MockPkcs11Client<HsmError>, MockWiaIssuer, S> {
         UserState::<R, F, MockPkcs11Client<HsmError>, MockWiaIssuer, S> {
@@ -1969,6 +1969,7 @@ mod tests {
     use chrono::Utc;
     use crypto::keys::EcdsaKey;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
     use futures::FutureExt;
     use hsm::model::Hsm;
@@ -2057,10 +2058,7 @@ mod tests {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
         recovery_code_sd_jwt(&issuer_ca)
             .1
-            .into_verified_against_trust_anchors(
-                &[issuer_ca.to_borrowing_trust_anchor()],
-                &MockTimeGenerator::default(),
-            )
+            .into_verified_against_trust_anchors(&TrustAnchors::from(&issuer_ca), &MockTimeGenerator::default())
             .unwrap()
     }
 
@@ -2146,7 +2144,8 @@ mod tests {
             wia_issuer: MockWiaIssuer,
             wia_status_tracking_validity: Duration::from_hours(24),
             wrapping_key_identifier: wrapping_key_identifier.to_string(),
-            pid_issuer_trust_anchors: vec![], // not needed in these tests
+            pid_issuer_trust_anchors: TrustAnchors::empty(), /* not needed in these
+                                                              * tests */
             status_list_service: MockStatusListService::default(),
         };
 
@@ -2272,7 +2271,7 @@ mod tests {
             StubWalletFlags::default(),
             hsm,
             wrapping_key_identifier,
-            vec![],
+            TrustAnchors::empty(),
             mock_status_list_service(),
         );
 
@@ -3708,7 +3707,7 @@ mod tests {
             wia_issuer: MockWiaIssuer,
             wia_status_tracking_validity: Duration::from_hours(24),
             wrapping_key_identifier: "my_wrapping_key_identifier".to_string(),
-            pid_issuer_trust_anchors: vec![],
+            pid_issuer_trust_anchors: TrustAnchors::empty(),
             status_list_service: MockStatusListService::default(),
         };
         let setup = WalletCertificateSetup::new().await;

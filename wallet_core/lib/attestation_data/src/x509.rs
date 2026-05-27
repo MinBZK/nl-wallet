@@ -147,6 +147,7 @@ mod test {
     use chrono::Duration;
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateConfiguration;
     use time::OffsetDateTime;
     use time::macros::datetime;
@@ -167,12 +168,7 @@ mod test {
 
         issuer_key_pair
             .certificate()
-            .verify(
-                CertificateUsage::Mdl,
-                &[],
-                &TimeGenerator,
-                &[ca.to_borrowing_trust_anchor()],
-            )
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &TrustAnchors::from(&ca))
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original Mdl usage
@@ -202,12 +198,7 @@ mod test {
 
         issuer_key_pair
             .certificate()
-            .verify(
-                CertificateUsage::Mdl,
-                &[],
-                &TimeGenerator,
-                &[ca.to_borrowing_trust_anchor()],
-            )
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &TrustAnchors::from(&ca))
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original Mdl usage
@@ -234,7 +225,7 @@ mod test {
                 CertificateUsage::ReaderAuth,
                 &[],
                 &TimeGenerator,
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
             )
             .unwrap();
 
@@ -269,7 +260,7 @@ mod test {
                 CertificateUsage::ReaderAuth,
                 &[],
                 &TimeGenerator,
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
             )
             .unwrap();
 

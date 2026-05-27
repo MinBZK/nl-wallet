@@ -66,6 +66,7 @@
 //! # use attestation_types::claim_path::ClaimPath;
 //! # use chrono::Utc;
 //! # use crypto::server_keys::generate::Ca;
+//! # use crypto::trust_anchor::TrustAnchors;
 //! # use jwt::confirmation::ConfirmationClaim;
 //! # use jwt::headers::HeaderWithX5c;
 //! # use jwt::nonce::Nonce;
@@ -126,7 +127,7 @@
 //! let unverified = signed.into_unverified();
 //!
 //! // 4) Holder parses and verifies SD-JWT against trust anchors.
-//! let trust_anchors = vec![ca.to_borrowing_trust_anchor()];
+//! let trust_anchors = TrustAnchors::from(&ca);
 //! let verified = unverified.into_verified_against_trust_anchors(
 //!     &trust_anchors,
 //!     &TimeGenerator::default()

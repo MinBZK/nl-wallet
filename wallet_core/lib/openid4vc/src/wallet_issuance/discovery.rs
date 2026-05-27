@@ -1,4 +1,4 @@
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use http_utils::reqwest::HttpJsonClient;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
@@ -57,7 +57,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         &self,
         redirect_uri: &Url,
         client_id: String,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         let credential_offer = self.process_credential_offer(redirect_uri).await?;
 
@@ -234,7 +234,7 @@ mod test {
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::server_keys::generate::Ca;
-    use crypto::trust_anchor::BorrowingTrustAnchor;
+    use crypto::trust_anchor::TrustAnchors;
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
     use http_utils::reqwest::HttpJsonClient;
@@ -274,14 +274,14 @@ mod test {
     /// and a credential preview endpoint. Returns the server, issuer identifier, and trust anchor.
     async fn start_httpmock_issuer(
         authorization_endpoint: Option<&str>,
-    ) -> (MockServer, IssuerIdentifier, BorrowingTrustAnchor) {
+    ) -> (MockServer, IssuerIdentifier, TrustAnchors) {
         let server = MockServer::start_async().await;
         let issuer_identifier = server.base_url().parse::<IssuerIdentifier>().unwrap();
 
         // Create CA and issuer certificate for the credential preview.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_pid_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
-        let trust_anchor = ca.to_borrowing_trust_anchor();
+        let trust_anchor = TrustAnchors::from(&ca);
 
         // Create type metadata for the credential preview.
         let (_, _, type_metadata_documents) =
@@ -423,7 +423,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let session = discovery
-            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[trust_anchor])
+            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &trust_anchor)
             .await
             .unwrap();
 
@@ -466,7 +466,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let session = discovery
-            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[trust_anchor])
+            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &trust_anchor)
             .await
             .unwrap();
 
@@ -518,7 +518,7 @@ mod test {
 
         // Complete the flow — exchanges the code for a token and fetches credential previews.
         let session = auth_session
-            .start_issuance(&received_redirect_uri, &[trust_anchor])
+            .start_issuance(&received_redirect_uri, &trust_anchor)
             .await
             .unwrap();
 
@@ -538,7 +538,7 @@ mod test {
         let offer_url = Url::parse("openid-credential-offer://").unwrap();
 
         let result = discovery
-            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[])
+            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &TrustAnchors::empty())
             .await;
 
         assert_matches!(result, Err(WalletIssuanceError::MissingCredentialOfferQuery));
@@ -550,7 +550,7 @@ mod test {
         let offer_url = Url::parse("openid-credential-offer://?credential_offer=invalid_json").unwrap();
 
         let result = discovery
-            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[])
+            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &TrustAnchors::empty())
             .await;
 
         assert_matches!(result, Err(WalletIssuanceError::CredentialOfferDeserialization(_)));
@@ -568,7 +568,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let result = discovery
-            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[])
+            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &TrustAnchors::empty())
             .await;
 
         assert_matches!(result, Err(WalletIssuanceError::CredentialOfferHttp(_)));
@@ -600,7 +600,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let result = discovery
-            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[])
+            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &TrustAnchors::empty())
             .await;
 
         assert_matches!(
@@ -635,7 +635,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let result = discovery
-            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[])
+            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &TrustAnchors::empty())
             .await;
 
         assert_matches!(result, Err(WalletIssuanceError::CredentialOfferTxCodeUnsupported));
@@ -665,7 +665,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let result = discovery
-            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[])
+            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &TrustAnchors::empty())
             .await;
 
         assert_matches!(

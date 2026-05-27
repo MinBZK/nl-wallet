@@ -1430,6 +1430,7 @@ mod tests {
     use base64::prelude::*;
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
     use crypto::utils::random_bytes;
     use crypto::utils::random_string;
     use hsm::model::mock::MockPkcs11Client;
@@ -1507,7 +1508,7 @@ mod tests {
             StubWalletFlags::default(),
             setup_hsm().await,
             wrapping_key_identifier.to_string(),
-            vec![],
+            TrustAnchors::empty(),
             mock_status_list_service(),
         )
     }
@@ -1522,7 +1523,7 @@ mod tests {
             StubWalletFlags::default(),
             setup_hsm().await,
             wrapping_key_identifier.to_string(),
-            vec![ca.to_borrowing_trust_anchor()],
+            TrustAnchors::from(ca),
             mock_status_list_service(),
         )
     }

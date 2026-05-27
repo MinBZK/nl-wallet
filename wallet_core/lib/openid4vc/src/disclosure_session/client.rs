@@ -1,4 +1,4 @@
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::utils as crypto_utils;
 use crypto::x509::BorrowingCertificate;
 use dcql::CredentialFormat;
@@ -131,7 +131,7 @@ where
         &self,
         uri_query: &str,
         uri_source: DisclosureUriSource,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
     ) -> Result<Self::Session, VpSessionError> {
         info!("start disclosure session");
 
@@ -299,6 +299,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+    use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::BorrowingCertificateExtension;
     use crypto::x509::CertificateUsage;
     use dcql::CredentialFormat;
@@ -577,7 +578,7 @@ mod tests {
             &verifier_session.normalized_auth_request(wallet_nonce),
             &[MOCK_WALLET_CLIENT_ID.to_string()],
             &MockTimeGenerator::default(),
-            &[ca.to_borrowing_trust_anchor()],
+            &TrustAnchors::from(&ca),
             &ExtendingVctRetrieverStub,
             &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                 ca.generate_status_list_mock().unwrap(),
@@ -647,7 +648,7 @@ mod tests {
         ));
 
         let error = client
-            .start("", DisclosureUriSource::Link, &[])
+            .start("", DisclosureUriSource::Link, &TrustAnchors::empty())
             .now_or_never()
             .unwrap()
             .expect_err("starting a new disclosure session with an invalid request URI object should not succeed");
@@ -671,7 +672,7 @@ mod tests {
         .unwrap();
 
         let error = client
-            .start(&query, DisclosureUriSource::Link, &[])
+            .start(&query, DisclosureUriSource::Link, &TrustAnchors::empty())
             .now_or_never()
             .unwrap()
             .expect_err(
@@ -703,7 +704,7 @@ mod tests {
         .unwrap();
 
         let error = client
-            .start(&query, DisclosureUriSource::Link, &[])
+            .start(&query, DisclosureUriSource::Link, &TrustAnchors::empty())
             .now_or_never()
             .unwrap()
             .expect_err(
@@ -804,7 +805,7 @@ mod tests {
             None,
             CredentialFormat::MsoMdoc,
             |mut verifier_session| {
-                verifier_session.trust_anchors.clear();
+                verifier_session.trust_anchors = TrustAnchors::empty();
 
                 verifier_session
             },
@@ -843,7 +844,7 @@ mod tests {
 
         let client = VpDisclosureClient::new(error_client);
         let error = client
-            .start(&request_query, DisclosureUriSource::Link, &[])
+            .start(&request_query, DisclosureUriSource::Link, &TrustAnchors::empty())
             .now_or_never()
             .unwrap()
             .expect_err("starting a new disclosure session which encounters an http error should not succeed");

@@ -11,7 +11,7 @@ use attestation_data::disclosure::DisclosedAttestations;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use dcql::CredentialQueryIdentifier;
@@ -426,7 +426,7 @@ impl VpAuthorizationRequest {
     /// the specified trust anchors.
     pub fn try_new(
         jws: &UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
     ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
         let mut validation_options = AUD_VALIDATIONS.to_owned();
         validation_options.set_audience(&[VpAuthorizationRequestAudience::SelfIssued.to_string()]);
@@ -840,7 +840,7 @@ impl VpAuthorizationResponse {
         auth_request: &NormalizedVpAuthorizationRequest,
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
         extending_vct_values: &impl ExtendingVctRetriever,
         revocation_verifier: &RevocationVerifier<C>,
         accept_undetermined_revocation_status: bool,
@@ -879,7 +879,7 @@ impl VpAuthorizationResponse {
         auth_request: &NormalizedVpAuthorizationRequest,
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
         extending_vct_values: &impl ExtendingVctRetriever,
         revocation_verifier: &RevocationVerifier<C>,
         accept_undetermined_revocation_status: bool,
@@ -1020,7 +1020,7 @@ impl VpAuthorizationResponse {
         device_response: &DeviceResponse,
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
         revocation_verifier: &RevocationVerifier<C>,
     ) -> Result<Vec<(VerifyingKey, DisclosedAttestation)>, AuthResponseError>
     where
@@ -1051,7 +1051,7 @@ impl VpAuthorizationResponse {
         unverified_presentation: UnverifiedSdJwtPresentation,
         auth_request: &NormalizedVpAuthorizationRequest,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
         revocation_verifier: &RevocationVerifier<C>,
     ) -> Result<(VerifyingKey, DisclosedAttestation), AuthResponseError>
     where
@@ -1146,7 +1146,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
-    use crypto::trust_anchor::BorrowingTrustAnchor;
+    use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateUsage;
     use dcql::CredentialFormat;
     use dcql::CredentialQueryIdentifier;
@@ -1299,7 +1299,7 @@ mod tests {
     }
 
     fn setup_mdoc() -> (
-        BorrowingTrustAnchor,
+        TrustAnchors,
         KeyPair,
         JweEcdhSecretKey,
         NormalizedVpAuthorizationRequest,
@@ -1310,13 +1310,13 @@ mod tests {
     fn setup_with_credential_requests(
         credential_requests: NormalizedCredentialRequests,
     ) -> (
-        BorrowingTrustAnchor,
+        TrustAnchors,
         KeyPair,
         JweEcdhSecretKey,
         NormalizedVpAuthorizationRequest,
     ) {
         let ca = Ca::generate("myca", Default::default()).unwrap();
-        let trust_anchor = ca.to_borrowing_trust_anchor();
+        let trust_anchor = TrustAnchors::from(&ca);
         let rp_keypair = ca.generate_reader_mock().unwrap();
 
         let encryption_secret_key = JweEcdhSecretKey::new_random(Some("test-kid".to_string()), EcdhAlgorithm::EcdhEs);
@@ -1395,7 +1395,7 @@ mod tests {
                 .unwrap()
                 .unwrap();
 
-        let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &[trust_anchor]).unwrap();
+        let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt.into(), &trust_anchor).unwrap();
         let (auth_request, _) = auth_request.validate(&cert, None).unwrap();
         assert_eq!(auth_request.state.as_deref(), Some("authorization_state"));
     }
@@ -2295,7 +2295,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
@@ -2405,7 +2405,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
@@ -2563,7 +2563,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
@@ -2612,7 +2612,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
@@ -2636,7 +2636,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),
@@ -2665,7 +2665,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &MockTimeGenerator::default(),
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
                 &ExtendingVctRetrieverStub,
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock_with_dn(PID_ISSUER_CERT_CN).unwrap(),

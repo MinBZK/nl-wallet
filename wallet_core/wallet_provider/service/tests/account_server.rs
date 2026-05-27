@@ -5,6 +5,7 @@ use android_attest::attestation_extension::key_description::KeyDescription;
 use attestation_types::status_claim::StatusClaim;
 use base64::prelude::*;
 use crypto::server_keys::generate::Ca;
+use crypto::trust_anchor::TrustAnchors;
 use db_test::DbSetup;
 use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
@@ -100,7 +101,7 @@ async fn do_registration(
         flags,
         wallet_certificate::mock::setup_hsm().await,
         wrapping_key_identifier.to_string(),
-        vec![],
+        TrustAnchors::empty(),
         status_list_service,
     );
 

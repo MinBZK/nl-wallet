@@ -6,7 +6,7 @@ use attestation_data::attributes::AttributesTraversalBehaviour;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_types::claim_path::ClaimPath;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use derive_more::Debug;
 use futures::TryFutureExt;
@@ -372,7 +372,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         issuer_metadata: IssuerMetadata,
         oauth_metadata: AuthorizationServerMetadata,
         token_request: TokenRequest,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
     ) -> Result<Self, WalletIssuanceError> {
         let credential_preview_endpoint = issuer_metadata
             .credential_preview_endpoint
@@ -479,7 +479,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
     async fn accept_issuance<W>(
         &mut self,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
         wscd: &W,
         include_wia: bool,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
@@ -746,7 +746,7 @@ impl Credential {
         key_identifier: String,
         verifying_key: &VerifyingKey,
         preview: &NormalizedCredentialPreview,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
     ) -> Result<IssuedCredential, WalletIssuanceError> {
         match self {
             Self::MsoMdoc {
@@ -922,6 +922,7 @@ mod tests {
     use chrono::Utc;
     use crypto::server_keys::KeyPair;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::BorrowingTrustAnchor;
     use crypto::x509::CertificateError;
     use futures::FutureExt;
     use jwt::jwk::jwk_to_p256;
@@ -958,7 +959,7 @@ mod tests {
 
     fn test_start_issuance(
         ca: &Ca,
-        trust_anchor: BorrowingTrustAnchor,
+        trust_anchors: &TrustAnchors,
         issuer_metadata: IssuerMetadata,
         preview_payloads: Vec<PreviewableCredentialPayload>,
         type_metadata: TypeMetadata,
@@ -1005,7 +1006,7 @@ mod tests {
             issuer_metadata,
             oauth_metadata,
             TokenRequest::new_mock(),
-            &[trust_anchor],
+            trust_anchors,
         )
         .now_or_never()
         .unwrap()
@@ -1017,7 +1018,7 @@ mod tests {
 
         let session = test_start_issuance(
             &ca,
-            ca.to_borrowing_trust_anchor(),
+            &TrustAnchors::from(&ca),
             IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE),
             vec![PreviewableCredentialPayload::example_family_name(
                 &MockTimeGenerator::default(),
@@ -1059,7 +1060,7 @@ mod tests {
 
         let error = test_start_issuance(
             &ca,
-            ca.to_borrowing_trust_anchor(),
+            &TrustAnchors::from(&ca),
             issuer_metadata.clone(),
             vec![PreviewableCredentialPayload::example_family_name(
                 &MockTimeGenerator::default(),
@@ -1078,7 +1079,7 @@ mod tests {
 
         let _ = test_start_issuance(
             &ca,
-            ca.to_borrowing_trust_anchor(),
+            &TrustAnchors::from(&ca),
             issuer_metadata,
             vec![PreviewableCredentialPayload::example_family_name(
                 &MockTimeGenerator::default(),
@@ -1096,7 +1097,7 @@ mod tests {
 
         let error = test_start_issuance(
             &ca,
-            other_ca.to_borrowing_trust_anchor(),
+            &TrustAnchors::from(&other_ca),
             IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE),
             vec![PreviewableCredentialPayload::example_family_name(
                 &MockTimeGenerator::default(),
@@ -1120,7 +1121,7 @@ mod tests {
 
         let error = test_start_issuance(
             &ca,
-            ca.to_borrowing_trust_anchor(),
+            &TrustAnchors::from(&ca),
             IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE),
             vec![PreviewableCredentialPayload::example_empty(
                 PID_ATTESTATION_TYPE,
@@ -1140,7 +1141,7 @@ mod tests {
 
         let error = test_start_issuance(
             &ca,
-            ca.to_borrowing_trust_anchor(),
+            &TrustAnchors::from(&ca),
             IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE),
             vec![PreviewableCredentialPayload::example_empty(
                 PID_ATTESTATION_TYPE,
@@ -1217,7 +1218,7 @@ mod tests {
             issuer_metadata,
             oauth_metadata,
             TokenRequest::new_mock(),
-            &[ca.to_borrowing_trust_anchor()],
+            &TrustAnchors::from(&ca),
         )
         .now_or_never()
         .unwrap()
@@ -1405,7 +1406,7 @@ mod tests {
         nonce_endpoint: TestNonceEndpoint,
     ) {
         let (signer, preview_data) = MockCredentialSigner::new_with_preview_state();
-        let trust_anchor = signer.trust_anchor.clone();
+        let trust_anchor = TrustAnchors::try_from(vec![signer.trust_anchor.clone()]).unwrap();
         let wscd = MockRemoteWscd::default();
 
         let (mut mock_msg_client, has_nonce_endpoint, expected_dpop_nonce) = match nonce_endpoint {
@@ -1477,7 +1478,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state,
         }
-        .accept_issuance(&[trust_anchor], &wscd, use_wia)
+        .accept_issuance(&trust_anchor, &wscd, use_wia)
         .now_or_never()
         .unwrap()
         .expect("accepting issuance should succeed");
@@ -1489,7 +1490,7 @@ mod tests {
     #[test]
     fn test_accept_issuance_wrong_response_count() {
         let (signer, preview_data) = MockCredentialSigner::new_with_preview_state();
-        let trust_anchor = signer.trust_anchor.clone();
+        let trust_anchor = TrustAnchors::try_from(vec![signer.trust_anchor.clone()]).unwrap();
 
         let mut mock_msg_client = mock_openid_message_client_nonce(false);
         // let mut mock_msg_client = MockVcMessageClient::new();
@@ -1510,7 +1511,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(vec_nonempty![preview_data.clone(), preview_data], true),
         }
-        .accept_issuance(&[trust_anchor], &MockRemoteWscd::default(), false)
+        .accept_issuance(&trust_anchor, &MockRemoteWscd::default(), false)
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -1536,7 +1537,7 @@ mod tests {
                 &MockTimeGenerator::default(),
             ),
         );
-        let trust_anchor = signer.trust_anchor.clone();
+        let trust_anchor = TrustAnchors::try_from(vec![signer.trust_anchor.clone()]).unwrap();
 
         let session_state = new_session_state(vec_nonempty![preview_data], true);
 
@@ -1555,7 +1556,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state,
         }
-        .accept_issuance(&[trust_anchor], &MockRemoteWscd::default(), false)
+        .accept_issuance(&trust_anchor, &MockRemoteWscd::default(), false)
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -1566,7 +1567,7 @@ mod tests {
     #[test]
     fn test_accept_issuance_incorrect_resource_integrity() {
         let (mut signer, preview_data) = MockCredentialSigner::new_with_preview_state();
-        let trust_anchor = signer.trust_anchor.clone();
+        let trust_anchor = TrustAnchors::try_from(vec![signer.trust_anchor.clone()]).unwrap();
 
         // Include a random resource integrity in the MSO of the returned mdoc.
         signer.metadata_integrity = Integrity::from(crypto::utils::random_bytes(32));
@@ -1586,7 +1587,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(vec_nonempty![preview_data], true),
         }
-        .accept_issuance(&[trust_anchor], &MockRemoteWscd::default(), false)
+        .accept_issuance(&trust_anchor, &MockRemoteWscd::default(), false)
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -1600,7 +1601,7 @@ mod tests {
     #[rstest]
     fn test_accept_issuance_deferred_issuance(#[values(false, true)] is_batch: bool) {
         let (signer, preview_data) = MockCredentialSigner::new_with_preview_state();
-        let trust_anchor = signer.trust_anchor.clone();
+        let trust_anchor = TrustAnchors::try_from(vec![signer.trust_anchor.clone()]).unwrap();
 
         let mut mock_msg_client = mock_openid_message_client_nonce(false);
         // let mut mock_msg_client = MockVcMessageClient::new();
@@ -1634,7 +1635,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(previews, true),
         }
-        .accept_issuance(&[trust_anchor], &MockRemoteWscd::default(), false)
+        .accept_issuance(&trust_anchor, &MockRemoteWscd::default(), false)
         .now_or_never()
         .unwrap()
         .expect_err("accepting issuance should not succeed");
@@ -1642,14 +1643,9 @@ mod tests {
         assert_matches!(error, WalletIssuanceError::DeferredIssuanceUnsupported);
     }
 
-    fn mock_credential_response_credential() -> (
-        Credential,
-        NormalizedCredentialPreview,
-        VerifyingKey,
-        BorrowingTrustAnchor,
-    ) {
+    fn mock_credential_response_credential() -> (Credential, NormalizedCredentialPreview, VerifyingKey, TrustAnchors) {
         let (signer, preview_data) = MockCredentialSigner::new_with_preview_state();
-        let trust_anchor = signer.trust_anchor.clone();
+        let trust_anchor = TrustAnchors::try_from(vec![signer.trust_anchor.clone()]).unwrap();
         let holder_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
         let credential_response = signer
             .into_response_from_holder_pubkey(&holder_pubkey)
@@ -1664,7 +1660,7 @@ mod tests {
         let (credential, preview_data, holder_public_key, trust_anchor) = mock_credential_response_credential();
 
         let _issued_credential = credential
-            .into_issued_credential("key_id".to_string(), &holder_public_key, &preview_data, &[trust_anchor])
+            .into_issued_credential("key_id".to_string(), &holder_public_key, &preview_data, &trust_anchor)
             .expect("should be able to convert CredentialResponse into Mdoc");
     }
 
@@ -1676,7 +1672,7 @@ mod tests {
         // public key than the one contained within the response should fail.
         let other_public_key = *SigningKey::random(&mut OsRng).verifying_key();
         let error = credential
-            .into_issued_credential("key_id".to_string(), &other_public_key, &preview_data, &[trust_anchor])
+            .into_issued_credential("key_id".to_string(), &other_public_key, &preview_data, &trust_anchor)
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(error, WalletIssuanceError::PublicKeyMismatch);
@@ -1706,7 +1702,7 @@ mod tests {
         };
 
         let error = credential
-            .into_issued_credential("key_id".to_string(), &holder_public_key, &preview_data, &[trust_anchor])
+            .into_issued_credential("key_id".to_string(), &holder_public_key, &preview_data, &trust_anchor)
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(error, WalletIssuanceError::AttributeRandomLength(5, ATTR_RANDOM_LENGTH));
@@ -1730,7 +1726,7 @@ mod tests {
         };
 
         let error = credential
-            .into_issued_credential("key_id".to_string(), &holder_public_key, &preview_data, &[trust_anchor])
+            .into_issued_credential("key_id".to_string(), &holder_public_key, &preview_data, &trust_anchor)
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(error, WalletIssuanceError::IssuerMismatch);
@@ -1743,7 +1739,12 @@ mod tests {
         // Converting a `CredentialResponse` into an `Mdoc` that is
         // validated against incorrect trust anchors should fail.
         let error = credential
-            .into_issued_credential("key_id".to_string(), &holder_public_key, &normalized_preview, &[])
+            .into_issued_credential(
+                "key_id".to_string(),
+                &holder_public_key,
+                &normalized_preview,
+                &TrustAnchors::empty(),
+            )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(error, WalletIssuanceError::MdocVerification(_));
@@ -1772,7 +1773,7 @@ mod tests {
                 "key_id".to_string(),
                 &holder_public_key,
                 &normalized_preview,
-                &[trust_anchor],
+                &trust_anchor,
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
@@ -1793,7 +1794,7 @@ mod tests {
                 "key_id".to_string(),
                 &holder_public_key,
                 &normalized_preview,
-                &[trust_anchor],
+                &trust_anchor,
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
@@ -1814,7 +1815,7 @@ mod tests {
                 "key_id".to_string(),
                 &holder_public_key,
                 &normalized_preview,
-                &[trust_anchor],
+                &trust_anchor,
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
@@ -1837,7 +1838,7 @@ mod tests {
                 "key_id".to_string(),
                 &holder_public_key,
                 &normalized_preview,
-                &[trust_anchor],
+                &trust_anchor,
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
@@ -1858,7 +1859,7 @@ mod tests {
                 "key_id".to_string(),
                 &holder_public_key,
                 &normalized_preview,
-                &[trust_anchor],
+                &trust_anchor,
             )
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 

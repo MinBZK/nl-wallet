@@ -6,7 +6,7 @@ use std::sync::Arc;
 use attestation_data::credential_payload::CredentialPayload;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
@@ -115,7 +115,7 @@ async fn start_server(
             StaticAuthorizationAdapter,
         >,
     >,
-    BorrowingTrustAnchor,
+    TrustAnchors,
     IssuerIdentifier,
     KeyPair,
     ReqwestTrustAnchor,
@@ -278,7 +278,7 @@ async fn authorization_code_flow(
     let mut received_redirect = redirect_uri;
     received_redirect.set_query(Some(&format!("code=fake_auth_code&state={state}")));
 
-    let trust_anchors = &[trust_anchor];
+    let trust_anchors = &trust_anchor;
     let mut session = auth_session
         .start_issuance(&received_redirect, trust_anchors)
         .await
@@ -315,7 +315,7 @@ async fn pre_authorized_code_flow(
         HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
     );
 
-    let trust_anchors = &[trust_anchor];
+    let trust_anchors = &trust_anchor;
     let mut session = discovery
         .start_pre_authorized_code_flow(&credential_offer_url, MOCK_WALLET_CLIENT_ID.to_string(), trust_anchors)
         .await
@@ -347,7 +347,7 @@ async fn reject_issuance() {
         HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
     );
 
-    let trust_anchors = &[trust_anchor];
+    let trust_anchors = &trust_anchor;
     let session = discovery
         .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), trust_anchors)
         .await
