@@ -235,6 +235,13 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     CredentialOfferUnknownGrants(HashSet<String>),
 
+    #[error(
+        "the Credential Offer did not contain any grants and the Authorization Server does not support the \
+         Authorization Code grant"
+    )]
+    #[category(expected)]
+    AuthorizationCodeNotSupported,
+
     #[error("a Credential Offer containing a Pre-Authorized code with a Transaction Code is unsupported")]
     #[category(expected)]
     CredentialOfferTxCodeUnsupported,

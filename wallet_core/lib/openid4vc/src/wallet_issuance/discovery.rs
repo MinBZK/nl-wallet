@@ -105,7 +105,38 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                 IssuanceFlow::PreAuthorizedCode { issuance_session }
             }
             CredentialOfferFlow::NoGrants => {
-                todo!()
+                // According to the OpenID4VCI 1.0 specification:
+                // (source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-2.3)
+                //
+                // "If grants is not present or is empty, the Wallet MUST determine the Grant Types the Credential
+                // Issuer's Authorization Server supports using the respective metadata. "
+                //
+                // Since a Pre-Authorized Code grant type without an actual code does not make any sense, we only check
+                // for the Authorization Code grant type here and use that if the Authorization Server supports it.
+                if !oauth_metadata
+                    .grant_types_supported
+                    .as_ref()
+                    .map(|grant_types| grant_types.contains("authorization_code"))
+                    // RFC 8414 says about the "grang_types" field:
+                    // (source: https://datatracker.ietf.org/doc/html/rfc8414#section-2)
+                    //
+                    // If omitted, the default value is "["authorization_code", "implicit"]".
+                    .unwrap_or(true)
+                {
+                    return Err(WalletIssuanceError::AuthorizationCodeNotSupported);
+                }
+
+                let authorization_session = HttpAuthorizationSession::create(
+                    http_client,
+                    issuer_metadata,
+                    oauth_metadata,
+                    client_id,
+                    redirect_uri,
+                    None,
+                )
+                .await?;
+
+                IssuanceFlow::AuthorizationCode { authorization_session }
             }
         };
 
@@ -129,8 +160,6 @@ struct NormalizedCredentialOffer {
 enum CredentialOfferFlow {
     AuthorizationCode { issuer_state: Option<String> },
     PreAuthorizedCode { pre_authorized_code: AuthorizationCode },
-    // TODO (PVW-5832): Use CredentialOffer for Authorization Code flow and consult Authorization Server metadata for
-    //                  supported grant types.
     NoGrants,
 }
 
@@ -257,6 +286,7 @@ mod test {
     use httpmock::Method::POST;
     use httpmock::MockServer;
     use itertools::Itertools;
+    use rstest::rstest;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -285,10 +315,77 @@ mod test {
     use crate::wallet_issuance::IssuanceSession;
     use crate::wallet_issuance::WalletIssuanceError;
 
+    const DEFAULT_GRANT_TYPES_SUPPORTED: &[&str] = &[
+        "authorization_code",
+        "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+    ];
+
+    async fn httpmock_issuer_add_metadata(
+        server: &MockServer,
+        issuer_identifier: &IssuerIdentifier,
+        authorization_endpoint: Option<&str>,
+        grant_types_supported: Option<&[&str]>,
+    ) {
+        // Construct issuer metadata JSON.
+        let issuer_metadata_json = json!({
+            "credential_issuer": issuer_identifier.to_string(),
+            "credential_endpoint": server.url("/issuance/credential"),
+            "batch_credential_endpoint": server.url("/issuance/batch_credential"),
+            "nonce_endpoint": server.url("/issuance/nonce"),
+            "credential_preview_endpoint": server.url("/issuance/credential_preview"),
+            "credential_configurations_supported": {
+                PID_ATTESTATION_TYPE: {
+                    "format": "mso_mdoc",
+                    "doctype": PID_ATTESTATION_TYPE,
+                    "proof_types_supported": {
+                        "jwt": { "proof_signing_alg_values_supported": ["ES256"] }
+                    },
+                }
+            },
+        });
+
+        // Construct OAuth metadata JSON.
+        let mut oauth_metadata_json = json!({
+            "issuer": issuer_identifier.to_string(),
+            "token_endpoint": server.url("/issuance/token"),
+            "response_types_supported": ["code"],
+            "subject_types_supported": [],
+            "id_token_signing_alg_values_supported": [],
+        });
+        if let Some(auth_endpoint) = authorization_endpoint {
+            oauth_metadata_json["authorization_endpoint"] = json!(auth_endpoint);
+            oauth_metadata_json["pushed_authorization_request_endpoint"] = json!(server.url("/issuance/par"));
+        }
+        if let Some(grant_types_supported) = grant_types_supported {
+            oauth_metadata_json["grant_types_supported"] = json!(grant_types_supported);
+        }
+
+        server
+            .mock_async(|when, then| {
+                when.method(GET).path("/.well-known/openid-credential-issuer");
+
+                then.status(200)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .json_body(issuer_metadata_json);
+            })
+            .await;
+
+        server
+            .mock_async(|when, then| {
+                when.method(GET).path("/.well-known/oauth-authorization-server");
+
+                then.status(200)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .json_body(oauth_metadata_json);
+            })
+            .await;
+    }
+
     /// Starts a wiremock server that serves the well-known metadata endpoints, a token endpoint,
     /// and a credential preview endpoint. Returns the server, issuer identifier, and trust anchor.
     async fn start_httpmock_issuer(
         authorization_endpoint: Option<&str>,
+        has_grant_types_supported: bool,
     ) -> (MockServer, IssuerIdentifier, TrustAnchors) {
         let server = MockServer::start_async().await;
         let issuer_identifier = server.base_url().parse::<IssuerIdentifier>().unwrap();
@@ -332,56 +429,13 @@ mod test {
             authorization_details: None,
         };
 
-        // Construct issuer metadata JSON.
-        let issuer_metadata_json = json!({
-            "credential_issuer": issuer_identifier.to_string(),
-            "credential_endpoint": server.url("/issuance/credential"),
-            "batch_credential_endpoint": server.url("/issuance/batch_credential"),
-            "nonce_endpoint": server.url("/issuance/nonce"),
-            "credential_preview_endpoint": server.url("/issuance/credential_preview"),
-            "credential_configurations_supported": {
-                PID_ATTESTATION_TYPE: {
-                    "format": "mso_mdoc",
-                    "doctype": PID_ATTESTATION_TYPE,
-                    "proof_types_supported": {
-                        "jwt": { "proof_signing_alg_values_supported": ["ES256"] }
-                    },
-                }
-            },
-        });
-
-        // Construct OAuth metadata JSON.
-        let mut oauth_metadata_json = json!({
-            "issuer": issuer_identifier.to_string(),
-            "token_endpoint": server.url("/issuance/token"),
-            "response_types_supported": ["code"],
-            "subject_types_supported": [],
-            "id_token_signing_alg_values_supported": [],
-        });
-        if let Some(auth_endpoint) = authorization_endpoint {
-            oauth_metadata_json["authorization_endpoint"] = json!(auth_endpoint);
-            oauth_metadata_json["pushed_authorization_request_endpoint"] = json!(server.url("/issuance/par"));
-        }
-
-        server
-            .mock_async(|when, then| {
-                when.method(GET).path("/.well-known/openid-credential-issuer");
-
-                then.status(200)
-                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
-                    .json_body(issuer_metadata_json);
-            })
-            .await;
-
-        server
-            .mock_async(|when, then| {
-                when.method(GET).path("/.well-known/oauth-authorization-server");
-
-                then.status(200)
-                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
-                    .json_body(oauth_metadata_json);
-            })
-            .await;
+        httpmock_issuer_add_metadata(
+            &server,
+            &issuer_identifier,
+            authorization_endpoint,
+            has_grant_types_supported.then_some(DEFAULT_GRANT_TYPES_SUPPORTED),
+        )
+        .await;
 
         if authorization_endpoint.is_some() {
             server
@@ -424,7 +478,7 @@ mod test {
 
     #[tokio::test]
     async fn pre_authorized_code_flow_offer_by_value() {
-        let (_server, issuer_identifier, trust_anchor) = start_httpmock_issuer(None).await;
+        let (_server, issuer_identifier, trust_anchor) = start_httpmock_issuer(None, true).await;
 
         // Construct a credential offer URL with a fake pre-authorized code.
         let offer_container = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
@@ -466,7 +520,7 @@ mod test {
 
     #[tokio::test]
     async fn pre_authorized_code_flow_offer_by_reference() {
-        let (server, issuer_identifier, trust_anchor) = start_httpmock_issuer(None).await;
+        let (server, issuer_identifier, trust_anchor) = start_httpmock_issuer(None, true).await;
 
         // Construct a credential offer URL with a fake pre-authorized code.
         let offer = CredentialOffer::new_pre_authorized(
@@ -522,7 +576,8 @@ mod test {
     #[tokio::test]
     async fn authorization_code_flow() {
         let authorization_endpoint = "https://auth.example.com/authorize";
-        let (_server, issuer_identifier, trust_anchor) = start_httpmock_issuer(Some(authorization_endpoint)).await;
+        let (_server, issuer_identifier, trust_anchor) =
+            start_httpmock_issuer(Some(authorization_endpoint), true).await;
 
         let redirect_uri: Url = "https://wallet.example.com/callback".parse().unwrap();
 
@@ -574,7 +629,8 @@ mod test {
     #[tokio::test]
     async fn authorization_code_flow_offer() {
         let authorization_endpoint = "https://auth.example.com/authorize";
-        let (_server, issuer_identifier, trust_anchor) = start_httpmock_issuer(Some(authorization_endpoint)).await;
+        let (_server, issuer_identifier, trust_anchor) =
+            start_httpmock_issuer(Some(authorization_endpoint), true).await;
 
         let redirect_uri = "https://wallet.example.com/callback".parse::<Url>().unwrap();
 
@@ -584,6 +640,77 @@ mod test {
             vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
             None,
         ));
+        let query = serde_urlencoded::to_string(&offer_container).unwrap();
+        let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
+
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+
+        // Start the authorization code flow — fetches metadata and creates an auth session.
+        let flow = discovery
+            .start_with_credential_offer(
+                &offer_url,
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                "https://wallet.example.com/callback".parse().unwrap(),
+                &trust_anchor,
+            )
+            .await
+            .unwrap();
+
+        let IssuanceFlow::AuthorizationCode {
+            authorization_session: auth_session,
+        } = flow
+        else {
+            panic!("should have received Authorization Code flow");
+        };
+
+        // Verify the auth URL points to the expected authorization endpoint and carries PAR params.
+        assert!(auth_session.auth_url().as_str().starts_with(authorization_endpoint));
+        let auth_params: HashMap<String, String> = auth_session
+            .auth_url()
+            .query_pairs()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        assert!(auth_params.contains_key("request_uri"));
+        assert!(!auth_params.contains_key("state"));
+
+        // State is carried inside the PAR-stored request, not the auth URL; read it from the session.
+        let state = auth_session.state().to_owned();
+
+        // Simulate the authorization server redirecting back with a code and state.
+        let mut received_redirect_uri = redirect_uri;
+        received_redirect_uri.set_query(Some(&format!("code=fake_auth_code&state={state}")));
+
+        // Complete the flow — exchanges the code for a token and fetches credential previews.
+        let session = auth_session
+            .start_issuance(&received_redirect_uri, &trust_anchor)
+            .await
+            .unwrap();
+
+        assert_eq!(session.normalized_credential_preview().len(), 1);
+        assert_eq!(
+            session.normalized_credential_preview()[0]
+                .content
+                .credential_payload
+                .attestation_type,
+            PID_ATTESTATION_TYPE
+        );
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn authorization_code_flow_offer_no_grants(#[values(true, false)] has_grant_types_supported: bool) {
+        let authorization_endpoint = "https://auth.example.com/authorize";
+        let (_server, issuer_identifier, trust_anchor) =
+            start_httpmock_issuer(Some(authorization_endpoint), has_grant_types_supported).await;
+
+        let redirect_uri = "https://wallet.example.com/callback".parse::<Url>().unwrap();
+
+        // Construct a credential offer URL that contains an offer with no grants.
+        let offer_container = CredentialOfferContainer::new_offer(CredentialOffer {
+            credential_issuer: issuer_identifier,
+            credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            grants: None,
+        });
         let query = serde_urlencoded::to_string(&offer_container).unwrap();
         let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
 
@@ -736,6 +863,38 @@ mod test {
             Err(WalletIssuanceError::CredentialOfferUnknownGrants(grant_types))
                 if grant_types.iter().sorted().eq(["bar", "foo"])
         );
+    }
+
+    #[tokio::test]
+    async fn pre_authorized_code_flow_credential_offer_authorization_code_not_supported() {
+        let server = MockServer::start_async().await;
+        let credential_issuer = server.base_url().parse::<IssuerIdentifier>().unwrap();
+
+        // Have the OAuth Authorization Server metadata not include "authorization_code" as a supported grant type.
+        httpmock_issuer_add_metadata(&server, &credential_issuer, None, Some(&["implicit"])).await;
+
+        // Construct a Credential Offer that contains no grants.
+        let credential_offer = CredentialOffer {
+            credential_issuer,
+            credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            grants: None,
+        };
+        let offer_container = CredentialOfferContainer::new_offer(credential_offer);
+        let query = serde_urlencoded::to_string(&offer_container).unwrap();
+        let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
+
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+
+        let result = discovery
+            .start_with_credential_offer(
+                &offer_url,
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                "https://wallet.example.com/callback".parse().unwrap(),
+                &TrustAnchors::empty(),
+            )
+            .await;
+
+        assert_matches!(result, Err(WalletIssuanceError::AuthorizationCodeNotSupported));
     }
 
     #[tokio::test]

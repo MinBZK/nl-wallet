@@ -162,6 +162,7 @@ fn convert_and_enrich_error(error: WalletIssuanceError, organization: &Organizat
         WalletIssuanceError::MissingCredentialOfferQuery
         | WalletIssuanceError::CredentialOfferDeserialization(_)
         | WalletIssuanceError::CredentialOfferUnknownGrants(_)
+        | WalletIssuanceError::AuthorizationCodeNotSupported
         | WalletIssuanceError::CredentialOfferTxCodeUnsupported => {
             DisclosureBasedIssuanceError::Issuance(IssuanceError::IssuerServer {
                 error,
