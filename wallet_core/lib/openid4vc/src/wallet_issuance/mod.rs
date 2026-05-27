@@ -232,16 +232,16 @@ pub enum WalletIssuanceError {
     CredentialOfferHttp(#[source] reqwest::Error),
 
     #[error("only unknown grant type(s) found in Credential Offer: {}", .0.iter().join(", "))]
-    #[category(critical)]
+    #[category(expected)]
     CredentialOfferUnknownGrants(HashSet<String>),
 
     #[error("a Credential Offer containing a Pre-Authorized code with a Transaction Code is unsupported")]
-    #[category(critical)]
+    #[category(expected)]
     CredentialOfferTxCodeUnsupported,
 
     // TODO (PVW-5832): Remove when implementing CredentialOffer Authorization Code flow.
     #[error("no Pre-Authorized Code found in Credential Offer")]
-    #[category(critical)]
+    #[category(expected)]
     MissingCredentialOfferPreAuthorizedCode,
 }
 
