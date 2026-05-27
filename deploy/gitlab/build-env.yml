@@ -9,6 +9,8 @@
     - deploy-variables/create-env.sh $NAME | tee build-${NAME}.env
   artifacts:
     name: build-env
+    paths:
+      - build-*.env
     reports:
       dotenv: build-*.env
 

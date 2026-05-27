@@ -9,6 +9,7 @@ Architecture section.
 
 - [Running the App](#running-the-app)
     - [Environment Setup](#environment-setup)
+    - [Shared Environments](#shared-environments)
     - [App Configuration](#app-configuration)
 - [File structure](#file-structure)
     - [Assets](#assets)
@@ -70,6 +71,43 @@ this requires you to add a local signing key to the project:
 3. Move the `key.properties` file into the `wallet_app/android` folder.
 4. That's it! Building release builds, e.g. with
    `bundle exec fastlane android build` should now work.
+
+### Shared Environments
+
+These scripts are intended for team members with access to the shared ont/demo
+environments and the required internal build artifacts.
+
+#### Android
+
+Use a physical Android device.
+
+For ont, run:
+`./scripts/run-android-ont.sh`
+
+For demo, run:
+`./scripts/run-android-demo.sh`
+
+These scripts fetch the latest wallet config artifacts from CI and then start
+`flutter run --release` with the correct Android application id.
+
+Only pass `-- -d <device-id>` when Flutter sees more than one Android device.
+
+#### iOS
+
+Use a physical iPhone. The iOS simulator uses fake attestation and will not
+work against these environments.
+
+For ont, run:
+`./scripts/run-ios-ont.sh`
+
+For demo, run:
+`./scripts/run-ios-demo.sh`
+
+These scripts fetch the latest wallet config artifacts from CI and then start
+`flutter run --release` with the correct iOS bundle identifier, app name and
+attestation settings.
+
+Only pass `-- -d <device-id>` when Flutter sees more than one iPhone target.
 
 ### App Configuration
 
@@ -170,13 +208,9 @@ should only be used during local development, while any deployed environment
 will use _production_.
 
 The bundle identifier need not be changed for the local development environment.
-For other environments it can be changed using:
-
-bash
-
-```
-flutter pub run rename setBundleId --targets ios --value <BUNDLE ID>
-```
+The shared ont/demo run scripts override it automatically. For other
+environments, override the Xcode build setting `BUNDLE_IDENTIFIER` with the
+required bundle identifier before building.
 
 ###### Android
 

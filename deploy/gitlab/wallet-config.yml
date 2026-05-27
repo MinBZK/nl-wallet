@@ -1,10 +1,6 @@
 .wallet-config:
   script:
-    - scripts/generate-wallet-config.sh
-      wallet_core/wallet
-      "$CONFIG_ENV"
-      "$STATIC_HOSTNAME"
-      "$CONFIG_PUBKEY"
+    - scripts/generate-wallet-config.sh wallet_core/wallet "$CONFIG_ENV" "$STATIC_HOSTNAME" "$CONFIG_PUBKEY"
       "$CONFIG_TLS_CA"
   artifacts:
     name: wallet-config-$CONFIG_ENV
@@ -26,4 +22,6 @@ wallet-config-demo:
   needs:
     - job: build-env-demo
       artifacts: true
+  artifacts:
+    expire_in: 3 month
   rules: !reference [.on-demo-build, rules]
