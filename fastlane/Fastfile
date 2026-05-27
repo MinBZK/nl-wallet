@@ -446,7 +446,7 @@ platform :ios do
         sh("bundle", "exec", "pod", "install", "--allow-root", "--deployment")
       end
 
-      sh({ "APP_NAME" => app_name },
+      sh({ "APP_NAME" => app_name, "FLUTTER_XCODE_APP_NAME" => app_name },
         *flutter, "build", "ipa",
             "--build-number", build.to_s,
             "--build-name", version.to_s,
