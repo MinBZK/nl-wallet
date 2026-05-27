@@ -62,7 +62,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         let credential_offer = self.process_credential_offer(redirect_uri).await?;
 
         let pre_authorized_code = match credential_offer.flow {
-            CredentialOfferFlow::AuthorizationCode { .. } => {
+            CredentialOfferFlow::AuthorizationCode { .. } | CredentialOfferFlow::NoGrants => {
                 // TODO (PVW-5832): Remove when implementing CredentialOffer Authorization Code flow.
                 return Err(WalletIssuanceError::MissingCredentialOfferPreAuthorizedCode);
             }
@@ -104,7 +104,7 @@ struct NormalizedCredentialOffer {
     flow: CredentialOfferFlow,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum CredentialOfferFlow {
     // TODO (PVW-5832): Use CredentialOffer for Authorization Code flow.
     #[expect(dead_code)]
@@ -114,6 +114,55 @@ enum CredentialOfferFlow {
     PreAuthorizedCode {
         pre_authorized_code: AuthorizationCode,
     },
+    // TODO (PVW-5832): Use CredentialOffer for Authorization Code flow and consult Authorization Server metadata for
+    //                  supported grant types.
+    NoGrants,
+}
+
+impl CredentialOfferFlow {
+    fn from_grants(grants: Grants) -> Result<(Self, Option<IssuerIdentifier>), WalletIssuanceError> {
+        let result = match (grants.authorization_code, grants.pre_authorized_code) {
+            // According to the OpenID4VCI 1.0 specification:
+            // (source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-2.3)
+            // "When multiple grants are present, it is at the Wallet's discretion which one to use."
+            //
+            // Since there is no point in making the user go through an OAuth authorization flow when they have already
+            // been pre-authorized, we always choose the pre-authorized code from the `CredentialOffer` if it is
+            // available.
+            (_, Some(pre_authorized_code)) => {
+                if pre_authorized_code.tx_code.is_some() {
+                    return Err(WalletIssuanceError::CredentialOfferTxCodeUnsupported);
+                }
+
+                let flow = Self::PreAuthorizedCode {
+                    pre_authorized_code: pre_authorized_code.pre_authorized_code,
+                };
+
+                (flow, pre_authorized_code.authorization_server)
+            }
+            (Some(authorization_code), None) => {
+                let flow = Self::AuthorizationCode {
+                    issuer_state: authorization_code.issuer_state,
+                };
+
+                (flow, authorization_code.authorization_server)
+            }
+            (None, None) => {
+                // If the Credential Offer does not contain an Authorization Code or Pre-Authorized Code grant, but does
+                // contain some other unknown grant type, we should not fall back to consulting the Authorization Server
+                // metadata for supported grant types. As we do not support the grant type, this is an error case.
+                if !grants.other.is_empty() {
+                    return Err(WalletIssuanceError::CredentialOfferUnknownGrants(
+                        grants.other.into_keys().collect(),
+                    ));
+                }
+
+                (Self::NoGrants, None)
+            }
+        };
+
+        Ok(result)
+    }
 }
 
 impl HttpIssuanceDiscovery {
@@ -137,38 +186,10 @@ impl HttpIssuanceDiscovery {
                 .map_err(WalletIssuanceError::CredentialOfferHttp)?,
         };
 
-        let grants = offer.grants.ok_or(WalletIssuanceError::MissingCredentialOfferGrants)?;
-
-        let (authorization_server, flow) = match grants {
-            // According to the OpenID4VCI 1.0 specification:
-            // (source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-2.3)
-            // "When multiple grants are present, it is at the Wallet's discretion which one to use."
-            //
-            // Since there is no point in making the user go through an OAuth authorization flow when they have already
-            // been pre-authorized, we always choose the pre-authorized code if the `CredentialOffer` contains both
-            // options.
-            Grants::Both {
-                pre_authorized_code, ..
-            }
-            | Grants::PreAuthorizedCode { pre_authorized_code } => {
-                if pre_authorized_code.tx_code.is_some() {
-                    return Err(WalletIssuanceError::CredentialOfferTxCodeUnsupported);
-                }
-
-                let flow = CredentialOfferFlow::PreAuthorizedCode {
-                    pre_authorized_code: pre_authorized_code.pre_authorized_code,
-                };
-
-                (pre_authorized_code.authorization_server, flow)
-            }
-            Grants::AuthorizationCode { authorization_code } => {
-                let flow = CredentialOfferFlow::AuthorizationCode {
-                    issuer_state: authorization_code.issuer_state,
-                };
-
-                (authorization_code.authorization_server, flow)
-            }
-            Grants::Other => return Err(WalletIssuanceError::MissingCredentialOfferGrants),
+        let (flow, authorization_server) = if let Some(grants) = offer.grants {
+            CredentialOfferFlow::from_grants(grants)?
+        } else {
+            (CredentialOfferFlow::NoGrants, None)
         };
 
         let normalized = NormalizedCredentialOffer {
@@ -220,6 +241,7 @@ mod test {
     use httpmock::Method::GET;
     use httpmock::Method::POST;
     use httpmock::MockServer;
+    use itertools::Itertools;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -553,19 +575,27 @@ mod test {
     }
 
     #[tokio::test]
-    async fn pre_authorized_code_flow_missing_grant() {
+    async fn pre_authorized_code_flow_unknown_grant() {
         let server = MockServer::start_async().await;
         let credential_issuer = server.base_url().parse::<IssuerIdentifier>().unwrap();
 
-        // Construct a Credential Offer URL WITHOUT any grants.
-        let credential_offer = CredentialOffer {
-            credential_issuer,
-            credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
-            grants: None,
-        };
-        let offer_container = CredentialOfferContainer::new_offer(credential_offer);
-        let query = serde_urlencoded::to_string(&offer_container).unwrap();
-        let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
+        // Construct a Credential Offer URL with only unknown grant types.
+        let credential_offer = json!({
+            "credential_issuer": credential_issuer.as_ref(),
+            "credential_configuration_ids": [PID_ATTESTATION_TYPE],
+            "grants": {
+                "foo": {
+                    "key": "value"
+                },
+                "bar": {
+                    "something": 123
+                }
+            }
+        });
+        let mut offer_url = Url::parse("openid-credential-offer://").unwrap();
+        offer_url
+            .query_pairs_mut()
+            .append_pair("credential_offer", &serde_json::to_string(&credential_offer).unwrap());
 
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
@@ -573,7 +603,11 @@ mod test {
             .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &[])
             .await;
 
-        assert_matches!(result, Err(WalletIssuanceError::MissingCredentialOfferGrants));
+        assert_matches!(
+            result,
+            Err(WalletIssuanceError::CredentialOfferUnknownGrants(grant_types))
+                if grant_types.iter().sorted().eq(["bar", "foo"])
+        );
     }
 
     #[tokio::test]
@@ -585,12 +619,13 @@ mod test {
         let credential_offer = CredentialOffer {
             credential_issuer,
             credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
-            grants: Some(Grants::PreAuthorizedCode {
-                pre_authorized_code: GrantPreAuthorizedCode {
+            grants: Some(Grants {
+                pre_authorized_code: Some(GrantPreAuthorizedCode {
                     pre_authorized_code: "code".to_string().into(),
                     tx_code: Some(PreAuthTransactionCode::default()),
                     authorization_server: None,
-                },
+                }),
+                ..Grants::default()
             }),
         };
         let offer_container = CredentialOfferContainer::new_offer(credential_offer);
@@ -615,11 +650,12 @@ mod test {
         let credential_offer = CredentialOffer {
             credential_issuer,
             credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
-            grants: Some(Grants::AuthorizationCode {
-                authorization_code: GrantAuthorizationCode {
+            grants: Some(Grants {
+                authorization_code: Some(GrantAuthorizationCode {
                     issuer_state: None,
                     authorization_server: None,
-                },
+                }),
+                ..Grants::default()
             }),
         };
         let offer_container = CredentialOfferContainer::new_offer(credential_offer);

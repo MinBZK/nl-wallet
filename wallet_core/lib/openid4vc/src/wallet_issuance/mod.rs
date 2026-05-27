@@ -7,6 +7,7 @@ pub mod preview;
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;
 
+use std::collections::HashSet;
 use std::fmt::Debug;
 
 use attestation_data::attributes::AttributesError;
@@ -16,6 +17,7 @@ use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use error_category::ErrorCategory;
+use itertools::Itertools;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
@@ -229,9 +231,9 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     CredentialOfferHttp(#[source] reqwest::Error),
 
-    #[error("no grants found in Credential Offer")]
+    #[error("only unknown grant type(s) found in Credential Offer: {}", .0.iter().join(", "))]
     #[category(critical)]
-    MissingCredentialOfferGrants,
+    CredentialOfferUnknownGrants(HashSet<String>),
 
     #[error("a Credential Offer containing a Pre-Authorized code with a Transaction Code is unsupported")]
     #[category(critical)]

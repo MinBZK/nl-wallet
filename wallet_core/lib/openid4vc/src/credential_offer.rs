@@ -1,10 +1,12 @@
+use std::collections::HashMap;
+
 use http_utils::urls::BaseUrl;
 use serde::Deserialize;
 use serde::Serialize;
+use serde::de::IgnoredAny;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 use serde_with::json::JsonString;
-use serde_with::rust::deserialize_ignore_any;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use strum::EnumString;
@@ -66,7 +68,6 @@ pub struct CredentialOffer {
 
     /// Object indicating to the Wallet the Grant Types the Credential Issuer's Authorization Server is prepared to
     /// process for this Credential Offer.
-    #[serde(skip_serializing_if = "CredentialOffer::grants_is_none_or_other")]
     pub grants: Option<Grants>,
 }
 
@@ -82,13 +83,6 @@ impl CredentialOffer {
             grants: Some(Grants::new_pre_authorized(pre_authorized_code)),
         }
     }
-
-    fn grants_is_none_or_other(grants: &Option<Grants>) -> bool {
-        grants
-            .as_ref()
-            .map(|grants| matches!(grants, Grants::Other))
-            .unwrap_or(true)
-    }
 }
 
 /// Object indicating to the Wallet the Grant Types the Credential Issuer's Authorization Server is prepared to process
@@ -99,29 +93,24 @@ impl CredentialOffer {
 /// metadata. When multiple grants are present, it is at the Wallet's discretion which one to use.
 ///
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-4>
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum Grants {
-    Both {
-        authorization_code: GrantAuthorizationCode,
-        #[serde(rename = "urn:ietf:params:oauth:grant-type:pre-authorized_code")]
-        pre_authorized_code: GrantPreAuthorizedCode,
-    },
-    AuthorizationCode {
-        authorization_code: GrantAuthorizationCode,
-    },
-    PreAuthorizedCode {
-        #[serde(rename = "urn:ietf:params:oauth:grant-type:pre-authorized_code")]
-        pre_authorized_code: GrantPreAuthorizedCode,
-    },
-    #[serde(deserialize_with = "deserialize_ignore_any")]
-    Other,
+#[skip_serializing_none]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Grants {
+    pub authorization_code: Option<GrantAuthorizationCode>,
+
+    #[serde(rename = "urn:ietf:params:oauth:grant-type:pre-authorized_code")]
+    pub pre_authorized_code: Option<GrantPreAuthorizedCode>,
+
+    // Capture the keys of any unknown grant types.
+    #[serde(flatten, skip_serializing)]
+    pub other: HashMap<String, IgnoredAny>,
 }
 
 impl Grants {
     pub fn new_pre_authorized(pre_authorized_code: AuthorizationCode) -> Self {
-        Self::PreAuthorizedCode {
-            pre_authorized_code: GrantPreAuthorizedCode::new(pre_authorized_code),
+        Self {
+            pre_authorized_code: Some(GrantPreAuthorizedCode::new(pre_authorized_code)),
+            ..Self::default()
         }
     }
 }
@@ -223,7 +212,6 @@ pub enum PreAuthTransactionCodeInputMode {
 
 #[cfg(test)]
 mod tests {
-    use assert_matches::assert_matches;
     use serde_json::json;
     use url::Url;
 
@@ -238,31 +226,45 @@ mod tests {
             "authorization_code": { "issuer_state": "foo" },
             "urn:ietf:params:oauth:grant-type:pre-authorized_code": { "pre-authorized_code": "bar" }
         });
-        assert_matches!(serde_json::from_value::<Grants>(json).unwrap(), Grants::Both { .. });
+        let grants = serde_json::from_value::<Grants>(json).expect("should be able to deserialize Grants");
+
+        assert!(grants.authorization_code.is_some());
+        assert!(grants.pre_authorized_code.is_some());
+        assert!(grants.other.is_empty());
 
         let json = json!({
             "urn:ietf:params:oauth:grant-type:pre-authorized_code": { "pre-authorized_code": "bar" }
         });
-        assert_matches!(
-            serde_json::from_value::<Grants>(json).unwrap(),
-            Grants::PreAuthorizedCode { .. }
-        );
+        let grants = serde_json::from_value::<Grants>(json).expect("should be able to deserialize Grants");
+
+        assert!(grants.authorization_code.is_none());
+        assert!(grants.pre_authorized_code.is_some());
+        assert!(grants.other.is_empty());
 
         let json = json!({
             "authorization_code": { "issuer_state": "foo" }
         });
-        assert_matches!(
-            serde_json::from_value::<Grants>(json).unwrap(),
-            Grants::AuthorizationCode { .. }
-        );
+        let grants = serde_json::from_value::<Grants>(json).expect("should be able to deserialize Grants");
+
+        assert!(grants.authorization_code.is_some());
+        assert!(grants.pre_authorized_code.is_none());
+        assert!(grants.other.is_empty());
 
         let json = json!({});
-        assert_matches!(serde_json::from_value::<Grants>(json).unwrap(), Grants::Other);
+        let grants = serde_json::from_value::<Grants>(json).expect("should be able to deserialize Grants");
+
+        assert!(grants.authorization_code.is_none());
+        assert!(grants.pre_authorized_code.is_none());
+        assert!(grants.other.is_empty());
 
         let json = json!({
             "foo": "bar"
         });
-        assert_matches!(serde_json::from_value::<Grants>(json).unwrap(), Grants::Other);
+        let grants = serde_json::from_value::<Grants>(json).expect("should be able to deserialize Grants");
+
+        assert!(grants.authorization_code.is_none());
+        assert!(grants.pre_authorized_code.is_none());
+        assert!(grants.other.keys().eq(["foo"]));
     }
 
     #[test]
@@ -301,10 +303,11 @@ mod tests {
                 .eq(["UniversityDegreeCredential", "org.iso.18013.5.1.mDL"])
         );
 
-        let grant_pre_auth = match &credential_offer.grants {
-            Some(Grants::PreAuthorizedCode { pre_authorized_code }) => pre_authorized_code,
-            _ => panic!("JSON should contain Pre-Authorized Code grant"),
-        };
+        let grant_pre_auth = credential_offer
+            .grants
+            .as_ref()
+            .and_then(|grants| grants.pre_authorized_code.as_ref())
+            .expect("JSON should contain Pre-Authorized Code grant");
 
         assert_eq!(grant_pre_auth.pre_authorized_code.as_ref(), "oaKazRN8I0IbtZ0C7JuMn5");
 
@@ -352,10 +355,10 @@ mod tests {
                 .eq(["org.iso.18013.5.1.mDL"])
         );
 
-        let grant_pre_auth = match credential_offer.grants {
-            Some(Grants::PreAuthorizedCode { pre_authorized_code }) => pre_authorized_code,
-            _ => panic!("URI should contain Pre-Authorized Code grant"),
-        };
+        let grant_pre_auth = credential_offer
+            .grants
+            .and_then(|grants| grants.pre_authorized_code)
+            .expect("URI should contain Pre-Authorized Code grant");
 
         assert_eq!(grant_pre_auth.pre_authorized_code.as_ref(), "oaKazRN8I0IbtZ0C7JuMn5");
 

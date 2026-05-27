@@ -149,7 +149,7 @@ fn convert_and_enrich_error(error: WalletIssuanceError, organization: &Organizat
     match error {
         WalletIssuanceError::MissingCredentialOfferQuery
         | WalletIssuanceError::CredentialOfferDeserialization(_)
-        | WalletIssuanceError::MissingCredentialOfferGrants
+        | WalletIssuanceError::CredentialOfferUnknownGrants(_)
         | WalletIssuanceError::CredentialOfferTxCodeUnsupported
         | WalletIssuanceError::MissingCredentialOfferPreAuthorizedCode => {
             DisclosureBasedIssuanceError::Issuance(IssuanceError::IssuerServer {
