@@ -6,7 +6,7 @@ use attestation_types::claim_path::ClaimPath;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::p256_der::DerVerifyingKey;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use derive_more::Debug;
 use error_category::ErrorCategory;
 use http_utils::client::TlsPinningConfig;
@@ -23,7 +23,6 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::EnvironmentSpecific;
 
-#[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WalletConfiguration {
     pub environment: String,
@@ -33,8 +32,7 @@ pub struct WalletConfiguration {
     pub pid_issuance: PidIssuanceConfiguration,
     pub disclosure: DisclosureConfiguration,
     #[debug(skip)]
-    #[serde_as(as = "Vec<Base64>")]
-    pub issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
+    pub issuer_trust_anchors: TrustAnchors,
     pub update_policy_server: UpdatePolicyServerConfiguration,
     pub google_cloud_project_number: u64,
     pub static_assets_base_url: BaseUrl,
@@ -46,7 +44,7 @@ pub struct WalletConfiguration {
 impl JwtTyp for WalletConfiguration {}
 
 impl WalletConfiguration {
-    pub fn issuer_trust_anchors(&self) -> &[BorrowingTrustAnchor] {
+    pub fn issuer_trust_anchors(&self) -> &TrustAnchors {
         &self.issuer_trust_anchors
     }
 }
@@ -88,8 +86,7 @@ pub struct AccountServerConfiguration {
     #[serde_as(as = "Base64")]
     pub instruction_result_public_key: DerVerifyingKey,
     #[debug(skip)]
-    #[serde_as(as = "Vec<Base64>")]
-    pub wia_trust_anchors: Vec<BorrowingTrustAnchor>,
+    pub wia_trust_anchors: TrustAnchors,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -161,16 +158,14 @@ pub struct PidIssuanceConfiguration {
     pub url: IssuerIdentifier,
 }
 
-#[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DisclosureConfiguration {
     #[debug(skip)]
-    #[serde_as(as = "Vec<Base64>")]
-    pub rp_trust_anchors: Vec<BorrowingTrustAnchor>,
+    pub rp_trust_anchors: TrustAnchors,
 }
 
 impl DisclosureConfiguration {
-    pub fn rp_trust_anchors(&self) -> &[BorrowingTrustAnchor] {
+    pub fn rp_trust_anchors(&self) -> &TrustAnchors {
         &self.rp_trust_anchors
     }
 }

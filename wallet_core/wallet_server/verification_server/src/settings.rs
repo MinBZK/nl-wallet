@@ -6,7 +6,7 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use dcql::Query;
 use derive_more::AsRef;
@@ -28,7 +28,6 @@ use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::UseCaseData;
 use ring::hmac;
 use serde::Deserialize;
-use serde_with::base64::Base64;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 use server_utils::keys::PrivateKeyVariant;
@@ -55,8 +54,7 @@ pub struct VerifierSettings {
 
     /// Reader trust anchors are used to verify the keys and certificates in the `verifier.usecases` configuration on
     /// application startup.
-    #[serde_as(as = "Vec<Base64>")]
-    pub reader_trust_anchors: Vec<BorrowingTrustAnchor>,
+    pub reader_trust_anchors: TrustAnchors,
 
     /// Publicly reachable URL used by the wallet during sessions.
     pub public_url: BaseUrl,

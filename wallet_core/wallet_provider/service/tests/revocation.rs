@@ -8,6 +8,7 @@ use attestation_types::status_claim::StatusClaim;
 use audit_log::model::mock::MockAuditLog;
 use chrono::Utc;
 use crypto::server_keys::generate::Ca;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_bytes;
 use crypto::utils::random_string;
 use db_test::DbName;
@@ -108,7 +109,7 @@ async fn setup_state(
         flags,
         hsm,
         "wrapping_key_identifier".to_owned(),
-        vec![],
+        TrustAnchors::empty(),
         service,
     );
     let helper = PostgresRevocationHelper::new(db_connection);

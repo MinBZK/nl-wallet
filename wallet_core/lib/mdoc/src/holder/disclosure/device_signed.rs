@@ -76,6 +76,7 @@ mod tests {
 
     use crypto::examples::Examples;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
     use p256::SecretKey;
     use token_status_list::verification::client::mock::StatusListClientStub;
     use token_status_list::verification::verifier::RevocationVerifier;
@@ -121,7 +122,7 @@ mod tests {
                 Some(&eph_reader_key),
                 &session_transcript,
                 &IsoCertTimeGenerator,
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
                 &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(
                     ca.generate_status_list_mock().unwrap(),
                 ))),

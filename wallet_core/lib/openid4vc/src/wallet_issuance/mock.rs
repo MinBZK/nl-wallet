@@ -1,5 +1,5 @@
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use url::Url;
 
 use super::AuthorizationSession;
@@ -37,7 +37,7 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
         _offer_uri: &Url,
         _client_id: String,
         _redirect_uri: Url,
-        _issuer_trust_anchors: &[BorrowingTrustAnchor],
+        _issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError> {
         self.start_with_credential_offer_sync()
     }
@@ -66,7 +66,7 @@ impl AuthorizationSession for MockAuthorizationSession {
     async fn start_issuance(
         self,
         _received_redirect_uri: &Url,
-        _trust_anchors: &[BorrowingTrustAnchor],
+        _trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         self.start_issuance_sync()
     }
@@ -90,7 +90,7 @@ mockall::mock! {
 impl IssuanceSession for MockIssuanceSession {
     async fn accept_issuance<W>(
         &mut self,
-        _: &[BorrowingTrustAnchor],
+        _: &TrustAnchors,
         _: &W,
         _: bool,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError> {

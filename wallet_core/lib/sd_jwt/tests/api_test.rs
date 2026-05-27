@@ -7,7 +7,7 @@ use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteWscd;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::CertificateUsage;
 use futures::FutureExt;
 use itertools::Itertools;
@@ -40,7 +40,7 @@ async fn make_sd_jwt(
     claims: Value,
     disclosable_values: impl IntoIterator<Item = VecNonEmpty<ClaimPath>>,
     holder_pubkey: &VerifyingKey,
-) -> (SignedSdJwt, Vec<BorrowingTrustAnchor>, KeyPair) {
+) -> (SignedSdJwt, TrustAnchors, KeyPair) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuer_keypair = ca.generate_issuer_mock().unwrap();
 
@@ -54,7 +54,7 @@ async fn make_sd_jwt(
         .await
         .unwrap();
 
-    (sd_jwt, vec![ca.to_borrowing_trust_anchor()], issuer_keypair)
+    (sd_jwt, TrustAnchors::from(&ca), issuer_keypair)
 }
 
 #[test]
@@ -391,7 +391,7 @@ async fn test_presentation() {
         .parse::<UnverifiedSdJwtPresentation>()
         .unwrap()
         .into_verified_against_trust_anchors(
-            &[ca.to_borrowing_trust_anchor()],
+            &TrustAnchors::from(&ca),
             &kb_verification_options,
             &MockTimeGenerator::default(),
             &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(issuer_keypair))),
@@ -479,7 +479,7 @@ fn test_wscd_presentation() {
 
     let verified_sd_jwt_presentation = unverified_sd_jwt_presentation
         .into_verified_against_trust_anchors(
-            &[ca.to_borrowing_trust_anchor()],
+            &TrustAnchors::from(&ca),
             &kb_verification_options,
             &MockTimeGenerator::default(),
             &RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(issuer_key_pair))),

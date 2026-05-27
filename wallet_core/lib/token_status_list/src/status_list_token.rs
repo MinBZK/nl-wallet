@@ -110,7 +110,7 @@ pub mod verification {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
-    use crypto::trust_anchor::BorrowingTrustAnchor;
+    use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
     use crypto::x509::DistinguishedName;
@@ -148,7 +148,7 @@ pub mod verification {
     impl StatusListToken {
         pub fn parse_and_verify(
             &self,
-            issuer_trust_anchors: &[BorrowingTrustAnchor],
+            issuer_trust_anchors: &TrustAnchors,
             attestation_signing_certificate_dn: DistinguishedName,
             url: &Url,
             time: &impl Generator<DateTime<Utc>>,
@@ -250,6 +250,7 @@ mod test {
     use assert_matches::assert_matches;
     use chrono::Days;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
     use jwt::DEFAULT_VALIDATIONS;
     use jwt::error::JwtX5cError;
     use utils::generator::mock::MockTimeGenerator;
@@ -291,7 +292,7 @@ mod test {
 
         let err = signed
             .parse_and_verify(
-                &[],
+                &TrustAnchors::empty(),
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 &expected_claims.sub,
                 &MockTimeGenerator::default(),
@@ -304,7 +305,7 @@ mod test {
 
         let err = signed
             .parse_and_verify(
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
                 ca.generate_pid_issuer_mock()
                     .unwrap()
                     .certificate()
@@ -318,7 +319,7 @@ mod test {
 
         let err = signed
             .parse_and_verify(
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 &"http://example.com/sub".parse().unwrap(),
                 &MockTimeGenerator::default(),
@@ -328,7 +329,7 @@ mod test {
 
         let err = signed
             .parse_and_verify(
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 &expected_claims.sub,
                 &MockTimeGenerator::new(DateTime::from_timestamp(SLT_EXP, 0).unwrap().add(Days::new(1))),
@@ -338,7 +339,7 @@ mod test {
 
         signed
             .parse_and_verify(
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
                 iss_keypair.certificate().distinguished_name_canonical().unwrap(),
                 &expected_claims.sub,
                 &MockTimeGenerator::default(),

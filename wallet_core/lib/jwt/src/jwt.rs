@@ -10,7 +10,7 @@ use chrono::Utc;
 use crypto::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
@@ -25,7 +25,6 @@ use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
-use rustls_pki_types::CertificateDer;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -214,7 +213,7 @@ where
     /// header.
     pub fn parse_and_verify_against_trust_anchors(
         &self,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: CertificateUsage,
         validation_options: &Validation,
@@ -224,18 +223,9 @@ where
         // Verify the certificate chain against the trust anchors.
         let leaf_cert = certificates.first();
 
+        let intermediate_certs: Vec<BorrowingCertificate> = certificates.iter().skip(1).cloned().collect();
         leaf_cert
-            .verify(
-                certificate_usage,
-                &certificates
-                    .iter()
-                    .skip(1)
-                    .map(AsRef::as_ref)
-                    .map(CertificateDer::from_slice)
-                    .collect_vec(),
-                time,
-                trust_anchors,
-            )
+            .verify(certificate_usage, &intermediate_certs, time, trust_anchors)
             .map_err(JwtX5cError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.
@@ -249,7 +239,7 @@ where
         validation_options: &Validation,
         time: &impl Generator<DateTime<Utc>>,
         certificate_usage: CertificateUsage,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
     ) -> Result<VerifiedJwt<T, HeaderWithX5c<H>>, JwtX5cError> {
         let (header, payload) =
             self.parse_and_verify_against_trust_anchors(trust_anchors, time, certificate_usage, validation_options)?;
@@ -932,6 +922,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteWscd;
     use crypto::server_keys::generate::Ca;
+    use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
@@ -1251,7 +1242,7 @@ mod tests {
 
         let (header, deserialized) = jwt
             .parse_and_verify_against_trust_anchors(
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
                 &TimeGenerator,
                 CertificateUsage::ReaderAuth,
                 &DEFAULT_VALIDATIONS,
@@ -1353,7 +1344,7 @@ mod tests {
         // Verifying this JWT against the CA's trust anchor should succeed.
         let (header, deserialized) = jwt
             .parse_and_verify_against_trust_anchors(
-                &[ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&ca),
                 &TimeGenerator,
                 CertificateUsage::ReaderAuth,
                 &DEFAULT_VALIDATIONS,
@@ -1379,7 +1370,7 @@ mod tests {
 
         let err = jwt
             .parse_and_verify_against_trust_anchors(
-                &[other_ca.to_borrowing_trust_anchor()],
+                &TrustAnchors::from(&other_ca),
                 &TimeGenerator,
                 CertificateUsage::ReaderAuth,
                 &DEFAULT_VALIDATIONS,
@@ -1400,7 +1391,7 @@ mod tests {
 
         // Put the ca_cert in both the certificate list and the trust anchors.
         let certs = vec_nonempty![keypair.certificate().to_owned(), ca_cert];
-        let trust_anchors = vec![ca.to_borrowing_trust_anchor()];
+        let trust_anchors = TrustAnchors::from(&ca);
 
         let payload = json!({"hello": "world"});
         let jwt = SignedJwt::sign_with_header(HeaderWithX5c::from_certs(certs), &payload, keypair.private_key())

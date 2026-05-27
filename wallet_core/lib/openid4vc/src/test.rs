@@ -13,7 +13,7 @@ use chrono::Days;
 use chrono::Utc;
 use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
@@ -127,7 +127,7 @@ pub fn setup_mock_issuer<G, PAS, PKS, UAA>(
     par_store: Arc<PAS>,
     pkce_flow_store: Arc<PKS>,
     upstream_authorization_adapter: Option<UAA>,
-) -> (MockIssuer<G, PAS, PKS, UAA>, BorrowingTrustAnchor, KeyPair)
+) -> (MockIssuer<G, PAS, PKS, UAA>, TrustAnchors, KeyPair)
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
     PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
@@ -136,7 +136,7 @@ where
 {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
     let issuance_keypair = generate_issuer_mock_with_registration(&ca, IssuerRegistration::new_mock()).unwrap();
-    let trust_anchor = ca.to_borrowing_trust_anchor();
+    let trust_anchors = TrustAnchors::from(&ca);
     let wia_keypair = ca.generate_wia_mock().unwrap();
 
     let config_params = MOCK_ATTESTATION_TYPES[..attestation_count.get()]
@@ -186,7 +186,7 @@ where
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
         config_params,
         Some(WiaConfig {
-            wia_trust_anchors: vec![trust_anchor.clone()],
+            wia_trust_anchors: trust_anchors.clone(),
         }),
         attr_service,
         sessions,
@@ -197,5 +197,5 @@ where
     )
     .unwrap();
 
-    (issuer, trust_anchor, wia_keypair)
+    (issuer, trust_anchors, wia_keypair)
 }

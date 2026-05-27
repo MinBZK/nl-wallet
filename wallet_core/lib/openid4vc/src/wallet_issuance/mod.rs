@@ -7,6 +7,7 @@ pub mod preview;
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;
 
+use std::collections::HashSet;
 use std::fmt::Debug;
 
 use attestation_data::attributes::AttributesError;
@@ -14,8 +15,9 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::MdocCredentialPayloadError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
-use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
+use itertools::Itertools;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
@@ -229,12 +231,12 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     CredentialOfferHttp(#[source] reqwest::Error),
 
-    #[error("no grants found in Credential Offer")]
-    #[category(critical)]
-    MissingCredentialOfferGrants,
+    #[error("only unknown grant type(s) found in Credential Offer: {}", .0.iter().join(", "))]
+    #[category(expected)]
+    CredentialOfferUnknownGrants(HashSet<String>),
 
     #[error("a Credential Offer containing a Pre-Authorized code with a Transaction Code is unsupported")]
-    #[category(critical)]
+    #[category(expected)]
     CredentialOfferTxCodeUnsupported,
 }
 
@@ -268,7 +270,7 @@ pub trait IssuanceDiscovery {
         offer_uri: &Url,
         client_id: String,
         redirect_uri: Url,
-        issuer_trust_anchors: &[BorrowingTrustAnchor],
+        issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>;
 }
 
@@ -291,7 +293,7 @@ pub trait AuthorizationSession {
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>;
 }
 
@@ -299,7 +301,7 @@ pub trait AuthorizationSession {
 pub trait IssuanceSession {
     async fn accept_issuance<W>(
         &mut self,
-        trust_anchors: &[BorrowingTrustAnchor],
+        trust_anchors: &TrustAnchors,
         wscd: &W,
         include_wia: bool,
     ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>
