@@ -11,6 +11,7 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
+use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -326,7 +327,7 @@ where
         issuance_discovery: &CID,
     ) -> Result<Option<Session<CID::Authorization, CID::Issuance, DCC::Session>>, StorageError> {
         if let Some(data) = storage
-            .fetch_data::<PersistedIssuanceSessionData<CID::AuthorizationData>>()
+            .fetch_data::<PersistedIssuanceSessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
             .await?
         {
             let authorization_session = issuance_discovery.restore_authorization_session(data.authorization_session);
@@ -338,7 +339,7 @@ where
         }
 
         if let Some(data) = storage
-            .fetch_data::<PersistedPinRecoverySessionData<CID::AuthorizationData>>()
+            .fetch_data::<PersistedPinRecoverySessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
             .await?
         {
             let authorization_session = issuance_discovery.restore_authorization_session(data.authorization_session);
@@ -362,6 +363,7 @@ mod tests {
     use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+    use token_status_list::verification::client::mock::MockStatusListClient;
     use wallet_account::RevocationCode;
 
     use super::super::test;
@@ -379,7 +381,6 @@ mod tests {
     use crate::wallet::UriType;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::generate_key_holder;
-    use token_status_list::verification::client::mock::MockStatusListClient;
 
     // Tests if the `Wallet::init_registration()` method completes successfully with the mock generics.
     #[tokio::test]

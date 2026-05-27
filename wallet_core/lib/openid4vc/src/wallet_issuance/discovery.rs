@@ -3,6 +3,7 @@ use http_utils::reqwest::HttpJsonClient;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 
+use super::AuthorizationSession;
 use super::IssuanceDiscovery;
 use super::IssuanceFlow;
 use super::WalletIssuanceError;
@@ -20,7 +21,6 @@ use crate::metadata::well_known::WellKnownPath;
 use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
-use crate::wallet_issuance::authorization::HttpAuthorizationSessionData;
 
 pub struct HttpIssuanceDiscovery {
     http_client: HttpJsonClient,
@@ -34,7 +34,6 @@ impl HttpIssuanceDiscovery {
 
 impl IssuanceDiscovery for HttpIssuanceDiscovery {
     type Authorization = HttpAuthorizationSession;
-    type AuthorizationData = HttpAuthorizationSessionData;
     type Issuance = HttpIssuanceSession;
 
     async fn start_authorization_code_flow(
@@ -145,7 +144,10 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         Ok(flow)
     }
 
-    fn restore_authorization_session(&self, data: Self::AuthorizationData) -> Self::Authorization {
+    fn restore_authorization_session(
+        &self,
+        data: <Self::Authorization as AuthorizationSession>::Persisted,
+    ) -> Self::Authorization {
         HttpAuthorizationSession::restore(self.http_client.clone(), data)
     }
 }

@@ -218,7 +218,7 @@ where
         self.storage
             .write()
             .await
-            .delete_data::<PersistedPinRecoverySessionData<CID::AuthorizationData>>()
+            .delete_data::<PersistedPinRecoverySessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
             .await?;
 
         // Fetch issuance previews
@@ -457,7 +457,7 @@ where
         self.storage
             .write()
             .await
-            .delete_data::<PersistedPinRecoverySessionData<CID::AuthorizationData>>()
+            .delete_data::<PersistedPinRecoverySessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
             .await?;
 
         Ok(())
@@ -537,13 +537,9 @@ mod tests {
             });
     }
 
-    #[rstest]
     #[tokio::test]
-    pub async fn create_pin_recovery_redirect_uri(
-        #[values(None, Some(PinRecoveryData))] pin_recovery_data: Option<PinRecoveryData>,
-    ) {
+    pub async fn create_pin_recovery_redirect_uri() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let _ = pin_recovery_data;
 
         wallet
             .mut_storage()

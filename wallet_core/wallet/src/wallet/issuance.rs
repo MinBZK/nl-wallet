@@ -313,7 +313,7 @@ where
         self.storage
             .write()
             .await
-            .delete_data::<PersistedIssuanceSessionData<CID::AuthorizationData>>()
+            .delete_data::<PersistedIssuanceSessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
             .await
             .map_err(IssuanceError::SessionStorage)?;
 
@@ -363,7 +363,7 @@ where
         self.storage
             .write()
             .await
-            .delete_data::<PersistedIssuanceSessionData<CID::AuthorizationData>>()
+            .delete_data::<PersistedIssuanceSessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
             .await
             .map_err(IssuanceError::SessionStorage)?;
 

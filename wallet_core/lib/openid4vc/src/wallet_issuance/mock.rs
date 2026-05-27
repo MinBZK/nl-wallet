@@ -30,7 +30,6 @@ mockall::mock! {
 
 impl IssuanceDiscovery for MockIssuanceDiscovery {
     type Authorization = MockAuthorizationSession;
-    type AuthorizationData = MockAuthorizationSessionData;
     type Issuance = MockIssuanceSession;
 
     async fn start_authorization_code_flow(
@@ -52,7 +51,10 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
         self.start_with_credential_offer_sync()
     }
 
-    fn restore_authorization_session(&self, data: Self::AuthorizationData) -> Self::Authorization {
+    fn restore_authorization_session(
+        &self,
+        data: <Self::Authorization as AuthorizationSession>::Persisted,
+    ) -> Self::Authorization {
         self.restore_authorization_session_sync(data)
     }
 }

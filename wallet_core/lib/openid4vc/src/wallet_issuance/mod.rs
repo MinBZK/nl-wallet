@@ -257,8 +257,7 @@ pub enum IssuanceFlow<A, I> {
 
 /// Discovers credential issuer and OAuth authorization server metadata, then starts an issuance flow.
 pub trait IssuanceDiscovery {
-    type Authorization: AuthorizationSession<Issuance = Self::Issuance, Persisted = Self::AuthorizationData>;
-    type AuthorizationData: Clone + Debug + Send + Sync + Serialize + DeserializeOwned + 'static;
+    type Authorization: AuthorizationSession<Issuance = Self::Issuance>;
     type Issuance: IssuanceSession;
 
     /// Fetches issuer and OAuth metadata, constructs a PKCE-protected authorization URL, and returns
@@ -284,7 +283,10 @@ pub trait IssuanceDiscovery {
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>;
 
     /// Rebuilds an [`AuthorizationSession`] from data that was persisted before the app left memory.
-    fn restore_authorization_session(&self, data: Self::AuthorizationData) -> Self::Authorization;
+    fn restore_authorization_session(
+        &self,
+        data: <Self::Authorization as AuthorizationSession>::Persisted,
+    ) -> Self::Authorization;
 }
 
 /// Represents an in-progress OAuth authorization code flow.
