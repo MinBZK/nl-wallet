@@ -131,7 +131,7 @@ impl TryFrom<LogoMetadata> for ImageWithMetadata {
         Ok(ImageWithMetadata {
             image: match value.image {
                 wallet::sd_jwt_vc_metadata::Image::Svg(xml) => Image::Svg {
-                    xml: SanitizedSvg::try_new(&xml)?.into(),
+                    svg: SanitizedSvg::try_new(&xml)?.into(),
                 },
                 wallet::sd_jwt_vc_metadata::Image::Png(data) => Image::Png { data },
                 wallet::sd_jwt_vc_metadata::Image::Jpeg(data) => Image::Jpeg { data },

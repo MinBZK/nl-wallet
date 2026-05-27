@@ -131,7 +131,7 @@ impl TryFrom<wallet::attestation_data::Image> for Image {
     fn try_from(value: wallet::attestation_data::Image) -> Result<Self, Self::Error> {
         Ok(match value {
             wallet::attestation_data::Image::Svg(xml) => Image::Svg {
-                xml: SanitizedSvg::try_new(&xml)?.into(),
+                svg: SanitizedSvg::try_new(&xml)?.into(),
             },
             wallet::attestation_data::Image::Png(data) => Image::Png { data },
             wallet::attestation_data::Image::Jpeg(data) => Image::Jpeg { data },

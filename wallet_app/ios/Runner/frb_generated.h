@@ -37,12 +37,8 @@ typedef struct wire_cst_attestation_identity {
   union AttestationIdentityKind kind;
 } wire_cst_attestation_identity;
 
-typedef struct wire_cst_sanitized_svg {
-  struct wire_cst_list_prim_u_8_strict *field0;
-} wire_cst_sanitized_svg;
-
 typedef struct wire_cst_Image_Svg {
-  struct wire_cst_sanitized_svg *xml;
+  uintptr_t svg;
 } wire_cst_Image_Svg;
 
 typedef struct wire_cst_Image_Png {
@@ -568,6 +564,8 @@ typedef struct wire_cst_wallet_instruction_result {
   union WalletInstructionResultKind kind;
 } wire_cst_wallet_instruction_result;
 
+WireSyncRust2DartDco frbgen_wallet_core_wire__crate__models__image__SanitizedSvg_xml(uintptr_t that);
+
 void frbgen_wallet_core_wire__crate__api__full__accept_disclosure(int64_t port_,
                                                                   struct wire_cst_list_prim_u_16_loose *selected_indices,
                                                                   struct wire_cst_list_prim_u_8_strict *pin);
@@ -725,6 +723,10 @@ void frbgen_wallet_core_wire__crate__api__full__unlock_wallet(int64_t port_,
 
 void frbgen_wallet_core_wire__crate__api__full__unlock_wallet_with_biometrics(int64_t port_);
 
+void frbgen_wallet_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(const void *ptr);
+
+void frbgen_wallet_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(const void *ptr);
+
 struct wire_cst_attestation_presentation *frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation(void);
 
 struct wire_cst_image *frbgen_wallet_core_cst_new_box_autoadd_image(void);
@@ -740,8 +742,6 @@ struct wire_cst_rendering_metadata *frbgen_wallet_core_cst_new_box_autoadd_rende
 struct wire_cst_request_policy *frbgen_wallet_core_cst_new_box_autoadd_request_policy(void);
 
 int32_t *frbgen_wallet_core_cst_new_box_autoadd_revocation_status(int32_t value);
-
-struct wire_cst_sanitized_svg *frbgen_wallet_core_cst_new_box_autoadd_sanitized_svg(void);
 
 uint64_t *frbgen_wallet_core_cst_new_box_autoadd_u_64(uint64_t value);
 
@@ -790,7 +790,6 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_request_policy);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_revocation_status);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_sanitized_svg);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_u_64);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_wallet_state);
@@ -810,6 +809,8 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_prim_u_8_strict);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_record_i_32_notification_type);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_wallet_event);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_disclosure);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_issuance);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_pid_issuance);
@@ -872,6 +873,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__transfer_wallet);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__unlock_wallet);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__unlock_wallet_with_biometrics);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__models__image__SanitizedSvg_xml);
     dummy_var ^= ((int64_t) (void*) store_dart_post_cobject);
     return dummy_var;
 }
