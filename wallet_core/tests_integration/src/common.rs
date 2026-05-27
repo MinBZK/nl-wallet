@@ -32,7 +32,6 @@ use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use issuance_server::settings::IssuanceServerSettings;
-use issuer_common::par_store::IssuerParStore;
 use jwt::SignedJwt;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::disclosure_session::DisclosureUriSource;
@@ -836,9 +835,7 @@ where
 
     let (issuer, _, _, server_settings) = settings
         .issuer_settings
-        .into_authorizing_issuer(hsm, Some(wia_config), IssuerParStore::new, |_| {
-            Ok::<_, Infallible>(flow)
-        })
+        .into_authorizing_issuer(hsm, Some(wia_config), |_| Ok::<_, Infallible>(flow))
         .await
         .unwrap();
 

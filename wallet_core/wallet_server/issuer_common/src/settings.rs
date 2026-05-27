@@ -55,6 +55,7 @@ use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 
 use crate::nonce_store::ProofNonceStore;
+use crate::par_store::IssuerParStore;
 
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]
@@ -492,11 +493,10 @@ impl IssuerSettings {
     /// produced by [`Self::into_issuer`], plus the PAR store and an [`AuthorizationCodeFlow`]
     /// implementation. The `flow` closure receives the same [`StoreConnection`] used for sessions
     /// + PAR so the impl can construct its own stores (e.g. the wallet ↔ upstream PKCE bridge).
-    pub async fn into_authorizing_issuer<PAS, AF, E>(
+    pub async fn into_authorizing_issuer<AF, E>(
         self,
         hsm: Option<Pkcs11Hsm>,
         wia_config: Option<WiaConfig>,
-        par_store: impl FnOnce(StoreConnection) -> PAS,
         flow: impl FnOnce(StoreConnection) -> Result<AF, E>,
     ) -> Result<
         (
@@ -505,7 +505,7 @@ impl IssuerSettings {
                 PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
                 SessionStoreVariant<IssuanceData>,
                 ProofNonceStore,
-                PAS,
+                IssuerParStore,
                 AF,
             >,
             Vec<DatabaseChecker>,
@@ -519,7 +519,7 @@ impl IssuerSettings {
     {
         let (issuer, database_checkers, store_connection, server_settings) = self.into_issuer(hsm, wia_config).await?;
 
-        let par_store = par_store(store_connection.clone());
+        let par_store = IssuerParStore::new(store_connection.clone());
         let flow =
             flow(store_connection.clone()).map_err(|e| IssuerSettingsError::AuthorizationCodeFlow(Box::new(e)))?;
 

@@ -3,7 +3,6 @@ use std::sync::Arc;
 use anyhow::Result;
 use health_checkers::hsm::HsmChecker;
 use hsm::service::Pkcs11Hsm;
-use issuer_common::par_store::IssuerParStore;
 use issuer_common::pkce_store::IssuerPkceStore;
 use openid4vc::issuer::WiaConfig;
 use pid_issuer::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow;
@@ -43,7 +42,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
 
     let (issuer, database_checkers, _, server_settings) = settings
         .issuer_settings
-        .into_authorizing_issuer(hsm, Some(wia_config), IssuerParStore::new, |store_connection| {
+        .into_authorizing_issuer(hsm, Some(wia_config), |store_connection| {
             UpstreamOidcAuthorizationCodeFlow::try_new(
                 brp_client,
                 &bsn_privkey,
