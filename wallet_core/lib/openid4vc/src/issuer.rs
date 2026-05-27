@@ -124,9 +124,6 @@ pub enum TokenRequestError {
         actual: &'static str,
     },
 
-    #[error("authorization code flow error: {0}")]
-    AuthorizationCodeFlow(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-
     #[error("session not found for the supplied code")]
     SessionNotFound,
 

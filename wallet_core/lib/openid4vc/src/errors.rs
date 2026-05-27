@@ -13,6 +13,7 @@ use url::Url;
 
 use crate::authorizing_issuer::AuthorizeError;
 use crate::authorizing_issuer::ParError;
+use crate::authorizing_issuer::TokenRequestError as AuthorizingIssuerTokenRequestError;
 use crate::issuer::CredentialPreviewError;
 use crate::issuer::CredentialRequestError;
 use crate::issuer::IssuanceError;
@@ -191,18 +192,38 @@ pub enum TokenErrorCode {
     Other(String),
 }
 
+impl From<TokenRequestError> for TokenErrorCode {
+    fn from(err: TokenRequestError) -> Self {
+        match err {
+            TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
+            | TokenRequestError::AttributesError(_)
+            | TokenRequestError::CredentialTypeNotOffered(_, _) => TokenErrorCode::ServerError,
+            TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
+            TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
+            TokenRequestError::SessionNotFound => TokenErrorCode::InvalidGrant,
+        }
+    }
+}
+
 impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
     fn from(err: TokenRequestError) -> Self {
         let description = err.to_string();
         ErrorResponse {
+            error: err.into(),
+            error_description: Some(description),
+            error_uri: None,
+        }
+    }
+}
+
+impl From<AuthorizingIssuerTokenRequestError> for ErrorResponse<TokenErrorCode> {
+    fn from(err: AuthorizingIssuerTokenRequestError) -> Self {
+        let description = err.to_string();
+        ErrorResponse {
             error: match err {
-                TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
-                | TokenRequestError::AttributesError(_)
-                | TokenRequestError::AuthorizationCodeFlow(_)
-                | TokenRequestError::CredentialTypeNotOffered(_, _) => TokenErrorCode::ServerError,
-                TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
-                TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
-                TokenRequestError::SessionNotFound => TokenErrorCode::InvalidGrant,
+                AuthorizingIssuerTokenRequestError::SessionStoreWrite(_)
+                | AuthorizingIssuerTokenRequestError::AuthorizationCodeFlow(_) => TokenErrorCode::ServerError,
+                AuthorizingIssuerTokenRequestError::IssuerTokenRequest(err) => err.into(),
             },
             error_description: Some(description),
             error_uri: None,

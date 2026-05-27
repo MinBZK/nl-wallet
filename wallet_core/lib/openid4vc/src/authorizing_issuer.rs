@@ -20,10 +20,10 @@ use crate::authorization_code_flow::AuthorizeOutcome;
 use crate::dpop::Dpop;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
-use crate::issuer::TokenRequestError;
 use crate::par;
 use crate::par::PAR_TTL;
 use crate::server_state::SessionStore;
+use crate::server_state::SessionStoreError;
 use crate::store::Store;
 use crate::token::TokenRequest;
 use crate::token::TokenResponse;
@@ -58,6 +58,19 @@ pub enum AuthorizeError {
 
     #[error("encoding authorization request as query string failed: {0}")]
     Encode(#[source] serde_urlencoded::ser::Error),
+}
+
+/// Errors that can occur during processing of a Pushed Authorization Request.
+#[derive(derive_more::Debug, thiserror::Error)]
+pub enum TokenRequestError {
+    #[error("authorization code flow error: {0}")]
+    AuthorizationCodeFlow(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
+    #[error("error writing to the issuer's session store: {0}")]
+    SessionStoreWrite(#[source] SessionStoreError),
+
+    #[error("error when delegating handling the token request to the issuer: {0}")]
+    IssuerTokenRequest(#[source] crate::issuer::TokenRequestError),
 }
 
 /// Authorization Phase wrapper around an Issuance Phase [`Issuer`].
@@ -183,8 +196,13 @@ where
         self.issuer
             .new_session_with_token(code.into(), issuables)
             .await
-            .map_err(|error| TokenRequestError::IssuanceError(crate::issuer::IssuanceError::SessionStore(error)))?;
+            .map_err(TokenRequestError::SessionStoreWrite)?;
 
-        self.issuer.process_token_request(token_request, dpop).await
+        let result = self
+            .issuer
+            .process_token_request(token_request, dpop)
+            .await
+            .map_err(TokenRequestError::IssuerTokenRequest)?;
+        Ok(result)
     }
 }
