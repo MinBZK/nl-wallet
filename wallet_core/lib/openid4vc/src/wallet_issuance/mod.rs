@@ -7,6 +7,7 @@ pub mod preview;
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;
 
+use std::collections::HashSet;
 use std::fmt::Debug;
 
 use attestation_data::attributes::AttributesError;
@@ -16,6 +17,7 @@ use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
+use itertools::Itertools;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
@@ -56,10 +58,6 @@ pub enum WalletIssuanceError {
     #[error("JWT error: {0}")]
     Jwt(#[from] JwtError),
 
-    #[error("http request failed: {0}")]
-    #[category(expected)]
-    Network(#[from] reqwest::Error),
-
     #[error("missing c_nonce")]
     #[category(critical)]
     MissingNonce,
@@ -86,13 +84,45 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     AttributesVerification(#[from] AttributesError),
 
-    #[error("error requesting access token: {0:?}")]
+    #[error("could not push authorization request to server: {0:?}")]
+    #[category(expected)]
+    ParHttp(#[source] reqwest::Error),
+
+    #[error("could not retrieve access token from issuer: {0:?}")]
+    #[category(expected)]
+    TokenRequestHttp(#[source] reqwest::Error),
+
+    #[error("retrieving access token from issuer reported an error: {0:?}")]
     #[category(pd)]
     TokenRequest(Box<ErrorResponse<TokenErrorCode>>),
 
-    #[error("error requesting credentials: {0:?}")]
+    #[error("could not retrieve credential preview from issuer: {0:?}")]
+    #[category(expected)]
+    CredentialPreviewHttp(#[source] reqwest::Error),
+
+    #[error("retrieving credential preview from issuer reported an error: {0:?}")]
+    #[category(pd)]
+    CredentialPreview(Box<ErrorResponse<CredentialPreviewErrorCode>>),
+
+    #[error("could not retrieve nonce from issuer: {0:?}")]
+    #[category(expected)]
+    NonceHttp(#[source] reqwest::Error),
+
+    #[error("could not retrieve credential(s) from issuer: {0:?}")]
+    #[category(expected)]
+    CredentialRequestHttp(#[source] reqwest::Error),
+
+    #[error("retrieving credential(s) from issuer reported an error: {0:?}")]
     #[category(pd)]
     CredentialRequest(Box<ErrorResponse<CredentialErrorCode>>),
+
+    #[error("could not reject credential(s) from issuer: {0:?}")]
+    #[category(expected)]
+    CredentialRejectionHttp(#[source] reqwest::Error),
+
+    #[error("rejecting credential(s) from issuer reported an error: {0:?}")]
+    #[category(pd)]
+    CredentialRejection(Box<ErrorResponse<CredentialErrorCode>>),
 
     #[error("generating credential private keys failed: {0}")]
     #[category(pd)]
@@ -123,7 +153,7 @@ pub enum WalletIssuanceError {
     HeaderToStr(#[from] ToStrError),
 
     #[error("error verifying credential preview: {0}")]
-    CredentialPreview(#[from] CredentialPreviewError),
+    CredentialPreviewVerification(#[source] CredentialPreviewError),
 
     #[error("error retrieving issuer certificate from issued mdoc: {0}")]
     IssuerCertificate(#[source] CoseError),
@@ -167,10 +197,6 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     NoNonceEndpoint,
 
-    #[error("error requesting credential preview: {0:?}")]
-    #[category(pd)]
-    CredentialPreviewRequest(Box<ErrorResponse<CredentialPreviewErrorCode>>),
-
     #[error("malformed attribute: random too short (was {0}; minimum {1}")]
     #[category(critical)]
     AttributeRandomLength(usize, usize),
@@ -193,10 +219,6 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     NoCredentialConfigurationsSupported,
 
-    #[error("no Authorization Code found in Credential Offer")]
-    #[category(critical)]
-    MissingPreAuthorizedCodeGrant,
-
     #[error("missing query in credential offer URI")]
     #[category(critical)]
     MissingCredentialOfferQuery,
@@ -204,6 +226,23 @@ pub enum WalletIssuanceError {
     #[error("failed to deserialize credential offer: {0}")]
     #[category(pd)]
     CredentialOfferDeserialization(#[source] serde_urlencoded::de::Error),
+
+    #[error("could not retrieve credential offer from issuer: {0:?}")]
+    #[category(expected)]
+    CredentialOfferHttp(#[source] reqwest::Error),
+
+    #[error("only unknown grant type(s) found in Credential Offer: {}", .0.iter().join(", "))]
+    #[category(expected)]
+    CredentialOfferUnknownGrants(HashSet<String>),
+
+    #[error("a Credential Offer containing a Pre-Authorized code with a Transaction Code is unsupported")]
+    #[category(expected)]
+    CredentialOfferTxCodeUnsupported,
+
+    // TODO (PVW-5832): Remove when implementing CredentialOffer Authorization Code flow.
+    #[error("no Pre-Authorized Code found in Credential Offer")]
+    #[category(expected)]
+    MissingCredentialOfferPreAuthorizedCode,
 }
 
 /// Discovers credential issuer and OAuth authorization server metadata, then starts an issuance flow.

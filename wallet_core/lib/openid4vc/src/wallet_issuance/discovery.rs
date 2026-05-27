@@ -1,13 +1,17 @@
 use crypto::trust_anchor::TrustAnchors;
 use http_utils::reqwest::HttpJsonClient;
 use url::Url;
+use utils::vec_at_least::VecNonEmpty;
 
-use crate::credential::CredentialOfferContainer;
+use crate::credential_offer::CredentialOfferContainer;
+use crate::credential_offer::Grants;
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::metadata::well_known;
 use crate::metadata::well_known::WellKnownPath;
+use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 use crate::wallet_issuance::IssuanceDiscovery;
@@ -55,18 +59,17 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         client_id: String,
         trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
-        let query = redirect_uri
-            .query()
-            .ok_or(WalletIssuanceError::MissingCredentialOfferQuery)?;
+        let credential_offer = self.process_credential_offer(redirect_uri).await?;
 
-        let CredentialOfferContainer { credential_offer } =
-            serde_urlencoded::from_str(query).map_err(WalletIssuanceError::CredentialOfferDeserialization)?;
+        let pre_authorized_code = match credential_offer.flow {
+            CredentialOfferFlow::AuthorizationCode { .. } | CredentialOfferFlow::NoGrants => {
+                // TODO (PVW-5832): Remove when implementing CredentialOffer Authorization Code flow.
+                return Err(WalletIssuanceError::MissingCredentialOfferPreAuthorizedCode);
+            }
+            CredentialOfferFlow::PreAuthorizedCode { pre_authorized_code } => pre_authorized_code,
+        };
 
-        let pre_authorized_code = credential_offer
-            .pre_authorized_code()
-            .cloned()
-            .ok_or(WalletIssuanceError::MissingPreAuthorizedCodeGrant)?;
-
+        // TODO (PVW-5528): Use the authorization server from the Credential Offer, if provided.
         let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer.credential_issuer).await?;
 
         let token_request = TokenRequest {
@@ -89,7 +92,116 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
     }
 }
 
+#[derive(Debug)]
+struct NormalizedCredentialOffer {
+    credential_issuer: IssuerIdentifier,
+    // TODO (PVW-5856): Use this field when all issuance starts with a CredentialOffer.
+    #[expect(dead_code)]
+    credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
+    // TODO (PVW-5528): Use this field when considering which authorization server to choose.
+    #[expect(dead_code)]
+    authorization_server: Option<IssuerIdentifier>,
+    flow: CredentialOfferFlow,
+}
+
+#[derive(Debug, Clone)]
+enum CredentialOfferFlow {
+    // TODO (PVW-5832): Use CredentialOffer for Authorization Code flow.
+    #[expect(dead_code)]
+    AuthorizationCode {
+        issuer_state: Option<String>,
+    },
+    PreAuthorizedCode {
+        pre_authorized_code: AuthorizationCode,
+    },
+    // TODO (PVW-5832): Use CredentialOffer for Authorization Code flow and consult Authorization Server metadata for
+    //                  supported grant types.
+    NoGrants,
+}
+
+impl CredentialOfferFlow {
+    fn from_grants(grants: Grants) -> Result<(Self, Option<IssuerIdentifier>), WalletIssuanceError> {
+        let result = match (grants.authorization_code, grants.pre_authorized_code) {
+            // According to the OpenID4VCI 1.0 specification:
+            // (source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-2.3)
+            // "When multiple grants are present, it is at the Wallet's discretion which one to use."
+            //
+            // Since there is no point in making the user go through an OAuth authorization flow when they have already
+            // been pre-authorized, we always choose the pre-authorized code from the `CredentialOffer` if it is
+            // available.
+            (_, Some(pre_authorized_code)) => {
+                if pre_authorized_code.tx_code.is_some() {
+                    return Err(WalletIssuanceError::CredentialOfferTxCodeUnsupported);
+                }
+
+                let flow = Self::PreAuthorizedCode {
+                    pre_authorized_code: pre_authorized_code.pre_authorized_code,
+                };
+
+                (flow, pre_authorized_code.authorization_server)
+            }
+            (Some(authorization_code), None) => {
+                let flow = Self::AuthorizationCode {
+                    issuer_state: authorization_code.issuer_state,
+                };
+
+                (flow, authorization_code.authorization_server)
+            }
+            (None, None) => {
+                // If the Credential Offer does not contain an Authorization Code or Pre-Authorized Code grant, but does
+                // contain some other unknown grant type, we should not fall back to consulting the Authorization Server
+                // metadata for supported grant types. As we do not support the grant type, this is an error case.
+                if !grants.other.is_empty() {
+                    return Err(WalletIssuanceError::CredentialOfferUnknownGrants(
+                        grants.other.into_keys().collect(),
+                    ));
+                }
+
+                (Self::NoGrants, None)
+            }
+        };
+
+        Ok(result)
+    }
+}
+
 impl HttpIssuanceDiscovery {
+    async fn process_credential_offer(
+        &self,
+        redirect_uri: &Url,
+    ) -> Result<NormalizedCredentialOffer, WalletIssuanceError> {
+        let query = redirect_uri
+            .query()
+            .ok_or(WalletIssuanceError::MissingCredentialOfferQuery)?;
+
+        let offer_container = serde_urlencoded::from_str::<CredentialOfferContainer>(query)
+            .map_err(WalletIssuanceError::CredentialOfferDeserialization)?;
+
+        let offer = match offer_container {
+            CredentialOfferContainer::Offer { credential_offer } => *credential_offer,
+            CredentialOfferContainer::Uri { credential_offer_uri } => self
+                .http_client
+                .get(credential_offer_uri.into_inner())
+                .await
+                .map_err(WalletIssuanceError::CredentialOfferHttp)?,
+        };
+
+        let (flow, authorization_server) = if let Some(grants) = offer.grants {
+            CredentialOfferFlow::from_grants(grants)?
+        } else {
+            (CredentialOfferFlow::NoGrants, None)
+        };
+
+        let normalized = NormalizedCredentialOffer {
+            credential_issuer: offer.credential_issuer,
+            credential_configuration_ids: offer.credential_configuration_ids,
+            authorization_server,
+            flow,
+        };
+
+        Ok(normalized)
+    }
+
     async fn fetch_metadata(
         &self,
         credential_issuer: &IssuerIdentifier,
@@ -116,6 +228,7 @@ mod test {
     use std::collections::HashMap;
     use std::num::NonZeroU8;
 
+    use assert_matches::assert_matches;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
@@ -125,10 +238,10 @@ mod test {
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
     use http_utils::reqwest::HttpJsonClient;
-    use http_utils::reqwest::default_reqwest_client_builder;
     use httpmock::Method::GET;
     use httpmock::Method::POST;
     use httpmock::MockServer;
+    use itertools::Itertools;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -140,10 +253,12 @@ mod test {
     use super::HttpIssuanceDiscovery;
     use super::IssuanceDiscovery;
     use crate::Format;
-    use crate::credential::CredentialOffer;
-    use crate::credential::CredentialOfferContainer;
-    use crate::credential::GrantPreAuthorizedCode;
-    use crate::credential::Grants;
+    use crate::credential_offer::CredentialOffer;
+    use crate::credential_offer::CredentialOfferContainer;
+    use crate::credential_offer::GrantAuthorizationCode;
+    use crate::credential_offer::GrantPreAuthorizedCode;
+    use crate::credential_offer::Grants;
+    use crate::credential_offer::PreAuthTransactionCode;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::preview::CredentialPreviewResponse;
@@ -157,7 +272,7 @@ mod test {
 
     /// Starts a wiremock server that serves the well-known metadata endpoints, a token endpoint,
     /// and a credential preview endpoint. Returns the server, issuer identifier, and trust anchor.
-    async fn start_wiremock_issuer(
+    async fn start_httpmock_issuer(
         authorization_endpoint: Option<&str>,
     ) -> (MockServer, IssuerIdentifier, TrustAnchors) {
         let server = MockServer::start_async().await;
@@ -293,19 +408,59 @@ mod test {
     }
 
     #[tokio::test]
-    async fn pre_authorized_code_flow() {
-        let (_server, issuer_identifier, trust_anchor) = start_wiremock_issuer(None).await;
+    async fn pre_authorized_code_flow_offer_by_value() {
+        let (_server, issuer_identifier, trust_anchor) = start_httpmock_issuer(None).await;
 
         // Construct a credential offer URL with a fake pre-authorized code.
-        let credential_offer = CredentialOffer {
-            credential_issuer: issuer_identifier,
-            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string().into()],
-            grants: Some(Grants::PreAuthorizedCode {
-                pre_authorized_code: GrantPreAuthorizedCode::new("fake_pre_auth_code".to_string().into()),
-            }),
-        };
-        let container = CredentialOfferContainer { credential_offer };
-        let query = serde_urlencoded::to_string(&container).unwrap();
+        let offer_container = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            issuer_identifier,
+            vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            "fake_pre_auth_code".to_string().into(),
+        ));
+        let query = serde_urlencoded::to_string(&offer_container).unwrap();
+        let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
+
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+
+        let session = discovery
+            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &trust_anchor)
+            .await
+            .unwrap();
+
+        assert_eq!(session.normalized_credential_preview().len(), 1);
+        assert_eq!(
+            session.normalized_credential_preview()[0]
+                .content
+                .credential_payload
+                .attestation_type,
+            PID_ATTESTATION_TYPE
+        );
+    }
+
+    #[tokio::test]
+    async fn pre_authorized_code_flow_offer_by_reference() {
+        let (server, issuer_identifier, trust_anchor) = start_httpmock_issuer(None).await;
+
+        // Construct a credential offer URL with a fake pre-authorized code.
+        let offer = CredentialOffer::new_pre_authorized(
+            issuer_identifier,
+            vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            "fake_pre_auth_code".to_string().into(),
+        );
+
+        server
+            .mock_async(|when, then| {
+                when.method(GET).path("/credential_offer");
+
+                then.status(200)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .json_body(serde_json::to_value(offer).unwrap());
+            })
+            .await;
+
+        // Construct a credential offer URL that contains the Credential Offer URI.
+        let offer_container = CredentialOfferContainer::new_uri(server.url("/credential_offer").parse().unwrap());
+        let query = serde_urlencoded::to_string(&offer_container).unwrap();
         let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
 
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
@@ -328,7 +483,7 @@ mod test {
     #[tokio::test]
     async fn authorization_code_flow() {
         let authorization_endpoint = "https://auth.example.com/authorize";
-        let (_server, issuer_identifier, trust_anchor) = start_wiremock_issuer(Some(authorization_endpoint)).await;
+        let (_server, issuer_identifier, trust_anchor) = start_httpmock_issuer(Some(authorization_endpoint)).await;
 
         let redirect_uri: Url = "https://wallet.example.com/callback".parse().unwrap();
 
@@ -379,52 +534,143 @@ mod test {
 
     #[tokio::test]
     async fn pre_authorized_code_flow_missing_query() {
-        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap());
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
         let offer_url = Url::parse("openid-credential-offer://").unwrap();
 
         let result = discovery
             .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &TrustAnchors::empty())
             .await;
 
-        assert!(matches!(result, Err(WalletIssuanceError::MissingCredentialOfferQuery)));
+        assert_matches!(result, Err(WalletIssuanceError::MissingCredentialOfferQuery));
     }
 
     #[tokio::test]
     async fn pre_authorized_code_flow_deserialization_error() {
-        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap());
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
         let offer_url = Url::parse("openid-credential-offer://?credential_offer=invalid_json").unwrap();
 
         let result = discovery
             .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &TrustAnchors::empty())
             .await;
 
-        assert!(matches!(
-            result,
-            Err(WalletIssuanceError::CredentialOfferDeserialization(_))
-        ));
+        assert_matches!(result, Err(WalletIssuanceError::CredentialOfferDeserialization(_)));
     }
 
     #[tokio::test]
-    async fn pre_authorized_code_flow_missing_grant() {
-        // Construct a credential offer URL WITHOUT any grants.
-        let credential_offer = CredentialOffer {
-            credential_issuer: "https://example.com".parse().unwrap(),
-            credential_configuration_ids: vec![PID_ATTESTATION_TYPE.to_string().into()],
-            grants: None,
-        };
-        let container = CredentialOfferContainer { credential_offer };
-        let query = serde_urlencoded::to_string(&container).unwrap();
+    async fn pre_authorized_code_flow_credential_offer_http_error() {
+        let server = MockServer::start_async().await;
+
+        // Construct a Credential Offer that contains an invalid URI.
+        let offer_container = CredentialOfferContainer::new_uri(server.url("/does-not-exist").parse().unwrap());
+        let query = serde_urlencoded::to_string(&offer_container).unwrap();
         let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
 
-        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap());
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let result = discovery
             .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &TrustAnchors::empty())
             .await;
 
-        assert!(matches!(
+        assert_matches!(result, Err(WalletIssuanceError::CredentialOfferHttp(_)));
+    }
+
+    #[tokio::test]
+    async fn pre_authorized_code_flow_unknown_grant() {
+        let server = MockServer::start_async().await;
+        let credential_issuer = server.base_url().parse::<IssuerIdentifier>().unwrap();
+
+        // Construct a Credential Offer URL with only unknown grant types.
+        let credential_offer = json!({
+            "credential_issuer": credential_issuer.as_ref(),
+            "credential_configuration_ids": [PID_ATTESTATION_TYPE],
+            "grants": {
+                "foo": {
+                    "key": "value"
+                },
+                "bar": {
+                    "something": 123
+                }
+            }
+        });
+        let mut offer_url = Url::parse("openid-credential-offer://").unwrap();
+        offer_url
+            .query_pairs_mut()
+            .append_pair("credential_offer", &serde_json::to_string(&credential_offer).unwrap());
+
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+
+        let result = discovery
+            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &TrustAnchors::empty())
+            .await;
+
+        assert_matches!(
             result,
-            Err(WalletIssuanceError::MissingPreAuthorizedCodeGrant)
-        ));
+            Err(WalletIssuanceError::CredentialOfferUnknownGrants(grant_types))
+                if grant_types.iter().sorted().eq(["bar", "foo"])
+        );
+    }
+
+    #[tokio::test]
+    async fn pre_authorized_code_flow_credential_offer_tx_code() {
+        let server = MockServer::start_async().await;
+        let credential_issuer = server.base_url().parse::<IssuerIdentifier>().unwrap();
+
+        // Construct a Pre-Authorized Code Credential Offer with a Transaction Code.
+        let credential_offer = CredentialOffer {
+            credential_issuer,
+            credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            grants: Some(Grants {
+                pre_authorized_code: Some(GrantPreAuthorizedCode {
+                    pre_authorized_code: "code".to_string().into(),
+                    tx_code: Some(PreAuthTransactionCode::default()),
+                    authorization_server: None,
+                }),
+                ..Grants::default()
+            }),
+        };
+        let offer_container = CredentialOfferContainer::new_offer(credential_offer);
+        let query = serde_urlencoded::to_string(&offer_container).unwrap();
+        let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
+
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+
+        let result = discovery
+            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &TrustAnchors::empty())
+            .await;
+
+        assert_matches!(result, Err(WalletIssuanceError::CredentialOfferTxCodeUnsupported));
+    }
+
+    #[tokio::test]
+    async fn pre_authorized_code_flow_authorization_code_grant() {
+        let server = MockServer::start_async().await;
+        let credential_issuer = server.base_url().parse::<IssuerIdentifier>().unwrap();
+
+        // Construct an Authorization Code Credential Offer.
+        let credential_offer = CredentialOffer {
+            credential_issuer,
+            credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            grants: Some(Grants {
+                authorization_code: Some(GrantAuthorizationCode {
+                    issuer_state: None,
+                    authorization_server: None,
+                }),
+                ..Grants::default()
+            }),
+        };
+        let offer_container = CredentialOfferContainer::new_offer(credential_offer);
+        let query = serde_urlencoded::to_string(&offer_container).unwrap();
+        let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
+
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+
+        let result = discovery
+            .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &TrustAnchors::empty())
+            .await;
+
+        assert_matches!(
+            result,
+            Err(WalletIssuanceError::MissingCredentialOfferPreAuthorizedCode)
+        );
     }
 }
