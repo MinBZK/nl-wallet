@@ -10,7 +10,6 @@ use axum::http::HeaderMap;
 use axum::http::HeaderName;
 use axum::http::HeaderValue;
 use axum::http::StatusCode;
-use axum::http::Uri;
 use axum::http::header;
 use axum::response::IntoResponse;
 use axum::response::Response;
@@ -106,9 +105,9 @@ where
         .route("/issuance/credential_preview", post(credential_preview))
         .route("/issuance/nonce", post(nonce))
         .route("/issuance/credential", post(credential))
-        .route("/issuance/credential", delete(reject_issuance))
+        .route("/issuance/credential", delete(reject_credential))
         .route("/issuance/batch_credential", post(batch_credential))
-        .route("/issuance/batch_credential", delete(reject_issuance))
+        .route("/issuance/batch_credential", delete(reject_batch_credential))
         .with_state(IssuanceState { issuer })
 }
 
@@ -239,28 +238,36 @@ where
     Ok(Json(response))
 }
 
-async fn reject_issuance<K, L, S, N>(
+async fn reject_credential<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-    uri: Uri,
 ) -> Result<StatusCode, ErrorResponse<CredentialErrorCode>>
 where
     S: SessionStore<IssuanceData>,
 {
-    // `process_reject_issuance` expects the endpoint name relative to the issuance server_url
-    // (e.g. "credential" or "batch_credential"), which it joins with that base for DPoP
-    // URL verification. Strip the `/issuance/` prefix; the leading-slash-only fallback covers
-    // the legacy nested-router case where the path is already nest-relative.
-    let endpoint_name = uri
-        .path()
-        .strip_prefix("/issuance/")
-        .unwrap_or_else(|| &uri.path()[1..]);
-
     let access_token = authorization_header.into();
     state
         .issuer
-        .process_reject_issuance(access_token, dpop, endpoint_name)
+        .process_reject_issuance(access_token, dpop, "credential")
+        .await
+        .inspect_err(|error| warn!("processing rejection of issuance failed: {}", error))?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+async fn reject_batch_credential<K, L, S, N>(
+    State(state): State<IssuanceState<K, L, S, N>>,
+    TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
+    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
+) -> Result<StatusCode, ErrorResponse<CredentialErrorCode>>
+where
+    S: SessionStore<IssuanceData>,
+{
+    let access_token = authorization_header.into();
+    state
+        .issuer
+        .process_reject_issuance(access_token, dpop, "batch_credential")
         .await
         .inspect_err(|error| warn!("processing rejection of issuance failed: {}", error))?;
 
