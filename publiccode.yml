@@ -1,0 +1,106 @@
+publiccodeYmlVersion: "0.5.0"
+
+name: NL Wallet
+url: https://github.com/MinBZK/nl-wallet
+landingURL: https://minbzk.github.io/nl-wallet/
+softwareType: standalone/mobile
+developmentStatus: development
+
+platforms:
+  - android
+  - ios
+
+categories:
+  - identity-management
+  - digital-citizenship
+
+description:
+  nl:
+    shortDescription: >-
+      Een veilige digitale wallet voor Nederlandse burgers om persoonlijke identiteitsdocumenten en -gegevens op te
+      slaan en te delen.
+    longDescription: |
+      NL Wallet is een veilige app op je telefoon waarmee je belangrijke
+      persoonlijke informatie op één plek kunt bewaren, zoals je naam, leeftijd
+      of officiële documenten zoals je identiteitskaart of rijbewijs. Met de
+      wallet kan je eenvoudig bewijzen wie je bent, of alleen de informatie
+      tonen die een dienst nodig heeft.
+
+      Voorbeelden van gebruik:
+      - Bewijzen dat je ouder dan 18 bent zonder je volledige geboortedatum te
+        delen.
+      - Je identiteit bevestigen bij contacten met de overheid.
+      - Een digitale versie van een diploma delen bij een sollicitatie.
+
+      NL Wallet biedt gemak, sterkere beveiliging en bescherming tegen
+      identiteitsfraude, en geeft individuen meer controle over hun eigen
+      gegevens. Documenten zijn moeilijker te vervalsen omdat ze digitaal
+      ondertekend zijn, en de wallet werkt in alle EU-landen.
+
+      De wallet is ook handig voor dienstverleners die identiteit of
+      persoonsgegevens moeten controleren: meer vertrouwen, minder gevoelige
+      gegevens zelf opslaan, eenvoudigere privacynaleving en snellere processen.
+
+      NL Wallet wordt open en transparant ontwikkeld door het Ministerie van
+      Binnenlandse Zaken en Koninkrijksrelaties en is naar verwachting
+      beschikbaar voor het publiek in 2027.
+    features:
+      - Digitale opslag van identiteitsdocumenten
+      - Selectieve attribuutdeling (bijv. alleen leeftijdsverificatie)
+      - Ondersteuning voor EU Digital Identity Wallet (EUDI)
+      - Sterke cryptografische beveiliging van documenten
+      - Beschikbaar op Android en iOS
+
+  en:
+    shortDescription: >-
+      A secure digital wallet for Dutch nationals to store and share personal identity documents and attributes.
+    longDescription: |
+      NL Wallet is a secure app on your phone that lets you keep important
+      personal information in one place, such as your name, age, or official
+      documents like your ID card or driving licence. With the wallet, you can
+      easily prove who you are, or show only the information a service needs.
+
+      For example:
+      - Showing you are over 18 without sharing your full date of birth.
+      - Confirming your identity when dealing with the government.
+      - Sharing a digital version of a diploma when applying for a job.
+
+      NL Wallet offers convenience, stronger security, and protection against
+      identity fraud, while giving individuals greater control over their own
+      information. Documents are harder to fake because they are digitally
+      signed, and the wallet works across all EU countries.
+
+      NL Wallet also makes things easier and safer for relying parties, which
+      are organisations that need to check identity or personal information:
+      more trust, less sensitive data to store, easier privacy compliance, and
+      faster and smoother processes.
+
+      The app is being developed openly by the Dutch Ministry of the Interior
+      and Kingdom Relations (MinBZK) and is expected to be available to the
+      public in 2027.
+    features:
+      - Digital storage of identity documents
+      - Selective attribute disclosure (e.g., age verification only)
+      - Support for EU Digital Identity Wallet (EUDI)
+      - Strong cryptographic document security
+      - Available on Android and iOS
+
+legal:
+  license: EUPL-1.2
+  mainCopyrightOwner: Ministerie van Binnenlandse Zaken en Koninkrijksrelaties
+
+maintenance:
+  type: internal
+  contacts:
+    - name: Ministerie van Binnenlandse Zaken en Koninkrijksrelaties
+      email: edi@minbzk.nl
+
+intendedAudience:
+  countries:
+    - NL
+
+localisation:
+  localisationReady: true
+  availableLanguages:
+    - nl
+    - en
