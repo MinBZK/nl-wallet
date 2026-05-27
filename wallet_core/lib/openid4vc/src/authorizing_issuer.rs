@@ -89,7 +89,7 @@ impl<K, L, S, N, PAS, AF> AuthorizingIssuer<K, L, S, N, PAS, AF> {
         }
     }
 
-    pub fn inner(&self) -> &Arc<Issuer<K, L, S, N>> {
+    pub fn issuer(&self) -> &Arc<Issuer<K, L, S, N>> {
         &self.issuer
     }
 }

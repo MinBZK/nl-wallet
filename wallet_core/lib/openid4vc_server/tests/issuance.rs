@@ -190,7 +190,7 @@ async fn start_server(
             let (authorizing_issuer, trust_anchor, wia_issuer_keypair) =
                 setup_mock_authorizing_issuer(issuer_identifier.clone(), attestation_count, sessions, par_store, flow);
             let authorizing_issuer = Arc::new(authorizing_issuer);
-            let issuer = Arc::clone(authorizing_issuer.inner());
+            let issuer = Arc::clone(authorizing_issuer.issuer());
 
             let router = create_issuance_router(Arc::clone(&issuer))
                 .merge(create_authorization_router(Arc::clone(&authorizing_issuer)));

@@ -68,9 +68,10 @@ where
 {
     let authorizing_issuer = Arc::new(issuer);
 
-    let status_list_services = VecNonEmpty::try_from(authorizing_issuer.inner().status_lists().cloned().collect_vec())?;
+    let status_list_services =
+        VecNonEmpty::try_from(authorizing_issuer.issuer().status_lists().cloned().collect_vec())?;
 
-    let issuance_router = create_issuance_router(Arc::clone(authorizing_issuer.inner()));
+    let issuance_router = create_issuance_router(Arc::clone(authorizing_issuer.issuer()));
     let authorization_router = create_authorization_router(Arc::clone(&authorizing_issuer));
     let mut router = add_cache_control_no_store_layer(issuance_router.merge(authorization_router));
 
