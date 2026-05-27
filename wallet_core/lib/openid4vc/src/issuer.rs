@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::error::Error as StdError;
 use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 use std::ops::Add;
@@ -136,38 +135,6 @@ pub enum TokenRequestError {
 
     #[error("credential type in format \"{0}\" not offered: {1}")]
     CredentialTypeNotOffered(Format, String),
-}
-
-/// Errors that can occur during processing of a Pushed Authorization Request.
-#[derive(Debug, thiserror::Error)]
-pub enum ParError {
-    #[error("unknown client_id: {0}")]
-    InvalidClient(String),
-
-    #[error("storing PAR request failed: {0}")]
-    Store(#[source] Box<dyn StdError + Send + Sync + 'static>),
-}
-
-/// Errors that can occur during processing of an authorization request.
-#[derive(Debug, thiserror::Error)]
-pub enum AuthorizeError {
-    #[error("unknown client_id: {0}")]
-    InvalidClient(String),
-
-    #[error("request_uri not found or expired: {0}")]
-    UnknownRequestUri(String),
-
-    #[error("consuming PAR request failed: {0}")]
-    ParStore(#[source] Box<dyn StdError + Send + Sync + 'static>),
-
-    #[error("authorization code flow error: {0}")]
-    AuthorizationCodeFlow(#[source] Box<dyn StdError + Send + Sync + 'static>),
-
-    #[error("the authorization request has no redirect_uri")]
-    MissingRedirectUri,
-
-    #[error("encoding authorization request as query string failed: {0}")]
-    Encode(#[source] serde_urlencoded::ser::Error),
 }
 
 /// Errors that can occur during handling of the (batch) credential request.

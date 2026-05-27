@@ -11,11 +11,11 @@ use serde_with::skip_serializing_none;
 use strum::EnumString;
 use url::Url;
 
-use crate::issuer::AuthorizeError;
+use crate::authorizing_issuer::AuthorizeError;
+use crate::authorizing_issuer::ParError;
 use crate::issuer::CredentialPreviewError;
 use crate::issuer::CredentialRequestError;
 use crate::issuer::IssuanceError;
-use crate::issuer::ParError;
 use crate::issuer::TokenRequestError;
 use crate::verifier::CancelSessionError;
 use crate::verifier::DisclosedAttributesError;
