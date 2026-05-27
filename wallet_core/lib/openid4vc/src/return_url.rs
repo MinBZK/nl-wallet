@@ -3,7 +3,7 @@ use nutype::nutype;
 use strfmt::strfmt;
 use url::Url;
 
-use crate::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
+use crate::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use crate::server_state::SessionToken;
 
 #[nutype(

@@ -4,6 +4,7 @@ use serde_with::SerializeDisplay;
 // Data structures implemening OAuth/OpenID(4VCI) protocol messages.
 pub mod authorization;
 pub mod credential;
+pub mod credential_offer;
 pub mod issuer_identifier;
 pub mod metadata;
 pub mod par;

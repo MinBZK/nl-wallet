@@ -1690,7 +1690,7 @@ mod tests {
             self.issuer
                 .process_credential_preview(access_token.clone(), preview_request.clone())
                 .await
-                .map_err(|err| WalletIssuanceError::CredentialPreviewRequest(Box::new(err.into())))
+                .map_err(|err| WalletIssuanceError::CredentialPreview(Box::new(err.into())))
         }
 
         async fn request_nonce(&self, _url: Url) -> Result<(NonceResponse, Option<String>), WalletIssuanceError> {
@@ -1745,7 +1745,7 @@ mod tests {
                     "batch_credential",
                 )
                 .await
-                .map_err(|err| WalletIssuanceError::CredentialRequest(Box::new(err.into())))
+                .map_err(|err| WalletIssuanceError::CredentialRejection(Box::new(err.into())))
         }
     }
 

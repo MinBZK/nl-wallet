@@ -16,10 +16,8 @@ use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;
-use openid4vc::credential::CredentialOffer;
-use openid4vc::credential::CredentialOfferContainer;
-use openid4vc::credential::GrantPreAuthorizedCode;
-use openid4vc::credential::Grants;
+use openid4vc::credential_offer::CredentialOffer;
+use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
 use openid4vc::issuable_document::IssuableDocument;
@@ -38,7 +36,6 @@ use openid4vc::test::MockIssuer;
 use openid4vc::test::mock_issuable_documents;
 use openid4vc::test::setup_mock_authorizing_issuer;
 use openid4vc::test::setup_mock_issuer;
-use openid4vc::token::AuthorizationCode;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::wallet_issuance::AuthorizationSession;
@@ -235,19 +232,18 @@ fn make_credential_offer_url(
     session_token: SessionToken,
     attestation_count: NonZeroUsize,
 ) -> Url {
-    let auth_code: AuthorizationCode = session_token.into();
-    let credential_offer = CredentialOffer {
-        credential_issuer: issuer_identifier,
-        credential_configuration_ids: MOCK_ATTESTATION_TYPES[..attestation_count.get()]
-            .iter()
-            .map(|attestation_type| attestation_type.to_string().into())
-            .collect(),
-        grants: Some(Grants::PreAuthorizedCode {
-            pre_authorized_code: GrantPreAuthorizedCode::new(auth_code),
-        }),
-    };
-    let container = CredentialOfferContainer { credential_offer };
-    let query = serde_urlencoded::to_string(&container).unwrap();
+    let config_ids = MOCK_ATTESTATION_TYPES[..attestation_count.get()]
+        .iter()
+        .map(|attestation_type| attestation_type.to_string().into())
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
+    let offer_container = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+        issuer_identifier,
+        config_ids,
+        session_token.into(),
+    ));
+    let query = serde_urlencoded::to_string(&offer_container).unwrap();
     format!("openid-credential-offer://?{query}").parse().unwrap()
 }
 

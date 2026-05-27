@@ -5,7 +5,7 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
 use openid4vc::PostAuthResponseErrorCode;
-use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
+use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::VpClientError;
@@ -148,8 +148,10 @@ where
 fn convert_and_enrich_error(error: WalletIssuanceError, organization: &Organization) -> DisclosureBasedIssuanceError {
     match error {
         WalletIssuanceError::MissingCredentialOfferQuery
-        | WalletIssuanceError::MissingPreAuthorizedCodeGrant
-        | WalletIssuanceError::CredentialOfferDeserialization(_) => {
+        | WalletIssuanceError::CredentialOfferDeserialization(_)
+        | WalletIssuanceError::CredentialOfferUnknownGrants(_)
+        | WalletIssuanceError::CredentialOfferTxCodeUnsupported
+        | WalletIssuanceError::MissingCredentialOfferPreAuthorizedCode => {
             DisclosureBasedIssuanceError::Issuance(IssuanceError::IssuerServer {
                 error,
                 organization: Box::new(organization.clone()),
@@ -176,11 +178,9 @@ mod tests {
     use openid4vc::DisclosureErrorResponse;
     use openid4vc::Format;
     use openid4vc::PostAuthResponseErrorCode;
-    use openid4vc::credential::CredentialOffer;
-    use openid4vc::credential::CredentialOfferContainer;
-    use openid4vc::credential::GrantPreAuthorizedCode;
-    use openid4vc::credential::Grants;
-    use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
+    use openid4vc::credential_offer::CredentialOffer;
+    use openid4vc::credential_offer::CredentialOfferContainer;
+    use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
     use openid4vc::disclosure_session;
     use openid4vc::disclosure_session::DataDisclosed;
     use openid4vc::disclosure_session::VpClientError;
@@ -273,17 +273,15 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup wallet disclosure state
-        let credential_offer = serde_urlencoded::to_string(CredentialOfferContainer {
-            credential_offer: CredentialOffer {
-                credential_issuer: "https://issuer.example.com".parse().unwrap(),
-                credential_configuration_ids: vec![],
-                grants: Some(Grants::PreAuthorizedCode {
-                    pre_authorized_code: GrantPreAuthorizedCode::new("123".to_string().into()),
-                }),
-            },
-        })
+        let credential_offer_query = serde_urlencoded::to_string(CredentialOfferContainer::new_offer(
+            CredentialOffer::new_pre_authorized(
+                "https://issuer.example.com".parse().unwrap(),
+                vec_nonempty!["config_id".to_string().into()],
+                "123".to_string().into(),
+            ),
+        ))
         .unwrap();
-        let credential_offer = format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://?{credential_offer}")
+        let credential_offer = format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://?{credential_offer_query}")
             .parse()
             .unwrap();
 
