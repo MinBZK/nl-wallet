@@ -10,7 +10,6 @@ use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::issuer::IssuanceData;
 use openid4vc_server::issuer::create_authorization_router;
-use openid4vc_server::issuer::create_issuance_router;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::server::add_cache_control_no_store_layer;
 use server_utils::server::create_internal_listener;
@@ -71,9 +70,7 @@ where
     let status_list_services =
         VecNonEmpty::try_from(authorizing_issuer.issuer().status_lists().cloned().collect_vec())?;
 
-    let issuance_router = create_issuance_router(Arc::clone(authorizing_issuer.issuer()));
-    let authorization_router = create_authorization_router(Arc::clone(&authorizing_issuer));
-    let mut router = add_cache_control_no_store_layer(issuance_router.merge(authorization_router));
+    let mut router = add_cache_control_no_store_layer(create_authorization_router(Arc::clone(&authorizing_issuer)));
 
     if serve_status_lists {
         let status_list_router = create_serve_router(

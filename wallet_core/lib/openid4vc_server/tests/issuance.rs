@@ -46,7 +46,6 @@ use openid4vc::wallet_issuance::credential::IssuedCredential;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
 use openid4vc_server::issuer::create_authorization_router;
-use openid4vc_server::issuer::create_issuance_router;
 use openid4vc_server::issuer::create_pre_authorized_token_router;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePrivateKey;
@@ -181,8 +180,8 @@ async fn start_server(
     let mock_documents = mock_issuable_documents(attestation_count);
 
     let (issuer, trust_anchor, wia_issuer_keypair, router) = match upstream_authorization_endpoint {
-        // Authorization-code flow: wrap the inner issuer in an `AuthorizingIssuer` and mount both
-        // the authorization router (PAR / authorize / PKCE-bridged token) and the issuance router.
+        // Authorization-code flow: wrap the inner issuer in an `AuthorizingIssuer` and mount the
+        // authorization router (PAR / authorize / PKCE-bridged token + the issuance endpoints).
         Some(upstream) => {
             let par_store = MemoryStore::new(PAR_TTL);
             let flow = StaticAuthorizationCodeFlow::new(upstream, mock_documents);
@@ -192,19 +191,17 @@ async fn start_server(
             let authorizing_issuer = Arc::new(authorizing_issuer);
             let issuer = Arc::clone(authorizing_issuer.issuer());
 
-            let router = create_issuance_router(Arc::clone(&issuer))
-                .merge(create_authorization_router(Arc::clone(&authorizing_issuer)));
+            let router = create_authorization_router(Arc::clone(&authorizing_issuer));
 
             (issuer, trust_anchor, wia_issuer_keypair, router)
         }
-        // Pre-authorized-code flow: bare inner issuer, issuance router + non-PKCE token route.
+        // Pre-authorized-code flow: bare inner issuer, non-PKCE token route + issuance endpoints.
         None => {
             let (issuer, trust_anchor, wia_issuer_keypair) =
                 setup_mock_issuer(issuer_identifier.clone(), attestation_count, sessions);
             let issuer = Arc::new(issuer);
 
-            let router = create_issuance_router(Arc::clone(&issuer))
-                .merge(create_pre_authorized_token_router(Arc::clone(&issuer)));
+            let router = create_pre_authorized_token_router(Arc::clone(&issuer));
 
             (issuer, trust_anchor, wia_issuer_keypair, router)
         }
