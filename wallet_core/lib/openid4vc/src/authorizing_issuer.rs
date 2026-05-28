@@ -53,9 +53,6 @@ pub enum AuthorizeError {
     #[error("authorization code flow error: {0}")]
     AuthorizationCodeFlow(#[source] Box<dyn StdError + Send + Sync + 'static>),
 
-    #[error("the authorization request has no redirect_uri")]
-    MissingRedirectUri,
-
     #[error("encoding authorization request as query string failed: {0}")]
     Encode(#[source] serde_urlencoded::ser::Error),
 }
@@ -158,7 +155,7 @@ where
         match outcome {
             AuthorizeOutcome::RedirectTo(url) => Ok(url),
             AuthorizeOutcome::IssuedCode(code) => {
-                let mut redirect_url = wallet_redirect_uri.ok_or(AuthorizeError::MissingRedirectUri)?;
+                let mut redirect_url = wallet_redirect_uri.into_inner();
                 let query = serde_urlencoded::to_string([
                     ("code", code.as_ref()),
                     ("state", wallet_state.as_deref().unwrap_or("")),

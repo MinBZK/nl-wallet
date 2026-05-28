@@ -433,6 +433,7 @@ async fn par_rejects_unknown_client_id() {
         .form(&[
             ("response_type", "code"),
             ("client_id", "unknown_client_id"),
+            ("redirect_uri", "https://wallet.example.com/callback"),
             ("code_challenge", "some-challenge"),
             ("code_challenge_method", "S256"),
         ])
@@ -465,6 +466,7 @@ async fn authorize_rewrites_client_id_for_upstream() {
         .form(&[
             ("response_type", "code"),
             ("client_id", MOCK_WALLET_CLIENT_ID),
+            ("redirect_uri", "https://wallet.example.com/callback"),
             ("code_challenge", wallet_code_challenge),
             ("code_challenge_method", "S256"),
         ])
@@ -542,6 +544,7 @@ async fn authorize_rejects_plain_code_challenge_method() {
         .form(&[
             ("response_type", "code"),
             ("client_id", MOCK_WALLET_CLIENT_ID),
+            ("redirect_uri", "https://wallet.example.com/callback"),
             ("code_challenge", "wallet-c1-challenge-value"),
             ("code_challenge_method", "plain"),
         ])

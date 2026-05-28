@@ -277,9 +277,7 @@ impl From<AuthorizeError> for ErrorResponse<AuthorizeErrorCode> {
         ErrorResponse {
             error: match err {
                 AuthorizeError::InvalidClient(_) => AuthorizeErrorCode::InvalidClient,
-                AuthorizeError::UnknownRequestUri(_) | AuthorizeError::MissingRedirectUri => {
-                    AuthorizeErrorCode::InvalidRequest
-                }
+                AuthorizeError::UnknownRequestUri(_) => AuthorizeErrorCode::InvalidRequest,
                 AuthorizeError::ParStore(_) | AuthorizeError::AuthorizationCodeFlow(_) | AuthorizeError::Encode(_) => {
                     AuthorizeErrorCode::ServerError
                 }

@@ -12,6 +12,7 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
 use utils::spec::SpecForbidden;
+use utils::spec::SpecOptional;
 
 use crate::pkce::PkcePair;
 
@@ -54,7 +55,11 @@ pub struct VciAuthorizationRequest {
     #[serde(flatten)]
     pub oauth_request: AuthorizationRequestBase,
 
-    pub redirect_uri: Option<Url>,
+    /// Required in this setting: OAuth 2.0 only permits omitting `redirect_uri` when the client has a single
+    /// pre-registered redirect URI with the Authorization Server (RFC 6749 §3.1.2.3), and OpenID4VCI wallets
+    /// aren't registered.
+    pub redirect_uri: SpecOptional<Url>,
+
     pub authorization_details: Option<Vec<AuthorizationDetails>>,
 
     #[serde(flatten)]
@@ -73,7 +78,7 @@ impl VciAuthorizationRequest {
                 state: Some(state),
                 _request_uri: SpecForbidden,
             },
-            redirect_uri: Some(redirect_uri),
+            redirect_uri: redirect_uri.into(),
             code_challenge: PkceCodeChallenge::S256 {
                 code_challenge: String::from(pkce_pair.code_challenge()),
             },
@@ -236,7 +241,7 @@ mod tests {
                 state: Some("state-abc".to_string()),
                 _request_uri: SpecForbidden,
             },
-            redirect_uri: Some(Url::parse("https://example.com/callback").unwrap()),
+            redirect_uri: Url::parse("https://example.com/callback").unwrap().into(),
             authorization_details: None,
             code_challenge: PkceCodeChallenge::S256 {
                 code_challenge: "challenge-xyz".to_string(),
