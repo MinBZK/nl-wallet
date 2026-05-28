@@ -27,7 +27,6 @@ create-deployment-ont:
     DEPLOY_ENV: ont
 
 .deploy-apps:
-  rules: !reference [.default-or-merge-request-manual, rules]
   needs:
     - job: build-update-policy-server-image
       artifacts: false
@@ -64,6 +63,7 @@ create-deployment-ont:
 
 deploy-apps-demo:
   extends: .deploy-apps
+  rules: !reference [.default-branch, rules]
   needs:
     - job: create-deployment-demo
       artifacts: false
@@ -78,6 +78,7 @@ deploy-apps-demo:
 
 deploy-apps-ont:
   extends: .deploy-apps
+  rules: !reference [.default-or-merge-request-manual, rules]
   needs:
     - job: create-deployment-ont
       artifacts: false

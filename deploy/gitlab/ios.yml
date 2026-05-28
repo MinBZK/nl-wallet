@@ -79,7 +79,7 @@ test-ios:
 
 build-ios-app-ont:
   extends: .build-ios-app
-  rules: !reference [.default-branch, rules]
+  rules: !reference [.default-or-merge-request-manual, rules]
   needs:
     - !reference [.build-ios-app, needs]
     - job: build-env-ont

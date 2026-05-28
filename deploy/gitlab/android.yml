@@ -100,7 +100,7 @@ test-android:
 
 build-android-app-ont:
   extends: [.env-k8s, .build-android-app]
-  rules: !reference [.default-branch, rules]
+  rules: !reference [.default-or-merge-request-manual, rules]
   needs:
     - !reference [.build-android-app, needs]
     - job: build-env-ont
