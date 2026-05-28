@@ -91,7 +91,7 @@ impl FromStr for IssuerUrl {
 /// This wraps a URL with the following restrictions:
 /// - The scheme should be "https".
 /// - There should be no query component.
-/// - There should be no fragement component.
+/// - There should be no fragment component.
 ///
 /// Internally, this URL is represented both by a [`String`] and a [`IssuerUrl`] which
 /// enables comparisons of the original string representation before URL normalization.

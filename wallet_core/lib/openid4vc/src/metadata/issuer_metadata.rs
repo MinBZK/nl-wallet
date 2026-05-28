@@ -304,6 +304,10 @@ pub struct CredentialConfiguration {
     /// Format-specific mechanisms, such as SD-JWT VC display metadata are always preferred by the Wallet over the
     /// information in this object, which serves as the default fallback.
     pub credential_metadata: Option<CredentialMetadata>,
+
+    /// URL to the SD-JWT VC Type Metadata document for this credential. This has precedence over the
+    /// `credential_metadata` field. The URI MUST start with the Credential Issuer's identifier.
+    pub type_metadata_uri: Option<IssuerUrl>,
 }
 
 impl CredentialConfiguration {
@@ -346,6 +350,7 @@ impl CredentialConfiguration {
             scope: None,
             cryptographic_binding: Some(cryptographic_binding),
             credential_metadata: Some(CredentialMetadata::new_from_sd_jwt_vc(vc_display, vc_claims)),
+            type_metadata_uri: None,
         }
     }
 }
@@ -1181,9 +1186,8 @@ mod tests {
             }
         });
 
-        let credential_configs =
-            serde_json::from_value::<HashMap<String, CredentialConfiguration>>(example_json.clone())
-                .expect("deserializing CredentialConfiguration values from example JSON should succeed");
+        let credential_configs = serde_json::from_value::<HashMap<String, CredentialConfiguration>>(example_json)
+            .expect("deserializing CredentialConfiguration values from example JSON should succeed");
 
         assert_eq!(credential_configs.len(), 1);
 
@@ -1197,6 +1201,24 @@ mod tests {
                 .map(|binding| binding.cryptographic_binding_methods_supported.iter())
                 .unwrap_or_default()
                 .eq(&[CryptographicBindingMethod::Other("did:example".to_string())])
+        );
+    }
+
+    #[test]
+    fn test_credential_configuration_with_type_metadata_uri() {
+        let example_json = json!({
+            "format": "dc+sd-jwt",
+            "vct": "com.example",
+            "type_metadata_uri": "https://example.com/type_metadata"
+        });
+
+        let credential_config = serde_json::from_value::<CredentialConfiguration>(example_json)
+            .expect("deserializing CredentialConfiguration from example JSON should succeed");
+
+        assert_matches!(&credential_config.format, CredentialFormat::SdJwt { .. });
+        assert_eq!(
+            credential_config.type_metadata_uri,
+            Some("https://example.com/type_metadata".parse().unwrap())
         );
     }
 }
