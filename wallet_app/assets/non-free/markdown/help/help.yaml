@@ -1,0 +1,981 @@
+structure:
+  - categoryId: getting_started
+    icon: start
+    subcategories:
+      - subcategoryId: introduction
+        topics:
+          - groupId: help
+            topicIds:
+              - cannot_continue_demo
+              - dont_know_wallet
+              - dont_understand_login
+              - dont_understand_sharing
+              - dont_understand_privacy
+          - groupId: information
+            topicIds:
+              - what_is_wallet
+              - is_demo_real
+              - what_is_secure_login
+              - how_sharing_works
+              - how_privacy_protected
+              - what_is_wallet_used_for
+      - subcategoryId: digid
+        topics:
+          - groupId: help
+            topicIds:
+              - digid_does_not_open
+              - cannot_continue_with_digid
+              - do_not_have_digid
+              - stopped_creating_wallet
+          - groupId: information
+            topicIds:
+              - why_digid_needed_to_start
+              - what_happens_after_digid
+      - subcategoryId: app_overview
+        topics:
+          - groupId: help
+            topicIds:
+              - do_not_know_where_to_start
+              - do_not_understand_activities_today
+          - groupId: information
+            topicIds:
+              - what_is_app_overview
+              - what_can_you_do_from_app_overview
+              - what_is_activities_today
+
+  - categoryId: action
+    icon: qr_code
+    subcategories:
+      - subcategoryId: scan_qr
+        topics:
+          - groupId: help
+            topicIds:
+              - cannot_scan_qr
+              - camera_access_blocked
+          - groupId: information
+            topicIds:
+              - how_scan_qr
+              - why_camera_access_needed
+              - what_happens_after_scanning_qr
+      - subcategoryId: show_qr
+        topics:
+          - groupId: help
+            topicIds:
+              - cannot_show_qr
+              - qr_not_scanned
+              - show_qr_connection_lost
+          - groupId: information
+            topicIds:
+              - what_is_qr_for
+              - what_happens_after_qr_scanned
+      - subcategoryId: contactless
+        topics:
+          - groupId: help
+            topicIds:
+              - contactless_not_working
+              - contactless_connection_lost
+          - groupId: information
+            topicIds:
+              - how_does_contactless_work
+              - what_needed_for_contactless
+              - what_happens_after_contactless
+
+  - categoryId: sharing_login
+    icon: mobile_screen_share
+    subcategories:
+      - subcategoryId: sharing
+        topics:
+          - groupId: help
+            topicIds:
+              - cannot_share_details
+              - do_not_know_what_shared
+              - do_not_know_who_gets_details
+              - sharing_website_not_safe
+              - do_not_want_to_share
+              - not_sure_sharing_worked
+          - groupId: information
+            topicIds:
+              - check_before_sharing
+              - which_details_shared
+              - what_does_sharing_completed_mean
+              - what_happens_after_sharing
+      - subcategoryId: logging_in
+        topics:
+          - groupId: help
+            topicIds:
+              - cannot_log_in
+              - do_not_know_what_shared_for_login
+              - not_sure_login_request_safe
+              - do_not_want_to_continue_login
+              - not_sure_login_worked
+          - groupId: information
+            topicIds:
+              - how_login_works
+              - check_before_login
+              - which_details_shared_for_login
+              - what_does_login_successful_mean
+              - what_happens_after_login
+      - subcategoryId: website_address
+        topics:
+          - groupId: help
+            topicIds:
+              - website_address_does_not_match
+              - website_not_safe
+          - groupId: information
+            topicIds:
+              - why_check_address
+              - what_happens_address_not_match
+              - where_is_website_address_shown
+              - when_check_website_address
+      - subcategoryId: organisation
+        topics:
+          - groupId: help
+            topicIds:
+              - do_not_trust_organisation
+              - do_not_recognise_organisation
+          - groupId: information
+            topicIds:
+              - why_check_organisation_details
+              - what_organisation_details_checked
+      - subcategoryId: agreement
+        topics:
+          - groupId: help
+            topicIds:
+              - agreement_not_clear
+              - do_not_agree_with_agreement
+          - groupId: information
+            topicIds:
+              - what_does_agreement_mean
+              - what_agreements_organisation_has
+              - why_agreement_important
+      - subcategoryId: missing_details
+        topics:
+          - groupId: help
+            topicIds:
+              - missing_details_for_request
+              - details_not_correct
+              - cannot_continue_because_of_details
+          - groupId: information
+            topicIds:
+              - what_does_missing_data_mean
+              - what_happens_details_incorrect
+              - why_some_details_not_available
+
+  - categoryId: cards
+    icon: credit_card
+    subcategories:
+      - subcategoryId: add
+        topics:
+          - groupId: help
+            topicIds:
+              - cannot_add_card
+              - cannot_find_cards
+              - not_sure_right_card
+              - why_share_details_to_get_cards
+              - do_not_know_which_card_to_add
+          - groupId: information
+            topicIds:
+              - why_share_details_for_cards
+              - how_are_cards_chosen
+              - what_does_check_details_mean
+              - what_does_no_cards_found_mean
+              - what_happens_after_adding_card
+      - subcategoryId: renew
+        topics:
+          - groupId: help
+            topicIds:
+              - cannot_renew_cards
+              - stopped_renewing_cards
+              - digid_not_open_during_renewal
+              - something_wrong_after_replacement
+          - groupId: information
+            topicIds:
+              - when_do_cards_need_renewal
+              - what_happens_after_renewal
+              - what_happens_when_renewal_stops
+              - why_do_cards_need_renewal
+      - subcategoryId: status
+        topics:
+          - groupId: help
+            topicIds:
+              - do_not_understand_card_status
+              - card_not_yet_valid
+              - card_expires_soon
+              - card_is_expired
+              - card_is_withdrawn
+              - card_status_invalid
+              - card_status_unknown
+          - groupId: information
+            topicIds:
+              - what_does_not_yet_valid_mean
+              - what_does_valid_mean
+              - what_does_valid_for_few_more_days_mean
+              - what_does_expired_mean
+              - what_does_withdrawn_mean
+              - what_does_invalid_mean
+              - what_does_validity_unknown_mean
+      - subcategoryId: overview
+        topics:
+          - groupId: help
+            topicIds:
+              - do_not_recognise_card
+              - do_not_recognise_issuer
+          - groupId: information
+            topicIds:
+              - what_can_be_done_in_card_overview
+              - what_does_valid_until_mean
+      - subcategoryId: details
+        topics:
+          - groupId: help
+            topicIds:
+              - card_details_not_correct
+              - do_not_understand_details
+          - groupId: information
+            topicIds:
+              - what_is_in_card_details
+              - why_details_show_list
+              - why_details_look_different
+      - subcategoryId: delete
+        topics:
+          - groupId: help
+            topicIds:
+              - want_to_delete_card
+              - deleted_wrong_card
+              - not_sure_card_deleted
+          - groupId: information
+            topicIds:
+              - what_happens_card_deleted
+              - can_deleted_card_be_added
+              - when_useful_to_delete_card
+
+  - categoryId: activities
+    icon: history
+    subcategories:
+      - subcategoryId: card_activities
+        topics:
+          - groupId: help
+            topicIds:
+              - do_not_recognise_card_activity
+              - do_not_understand_card_changed
+              - card_activity_looks_wrong
+          - groupId: information
+            topicIds:
+              - what_does_card_created_mean
+              - what_does_card_added_mean
+              - what_does_card_renewed_mean
+              - what_does_card_deleted_mean
+              - what_does_card_expired_mean
+              - what_does_card_not_valid_mean
+              - what_does_card_invalid_mean
+      - subcategoryId: wallet_security
+        topics:
+          - groupId: help
+            topicIds:
+              - do_not_recognise_wallet_activity
+              - do_not_understand_security_change
+              - wallet_activity_looks_wrong
+          - groupId: information
+            topicIds:
+              - what_does_wallet_stopped_mean
+              - what_does_new_pin_mean
+              - what_does_wallet_moved_mean
+      - subcategoryId: sharing_login_activities
+        topics:
+          - groupId: help
+            topicIds:
+              - do_not_recognise_sharing_activity
+              - do_not_recognise_login_activity
+              - activity_looks_wrong
+              - do_not_recognise_organisation_in_activity
+          - groupId: information
+            topicIds:
+              - what_does_shared_mean
+              - what_does_logged_in_mean
+              - how_see_what_shared
+              - how_check_organisation_in_activity
+
+  - categoryId: security
+    icon: lock_outline
+    subcategories:
+      - subcategoryId: pin
+        topics:
+          - groupId: help
+            topicIds:
+              - forgot_pin
+              - cannot_use_pin
+              - did_not_know_which_pin
+              - digid_not_open_new_pin
+              - waiting_too_long_pin_setup
+              - stopped_setting_pin
+              - entered_wrong_pin_too_many_times
+          - groupId: information
+            topicIds:
+              - why_digid_needed_for_new_pin
+              - why_confirm_with_pin
+              - what_happens_after_wrong_pin
+              - what_happens_pin_setup_stops
+      - subcategoryId: biometric
+        topics:
+          - groupId: help
+            topicIds:
+              - cannot_use_biometric
+              - cannot_turn_on_biometric
+              - cannot_turn_off_biometric
+          - groupId: information
+            topicIds:
+              - how_does_biometric_work
+              - when_is_pin_still_used
+              - is_biometric_safe
+      - subcategoryId: deletion_code
+        topics:
+          - groupId: help
+            topicIds:
+              - do_not_know_what_to_do_with_deletion_code
+              - cannot_find_deletion_code
+              - cannot_use_deletion_code
+          - groupId: information
+            topicIds:
+              - how_use_deletion_code
+              - what_is_deletion_code_for
+              - why_write_down_deletion_code_on_paper
+              - where_find_deletion_code
+              - when_deletion_code_needed
+      - subcategoryId: wallet_blocked
+        topics:
+          - groupId: help
+            topicIds:
+              - locked_out_10_minutes
+              - someone_tried_pin
+              - blocked_from_wallet
+              - why_must_delete_wallet
+          - groupId: information
+            topicIds:
+              - why_wallet_temporarily_blocked
+              - what_happens_after_temporary_block
+              - why_wallet_blocked
+              - what_happens_data_wallet_blocked
+
+  - categoryId: move
+    icon: move_up
+    subcategories:
+      - subcategoryId: move_scan_qr
+        topics:
+          - groupId: help
+            topicIds:
+              - cannot_scan_qr_during_move
+          - groupId: information
+            topicIds:
+              - why_scan_qr_to_move
+              - what_happens_after_scanning_during_move
+      - subcategoryId: confirm
+        topics:
+          - groupId: help
+            topicIds:
+              - not_sure_which_device_to_confirm
+              - cannot_continue_other_device
+          - groupId: information
+            topicIds:
+              - how_confirmation_other_device_works
+              - which_device_has_wallet
+      - subcategoryId: stopped
+        topics:
+          - groupId: help
+            topicIds:
+              - stopped_move_to_other_device
+              - stopped_move_from_new_device
+          - groupId: information
+            topicIds:
+              - what_happens_move_stops_this_device
+              - what_happens_move_stops_other_device
+      - subcategoryId: completed
+        topics:
+          - groupId: help
+            topicIds:
+              - not_sure_move_worked
+              - cannot_find_wallet_after_move
+          - groupId: information
+            topicIds:
+              - what_happens_after_moving_wallet
+              - where_is_wallet_after_moving
+
+  - categoryId: settings
+    icon: settings
+    subcategories:
+      - subcategoryId: updates
+        topics:
+          - groupId: help
+            topicIds:
+              - cannot_use_wallet_until_update
+              - cannot_update_wallet_on_phone
+              - do_not_know_how_to_update
+              - do_not_understand_recommended_update
+          - groupId: information
+            topicIds:
+              - what_does_update_urgently_needed_mean
+              - why_update_needed
+              - what_happens_after_updating
+      - subcategoryId: notifications
+        topics:
+          - groupId: help
+            topicIds:
+              - do_not_see_push_notifications
+              - turned_off_push_notifications
+              - do_not_understand_banner
+              - cannot_remove_banner
+          - groupId: information
+            topicIds:
+              - difference_push_notification_banner
+              - why_see_banner
+              - what_important_messages_wallet_show
+              - why_push_notifications_useful
+
+translations:
+  en:
+    categories:
+      getting_started:
+        title: Getting started
+        subtitle: Introduction, DigiD, and app overview
+      action:
+        title: Start your action
+        subtitle: Scan QR code, show QR code, and contactless
+      sharing_login:
+        title: Sharing and login
+        subtitle: Sharing details, logging in, and website checks
+      cards:
+        title: Cards
+        subtitle: Adding, renewing, status, and deleting cards
+      activities:
+        title: Activities
+        subtitle: Card, wallet, and sharing activities
+      security:
+        title: Security and access
+        subtitle: PIN, biometrics, deletion code, and wallet blocked
+      move:
+        title: Move wallet
+        subtitle: Scan QR, confirm, and complete moving your wallet
+      settings:
+        title: Settings and updates
+        subtitle: App updates and notifications
+    subcategories:
+      introduction: Introduction
+      digid: Start with DigiD
+      app_overview: App overview
+      scan_qr: Scan QR code
+      show_qr: Show QR code
+      contactless: Use contactless (NFC)
+      sharing: Sharing
+      logging_in: Loggin in
+      website_address: Website address
+      organisation: Organisation details
+      agreement: Agreement
+      missing_details: Missing or wrong details
+      add: Add cards
+      renew: Renew cards
+      status: Card status
+      overview: Card overview
+      details: Card details
+      delete: Delete cards
+      card_activities: Card activities
+      wallet_security: Wallet and security activities
+      sharing_login_activities: Sharing and login activities
+      pin: PIN
+      biometric: Face scan or fingerprint
+      deletion_code: Deletion code
+      wallet_blocked: Wallet blocked
+      move_scan_qr: Scan QR Code
+      confirm: Confirm on other device
+      stopped: Move stopped
+      completed: Move completed
+      updates: App updates
+      notifications: Notifications
+    groups:
+      help: Help topics
+      information: Information topics
+    topics:
+      cannot_continue_demo: I cannot continue in the demo
+      dont_know_wallet: I do not know what NL Wallet is
+      dont_understand_login: I do not understand secure login
+      dont_understand_sharing: I do not understand data sharing
+      dont_understand_privacy: I do not understand how my privacy is protected
+      what_is_wallet: What is NL Wallet?
+      is_demo_real: Is the NL Wallet demo real?
+      what_is_secure_login: What does secure login mean?
+      how_sharing_works: How does sharing work in NL Wallet?
+      how_privacy_protected: How does privacy stay protected?
+      what_is_wallet_used_for: What can NL Wallet be used for?
+      digid_does_not_open: DigiD does not open
+      cannot_continue_with_digid: I cannot continue with DigiD
+      do_not_have_digid: I do not have DigiD
+      stopped_creating_wallet: I stopped creating NL Wallet
+      why_digid_needed_to_start: Why is DigiD needed to start?
+      what_happens_after_digid: What happens after starting with DigiD?
+      do_not_know_where_to_start: I do not know where to start
+      do_not_understand_activities_today: I do not understand Activities today
+      what_is_app_overview: What is the app overview?
+      what_can_you_do_from_app_overview: What can you do from the app overview?
+      what_is_activities_today: What is Activities today?
+      cannot_scan_qr: I cannot scan the QR code
+      camera_access_blocked: Camera access is blocked
+      how_scan_qr: How do you scan a QR code?
+      why_camera_access_needed: Why is camera access needed?
+      what_happens_after_scanning_qr: What happens after scanning a QR code?
+      cannot_show_qr: I cannot show my QR code
+      qr_not_scanned: My QR code is not scanned
+      show_qr_connection_lost: The connection is lost
+      what_is_qr_for: What is the QR code for?
+      what_happens_after_qr_scanned: What happens after my QR code is scanned?
+      contactless_not_working: Contactless is not working
+      contactless_connection_lost: The connection is lost
+      how_does_contactless_work: How does contactless work?
+      what_needed_for_contactless: What is needed for contactless?
+      what_happens_after_contactless: What happens after contactless starts?
+      cannot_share_details: I cannot share my details
+      do_not_know_what_shared: I do not know what will be shared
+      do_not_know_who_gets_details: I do not know who gets my details
+      sharing_website_not_safe: I am not sure the website is safe
+      do_not_want_to_share: I do not want to share my details
+      not_sure_sharing_worked: I am not sure if sharing worked
+      check_before_sharing: What to check before sharing?
+      which_details_shared: Which details will be shared?
+      what_does_sharing_completed_mean: What does Sharing completed mean?
+      what_happens_after_sharing: What happens after sharing?
+      cannot_log_in: I cannot log in
+      do_not_know_what_shared_for_login: I do not know what I share to log in
+      not_sure_login_request_safe: I am not sure this login request is safe
+      do_not_want_to_continue_login: I do not want to continue logging in
+      not_sure_login_worked: I am not sure if login worked
+      how_login_works: How does login by sharing work?
+      check_before_login: What to check before logging in?
+      which_details_shared_for_login: Which details are shared for login?
+      what_does_login_successful_mean: What does Login successful mean?
+      what_happens_after_login: What happens after login?
+      website_address_does_not_match: The website address does not match
+      website_not_safe: I am not sure the website is safe
+      why_check_address: Why should you check the website address?
+      what_happens_address_not_match: What happens when the address does not match?
+      where_is_website_address_shown: Where is the website address shown?
+      when_check_website_address: When should the website address be checked?
+      do_not_trust_organisation: I do not trust this organisation
+      do_not_recognise_organisation: I do not recognise this organisation
+      why_check_organisation_details: Why check organisation details?
+      what_organisation_details_checked: What organisation details can be checked?
+      agreement_not_clear: The agreement is not clear
+      do_not_agree_with_agreement: I do not agree with the agreement
+      what_does_agreement_mean: What does the agreement mean?
+      what_agreements_organisation_has: What agreements does the organisation have?
+      why_agreement_important: Why is the agreement important?
+      missing_details_for_request: I am missing details for this request
+      details_not_correct: My details are not correct
+      cannot_continue_because_of_details: I cannot continue because of my details
+      what_does_missing_data_mean: What does Missing data mean?
+      what_happens_details_incorrect: What happens when details are incorrect?
+      why_some_details_not_available: Why are some details not available?
+      cannot_add_card: I cannot add a card
+      cannot_find_cards: I cannot find any cards
+      not_sure_right_card: I do not know if this is the right card
+      why_share_details_to_get_cards: I do not know why I need to share details to get cards
+      do_not_know_which_card_to_add: I do not know which card to add
+      why_share_details_for_cards: Why share details to get cards?
+      how_are_cards_chosen: How are cards chosen?
+      what_does_check_details_mean: What does Check details mean?
+      what_does_no_cards_found_mean: What does No cards found mean?
+      what_happens_after_adding_card: What happens after adding a card?
+      cannot_renew_cards: I cannot renew my cards
+      stopped_renewing_cards: I stopped renewing my cards
+      digid_not_open_during_renewal: DigiD does not open during renewal
+      something_wrong_after_replacement: Something looks wrong after replacement
+      when_do_cards_need_renewal: When do cards need renewal?
+      what_happens_after_renewal: What happens after renewal?
+      what_happens_when_renewal_stops: What happens when renewal stops?
+      why_do_cards_need_renewal: Why do cards need renewal?
+      do_not_understand_card_status: I do not understand this card status
+      card_not_yet_valid: My card is not yet valid
+      card_expires_soon: My card expires soon
+      card_is_expired: My card is expired
+      card_is_withdrawn: My card is withdrawn
+      card_status_invalid: My card status is invalid
+      card_status_unknown: My card status is unknown
+      what_does_not_yet_valid_mean: What does Not yet valid mean?
+      what_does_valid_mean: What does Valid mean?
+      what_does_valid_for_few_more_days_mean: "What does 'Valid for a few more days' means?"
+      what_does_expired_mean: What does Expired mean?
+      what_does_withdrawn_mean: What does Withdrawn mean?
+      what_does_invalid_mean: What does Invalid mean?
+      what_does_validity_unknown_mean: What does Validity unknown mean?
+      do_not_recognise_card: I do not recognise this card
+      do_not_recognise_issuer: I do not recognise this issuer
+      what_can_be_done_in_card_overview: What can be done in card overview?
+      what_does_valid_until_mean: What does Valid until mean?
+      card_details_not_correct: My card details are not correct
+      do_not_understand_details: I do not understand these details
+      what_is_in_card_details: What is in card details?
+      why_details_show_list: Why do some details show a list?
+      why_details_look_different: Why do some details look different?
+      want_to_delete_card: I want to delete a card
+      deleted_wrong_card: I deleted the wrong card
+      not_sure_card_deleted: I am not sure if the card is deleted
+      what_happens_card_deleted: What happens when a card is deleted?
+      can_deleted_card_be_added: Can a deleted card be added again?
+      when_useful_to_delete_card: When is it useful to delete a card?
+      do_not_recognise_card_activity: I do not recognise this card activity
+      do_not_understand_card_changed: I do not understand why this card changed
+      card_activity_looks_wrong: This card activity looks wrong
+      what_does_card_created_mean: What does Card created mean?
+      what_does_card_added_mean: What does Card added mean?
+      what_does_card_renewed_mean: What does Card renewed mean?
+      what_does_card_deleted_mean: What does Card deleted mean?
+      what_does_card_expired_mean: What does Card expired mean?
+      what_does_card_not_valid_mean: What does Card not valid mean?
+      what_does_card_invalid_mean: What does Card invalid mean?
+      do_not_recognise_wallet_activity: I do not recognise this wallet activity
+      do_not_understand_security_change: I do not understand this security change
+      wallet_activity_looks_wrong: This wallet activity looks wrong
+      what_does_wallet_stopped_mean: What does NL Wallet stopped mean?
+      what_does_new_pin_mean: What does New PIN mean?
+      what_does_wallet_moved_mean: What does NL Wallet has been moved mean?
+      do_not_recognise_sharing_activity: I do not recognise this sharing activity
+      do_not_recognise_login_activity: I do not recognise this login activity
+      activity_looks_wrong: This activity looks wrong
+      do_not_recognise_organisation_in_activity: I do not recognise this organisation in activity
+      what_does_shared_mean: What does Shared mean?
+      what_does_logged_in_mean: What does Logged in mean?
+      how_see_what_shared: How can you see what you shared?
+      how_check_organisation_in_activity: How do you check organisation details in an activity?
+      forgot_pin: I forgot my PIN
+      cannot_use_pin: I cannot use my PIN
+      did_not_know_which_pin: I did not which PIN to enter
+      digid_not_open_new_pin: DigiD does not open when I create a new PIN
+      waiting_too_long_pin_setup: I am waiting too long during PIN setup
+      stopped_setting_pin: I stopped setting my PIN
+      entered_wrong_pin_too_many_times: I entered the wrong PIN too many times
+      why_digid_needed_for_new_pin: Why is DigiD needed for a new PIN?
+      why_confirm_with_pin: Why confirm an action with PIN?
+      what_happens_after_wrong_pin: What happens after a wrong PIN?
+      what_happens_pin_setup_stops: What happens when PIN setup stops?
+      cannot_use_biometric: I cannot use face scan or fingerprint
+      cannot_turn_on_biometric: I cannot turn on face scan or fingerprint
+      cannot_turn_off_biometric: I cannot turn off face scan or fingerprint
+      how_does_biometric_work: How does face scan or fingerprint work?
+      when_is_pin_still_used: When is PIN still used?
+      is_biometric_safe: Is face scan or fingerprint safe?
+      do_not_know_what_to_do_with_deletion_code: I do not know what to do with my deletion code
+      cannot_find_deletion_code: I cannot find my deletion code
+      cannot_use_deletion_code: I cannot use my deletion code
+      how_use_deletion_code: How do you use your deletion code?
+      what_is_deletion_code_for: What is a deletion code for?
+      why_write_down_deletion_code_on_paper: Why write down the deletion code on paper?
+      where_find_deletion_code: Where can the deletion code be found?
+      when_deletion_code_needed: When is the deletion code needed?
+      locked_out_10_minutes: I am locked out for 10 minutes
+      someone_tried_pin: I think someone tried my PIN
+      blocked_from_wallet: I am blocked from this wallet
+      why_must_delete_wallet: I do not understand why I must delete this wallet
+      why_wallet_temporarily_blocked: Why is a wallet temporarily blocked?
+      what_happens_after_temporary_block: What happens after a temporary block?
+      why_wallet_blocked: Why is a wallet blocked?
+      what_happens_data_wallet_blocked: What happens to your data when your wallet is blocked?
+      cannot_scan_qr_during_move: I cannot scan the QR code during move
+      why_scan_qr_to_move: Why scan a QR code to move a wallet?
+      what_happens_after_scanning_during_move: What happens after scanning during move?
+      not_sure_which_device_to_confirm: I am not sure which device to confirm on
+      cannot_continue_other_device: I cannot continue on the other device
+      how_confirmation_other_device_works: How does confirmation on the other device work?
+      which_device_has_wallet: Which device has the wallet now?
+      stopped_move_to_other_device: I stopped the move to another device
+      stopped_move_from_new_device: I stopped the move from my new device
+      what_happens_move_stops_this_device: What happens when moving stops on this device?
+      what_happens_move_stops_other_device: What happens when moving stops on the other device?
+      not_sure_move_worked: I am not sure if the move worked
+      cannot_find_wallet_after_move: I cannot find my wallet after moving
+      what_happens_after_moving_wallet: What happens after moving the wallet?
+      where_is_wallet_after_moving: Where is the wallet after moving?
+      cannot_use_wallet_until_update: I cannot use NL Wallet until update
+      cannot_update_wallet_on_phone: I cannot update NL Wallet on this phone
+      do_not_know_how_to_update: I do not know how to update NL Wallet
+      do_not_understand_recommended_update: I do not understand what recommended update mean
+      what_does_update_urgently_needed_mean: What does Update urgently needed mean?
+      why_update_needed: Why is an update needed to use NL Wallet?
+      what_happens_after_updating: What happens after updating?
+      do_not_see_push_notifications: I do not see important push notifications
+      turned_off_push_notifications: I turned off push notifications by mistake
+      do_not_understand_banner: I do not understand why I see banner on app overview
+      cannot_remove_banner: I cannot remove the banner
+      difference_push_notification_banner: What is the difference between a push notification and a banner?
+      why_see_banner: Why do I see the banner?
+      what_important_messages_wallet_show: What important messages can NL Wallet show?
+      why_push_notifications_useful: Why are push notifications useful?
+
+  nl:
+    categories:
+      getting_started:
+        title: Aan de slag
+        subtitle: Introductie, DigiD en app-overzicht
+      action:
+        title: Start je actie
+        subtitle: QR-code scannen, QR-code tonen en contactloos
+      sharing_login:
+        title: Delen en inloggen
+        subtitle: Gegevens delen, inloggen en websitecontroles
+      cards:
+        title: Kaarten
+        subtitle: Toevoegen, vervangen, status en verwijderen
+      activities:
+        title: Activiteiten
+        subtitle: Kaart-, wallet- en deelactiviteiten
+      security:
+        title: Beveiliging en toegang
+        subtitle: Pincode, gezicht-scan of vingerafdruk, verwijdercode en wallet geblokkeerd
+      move:
+        title: Wallet verplaatsen
+        subtitle: QR-code scannen, bevestigen en verplaatsen afronden
+      settings:
+        title: Instellingen en updates
+        subtitle: App-updates en meldingen
+    subcategories:
+      introduction: Introductie
+      digid: Starten met DigiD
+      app_overview: App-overzicht
+      scan_qr: QR-code scannen
+      show_qr: QR-code tonen
+      contactless: Contactloos (NFC)
+      sharing: Delen
+      logging_in: Inloggen
+      website_address: Webadres
+      organisation: Organisatiegegevens
+      agreement: Afspraken
+      missing_details: Ontbrekende of onjuiste gegevens
+      add: Kaarten toevoegen
+      renew: Kaarten vervangen
+      status: Kaartstatus
+      overview: Kaartoverzicht
+      details: Kaartgegevens
+      delete: Kaarten verwijderen
+      card_activities: Kaartactiviteiten
+      wallet_security: Wallet- en beveiligingsactiviteiten
+      sharing_login_activities: Deel- en inlogactiviteiten
+      pin: pincode
+      biometric: Gezicht-scan of vingerafdruk
+      deletion_code: Verwijder-code
+      wallet_blocked: Wallet geblokkeerd
+      move_scan_qr: QR-code scannen
+      confirm: Bevestigen op andere telefoon
+      stopped: Verplaatsen gestopt
+      completed: Verplaatsen voltooid
+      updates: App-updates
+      notifications: Meldingen
+    groups:
+      help: Hulponderwerpen
+      information: Informatieonderwerpen
+    topics:
+      cannot_continue_demo: Ik kan niet verder in de demo
+      dont_know_wallet: Ik weet niet wat NL Wallet is
+      dont_understand_login: Ik begrijp veilig inloggen niet
+      dont_understand_sharing: Ik begrijp gegevens delen niet
+      dont_understand_privacy: Ik begrijp niet hoe privacy wordt beschermd
+      what_is_wallet: Wat is NL Wallet?
+      is_demo_real: Is de NL Wallet-demo echt?
+      what_is_secure_login: Wat betekent veilig inloggen?
+      how_sharing_works: Hoe werkt delen in NL Wallet?
+      how_privacy_protected: Hoe blijft privacy beschermd?
+      what_is_wallet_used_for: Wat kun je met NL Wallet doen?
+      digid_does_not_open: DigiD opent niet
+      cannot_continue_with_digid: Ik kan niet verder met DigiD
+      do_not_have_digid: Ik heb geen DigiD
+      stopped_creating_wallet: Ik ben gestopt tijdens het aanmaken van NL Wallet
+      why_digid_needed_to_start: Waarom is DigiD nodig om te starten?
+      what_happens_after_digid: Wat gebeurt er na het starten met DigiD?
+      do_not_know_where_to_start: Ik weet niet waar ik moet beginnen
+      do_not_understand_activities_today: "Ik begrijp 'Activiteiten vandaag' niet"
+      what_is_app_overview: Wat is het app-overzicht?
+      what_can_you_do_from_app_overview: Wat kun je doen in het app-overzicht?
+      what_is_activities_today: "Wat is 'Activiteiten vandaag'?"
+      cannot_scan_qr: Ik kan de QR-code niet scannen
+      camera_access_blocked: Ik kan de camera niet gebruiken
+      how_scan_qr: Hoe scan je een QR-code?
+      why_camera_access_needed: Waarom is de camera nodig?
+      what_happens_after_scanning_qr: Wat gebeurt er na het scannen van een QR-code?
+      cannot_show_qr: Ik zie mijn QR-code niet
+      qr_not_scanned: Mijn QR-code wordt niet gescand
+      show_qr_connection_lost: De verbinding stopt
+      what_is_qr_for: Waar is de QR-code voor?
+      what_happens_after_qr_scanned: Wat gebeurt er nadat je QR-code is gescand?
+      contactless_not_working: Contactloos werkt niet
+      contactless_connection_lost: De verbinding stopt
+      how_does_contactless_work: Hoe werkt contactloos?
+      what_needed_for_contactless: Wat heb je nodig voor contactloos?
+      what_happens_after_contactless: Wat gebeurt er nadat contactloos start?
+      cannot_share_details: Ik kan mijn gegevens niet delen
+      do_not_know_what_shared: Ik weet niet welke gegevens worden gedeeld
+      do_not_know_who_gets_details: Ik weet niet wie mijn gegevens krijgt
+      sharing_website_not_safe: Ik weet niet of de website veilig is
+      do_not_want_to_share: Ik wil mijn gegevens niet delen
+      not_sure_sharing_worked: Ik weet niet of delen is gelukt
+      check_before_sharing: Wat moet je controleren voordat je deelt?
+      which_details_shared: Welke gegevens worden gedeeld?
+      what_does_sharing_completed_mean: "Wat betekent 'Delen gelukt'?"
+      what_happens_after_sharing: Wat gebeurt er na het delen?
+      cannot_log_in: Ik kan niet inloggen
+      do_not_know_what_shared_for_login: Ik weet niet welke gegevens ik deel om in te loggen
+      not_sure_login_request_safe: Ik weet niet of dit inlog-verzoek veilig is
+      do_not_want_to_continue_login: Ik wil niet verder met inloggen
+      not_sure_login_worked: Ik weet niet of inloggen is gelukt
+      how_login_works: Hoe werkt inloggen door te delen?
+      check_before_login: Wat moet je controleren voordat je inlogt?
+      which_details_shared_for_login: Welke gegevens deel je om in te loggen?
+      what_does_login_successful_mean: "Wat betekent 'Inloggen gelukt'?"
+      what_happens_after_login: Wat gebeurt er na het inloggen?
+      website_address_does_not_match: Het webadres klopt niet
+      website_not_safe: Ik weet niet of de website veilig is
+      why_check_address: Waarom moet je het webadres controleren?
+      what_happens_address_not_match: Wat gebeurt er als het webadres niet klopt?
+      where_is_website_address_shown: Waar staat het webadres?
+      when_check_website_address: Wanneer moet je het webadres controleren?
+      do_not_trust_organisation: Ik vertrouw deze organisatie niet
+      do_not_recognise_organisation: Ik herken deze organisatie niet
+      why_check_organisation_details: Waarom moet je de gegevens van de organisatie controleren?
+      what_organisation_details_checked: Welke gegevens van de organisatie kun je controleren?
+      agreement_not_clear: De afspraak is niet duidelijk
+      do_not_agree_with_agreement: Ik ben het niet eens met de afspraken
+      what_does_agreement_mean: Wat betekent de overeenkomst?
+      what_agreements_organisation_has: Wat is afgesproken met de organisatie?
+      why_agreement_important: Waarom is de overeenkomst belangrijk?
+      missing_details_for_request: Ik mis gegevens voor deze aanvraag
+      details_not_correct: Mijn gegevens kloppen niet
+      cannot_continue_because_of_details: Ik kan niet verder door mijn gegevens
+      what_does_missing_data_mean: "Wat betekent 'Gegevens ontbreken'?"
+      what_happens_details_incorrect: Wat gebeurt er als gegevens niet kloppen?
+      why_some_details_not_available: Waarom zijn sommige gegevens niet beschikbaar?
+      cannot_add_card: Ik kan geen kaart toevoegen
+      cannot_find_cards: Ik kan geen kaarten vinden
+      not_sure_right_card: Ik weet niet of dit de juiste kaart is
+      why_share_details_to_get_cards: Ik weet niet waarom ik gegevens moet delen om kaarten te krijgen
+      do_not_know_which_card_to_add: Ik weet niet welke kaart ik moet toevoegen
+      why_share_details_for_cards: Waarom moet je gegevens delen om kaarten te krijgen?
+      how_are_cards_chosen: Hoe kies je kaarten?
+      what_does_check_details_mean: "Wat betekent 'Bekijk details'?"
+      what_does_no_cards_found_mean: "Wat betekent 'Geen kaarten gevonden'?"
+      what_happens_after_adding_card: Wat gebeurt er nadat je een kaart toevoegt?
+      cannot_renew_cards: Ik kan mijn kaarten niet vervangen
+      stopped_renewing_cards: Ik ben gestopt met het vervangen van mijn kaarten
+      digid_not_open_during_renewal: DigiD opent niet bij het vervangen
+      something_wrong_after_replacement: Er klopt iets niet na het vervangen
+      when_do_cards_need_renewal: Wanneer moet je een kaart vervangen?
+      what_happens_after_renewal: Wat gebeurt er na het vervangen?
+      what_happens_when_renewal_stops: Wat gebeurt er als het vervangen stopt?
+      why_do_cards_need_renewal: Waarom moet je een kaart vervangen?
+      do_not_understand_card_status: Ik begrijp deze kaartstatus niet
+      card_not_yet_valid: Mijn kaart is nog niet geldig
+      card_expires_soon: Mijn kaart verloopt bijna
+      card_is_expired: Mijn kaart is verlopen
+      card_is_withdrawn: Mijn kaart is teruggenomen
+      card_status_invalid: "Mijn kaartstatus is 'Werkt niet'"
+      card_status_unknown: Mijn kaartstatus is onbekend
+      what_does_not_yet_valid_mean: "Wat betekent 'Nog niet geldig'?"
+      what_does_valid_mean: "Wat betekent 'Geldig'?"
+      what_does_valid_for_few_more_days_mean: "Wat betekent 'Nog een paar dagen geldig'?"
+      what_does_expired_mean: "Wat betekent 'Verlopen'?"
+      what_does_withdrawn_mean: "Wat betekent 'Ingetrokken'?"
+      what_does_invalid_mean: "Wat betekent kaartstatus 'Werkt niet'?"
+      what_does_validity_unknown_mean: "Wat betekent 'Geldigheid onbekend'?"
+      do_not_recognise_card: Ik herken deze kaart niet
+      do_not_recognise_issuer: Ik herken deze uitgever niet
+      what_can_be_done_in_card_overview: Wat kun je doen in het kaartoverzicht?
+      what_does_valid_until_mean: "Wat betekent 'Geldig tot'?"
+      card_details_not_correct: Mijn kaartgegevens kloppen niet
+      do_not_understand_details: Ik begrijp deze gegevens niet
+      what_is_in_card_details: Welke gegevens staan op deze kaart?
+      why_details_show_list: Waarom staan sommige gegevens in een lijst?
+      why_details_look_different: Waarom zien sommige gegevens er anders uit?
+      want_to_delete_card: Ik wil een kaart verwijderen
+      deleted_wrong_card: Ik heb de verkeerde kaart verwijderd
+      not_sure_card_deleted: Ik weet niet of de kaart is verwijderd
+      what_happens_card_deleted: Wat gebeurt er als een kaart is verwijderd?
+      can_deleted_card_be_added: Kun je een verwijderde kaart opnieuw toevoegen?
+      when_useful_to_delete_card: Wanneer is het handig om een kaart te verwijderen?
+      do_not_recognise_card_activity: Ik herken deze kaartactiviteit niet
+      do_not_understand_card_changed: Ik begrijp niet waarom deze kaart is veranderd
+      card_activity_looks_wrong: Deze kaartactiviteit klopt niet
+      what_does_card_created_mean: "Wat betekent 'Kaart gemaakt'?"
+      what_does_card_added_mean: "Wat betekent 'Kaart toegevoegd'?"
+      what_does_card_renewed_mean: "Wat betekent 'Kaart vervangen'?"
+      what_does_card_deleted_mean: "Wat betekent 'Kaart verwijderd'?"
+      what_does_card_expired_mean: "Wat betekent 'Verlopen'?"
+      what_does_card_not_valid_mean: "Wat betekent 'Niet geldig'?"
+      what_does_card_invalid_mean: "Wat betekent kaartstatus 'Werkt niet'?"
+      do_not_recognise_wallet_activity: Ik herken deze activiteit in mijn wallet niet
+      do_not_understand_security_change: Ik begrijp deze verandering in de beveiliging niet
+      wallet_activity_looks_wrong: Deze activiteit in mijn wallet klopt niet
+      what_does_wallet_stopped_mean: "Wat betekent 'NL Wallet gestopt'?"
+      what_does_new_pin_mean: "Wat betekent 'Nieuwe pincode'?"
+      what_does_wallet_moved_mean: "Wat betekent 'NL Wallet verplaatst'?"
+      do_not_recognise_sharing_activity: Ik herken deze activiteit van delen niet
+      do_not_recognise_login_activity: Ik herken deze activiteit van inloggen niet
+      activity_looks_wrong: Deze activiteit klopt niet
+      do_not_recognise_organisation_in_activity: Ik herken deze organisatie in de activiteit niet
+      what_does_shared_mean: "Wat betekent 'Gedeeld'?"
+      what_does_logged_in_mean: "Wat betekent 'Ingelogd'?"
+      how_see_what_shared: Hoe kun je zien wat je hebt gedeeld?
+      how_check_organisation_in_activity: Hoe controleer je de gegevens van de organisatie in een activiteit?
+      forgot_pin: Ik ben mijn pincode vergeten
+      cannot_use_pin: Ik kan mijn pincode niet gebruiken
+      did_not_know_which_pin: Ik weet niet welke pincode ik moet invullen
+      digid_not_open_new_pin: DigiD opent niet als ik een nieuwe pincode aanmaak
+      waiting_too_long_pin_setup: Ik wacht te lang tijdens het instellen van mijn pincode
+      stopped_setting_pin: Ik ben gestopt met het instellen van mijn pincode
+      entered_wrong_pin_too_many_times: Ik heb te vaak een verkeerde pincode ingevuld
+      why_digid_needed_for_new_pin: Waarom is DigiD nodig voor een nieuwe pincode?
+      why_confirm_with_pin: Waarom bevestig je een actie met je pincode?
+      what_happens_after_wrong_pin: Wat gebeurt er na een verkeerde pincode?
+      what_happens_pin_setup_stops: Wat gebeurt er als het instellen van je pincode stopt?
+      cannot_use_biometric: Ik kan gezicht-scan of vingerafdruk niet gebruiken
+      cannot_turn_on_biometric: Ik kan gezicht-scan of vingerafdruk niet aanzetten
+      cannot_turn_off_biometric: Ik kan gezicht-scan of vingerafdruk niet uitzetten
+      how_does_biometric_work: Hoe werkt gezicht-scan of vingerafdruk?
+      when_is_pin_still_used: Wanneer gebruik je nog een pincode?
+      is_biometric_safe: Is gezicht-scan of vingerafdruk veilig?
+      do_not_know_what_to_do_with_deletion_code: Ik weet niet wat ik met mijn verwijder-code moet doen
+      cannot_find_deletion_code: Ik kan mijn verwijder-code niet vinden
+      cannot_use_deletion_code: Ik kan mijn verwijder-code niet gebruiken
+      how_use_deletion_code: Hoe gebruik je je verwijdercode?
+      what_is_deletion_code_for: Waarvoor is een verwijdercode?
+      why_write_down_deletion_code_on_paper: Waarom moet je je verwijder-code op papier opschrijven?
+      where_find_deletion_code: Waar vind je je verwijdercode?
+      when_deletion_code_needed: Wanneer heb je je verwijder-code nodig?
+      locked_out_10_minutes: Ik ben 10 minuten geblokkeerd
+      someone_tried_pin: Ik denk dat iemand mijn pincode heeft geprobeerd
+      blocked_from_wallet: Ik kan deze wallet niet meer gebruiken
+      why_must_delete_wallet: Ik begrijp niet waarom ik deze wallet moet verwijderen
+      why_wallet_temporarily_blocked: Waarom is een wallet 10 minuten geblokkeerd?
+      what_happens_after_temporary_block: Wat gebeurt er na een tijdelijke blokkade?
+      why_wallet_blocked: Waarom is een wallet geblokkeerd?
+      what_happens_data_wallet_blocked: Wat gebeurt er met je gegevens als je wallet is geblokkeerd?
+      cannot_scan_qr_during_move: Ik kan de QR-code niet scannen tijdens het verplaatsen
+      why_scan_qr_to_move: Waarom scan je een QR-code om je wallet te verplaatsen?
+      what_happens_after_scanning_during_move: Wat gebeurt er na het scannen tijdens het verplaatsen?
+      not_sure_which_device_to_confirm: Ik weet niet op welke telefoon ik moet bevestigen
+      cannot_continue_other_device: Ik kan niet verder op de andere telefoon
+      how_confirmation_other_device_works: Hoe werkt bevestigen op de andere telefoon?
+      which_device_has_wallet: Op welke telefoon staat je wallet nu?
+      stopped_move_to_other_device: Ik heb het verplaatsen gestopt op mijn oude telefoon
+      stopped_move_from_new_device: Ik heb het verplaatsen gestopt op mijn nieuwe telefoon
+      what_happens_move_stops_this_device: Wat gebeurt er als het verplaatsen stopt op je oude telefoon?
+      what_happens_move_stops_other_device: Wat gebeurt er als het verplaatsen stopt op je nieuwe telefoon?
+      not_sure_move_worked: Ik weet niet of het verplaatsen is gelukt
+      cannot_find_wallet_after_move: Ik kan mijn wallet niet vinden na het verplaatsen
+      what_happens_after_moving_wallet: Wat gebeurt er na het verplaatsen van je wallet?
+      where_is_wallet_after_moving: Waar staat je wallet na het verplaatsen?
+      cannot_use_wallet_until_update: Ik kan NL Wallet niet gebruiken zonder update
+      cannot_update_wallet_on_phone: Ik kan NL Wallet op deze telefoon niet updaten
+      do_not_know_how_to_update: Ik weet niet hoe ik NL Wallet update
+      do_not_understand_recommended_update: "Ik snap niet wat 'Update aanbevolen' betekent"
+      what_does_update_urgently_needed_mean: "Wat betekent 'Update snel nodig'?"
+      why_update_needed: Waarom moet je NL Wallet updaten om het te gebruiken?
+      what_happens_after_updating: Wat gebeurt er na de update?
+      do_not_see_push_notifications: Ik zie geen belangrijke meldingen op mijn telefoon
+      turned_off_push_notifications: Ik heb meldingen op mijn telefoon per ongeluk uitgezet
+      do_not_understand_banner: Ik snap niet waarom ik een banner in de app zie
+      cannot_remove_banner: Ik kan deze banner niet weghalen
+      difference_push_notification_banner: Wat is het verschil tussen een melding op je telefoon en een banner in de app?
+      why_see_banner: Waarom zie ik deze banner?
+      what_important_messages_wallet_show: Welke belangrijke meldingen kan NL Wallet laten zien?
+      why_push_notifications_useful: Waarom zijn meldingen op je telefoon handig?

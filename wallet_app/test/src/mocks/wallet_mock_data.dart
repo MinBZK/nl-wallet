@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/data/repository/help/help_content_repository.dart';
 import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_display_metadata.dart';
@@ -12,6 +15,11 @@ import 'package:wallet/src/domain/model/configuration/maintenance_window.dart';
 import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
 import 'package:wallet/src/domain/model/document.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
+import 'package:wallet/src/domain/model/help/help_category.dart';
+import 'package:wallet/src/domain/model/help/help_subcategory.dart';
+import 'package:wallet/src/domain/model/help/help_topic.dart';
+import 'package:wallet/src/domain/model/help/help_topic_group.dart';
+import 'package:wallet/src/domain/model/help/topic_block.dart';
 import 'package:wallet/src/domain/model/notification/app_notification.dart';
 import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/domain/model/policy/policy.dart';
@@ -22,6 +30,43 @@ import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/wallet_assets.dart';
 
 class MockWalletCard extends Mock implements WalletCard {}
+
+/// Hand-coded [HelpContentRepository] fake used by help-feature tests.
+///
+/// By default [getCategories] returns [categories] immediately. For tests that
+/// need to observe the intermediate loading state, call [deferCategories] —
+/// after that, [getCategories] does not resolve until [resolveCategories] or
+/// [failCategoriesLoad] is invoked. The same pair exists for
+/// [getTopicBlocks] via [resolveBlocks] / [failBlocksLoad].
+class FakeHelpContentRepository implements HelpContentRepository {
+  List<HelpCategory> categories = const [];
+  Completer<List<HelpCategory>>? _categoriesCompleter;
+  final Completer<List<TopicBlock>> _blocksCompleter = Completer<List<TopicBlock>>();
+
+  /// Forces [getCategories] to wait for an explicit [resolveCategories] or
+  /// [failCategoriesLoad] call before completing.
+  void deferCategories() {
+    _categoriesCompleter = Completer<List<HelpCategory>>();
+  }
+
+  void resolveCategories(List<HelpCategory> result) => _categoriesCompleter!.complete(result);
+
+  void failCategoriesLoad(Object error) => _categoriesCompleter!.completeError(error);
+
+  void resolveBlocks(List<TopicBlock> blocks) => _blocksCompleter.complete(blocks);
+
+  void failBlocksLoad(Object error) => _blocksCompleter.completeError(error);
+
+  @override
+  Future<List<HelpCategory>> getCategories(Locale locale) {
+    final completer = _categoriesCompleter;
+    if (completer != null) return completer.future;
+    return Future.value(categories);
+  }
+
+  @override
+  Future<List<TopicBlock>> getTopicBlocks(String topicId, Locale locale) => _blocksCompleter.future;
+}
 
 abstract class WalletMockData {
   static Locale testLocale = const Locale('en');
@@ -340,4 +385,73 @@ abstract class WalletMockData {
             eventType: IssuanceEventType.cardStatusCorrupted,
           )
           as IssuanceEvent;
+
+  /// A realistic two-category help fixture with populated subcategories and topics,
+  /// suitable for rendering a representative help overview / category / subcategory.
+  static const helpCategories = <HelpCategory>[
+    HelpCategory(
+      id: 'getting_started',
+      icon: 'play_arrow',
+      title: 'Getting started',
+      subtitle: 'Introduction, DigiD, and app overview',
+      subcategories: [
+        HelpSubcategory(
+          id: 'introduction',
+          title: 'Introduction',
+          groups: [
+            HelpTopicGroup(
+              kind: HelpTopicGroupKind.help,
+              topics: [
+                HelpTopic(id: 'cannot_continue_demo', title: 'I cannot continue with the demo'),
+                HelpTopic(id: 'dont_know_wallet', title: 'I do not know what NL Wallet is'),
+              ],
+            ),
+            HelpTopicGroup(
+              kind: HelpTopicGroupKind.information,
+              topics: [
+                HelpTopic(id: 'what_is_wallet', title: 'What is NL Wallet?'),
+                HelpTopic(id: 'is_demo_real', title: 'Is the NL Wallet demo real?'),
+              ],
+            ),
+          ],
+        ),
+        HelpSubcategory(
+          id: 'digid',
+          title: 'Start with DigiD',
+          groups: [
+            HelpTopicGroup(
+              kind: HelpTopicGroupKind.information,
+              topics: [
+                HelpTopic(id: 'why_digid_needed_to_start', title: 'Why is DigiD needed?'),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+    HelpCategory(
+      id: 'cards',
+      icon: 'credit_card',
+      title: 'Cards',
+      subtitle: 'Adding, renewing, status, and deleting cards',
+      subcategories: [
+        HelpSubcategory(
+          id: 'add',
+          title: 'Add cards',
+          groups: [
+            HelpTopicGroup(
+              kind: HelpTopicGroupKind.help,
+              topics: [
+                HelpTopic(id: 'cannot_add_card', title: 'I cannot add a card'),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+  ];
+
+  static HelpCategory get helpGettingStartedCategory => helpCategories[0];
+
+  static HelpSubcategory get helpIntroductionSubcategory => helpCategories[0].subcategories[0];
 }

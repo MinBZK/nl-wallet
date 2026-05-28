@@ -60,7 +60,6 @@ void main() {
       );
 
       final l10n = await TestUtils.englishLocalizations;
-      expect(find.text(l10n.menuScreenTourCta), findsOneWidget);
       expect(find.text(l10n.menuScreenHelpCta), findsOneWidget);
       expect(find.text(l10n.menuScreenScanQrCta), findsOneWidget);
       expect(find.text(l10n.menuScreenHistoryCta), findsOneWidget);
