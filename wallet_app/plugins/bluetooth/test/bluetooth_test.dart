@@ -33,6 +33,6 @@ void main() {
     BluetoothPlatform.instance = fakePlatform;
 
     // Expect it completes normally
-    await bluetoothPlugin.isEnabled();
+    await bluetoothPlugin.enable();
   });
 }
