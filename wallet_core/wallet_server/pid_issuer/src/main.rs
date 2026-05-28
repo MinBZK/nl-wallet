@@ -3,7 +3,7 @@ use std::sync::Arc;
 use anyhow::Result;
 use health_checkers::hsm::HsmChecker;
 use hsm::service::Pkcs11Hsm;
-use issuer_common::pkce_store::IssuerPkceStore;
+use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use openid4vc::issuer::WiaConfig;
 use pid_issuer::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow;
 use pid_issuer::pid::brp::client::HttpBrpClient;
@@ -40,6 +40,8 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     let digid_client_id = settings.digid.client_id;
     let bsn_privkey = settings.digid.bsn_privkey;
 
+    let callback_uri = settings.issuer_settings.public_url.as_base_url().join("digid/callback");
+
     let (issuer, database_checkers, _, server_settings) = settings
         .issuer_settings
         .into_authorizing_issuer(hsm, Some(wia_config), |store_connection| {
@@ -49,15 +51,26 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
                 digid_client_id,
                 digid_metadata_cache,
                 recovery_code_secret_key,
-                Arc::new(IssuerPkceStore::new(store_connection)),
+                Arc::new(IssuerStateBridgeStore::new(store_connection)),
+                callback_uri,
             )
         })
         .await?;
+
+    let authorizing_issuer = Arc::new(issuer);
+    let auth_flow_router = UpstreamOidcAuthorizationCodeFlow::callback_router(Arc::clone(&authorizing_issuer));
 
     let health_checkers = health_checkers::boxed(hsm_checker)
         .into_iter()
         .chain(database_checkers.into_iter().map(|checker| Box::new(checker) as Box<_>));
 
     // This will block until the server shuts down.
-    server::serve(issuer, server_settings, serve_status_lists, health_checkers).await
+    server::serve(
+        authorizing_issuer,
+        auth_flow_router,
+        server_settings,
+        serve_status_lists,
+        health_checkers,
+    )
+    .await
 }

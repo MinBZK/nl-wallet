@@ -3,3 +3,4 @@
 pub use super::pkce_flow::Entity as PkceFlow;
 pub use super::proof_nonce::Entity as ProofNonce;
 pub use super::pushed_authorization_request::Entity as PushedAuthorizationRequest;
+pub use super::state_bridge::Entity as StateBridge;

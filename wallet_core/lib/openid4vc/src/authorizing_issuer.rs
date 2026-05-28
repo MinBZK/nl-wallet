@@ -1,36 +1,42 @@
 //! Authorization Phase wrapper around the Issuance Phase [`Issuer`].
 //!
 //! [`AuthorizingIssuer`] owns the PAR store and an [`AuthorizationCodeFlow`] implementation.
-//! It handles the Pushed Authorization Request and authorize endpoints, calls the flow at
-//! both `/authorize` and `/token` (to resolve the authorization code into issuables), and
-//! provisions those issuables into the inner [`Issuer`]'s session store before delegating the
-//! actual token issuance. Deployments that only do the pre-authorized-code grant (no flow)
-//! use the bare [`Issuer`] directly and never construct an [`AuthorizingIssuer`].
+//! It handles the Pushed Authorization Request and authorize endpoints, and exposes
+//! [`complete_authorization`] for the configured flow to call once it has authenticated the holder
+//! and determined the issuables. Once `complete_authorization` has
+//! written the `AuthCodeIssued` session, the framework's `/token` on the inner [`Issuer`]) is used in the next step of
+//! the flow. Deployments that only do the pre-authorized-code grant (no flow) use the bare [`Issuer`]
+//! directly and never construct an [`AuthorizingIssuer`].
 
 use std::error::Error;
 use std::sync::Arc;
 
-use crypto::EcdsaKey;
+use crypto::utils::random_string;
 use serde::Serialize;
 use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
 use crate::authorization_code_flow::AuthorizationCodeFlow;
 use crate::authorization_code_flow::AuthorizeOutcome;
 use crate::credential_offer::CredentialOffer;
-use crate::dpop::Dpop;
+use crate::issuable_document::IssuableDocument;
+use crate::issuer::AuthCodeIssued;
+use crate::issuer::Grant;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
 use crate::par;
 use crate::par::PAR_TTL;
+use crate::server_state::SessionState;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
 use crate::store::Store;
-use crate::token::TokenRequest;
-use crate::token::TokenResponse;
+use crate::token::AuthorizationCode;
+
+const AUTH_CODE_LENGTH: usize = 32;
 
 /// Errors that can occur during processing of a Pushed Authorization Request.
 #[derive(Debug, thiserror::Error)]
@@ -61,7 +67,7 @@ pub enum AuthorizeError {
     AuthorizationCodeFlow(#[source] Box<dyn Error + Send + Sync + 'static>),
 
     #[error("encoding authorization request as query string failed: {0}")]
-    Encode(#[source] serde_urlencoded::ser::Error),
+    EncodeRedirectQuery(#[source] serde_urlencoded::ser::Error),
 }
 
 /// Errors that can occur during processing of a Pushed Authorization Request.
@@ -75,6 +81,17 @@ pub enum TokenRequestError {
 
     #[error("error when delegating handling the token request to the issuer: {0}")]
     IssuerTokenRequest(#[source] crate::issuer::TokenRequestError),
+}
+
+/// Errors that can occur while writing the auth-code-grant session and building the
+/// wallet-facing redirect URL from [`AuthorizingIssuer::complete_authorization`].
+#[derive(derive_more::Debug, thiserror::Error)]
+pub enum CompleteAuthorizationError {
+    #[error("writing authorization-code session failed: {0}")]
+    SessionStore(#[source] SessionStoreError),
+
+    #[error("encoding wallet redirect query string failed: {0}")]
+    EncodeRedirectQuery(#[source] serde_urlencoded::ser::Error),
 }
 
 /// Authorization Phase wrapper around an Issuance Phase [`Issuer`].
@@ -106,6 +123,10 @@ impl<K, L, S, N, PAS, AF> AuthorizingIssuer<K, L, S, N, PAS, AF> {
             credential_configuration_ids,
             None,
         )
+    }
+
+    pub fn flow(&self) -> &AF {
+        &self.flow
     }
 }
 
@@ -181,21 +202,9 @@ where
         match outcome {
             AuthorizeOutcome::RedirectTo(url) => Ok(url),
             AuthorizeOutcome::IssuedCode(code) => {
-                #[derive(Serialize)]
-                struct RedirectQuery<'a> {
-                    code: &'a str,
-                    #[serde(skip_serializing_if = "Option::is_none")]
-                    state: Option<&'a str>,
-                }
-
-                let mut redirect_url = wallet_redirect_uri.into_inner();
-                let query = serde_urlencoded::to_string(RedirectQuery {
-                    code: code.as_ref(),
-                    state: wallet_state.as_deref(),
-                })
-                .map_err(AuthorizeError::Encode)?;
-                redirect_url.set_query(Some(&query));
-                Ok(redirect_url)
+                let wallet_redirect_uri = wallet_redirect_uri.into_inner();
+                build_wallet_redirect(wallet_redirect_uri, &code, wallet_state.as_deref())
+                    .map_err(AuthorizeError::EncodeRedirectQuery)
             }
         }
     }
@@ -203,40 +212,63 @@ where
 
 impl<K, L, S, N, PAS, AF> AuthorizingIssuer<K, L, S, N, PAS, AF>
 where
-    K: EcdsaKey,
     S: SessionStore<IssuanceData>,
-    AF: AuthorizationCodeFlow,
 {
-    /// Call the flow to resolve the token request's code into issuables, write those into the
-    /// inner issuer's session store keyed by the code, then delegate to the inner `/token`
-    /// path which will read the newly created session and issue.
-    pub async fn process_token_request(
+    /// Called by the configured [`AuthorizationCodeFlow`] once it has authenticated the holder and
+    /// produced the issuables. How the flow does so (e.g. via an external identity provider) is an
+    /// implementation detail of the flow and not modelled here. Generates a fresh authorization code, writes
+    /// an `AuthCodeIssued` session keyed by it (with `Grant::AuthorizationCode` carrying both the
+    /// issuables and the wallet's PKCE `code_challenge`), and builds the wallet-facing redirect
+    /// URL with that code and the wallet's original `state`. The framework's `/token` handler
+    /// will later load the session, verify the wallet's `code_verifier` against the stored
+    /// challenge, and issue. Returns both the generated code (for test helpers using `/token`
+    /// directly) and the redirect URL.
+    pub async fn complete_authorization(
         &self,
-        token_request: TokenRequest,
-        dpop: Dpop,
-    ) -> Result<(TokenResponse, String), TokenRequestError> {
-        // TODO (PVW-5953): implicitly accepts the authorization code if issuables resolves (using upstream to verify
-        // code). Make explicit
-        let code = token_request.code().clone();
+        issuable_documents: VecNonEmpty<IssuableDocument>,
+        wallet_code_challenge: String,
+        wallet_redirect_uri: Url,
+        wallet_state: Option<String>,
+    ) -> Result<(AuthorizationCode, Url), CompleteAuthorizationError> {
+        let code = AuthorizationCode::from(random_string(AUTH_CODE_LENGTH));
 
-        let issuables = self
-            .flow
-            .issuables(token_request.clone())
-            .await
-            .map_err(|error| TokenRequestError::AuthorizationCodeFlow(Box::new(error)))?;
-
-        // TODO (PVW-5953): the code below creates a new session and then immediately fetches it in
-        // process_token_request. Cleanup necessary
+        let state = SessionState::new(
+            code.clone().into(),
+            IssuanceData::AuthCodeIssued(Box::new(AuthCodeIssued {
+                issuable_documents,
+                grant: Grant::AuthorizationCode { wallet_code_challenge },
+            })),
+        );
         self.issuer
-            .new_session_with_token(code.into(), issuables)
+            .write_session(state)
             .await
-            .map_err(TokenRequestError::SessionStoreWrite)?;
+            .map_err(CompleteAuthorizationError::SessionStore)?;
 
-        let result = self
-            .issuer
-            .process_token_request(token_request, dpop)
-            .await
-            .map_err(TokenRequestError::IssuerTokenRequest)?;
-        Ok(result)
+        let redirect_url = build_wallet_redirect(wallet_redirect_uri, &code, wallet_state.as_deref())
+            .map_err(CompleteAuthorizationError::EncodeRedirectQuery)?;
+
+        Ok((code, redirect_url))
     }
+}
+
+/// Build the wallet-facing redirect URL carrying the authorization code and the wallet's original `state`.
+fn build_wallet_redirect(
+    mut redirect_uri: Url,
+    code: &AuthorizationCode,
+    wallet_state: Option<&str>,
+) -> Result<Url, serde_urlencoded::ser::Error> {
+    #[derive(Serialize)]
+    struct RedirectQuery<'a> {
+        code: &'a str,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        state: Option<&'a str>,
+    }
+
+    let query = serde_urlencoded::to_string(RedirectQuery {
+        code: code.as_ref(),
+        state: wallet_state,
+    })?;
+
+    redirect_uri.set_query(Some(&query));
+    Ok(redirect_uri)
 }

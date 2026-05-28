@@ -11,7 +11,6 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
-use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
@@ -19,9 +18,11 @@ use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
+use openid4vc::pkce::PkcePair;
+use openid4vc::pkce::S256PkcePair;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::test::MOCK_ATTESTATION_TYPES;
-use openid4vc::test::MOCK_UPSTREAM_CLIENT_ID;
+use openid4vc::test::MockAuthorizingIssuer;
 use openid4vc::test::MockIssuer;
 use openid4vc::test::StaticAuthorizationCodeFlow;
 use openid4vc::test::mock_issuable_documents;
@@ -39,7 +40,7 @@ use openid4vc::wallet_issuance::credential::IssuedCredential;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
 use openid4vc_server::issuer::create_authorization_router;
-use openid4vc_server::issuer::create_pre_authorized_token_router;
+use openid4vc_server::issuer::create_issuance_router;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::EncodePrivateKey;
 use rand_core::OsRng;
@@ -60,14 +61,63 @@ fn generate_localhost_tls() -> (TlsServerConfig, ReqwestTrustAnchor) {
         cert: keypair.certificate().as_ref().to_vec(),
         key: keypair.private_key().to_pkcs8_der().unwrap().as_bytes().to_vec(),
     };
-    let trust_anchor = ReqwestTrustAnchor::try_from(ca.certificate().as_ref().to_vec()).unwrap();
+    let trust_anchors = ReqwestTrustAnchor::try_from(ca.certificate().as_ref().to_vec()).unwrap();
 
-    (tls_config, trust_anchor)
+    (tls_config, trust_anchors)
 }
 
-async fn start_server(
+/// Type alias for the [`AuthorizingIssuer`] flavor used in these auth-code-flow tests.
+type TestAuthorizingIssuer = MockAuthorizingIssuer<TimeGenerator>;
+
+/// Bundle returned by `start_auth_code_flow_server` so tests can call
+/// [`StaticAuthorizationCodeFlow::fake_complete_authorization`] after `/authorize`.
+struct AuthCodeFlowServer {
+    authorizing_issuer: Arc<TestAuthorizingIssuer>,
+    trust_anchors: TrustAnchors,
+    issuer_identifier: IssuerIdentifier,
+    wia_keypair: KeyPair,
+    tls_trust_anchor: ReqwestTrustAnchor,
+}
+
+async fn start_auth_code_flow_server(attestation_count: NonZeroUsize, upstream: Url) -> AuthCodeFlowServer {
+    let (tls_server_config, tls_trust_anchor) = generate_localhost_tls();
+
+    let listener = TcpListener::bind("localhost:0").await.unwrap().into_std().unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let issuer_identifier: IssuerIdentifier = format!("https://localhost:{port}").parse().unwrap();
+
+    let sessions = Arc::new(MemorySessionStore::default());
+    let mock_documents = mock_issuable_documents(attestation_count);
+
+    let flow = StaticAuthorizationCodeFlow::new(upstream, mock_documents);
+    let (authorizing_issuer, trust_anchors, wia_keypair) =
+        setup_mock_authorizing_issuer(issuer_identifier.clone(), attestation_count, sessions, flow);
+    let authorizing_issuer = Arc::new(authorizing_issuer);
+    let issuer = Arc::clone(authorizing_issuer.issuer());
+
+    // Authorization-code flow mounts the issuance endpoints (including `/token`) alongside the
+    // authorization router (PAR + `/authorize`).
+    let router = create_issuance_router(issuer).merge(create_authorization_router(Arc::clone(&authorizing_issuer)));
+
+    tokio::spawn(async move {
+        axum_server::from_tcp_rustls(listener, tls_server_config.into_rustls_config().unwrap())
+            .unwrap()
+            .serve(router.into_make_service())
+            .await
+            .unwrap()
+    });
+
+    AuthCodeFlowServer {
+        authorizing_issuer,
+        trust_anchors,
+        issuer_identifier,
+        wia_keypair,
+        tls_trust_anchor,
+    }
+}
+
+async fn start_pre_authorized_code_flow_server(
     attestation_count: NonZeroUsize,
-    upstream_authorization_endpoint: Option<Url>,
 ) -> (
     Arc<MockIssuer<TimeGenerator>>,
     TrustAnchors,
@@ -82,34 +132,13 @@ async fn start_server(
     let issuer_identifier: IssuerIdentifier = format!("https://localhost:{port}").parse().unwrap();
 
     let sessions = Arc::new(MemorySessionStore::default());
-    let mock_documents = mock_issuable_documents(attestation_count);
 
-    let (issuer, trust_anchor, wia_issuer_keypair, router) = match upstream_authorization_endpoint {
-        // Authorization-code flow: wrap the inner issuer in an `AuthorizingIssuer` and mount the
-        // authorization router (PAR / authorize / PKCE-bridged token + the issuance endpoints).
-        Some(upstream) => {
-            let flow = StaticAuthorizationCodeFlow::new(upstream, mock_documents);
+    let (issuer, trust_anchors, wia_keypair) =
+        setup_mock_issuer(issuer_identifier.clone(), attestation_count, sessions);
+    let issuer = Arc::new(issuer);
 
-            let (authorizing_issuer, trust_anchor, wia_issuer_keypair) =
-                setup_mock_authorizing_issuer(issuer_identifier.clone(), attestation_count, sessions, flow);
-            let authorizing_issuer = Arc::new(authorizing_issuer);
-            let issuer = Arc::clone(authorizing_issuer.issuer());
-
-            let router = create_authorization_router(Arc::clone(&authorizing_issuer));
-
-            (issuer, trust_anchor, wia_issuer_keypair, router)
-        }
-        // Pre-authorized-code flow: bare inner issuer, non-PKCE token route + issuance endpoints.
-        None => {
-            let (issuer, trust_anchor, wia_issuer_keypair) =
-                setup_mock_issuer(issuer_identifier.clone(), attestation_count, sessions);
-            let issuer = Arc::new(issuer);
-
-            let router = create_pre_authorized_token_router(Arc::clone(&issuer));
-
-            (issuer, trust_anchor, wia_issuer_keypair, router)
-        }
-    };
+    // Pre-authorized-code flow mounts the issuance endpoints standalone.
+    let router = create_issuance_router(Arc::clone(&issuer));
 
     tokio::spawn(async move {
         axum_server::from_tcp_rustls(listener, tls_server_config.into_rustls_config().unwrap())
@@ -119,13 +148,7 @@ async fn start_server(
             .unwrap()
     });
 
-    (
-        issuer,
-        trust_anchor,
-        issuer_identifier,
-        wia_issuer_keypair,
-        tls_trust_anchor,
-    )
+    (issuer, trust_anchors, issuer_identifier, wia_keypair, tls_trust_anchor)
 }
 
 fn make_credential_offer_url(
@@ -194,8 +217,14 @@ async fn authorization_code_flow(
     #[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
 ) {
     let upstream_oauth_id: Url = "https://auth.example.com/".parse().unwrap();
-    let (_, trust_anchors, issuer_identifier, wia_keypair, tls_trust_anchor) =
-        start_server(attestation_count, Some(upstream_oauth_id)).await;
+    let AuthCodeFlowServer {
+        authorizing_issuer,
+        trust_anchors,
+        issuer_identifier,
+        wia_keypair,
+        tls_trust_anchor,
+        ..
+    } = start_auth_code_flow_server(attestation_count, upstream_oauth_id).await;
 
     let credential_offer_url = make_credential_offer_url(issuer_identifier.clone(), attestation_count, None);
     let redirect_uri = Url::parse("https://wallet.example.com/callback").unwrap();
@@ -241,9 +270,10 @@ async fn authorization_code_flow(
     // State is inside the PAR-stored request; read it from the session to craft the redirect.
     let state = auth_session.state().to_owned();
 
-    // Simulate the user agent following the auth_url. The /authorize handler bridges PKCE
-    // (substituting the wallet's challenge with one it holds the verifier for) and stores
-    // that bridge entry, so /token can consume it later. We don't follow the upstream redirect.
+    // Simulate the user agent following the auth_url. The /authorize handler captures the
+    // wallet's PKCE challenge + redirect_uri + state into the AF's single-slot cell, then
+    // returns a 302 to the upstream URL. We don't actually follow the upstream redirect — we
+    // synthesize the upstream callback below by calling `fake_complete_authorization`.
     let browser_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .redirect(Policy::none())
         .build()
@@ -255,11 +285,16 @@ async fn authorization_code_flow(
         .unwrap();
     assert_eq!(authorize_response.status(), StatusCode::FOUND);
 
-    // Simulate the authorization server redirecting back with a code and the matching state.
-    // The issuer will treat any unknown code as a new (authorization-code-flow) session and
-    // fetch documents from the attribute service, so any string works as the code here.
+    // Plant the `AuthCodeIssued` session that the wallet's `/token` call will load. This stands in
+    // for what the real upstream callback handler does (BSN → BRP → issuables →
+    // complete_authorization).
+    let (issuer_code, _captured) = authorizing_issuer
+        .flow()
+        .fake_complete_authorization(&authorizing_issuer)
+        .await;
+
     let mut received_redirect = redirect_uri;
-    received_redirect.set_query(Some(&format!("code=fake_auth_code&state={state}")));
+    received_redirect.set_query(Some(&format!("code={}&state={state}", issuer_code.as_ref())));
 
     let mut session = auth_session
         .start_issuance(&received_redirect, &trust_anchors)
@@ -286,10 +321,10 @@ async fn pre_authorized_code_flow(
     #[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
 ) {
     let (issuer, trust_anchors, issuer_identifier, wia_keypair, tls_trust_anchor) =
-        start_server(attestation_count, None).await;
+        start_pre_authorized_code_flow_server(attestation_count).await;
 
     let documents = mock_issuable_documents(attestation_count);
-    let session_token = issuer.new_session(documents).await.unwrap();
+    let session_token = issuer.new_preauthorized_session(documents).await.unwrap();
 
     let credential_offer_url =
         make_credential_offer_url(issuer_identifier, attestation_count, Some(session_token.into()));
@@ -330,10 +365,11 @@ async fn pre_authorized_code_flow(
 #[tokio::test]
 async fn reject_issuance() {
     let attestation_count = NonZeroUsize::MIN;
-    let (issuer, trust_anchors, issuer_identifier, _, tls_trust_anchor) = start_server(attestation_count, None).await;
+    let (issuer, trust_anchors, issuer_identifier, _, tls_trust_anchor) =
+        start_pre_authorized_code_flow_server(attestation_count).await;
 
     let documents = mock_issuable_documents(attestation_count);
-    let session_token = issuer.new_session(documents).await.unwrap();
+    let session_token = issuer.new_preauthorized_session(documents).await.unwrap();
 
     let offer_url = make_credential_offer_url(issuer_identifier, attestation_count, Some(session_token.into()));
 
@@ -364,7 +400,11 @@ async fn reject_issuance() {
 #[tokio::test]
 async fn par_rejects_unknown_client_id() {
     let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
-    let (_, _, issuer_identifier, _, tls_trust_anchor) = start_server(NonZeroUsize::MIN, Some(upstream_endpoint)).await;
+    let AuthCodeFlowServer {
+        issuer_identifier,
+        tls_trust_anchor,
+        ..
+    } = start_auth_code_flow_server(NonZeroUsize::MIN, upstream_endpoint).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .build()
@@ -390,66 +430,13 @@ async fn par_rejects_unknown_client_id() {
 }
 
 #[tokio::test]
-async fn authorize_rewrites_client_id_for_upstream() {
-    let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
-    let (_, _, issuer_identifier, _, tls_trust_anchor) =
-        start_server(NonZeroUsize::MIN, Some(upstream_endpoint.clone())).await;
-
-    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
-        .redirect(Policy::none())
-        .build()
-        .unwrap();
-
-    let base = issuer_identifier.as_base_url().as_ref().as_str().to_string();
-
-    // Step 1: PAR with the wallet client_id and an S256 PKCE challenge (required by /authorize).
-    let wallet_code_challenge = "wallet-c1-challenge-value";
-    let par_resp: PushedAuthorizationResponse = http_client
-        .post(format!("{base}issuance/par"))
-        .form(&[
-            ("response_type", "code"),
-            ("client_id", MOCK_WALLET_CLIENT_ID),
-            ("redirect_uri", "https://wallet.example.com/callback"),
-            ("code_challenge", wallet_code_challenge),
-            ("code_challenge_method", "S256"),
-        ])
-        .send()
-        .await
-        .unwrap()
-        .json()
-        .await
-        .unwrap();
-
-    // Step 2: Authorize — should redirect to upstream with the upstream client_id.
-    let mut authorize_url: Url = format!("{base}issuance/authorize").parse().unwrap();
-    authorize_url
-        .query_pairs_mut()
-        .append_pair("client_id", MOCK_WALLET_CLIENT_ID)
-        .append_pair("request_uri", &par_resp.request_uri);
-    let response = http_client.get(authorize_url).send().await.unwrap();
-
-    assert_eq!(response.status(), StatusCode::FOUND);
-    let location = response.headers().get("location").unwrap().to_str().unwrap();
-    let location_url: Url = location.parse().unwrap();
-
-    let params: HashMap<String, String> = location_url
-        .query_pairs()
-        .map(|(k, v)| (k.to_string(), v.to_string()))
-        .collect();
-
-    // The forwarded request must carry the upstream (DigiD) client_id, not the wallet client_id.
-    assert_eq!(params.get("client_id").unwrap(), MOCK_UPSTREAM_CLIENT_ID);
-    // The wallet's code_challenge must NOT be forwarded — handler substitutes its own (v2,c2).
-    assert_eq!(params.get("code_challenge_method").unwrap(), "S256");
-    assert_ne!(params.get("code_challenge").unwrap(), wallet_code_challenge);
-    assert_ne!(params.get("client_id").unwrap(), MOCK_WALLET_CLIENT_ID);
-    assert!(location.starts_with(upstream_endpoint.as_str()));
-}
-
-#[tokio::test]
 async fn par_rejects_missing_code_challenge() {
     let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
-    let (_, _, issuer_identifier, _, tls_trust_anchor) = start_server(NonZeroUsize::MIN, Some(upstream_endpoint)).await;
+    let AuthCodeFlowServer {
+        issuer_identifier,
+        tls_trust_anchor,
+        ..
+    } = start_auth_code_flow_server(NonZeroUsize::MIN, upstream_endpoint).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .build()
@@ -470,52 +457,13 @@ async fn par_rejects_missing_code_challenge() {
 }
 
 #[tokio::test]
-async fn authorize_rejects_plain_code_challenge_method() {
-    let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
-    let (_, _, issuer_identifier, _, tls_trust_anchor) = start_server(NonZeroUsize::MIN, Some(upstream_endpoint)).await;
-
-    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
-        .redirect(Policy::none())
-        .build()
-        .unwrap();
-
-    let base = issuer_identifier.as_base_url().as_ref().as_str().to_string();
-
-    // PAR with `code_challenge_method=plain` — the handler bridges PKCE only when S256 is used.
-    let par_resp: PushedAuthorizationResponse = http_client
-        .post(format!("{base}issuance/par"))
-        .form(&[
-            ("response_type", "code"),
-            ("client_id", MOCK_WALLET_CLIENT_ID),
-            ("redirect_uri", "https://wallet.example.com/callback"),
-            ("code_challenge", "wallet-c1-challenge-value"),
-            ("code_challenge_method", "plain"),
-        ])
-        .send()
-        .await
-        .unwrap()
-        .json()
-        .await
-        .unwrap();
-
-    let mut authorize_url: Url = format!("{base}issuance/authorize").parse().unwrap();
-    authorize_url
-        .query_pairs_mut()
-        .append_pair("client_id", MOCK_WALLET_CLIENT_ID)
-        .append_pair("request_uri", &par_resp.request_uri);
-    let response = http_client.get(authorize_url).send().await.unwrap();
-
-    // TODO (PVW-5953): unsupported `code_challenge_method` should return `invalid_request` (400)
-    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    let body = response.text().await.unwrap();
-    assert!(body.contains("server_error"), "unexpected body: {body}");
-    assert!(body.contains("S256"), "unexpected body: {body}");
-}
-
-#[tokio::test]
 async fn authorize_rejects_unknown_request_uri() {
     let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
-    let (_, _, issuer_identifier, _, tls_trust_anchor) = start_server(NonZeroUsize::MIN, Some(upstream_endpoint)).await;
+    let AuthCodeFlowServer {
+        issuer_identifier,
+        tls_trust_anchor,
+        ..
+    } = start_auth_code_flow_server(NonZeroUsize::MIN, upstream_endpoint).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .redirect(Policy::none())
@@ -543,7 +491,11 @@ async fn authorize_rejects_unknown_request_uri() {
 #[tokio::test]
 async fn authorize_rejects_unknown_client_id() {
     let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
-    let (_, _, issuer_identifier, _, tls_trust_anchor) = start_server(NonZeroUsize::MIN, Some(upstream_endpoint)).await;
+    let AuthCodeFlowServer {
+        issuer_identifier,
+        tls_trust_anchor,
+        ..
+    } = start_auth_code_flow_server(NonZeroUsize::MIN, upstream_endpoint).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .redirect(Policy::none())
@@ -577,10 +529,38 @@ fn dpop_header_for(token_url: &Url) -> String {
         .to_string()
 }
 
+/// Plant an `AuthCodeIssued` session against the given authorizing_issuer using a freshly generated
+/// PKCE pair, returning the (issuer-generated code, code_verifier) the caller can use to drive
+/// `/token`. The wallet redirect URL the framework builds is discarded — these tests don't
+/// follow the wallet redirect, they call `/token` directly.
+async fn plant_authorized_session(authorizing_issuer: &TestAuthorizingIssuer) -> (AuthorizationCode, String) {
+    let pair = S256PkcePair::generate();
+    let challenge = pair.code_challenge().to_string();
+    let verifier = pair.into_code_verifier();
+    let documents = mock_issuable_documents(NonZeroUsize::MIN);
+    let (code, _redirect_url) = authorizing_issuer
+        .complete_authorization(
+            documents,
+            challenge,
+            "https://wallet.example.com/callback".parse().unwrap(),
+            None,
+        )
+        .await
+        .unwrap();
+    (code, verifier)
+}
+
 #[tokio::test]
 async fn token_rejects_missing_code_verifier() {
     let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
-    let (_, _, issuer_identifier, _, tls_trust_anchor) = start_server(NonZeroUsize::MIN, Some(upstream_endpoint)).await;
+    let AuthCodeFlowServer {
+        authorizing_issuer,
+        issuer_identifier,
+        tls_trust_anchor,
+        ..
+    } = start_auth_code_flow_server(NonZeroUsize::MIN, upstream_endpoint).await;
+
+    let (code, _verifier) = plant_authorized_session(&authorizing_issuer).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .build()
@@ -590,11 +570,8 @@ async fn token_rejects_missing_code_verifier() {
         .parse()
         .unwrap();
 
-    // TODO (PVW-5953): missing `code_verifier` should return `invalid_grant` (400)
     let token_request = TokenRequest {
-        grant_type: TokenRequestGrantType::AuthorizationCode {
-            code: "any-code".to_string().into(),
-        },
+        grant_type: TokenRequestGrantType::AuthorizationCode { code },
         code_verifier: None,
         client_id: None,
         redirect_uri: None,
@@ -608,16 +585,22 @@ async fn token_rejects_missing_code_verifier() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body = response.text().await.unwrap();
-    assert!(body.contains("server_error"), "unexpected body: {body}");
-    assert!(body.contains("missing wallet code_verifier"), "unexpected body: {body}");
+    assert!(body.contains("invalid_grant"), "unexpected body: {body}");
 }
 
 #[tokio::test]
 async fn token_rejects_unknown_code_verifier() {
     let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
-    let (_, _, issuer_identifier, _, tls_trust_anchor) = start_server(NonZeroUsize::MIN, Some(upstream_endpoint)).await;
+    let AuthCodeFlowServer {
+        authorizing_issuer,
+        issuer_identifier,
+        tls_trust_anchor,
+        ..
+    } = start_auth_code_flow_server(NonZeroUsize::MIN, upstream_endpoint).await;
+
+    let (code, _verifier) = plant_authorized_session(&authorizing_issuer).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .build()
@@ -627,12 +610,9 @@ async fn token_rejects_unknown_code_verifier() {
         .parse()
         .unwrap();
 
-    // TODO (PVW-5953): wrong `code_verifier` should return `invalid_grant` (400)
     let token_request = TokenRequest {
-        grant_type: TokenRequestGrantType::AuthorizationCode {
-            code: "any-code".to_string().into(),
-        },
-        code_verifier: Some("a-verifier-no-one-stored".to_string()),
+        grant_type: TokenRequestGrantType::AuthorizationCode { code },
+        code_verifier: Some("a-verifier-the-issuer-does-not-have".to_string()),
         client_id: None,
         redirect_uri: None,
     };
@@ -645,11 +625,7 @@ async fn token_rejects_unknown_code_verifier() {
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     let body = response.text().await.unwrap();
-    assert!(body.contains("server_error"), "unexpected body: {body}");
-    assert!(
-        body.contains("does not match any stored PKCE bridge entry"),
-        "unexpected body: {body}"
-    );
+    assert!(body.contains("invalid_grant"), "unexpected body: {body}");
 }

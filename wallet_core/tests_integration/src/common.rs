@@ -50,6 +50,7 @@ use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use pid_issuer::pid::mock::MockPidAuthorizationCodeFlow;
 use pid_issuer::pid::mock::mock_issuable_documents_pid;
+use pid_issuer::server::PidIssuer;
 use pid_issuer::settings::PidIssuerSettings;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use reqwest::Certificate;
@@ -345,10 +346,11 @@ pub async fn setup_env(
     let pid_issuer_url = start_pid_issuer_server(
         issuer_settings,
         Some(hsm),
-        MockPidAuthorizationCodeFlow::new(
-            Url::parse("https://upstream.example.com/authorize").unwrap(),
-            pid_issuable_documents,
-        ),
+        |public_url| {
+            let callback_uri = public_url.as_base_url().join("mock/digid/callback");
+            MockPidAuthorizationCodeFlow::new(callback_uri, pid_issuable_documents)
+        },
+        |authorizing_issuer| MockPidAuthorizationCodeFlow::callback_router(Arc::clone(authorizing_issuer)),
     )
     .await;
 
@@ -816,9 +818,16 @@ pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Op
     }
 }
 
-pub async fn start_pid_issuer_server<AE>(mut settings: PidIssuerSettings, hsm: Option<Pkcs11Hsm>, flow: AE) -> IssuerUrl
+pub async fn start_pid_issuer_server<AE, B, F>(
+    mut settings: PidIssuerSettings,
+    hsm: Option<Pkcs11Hsm>,
+    flow_builder: B,
+    auth_flow_router_builder: F,
+) -> IssuerUrl
 where
     AE: AuthorizationCodeFlow + Send + Sync + 'static,
+    B: FnOnce(&IssuerIdentifier) -> AE,
+    F: FnOnce(&Arc<PidIssuer<AE>>) -> Router,
 {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
@@ -835,18 +844,24 @@ where
         wia_trust_anchors: settings.wia_trust_anchors,
     };
 
+    let flow = flow_builder(&public_url);
+
     let (issuer, _, _, server_settings) = settings
         .issuer_settings
         .into_authorizing_issuer(hsm, Some(wia_config), |_| Ok::<_, Infallible>(flow))
         .await
         .unwrap();
 
+    let authorizing_issuer = Arc::new(issuer);
+    let auth_flow_router = auth_flow_router_builder(&authorizing_issuer);
+
     tokio::spawn(
         async move {
             if let Err(error) = pid_issuer::server::serve_with_listeners(
                 public_listener,
                 internal_listener,
-                issuer,
+                authorizing_issuer,
+                auth_flow_router,
                 server_settings,
                 serve_status_lists,
                 [],
@@ -990,45 +1005,41 @@ pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: &str) ->
     wallet
 }
 
-/// Construct a fake "redirect from DigiD" URL from an OIDC auth URL.
+/// Follow the in-process pid_issuer's `/authorize` → `/mock/digid/callback` → wallet redirect
+/// chain, returning the final wallet-facing redirect URL (with the issuer-generated `code` + the
+/// wallet's original `state`).
 ///
-/// Since the integration tests use `MockAttributeService` which ignores the token request
-/// content, any authorization code works. We only need the correct `state` parameter
-/// (to pass the CSRF check) and a redirect URI that starts with the wallet's issuance base URI.
-/// A random code ensures each call gets a fresh session in the pid issuer's session store.
+/// The pid_issuer is a real Authorization Server: `/authorize` redirects to the
+/// issuer's own mock-DigiD callback (instead of straight back to the wallet), and the callback
+/// is what plants the `AuthCodeIssued` session. Following both 302s is the simplest way to drive the
+/// flow to completion without coupling the helper to the mock's internal state.
 pub async fn fake_oidc_redirect(authorization_url: Url) -> Url {
-    let code = crypto::utils::random_string(32);
-
     let http_client = default_reqwest_client_builder()
         .redirect(Policy::none())
         .build()
         .unwrap();
 
-    // Follow the PAR redirect to the DigiD authorization endpoint.
-    let redirect_auth_url = http_client.get(authorization_url).send().await.unwrap();
-    let digid_auth_url = redirect_auth_url
+    // First hop: /authorize → /mock/digid/callback?code=<rnd>&state=<issuer_state>
+    let authorize_response = http_client.get(authorization_url).send().await.unwrap();
+    let callback_url: Url = authorize_response
         .headers()
         .get(header::LOCATION)
-        .unwrap()
+        .expect("authorize response should carry Location")
         .to_str()
         .unwrap()
-        .parse::<Url>()
+        .parse()
         .unwrap();
 
-    let redirect_uri = digid_auth_url
-        .query_pairs()
-        .find(|(key, _)| key == "redirect_uri")
-        .map(|(_, value)| value.into_owned())
-        .unwrap();
-    let state = digid_auth_url
-        .query_pairs()
-        .find(|(key, _)| key == "state")
-        .map(|(_, value)| value.into_owned())
-        .unwrap();
-
-    let mut redirect_uri = Url::parse(&redirect_uri).unwrap();
-    redirect_uri.set_query(Some(&format!("code={code}&state={state}")));
-    redirect_uri
+    // Second hop: /mock/digid/callback → <wallet_redirect_uri>?code=<issuer_code>&state=<wallet_state>
+    let callback_response = http_client.get(callback_url).send().await.unwrap();
+    callback_response
+        .headers()
+        .get(header::LOCATION)
+        .expect("mock callback response should carry Location")
+        .to_str()
+        .unwrap()
+        .parse()
+        .unwrap()
 }
 
 pub async fn do_pid_issuance(wallet: WalletWithStorage, pin: String) -> WalletWithStorage {

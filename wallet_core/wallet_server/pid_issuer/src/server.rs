@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Result;
+use axum::Router;
 use http_utils::health::HealthChecker;
 use http_utils::health::create_health_router;
 use issuer_common::nonce_store::ProofNonceStore;
@@ -10,6 +11,7 @@ use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::issuer::IssuanceData;
 use openid4vc_server::issuer::create_authorization_router;
+use openid4vc_server::issuer::create_issuance_router;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::server::add_cache_control_no_store_layer;
 use server_utils::server::create_internal_listener;
@@ -35,7 +37,8 @@ pub type PidIssuer<AF> = AuthorizingIssuer<
 >;
 
 pub async fn serve<AF>(
-    issuer: PidIssuer<AF>,
+    authorizing_issuer: Arc<PidIssuer<AF>>,
+    auth_flow_router: Router,
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
@@ -46,7 +49,8 @@ where
     serve_with_listeners(
         create_wallet_listener(&server_settings.wallet_server).await?,
         create_internal_listener(&server_settings.internal_server).await?,
-        issuer,
+        authorizing_issuer,
+        auth_flow_router,
         server_settings,
         serve_status_lists,
         health_checkers,
@@ -54,10 +58,12 @@ where
     .await
 }
 
+#[expect(clippy::too_many_arguments, reason = "Setup function")]
 pub async fn serve_with_listeners<AF>(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
-    issuer: PidIssuer<AF>,
+    authorizing_issuer: Arc<PidIssuer<AF>>,
+    auth_flow_router: Router,
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
@@ -65,12 +71,13 @@ pub async fn serve_with_listeners<AF>(
 where
     AF: AuthorizationCodeFlow + Send + Sync + 'static,
 {
-    let authorizing_issuer = Arc::new(issuer);
-
     let status_list_services =
         VecNonEmpty::try_from(authorizing_issuer.issuer().status_lists().cloned().collect_vec())?;
 
-    let mut router = add_cache_control_no_store_layer(create_authorization_router(Arc::clone(&authorizing_issuer)));
+    let issuance_router = create_issuance_router(Arc::clone(authorizing_issuer.issuer()));
+    let authorization_router = create_authorization_router(Arc::clone(&authorizing_issuer));
+    let mut router =
+        add_cache_control_no_store_layer(issuance_router.merge(authorization_router).merge(auth_flow_router));
 
     if serve_status_lists {
         let status_list_router = create_serve_router(

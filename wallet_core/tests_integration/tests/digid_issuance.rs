@@ -8,7 +8,7 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-use issuer_common::pkce_store::IssuerPkceStore;
+use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use itertools::Itertools;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -65,29 +65,41 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .unwrap();
 
     let digid_metadata_cache = DigidMetadataCache::try_new(settings.digid.client_settings.clone()).unwrap();
-    let pkce_store = Arc::new(IssuerPkceStore::new(
+    let state_bridge_store = Arc::new(IssuerStateBridgeStore::new(
         StoreConnection::try_new(settings.issuer_settings.server_settings.storage.url.clone())
             .await
             .unwrap(),
     ));
-
-    let flow = UpstreamOidcAuthorizationCodeFlow::try_new(
-        HttpBrpClient::new(settings.brp_server.clone()),
-        &settings.digid.bsn_privkey,
-        settings.digid.client_id.clone(),
-        digid_metadata_cache,
-        SecretKeyVariant::from_settings(
-            SecretKey::Software {
-                secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
-            },
-            None,
-        )
-        .unwrap(),
-        pkce_store,
+    let brp_client = HttpBrpClient::new(settings.brp_server.clone());
+    let bsn_privkey = settings.digid.bsn_privkey.clone();
+    let digid_client_id = settings.digid.client_id.clone();
+    let recovery_secret_key = SecretKeyVariant::from_settings(
+        SecretKey::Software {
+            secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
+        },
+        None,
     )
     .unwrap();
 
-    let issuer_url = start_pid_issuer_server(settings.clone(), hsm, flow).await;
+    let issuer_url = start_pid_issuer_server(
+        settings.clone(),
+        hsm,
+        |public_url| {
+            let callback_uri = public_url.as_base_url().join("digid/callback");
+            UpstreamOidcAuthorizationCodeFlow::try_new(
+                brp_client,
+                &bsn_privkey,
+                digid_client_id,
+                digid_metadata_cache,
+                recovery_secret_key,
+                state_bridge_store,
+                callback_uri,
+            )
+            .unwrap()
+        },
+        |authorizing_issuer| UpstreamOidcAuthorizationCodeFlow::callback_router(Arc::clone(authorizing_issuer)),
+    )
+    .await;
 
     start_gba_hc_converter(gba_hc_converter_settings()).await;
 

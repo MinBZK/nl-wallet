@@ -200,7 +200,9 @@ impl From<TokenRequestError> for TokenErrorCode {
             | TokenRequestError::CredentialTypeNotOffered(_, _) => TokenErrorCode::ServerError,
             TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
             TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
-            TokenRequestError::SessionNotFound => TokenErrorCode::InvalidGrant,
+            TokenRequestError::SessionNotFound
+            | TokenRequestError::MissingCodeVerifier
+            | TokenRequestError::PkceVerificationFailed => TokenErrorCode::InvalidGrant,
         }
     }
 }
@@ -280,9 +282,9 @@ impl From<AuthorizeError> for ErrorResponse<AuthorizeErrorCode> {
                     AuthorizeErrorCode::InvalidClient
                 }
                 AuthorizeError::UnknownRequestUri(_) => AuthorizeErrorCode::InvalidRequest,
-                AuthorizeError::ParStore(_) | AuthorizeError::AuthorizationCodeFlow(_) | AuthorizeError::Encode(_) => {
-                    AuthorizeErrorCode::ServerError
-                }
+                AuthorizeError::ParStore(_)
+                | AuthorizeError::AuthorizationCodeFlow(_)
+                | AuthorizeError::EncodeRedirectQuery(_) => AuthorizeErrorCode::ServerError,
             },
             error_description: Some(description),
             error_uri: None,

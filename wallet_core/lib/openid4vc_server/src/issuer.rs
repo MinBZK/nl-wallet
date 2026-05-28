@@ -89,12 +89,11 @@ impl<K, L, S, N, PAS, AF> Clone for AuthorizationState<K, L, S, N, PAS, AF> {
     }
 }
 
-/// Issuance Phase endpoints (credential / nonce / metadata). Does **not** include the token endpoint;
-/// that route is supplied per deployment by [`create_authorization_router`] (auth-code flow: AF
-/// provisions issuables) or [`create_pre_authorized_token_router`] (pre-authorized-code: no
-/// provisioning, session pre-populated externally). Kept private because credential endpoints
-/// without a token endpoint are a half-built server that 401s every request.
-fn create_issuance_router<K, L, S, N>(issuer: Arc<Issuer<K, L, S, N>>) -> Router
+/// Issuance Phase endpoints (token / credential / nonce / metadata). Handles `/issuance/token`
+/// for both pre-authorized and authization-code sessions — the inner
+/// [`Issuer::process_token_request`] dispatches on the variant. Auth-code deployments mount
+/// this alongside [`create_authorization_router`]; pre-auth deployments mount it standalone.
+pub fn create_issuance_router<K, L, S, N>(issuer: Arc<Issuer<K, L, S, N>>) -> Router
 where
     K: EcdsaKeySend + Sync + 'static,
     L: StatusListService + Send + Sync + 'static,
@@ -104,6 +103,7 @@ where
     Router::new()
         .route("/.well-known/openid-credential-issuer", get(metadata))
         .route("/.well-known/oauth-authorization-server", get(oauth_metadata))
+        .route("/issuance/token", post(token))
         .route("/issuance/credential_preview", post(credential_preview))
         .route("/issuance/nonce", post(nonce))
         .route("/issuance/credential", post(credential))
@@ -113,50 +113,26 @@ where
         .with_state(IssuanceState { issuer })
 }
 
-/// Pre-authorized-code-grant deployment: the issuance endpoints plus a `/token` route that
-/// delegates straight to the inner [`Issuer`] without any flow involvement. Used by deployments
-/// that pre-populate the session externally (e.g. via `IssuanceResultHandler`).
-pub fn create_pre_authorized_token_router<K, L, S, N>(issuer: Arc<Issuer<K, L, S, N>>) -> Router
-where
-    K: EcdsaKeySend + Sync + 'static,
-    L: StatusListService + Send + Sync + 'static,
-    S: SessionStore<IssuanceData> + Send + Sync + 'static,
-    N: NonceStore + Send + Sync + 'static,
-{
-    let token_router = Router::new()
-        .route("/issuance/token", post(token_pre_authorized))
-        .with_state(IssuanceState {
-            issuer: Arc::clone(&issuer),
-        });
-
-    create_issuance_router(issuer).merge(token_router)
-}
-
-/// Authorization-code-flow deployment: the Authorization Phase endpoints (par / authorize /
-/// token via the AF) merged with the issuance endpoints, all bound to the same inner [`Issuer`].
+/// Authorization Phase endpoints (PAR + `/authorize`). The wallet's `/token` request is
+/// served by [`create_issuance_router`] in both flows; the auth-code-flow callback is owned
+/// by the concrete [`AuthorizationCodeFlow`] impl and mounted by the binary.
 pub fn create_authorization_router<K, L, S, N, PAS, AF>(
     authorizing_issuer: Arc<AuthorizingIssuer<K, L, S, N, PAS, AF>>,
 ) -> Router
 where
-    K: EcdsaKeySend + Sync + 'static,
-    L: StatusListService + Send + Sync + 'static,
-    S: SessionStore<IssuanceData> + Send + Sync + 'static,
-    N: NonceStore + Send + Sync + 'static,
+    L: Send + Sync + 'static,
+    S: Send + Sync + 'static,
+    N: Send + Sync + 'static,
+    K: Send + Sync + 'static,
     PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
     AF: AuthorizationCodeFlow + Send + Sync + 'static,
 {
-    let issuance_router = create_issuance_router(Arc::clone(authorizing_issuer.issuer()));
-
-    let authorization_router = Router::new()
+    Router::new()
         .route("/issuance/credential_offer", get(credential_offer))
         .route("/issuance/par", post(pushed_authorization_request))
         .route("/issuance/authorize", get(authorize))
-        .route("/issuance/token", post(token))
-        .with_state(AuthorizationState { authorizing_issuer });
-
-    issuance_router.merge(authorization_router)
+        .with_state(AuthorizationState { authorizing_issuer })
 }
-
 async fn metadata<K, L, S, N>(State(state): State<IssuanceState<K, L, S, N>>) -> Json<IssuerMetadata> {
     Json(state.issuer.metadata().clone())
 }
@@ -286,7 +262,7 @@ where
     Ok(StatusCode::NO_CONTENT)
 }
 
-async fn token_pre_authorized<K, L, S, N>(
+async fn token<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Form(token_request): Form<TokenRequest>,
@@ -345,29 +321,6 @@ where
         .inspect_err(|error| warn!("processing authorization request failed: {error}"))?;
 
     Ok((StatusCode::FOUND, [(header::LOCATION, redirect_url.to_string())]).into_response())
-}
-
-async fn token<K, L, S, N, PAS, AF>(
-    State(state): State<AuthorizationState<K, L, S, N, PAS, AF>>,
-    TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
-    Form(token_request): Form<TokenRequest>,
-) -> Result<(HeaderMap, Json<TokenResponse>), ErrorResponse<TokenErrorCode>>
-where
-    K: EcdsaKeySend,
-    S: SessionStore<IssuanceData>,
-    AF: AuthorizationCodeFlow,
-{
-    let (response, dpop_nonce) = state
-        .authorizing_issuer
-        .process_token_request(token_request, dpop)
-        .await
-        .inspect_err(|error| warn!("processing token request failed: {error}"))?;
-
-    let headers = HeaderMap::from_iter([(
-        HeaderName::from_str(DPOP_NONCE_HEADER_NAME).unwrap(),
-        HeaderValue::from_str(&dpop_nonce).unwrap(),
-    )]);
-    Ok((headers, Json(response)))
 }
 
 static DPOP_HEADER_NAME_LOWERCASE: HeaderName = HeaderName::from_static("dpop");

@@ -4,6 +4,7 @@ use sea_orm_migration::prelude::*;
 mod m20220101_000001_create_proof_nonce_table;
 mod m20260507_000001_create_pushed_authorization_request_table;
 mod m20260514_000001_create_pkce_flow_table;
+mod m20260522_000001_create_state_bridge_table;
 
 pub struct Migrator;
 
@@ -29,5 +30,6 @@ pub fn authorization_phase_migrations() -> Vec<Box<dyn MigrationTrait>> {
     vec![
         Box::new(m20260507_000001_create_pushed_authorization_request_table::Migration),
         Box::new(m20260514_000001_create_pkce_flow_table::Migration),
+        Box::new(m20260522_000001_create_state_bridge_table::Migration),
     ]
 }

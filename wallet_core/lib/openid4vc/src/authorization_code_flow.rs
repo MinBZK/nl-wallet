@@ -7,17 +7,14 @@
 //! endpoints to the configured impl.
 
 use url::Url;
-use utils::vec_at_least::VecNonEmpty;
 
 use crate::authorization::VciAuthorizationRequest;
-use crate::issuable_document::IssuableDocument;
 use crate::token::AuthorizationCode;
-use crate::token::TokenRequest;
 
 /// Defines what the framework should do in response to `/authorize`, expressed at the protocol level. The
 /// `openid4vc_server` HTTP layer turns each variant into the corresponding 302 redirect.
 pub enum AuthorizeOutcome {
-    /// Send the user-agent to this URL (e.g. an upstream OIDC provider). The impl is
+    /// Send the user-agent to this URL (e.g. an external identity provider). The impl is
     /// responsible for whatever callback / state mechanism eventually turns this round-trip
     /// into an authorization code presentable at `/token`; that mechanism is impl-private and
     /// not modelled by this trait.
@@ -34,11 +31,9 @@ pub trait AuthorizationCodeFlow {
     type Error: std::error::Error + Send + Sync + 'static;
 
     /// Called after the framework has consumed the PAR entry and resolved the original
-    /// authorization request. The implementation decides how the user authenticates and returns the
-    /// protocol-level outcome.
+    /// authorization request. The implementation decides how the user authenticates and
+    /// returns the protocol-level outcome. Anything the impl needs after this point -- an
+    /// external callback, an issuer-generated code, the issuance session itself -- is the impl's
+    /// responsibility and is not modelled by this trait.
     async fn authorize(&self, request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error>;
-
-    /// Called at `/token`. Given the token request (which carries the authorization code),
-    /// produce the documents to issue.
-    async fn issuables(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error>;
 }

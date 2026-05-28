@@ -1,13 +1,30 @@
+use std::collections::HashMap;
 use std::convert::Infallible;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
+use axum::Router;
+use axum::extract::Query;
+use axum::extract::State;
+use axum::http::StatusCode;
+use axum::http::header;
+use axum::response::IntoResponse;
+use axum::response::Response;
+use axum::routing::get;
+use crypto::utils::random_string;
 use openid4vc::Format;
+use openid4vc::authorization::PkceCodeChallenge;
 use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;
+use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::issuable_document::IssuableDocument;
-use openid4vc::token::TokenRequest;
+use openid4vc::issuer::IssuanceData;
+use openid4vc::server_state::SessionStore;
+use serde::Deserialize;
+use tracing::warn;
 use url::Url;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -28,16 +45,107 @@ use crate::pid::constants::PID_RESIDENT_HOUSE_NUMBER;
 use crate::pid::constants::PID_RESIDENT_POSTAL_CODE;
 use crate::pid::constants::PID_RESIDENT_STREET;
 
-/// Mock [`AuthorizationCodeFlow`] for pid having a preloaded redirect URL and issuable documents.
+/// Mock [`AuthorizationCodeFlow`] for pid, providing a deterministic end-to-end stand-in for the
+/// real DigiD-backed flow:
+/// - `authorize` captures the wallet's PKCE challenge, redirect_uri and state into an in-memory bridge keyed by a
+///   generated `issuer_state`, then 302s to the issuer's own mock callback URL
+///   `<issuer_url>/mock/digid/callback?code=<rnd>&state=<issuer_state>`.
+/// - `callback_router` mounts that callback URL: it consumes the bridge entry, plants an `AuthCodeIssued` session via
+///   [`AuthorizingIssuer::complete_authorization`] with copies of the preconfigured documents (fresh ids), and 302s the
+///   user-agent to the wallet's universal link with the issuer-generated code + the wallet's original state.
 pub struct MockPidAuthorizationCodeFlow {
-    redirect_to: Url,
+    callback_uri: Url,
     documents: VecNonEmpty<IssuableDocument>,
+    bridge: Mutex<HashMap<String, MockBridgeEntry>>,
+}
+
+#[derive(Clone)]
+struct MockBridgeEntry {
+    wallet_code_challenge: String,
+    wallet_redirect_uri: Url,
+    wallet_state: Option<String>,
 }
 
 impl MockPidAuthorizationCodeFlow {
-    pub fn new(redirect_to: Url, documents: VecNonEmpty<IssuableDocument>) -> Self {
-        Self { redirect_to, documents }
+    pub fn new(callback_uri: Url, documents: VecNonEmpty<IssuableDocument>) -> Self {
+        Self {
+            callback_uri,
+            documents,
+            bridge: Mutex::new(HashMap::new()),
+        }
     }
+
+    /// Mount the mock's `/mock/digid/callback` route on a fresh [`axum::Router`]. The integration
+    /// scaffolding merges this with the framework's authorization and issuance routers.
+    pub fn callback_router<K, L, S, N, PAS>(authorizing_issuer: Arc<AuthorizingIssuer<K, L, S, N, PAS, Self>>) -> Router
+    where
+        K: Send + Sync + 'static,
+        L: Send + Sync + 'static,
+        S: SessionStore<IssuanceData> + Send + Sync + 'static,
+        N: Send + Sync + 'static,
+        PAS: Send + Sync + 'static,
+    {
+        Router::new()
+            .route("/mock/digid/callback", get(mock_digid_callback::<K, L, S, N, PAS>))
+            .with_state(authorizing_issuer)
+    }
+}
+
+#[derive(Deserialize)]
+struct MockDigidCallbackQuery {
+    state: String,
+}
+
+type MockDigidCallbackAuthorizingIssuer<K, L, S, N, PAS> =
+    Arc<AuthorizingIssuer<K, L, S, N, PAS, MockPidAuthorizationCodeFlow>>;
+
+async fn mock_digid_callback<K, L, S, N, PAS>(
+    State(authorizing_issuer): State<MockDigidCallbackAuthorizingIssuer<K, L, S, N, PAS>>,
+    Query(MockDigidCallbackQuery { state: issuer_state }): Query<MockDigidCallbackQuery>,
+) -> Response
+where
+    K: Send + Sync + 'static,
+    L: Send + Sync + 'static,
+    S: SessionStore<IssuanceData> + Send + Sync + 'static,
+    N: Send + Sync + 'static,
+    PAS: Send + Sync + 'static,
+{
+    let flow = authorizing_issuer.flow();
+
+    let entry = match flow.bridge.lock().unwrap().remove(&issuer_state) {
+        Some(entry) => entry,
+        None => {
+            warn!("mock digid callback: unknown issuer_state");
+            return (StatusCode::BAD_REQUEST, "unknown state").into_response();
+        }
+    };
+
+    let documents = flow
+        .documents
+        .nonempty_iter()
+        .cloned()
+        .map(|mut document| {
+            document.id = Uuid::new_v4();
+            document
+        })
+        .collect();
+    let wallet_redirect_url = match authorizing_issuer
+        .complete_authorization(
+            documents,
+            entry.wallet_code_challenge,
+            entry.wallet_redirect_uri,
+            entry.wallet_state,
+        )
+        .await
+    {
+        Ok((_code, url)) => url,
+        Err(error) => {
+            warn!("mock digid callback: complete_authorization failed: {error}");
+            return (StatusCode::INTERNAL_SERVER_ERROR, "session store error").into_response();
+        }
+    };
+
+    (StatusCode::FOUND, [(header::LOCATION, wallet_redirect_url.to_string())]).into_response()
 }
 
 pub fn mock_issuable_documents_pid() -> VecNonEmpty<IssuableDocument> {
@@ -60,7 +168,7 @@ pub fn mock_issuable_documents_pid() -> VecNonEmpty<IssuableDocument> {
 impl Default for MockPidAuthorizationCodeFlow {
     fn default() -> Self {
         Self::new(
-            Url::parse("https://upstream.example.com/authorize").unwrap(),
+            Url::parse("https://issuer.example.com/mock/digid/callback").unwrap(),
             mock_issuable_documents_pid(),
         )
     }
@@ -70,29 +178,32 @@ impl AuthorizationCodeFlow for MockPidAuthorizationCodeFlow {
     type Error = Infallible;
 
     async fn authorize(&self, request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error> {
-        // Encode the (untransformed) authorization request as the redirect URL's query string,
-        // matching what a real upstream-OIDC flow does. Integration test wallet helpers parse
-        // `redirect_uri` and `state` out of this URL to complete the fake OIDC dance.
-        let query_string =
-            serde_urlencoded::to_string(&request).expect("VciAuthorizationRequest should always urlencode-serialize");
-        let mut redirect_url = self.redirect_to.clone();
-        redirect_url.set_query(Some(&query_string));
+        // Capture the wallet-side parameters into the in-memory bridge so the mock callback can
+        // build the wallet-facing redirect later.
+        let wallet_code_challenge = match request.code_challenge {
+            PkceCodeChallenge::S256 { code_challenge } | PkceCodeChallenge::Plain { code_challenge } => code_challenge,
+        };
+        let wallet_redirect_uri = request.redirect_uri.into_inner();
+        let wallet_state = request.oauth_request.state;
+
+        let issuer_state = random_string(32);
+        self.bridge.lock().unwrap().insert(
+            issuer_state.clone(),
+            MockBridgeEntry {
+                wallet_code_challenge,
+                wallet_redirect_uri,
+                wallet_state,
+            },
+        );
+
+        // Redirect to our own mock callback URL with a fake upstream code + the issuer_state. The
+        // callback handler will resolve the bridge entry and complete the flow.
+        let mut redirect_url = self.callback_uri.clone();
+        let query =
+            serde_urlencoded::to_string([("code", random_string(32).as_str()), ("state", issuer_state.as_str())])
+                .expect("encoding (code, state) query string should never fail");
+        redirect_url.set_query(Some(&query));
         Ok(AuthorizeOutcome::RedirectTo(redirect_url))
-    }
-
-    async fn issuables(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
-        // Return copies with fresh ids so each call yields unique batch_ids.
-        let documents = self
-            .documents
-            .nonempty_iter()
-            .cloned()
-            .map(|mut document| {
-                document.id = Uuid::new_v4();
-                document
-            })
-            .collect();
-
-        Ok(documents)
     }
 }
 
