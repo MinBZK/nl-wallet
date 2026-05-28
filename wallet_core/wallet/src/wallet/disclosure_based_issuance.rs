@@ -202,6 +202,7 @@ mod tests {
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::verifier::ToPostAuthResponseErrorCode;
     use openid4vc::wallet_issuance::IssuanceFlow;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -463,5 +464,63 @@ mod tests {
                 found: RedirectUriPurpose::Issuance,
             })
         );
+    }
+
+    #[tokio::test]
+    async fn test_wallet_continue_disclosure_based_issuance_error_no_pre_authorized_code() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // The disclosure session results in a URL that contains a Credential Offer. Note that it does not actually
+        // matter what this URL contains, as it will not be parsed.
+        let mut disclosure_session = setup_wallet_disclosure_session(CredentialFormat::SdJwt);
+
+        let credential_offer = format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap();
+        disclosure_session
+            .protocol_state
+            .expect_disclose()
+            .times(1)
+            .return_once(|_| Ok(Some(credential_offer)));
+
+        wallet.session = Some(Session::Disclosure(disclosure_session));
+
+        // Set up expected database operations during disclosure
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .times(1)
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .times(1)
+            .return_once(|_| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_log_disclosure_event()
+            .times(1)
+            .returning(|_, _, _, _, _| Ok(()));
+
+        // Set up issuance discovery to result in an Authorization Code flow, when we expected a Pre-Authorized flow.
+        wallet
+            .issuance_discovery
+            .expect_start_with_credential_offer_sync()
+            .times(1)
+            .return_once(move || {
+                let authorization_session = MockAuthorizationSession::new();
+
+                let mock = IssuanceFlow::AuthorizationCode { authorization_session };
+
+                Ok(mock)
+            });
+
+        let error = wallet
+            .continue_disclosure_based_issuance(&[0], PIN.to_owned())
+            .await
+            .expect_err("continuing disclosure based issuance should have resulted in an error");
+
+        assert_matches!(error, DisclosureBasedIssuanceError::NoPreAuthorizedCode(_));
     }
 }
