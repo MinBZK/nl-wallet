@@ -279,7 +279,7 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_wallet_accept_disclosure_based_issuance(
+    async fn test_wallet_continue_disclosure_based_issuance(
         #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
     ) {
         // Prepare a registered and unlocked wallet with an active disclosure session.
@@ -369,7 +369,7 @@ mod tests {
         let previews = wallet
             .continue_disclosure_based_issuance(&[0], PIN.to_owned())
             .await
-            .expect("Accepting disclosure based issuance should not have resulted in an error");
+            .expect("continuing disclosure based issuance should not have resulted in an error");
 
         assert!(!previews.is_empty())
     }
@@ -385,7 +385,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_wallet_accept_disclosure_based_issuance_no_attestations() {
+    async fn test_wallet_continue_disclosure_based_issuance_no_attestations() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -436,14 +436,14 @@ mod tests {
         let previews = wallet
             .continue_disclosure_based_issuance(&[0], PIN.to_owned())
             .await
-            .expect("Accepting disclosure based issuance should not have resulted in an error");
+            .expect("continuing disclosure based issuance should not have resulted in an error");
 
         // By offering zero attestations to issue, the issuer says that it has no attestations to offer.
         assert!(previews.is_empty());
     }
 
     #[tokio::test]
-    async fn test_wallet_accept_disclosure_based_issuance_error_wrong_redirect_uri_purpose() {
+    async fn test_wallet_continue_disclosure_based_issuance_error_wrong_redirect_uri_purpose() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -454,7 +454,7 @@ mod tests {
         let error = wallet
             .continue_disclosure_based_issuance(&[0], PIN.to_owned())
             .await
-            .expect_err("Accepting disclosure based issuance should have resulted in an error");
+            .expect_err("continuing disclosure based issuance should have resulted in an error");
 
         assert_matches!(
             error,
