@@ -25,27 +25,19 @@ impl WellKnownPath {
         match self {
             Self::CredentialIssuer | Self::OauthAuthorizationServer => {
                 let url = url.as_ref();
-                let path = strip_trailing_slash(url.path());
-                // Both paths are already safe url encoded
-                url.join(&format!("/.well-known/{}{path}", self.as_str())).unwrap()
+                let path = url.path();
+                let path = path.strip_suffix('/').unwrap_or(path);
+                url.join(&format!("/.well-known/{}{path}", self.as_str()))
+                    .expect("both paths are already safe url encoded")
             }
             Self::OpenidConfiguration => {
-                // OpenID Connect Discovery specifies this way, but
-                // OAuth 2.0 Authorization Server Metadata [RFC-8414] specifies the same
-                // identifier to be constructed like `oauth-authorization-server`.
-                // We choose to only follow OIDC Discovery for the only implementation
-                // is in our own pid-issuer.
+                // OpenID Connect Discovery 1.0 and OAuth Authorization Server Metadata [RFC 8414]
+                // conflict on this identifier: OIDC Discovery appends after the path, RFC 8414
+                // inserts host-level. We follow OIDC Discovery because our only consumer of
+                // `openid-configuration` is our OIDC provider (nl-rdo-max).
                 issuer.as_base_url().join(&format!("/.well-known/{}", self.as_str()))
             }
         }
-    }
-}
-
-fn strip_trailing_slash(path: &str) -> &str {
-    if path.ends_with('/') {
-        path.split_at(path.len() - 1).0
-    } else {
-        path
     }
 }
 
