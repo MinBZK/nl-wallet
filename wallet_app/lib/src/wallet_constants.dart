@@ -8,6 +8,7 @@ const kDefaultAnimationDuration = Duration(milliseconds: 300);
 // UI
 const double kCardBreakPointWidth = 300; // Used to calculate columns for MasonryGrid
 const EdgeInsets kDefaultTitlePadding = EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 8);
+const double kDefaultHorizontalPadding = 16;
 
 // Security
 const kPinDigits = 6;

@@ -19,6 +19,14 @@ impl WellKnownPath {
             Self::OpenidConfiguration => "openid-configuration",
         }
     }
+
+    fn url(self, issuer: &IssuerIdentifier) -> Url {
+        let url = issuer.as_base_url().as_ref();
+        let path = url.path();
+        let path = path.strip_suffix('/').unwrap_or(path);
+        url.join(&format!("/.well-known/{}{path}", self.as_str()))
+            .expect("both paths are already safe url encoded")
+    }
 }
 
 pub trait WellKnownMetadata {
@@ -37,13 +45,6 @@ pub enum WellKnownError {
     },
 }
 
-/// Constructs a well-known metadata URL by appending the well-known path to the issuer identifier.
-fn well_known_url(issuer: &IssuerIdentifier, suffix: WellKnownPath) -> Url {
-    // TODO (PVW-5527): spec-compliant URL construction (inserting the well-known path between host and path
-    // components as per the OpenID4VCI specification) is tracked in PVW-5527.
-    issuer.as_base_url().join(&format!("/.well-known/{}", suffix.as_str()))
-}
-
 pub async fn fetch_well_known<T>(
     client: &HttpJsonClient,
     issuer: &IssuerIdentifier,
@@ -52,7 +53,7 @@ pub async fn fetch_well_known<T>(
 where
     T: DeserializeOwned + WellKnownMetadata,
 {
-    let url = well_known_url(issuer, path);
+    let url = path.url(issuer);
     let metadata: T = client.get(url).await?;
     if metadata.issuer_identifier() != issuer {
         return Err(WellKnownError::IssuerIdentifierMismatch {
@@ -65,35 +66,60 @@ where
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use super::*;
 
     fn issuer(s: &str) -> IssuerIdentifier {
         s.parse().unwrap()
     }
 
-    #[test]
-    fn test_well_known_url_no_path() {
-        let url = well_known_url(&issuer("https://example.com/"), WellKnownPath::CredentialIssuer);
-        assert_eq!(url.as_str(), "https://example.com/.well-known/openid-credential-issuer");
+    #[rstest]
+    #[case(WellKnownPath::CredentialIssuer, "openid-credential-issuer")]
+    #[case(WellKnownPath::OauthAuthorizationServer, "oauth-authorization-server")]
+    #[case(WellKnownPath::OpenidConfiguration, "openid-configuration")]
+    fn test_well_known_url_no_path(#[case] path: WellKnownPath, #[case] identifier: &str) {
+        let issuer = issuer("https://example.com/");
+        let url = path.url(&issuer);
+        assert_eq!(url.as_str(), format!("https://example.com/.well-known/{identifier}"));
     }
 
-    #[test]
-    fn test_well_known_url_with_path() {
-        // Note: spec-compliant behavior would insert the well-known path before the tenant segment
-        // (PVW-5527). This test documents the current (non-compliant) behavior.
-        let url = well_known_url(&issuer("https://example.com/tenant"), WellKnownPath::CredentialIssuer);
+    #[rstest]
+    #[case(WellKnownPath::CredentialIssuer, "openid-credential-issuer")]
+    #[case(WellKnownPath::OauthAuthorizationServer, "oauth-authorization-server")]
+    #[case(WellKnownPath::OpenidConfiguration, "openid-configuration")]
+    fn test_well_known_url_with_path(#[case] path: WellKnownPath, #[case] identifier: &str) {
+        let issuer = issuer("https://example.com/tenant");
+        let url = path.url(&issuer);
         assert_eq!(
             url.as_str(),
-            "https://example.com/tenant/.well-known/openid-credential-issuer"
+            format!("https://example.com/.well-known/{identifier}/tenant")
         );
     }
 
-    #[test]
-    fn test_well_known_url_oauth_suffix() {
-        let url = well_known_url(&issuer("https://example.com/"), WellKnownPath::OauthAuthorizationServer);
+    #[rstest]
+    #[case(WellKnownPath::CredentialIssuer, "openid-credential-issuer")]
+    #[case(WellKnownPath::OauthAuthorizationServer, "oauth-authorization-server")]
+    #[case(WellKnownPath::OpenidConfiguration, "openid-configuration")]
+    fn test_well_known_url_with_path_and_trailing_slash(#[case] path: WellKnownPath, #[case] identifier: &str) {
+        let issuer = issuer("https://example.com/tenant/");
+        let url = path.url(&issuer);
         assert_eq!(
             url.as_str(),
-            "https://example.com/.well-known/oauth-authorization-server"
+            format!("https://example.com/.well-known/{identifier}/tenant")
+        );
+    }
+
+    #[rstest]
+    #[case(WellKnownPath::CredentialIssuer, "openid-credential-issuer")]
+    #[case(WellKnownPath::OauthAuthorizationServer, "oauth-authorization-server")]
+    #[case(WellKnownPath::OpenidConfiguration, "openid-configuration")]
+    fn test_well_known_url_with_multi_segment_paths(#[case] path: WellKnownPath, #[case] identifier: &str) {
+        let issuer = issuer("https://example.com/tenant/sub-tenant");
+        let url = path.url(&issuer);
+        assert_eq!(
+            url.as_str(),
+            format!("https://example.com/.well-known/{identifier}/tenant/sub-tenant")
         );
     }
 }

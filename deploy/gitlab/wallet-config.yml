@@ -15,7 +15,7 @@ wallet-config-ont:
       artifacts: true
   rules:
     - !reference [.on-schedule-nightly-performance-test, rules]
-    - !reference [.default-or-merge-request-manual, rules]
+    - !reference [.default-or-merge-request, rules]
 
 wallet-config-demo:
   extends: .wallet-config

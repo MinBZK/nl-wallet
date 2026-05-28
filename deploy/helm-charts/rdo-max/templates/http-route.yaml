@@ -43,4 +43,30 @@ spec:
       {{- with .Values.httpRoute.filters }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
+
+    # .well-known redirects
+    {{- if .Values.httpRoute.contextPath }}
+    {{- $port := .Values.max.config.asgi.port }}
+    {{- $contextPath := .Values.httpRoute.contextPath }}
+    {{- $filters := .Values.httpRoute.filters }}
+    {{- range list "openid-configuration" }}
+    - backendRefs:
+        - name: {{ $name }}
+          port: {{ $port }}
+      matches:
+        - path:
+            type: PathPrefix
+            value: "/.well-known/{{ . }}/{{ $contextPath }}"
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: "/.well-known/{{ . }}"
+        {{- with $filters }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+
 {{- end }}

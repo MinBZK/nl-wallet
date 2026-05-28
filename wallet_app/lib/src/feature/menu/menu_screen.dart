@@ -102,14 +102,9 @@ class MenuScreen extends StatelessWidget {
   List<Widget> _buildMenuItems(BuildContext context) {
     final defaultMenuItems = [
       MenuItem(
-        label: Text.rich(context.l10n.menuScreenTourCta.toTextSpan(context)),
-        leftIcon: const Icon(Icons.play_arrow),
-        onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.tourOverviewRoute),
-      ),
-      MenuItem(
         label: Text.rich(context.l10n.menuScreenHelpCta.toTextSpan(context)),
         leftIcon: const Icon(Icons.help_outline),
-        onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.needHelpRoute),
+        onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.helpOverviewRoute),
       ),
       MenuItem(
         label: Text.rich(context.l10n.menuScreenScanQrCta.toTextSpan(context)),
