@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../domain/model/attribute/attribute.dart';
 import '../domain/model/consumable.dart';
 import '../domain/model/disclosure/start_disclosure_request.dart';
+import '../domain/model/help/help_category.dart';
+import '../domain/model/help/help_subcategory.dart';
 import '../domain/model/result/application_error.dart';
 import '../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../domain/usecase/transfer/confirm_wallet_transfer_usecase.dart';
@@ -35,6 +37,13 @@ import '../feature/disclosure/argument/disclosure_screen_argument.dart';
 import '../feature/disclosure/bloc/disclosure_bloc.dart';
 import '../feature/disclosure/disclosure_screen.dart';
 import '../feature/forgot_pin/forgot_pin_screen.dart';
+import '../feature/help/argument/help_topic_screen_argument.dart';
+import '../feature/help/bloc/help_overview_bloc.dart';
+import '../feature/help/bloc/help_topic_bloc.dart';
+import '../feature/help/help_category_screen.dart';
+import '../feature/help/help_overview_screen.dart';
+import '../feature/help/help_subcategory_screen.dart';
+import '../feature/help/help_topic_screen.dart';
 import '../feature/history/detail/argument/history_detail_screen_argument.dart';
 import '../feature/history/detail/bloc/history_detail_bloc.dart';
 import '../feature/history/detail/history_detail_screen.dart';
@@ -49,7 +58,6 @@ import '../feature/login/login_detail_screen.dart';
 import '../feature/menu/bloc/menu_bloc.dart';
 import '../feature/menu/menu_screen.dart';
 import '../feature/menu/sub_menu/contact/contact_screen.dart';
-import '../feature/menu/sub_menu/need_help/need_help_screen.dart';
 import '../feature/menu/sub_menu/settings/settings_screen.dart';
 import '../feature/notification/bloc/manage_notifications_bloc.dart';
 import '../feature/notification/manage_notifications_screen.dart';
@@ -96,6 +104,7 @@ import '../feature/wallet_transfer_target/bloc/wallet_transfer_target_bloc.dart'
     hide WalletTransferGenericError, WalletTransferUpdateStateEvent;
 import '../feature/wallet_transfer_target/wallet_transfer_target_screen.dart';
 import '../util/cast_util.dart';
+import '../util/extension/build_context_extension.dart';
 import 'secured_page_route.dart';
 
 /// Class responsible for defining route names and for mapping these names to the actual
@@ -138,13 +147,16 @@ class WalletRoutes {
   static const demoRoute = '/demo';
   static const disclosureRoute = '/disclosure';
   static const forgotPinRoute = '/forgot_pin';
+  static const helpOverviewRoute = '/menu/help';
+  static const helpCategoryRoute = '/menu/help/category';
+  static const helpSubcategoryRoute = '/menu/help/subcategory';
+  static const helpTopicRoute = '/menu/help/topic';
   static const historyDetailRoute = '/history';
   static const introductionPrivacyRoute = '/introduction/privacy';
   static const introductionRoute = '/introduction';
   static const issuanceRoute = '/issuance';
   static const loginDetailRoute = '/login_detail';
   static const menuRoute = '/menu';
-  static const needHelpRoute = '/menu/need_help';
   static const organizationDetailRoute = '/organization';
   static const pinBlockedRoute = '/pin/blocked';
   static const pinRoute = '/pin';
@@ -205,7 +217,10 @@ class WalletRoutes {
     WalletRoutes.pinBlockedRoute: _createPinBlockedScreenBuilder,
     WalletRoutes.loginDetailRoute: _createLoginDetailScreenBuilder,
     WalletRoutes.settingsRoute: (_) => _createSettingsScreenBuilder,
-    WalletRoutes.needHelpRoute: (_) => _createNeedHelpScreenBuilder,
+    WalletRoutes.helpOverviewRoute: (_) => _createHelpOverviewScreenBuilder,
+    WalletRoutes.helpCategoryRoute: _createHelpCategoryScreenBuilder,
+    WalletRoutes.helpSubcategoryRoute: _createHelpSubcategoryScreenBuilder,
+    WalletRoutes.helpTopicRoute: _createHelpTopicScreenBuilder,
     WalletRoutes.biometricsSettingsRoute: (_) => _createBiometricsSettingsScreenBuilder,
     WalletRoutes.privacyPolicyRoute: (_) => _createPrivacyPolicyScreenBuilder,
     WalletRoutes.updateInfoRoute: (_) => _createUpdateInfoScreenBuilder,
@@ -515,7 +530,33 @@ WidgetBuilder _createOrganizationDetailScreenBuilder(RouteSettings settings) {
 
 Widget _createSettingsScreenBuilder(BuildContext context) => const SettingsScreen();
 
-Widget _createNeedHelpScreenBuilder(BuildContext context) => const NeedHelpScreen();
+Widget _createHelpOverviewScreenBuilder(BuildContext context) {
+  return BlocProvider<HelpOverviewBloc>(
+    create: (BuildContext context) =>
+        HelpOverviewBloc(context.read(), context.activeLocale)..add(const HelpOverviewLoadTriggered()),
+    child: const HelpOverviewScreen(),
+  );
+}
+
+WidgetBuilder _createHelpCategoryScreenBuilder(RouteSettings settings) {
+  return (context) => HelpCategoryScreen(category: tryCast<HelpCategory>(settings.arguments)!);
+}
+
+WidgetBuilder _createHelpSubcategoryScreenBuilder(RouteSettings settings) {
+  return (context) => HelpSubcategoryScreen(subcategory: tryCast<HelpSubcategory>(settings.arguments)!);
+}
+
+WidgetBuilder _createHelpTopicScreenBuilder(RouteSettings settings) {
+  return (context) {
+    final argument = tryCast<HelpTopicScreenArgument>(settings.arguments)!;
+    return BlocProvider<HelpTopicBloc>(
+      create: (BuildContext context) =>
+          HelpTopicBloc(context.read(), context.read(), context.activeLocale)
+            ..add(HelpTopicLoadTriggered(argument.topicId, visitedTopicIds: argument.visitedTopicIds)),
+      child: HelpTopicScreen(argument: argument),
+    );
+  };
+}
 
 Widget _createContactScreenBuilder(BuildContext context) => const ContactScreen();
 

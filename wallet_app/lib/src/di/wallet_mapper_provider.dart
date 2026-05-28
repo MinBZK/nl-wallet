@@ -15,6 +15,7 @@ import '../domain/model/configuration/maintenance_window.dart';
 import '../domain/model/disclosure/disclosure_session_type.dart';
 import '../domain/model/document.dart';
 import '../domain/model/event/wallet_event.dart';
+import '../domain/model/help/topic_block.dart';
 import '../domain/model/notification/app_notification.dart';
 import '../domain/model/organization.dart';
 import '../domain/model/pin/pin_validation_error.dart';
@@ -38,6 +39,7 @@ import '../util/mapper/disclosure/disclosure_session_type_mapper.dart';
 import '../util/mapper/disclosure/disclosure_type_mapper.dart';
 import '../util/mapper/document/document_mapper.dart';
 import '../util/mapper/event/wallet_event_mapper.dart';
+import '../util/mapper/help/topic_block_mapper.dart';
 import '../util/mapper/image/image_mapper.dart';
 import '../util/mapper/mapper.dart';
 import '../util/mapper/notification/app_notification_mapper.dart';
@@ -174,6 +176,11 @@ class WalletMapperProvider extends StatelessWidget {
         ),
         RepositoryProvider<Mapper<core.CloseProximityDisclosureFlutterUpdate, BleConnectionEvent>>(
           create: (context) => CloseProximityDisclosureUpdateMapper(context.read()),
+        ),
+
+        /// Help topic markdown mapper
+        RepositoryProvider<Mapper<String, List<TopicBlock>>>(
+          create: (context) => TopicBlockMapper(),
         ),
       ],
       child: child,

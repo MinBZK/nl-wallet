@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-04-28T13:39:02+02:00",
+    "@@last_modified": "2026-05-07T11:25:53+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -38,7 +38,7 @@
     "appBlockedScreenNewWalletCta": "Create a new NL Wallet",
     "appBlockedScreenPermanentDescription": "You cannot use NL Wallet right now. You also cannot create a new NL Wallet. This may have several reasons.\n\nContact the help desk for help and more information.",
     "appBlockedScreenPermanentTitle": "You have been blocked",
-    "appBlockedScreenSolutionRevokedDescription": "You cannot use NL Wallet right now due to a technical problem on our side.\n\nWant to know more? Read more information.",
+    "appBlockedScreenSolutionRevokedDescription": "You cannot use NL Wallet due to a technical problem on our side.\n\nWant to know more? Read more information.",
     "appBlockedScreenSolutionRevokedTitle": "NL Wallet can no longer be used",
     "appBlockedScreenTitle": "Your NL Wallet is blocked",
     "appTitle": "NL Wallet",
@@ -1305,7 +1305,6 @@
     "qrPresentScreenBluetoothDisabledPageTitle": "Turn on Bluetooth first",
     "qrPresentScreenCenterQrCodeCta": "Center QR code on screen",
     "qrPresentScreenConnectedTitle": "Please wait. Your request is being retrieved.",
-    "qrPresentScreenConnectingTitle": "Please wait. Connecting to the organisation.",
     "qrPresentScreenConnectionFailedPageDescription": "Keep the devices close together. Check your Bluetooth connection. Then try again.",
     "qrPresentScreenConnectionFailedPageTitle": "Sorry, connection failed",
     "qrPresentScreenDialogTitle": "Show your QR code below",

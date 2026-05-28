@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2026-04-28T13:39:02+02:00",
+    "@@last_modified": "2026-05-07T11:25:53+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -1301,7 +1301,6 @@
     "qrPresentScreenBluetoothDisabledPageTitle": "Schakel eerst Bluetooth in",
     "qrPresentScreenCenterQrCodeCta": "Centreer de QR-code op het scherm",
     "qrPresentScreenConnectedTitle": "Even geduld. De aanvraag wordt opgehaald.",
-    "qrPresentScreenConnectingTitle": "Even geduld. De verbinding wordt opgezet.",
     "qrPresentScreenConnectionFailedPageDescription": "Houd de apparaten dicht bij elkaar. Controleer je Bluetooth-verbinding. Probeer het daarna opnieuw.",
     "qrPresentScreenConnectionFailedPageTitle": "Sorry, verbinden mislukt",
     "qrPresentScreenDialogTitle": "Toon jouw QR code",

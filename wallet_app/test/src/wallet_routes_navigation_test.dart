@@ -6,12 +6,15 @@ import 'package:mockito/mockito.dart';
 import 'package:provider/single_child_widget.dart';
 import 'package:wallet/src/data/repository/card/wallet_card_repository.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
+import 'package:wallet/src/data/repository/help/help_content_repository.dart';
 import 'package:wallet/src/data/repository/language/language_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
 import 'package:wallet/src/data/service/auto_lock_service.dart';
 import 'package:wallet/src/data/service/event/app_event_coordinator.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
+import 'package:wallet/src/domain/model/help/help_category.dart';
+import 'package:wallet/src/domain/model/help/help_subcategory.dart';
 import 'package:wallet/src/domain/model/permission/permission_check_result.dart';
 import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/domain/model/tour/tour_video.dart';
@@ -35,6 +38,10 @@ import 'package:wallet/src/domain/usecase/event/get_most_recent_wallet_event_use
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_for_card_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/observe_recent_wallet_events_usecase.dart';
+import 'package:wallet/src/domain/usecase/help/get_help_categories_usecase.dart';
+import 'package:wallet/src/domain/usecase/help/get_help_topic_blocks_usecase.dart';
+import 'package:wallet/src/domain/usecase/help/impl/get_help_categories_usecase_impl.dart';
+import 'package:wallet/src/domain/usecase/help/impl/get_help_topic_blocks_usecase_impl.dart';
 import 'package:wallet/src/domain/usecase/issuance/cancel_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
@@ -89,6 +96,7 @@ import 'package:wallet/src/feature/card/detail/argument/card_detail_screen_argum
 import 'package:wallet/src/feature/dashboard/argument/dashboard_screen_argument.dart';
 import 'package:wallet/src/feature/disclosure/argument/disclosure_screen_argument.dart';
 import 'package:wallet/src/feature/forgot_pin/argument/forgot_pin_screen_argument.dart';
+import 'package:wallet/src/feature/help/argument/help_topic_screen_argument.dart';
 import 'package:wallet/src/feature/history/detail/argument/history_detail_screen_argument.dart';
 import 'package:wallet/src/feature/issuance/argument/issuance_screen_argument.dart';
 import 'package:wallet/src/feature/login/argument/login_detail_screen_argument.dart';
@@ -177,6 +185,12 @@ Object? _getMockArgumentsForRoute(String routeName) {
       return const SignScreenArgument(uri: 'uri').toJson();
     case WalletRoutes.tourVideoRoute:
       return const TourVideoScreenArgument(videoTitle: 'Title', videoUrl: 'url', subtitleUrl: 'subtitle').toMap();
+    case WalletRoutes.helpCategoryRoute:
+      return const HelpCategory(id: 'cat', icon: 'help_outline', title: 'Cat', subtitle: 'Sub', subcategories: []);
+    case WalletRoutes.helpSubcategoryRoute:
+      return const HelpSubcategory(id: 'sub', title: 'Sub', groups: []);
+    case WalletRoutes.helpTopicRoute:
+      return const HelpTopicScreenArgument(topicId: 'cid');
     default:
       return null;
   }
@@ -194,6 +208,7 @@ List<SingleChildWidget> _getRequiredProviders() {
 List<SingleChildWidget> _getRepositoryProviders() {
   return [
     RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
+    RepositoryProvider<HelpContentRepository>(create: (c) => Mocks.create()),
     RepositoryProvider<LanguageRepository>(create: _createLanguageRepositoryMock),
     RepositoryProvider<WalletCardRepository>(create: (c) => Mocks.create()),
     RepositoryProvider<WalletRepository>(create: _createWalletRepositoryMock),
@@ -233,6 +248,8 @@ List<SingleChildWidget> _getUseCaseProviders() {
     RepositoryProvider<DecodeQrUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<FetchTourVideosUseCase>(create: _createFetchTourVideosUseCaseMock),
     RepositoryProvider<GetAvailableBiometricsUseCase>(create: (c) => Mocks.create()),
+    RepositoryProvider<GetHelpCategoriesUseCase>(create: (c) => GetHelpCategoriesUseCaseImpl(c.read())),
+    RepositoryProvider<GetHelpTopicBlocksUseCase>(create: (c) => GetHelpTopicBlocksUseCaseImpl(c.read())),
     RepositoryProvider<GetMostRecentWalletEventUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<GetPidCardsUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<GetPidIssuanceUrlUseCase>(create: (c) => Mocks.create()),
