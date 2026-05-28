@@ -117,7 +117,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                     .grant_types_supported
                     .as_ref()
                     .map(|grant_types| grant_types.contains("authorization_code"))
-                    // RFC 8414 says about the "grang_types" field:
+                    // RFC 8414 says about the "grant_types" field:
                     // (source: https://datatracker.ietf.org/doc/html/rfc8414#section-2)
                     //
                     // If omitted, the default value is "["authorization_code", "implicit"]".
