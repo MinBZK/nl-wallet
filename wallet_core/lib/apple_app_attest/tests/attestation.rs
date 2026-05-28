@@ -1,10 +1,11 @@
+use std::assert_matches;
+
 use apple_app_attest::APPLE_TRUST_ANCHORS;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::AttestationError;
 use apple_app_attest::AttestationValidationError;
 use apple_app_attest::VerifiedAttestation;
-use assert_matches::assert_matches;
 use chrono::DateTime;
 use chrono::Utc;
 use const_decoder::Decoder;

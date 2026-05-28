@@ -181,7 +181,6 @@ hsm_test = ["wallet_provider?/hsm_test"]
 integration_test = [
     "allow_insecure_url",
     "db_test",
-    "dep:assert_matches",
     "dep:jsonwebtoken",
     "dep:rand_core",
     "dep:regex",
@@ -245,7 +244,6 @@ performance_test = [
 ]
 
 [dependencies]
-assert_matches = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
 axum-server = { workspace = true, optional = true }
 base64 = { workspace = true, optional = true }

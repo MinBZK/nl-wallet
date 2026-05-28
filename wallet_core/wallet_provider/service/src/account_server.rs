@@ -1947,6 +1947,7 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::num::NonZeroUsize;
     use std::sync::Arc;
     use std::sync::Mutex;
@@ -1958,7 +1959,6 @@ mod tests {
     use apple_app_attest::AssertionError;
     use apple_app_attest::AssertionValidationError;
     use apple_app_attest::MockAttestationCa;
-    use assert_matches::assert_matches;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_BSN;

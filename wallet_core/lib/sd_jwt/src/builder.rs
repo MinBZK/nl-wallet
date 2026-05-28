@@ -275,7 +275,8 @@ mod examples {
 
 #[cfg(test)]
 mod test {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
+
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use serde_json::json;

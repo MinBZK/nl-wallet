@@ -270,10 +270,10 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::sync::Arc;
 
     use apple_app_attest::AssertionCounter;
-    use assert_matches::assert_matches;
     use chrono::Utc;
     use http::StatusCode;
     use jwt::SignedJwt;

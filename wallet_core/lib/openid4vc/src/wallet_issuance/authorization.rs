@@ -229,9 +229,9 @@ impl AuthorizationSession for HttpAuthorizationSession {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::collections::HashMap;
 
-    use assert_matches::assert_matches;
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
     use http_utils::reqwest::HttpJsonClient;

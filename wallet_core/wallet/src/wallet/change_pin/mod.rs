@@ -169,9 +169,9 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::sync::Arc;
 
-    use assert_matches::assert_matches;
     use platform_support::attested_key::AttestedKey;
     use wallet_account::messages::instructions::ChangePinCommit;
     use wallet_account::messages::instructions::ChangePinStart;

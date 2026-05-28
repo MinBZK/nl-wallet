@@ -256,10 +256,10 @@ impl<K, L> CredentialConfigurations<K, L> {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::collections::HashMap;
     use std::collections::HashSet;
 
-    use assert_matches::assert_matches;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;

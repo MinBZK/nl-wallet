@@ -1,6 +1,6 @@
+use std::assert_matches;
 use std::env;
 
-use assert_matches::assert_matches;
 use http_utils::client::TlsPinningConfig;
 use jwt::SignedJwt;
 use jwt::error::JwtError;

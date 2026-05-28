@@ -66,8 +66,6 @@ status_lists.path = "../../lib/status_lists"
 db_test = { path = "../../lib/db_test", optional = true }
 
 [dev-dependencies]
-assert_matches.workspace = true
-
 attestation_data = { path = "../../lib/attestation_data", features = ["generate", "mock"] }
 crypto = { path = "../../lib/crypto", features = ["generate", "mock", "mock_secure_keys"] }
 openid4vc = { path = "../../lib/openid4vc", features = ["mock"] }

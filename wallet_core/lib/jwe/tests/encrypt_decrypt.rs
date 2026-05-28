@@ -1,4 +1,5 @@
-use assert_matches::assert_matches;
+use std::assert_matches;
+
 use jwe::algorithm::EcdhAlgorithm;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::decryption::ExpectedEncryptionAlgorithm;

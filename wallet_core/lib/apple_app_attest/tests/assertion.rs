@@ -1,3 +1,4 @@
+use std::assert_matches;
 use std::convert::Infallible;
 use std::sync::LazyLock;
 
@@ -8,7 +9,6 @@ use apple_app_attest::AssertionError;
 use apple_app_attest::AssertionValidationError;
 use apple_app_attest::ClientData;
 use apple_app_attest::VerifiedAssertion;
-use assert_matches::assert_matches;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;

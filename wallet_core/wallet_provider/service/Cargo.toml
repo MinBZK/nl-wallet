@@ -116,7 +116,6 @@ wallet_provider_persistence = { path = "../persistence", optional = true }
 
 [dev-dependencies]
 anyhow.workspace = true
-assert_matches.workspace = true
 mockall.workspace = true
 rand.workspace = true
 rand_core.workspace = true

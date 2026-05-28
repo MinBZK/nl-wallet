@@ -177,10 +177,10 @@ pub mod test;
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::collections::HashMap;
     use std::collections::HashSet;
 
-    use assert_matches::assert_matches;
     use attestation_types::claim_path::ClaimPath;
     use crypto::server_keys::generate::Ca;
     use rstest::rstest;

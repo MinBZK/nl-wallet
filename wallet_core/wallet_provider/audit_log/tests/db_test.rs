@@ -1,6 +1,6 @@
+use std::assert_matches;
 use std::error::Error;
 
-use assert_matches::assert_matches;
 use audit_log::audited;
 use audit_log::entity;
 use audit_log::model::AuditLog;

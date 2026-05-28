@@ -191,7 +191,8 @@ mod mock {
 
 #[cfg(test)]
 mod tests {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
+
     use attestation_types::status_claim::StatusClaim;
     use chrono::Duration;
     use chrono::Utc;

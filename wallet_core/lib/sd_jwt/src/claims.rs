@@ -702,9 +702,9 @@ impl From<ClaimValue> for ClaimType {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::num::NonZeroUsize;
 
-    use assert_matches::assert_matches;
     use rstest::rstest;
     use serde_json::json;
 

@@ -873,10 +873,10 @@ mod examples {
 
 #[cfg(test)]
 mod test {
+    use std::assert_matches;
     use std::collections::HashSet;
     use std::time::Duration;
 
-    use assert_matches::assert_matches;
     use chrono::DateTime;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;

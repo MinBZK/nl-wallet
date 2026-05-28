@@ -1,7 +1,7 @@
+use std::assert_matches;
 use std::collections::HashMap;
 use std::error::Error;
 
-use assert_matches::assert_matches;
 use audit_log::model::FromAuditLogError;
 use audit_log::model::mock::MockAuditLog;
 use audit_log_macros::audited;

@@ -201,7 +201,8 @@ impl DisclosureContent {
 
 #[cfg(test)]
 mod test {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
+
     use base64::Engine;
     use base64::prelude::BASE64_URL_SAFE_NO_PAD;
     use crypto::utils::random_bytes;

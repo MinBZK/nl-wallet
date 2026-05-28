@@ -413,9 +413,10 @@ pub mod server {
 
 #[cfg(all(test, feature = "client", feature = "server"))]
 mod tests {
+    use std::assert_matches;
+
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AssertionCounter;
-    use assert_matches::assert_matches;
     use futures::FutureExt;
     use p256::ecdsa::SigningKey;
     use platform_support::attested_key::mock::MockAppleAttestedKey;

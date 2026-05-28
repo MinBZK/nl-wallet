@@ -1,6 +1,6 @@
+use std::assert_matches;
 use std::collections::HashSet;
 
-use assert_matches::assert_matches;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::test_credential::TestCredentials;
 use db_test::DbSetup;

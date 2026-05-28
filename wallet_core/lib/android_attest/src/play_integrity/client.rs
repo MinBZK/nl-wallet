@@ -186,7 +186,8 @@ impl<A> PlayIntegrityClient<A> {
 
 #[cfg(test)]
 mod tests {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
+
     use http::header::CONTENT_TYPE;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
     use httpmock::Method::POST;

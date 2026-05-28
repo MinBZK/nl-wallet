@@ -257,7 +257,8 @@ fn compress_bytes(bytes: &[u8]) -> Result<Vec<u8>, io::Error> {
 /// Its goal is mostly to validate that HTTP error responses get converted to the right variant
 /// of `RemoteAccountServerClient` and `AccountServerResponseError`.
 mod tests {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
+
     use http::header;
     use http_utils::reqwest::IntoReqwestClient;
     use httpmock::Method::POST;

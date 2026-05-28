@@ -53,14 +53,7 @@ db_test = [
     "test",
 ]
 # Include code used for testing
-test = [
-    "async-dropper/simple",
-    "dep:async-trait",
-    "dep:android_attest",
-    "dep:db_test",
-    "dep:rand_core",
-    "hsm/mock"
-]
+test = ["async-dropper/simple", "dep:async-trait", "dep:android_attest", "dep:db_test", "dep:rand_core", "hsm/mock"]
 
 [dependencies]
 chrono = { workspace = true, features = ["now"] }
@@ -102,4 +95,3 @@ android_attest = { path = "../../lib/android_attest", optional = true }
 db_test = { path = "../../lib/db_test", optional = true }
 
 [dev-dependencies]
-assert_matches.workspace = true

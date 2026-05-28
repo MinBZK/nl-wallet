@@ -1746,10 +1746,10 @@ impl CredentialRequestProof {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::num::NonZeroUsize;
     use std::sync::Arc;
 
-    use assert_matches::assert_matches;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::qualification::AttestationQualification;

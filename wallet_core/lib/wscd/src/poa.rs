@@ -193,7 +193,8 @@ impl WscdPoa for Poa {
 
 #[cfg(test)]
 mod tests {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
+
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use jwt::DEFAULT_VALIDATIONS;
     use jwt::UnverifiedJwt;

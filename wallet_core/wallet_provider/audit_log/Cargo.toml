@@ -45,7 +45,6 @@ utils.path = "../../lib/utils"
 db_test = { path = "../../lib/db_test", optional = true }
 
 [dev-dependencies]
-assert_matches.workspace = true
 config = { workspace = true, features = ["toml"] }
 rstest.workspace = true
 serde = { workspace = true, features = ["derive"] }

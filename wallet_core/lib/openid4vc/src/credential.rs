@@ -203,9 +203,9 @@ impl Credential {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::time::Duration;
 
-    use assert_matches::assert_matches;
     use base64::Engine;
     use base64::prelude::BASE64_URL_SAFE_NO_PAD;
     use mdoc::DeviceResponse;

@@ -393,9 +393,9 @@ mod example_constructors {
 
 #[cfg(test)]
 mod test {
+    use std::assert_matches;
     use std::collections::HashSet;
 
-    use assert_matches::assert_matches;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use itertools::Itertools;

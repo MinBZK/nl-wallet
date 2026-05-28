@@ -283,12 +283,12 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::collections::HashMap;
     use std::collections::HashSet;
     use std::sync::Arc;
     use std::sync::LazyLock;
 
-    use assert_matches::assert_matches;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::auth::reader_auth::ValidationError;

@@ -131,7 +131,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
+
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use rstest::rstest;
 

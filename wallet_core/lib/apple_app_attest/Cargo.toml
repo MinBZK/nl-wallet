@@ -53,6 +53,5 @@ rand = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true }
 
 [dev-dependencies]
-assert_matches.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
