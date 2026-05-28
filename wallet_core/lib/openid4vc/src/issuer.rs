@@ -516,7 +516,7 @@ where
     /// Create a session with a caller-supplied [`SessionToken`]. Used by the auth-code-flow
     /// provisioner (`AuthorizingIssuer`), which keys the session by the wallet-facing
     /// authorization code so the inner `/token` lookup finds it.
-    pub async fn new_session_with_token(
+    pub(crate) async fn new_session_with_token(
         &self,
         token: SessionToken,
         issuable_documents: VecNonEmpty<IssuableDocument>,
