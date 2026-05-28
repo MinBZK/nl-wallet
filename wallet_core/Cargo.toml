@@ -73,7 +73,7 @@ resolver = "3"
 [workspace.package]
 version = "0.6.0-dev"
 edition = "2024"
-rust-version = "1.95"
+rust-version = "1.96"
 
 [workspace.lints.rust]
 async_fn_in_trait = "allow"
@@ -106,7 +106,6 @@ askama_web = "0.14.6"
 assert-json-diff = "2.0.2"
 assert_cmd = "2.1.1"
 assert_fs = "1.1.3"
-assert_matches = "1.5.0"
 async-dropper = { version = "0.3.1", features = ["tokio"] }
 async-trait = "0.1.89"
 axum = { version = "0.8.7", default-features = false, features = ["http1", "query", "tokio", "tower-log", "tracing"] }
