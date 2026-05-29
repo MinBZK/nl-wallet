@@ -60,6 +60,17 @@ verify-flutter-localizations:
     - dart run translations_cleaner list-unused-terms --abort-on-unused # Fail if unused keys are found
   allow_failure: true # Only meant as a warning, our current workflow might introduce keys from other WIP MRs, which could cause false positives.
 
+# Validates the in-app FAQ/help corpus: every YAML topicId resolves to EN+NL markdown,
+# every help:// link target exists, no orphan markdown, translations complete. Warnings
+# (parenthetical headings, duplicate titles, question headings missing '?') do not fail.
+verify-help-content:
+  extends: .flutter
+  rules: !reference [.default-or-merge-request, rules]
+  script:
+    - flutter --version
+    - flutter pub get --enforce-lockfile
+    - dart run tool/validate_help_content.dart
+
 test-flutter-rust-bridge-codegen:
   extends: [.rust, .flutter]
   rules: !reference [.default-or-merge-request, rules]

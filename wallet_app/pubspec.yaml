@@ -102,7 +102,7 @@ flutter:
     - assets/non-free/icons/
     - assets/non-free/lottie/
     - assets/non-free/markdown/
-    - assets/non-free/markdown/help/
+    - assets/non-free/markdown/help/help.yaml
     - assets/non-free/markdown/help/en/
     - assets/non-free/markdown/help/nl/
 
