@@ -192,6 +192,8 @@ where
             .await
             .map_err(|error| TokenRequestError::AuthorizationCodeFlow(Box::new(error)))?;
 
+        // TODO (PVW-5953): the code below creates a new session and then immediately fetches it in
+        // process_token_request. Cleanup necessary
         self.issuer
             .new_session_with_token(code.into(), issuables)
             .await
