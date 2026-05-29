@@ -182,6 +182,8 @@ where
         token_request: TokenRequest,
         dpop: Dpop,
     ) -> Result<(TokenResponse, String), TokenRequestError> {
+        // TODO (PVW-5953): implicitly accepts the authorization code if issuables resolves (using upstream to verify
+        // code). Make explicit
         let code = token_request.code().clone();
 
         let issuables = self
