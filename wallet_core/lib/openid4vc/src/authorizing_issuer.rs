@@ -11,6 +11,7 @@ use std::error::Error as StdError;
 use std::sync::Arc;
 
 use crypto::EcdsaKey;
+use serde::Serialize;
 use url::Url;
 
 use crate::authorization::PushedAuthorizationResponse;
@@ -155,11 +156,18 @@ where
         match outcome {
             AuthorizeOutcome::RedirectTo(url) => Ok(url),
             AuthorizeOutcome::IssuedCode(code) => {
+                #[derive(Serialize)]
+                struct RedirectQuery<'a> {
+                    code: &'a str,
+                    #[serde(skip_serializing_if = "Option::is_none")]
+                    state: Option<&'a str>,
+                }
+
                 let mut redirect_url = wallet_redirect_uri.into_inner();
-                let query = serde_urlencoded::to_string([
-                    ("code", code.as_ref()),
-                    ("state", wallet_state.as_deref().unwrap_or("")),
-                ])
+                let query = serde_urlencoded::to_string(RedirectQuery {
+                    code: code.as_ref(),
+                    state: wallet_state.as_deref(),
+                })
                 .map_err(AuthorizeError::Encode)?;
                 redirect_url.set_query(Some(&query));
                 Ok(redirect_url)
