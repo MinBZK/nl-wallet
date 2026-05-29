@@ -35,26 +35,6 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
     type Authorization = HttpAuthorizationSession;
     type Issuance = HttpIssuanceSession;
 
-    async fn start_authorization_code_flow(
-        &self,
-        credential_issuer: &IssuerIdentifier,
-        client_id: String,
-        redirect_uri: Url,
-    ) -> Result<Self::Authorization, WalletIssuanceError> {
-        let (issuer_metadata, oauth_metadata) = self.fetch_metadata(credential_issuer).await?;
-
-        let session = HttpAuthorizationSession::create(
-            self.http_client.clone(),
-            issuer_metadata,
-            oauth_metadata,
-            client_id,
-            redirect_uri,
-            None,
-        )
-        .await?;
-        Ok(session)
-    }
-
     async fn start_with_credential_offer(
         &self,
         offer_uri: &Url,
@@ -468,56 +448,6 @@ mod test {
             .await;
 
         (server, issuer_identifier, trust_anchor)
-    }
-
-    // TODO (PVW-5856): Remove this test when removing `start_authorization_code_flow()` method.
-    #[tokio::test]
-    async fn authorization_code_flow() {
-        let (_server, issuer_identifier, trust_anchor) = start_httpmock_issuer(true).await;
-
-        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
-
-        // Start the authorization code flow — fetches metadata and creates an auth session.
-        let auth_session = discovery
-            .start_authorization_code_flow(
-                &issuer_identifier,
-                MOCK_WALLET_CLIENT_ID.to_string(),
-                REDIRECT_URI.clone(),
-            )
-            .await
-            .unwrap();
-
-        // Verify the auth URL points to the expected authorization endpoint and carries PAR params.
-        assert!(auth_session.auth_url().as_str().starts_with(AUTHORIZATION_ENDPOINT));
-        let auth_params: HashMap<String, String> = auth_session
-            .auth_url()
-            .query_pairs()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
-        assert!(auth_params.contains_key("request_uri"));
-        assert!(!auth_params.contains_key("state"));
-
-        // State is carried inside the PAR-stored request, not the auth URL; read it from the session.
-        let state = auth_session.state().to_owned();
-
-        // Simulate the authorization server redirecting back with a code and state.
-        let mut received_redirect_uri = REDIRECT_URI.clone();
-        received_redirect_uri.set_query(Some(&format!("code=fake_auth_code&state={state}")));
-
-        // Complete the flow — exchanges the code for a token and fetches credential previews.
-        let session = auth_session
-            .start_issuance(&received_redirect_uri, &trust_anchor)
-            .await
-            .unwrap();
-
-        assert_eq!(session.normalized_credential_preview().len(), 1);
-        assert_eq!(
-            session.normalized_credential_preview()[0]
-                .content
-                .credential_payload
-                .attestation_type,
-            PID_ATTESTATION_TYPE
-        );
     }
 
     #[derive(Debug)]

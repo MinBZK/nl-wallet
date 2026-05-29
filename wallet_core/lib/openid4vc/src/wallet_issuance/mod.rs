@@ -35,7 +35,6 @@ use crate::Format;
 use crate::TokenErrorCode;
 use crate::credential::Credential;
 use crate::dpop::DpopError;
-use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::well_known::WellKnownError;
 use crate::token::CredentialPreviewError;
 use crate::wallet_issuance::authorization::OAuthError;
@@ -257,16 +256,6 @@ pub enum IssuanceFlow<A, I> {
 pub trait IssuanceDiscovery {
     type Authorization: AuthorizationSession<Issuance = Self::Issuance>;
     type Issuance: IssuanceSession;
-
-    /// Fetches issuer and OAuth metadata, constructs a PKCE-protected authorization URL, and returns
-    /// an [`AuthorizationSession`] the caller can use to redirect the user and later exchange the
-    /// authorization code for credentials.
-    async fn start_authorization_code_flow(
-        &self,
-        identifier: &IssuerIdentifier,
-        client_id: String,
-        redirect_uri: Url,
-    ) -> Result<Self::Authorization, WalletIssuanceError>;
 
     /// Parses the credential offer from the redirect URI, fetches issuer and OAuth metadata and then either returns an
     /// [`AuthorizationSession`] the caller can use to redirect the user into a web-based OAuth flow (if the Credential

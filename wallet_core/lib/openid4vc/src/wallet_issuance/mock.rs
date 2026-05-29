@@ -9,12 +9,10 @@ use super::IssuanceSession;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use super::preview::NormalizedCredentialPreview;
-use crate::issuer_identifier::IssuerIdentifier;
 
 mockall::mock! {
     #[derive(Debug)]
     pub IssuanceDiscovery {
-        pub fn start_authorization_code_flow_sync(&self) -> Result<MockAuthorizationSession, WalletIssuanceError>;
         pub fn start_with_credential_offer_sync(&self) -> Result<IssuanceFlow<MockAuthorizationSession, MockIssuanceSession>, WalletIssuanceError>;
     }
 }
@@ -22,15 +20,6 @@ mockall::mock! {
 impl IssuanceDiscovery for MockIssuanceDiscovery {
     type Authorization = MockAuthorizationSession;
     type Issuance = MockIssuanceSession;
-
-    async fn start_authorization_code_flow(
-        &self,
-        _identifier: &IssuerIdentifier,
-        _client_id: String,
-        _redirect_uri: Url,
-    ) -> Result<Self::Authorization, WalletIssuanceError> {
-        self.start_authorization_code_flow_sync()
-    }
 
     async fn start_with_credential_offer(
         &self,
