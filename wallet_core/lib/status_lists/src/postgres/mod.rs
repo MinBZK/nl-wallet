@@ -660,7 +660,7 @@ where
     }
 
     #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
-    pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
+    pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, DbErr> {
         tracing::info!("Initializing status lists for ID {}", self.attestation_group_id);
 
         // Fetch all lists that still have list items in the database

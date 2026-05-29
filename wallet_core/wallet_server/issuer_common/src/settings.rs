@@ -555,6 +555,10 @@ impl StatusListAttestationSettings {
         let service = PostgresStatusListService::try_new(&self.group_name, connection, config, NoRevokeAll)
             .await
             .map_err(StatusListAttestationSettingsError::Service)?;
+        service
+            .initialize_lists()
+            .await
+            .map_err(StatusListAttestationSettingsError::Service)?;
 
         Ok(service)
     }
