@@ -143,6 +143,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<InternetConnectionChecker>()])
 @GenerateNiceMocks([MockSpec<NavigatorState>()])
 @GenerateNiceMocks([MockSpec<VideoPlayerController>()])
+@GenerateNiceMocks([MockSpec<SanitizedSvg>()])
 /// Mock mappers
 @GenerateNiceMocks([MockSpec<ContextMapper>()])
 @GenerateNiceMocks([MockSpec<Mapper>()])

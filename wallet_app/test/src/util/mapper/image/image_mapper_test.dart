@@ -1,9 +1,12 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/util/mapper/image/image_mapper.dart';
 import 'package:wallet_core/core.dart';
+
+import '../../../mocks/wallet_mocks.dart';
 
 void main() {
   late ImageMapper mapper;
@@ -12,11 +15,13 @@ void main() {
     mapper = ImageMapper();
   });
 
-  // test('validate svg mapper', () {
-  //   const input = Image.svg(svg: SanitizedSvg(field0: '<svg></svg>'));
-  //   const expectedOutput = SvgImage('<svg></svg>');
-  //   expect(mapper.map(input), expectedOutput);
-  // });
+  test('validate svg mapper', () {
+    final svg = MockSanitizedSvg();
+    when(svg.xml()).thenReturn('<svg></svg>');
+    final input = Image.svg(svg: svg);
+    const expectedOutput = SvgImage('<svg></svg>');
+    expect(mapper.map(input), expectedOutput);
+  });
 
   test('validate png mapper', () {
     final data = Uint8List.fromList([0x89, 0x50, 0x4E, 0x47]);
