@@ -5195,6 +5195,7 @@ dependencies = [
  "ring",
  "rstest",
  "rustls-pki-types",
+ "sd_jwt_vc_metadata",
  "serde",
  "serde_urlencoded",
  "thiserror 2.0.17",

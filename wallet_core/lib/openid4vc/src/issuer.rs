@@ -35,6 +35,7 @@ use jwt::wia::WiaDisclosure;
 use jwt::wia::WiaError;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
+use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use serde::Deserialize;
 use serde::Serialize;
 use token_status_list::status_list_service::StatusListService;
@@ -402,6 +403,13 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
 
     pub fn metadata(&self) -> &IssuerMetadata {
         &self.issuer_data.metadata
+    }
+
+    pub fn type_metadata(&self, id: &CredentialConfigurationId) -> Option<TypeMetadataDocuments> {
+        self.issuer_data
+            .credential_configs
+            .get_by_configuration_id(id)
+            .map(|config| config.metadata.documents().clone().into())
     }
 }
 
