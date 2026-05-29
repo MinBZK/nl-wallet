@@ -14,12 +14,12 @@ use http_utils::server::TlsServerConfig;
 use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::credential_offer::CredentialOfferContainer;
+use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::server_state::MemorySessionStore;
-use openid4vc::server_state::SessionToken;
 use openid4vc::test::MOCK_ATTESTATION_TYPES;
 use openid4vc::test::MOCK_UPSTREAM_CLIENT_ID;
 use openid4vc::test::MockIssuer;
@@ -27,6 +27,7 @@ use openid4vc::test::StaticAuthorizationCodeFlow;
 use openid4vc::test::mock_issuable_documents;
 use openid4vc::test::setup_mock_authorizing_issuer;
 use openid4vc::test::setup_mock_issuer;
+use openid4vc::token::AuthorizationCode;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::wallet_issuance::AuthorizationSession;
@@ -129,8 +130,8 @@ async fn start_server(
 
 fn make_credential_offer_url(
     issuer_identifier: IssuerIdentifier,
-    session_token: SessionToken,
     attestation_count: NonZeroUsize,
+    pre_authorized_code: Option<AuthorizationCode>,
 ) -> Url {
     let config_ids = MOCK_ATTESTATION_TYPES[..attestation_count.get()]
         .iter()
@@ -138,13 +139,20 @@ fn make_credential_offer_url(
         .collect::<Vec<_>>()
         .try_into()
         .unwrap();
-    let offer_container = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
-        issuer_identifier,
-        config_ids,
-        session_token.into(),
-    ));
+
+    let credential_offer = match pre_authorized_code {
+        None => CredentialOffer::new_authorization(issuer_identifier, config_ids, None),
+        Some(pre_authorized_code) => {
+            CredentialOffer::new_pre_authorized(issuer_identifier, config_ids, pre_authorized_code)
+        }
+    };
+    let offer_container = CredentialOfferContainer::new_offer(credential_offer);
     let query = serde_urlencoded::to_string(&offer_container).unwrap();
-    format!("openid-credential-offer://?{query}").parse().unwrap()
+
+    let mut url = Url::parse(&format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://")).unwrap();
+    url.set_query(Some(&query));
+
+    url
 }
 
 fn verify_issued_credentials(
@@ -189,7 +197,9 @@ async fn authorization_code_flow(
     let (_, trust_anchors, issuer_identifier, wia_keypair, tls_trust_anchor) =
         start_server(attestation_count, Some(upstream_oauth_id)).await;
 
-    let redirect_uri: Url = "https://wallet.example.com/callback".parse().unwrap();
+    let credential_offer_url = make_credential_offer_url(issuer_identifier.clone(), attestation_count, None);
+    let redirect_uri = Url::parse("https://wallet.example.com/callback").unwrap();
+
     let discovery = HttpIssuanceDiscovery::new(
         HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor
             .clone()
@@ -198,14 +208,22 @@ async fn authorization_code_flow(
     );
 
     // Start authorization code flow — fetches metadata and creates an auth session.
-    let auth_session = discovery
-        .start_authorization_code_flow(
-            &issuer_identifier,
+    let flow = discovery
+        .start_with_credential_offer(
+            &credential_offer_url,
             MOCK_WALLET_CLIENT_ID.to_string(),
             redirect_uri.clone(),
+            &trust_anchors,
         )
         .await
         .unwrap();
+
+    let IssuanceFlow::AuthorizationCode {
+        authorization_session: auth_session,
+    } = flow
+    else {
+        panic!("should have received Authorization Code flow");
+    };
 
     // Auth URL must point to the authorize endpoint and carry PAR params (RFC 9126).
     assert!(auth_session.auth_url().as_str().starts_with(&format!(
@@ -273,7 +291,8 @@ async fn pre_authorized_code_flow(
     let documents = mock_issuable_documents(attestation_count);
     let session_token = issuer.new_session(documents).await.unwrap();
 
-    let credential_offer_url = make_credential_offer_url(issuer_identifier, session_token, attestation_count);
+    let credential_offer_url =
+        make_credential_offer_url(issuer_identifier, attestation_count, Some(session_token.into()));
 
     let discovery = HttpIssuanceDiscovery::new(
         HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
@@ -316,7 +335,7 @@ async fn reject_issuance() {
     let documents = mock_issuable_documents(attestation_count);
     let session_token = issuer.new_session(documents).await.unwrap();
 
-    let offer_url = make_credential_offer_url(issuer_identifier, session_token, attestation_count);
+    let offer_url = make_credential_offer_url(issuer_identifier, attestation_count, Some(session_token.into()));
 
     let discovery = HttpIssuanceDiscovery::new(
         HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
