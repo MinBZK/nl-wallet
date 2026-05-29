@@ -157,10 +157,12 @@ impl UpstreamOidcAuthorizationCodeFlow {
 impl AuthorizationCodeFlow for UpstreamOidcAuthorizationCodeFlow {
     type Error = Error;
 
+    // TODO (PVW-5953): create separate nl-rdo-max AuthorizationRequest and remove `mut` qualifier
     async fn authorize(&self, mut request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error> {
         // Bridge PKCE: capture the wallet's code-challenge, generate a fresh upstream PKCE pair,
         // substitute the upstream challenge into the request, and store the upstream verifier
         // keyed by the wallet's challenge so `issuables` can recover it at `/token` time.
+        // TODO (PVW-5953): move this logic to a separate function
         let wallet_code_challenge = match &request.code_challenge {
             PkceCodeChallenge::S256 { code_challenge } => code_challenge.clone(),
             PkceCodeChallenge::Plain { .. } => return Err(Error::UnsupportedCodeChallenge),
