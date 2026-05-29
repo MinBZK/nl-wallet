@@ -1626,17 +1626,6 @@ mod tests {
             token_request: &TokenRequest,
             dpop_header: &Dpop,
         ) -> Result<(TokenResponse, Option<String>), WalletIssuanceError> {
-            // Stand in for the `AuthorizationCodeFlow` provisioner: write a
-            // session keyed by the token request's code with preloaded issuables before invoking
-            // the inner `/token` path (which now requires the session to already exist).
-            self.issuer
-                .new_session_with_token(
-                    token_request.code().clone().into(),
-                    mock_issuable_documents(NonZeroUsize::MIN),
-                )
-                .await
-                .unwrap();
-
             let (token_response, dpop_nonce) = self
                 .issuer
                 .process_token_request(token_request.clone(), dpop_header.clone())
@@ -1719,13 +1708,19 @@ mod tests {
         trust_anchors: TrustAnchors,
         wia_keypair: KeyPair,
     ) -> WalletIssuanceError {
+        let session_token = message_client
+            .issuer
+            .new_session(mock_issuable_documents(NonZeroUsize::MIN))
+            .await
+            .unwrap();
+
         let issuer_metadata = message_client.issuer.metadata().clone();
         let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
         let mut session = HttpIssuanceSession::create(
             message_client,
             issuer_metadata,
             oauth_metadata,
-            TokenRequest::new_mock(),
+            TokenRequest::new_mock_with_pre_authorized_code(session_token.to_string()),
             &trust_anchors,
         )
         .await
