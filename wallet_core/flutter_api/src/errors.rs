@@ -291,6 +291,7 @@ impl FlutterApiErrorFields for IssuanceError {
             IssuanceError::Instruction(error) => FlutterApiErrorType::from(error),
             IssuanceError::PidAlreadyPresent
             | IssuanceError::NoPidPresent
+            | IssuanceError::NoPidAuthorizationCodeFlow
             | IssuanceError::Signature(_)
             | IssuanceError::MissingSignature
             | IssuanceError::AttestationStorage(_)

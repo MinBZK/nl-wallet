@@ -13,11 +13,11 @@ use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use jwt::JwtTyp;
-use openid4vc::issuer_identifier::IssuerIdentifier;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
+use url::Url;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -29,7 +29,7 @@ pub struct WalletConfiguration {
     pub lock_timeouts: LockTimeoutConfiguration,
     pub account_server: AccountServerConfiguration,
     pub pid_attributes: PidAttributesConfiguration,
-    pub pid_issuance: PidIssuanceConfiguration,
+    pub pid_credential_offer: Url,
     pub disclosure: DisclosureConfiguration,
     #[debug(skip)]
     pub issuer_trust_anchors: TrustAnchors,
@@ -151,11 +151,6 @@ impl DisclosureTypeConfig for PidAttributesConfiguration {
 pub struct PidAttributePaths {
     pub login: VecNonEmpty<String>,
     pub recovery_code: VecNonEmpty<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PidIssuanceConfiguration {
-    pub url: IssuerIdentifier,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

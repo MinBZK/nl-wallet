@@ -130,7 +130,7 @@ where
             Err(err) => Err(err)?,
         };
 
-        let flow = self
+        let issuance_flow = self
             .issuance_discovery
             .start_with_credential_offer(
                 &redirect_uri,
@@ -141,7 +141,7 @@ where
             .await
             .map_err(|e| convert_and_enrich_error(e, &organization))?;
 
-        let IssuanceFlow::PreAuthorizedCode { issuance_session } = flow else {
+        let IssuanceFlow::PreAuthorizedCode { issuance_session } = issuance_flow else {
             return Err(DisclosureBasedIssuanceError::NoPreAuthorizedCode(organization));
         };
 

@@ -8,6 +8,7 @@ use itertools::Itertools;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::authorization::OAuthError;
@@ -158,15 +159,22 @@ where
         // No need to check if a `PinRecoveryData` is already stored: we can always start PIN recovery again.
 
         info!("Fetching issuer metadata to discover authorization server");
-        let authorization_session = self
+        let issuance_flow = self
             .issuance_discovery
-            .start_authorization_code_flow(
-                &config.pid_issuance.url,
+            .start_with_credential_offer(
+                &config.pid_credential_offer,
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
+                config.issuer_trust_anchors(),
             )
             .await
             .map_err(IssuanceError::IssuanceSession)?;
+
+        // We expect the Credential Offer contained in the Wallet Configuration or fetched from the issuer not to
+        // contain a Pre-Authorized code.
+        let IssuanceFlow::AuthorizationCode { authorization_session } = issuance_flow else {
+            return Err(IssuanceError::NoPidAuthorizationCodeFlow.into());
+        };
 
         info!("PIN recovery DigiD auth URL generated");
         let auth_url = authorization_session.auth_url().clone();
@@ -465,6 +473,7 @@ mod tests {
     use jwt::nonce::Nonce;
     use jwt::wia::WiaDisclosure;
     use openid4vc::Format;
+    use openid4vc::wallet_issuance::IssuanceFlow;
     use openid4vc::wallet_issuance::WalletIssuanceError;
     use openid4vc::wallet_issuance::authorization::OAuthError;
     use openid4vc::wallet_issuance::credential::IssuedCredential;
@@ -506,13 +515,17 @@ mod tests {
     fn setup_issuer_metadata_mock(wallet: &mut TestWalletMockStorage) {
         wallet
             .issuance_discovery
-            .expect_start_authorization_code_flow_sync()
+            .expect_start_with_credential_offer_sync()
             .return_once(|| {
-                let mut session = MockAuthorizationSession::new();
-                session
+                let mut authorization_session = MockAuthorizationSession::new();
+
+                authorization_session
                     .expect_get_auth_url()
                     .return_const(Url::parse(AUTH_URL).unwrap());
-                Ok(session)
+
+                let flow = IssuanceFlow::AuthorizationCode { authorization_session };
+
+                Ok(flow)
             });
     }
 

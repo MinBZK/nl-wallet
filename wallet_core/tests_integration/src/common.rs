@@ -358,9 +358,11 @@ pub async fn setup_env(
         degree_client_ids,
     };
 
+    let pid_credential_offer = create_pid_credential_offer(&issuer_data.pid_issuer.public);
+
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
-    served_wallet_config.pid_issuance.url = issuer_data.pid_issuer.public.clone();
+    served_wallet_config.pid_credential_offer = pid_credential_offer.clone();
     served_wallet_config.account_server.http_config = TlsPinningConfig::try_new(
         local_wp_base_url(wp_port),
         VecNonEmpty::try_from(served_wallet_config.account_server.http_config.trust_anchors().to_vec()).unwrap(),
@@ -379,7 +381,7 @@ pub async fn setup_env(
     };
 
     let mut wallet_config = default_wallet_config();
-    wallet_config.pid_issuance.url = issuer_data.pid_issuer.public.clone();
+    wallet_config.pid_credential_offer = pid_credential_offer.clone();
     wallet_config.account_server.http_config = TlsPinningConfig::try_new(
         local_wp_base_url(wp_port),
         VecNonEmpty::try_from(wallet_config.account_server.http_config.trust_anchors().to_vec()).unwrap(),
@@ -1149,4 +1151,18 @@ pub async fn wallet_attestations(wallet: &mut WalletWithStorage) -> Vec<Attestat
     }
 
     attestations.lock().unwrap().to_vec()
+}
+
+pub fn create_pid_credential_offer(issuer_identifier: &IssuerIdentifier) -> Url {
+    let credential_offer_uri = issuer_identifier
+        .as_base_url()
+        .join_base_url("/issuance/credential_offer")
+        .into_inner();
+
+    let mut pid_credential_offer = Url::parse("eu-eaa-offer://").unwrap();
+    pid_credential_offer
+        .query_pairs_mut()
+        .append_pair("credential_offer_uri", credential_offer_uri.as_str());
+
+    pid_credential_offer
 }

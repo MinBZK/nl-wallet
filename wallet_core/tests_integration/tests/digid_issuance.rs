@@ -12,6 +12,7 @@ use issuer_common::pkce_store::IssuerPkceStore;
 use itertools::Itertools;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use pid_issuer::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow;
@@ -99,10 +100,20 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     let http_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
     let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_client);
 
-    let authorization_session = credential_issuer_discovery
-        .start_authorization_code_flow(&issuer_url.public, String::from(NL_WALLET_CLIENT_ID), redirect_uri)
+    let credential_offer = create_pid_credential_offer(&issuer_url.public);
+    let issuance_flow = credential_issuer_discovery
+        .start_with_credential_offer(
+            &credential_offer,
+            String::from(NL_WALLET_CLIENT_ID),
+            redirect_uri,
+            wallet_config.issuer_trust_anchors(),
+        )
         .await
         .unwrap();
+
+    let IssuanceFlow::AuthorizationCode { authorization_session } = issuance_flow else {
+        panic!("should have started Authorization Code flow");
+    };
 
     // Do fake DigiD authentication and parse the access token out of the redirect URL
     let redirect_url = fake_digid_auth(
