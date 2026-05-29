@@ -11,28 +11,19 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
-use openid4vc::authorization::PkceCodeChallenge;
 use openid4vc::authorization::PushedAuthorizationResponse;
-use openid4vc::authorization::VciAuthorizationRequest;
-use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
-use openid4vc::authorization_code_flow::AuthorizeOutcome;
 use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
-use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
-use openid4vc::par::PAR_TTL;
-use openid4vc::pkce::PKCE_FLOW_TTL;
-use openid4vc::pkce::PkcePair;
-use openid4vc::pkce::S256PkcePair;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionToken;
-use openid4vc::store::MemoryStore;
-use openid4vc::store::Store;
 use openid4vc::test::MOCK_ATTESTATION_TYPES;
+use openid4vc::test::MOCK_UPSTREAM_CLIENT_ID;
 use openid4vc::test::MockIssuer;
+use openid4vc::test::StaticAuthorizationCodeFlow;
 use openid4vc::test::mock_issuable_documents;
 use openid4vc::test::setup_mock_authorizing_issuer;
 use openid4vc::test::setup_mock_issuer;
@@ -57,95 +48,7 @@ use rstest::rstest;
 use tokio::net::TcpListener;
 use url::Url;
 use utils::generator::TimeGenerator;
-use utils::vec_at_least::VecNonEmpty;
 use wscd::mock_remote::MockRemoteWscd;
-
-const MOCK_UPSTREAM_CLIENT_ID: &str = "mock_upstream_client_id";
-
-/// Test-only implementation of [`AuthorizationCodeFlow`] driving the auth-code path: `authorize` performs the same
-/// wallet ↔ upstream PKCE bridge bookkeeping a real flow would (so wallet PKCE rejection is still
-/// exercised at `/token`), rewrites the upstream client_id, and returns a query-encoded redirect
-/// to the configured upstream URL. `issuables` consumes the bridge and returns preloaded docs.
-struct StaticAuthorizationCodeFlow {
-    upstream_url: Url,
-    bridge: Arc<MemoryStore<String, String>>,
-    documents: VecNonEmpty<IssuableDocument>,
-}
-
-impl StaticAuthorizationCodeFlow {
-    fn new(upstream_url: Url, documents: VecNonEmpty<IssuableDocument>) -> Self {
-        Self {
-            upstream_url,
-            bridge: Arc::new(MemoryStore::new(PKCE_FLOW_TTL)),
-            documents,
-        }
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-enum StaticAuthorizationCodeFlowError {
-    #[error("only S256 code_challenge_method is supported")]
-    UnsupportedCodeChallenge,
-
-    #[error("PKCE bridge store error: {0}")]
-    BridgeStore(#[source] std::convert::Infallible),
-
-    #[error("encoding upstream authorization request as query string failed: {0}")]
-    Encode(#[source] serde_urlencoded::ser::Error),
-
-    #[error("missing wallet code_verifier on token request")]
-    MissingCodeVerifier,
-
-    #[error("wallet code_verifier does not match any stored PKCE bridge entry")]
-    PkceVerificationFailed,
-}
-
-impl AuthorizationCodeFlow for StaticAuthorizationCodeFlow {
-    type Error = StaticAuthorizationCodeFlowError;
-
-    async fn authorize(&self, mut request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error> {
-        let wallet_code_challenge = match &request.code_challenge {
-            PkceCodeChallenge::S256 { code_challenge } => code_challenge.clone(),
-            PkceCodeChallenge::Plain { .. } => {
-                return Err(StaticAuthorizationCodeFlowError::UnsupportedCodeChallenge);
-            }
-        };
-        // Generate an upstream verifier; substitute the upstream challenge into the request; and
-        // store the upstream verifier keyed by the wallet challenge so `issuables` can verify it.
-        let upstream_pkce = S256PkcePair::generate();
-        request.code_challenge = PkceCodeChallenge::S256 {
-            code_challenge: upstream_pkce.code_challenge().to_string(),
-        };
-        self.bridge
-            .store(wallet_code_challenge, upstream_pkce.into_code_verifier())
-            .await
-            .map_err(StaticAuthorizationCodeFlowError::BridgeStore)?;
-
-        request.oauth_request.client_id = MOCK_UPSTREAM_CLIENT_ID.to_string();
-
-        let query_string = serde_urlencoded::to_string(&request).map_err(StaticAuthorizationCodeFlowError::Encode)?;
-        let mut redirect_url = self.upstream_url.clone();
-        redirect_url.set_query(Some(&query_string));
-
-        Ok(AuthorizeOutcome::RedirectTo(redirect_url))
-    }
-
-    async fn issuables(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
-        let wallet_code_verifier = token_request
-            .code_verifier
-            .as_deref()
-            .ok_or(StaticAuthorizationCodeFlowError::MissingCodeVerifier)?;
-        let wallet_code_challenge = S256PkcePair::challenge_for(wallet_code_verifier);
-
-        self.bridge
-            .consume(&wallet_code_challenge)
-            .await
-            .map_err(StaticAuthorizationCodeFlowError::BridgeStore)?
-            .ok_or(StaticAuthorizationCodeFlowError::PkceVerificationFailed)?;
-
-        Ok(self.documents.clone())
-    }
-}
 
 fn generate_localhost_tls() -> (TlsServerConfig, ReqwestTrustAnchor) {
     let ca = Ca::generate("localhost", Default::default()).unwrap();
@@ -183,11 +86,10 @@ async fn start_server(
         // Authorization-code flow: wrap the inner issuer in an `AuthorizingIssuer` and mount the
         // authorization router (PAR / authorize / PKCE-bridged token + the issuance endpoints).
         Some(upstream) => {
-            let par_store = MemoryStore::new(PAR_TTL);
             let flow = StaticAuthorizationCodeFlow::new(upstream, mock_documents);
 
             let (authorizing_issuer, trust_anchor, wia_issuer_keypair) =
-                setup_mock_authorizing_issuer(issuer_identifier.clone(), attestation_count, sessions, par_store, flow);
+                setup_mock_authorizing_issuer(issuer_identifier.clone(), attestation_count, sessions, flow);
             let authorizing_issuer = Arc::new(authorizing_issuer);
             let issuer = Arc::clone(authorizing_issuer.issuer());
 
@@ -562,7 +464,7 @@ async fn authorize_rejects_plain_code_challenge_method() {
         .append_pair("request_uri", &par_resp.request_uri);
     let response = http_client.get(authorize_url).send().await.unwrap();
 
-    // TODO: unsupported `code_challenge_method` should return `invalid_request` (400)
+    // TODO (PVW-5953): unsupported `code_challenge_method` should return `invalid_request` (400)
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
     let body = response.text().await.unwrap();
     assert!(body.contains("server_error"), "unexpected body: {body}");
@@ -647,7 +549,7 @@ async fn token_rejects_missing_code_verifier() {
         .parse()
         .unwrap();
 
-    // TODO: missing `code_verifier` should return `invalid_grant` (400)
+    // TODO (PVW-5953): missing `code_verifier` should return `invalid_grant` (400)
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::AuthorizationCode {
             code: "any-code".to_string().into(),
@@ -684,7 +586,7 @@ async fn token_rejects_unknown_code_verifier() {
         .parse()
         .unwrap();
 
-    // TODO: wrong `code_verifier` should return `invalid_grant` (400)
+    // TODO (PVW-5953): wrong `code_verifier` should return `invalid_grant` (400)
     let token_request = TokenRequest {
         grant_type: TokenRequestGrantType::AuthorizationCode {
             code: "any-code".to_string().into(),

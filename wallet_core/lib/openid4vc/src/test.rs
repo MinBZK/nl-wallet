@@ -24,12 +24,14 @@ use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use token_status_list::status_list_service::mock::MockStatusListService;
 use token_status_list::status_list_service::mock::generate_status_claims;
+use url::Url;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
 use crate::Format;
+use crate::authorization::PkceCodeChallenge;
 use crate::authorization::VciAuthorizationRequest;
 use crate::authorization_code_flow::AuthorizationCodeFlow;
 use crate::authorization_code_flow::AuthorizeOutcome;
@@ -42,23 +44,29 @@ use crate::issuer::WiaConfig;
 use crate::issuer_identifier::IssuerIdentifier;
 use crate::mock::MOCK_WALLET_CLIENT_ID;
 use crate::nonce::memory_store::MemoryNonceStore;
+use crate::par::PAR_TTL;
+use crate::pkce::PKCE_FLOW_TTL;
+use crate::pkce::PkcePair;
+use crate::pkce::S256PkcePair;
 use crate::server_state::MemorySessionStore;
+use crate::store::MemoryStore;
 use crate::store::Store;
 use crate::token::TokenRequest;
 
 pub const MOCK_ATTESTATION_TYPES: [&str; 2] = ["com.example.pid", "com.example.address"];
 pub const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
+pub const MOCK_UPSTREAM_CLIENT_ID: &str = "mock_upstream_client_id";
 
 pub type MockIssuer<G = TimeGenerator> =
     Issuer<SigningKey, MockStatusListService, MemorySessionStore<IssuanceData, G>, MemoryNonceStore>;
 
-pub type MockAuthorizingIssuer<G, PAS, AF> = AuthorizingIssuer<
+pub type MockAuthorizingIssuer<G = TimeGenerator> = AuthorizingIssuer<
     SigningKey,
     MockStatusListService,
     MemorySessionStore<IssuanceData, G>,
     MemoryNonceStore,
-    PAS,
-    AF,
+    MemoryStore<String, VciAuthorizationRequest>,
+    StaticAuthorizationCodeFlow,
 >;
 
 pub fn mock_type_metadata(vct: &str) -> TypeMetadata {
@@ -103,25 +111,88 @@ pub fn mock_issuable_documents(document_count: NonZeroUsize) -> VecNonEmpty<Issu
         .unwrap()
 }
 
-/// Mock implementation of [`AuthorizationCodeFlow`] returning preconfigured issuables. `authorize`
-/// returns the configured `AuthorizeOutcome` so tests can drive both the redirect and the
-/// immediate-code branches.
-pub struct MockAuthorizationCodeFlow {
-    pub authorize_outcome: AuthorizeOutcome,
-    pub documents: VecNonEmpty<IssuableDocument>,
+/// Test-only implementation of [`AuthorizationCodeFlow`] driving the auth-code path: `authorize` performs the same
+/// wallet ↔ upstream PKCE bridge bookkeeping a real flow would (so wallet PKCE rejection is still
+/// exercised at `/token`), rewrites the upstream client_id, and returns a query-encoded redirect
+/// to the configured upstream URL. `issuables` consumes the bridge and returns preloaded docs.
+pub struct StaticAuthorizationCodeFlow {
+    upstream_url: Url,
+    bridge: Arc<MemoryStore<String, String>>,
+    documents: VecNonEmpty<IssuableDocument>,
 }
 
-impl AuthorizationCodeFlow for MockAuthorizationCodeFlow {
-    type Error = std::convert::Infallible;
+impl StaticAuthorizationCodeFlow {
+    pub fn new(upstream_url: Url, documents: VecNonEmpty<IssuableDocument>) -> Self {
+        Self {
+            upstream_url,
+            bridge: Arc::new(MemoryStore::new(PKCE_FLOW_TTL)),
+            documents,
+        }
+    }
+}
 
-    async fn authorize(&self, _request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error> {
-        Ok(match &self.authorize_outcome {
-            AuthorizeOutcome::RedirectTo(url) => AuthorizeOutcome::RedirectTo(url.clone()),
-            AuthorizeOutcome::IssuedCode(code) => AuthorizeOutcome::IssuedCode(code.clone()),
-        })
+#[derive(Debug, thiserror::Error)]
+pub enum StaticAuthorizationCodeFlowError {
+    #[error("only S256 code_challenge_method is supported")]
+    UnsupportedCodeChallenge,
+
+    #[error("PKCE bridge store error: {0}")]
+    BridgeStore(#[source] std::convert::Infallible),
+
+    #[error("encoding upstream authorization request as query string failed: {0}")]
+    Encode(#[source] serde_urlencoded::ser::Error),
+
+    #[error("missing wallet code_verifier on token request")]
+    MissingCodeVerifier,
+
+    #[error("wallet code_verifier does not match any stored PKCE bridge entry")]
+    PkceVerificationFailed,
+}
+
+// TODO (PVW-5953): too much logic in this stub implementation
+impl AuthorizationCodeFlow for StaticAuthorizationCodeFlow {
+    type Error = StaticAuthorizationCodeFlowError;
+
+    async fn authorize(&self, mut request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error> {
+        let wallet_code_challenge = match &request.code_challenge {
+            PkceCodeChallenge::S256 { code_challenge } => code_challenge.clone(),
+            PkceCodeChallenge::Plain { .. } => {
+                return Err(StaticAuthorizationCodeFlowError::UnsupportedCodeChallenge);
+            }
+        };
+        // Generate an upstream verifier; substitute the upstream challenge into the request; and
+        // store the upstream verifier keyed by the wallet challenge so `issuables` can verify it.
+        let upstream_pkce = S256PkcePair::generate();
+        request.code_challenge = PkceCodeChallenge::S256 {
+            code_challenge: upstream_pkce.code_challenge().to_string(),
+        };
+        self.bridge
+            .store(wallet_code_challenge, upstream_pkce.into_code_verifier())
+            .await
+            .map_err(StaticAuthorizationCodeFlowError::BridgeStore)?;
+
+        request.oauth_request.client_id = MOCK_UPSTREAM_CLIENT_ID.to_string();
+
+        let query_string = serde_urlencoded::to_string(&request).map_err(StaticAuthorizationCodeFlowError::Encode)?;
+        let mut redirect_url = self.upstream_url.clone();
+        redirect_url.set_query(Some(&query_string));
+
+        Ok(AuthorizeOutcome::RedirectTo(redirect_url))
     }
 
-    async fn issuables(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
+    async fn issuables(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
+        let wallet_code_verifier = token_request
+            .code_verifier
+            .as_deref()
+            .ok_or(StaticAuthorizationCodeFlowError::MissingCodeVerifier)?;
+        let wallet_code_challenge = S256PkcePair::challenge_for(wallet_code_verifier);
+
+        self.bridge
+            .consume(&wallet_code_challenge)
+            .await
+            .map_err(StaticAuthorizationCodeFlowError::BridgeStore)?
+            .ok_or(StaticAuthorizationCodeFlowError::PkceVerificationFailed)?;
+
         Ok(self.documents.clone())
     }
 }
@@ -196,20 +267,17 @@ where
     (issuer, trust_anchors, wia_keypair)
 }
 
-pub fn setup_mock_authorizing_issuer<G, PAS, AF>(
+pub fn setup_mock_authorizing_issuer<G>(
     issuer_identifier: IssuerIdentifier,
     attestation_count: NonZeroUsize,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
-    par_store: PAS,
-    flow: AF,
-) -> (MockAuthorizingIssuer<G, PAS, AF>, TrustAnchors, KeyPair)
+    flow: StaticAuthorizationCodeFlow,
+) -> (MockAuthorizingIssuer<G>, TrustAnchors, KeyPair)
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
-    PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
-    AF: AuthorizationCodeFlow + Send + Sync + 'static,
 {
+    let par_store = MemoryStore::new(PAR_TTL);
     let (issuer, trust_anchor, wia_keypair) = setup_mock_issuer(issuer_identifier, attestation_count, sessions);
-
     let authorizing_issuer = AuthorizingIssuer::new(Arc::new(issuer), par_store, flow);
 
     (authorizing_issuer, trust_anchor, wia_keypair)
