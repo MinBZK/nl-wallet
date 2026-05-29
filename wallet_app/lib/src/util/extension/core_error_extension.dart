@@ -29,6 +29,7 @@ extension CoreErrorExtension on CoreError {
         returnUrl: returnUrl,
         sourceError: error,
       ),
+      CoreCloseProximityDisconnectedError() => CloseProximityDisconnectedError(sourceError: error),
       CoreRelyingPartyError() => _mapRelyingPartyError(error),
       CoreWrongDigidError() => WrongDigidError(sourceError: error),
       CoreDeniedDigidError() => DeniedDigidError(sourceError: error),

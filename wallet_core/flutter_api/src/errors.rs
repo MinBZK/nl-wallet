@@ -88,6 +88,9 @@ enum FlutterApiErrorType {
     /// A remote session is cancelled.
     CancelledSession,
 
+    /// A close proximity disclosure session disconnected.
+    CloseProximityDisconnected,
+
     /// The wrong DigiD was used for PID renewal or PIN recovery.
     WrongDigid,
 
@@ -413,7 +416,9 @@ impl FlutterApiErrorFields for DisclosureError {
             | DisclosureError::NonSelectivelyDisclosableClaimsNotRequested(_, _, _) => Some(false),
             DisclosureError::CloseProximityDisclosureSessionError(inner) => match inner {
                 // Platform errors are transient and worth retrying.
-                CloseProximityDisclosureError::PlatformError(_) => Some(true),
+                CloseProximityDisclosureError::PlatformError(_) | CloseProximityDisclosureError::Disconnected => {
+                    Some(true)
+                }
                 CloseProximityDisclosureError::DeviceResponse(error) => detect_networking_error(error).map(|_| true),
                 CloseProximityDisclosureError::DeviceResponseEncoding(_) => None,
                 _ => Some(false),
@@ -476,7 +481,7 @@ impl FlutterApiErrorFields for CloseProximityDisclosureError {
 
         let can_retry = match self {
             // Platform errors are transient and worth retrying.
-            CloseProximityDisclosureError::PlatformError(_) => Some(true),
+            CloseProximityDisclosureError::PlatformError(_) | CloseProximityDisclosureError::Disconnected => Some(true),
             CloseProximityDisclosureError::DeviceResponse(error) => detect_networking_error(error).map(|_| true),
             CloseProximityDisclosureError::DeviceResponseEncoding(_) => None,
             _ => Some(false),
@@ -631,8 +636,9 @@ impl From<&CloseProximityDisclosureError> for FlutterApiErrorType {
             | CloseProximityDisclosureError::InvalidCertificate { .. }
             | CloseProximityDisclosureError::MissingCommonName { .. } => FlutterApiErrorType::Verifier,
             CloseProximityDisclosureError::DeviceResponseEncoding(_)
-            | CloseProximityDisclosureError::PlatformError(_)
             | CloseProximityDisclosureError::DeviceResponse(_) => FlutterApiErrorType::Generic,
+            CloseProximityDisclosureError::Disconnected => FlutterApiErrorType::CloseProximityDisconnected,
+            CloseProximityDisclosureError::PlatformError(_) => FlutterApiErrorType::Generic,
         }
     }
 }

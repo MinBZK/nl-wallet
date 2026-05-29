@@ -197,6 +197,17 @@ void main() {
       expect(result, const CoreCancelledSessionError(defaultDescription));
     });
 
+    test('mapping FlutterApiErrorType.closeProximityDisconnected results in CoreCloseProximityDisconnectedError', () {
+      final error = const FlutterApiError(
+        type: FlutterApiErrorType.closeProximityDisconnected,
+        description: defaultDescription,
+        data: {'session_type': 'cross_device'},
+      );
+      final errorJson = jsonEncode(error);
+      final result = errorMapper.map(errorJson);
+      expect(result, CoreCloseProximityDisconnectedError(defaultDescription, data: error.data));
+    });
+
     test('mapping FlutterApiErrorType.issuer results in CoreRelyingPartyError', () {
       final error = const FlutterApiError(
         type: FlutterApiErrorType.issuer,

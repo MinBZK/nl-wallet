@@ -28,6 +28,10 @@ class CoreErrorMapper extends Mapper<String, CoreError> {
       FlutterApiErrorType.disclosureSourceMismatch => _mapDisclosureSourceMismatchError(error),
       FlutterApiErrorType.expiredSession => _mapExpiredSessionError(error),
       FlutterApiErrorType.cancelledSession => CoreCancelledSessionError(error.description, data: error.data),
+      FlutterApiErrorType.closeProximityDisconnected => CoreCloseProximityDisconnectedError(
+        error.description,
+        data: error.data,
+      ),
       FlutterApiErrorType.issuer || FlutterApiErrorType.verifier => _mapRelyingPartyError(error),
       FlutterApiErrorType.wrongDigid => CoreWrongDigidError(error.description),
       FlutterApiErrorType.deniedDigid => CoreDeniedDigidError(error.description),

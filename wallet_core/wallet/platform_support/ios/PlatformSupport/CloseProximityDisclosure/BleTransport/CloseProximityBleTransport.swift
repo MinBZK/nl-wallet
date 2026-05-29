@@ -625,6 +625,21 @@ extension CloseProximityBleTransport: CBPeripheralManagerDelegate {
 
     func peripheralManager(
         _ peripheral: CBPeripheralManager,
+        central: CBCentral,
+        didUnsubscribeFrom characteristic: CBCharacteristic
+    ) {
+        guard characteristic.uuid == Self.serverToClientCharacteristicUuid ||
+            characteristic.uuid == Self.stateCharacteristicUuid
+        else {
+            return
+        }
+
+        log("Reader unsubscribed from characteristic \(characteristic.uuid.uuidString)")
+        enqueueTerminationMessage()
+    }
+
+    func peripheralManager(
+        _ peripheral: CBPeripheralManager,
         didAdd service: CBService,
         error: Error?
     ) {
