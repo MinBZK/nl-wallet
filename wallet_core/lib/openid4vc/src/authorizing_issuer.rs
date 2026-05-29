@@ -33,7 +33,7 @@ use crate::token::TokenResponse;
 #[derive(derive_more::Debug, thiserror::Error)]
 pub enum ParError {
     #[error("unknown client_id: {0}")]
-    InvalidClient(String),
+    UnknownClient(String),
 
     #[error("storing PAR request failed: {0}")]
     Store(#[source] Box<dyn StdError + Send + Sync + 'static>),
@@ -43,7 +43,10 @@ pub enum ParError {
 #[derive(derive_more::Debug, thiserror::Error)]
 pub enum AuthorizeError {
     #[error("unknown client_id: {0}")]
-    InvalidClient(String),
+    UnknownClient(String),
+
+    #[error("expected client_id from Authorization Request: {expected}, but was: {actual}")]
+    MismatchedClient { expected: String, actual: String },
 
     #[error("request_uri not found or expired: {0}")]
     UnknownRequestUri(String),
@@ -105,7 +108,7 @@ where
             .accepted_wallet_client_ids()
             .any(|id| id == request.oauth_request.client_id.as_str())
         {
-            return Err(ParError::InvalidClient(request.oauth_request.client_id));
+            return Err(ParError::UnknownClient(request.oauth_request.client_id));
         }
 
         let request_uri = par::generate_request_uri();
@@ -132,7 +135,7 @@ where
     /// wallet should be redirected to.
     pub async fn process_authorize(&self, request_uri: &str, client_id: &str) -> Result<Url, AuthorizeError> {
         if !self.issuer.accepted_wallet_client_ids().any(|id| id == client_id) {
-            return Err(AuthorizeError::InvalidClient(client_id.to_string()));
+            return Err(AuthorizeError::UnknownClient(client_id.to_string()));
         }
 
         let authorization_request = self
@@ -141,6 +144,14 @@ where
             .await
             .map_err(|error| AuthorizeError::ParStore(Box::new(error)))?
             .ok_or_else(|| AuthorizeError::UnknownRequestUri(request_uri.to_string()))?;
+
+        // TODO (PVW-5953): unit test these checks
+        if authorization_request.oauth_request.client_id != client_id {
+            return Err(AuthorizeError::MismatchedClient {
+                expected: authorization_request.oauth_request.client_id,
+                actual: client_id.to_string(),
+            });
+        }
 
         // Capture the wallet's redirect_uri + state up front so we can build the wallet-facing
         // redirect URL when the flow yields an authorization code.

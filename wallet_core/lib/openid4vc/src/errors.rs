@@ -244,7 +244,7 @@ impl From<ParError> for ErrorResponse<ParErrorCode> {
         let description = err.to_string();
         ErrorResponse {
             error: match err {
-                ParError::InvalidClient(_) => ParErrorCode::InvalidClient,
+                ParError::UnknownClient(_) => ParErrorCode::InvalidClient,
                 ParError::Store(_) => ParErrorCode::ServerError,
             },
             error_description: Some(description),
@@ -276,7 +276,9 @@ impl From<AuthorizeError> for ErrorResponse<AuthorizeErrorCode> {
         let description = err.to_string();
         ErrorResponse {
             error: match err {
-                AuthorizeError::InvalidClient(_) => AuthorizeErrorCode::InvalidClient,
+                AuthorizeError::UnknownClient(_) | AuthorizeError::MismatchedClient { .. } => {
+                    AuthorizeErrorCode::InvalidClient
+                }
                 AuthorizeError::UnknownRequestUri(_) => AuthorizeErrorCode::InvalidRequest,
                 AuthorizeError::ParStore(_) | AuthorizeError::AuthorizationCodeFlow(_) | AuthorizeError::Encode(_) => {
                     AuthorizeErrorCode::ServerError
