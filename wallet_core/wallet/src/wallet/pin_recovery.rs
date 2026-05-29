@@ -88,7 +88,7 @@ pub enum PinRecoveryError {
 
     #[error("user denied DigiD authentication")]
     #[category(expected)]
-    DeniedDigiD,
+    AuthorizationDenied,
 
     #[error("cannot recover PIN without a PID")]
     #[category(critical)]
@@ -126,7 +126,7 @@ where
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn create_pin_recovery_redirect_uri(&mut self) -> Result<Url, PinRecoveryError> {
-        info!("Generating DigiD auth URL, starting OAuth discovery");
+        info!("Generating OAuth authorization URL, starting issuer discovery");
 
         info!("Checking if blocked");
         if self.is_blocked() {
@@ -169,7 +169,7 @@ where
             .await
             .map_err(IssuanceError::IssuanceSession)?;
 
-        info!("PIN recovery DigiD auth URL generated");
+        info!("PIN recovery OAuth authorization URL generated");
         let auth_url = authorization_session.auth_url().clone();
         self.storage
             .write()
@@ -227,7 +227,7 @@ where
             .start_issuance(&redirect_uri, config.issuer_trust_anchors())
             .await
             .map_err(|e| match e {
-                WalletIssuanceError::OAuth(OAuthError::Denied) => PinRecoveryError::DeniedDigiD,
+                WalletIssuanceError::OAuth(OAuthError::Denied) => PinRecoveryError::AuthorizationDenied,
                 e => PinRecoveryError::Issuance(IssuanceError::IssuanceSession(e)),
             })?;
 
@@ -786,7 +786,7 @@ mod tests {
         let denied_redirect = Url::parse(&format!("{AUTH_URL}?error=access_denied&state=whatever")).unwrap();
         let err = wallet.continue_pin_recovery(denied_redirect).await.unwrap_err();
 
-        assert_matches!(err, PinRecoveryError::DeniedDigiD);
+        assert_matches!(err, PinRecoveryError::AuthorizationDenied);
     }
 
     #[tokio::test]

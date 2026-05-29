@@ -94,7 +94,7 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
     state: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct HttpAuthorizationSessionData {
     issuer_metadata: IssuerMetadata,
     oauth_metadata: AuthorizationServerMetadata,

@@ -8,7 +8,6 @@ pub mod preview;
 pub mod mock;
 
 use std::collections::HashSet;
-use std::fmt::Debug;
 
 use attestation_data::attributes::AttributesError;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -296,7 +295,7 @@ pub trait IssuanceDiscovery {
 /// authorization server returns after the user authenticates.
 pub trait AuthorizationSession {
     type Issuance: IssuanceSession;
-    type Persisted: Clone + Debug + Send + Sync + Serialize + DeserializeOwned + 'static;
+    type Persisted: Clone + Send + Sync + Serialize + DeserializeOwned + 'static;
 
     /// Returns the authorization URL the user should be redirected to.
     fn auth_url(&self) -> &Url;
