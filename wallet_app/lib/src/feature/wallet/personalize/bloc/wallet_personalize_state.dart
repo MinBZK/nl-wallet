@@ -87,19 +87,9 @@ class WalletPersonalizeSuccess extends WalletPersonalizeState {
   List<Object?> get props => [addedCards, userCanTransfer, ...super.props];
 }
 
-class WalletPersonalizeFailure extends WalletPersonalizeState {}
-
-class WalletPersonalizeDigidFailure extends WalletPersonalizeState implements ErrorState {
-  @override
-  final ApplicationError error;
-
-  const WalletPersonalizeDigidFailure({required this.error});
-
-  @override
-  List<Object?> get props => [error, ...super.props];
+class WalletPersonalizeDigidCancelled extends WalletPersonalizeState {
+  const WalletPersonalizeDigidCancelled();
 }
-
-class WalletPersonalizeDigidCancelled extends WalletPersonalizeState {}
 
 class WalletPersonalizeLoadInProgress extends WalletPersonalizeState {
   @override
@@ -115,44 +105,23 @@ class WalletPersonalizeAddingCards extends WalletPersonalizeState {
   const WalletPersonalizeAddingCards(this.stepperProgress);
 }
 
-class WalletPersonalizeNetworkError extends WalletPersonalizeState implements NetworkErrorState {
+class WalletPersonalizeError extends WalletPersonalizeState implements ErrorState {
   @override
-  final NetworkError error;
+  final ApplicationError error;
 
-  const WalletPersonalizeNetworkError({required this.error});
+  const WalletPersonalizeError({required this.error});
 
   @override
   List<Object?> get props => [error, ...super.props];
 }
 
-class WalletPersonalizeGenericError extends WalletPersonalizeState implements ErrorState {
+/// Specific for errors during digid stage (non standard error ui)
+class WalletPersonalizeDigidFailure extends WalletPersonalizeState implements ErrorState {
   @override
   final ApplicationError error;
 
-  const WalletPersonalizeGenericError({required this.error});
+  const WalletPersonalizeDigidFailure({required this.error});
 
   @override
   List<Object?> get props => [error, ...super.props];
-}
-
-class WalletPersonalizeSessionExpired extends WalletPersonalizeState implements ErrorState {
-  @override
-  final ApplicationError error;
-
-  const WalletPersonalizeSessionExpired({required this.error});
-
-  @override
-  List<Object?> get props => [error, ...super.props];
-}
-
-class WalletPersonalizeRelyingPartyError extends WalletPersonalizeState implements ErrorState {
-  @override
-  final ApplicationError error;
-
-  final LocalizedText? organizationName;
-
-  const WalletPersonalizeRelyingPartyError({required this.error, this.organizationName});
-
-  @override
-  List<Object?> get props => [error, organizationName, ...super.props];
 }

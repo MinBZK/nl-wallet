@@ -7,7 +7,6 @@ import 'package:meta/meta.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/bloc/error_state.dart';
-import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/close_proximity/ble_connection_event.dart';
 import '../../../domain/model/disclosure/disclose_card_request.dart';
 import '../../../domain/model/disclosure/disclosure_session_type.dart';
@@ -365,47 +364,29 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
     // Call cancelSession to avoid stale session and to potentially provide more context (e.g. returnUrl).
     final cancelResult = await _cancelDisclosureUseCase.invoke();
+    final returnUrl = tryCast<GenericError>(error)?.redirectUrl ?? cancelResult.value;
 
     switch (error) {
-      case GenericError():
-        emit(DisclosureGenericError(error: error, returnUrl: error.redirectUrl));
-      case NetworkError():
-        emit(DisclosureNetworkError(error: error));
-      case SessionError():
-        _handleSessionError(emit, error);
-      case RelyingPartyError():
-        emit(DisclosureRelyingPartyError(error: error, organizationName: error.organizationName));
+      case SessionError(state: SessionState.expired):
+        _handleSessionExpired(emit, error);
       case ExternalScannerError():
         emit(DisclosureExternalScannerError(error: error));
       default:
-        await cancelResult.process(
-          onSuccess: (returnUrl) => emit(DisclosureGenericError(error: error, returnUrl: returnUrl)),
-          onError: (_) => emit(DisclosureGenericError(error: error)),
-        );
+        emit(DisclosureError(error: error, returnUrl: returnUrl));
     }
   }
 
-  void _handleSessionError(Emitter<DisclosureState> emit, SessionError error) {
+  void _handleSessionExpired(Emitter<DisclosureState> emit, SessionError error) {
+    assert(error.state == SessionState.expired, 'Unexpected error state');
     final isCrossDevice = startDisclosureResult?.sessionType == DisclosureSessionType.crossDevice;
-    switch (error.state) {
-      case SessionState.expired:
-        emit(
-          DisclosureSessionExpired(
-            error: error,
-            canRetry: error.canRetry,
-            isCrossDevice: isCrossDevice,
-            returnUrl: error.returnUrl,
-          ),
-        );
-      case SessionState.cancelled:
-        emit(
-          DisclosureSessionCancelled(
-            error: error,
-            relyingParty: relyingParty,
-            returnUrl: error.returnUrl,
-          ),
-        );
-    }
+    emit(
+      DisclosureSessionExpired(
+        error: error,
+        canRetry: error.canRetry,
+        isCrossDevice: isCrossDevice,
+        returnUrl: error.returnUrl,
+      ),
+    );
   }
 
   @override

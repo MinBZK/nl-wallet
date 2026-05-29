@@ -330,34 +330,27 @@ class OtherStylesTab extends StatelessWidget {
         const SizedBox(height: 12),
         const ThemeSectionSubHeader(title: 'Generic Error Screen'),
         TextButton(
-          onPressed: () => ErrorScreen.showGeneric(context),
+          onPressed: () => ErrorScreen.show(context, const GenericError('generic test', sourceError: 'test')),
           child: const Text('Generic Error Screen'),
         ),
         const ThemeSectionSubHeader(title: 'Network Error Screen'),
         TextButton(
-          onPressed: () {
-            // Simulate a network error from the personalize flow
-            const networkError = NetworkError(hasInternet: false, sourceError: 'sourceError');
-            ErrorScreen.showNetwork(context, error: networkError);
-          },
+          onPressed: () => ErrorScreen.show(context, const NetworkError(hasInternet: false, sourceError: 'test')),
           child: const Text('Network Error Screen'),
         ),
         const ThemeSectionSubHeader(title: 'No Internet Error Screen'),
         TextButton(
-          onPressed: () => ErrorScreen.showNetwork(
-            context,
-            error: const NetworkError(hasInternet: true, sourceError: 'test'),
-          ),
+          onPressed: () => ErrorScreen.show(context, const NetworkError(hasInternet: true, sourceError: 'test')),
           child: const Text('No Internet Error Screen'),
         ),
         const ThemeSectionSubHeader(title: 'Device Incompatible Screen'),
         TextButton(
-          onPressed: () => ErrorScreen.showDeviceIncompatible(context),
+          onPressed: () => ErrorScreen.show(context, const HardwareUnsupportedError(sourceError: 'error')),
           child: const Text('Device Incompatible Screen'),
         ),
         const ThemeSectionSubHeader(title: 'Session Expired Screen'),
         TextButton(
-          onPressed: () => ErrorScreen.showSessionExpired(context),
+          onPressed: () => ErrorScreen.show(context, const SessionError(state: .expired, sourceError: 'test')),
           child: const Text('Session Expired Screen'),
         ),
       ],

@@ -101,7 +101,7 @@ import '../feature/wallet_transfer_faq/wallet_transfer_faq_screen.dart';
 import '../feature/wallet_transfer_source/bloc/wallet_transfer_source_bloc.dart';
 import '../feature/wallet_transfer_source/wallet_transfer_source_screen.dart';
 import '../feature/wallet_transfer_target/bloc/wallet_transfer_target_bloc.dart'
-    hide WalletTransferGenericError, WalletTransferUpdateStateEvent;
+    hide WalletTransferError, WalletTransferUpdateStateEvent;
 import '../feature/wallet_transfer_target/wallet_transfer_target_screen.dart';
 import '../util/cast_util.dart';
 import '../util/extension/build_context_extension.dart';
@@ -658,7 +658,7 @@ WidgetBuilder _createWalletTransferSourceRoute(RouteSettings settings) {
             if (argument.peek() != null) {
               bloc.add(WalletTransferAcknowledgeTransferEvent(argument.value!));
             } else {
-              final state = WalletTransferGenericError(GenericError('No valid uri', sourceError: argument));
+              final state = WalletTransferError(GenericError('No valid uri', sourceError: argument));
               bloc.add(WalletTransferUpdateStateEvent(state));
             }
             return bloc;

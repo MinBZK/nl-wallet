@@ -203,10 +203,10 @@ class IssuanceStopped extends IssuanceState {
   List<Object?> get props => [returnUrl, ...super.props];
 }
 
-class IssuanceGenericError extends IssuanceState implements ErrorState {
+class IssuanceError extends IssuanceState implements ErrorState {
   final String? returnUrl;
 
-  const IssuanceGenericError({required this.error, this.returnUrl});
+  const IssuanceError({required this.error, this.returnUrl});
 
   @override
   bool get showStopConfirmation => false;
@@ -243,19 +243,6 @@ class IssuanceNoCardsRetrieved extends IssuanceState {
   List<Object?> get props => [organization, ...super.props];
 }
 
-class IssuanceNetworkError extends IssuanceState implements NetworkErrorState {
-  @override
-  final NetworkError error;
-
-  @override
-  bool get showStopConfirmation => false;
-
-  const IssuanceNetworkError({required this.error});
-
-  @override
-  List<Object?> get props => [...super.props, error];
-}
-
 class IssuanceSessionExpired extends IssuanceState implements ErrorState {
   final bool isCrossDevice;
   final bool canRetry;
@@ -276,43 +263,4 @@ class IssuanceSessionExpired extends IssuanceState implements ErrorState {
 
   @override
   List<Object?> get props => [error, canRetry, isCrossDevice, returnUrl, ...super.props];
-}
-
-/// State that is exposed when the session has been stopped remotely (e.g. the user pressed stop in wallet_web)
-class IssuanceSessionCancelled extends IssuanceState implements ErrorState {
-  final Organization? relyingParty;
-  final String? returnUrl;
-
-  const IssuanceSessionCancelled({
-    required this.error,
-    this.relyingParty,
-    this.returnUrl,
-  });
-
-  @override
-  bool get showStopConfirmation => false;
-
-  @override
-  final ApplicationError error;
-
-  @override
-  List<Object?> get props => [error, relyingParty, returnUrl, ...super.props];
-}
-
-class IssuanceRelyingPartyError extends IssuanceState implements ErrorState {
-  final LocalizedText? organizationName;
-
-  const IssuanceRelyingPartyError({
-    required this.error,
-    this.organizationName,
-  });
-
-  @override
-  bool get showStopConfirmation => false;
-
-  @override
-  final ApplicationError error;
-
-  @override
-  List<Object?> get props => [error, organizationName, ...super.props];
 }

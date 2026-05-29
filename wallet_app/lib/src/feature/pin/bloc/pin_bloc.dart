@@ -5,7 +5,6 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/bloc/error_state.dart';
-import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/pin/check_pin_result.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/pin/check_pin_usecase.dart';
@@ -57,12 +56,10 @@ class PinBloc extends Bloc<PinEvent, PinState> {
       onError: (error) {
         _currentPin = '';
         switch (error) {
-          case NetworkError():
-            emit(PinValidateNetworkError(error: error));
           case CheckPinError():
             _handleCheckPinErrors(emit, error.result);
           default:
-            emit(PinValidateGenericError(error: error));
+            emit(PinValidateError(error: error));
         }
       },
     );

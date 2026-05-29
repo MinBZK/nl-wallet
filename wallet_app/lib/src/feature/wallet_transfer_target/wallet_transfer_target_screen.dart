@@ -106,17 +106,9 @@ class WalletTransferTargetScreen extends StatelessWidget {
                   key: const Key('primaryButtonCta'),
                 ),
               ),
-              WalletTransferGenericError() => ErrorPage.generic(
+              WalletTransferError(:final error) => ErrorPage.fromError(
                 context,
-                onPrimaryActionPressed: restart,
-                style: ErrorCtaStyle.retry,
-              ),
-              WalletTransferNetworkError(:final error) =>
-                error.hasInternet
-                    ? ErrorPage.server(context, onPrimaryActionPressed: restart, style: ErrorCtaStyle.retry)
-                    : ErrorPage.noInternet(context, onPrimaryActionPressed: restart, style: ErrorCtaStyle.retry),
-              WalletTransferSessionExpired() => ErrorPage.sessionExpired(
-                context,
+                error,
                 onPrimaryActionPressed: restart,
                 style: ErrorCtaStyle.retry,
               ),
@@ -174,9 +166,7 @@ class WalletTransferTargetScreen extends StatelessWidget {
       case WalletTransferAwaitingQrScan():
       case WalletTransferSuccess():
       case WalletTransferStopped():
-      case WalletTransferGenericError():
-      case WalletTransferNetworkError():
-      case WalletTransferSessionExpired():
+      case WalletTransferError():
       case WalletTransferFailed():
         return const SizedBox.shrink();
     }
@@ -211,12 +201,7 @@ class WalletTransferTargetScreen extends StatelessWidget {
       WalletTransferTransferring() => TitleText(context.l10n.walletTransferTargetScreenTransferringTitle),
       WalletTransferSuccess() => TitleText(context.l10n.walletTransferTargetScreenSuccessTitle),
       WalletTransferStopped() => TitleText(context.l10n.walletTransferScreenStoppedTitle),
-      WalletTransferGenericError() => TitleText(context.l10n.errorScreenGenericHeadline),
-      WalletTransferNetworkError(:final error) =>
-        error.hasInternet
-            ? TitleText(context.l10n.errorScreenServerHeadline)
-            : TitleText(context.l10n.errorScreenNoInternetHeadline),
-      WalletTransferSessionExpired() => TitleText(context.l10n.errorScreenSessionExpiredHeadline),
+      WalletTransferError(:final error) => TitleText(ErrorPage.titleFromError(context, error)),
       WalletTransferFailed() => TitleText(context.l10n.walletTransferScreenFailedTitle),
       WalletTransferLoadingQrData() => const SizedBox.shrink(),
     };

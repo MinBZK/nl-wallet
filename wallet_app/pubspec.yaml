@@ -84,7 +84,7 @@ dev_dependencies:
   mockito: ^5.5.0
   sentry_dart_plugin: ^3.1.1
   test: ^1.26.2
-  translations_cleaner: ^0.0.5
+  translations_cleaner: ^0.1.1
 
 flutter:
   uses-material-design: true

@@ -82,7 +82,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
           MockPinBloc(),
-          const PinValidateGenericError(error: GenericError('', sourceError: 'test')),
+          const PinValidateError(error: GenericError('', sourceError: 'test')),
         ),
       );
       await tester.pumpAndSettle();
@@ -93,9 +93,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
           MockPinBloc(),
-          const PinValidateNetworkError(
-            error: NetworkError(hasInternet: true, sourceError: 'test'),
-          ),
+          const PinValidateError(error: NetworkError(hasInternet: true, sourceError: 'test')),
         ),
       );
       await tester.pumpAndSettle();

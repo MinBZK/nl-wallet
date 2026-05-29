@@ -136,7 +136,7 @@ void main() {
       act: (bloc) => bloc.add(const RenewPidLoginWithDigidClicked()),
       expect: () => [
         const RenewPidLoadingDigidUrl(),
-        isA<RenewPidNetworkError>(),
+        isA<RenewPidError>().having((it) => it.error, 'network', isA<NetworkError>()),
       ],
     );
 
@@ -158,7 +158,7 @@ void main() {
       act: (bloc) => bloc.add(const RenewPidLoginWithDigidClicked()),
       expect: () => [
         const RenewPidLoadingDigidUrl(),
-        isA<RenewPidGenericError>(),
+        isA<RenewPidError>(),
       ],
     );
 
@@ -176,7 +176,7 @@ void main() {
       },
       act: (bloc) => bloc.add(const RenewPidPinConfirmationFailed(error: GenericError('fail', sourceError: 'fail'))),
       expect: () => [
-        isA<RenewPidGenericError>().having((it) => it.error.sourceError, 'Source error should match', 'fail'),
+        isA<RenewPidError>().having((it) => it.error.sourceError, 'Source error should match', 'fail'),
       ],
     );
 

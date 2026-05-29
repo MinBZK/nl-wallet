@@ -5,7 +5,6 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/bloc/error_state.dart';
-import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/pin/pin_validation_error.dart';
 import '../../../domain/model/result/application_error.dart';
@@ -93,7 +92,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
       emit(SetupSecurityPinConfirmationInProgress(_confirmPin.length));
     } else {
       if (_newPin == _confirmPin) {
-        emit(SetupSecurityCreatingWallet());
+        emit(const SetupSecurityCreatingWallet());
         await _createAndUnlockWallet(_newPin, emit);
       } else {
         _confirmPin = '';
@@ -118,14 +117,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
         }
       },
       onError: (error) async {
-        switch (error) {
-          case NetworkError():
-            emit(SetupSecurityNetworkError(error: error));
-          case HardwareUnsupportedError():
-            emit(SetupSecurityDeviceIncompatibleError(error: error));
-          default:
-            emit(SetupSecurityGenericError(error: error));
-        }
+        emit(SetupSecurityError(error: error));
         await _resetFlow(emit);
       },
     );

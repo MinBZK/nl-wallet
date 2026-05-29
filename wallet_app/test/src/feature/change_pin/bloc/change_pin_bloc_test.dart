@@ -132,7 +132,7 @@ void main() {
   );
 
   blocTest(
-    'verify unsuccessful pin change (network error) leads to ChangePinNetworkError followed by a reset to ChangePinInitial',
+    'verify unsuccessful pin change (network error) leads to ChangePinError(NetworkError) followed by a reset to ChangePinInitial',
     build: () => ChangePinBloc(checkIsValidPinUseCase, changePinUseCase),
     setUp: () {
       when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
@@ -148,7 +148,7 @@ void main() {
     skip: 12 /* skip setting up new pin and confirming pin */,
     expect: () => [
       ChangePinUpdating(),
-      const ChangePinNetworkError(error: NetworkError(hasInternet: true, sourceError: 'test')),
+      const ChangePinError(error: NetworkError(hasInternet: true, sourceError: 'test')),
       const ChangePinInitial(didGoBack: true),
     ],
   );
@@ -170,7 +170,7 @@ void main() {
     skip: 12 /* skip setting up new pin and confirming pin */,
     expect: () => [
       ChangePinUpdating(),
-      isA<ChangePinGenericError>(),
+      isA<ChangePinError>(),
       const ChangePinInitial(didGoBack: true),
     ],
   );

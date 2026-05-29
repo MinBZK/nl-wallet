@@ -54,8 +54,8 @@ class DisclosureExternalScannerError extends DisclosureState implements ErrorSta
   List<Object?> get props => [error, ...super.props];
 }
 
-/// State representing an unexpected generic error that occurred during the disclosure process.
-class DisclosureGenericError extends DisclosureState implements ErrorState {
+/// State representing an error that occurred during the disclosure process.
+class DisclosureError extends DisclosureState implements ErrorState {
   @override
   final ApplicationError error;
 
@@ -64,26 +64,10 @@ class DisclosureGenericError extends DisclosureState implements ErrorState {
   @override
   bool get showStopConfirmation => false;
 
-  const DisclosureGenericError({required this.error, this.returnUrl});
+  const DisclosureError({required this.error, this.returnUrl});
 
   @override
   List<Object?> get props => [error, ...super.props];
-}
-
-/// Error state indicating a problem with the organization (relying party) requesting the data.
-class DisclosureRelyingPartyError extends DisclosureState implements ErrorState {
-  @override
-  final ApplicationError error;
-
-  final LocalizedText? organizationName;
-
-  @override
-  bool get showStopConfirmation => false;
-
-  const DisclosureRelyingPartyError({required this.error, this.organizationName});
-
-  @override
-  List<Object?> get props => [error, organizationName, ...super.props];
 }
 
 /// Error state shown when the disclosure session has timed out and needs to be restarted.
@@ -109,41 +93,6 @@ class DisclosureSessionExpired extends DisclosureState implements ErrorState {
 
   @override
   List<Object?> get props => [error, canRetry, isCrossDevice, returnUrl, ...super.props];
-}
-
-/// Error state emitted when the session was cancelled remotely by another device or the relying party.
-class DisclosureSessionCancelled extends DisclosureState implements ErrorState {
-  final Organization? relyingParty;
-  final String? returnUrl;
-
-  @override
-  final ApplicationError error;
-
-  @override
-  bool get showStopConfirmation => false;
-
-  const DisclosureSessionCancelled({
-    required this.error,
-    this.relyingParty,
-    this.returnUrl,
-  });
-
-  @override
-  List<Object?> get props => [error, relyingParty, returnUrl, ...super.props];
-}
-
-/// Error state representing a network connectivity issue during the disclosure flow.
-class DisclosureNetworkError extends DisclosureState implements NetworkErrorState {
-  @override
-  final NetworkError error;
-
-  @override
-  bool get showStopConfirmation => false;
-
-  const DisclosureNetworkError({required this.error});
-
-  @override
-  List<Object?> get props => [error, ...super.props];
 }
 
 /// State where the safety and origin of the request URL are verified for fraud prevention.

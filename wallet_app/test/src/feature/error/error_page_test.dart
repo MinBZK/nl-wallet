@@ -19,7 +19,7 @@ void main() {
           ),
         ),
       );
-      await screenMatchesGolden('error/generic_retry');
+      await screenMatchesGolden('page/generic_retry');
     });
 
     testGoldens('ErrorPage.generic - close', (tester) async {
@@ -32,7 +32,7 @@ void main() {
           ),
         ),
       );
-      await screenMatchesGolden('error/generic_close');
+      await screenMatchesGolden('page/generic_close');
     });
 
     testGoldens('ErrorPage.network', (tester) async {
@@ -45,7 +45,7 @@ void main() {
           ),
         ),
       );
-      await screenMatchesGolden('error/network');
+      await screenMatchesGolden('page/network');
     });
 
     testGoldens('ErrorPage.noInternet', (tester) async {
@@ -58,7 +58,7 @@ void main() {
           ),
         ),
       );
-      await screenMatchesGolden('error/no_internet');
+      await screenMatchesGolden('page/no_internet');
     });
 
     testGoldens('ErrorPage.sessionExpired', (tester) async {
@@ -71,7 +71,7 @@ void main() {
           ),
         ),
       );
-      await screenMatchesGolden('error/session_expired');
+      await screenMatchesGolden('page/session_expired');
     });
 
     testGoldens('ErrorPage.cancelledSession', (tester) async {
@@ -84,7 +84,7 @@ void main() {
           ),
         ),
       );
-      await screenMatchesGolden('error/cancelled_session');
+      await screenMatchesGolden('page/cancelled_session');
     });
 
     testGoldens('ErrorPage.relyingParty', (tester) async {
@@ -92,13 +92,28 @@ void main() {
         Builder(
           builder: (context) => ErrorPage.relyingParty(
             context,
-            organizationName: 'Test Org',
+            organizationName: 'Verifier X',
             onPrimaryActionPressed: () {},
             style: ErrorCtaStyle.retry,
           ),
         ),
       );
-      await screenMatchesGolden('error/relying_party');
+      await screenMatchesGolden('page/relying_party');
+    });
+
+    testGoldens('ErrorPage.relyingParty (for issuance)', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) => ErrorPage.relyingParty(
+            context,
+            organizationName: 'Issuer Y',
+            onPrimaryActionPressed: () {},
+            style: ErrorCtaStyle.close,
+            useIssuanceStyle: true,
+          ),
+        ),
+      );
+      await screenMatchesGolden('page/relying_party.issuance');
     });
 
     testGoldens('ErrorPage.fromError - NetworkError (no internet)', (tester) async {
@@ -112,7 +127,7 @@ void main() {
           ),
         ),
       );
-      await screenMatchesGolden('error/from_error_no_internet');
+      await screenMatchesGolden('page/from_error_no_internet');
     });
 
     testGoldens('ErrorPage - dark mode landscape', (tester) async {
@@ -127,7 +142,7 @@ void main() {
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
       );
-      await screenMatchesGolden('error/generic_retry_dark_landscape');
+      await screenMatchesGolden('page/generic_retry_dark_landscape');
     });
   });
 
@@ -146,6 +161,193 @@ void main() {
 
       await tester.tap(find.byType(PrimaryButton));
       expect(pressed, isTrue);
+    });
+  });
+
+  group('fromError', () {
+    testWidgets('maps GenericError to ErrorPage.generic', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            final page = ErrorPage.fromError(
+              context,
+              const GenericError('msg', sourceError: 'error'),
+              onPrimaryActionPressed: () {},
+              style: ErrorCtaStyle.retry,
+            );
+            final expected = ErrorPage.generic(context, style: ErrorCtaStyle.retry);
+            expect(page.title, expected.title);
+            expect(page.description, expected.description);
+            expect(page.illustration, expected.illustration);
+            return const SizedBox.shrink();
+          },
+        ),
+      );
+    });
+
+    testWidgets('maps NetworkError(hasInternet: true) to ErrorPage.server', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            final page = ErrorPage.fromError(
+              context,
+              const NetworkError(hasInternet: true, sourceError: 'error'),
+              onPrimaryActionPressed: () {},
+              style: ErrorCtaStyle.retry,
+            );
+            final expected = ErrorPage.server(context, style: ErrorCtaStyle.retry);
+            expect(page.title, expected.title);
+            expect(page.description, expected.description);
+            return const SizedBox.shrink();
+          },
+        ),
+      );
+    });
+
+    testWidgets('maps NetworkError(hasInternet: false) to ErrorPage.noInternet', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            final page = ErrorPage.fromError(
+              context,
+              const NetworkError(hasInternet: false, sourceError: 'error'),
+              onPrimaryActionPressed: () {},
+              style: ErrorCtaStyle.retry,
+            );
+            final expected = ErrorPage.noInternet(context, style: ErrorCtaStyle.retry);
+            expect(page.title, expected.title);
+            expect(page.description, expected.description);
+            return const SizedBox.shrink();
+          },
+        ),
+      );
+    });
+
+    testWidgets('maps SessionError(state: expired) to ErrorPage.sessionExpired', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            final page = ErrorPage.fromError(
+              context,
+              const SessionError(state: SessionState.expired, sourceError: 'error'),
+              onPrimaryActionPressed: () {},
+              style: ErrorCtaStyle.retry,
+            );
+            final expected = ErrorPage.sessionExpired(context, style: ErrorCtaStyle.retry);
+            expect(page.title, expected.title);
+            expect(page.description, expected.description);
+            return const SizedBox.shrink();
+          },
+        ),
+      );
+    });
+
+    testWidgets('maps SessionError(state: cancelled) to ErrorPage.cancelledSession', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            final page = ErrorPage.fromError(
+              context,
+              const SessionError(state: SessionState.cancelled, sourceError: 'error'),
+              onPrimaryActionPressed: () {},
+              style: ErrorCtaStyle.retry,
+              organizationName: 'Org',
+            );
+            final expected = ErrorPage.cancelledSession(
+              context,
+              style: ErrorCtaStyle.retry,
+              organizationName: 'Org',
+            );
+            expect(page.title, expected.title);
+            expect(page.description, expected.description);
+            return const SizedBox.shrink();
+          },
+        ),
+      );
+    });
+
+    testWidgets('maps RelyingPartyError to ErrorPage.relyingParty', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            final page = ErrorPage.fromError(
+              context,
+              const RelyingPartyError(sourceError: 'error'),
+              onPrimaryActionPressed: () {},
+              style: ErrorCtaStyle.retry,
+            );
+            final expected = ErrorPage.relyingParty(context, style: ErrorCtaStyle.retry);
+            expect(page.title, expected.title);
+            expect(page.description, expected.description);
+            return const SizedBox.shrink();
+          },
+        ),
+      );
+    });
+
+    testWidgets('maps RelyingPartyError with organizationName to ErrorPage.relyingParty', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            const orgName = 'Test Organization';
+            final error = RelyingPartyError(
+              sourceError: 'error',
+              organizationName: {const Locale('en'): orgName},
+            );
+            final page = ErrorPage.fromError(
+              context,
+              error,
+              onPrimaryActionPressed: () {},
+              style: ErrorCtaStyle.retry,
+            );
+            final expected = ErrorPage.relyingParty(
+              context,
+              style: ErrorCtaStyle.retry,
+              organizationName: orgName,
+            );
+            expect(page.title, expected.title);
+            expect(page.description, expected.description);
+            return const SizedBox.shrink();
+          },
+        ),
+      );
+    });
+
+    testWidgets('maps HardwareUnsupportedError to ErrorPage.deviceIncompatible', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            final page = ErrorPage.fromError(
+              context,
+              const HardwareUnsupportedError(sourceError: 'error'),
+              onPrimaryActionPressed: () {},
+              style: ErrorCtaStyle.retry,
+            );
+            final expected = ErrorPage.deviceIncompatible(context);
+            expect(page.title, expected.title);
+            expect(page.description, expected.description);
+            return const SizedBox.shrink();
+          },
+        ),
+      );
+    });
+
+    testWidgets('maps unknown error to ErrorPage.generic (default case)', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            final page = ErrorPage.fromError(
+              context,
+              const ExternalScannerError(sourceError: 'error'),
+              onPrimaryActionPressed: () {},
+              style: ErrorCtaStyle.retry,
+            );
+            final expected = ErrorPage.generic(context, style: ErrorCtaStyle.retry);
+            expect(page.title, expected.title);
+            return const SizedBox.shrink();
+          },
+        ),
+      );
     });
   });
 }

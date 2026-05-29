@@ -125,14 +125,10 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
       WalletPersonalizeCheckData() => _buildCheckDataOfferingPage(context, state),
       WalletPersonalizeConfirmPin() => _buildConfirmPinPage(context, state),
       WalletPersonalizeSuccess() => _buildSuccessPage(context, state),
-      WalletPersonalizeFailure() => _buildErrorPage(context),
       WalletPersonalizeDigidCancelled() => _buildDigidCancelledPage(context),
-      WalletPersonalizeDigidFailure() => _buildDigidErrorPage(context),
-      WalletPersonalizeNetworkError() => _buildNetworkError(context, state),
-      WalletPersonalizeGenericError() => _buildGenericError(context, state),
-      WalletPersonalizeSessionExpired() => _buildSessionExpired(context),
+      WalletPersonalizeError() => _buildGenericError(context, state),
       WalletPersonalizeAddingCards() => _buildAddingCards(context, progress: state.stepperProgress),
-      WalletPersonalizeRelyingPartyError() => _buildRelyingPartyError(context, state),
+      WalletPersonalizeDigidFailure() => _buildDigidErrorPage(context),
     };
 
     return FakePagingAnimatedSwitcher(
@@ -260,19 +256,6 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
     );
   }
 
-  Widget _buildErrorPage(BuildContext context) {
-    return TerminalPage(
-      illustration: const PageIllustration(asset: WalletAssets.svg_error_general),
-      title: context.l10n.walletPersonalizeScreenErrorTitle,
-      description: context.l10n.walletPersonalizeScreenErrorDescription,
-      primaryButton: PrimaryButton(
-        text: Text(context.l10n.walletPersonalizeScreenErrorRetryCta),
-        onPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
-        key: const Key('primaryButtonCta'),
-      ),
-    );
-  }
-
   Widget _buildDigidCancelledPage(BuildContext context) {
     return TerminalPage(
       title: context.l10n.walletPersonalizeDigidCancelledPageTitle,
@@ -342,43 +325,24 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
     );
   }
 
-  Widget _buildNetworkError(BuildContext context, WalletPersonalizeNetworkError state) {
-    if (state.error.hasInternet) {
-      return ErrorPage.server(
-        context,
-        style: ErrorCtaStyle.retry,
-        onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
-      );
-    } else {
-      return ErrorPage.noInternet(
-        context,
-        onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
-        style: ErrorCtaStyle.retry,
-      );
-    }
-  }
-
-  Widget _buildGenericError(BuildContext context, WalletPersonalizeGenericError state) {
-    return ErrorPage.generic(
+  Widget _buildGenericError(BuildContext context, WalletPersonalizeError state) {
+    // Check for [RelyingPartyError], as the issuance flow uses non-standard copy for this state.
+    if (state.error is RelyingPartyError) return _buildRelyingPartyErrorPage(context, state.error as RelyingPartyError);
+    return ErrorPage.fromError(
       context,
-      style: ErrorCtaStyle.retry,
+      state.error,
       onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
+      style: ErrorCtaStyle.retry,
     );
   }
 
-  Widget _buildRelyingPartyError(BuildContext context, WalletPersonalizeRelyingPartyError state) {
+  Widget _buildRelyingPartyErrorPage(BuildContext context, RelyingPartyError error) {
     return ErrorPage.relyingParty(
       context,
-      organizationName: state.organizationName?.l10nValue(context),
+      organizationName: error.organizationName?.l10nValue(context),
       onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
-    );
-  }
-
-  Widget _buildSessionExpired(BuildContext context) {
-    return ErrorPage.sessionExpired(
-      context,
-      style: ErrorCtaStyle.retry,
-      onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
+      style: .retry,
+      useIssuanceStyle: true,
     );
   }
 
@@ -396,8 +360,6 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
         title = context.l10n.walletPersonalizeCheckDataOfferingPageTitle;
       case WalletPersonalizeSuccess():
         title = context.l10n.walletPersonalizeSuccessPageTitle;
-      case WalletPersonalizeFailure():
-        title = context.l10n.walletPersonalizeScreenErrorTitle;
       case WalletPersonalizeDigidFailure():
         title = context.l10n.walletPersonalizeDigidErrorPageTitle;
       case WalletPersonalizeDigidCancelled():
@@ -406,16 +368,8 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
         title = context.l10n.walletPersonalizeScreenLoadingTitle;
       case WalletPersonalizeAddingCards():
         title = context.l10n.walletPersonalizeScreenLoadingTitle;
-      case WalletPersonalizeNetworkError():
-        title = state.error.hasInternet
-            ? context.l10n.errorScreenServerHeadline
-            : context.l10n.errorScreenNoInternetHeadline;
-      case WalletPersonalizeGenericError():
-        title = context.l10n.errorScreenGenericHeadline;
-      case WalletPersonalizeSessionExpired():
-        title = context.l10n.errorScreenSessionExpiredHeadline;
-      case WalletPersonalizeRelyingPartyError():
-        title = context.l10n.genericRelyingPartyErrorTitle;
+      case WalletPersonalizeError(:final error):
+        title = ErrorPage.titleFromError(context, error);
       case WalletPersonalizeConfirmPin():
       case WalletPersonalizeLoadingIssuanceUrl():
       case WalletPersonalizeConnectDigid():

@@ -7,7 +7,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../environment.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/bloc/error_state.dart';
-import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/disclosure/disclose_card_request.dart';
 import '../../../domain/model/disclosure/disclosure_session_type.dart';
@@ -217,48 +216,29 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   Future<void> _handleApplicationError(ApplicationError error, Emitter<IssuanceState> emit) async {
     emit(IssuanceLoadInProgress(state.stepperProgress));
     switch (error) {
-      case GenericError():
-        emit(IssuanceGenericError(error: error, returnUrl: error.redirectUrl));
-      case NetworkError():
-        await _cancelIssuanceUseCase.invoke(); // Attempt to cancel the session, but propagate original error
-        emit(IssuanceNetworkError(error: error));
-      case SessionError():
-        _handleSessionError(emit, error);
-      case RelyingPartyError():
-        emit(IssuanceRelyingPartyError(error: error, organizationName: error.organizationName));
+      case SessionError(state: SessionState.expired):
+        _handleSessionExpiredError(emit, error);
       case ExternalScannerError():
         emit(IssuanceExternalScannerError(error: error));
       default:
         // Call cancelSession to avoid stale session and to try and provide more context (e.g. returnUrl).
         final cancelResult = await _cancelIssuanceUseCase.invoke();
-        await cancelResult.process(
-          onSuccess: (returnUrl) => emit(IssuanceGenericError(error: error, returnUrl: returnUrl)),
-          onError: (_) => emit(IssuanceGenericError(error: error)),
-        );
+        final String? returnUrl = tryCast<GenericError>(error)?.redirectUrl ?? cancelResult.value;
+        emit(IssuanceError(error: error, returnUrl: returnUrl));
     }
   }
 
-  void _handleSessionError(Emitter<IssuanceState> emit, SessionError error) {
+  void _handleSessionExpiredError(Emitter<IssuanceState> emit, SessionError error) {
+    assert(error.state == SessionState.expired, 'Unexpected error state');
     final isCrossDevice = _startIssuanceResult?.sessionType == DisclosureSessionType.crossDevice;
-    switch (error.state) {
-      case SessionState.expired:
-        emit(
-          IssuanceSessionExpired(
-            error: error,
-            canRetry: error.canRetry,
-            isCrossDevice: isCrossDevice,
-            returnUrl: error.returnUrl,
-          ),
-        );
-      case SessionState.cancelled:
-        emit(
-          IssuanceSessionCancelled(
-            error: error,
-            relyingParty: relyingParty,
-            returnUrl: error.returnUrl,
-          ),
-        );
-    }
+    emit(
+      IssuanceSessionExpired(
+        error: error,
+        canRetry: error.canRetry,
+        isCrossDevice: isCrossDevice,
+        returnUrl: error.returnUrl,
+      ),
+    );
   }
 
   @override
