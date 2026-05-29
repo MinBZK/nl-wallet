@@ -44,9 +44,6 @@ pub enum Error {
     #[error("DigiD error: {0}")]
     Digid(#[source] digid::Error),
 
-    #[error("upstream metadata has no authorization_endpoint")]
-    NoUpstreamAuthorizationEndpoint,
-
     #[error("only S256 code_challenge_method is supported")]
     UnsupportedCodeChallenge,
 
@@ -103,7 +100,6 @@ pub struct UpstreamOidcAuthorizationCodeFlow {
     brp_client: HttpBrpClient,
     openid_client: OpenIdClient,
     recovery_code_secret_key: SecretKeyVariant,
-    digid_metadata_cache: Arc<DigidMetadataCache>,
     pkce_flow_store: Arc<IssuerPkceStore>,
     client_id: String,
     scopes: IndexSet<String>,
@@ -121,17 +117,16 @@ impl UpstreamOidcAuthorizationCodeFlow {
         let client_id: String = client_id.into();
         Ok(Self {
             brp_client,
-            openid_client: OpenIdClient::try_new(bsn_privkey, client_id.clone(), Arc::clone(&digid_metadata_cache))
+            openid_client: OpenIdClient::try_new(bsn_privkey, client_id.clone(), digid_metadata_cache)
                 .map_err(Error::Digid)?,
             recovery_code_secret_key,
-            digid_metadata_cache,
             pkce_flow_store,
             client_id,
             scopes: IndexSet::from_iter([String::from("openid")]),
         })
     }
 
-    pub(crate) async fn insert_recovery_code(
+    async fn insert_recovery_code(
         mut attributes: Attributes,
         secret_key: &SecretKeyVariant,
     ) -> Result<Attributes, Error> {
@@ -163,18 +158,6 @@ impl AuthorizationCodeFlow for UpstreamOidcAuthorizationCodeFlow {
     type Error = Error;
 
     async fn authorize(&self, mut request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error> {
-        let metadata = self
-            .digid_metadata_cache
-            .metadata()
-            .await
-            .map_err(|e| Error::Digid(digid::Error::WellKnown(e)))?;
-
-        let authorization_endpoint = metadata
-            .as_ref()
-            .authorization_endpoint
-            .clone()
-            .ok_or(Error::NoUpstreamAuthorizationEndpoint)?;
-
         // Bridge PKCE: capture the wallet's code-challenge, generate a fresh upstream PKCE pair,
         // substitute the upstream challenge into the request, and store the upstream verifier
         // keyed by the wallet's challenge so `issuables` can recover it at `/token` time.
@@ -202,7 +185,11 @@ impl AuthorizationCodeFlow for UpstreamOidcAuthorizationCodeFlow {
         };
 
         let query_string = serde_urlencoded::to_string(&oidc_request).map_err(Error::Encode)?;
-        let mut redirect_url = authorization_endpoint;
+        let mut redirect_url = self
+            .openid_client
+            .authorization_endpoint()
+            .await
+            .map_err(Error::Digid)?;
         redirect_url.set_query(Some(&query_string));
 
         Ok(AuthorizeOutcome::RedirectTo(redirect_url))

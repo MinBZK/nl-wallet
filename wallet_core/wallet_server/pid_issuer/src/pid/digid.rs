@@ -37,6 +37,9 @@ pub enum Error {
     #[error("error fetching well-known openid metadata: {0}")]
     WellKnown(#[source] WellKnownError),
 
+    #[error("upstream metadata has no authorization_endpoint")]
+    NoUpstreamAuthorizationEndpoint,
+
     #[error("error fetching userinfo: {0}")]
     UserInfo(#[source] UserInfoError),
 }
@@ -46,6 +49,7 @@ pub enum Error {
 pub struct DigidMetadataCache {
     http_client: HttpJsonClient,
     oidc_identifier: IssuerIdentifier,
+    // TODO (PVW-5936): implement cache expiration
     cached: OnceCell<OidcProviderMetadata>,
 }
 
@@ -128,5 +132,17 @@ impl OpenIdClient {
         .map_err(Error::UserInfo)?;
 
         Ok(userinfo_claims.bsn)
+    }
+
+    pub async fn authorization_endpoint(&self) -> Result<Url, Error> {
+        let metadata = self.cache.metadata().await.map_err(Error::WellKnown)?;
+
+        let authorization_endpoint = metadata
+            .as_ref()
+            .authorization_endpoint
+            .clone()
+            .ok_or(Error::NoUpstreamAuthorizationEndpoint)?;
+
+        Ok(authorization_endpoint)
     }
 }
