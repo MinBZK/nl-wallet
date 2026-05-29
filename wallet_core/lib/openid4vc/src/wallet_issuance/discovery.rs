@@ -195,9 +195,9 @@ impl CredentialOfferFlow {
                 // If the Credential Offer does not contain an Authorization Code or Pre-Authorized Code grant, but does
                 // contain some other unknown grant type, we should not fall back to consulting the Authorization Server
                 // metadata for supported grant types. As we do not support the grant type, this is an error case.
-                if !grants.other.is_empty() {
+                if !grants.unknown.is_empty() {
                     return Err(WalletIssuanceError::CredentialOfferUnknownGrants(
-                        grants.other.into_keys().collect(),
+                        grants.unknown.into_keys().collect(),
                     ));
                 }
 

@@ -115,7 +115,7 @@ pub struct Grants {
 
     // Capture the keys of any unknown grant types.
     #[serde(flatten, skip_serializing)]
-    pub other: HashMap<String, IgnoredAny>,
+    pub unknown: HashMap<String, IgnoredAny>,
 }
 
 impl Grants {
@@ -258,7 +258,7 @@ mod tests {
 
         assert!(grants.authorization_code.is_some());
         assert!(grants.pre_authorized_code.is_some());
-        assert!(grants.other.is_empty());
+        assert!(grants.unknown.is_empty());
 
         let json = json!({
             "urn:ietf:params:oauth:grant-type:pre-authorized_code": { "pre-authorized_code": "bar" }
@@ -267,7 +267,7 @@ mod tests {
 
         assert!(grants.authorization_code.is_none());
         assert!(grants.pre_authorized_code.is_some());
-        assert!(grants.other.is_empty());
+        assert!(grants.unknown.is_empty());
 
         let json = json!({
             "authorization_code": { "issuer_state": "foo" }
@@ -276,14 +276,14 @@ mod tests {
 
         assert!(grants.authorization_code.is_some());
         assert!(grants.pre_authorized_code.is_none());
-        assert!(grants.other.is_empty());
+        assert!(grants.unknown.is_empty());
 
         let json = json!({});
         let grants = serde_json::from_value::<Grants>(json).expect("should be able to deserialize Grants");
 
         assert!(grants.authorization_code.is_none());
         assert!(grants.pre_authorized_code.is_none());
-        assert!(grants.other.is_empty());
+        assert!(grants.unknown.is_empty());
 
         let json = json!({
             "foo": "bar"
@@ -292,7 +292,7 @@ mod tests {
 
         assert!(grants.authorization_code.is_none());
         assert!(grants.pre_authorized_code.is_none());
-        assert!(grants.other.keys().eq(["foo"]));
+        assert!(grants.unknown.keys().eq(["foo"]));
     }
 
     #[test]
