@@ -638,6 +638,21 @@ open class MobileActions {
         Thread.sleep(SET_FRAME_SYNC_MAX_WAIT_MILLIS)
     }
 
+    fun openUrlInBrowser(url: String) {
+        when (val platform = platformName()) {
+            "ANDROID" -> (driver as JavascriptExecutor).executeScript(
+                "mobile: deepLink",
+                mapOf("url" to url, "package" to "com.android.chrome"),
+            )
+            "IOS" -> (driver as JavascriptExecutor).executeScript(
+                "mobile: safari launch",
+                mapOf("url" to url),
+            )
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+        Thread.sleep(SET_FRAME_SYNC_MAX_WAIT_MILLIS)
+    }
+
     fun closeApp() {
         val driver = when (val platform = platformName()) {
             "ANDROID" -> driver as AndroidDriver
@@ -648,7 +663,7 @@ open class MobileActions {
     }
 
     companion object {
-        private const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 2000L
+        const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 2000L
         private const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 8000L
         private const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 4000L
         private const val BROWSER_STARTUP_TIMEOUT = 2000L

@@ -12,8 +12,16 @@ class RelyingPartyXyzBankWebPage : MobileActions() {
 
     fun sharedAttributeVisible(attributeValue: String) = isWebElementVisible(findWebElement(By.xpath("//dd[normalize-space(text())='$attributeValue']")))
 
+    fun clickCloseButton() = popup.clickCloseButton()
+
     fun openSameDeviceWalletFlow() {
         body.clickStartButton()
         popup.clickSameDeviceButton()
     }
+
+    fun openCrossDeviceWalletFlow() {
+        body.clickStartButton()
+        popup.clickCrossDeviceButton()
+    }
+
 }

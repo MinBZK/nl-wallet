@@ -22,7 +22,11 @@ object LocalMobileDriver {
         platformName = device.platformName,
         deviceName = device.deviceName,
         platformVersion = device.platformVersion,
-        automationName = "",
+        automationName = when (device.platformName.lowercase()) {
+            "android" -> "UiAutomator2"
+            "ios" -> "XCUITest"
+            else -> throw IllegalArgumentException("Unsupported platform: ${device.platformName}")
+        },
         udid = device.udid,
         index = index,
     )

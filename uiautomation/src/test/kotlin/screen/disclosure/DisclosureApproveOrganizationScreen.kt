@@ -22,6 +22,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val swapCardButton = l10n.getString("sharedAttributesCardChangeCardCta")
     private val stopButton = l10n.getString("organizationApprovePageDenyCta")
     private val bottomSheetConfirmStopButton = l10n.getString("disclosureStopSheetPositiveCta")
+    private val toDashboardButton = l10n.getString("disclosureSuccessPageToDashboardCta")
 
     fun login() = clickElementWithText(loginButton)
 
@@ -122,4 +123,6 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     fun stop() = clickElementWithText(stopButton)
 
     fun bottomSheetConfirmStop() = clickElementWithText(bottomSheetConfirmStopButton)
+
+    fun goToDashboard() = clickElementWithText(toDashboardButton)
 }
