@@ -7,7 +7,7 @@
 //! actual token issuance. Deployments that only do the pre-authorized-code grant (no flow)
 //! use the bare [`Issuer`] directly and never construct an [`AuthorizingIssuer`].
 
-use std::error::Error as StdError;
+use std::error::Error;
 use std::sync::Arc;
 
 use crypto::EcdsaKey;
@@ -36,7 +36,7 @@ pub enum ParError {
     UnknownClient(String),
 
     #[error("storing PAR request failed: {0}")]
-    Store(#[source] Box<dyn StdError + Send + Sync + 'static>),
+    Store(#[source] Box<dyn Error + Send + Sync + 'static>),
 }
 
 /// Errors that can occur during processing of an authorization request.
@@ -52,10 +52,10 @@ pub enum AuthorizeError {
     UnknownRequestUri(String),
 
     #[error("consuming PAR request failed: {0}")]
-    ParStore(#[source] Box<dyn StdError + Send + Sync + 'static>),
+    ParStore(#[source] Box<dyn Error + Send + Sync + 'static>),
 
     #[error("authorization code flow error: {0}")]
-    AuthorizationCodeFlow(#[source] Box<dyn StdError + Send + Sync + 'static>),
+    AuthorizationCodeFlow(#[source] Box<dyn Error + Send + Sync + 'static>),
 
     #[error("encoding authorization request as query string failed: {0}")]
     Encode(#[source] serde_urlencoded::ser::Error),
@@ -65,7 +65,7 @@ pub enum AuthorizeError {
 #[derive(derive_more::Debug, thiserror::Error)]
 pub enum TokenRequestError {
     #[error("authorization code flow error: {0}")]
-    AuthorizationCodeFlow(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    AuthorizationCodeFlow(#[source] Box<dyn Error + Send + Sync + 'static>),
 
     #[error("error writing to the issuer's session store: {0}")]
     SessionStoreWrite(#[source] SessionStoreError),
