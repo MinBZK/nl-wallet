@@ -14,7 +14,6 @@ use http_utils::urls;
 use itertools::Itertools;
 use jwt::error::JwtError;
 use openid4vc::disclosure_session::DisclosureClient;
-use openid4vc::metadata::well_known::WellKnownError;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -89,9 +88,6 @@ pub enum IssuanceError {
     #[category(critical)]
     NoPidPresent,
 
-    #[error("could not discover issuer metadata: {0}")]
-    #[category(expected)]
-    IssuerMetadataDiscovery(#[from] WellKnownError),
 
     #[error("user denied DigiD authentication")]
     #[category(expected)]
