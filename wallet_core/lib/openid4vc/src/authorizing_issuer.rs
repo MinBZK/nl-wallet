@@ -75,6 +75,7 @@ pub enum TokenRequestError {
 }
 
 /// Authorization Phase wrapper around an Issuance Phase [`Issuer`].
+#[derive(derive_more::Constructor)]
 pub struct AuthorizingIssuer<K, L, S, N, PAS, AF> {
     issuer: Arc<Issuer<K, L, S, N>>,
     par_store: PAS,
@@ -82,14 +83,6 @@ pub struct AuthorizingIssuer<K, L, S, N, PAS, AF> {
 }
 
 impl<K, L, S, N, PAS, AF> AuthorizingIssuer<K, L, S, N, PAS, AF> {
-    pub fn new(issuer: Arc<Issuer<K, L, S, N>>, par_store: PAS, flow: AF) -> Self {
-        Self {
-            issuer,
-            par_store,
-            flow,
-        }
-    }
-
     pub fn issuer(&self) -> &Arc<Issuer<K, L, S, N>> {
         &self.issuer
     }
