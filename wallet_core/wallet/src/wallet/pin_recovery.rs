@@ -163,7 +163,7 @@ where
             .start_authorization_code_flow(
                 &config.pid_issuance.url,
                 String::from(NL_WALLET_CLIENT_ID),
-                urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
+                urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
             )
             .await
             .map_err(IssuanceError::IssuanceSession)?;

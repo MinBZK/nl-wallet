@@ -4,6 +4,7 @@ use attestation_data::auth::Organization;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
+use http_utils::urls;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::disclosure_session::DisclosureClient;
@@ -11,6 +12,7 @@ use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use platform_support::attested_key::AttestedKeyHolder;
 use tracing::info;
@@ -25,6 +27,7 @@ use super::Wallet;
 use super::disclosure::RedirectUriPurpose;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationPresentation;
+use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::errors::UpdatePolicyError;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
@@ -40,6 +43,10 @@ pub enum DisclosureBasedIssuanceError {
 
     #[error("disclosure failed: {0}")]
     Disclosure(#[from] DisclosureError),
+
+    #[error("no Pre-Authorized Code flow received in Credential Offer")]
+    #[category(critical)]
+    NoPreAuthorizedCode(Box<Organization>),
 
     #[error("retrieving attribute previews failed: {0}")]
     Issuance(#[source] IssuanceError),
@@ -123,15 +130,20 @@ where
             Err(err) => Err(err)?,
         };
 
-        let issuance_session = self
+        let flow = self
             .issuance_discovery
-            .start_pre_authorized_code_flow(
+            .start_with_credential_offer(
                 &redirect_uri,
                 NL_WALLET_CLIENT_ID.to_string(),
+                urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
                 config.issuer_trust_anchors(),
             )
             .await
             .map_err(|e| convert_and_enrich_error(e, &organization))?;
+
+        let IssuanceFlow::PreAuthorizedCode { issuance_session } = flow else {
+            return Err(DisclosureBasedIssuanceError::NoPreAuthorizedCode(organization));
+        };
 
         let previews = self
             .issuance_process_previews(
@@ -150,8 +162,8 @@ fn convert_and_enrich_error(error: WalletIssuanceError, organization: &Organizat
         WalletIssuanceError::MissingCredentialOfferQuery
         | WalletIssuanceError::CredentialOfferDeserialization(_)
         | WalletIssuanceError::CredentialOfferUnknownGrants(_)
-        | WalletIssuanceError::CredentialOfferTxCodeUnsupported
-        | WalletIssuanceError::MissingCredentialOfferPreAuthorizedCode => {
+        | WalletIssuanceError::AuthorizationCodeNotSupported
+        | WalletIssuanceError::CredentialOfferTxCodeUnsupported => {
             DisclosureBasedIssuanceError::Issuance(IssuanceError::IssuerServer {
                 error,
                 organization: Box::new(organization.clone()),
@@ -190,6 +202,8 @@ mod tests {
     use openid4vc::verifier::DisclosureResultHandlerError;
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::verifier::ToPostAuthResponseErrorCode;
+    use openid4vc::wallet_issuance::IssuanceFlow;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -267,7 +281,7 @@ mod tests {
 
     #[rstest]
     #[tokio::test]
-    async fn test_wallet_accept_disclosure_based_issuance(
+    async fn test_wallet_continue_disclosure_based_issuance(
         #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
     ) {
         // Prepare a registered and unlocked wallet with an active disclosure session.
@@ -297,17 +311,21 @@ mod tests {
         let credential_preview = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::MsoMdoc);
         wallet
             .issuance_discovery
-            .expect_start_pre_authorized_code_flow_sync()
+            .expect_start_with_credential_offer_sync()
             .return_once(move || {
-                let mut client = MockIssuanceSession::new();
+                let mut issuance_session = MockIssuanceSession::new();
 
-                client
+                issuance_session
                     .expect_normalized_credential_previews()
                     .return_const(vec![credential_preview]);
 
-                client.expect_issuer().return_const(IssuerRegistration::new_mock());
+                issuance_session
+                    .expect_issuer()
+                    .return_const(IssuerRegistration::new_mock());
 
-                Ok(client)
+                let mock = IssuanceFlow::PreAuthorizedCode { issuance_session };
+
+                Ok(mock)
             });
 
         wallet
@@ -353,7 +371,7 @@ mod tests {
         let previews = wallet
             .continue_disclosure_based_issuance(&[0], PIN.to_owned())
             .await
-            .expect("Accepting disclosure based issuance should not have resulted in an error");
+            .expect("continuing disclosure based issuance should not have resulted in an error");
 
         assert!(!previews.is_empty())
     }
@@ -369,7 +387,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_wallet_accept_disclosure_based_issuance_no_attestations() {
+    async fn test_wallet_continue_disclosure_based_issuance_no_attestations() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -420,14 +438,14 @@ mod tests {
         let previews = wallet
             .continue_disclosure_based_issuance(&[0], PIN.to_owned())
             .await
-            .expect("Accepting disclosure based issuance should not have resulted in an error");
+            .expect("continuing disclosure based issuance should not have resulted in an error");
 
         // By offering zero attestations to issue, the issuer says that it has no attestations to offer.
         assert!(previews.is_empty());
     }
 
     #[tokio::test]
-    async fn test_wallet_accept_disclosure_based_issuance_error_wrong_redirect_uri_purpose() {
+    async fn test_wallet_continue_disclosure_based_issuance_error_wrong_redirect_uri_purpose() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -438,7 +456,7 @@ mod tests {
         let error = wallet
             .continue_disclosure_based_issuance(&[0], PIN.to_owned())
             .await
-            .expect_err("Accepting disclosure based issuance should have resulted in an error");
+            .expect_err("continuing disclosure based issuance should have resulted in an error");
 
         assert_matches!(
             error,
@@ -447,5 +465,63 @@ mod tests {
                 found: RedirectUriPurpose::Issuance,
             })
         );
+    }
+
+    #[tokio::test]
+    async fn test_wallet_continue_disclosure_based_issuance_error_no_pre_authorized_code() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // The disclosure session results in a URL that contains a Credential Offer. Note that it does not actually
+        // matter what this URL contains, as it will not be parsed.
+        let mut disclosure_session = setup_wallet_disclosure_session(CredentialFormat::SdJwt);
+
+        let credential_offer = format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap();
+        disclosure_session
+            .protocol_state
+            .expect_disclose()
+            .times(1)
+            .return_once(|_| Ok(Some(credential_offer)));
+
+        wallet.session = Some(Session::Disclosure(disclosure_session));
+
+        // Set up expected database operations during disclosure
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .times(1)
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .times(1)
+            .return_once(|_| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_log_disclosure_event()
+            .times(1)
+            .returning(|_, _, _, _, _| Ok(()));
+
+        // Set up issuance discovery to result in an Authorization Code flow, when we expected a Pre-Authorized flow.
+        wallet
+            .issuance_discovery
+            .expect_start_with_credential_offer_sync()
+            .times(1)
+            .return_once(move || {
+                let authorization_session = MockAuthorizationSession::new();
+
+                let mock = IssuanceFlow::AuthorizationCode { authorization_session };
+
+                Ok(mock)
+            });
+
+        let error = wallet
+            .continue_disclosure_based_issuance(&[0], PIN.to_owned())
+            .await
+            .expect_err("continuing disclosure based issuance should have resulted in an error");
+
+        assert_matches!(error, DisclosureBasedIssuanceError::NoPreAuthorizedCode(_));
     }
 }

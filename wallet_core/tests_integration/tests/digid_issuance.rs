@@ -93,11 +93,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
 
     let redirect_uri = option_env!("DIGID_TEST_REDIRECT_URI")
         .map(|raw| raw.parse().expect("DIGID_TEST_REDIRECT_URI is not a valid URL"))
-        .unwrap_or_else(|| {
-            urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap())
-                .as_ref()
-                .clone()
-        });
+        .unwrap_or_else(|| urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner());
 
     let http_client = HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap();
     let credential_issuer_discovery = HttpIssuanceDiscovery::new(http_client);
