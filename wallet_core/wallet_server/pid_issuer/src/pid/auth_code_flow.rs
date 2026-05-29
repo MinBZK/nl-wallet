@@ -220,11 +220,7 @@ impl AuthorizationCodeFlow for UpstreamOidcAuthorizationCodeFlow {
 
         let bsn = self
             .openid_client
-            .bsn(
-                authorization_code,
-                Some(upstream_code_verifier),
-                token_request.redirect_uri,
-            )
+            .bsn(authorization_code, upstream_code_verifier, token_request.redirect_uri)
             .await
             .map_err(Error::Digid)?;
 

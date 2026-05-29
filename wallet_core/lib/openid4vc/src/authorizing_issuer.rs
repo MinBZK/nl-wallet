@@ -30,7 +30,7 @@ use crate::token::TokenRequest;
 use crate::token::TokenResponse;
 
 /// Errors that can occur during processing of a Pushed Authorization Request.
-#[derive(derive_more::Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum ParError {
     #[error("unknown client_id: {0}")]
     UnknownClient(String),
@@ -40,7 +40,7 @@ pub enum ParError {
 }
 
 /// Errors that can occur during processing of an authorization request.
-#[derive(derive_more::Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum AuthorizeError {
     #[error("unknown client_id: {0}")]
     UnknownClient(String),
@@ -62,7 +62,7 @@ pub enum AuthorizeError {
 }
 
 /// Errors that can occur during processing of a Pushed Authorization Request.
-#[derive(derive_more::Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum TokenRequestError {
     #[error("authorization code flow error: {0}")]
     AuthorizationCodeFlow(#[source] Box<dyn Error + Send + Sync + 'static>),

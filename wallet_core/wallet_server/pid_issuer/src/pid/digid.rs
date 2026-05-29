@@ -108,7 +108,7 @@ impl OpenIdClient {
     pub async fn bsn(
         &self,
         code: AuthorizationCode,
-        code_verifier: Option<String>,
+        code_verifier: String,
         redirect_uri: Option<Url>,
     ) -> Result<String, Error> {
         let metadata = self.cache.metadata().await.map_err(Error::WellKnown)?;
@@ -116,7 +116,7 @@ impl OpenIdClient {
         let token_request = TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode { code },
             client_id: Some(self.client_id.clone()),
-            code_verifier,
+            code_verifier: Some(code_verifier),
             redirect_uri,
         };
 
