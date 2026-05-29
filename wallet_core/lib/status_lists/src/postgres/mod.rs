@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::convert::Infallible;
 use std::num::NonZeroUsize;
 use std::path::Path;
@@ -330,12 +329,7 @@ impl<K, R> PostgresStatusListService<K, R> {
         config: StatusListConfig<K>,
         revoke_all: R,
     ) -> Result<Self, DbErr> {
-        let attestation_groups = vec![attestation_group];
-        let attestation_group_ids = initialize_attestation_group_ids(&connection, attestation_groups).await?;
-
-        let attestation_group_id = *attestation_group_ids
-            .get(attestation_group)
-            .expect("attestation_group_ids should have entry for initialized types");
+        let attestation_group_id = initialize_attestation_group_id(&connection, attestation_group).await?;
 
         Ok(Self {
             connection,
@@ -666,7 +660,7 @@ where
     }
 
     #[measure(name = "nlwallet_status_list_operations", "service" => "status_lists")]
-    pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, StatusListServiceError> {
+    pub async fn initialize_lists(&self) -> Result<Vec<JoinHandle<()>>, DbErr> {
         tracing::info!("Initializing status lists for ID {}", self.attestation_group_id);
 
         // Fetch all lists that still have list items in the database
@@ -1001,22 +995,19 @@ where
     }
 }
 
-async fn initialize_attestation_group_ids(
+async fn initialize_attestation_group_id(
     connection: &DatabaseConnection,
-    attestation_groups: Vec<&str>,
-) -> Result<HashMap<String, i16>, DbErr> {
-    let map = fetch_attestation_group_ids(connection, attestation_groups.iter().copied()).await?;
-    let insert = attestation_groups
-        .iter()
-        .filter_map(|attestation_group| match map.get(*attestation_group) {
-            None => Some(attestation_group::ActiveModel {
-                id: NotSet,
-                name: Set(attestation_group.to_string()),
-                next_sequence_no: Set(0),
-            }),
-            _ => None,
-        });
-    match attestation_group::Entity::insert_many(insert)
+    attestation_group: &str,
+) -> Result<i16, DbErr> {
+    if let Some(id) = fetch_attestation_group_id(connection, attestation_group).await? {
+        return Ok(id);
+    }
+    let insert = attestation_group::ActiveModel {
+        id: NotSet,
+        name: Set(attestation_group.to_string()),
+        next_sequence_no: Set(0),
+    };
+    match attestation_group::Entity::insert(insert)
         .on_conflict(
             OnConflict::column(attestation_group::Column::Name)
                 .do_nothing()
@@ -1026,28 +1017,24 @@ async fn initialize_attestation_group_ids(
         .exec(connection)
         .await?
     {
-        TryInsertResult::Empty => Ok(map),
-        _ => {
-            let map = fetch_attestation_group_ids(connection, attestation_groups).await?;
-            Ok(map)
-        }
+        TryInsertResult::Inserted(inserted) => Ok(inserted.last_insert_id),
+        _ => Ok(fetch_attestation_group_id(connection, attestation_group)
+            .await?
+            .expect("attestation group should be intialized")),
     }
 }
 
-async fn fetch_attestation_group_ids(
+async fn fetch_attestation_group_id(
     connection: &DatabaseConnection,
-    attestation_groups: impl IntoIterator<Item = &str>,
-) -> Result<HashMap<String, i16>, DbErr> {
+    attestation_group: &str,
+) -> Result<Option<i16>, DbErr> {
     attestation_group::Entity::find()
-        .filter(attestation_group::Column::Name.is_in(attestation_groups))
-        .all(connection)
+        .filter(attestation_group::Column::Name.eq(attestation_group))
+        .select_only()
+        .select_column(attestation_group::Column::Id)
+        .into_tuple()
+        .one(connection)
         .await
-        .map(|models| {
-            models
-                .into_iter()
-                .map(|model| (model.name, model.id))
-                .collect::<HashMap<_, _>>()
-        })
 }
 
 #[derive(Debug, thiserror::Error)]
