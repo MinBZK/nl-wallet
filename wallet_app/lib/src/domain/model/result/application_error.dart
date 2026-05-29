@@ -92,6 +92,10 @@ enum SessionState { expired, cancelled }
 
 enum SessionType { sameDevice, crossDevice }
 
+class CloseProximityDisconnectedError extends ApplicationError {
+  const CloseProximityDisconnectedError({required super.sourceError});
+}
+
 class RedirectUriError extends ApplicationError {
   final RedirectError redirectError;
 

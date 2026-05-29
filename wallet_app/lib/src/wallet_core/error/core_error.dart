@@ -65,6 +65,10 @@ class CoreCancelledSessionError extends CoreError {
   const CoreCancelledSessionError(super.description, {super.data});
 }
 
+class CoreCloseProximityDisconnectedError extends CoreError {
+  const CoreCloseProximityDisconnectedError(super.description, {super.data});
+}
+
 class CoreWrongDigidError extends CoreError {
   const CoreWrongDigidError(super.description, {super.data});
 }

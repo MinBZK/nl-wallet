@@ -356,6 +356,11 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   }
 
   Future<void> _handleApplicationError(ApplicationError error, Emitter<DisclosureState> emit) async {
+    if (error is CloseProximityDisconnectedError) {
+      emit(DisclosureCloseProximityDisconnected(isLoginFlow: isLoginFlow));
+      return;
+    }
+
     emit(DisclosureLoadInProgress(state.stepperProgress));
 
     // Call cancelSession to avoid stale session and to potentially provide more context (e.g. returnUrl).

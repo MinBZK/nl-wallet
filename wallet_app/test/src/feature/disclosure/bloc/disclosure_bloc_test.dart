@@ -949,6 +949,35 @@ void main() {
     );
 
     blocTest(
+      'when close proximity disconnected error occurs, emits DisclosureCloseProximityDisconnected',
+      setUp: () {
+        when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
+          return Result.success(emptyRequest(sessionType: .closeProximity, type: .regular));
+        });
+      },
+      build: create,
+      act: (bloc) async {
+        bloc.add(const DisclosureSessionStarted(StartDisclosureRequest.closeProximity()));
+        await Future.delayed(Duration.zero);
+        bloc.add(const DisclosureShareRequestedCardsApproved());
+        await Future.delayed(Duration.zero);
+        bloc.add(
+          const DisclosureConfirmPinFailed(
+            error: CloseProximityDisconnectedError(
+              sourceError: CoreCloseProximityDisconnectedError('disconnected'),
+            ),
+          ),
+        );
+      },
+      expect: () => [
+        isA<DisclosureConfirmDataAttributes>(),
+        isA<DisclosureConfirmPin>(),
+        const DisclosureCloseProximityDisconnected(isLoginFlow: false),
+      ],
+      verify: (bloc) => verifyNever(cancelDisclosureUseCase.invoke()),
+    );
+
+    blocTest(
       'proximity events are ignored when state is DisclosureSuccess',
       build: create,
       seed: () => DisclosureSuccess(relyingParty: WalletMockData.organization, isCrossDevice: false),
