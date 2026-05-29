@@ -370,6 +370,10 @@ impl<K, L, S, N> Drop for Issuer<K, L, S, N> {
 }
 
 impl<K, L, S, N> Issuer<K, L, S, N> {
+    pub(crate) fn credential_configs(&self) -> &CredentialConfigurations<K, L> {
+        &self.issuer_data.credential_configs
+    }
+
     pub fn credential_config_id_by_format_and_attestation_type(
         &self,
         format: Format,
