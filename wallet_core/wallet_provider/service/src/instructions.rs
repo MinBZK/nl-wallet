@@ -1420,13 +1420,13 @@ fn is_poa_message(message: &[u8]) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::collections::HashMap;
     use std::collections::HashSet;
     use std::num::NonZeroUsize;
     use std::sync::Arc;
     use std::sync::Mutex;
 
-    use assert_matches::assert_matches;
     use base64::prelude::*;
     use chrono::Utc;
     use crypto::server_keys::generate::Ca;

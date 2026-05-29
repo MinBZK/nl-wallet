@@ -58,7 +58,6 @@ sea-orm = { workspace = true, optional = true }
 time = { workspace = true, optional = true }
 
 [dev-dependencies]
-assert_matches.workspace = true
 chrono = { workspace = true, features = ["now"] }
 rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
 time.workspace = true

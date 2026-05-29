@@ -324,7 +324,8 @@ where
 #[expect(clippy::too_many_arguments)] // Doesn't work at `fn` level in combination with `rstest`
 mod tests {
 
-    use assert_matches::assert_matches;
+    use std::assert_matches;
+
     use attestation_data::disclosure_type::DisclosureType;
     use jwe::algorithm::EcdhAlgorithm;
     use jwe::decryption::JweEcdhSecretKey;

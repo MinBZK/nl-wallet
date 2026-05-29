@@ -1069,9 +1069,9 @@ async fn read_token_expiry(path: &Path) -> Result<DateTime<Utc>, TokenReadError>
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::time::Duration;
 
-    use assert_matches::assert_matches;
     use crypto::server_keys::generate::Ca;
     use p256::ecdsa::SigningKey;
     use utils::num::NonZeroU31;

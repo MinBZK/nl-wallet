@@ -1,6 +1,6 @@
+use std::assert_matches;
 use std::collections::HashMap;
 
-use assert_matches::assert_matches;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::x509::CertificateTypeError;
 use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;

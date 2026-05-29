@@ -275,7 +275,7 @@ pub type IntentToRetain = bool;
 
 #[cfg(test)]
 mod tests {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
 
     use super::DeviceRequest;
     use super::DeviceRequestParseError;

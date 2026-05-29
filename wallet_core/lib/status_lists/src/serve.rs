@@ -233,7 +233,7 @@ fn map_io_error(path: &std::path::Path, err: &std::io::Error) -> StatusCode {
 
 #[cfg(test)]
 mod tests {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
 
     use super::*;
     use crate::serve::check_accept;

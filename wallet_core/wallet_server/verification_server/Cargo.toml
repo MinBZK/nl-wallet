@@ -33,7 +33,6 @@ test = [
     "attestation_types/test_pid_constants",
     "chrono/now",
     "dcql/mock",
-    "dep:assert_matches",
     "dep:http",
     "dep:itertools",
     "dep:parking_lot",
@@ -74,7 +73,6 @@ serde_with = { workspace = true, features = ["base64", "hex"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 tracing.workspace = true
 
-assert_matches = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
 http = { workspace = true, optional = true }
 itertools = { workspace = true, optional = true }

@@ -730,10 +730,10 @@ mod example_constructors {
 
 #[cfg(test)]
 mod test {
+    use std::assert_matches;
     use std::collections::HashMap;
     use std::str::FromStr;
 
-    use assert_matches::assert_matches;
     use attestation_types::claim_path::ClaimPath;
     use jsonschema::error::ValidationErrorKind;
     use rstest::rstest;

@@ -85,7 +85,6 @@ utils.path = "../utils"
 db_test = { path = "../db_test", optional = true }
 
 [dev-dependencies]
-assert_matches.workspace = true
 p256.workspace = true
 rstest.workspace = true
 tempfile.workspace = true

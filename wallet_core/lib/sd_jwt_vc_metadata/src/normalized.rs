@@ -394,7 +394,8 @@ mod example_constructors {
 
 #[cfg(test)]
 mod tests {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
+
     use attestation_types::claim_path::ClaimPath;
     use rstest::rstest;
     use serde_json::json;

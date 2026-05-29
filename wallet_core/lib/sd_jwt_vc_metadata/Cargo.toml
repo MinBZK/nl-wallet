@@ -31,7 +31,6 @@ http_utils.path = "../http_utils"
 utils.path = "../utils"
 
 [dev-dependencies]
-assert_matches.workspace = true
 rstest.workspace = true
 
 attestation_types = { path = "../../lib/attestation_types", features = ["test_pid_constants"] }

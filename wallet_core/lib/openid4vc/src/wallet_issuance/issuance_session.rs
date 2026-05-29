@@ -903,12 +903,12 @@ impl IssuanceState {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::num::NonZeroU8;
     use std::sync::Arc;
     use std::time::Duration;
     use std::vec;
 
-    use assert_matches::assert_matches;
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;

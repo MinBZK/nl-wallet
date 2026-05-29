@@ -674,9 +674,9 @@ impl From<ClaimMetadata> for CredentialClaim {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::collections::HashMap;
 
-    use assert_matches::assert_matches;
     use jwe::algorithm::EncryptionAlgorithm;
     use jwk_simple::Algorithm;
     use jwk_simple::KeyParams;

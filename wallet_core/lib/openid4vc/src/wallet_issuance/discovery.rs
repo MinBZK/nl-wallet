@@ -225,10 +225,10 @@ impl HttpIssuanceDiscovery {
 
 #[cfg(test)]
 mod test {
+    use std::assert_matches;
     use std::collections::HashMap;
     use std::num::NonZeroU8;
 
-    use assert_matches::assert_matches;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;

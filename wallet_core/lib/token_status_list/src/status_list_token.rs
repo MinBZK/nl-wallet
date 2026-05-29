@@ -245,9 +245,9 @@ pub mod mock {
 
 #[cfg(all(test, feature = "verification"))]
 mod test {
+    use std::assert_matches;
     use std::ops::Add;
 
-    use assert_matches::assert_matches;
     use chrono::Days;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;

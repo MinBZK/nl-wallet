@@ -119,7 +119,6 @@ checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
 name = "android_attest"
 version = "0.6.0-dev"
 dependencies = [
- "assert_matches",
  "bitflags 2.10.0",
  "bytes",
  "cfg_eval",
@@ -250,7 +249,6 @@ checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
 name = "apple_app_attest"
 version = "0.6.0-dev"
 dependencies = [
- "assert_matches",
  "chrono",
  "ciborium",
  "const-decoder",
@@ -468,12 +466,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "assert_matches"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
-
-[[package]]
 name = "astral-tokio-tar"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -631,7 +623,6 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 name = "attestation_data"
 version = "0.6.0-dev"
 dependencies = [
- "assert_matches",
  "attestation_types",
  "chrono",
  "ciborium",
@@ -684,7 +675,6 @@ dependencies = [
 name = "audit_log"
 version = "0.6.0-dev"
 dependencies = [
- "assert_matches",
  "audit_log_macros",
  "chrono",
  "config",
@@ -1603,7 +1593,6 @@ version = "0.6.0-dev"
 dependencies = [
  "aes-gcm",
  "anyhow",
- "assert_matches",
  "base64 0.22.1",
  "chrono",
  "derive_more",
@@ -4011,7 +4000,6 @@ dependencies = [
 name = "issuer_common"
 version = "0.6.0-dev"
 dependencies = [
- "assert_matches",
  "attestation_data",
  "attestation_types",
  "chrono",
@@ -4195,7 +4183,6 @@ dependencies = [
 name = "jwe"
 version = "0.6.0-dev"
 dependencies = [
- "assert_matches",
  "derive_more",
  "itertools 0.14.0",
  "josekit",
@@ -4234,7 +4221,6 @@ dependencies = [
 name = "jwt"
 version = "0.6.0-dev"
 dependencies = [
- "assert_matches",
  "attestation_types",
  "base64 0.22.1",
  "chrono",
@@ -4499,7 +4485,6 @@ name = "mdoc"
 version = "0.6.0-dev"
 dependencies = [
  "aes-gcm",
- "assert_matches",
  "attestation_types",
  "base64 0.22.1",
  "chrono",
@@ -5131,7 +5116,6 @@ checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 name = "openid4vc"
 version = "0.6.0-dev"
 dependencies = [
- "assert_matches",
  "async-trait",
  "attestation_data",
  "attestation_types",
@@ -5655,7 +5639,6 @@ name = "pid_issuer"
 version = "0.6.0-dev"
 dependencies = [
  "anyhow",
- "assert_matches",
  "attestation_data",
  "attestation_types",
  "axum",
@@ -5778,7 +5761,6 @@ dependencies = [
  "android_attest",
  "android_logger",
  "apple_app_attest",
- "assert_matches",
  "async-trait",
  "base64 0.22.1",
  "cfg_eval",
@@ -6331,7 +6313,6 @@ dependencies = [
 name = "readable_identifier"
 version = "0.6.0-dev"
 dependencies = [
- "assert_matches",
  "derive_more",
  "rand 0.8.5",
  "rstest",
@@ -6936,7 +6917,6 @@ dependencies = [
 name = "sd_jwt"
 version = "0.6.0-dev"
 dependencies = [
- "assert_matches",
  "attestation_types",
  "base64 0.22.1",
  "chrono",
@@ -6971,7 +6951,6 @@ dependencies = [
 name = "sd_jwt_vc_metadata"
 version = "0.6.0-dev"
 dependencies = [
- "assert_matches",
  "attestation_types",
  "crypto",
  "derive_more",
@@ -8085,7 +8064,6 @@ name = "status_lists"
 version = "0.6.0-dev"
 dependencies = [
  "anyhow",
- "assert_matches",
  "attestation_types",
  "axum",
  "chrono",
@@ -8424,7 +8402,6 @@ version = "0.6.0-dev"
 dependencies = [
  "android_attest",
  "apple_app_attest",
- "assert_matches",
  "attestation_data",
  "attestation_types",
  "audit_log",
@@ -8655,7 +8632,6 @@ dependencies = [
 name = "token_status_list"
 version = "0.6.0-dev"
 dependencies = [
- "assert_matches",
  "attestation_types",
  "axum",
  "base64 0.22.1",
@@ -9527,7 +9503,6 @@ name = "verification_server"
 version = "0.6.0-dev"
 dependencies = [
  "anyhow",
- "assert_matches",
  "attestation_data",
  "attestation_types",
  "axum",
@@ -9619,7 +9594,6 @@ version = "0.6.0-dev"
 dependencies = [
  "aes-gcm",
  "apple_app_attest",
- "assert_matches",
  "async-trait",
  "attestation_data",
  "attestation_types",
@@ -9691,7 +9665,6 @@ version = "0.6.0-dev"
 dependencies = [
  "android_attest",
  "apple_app_attest",
- "assert_matches",
  "chrono",
  "crypto",
  "derive_more",
@@ -9876,7 +9849,6 @@ version = "0.6.0-dev"
 dependencies = [
  "android_attest",
  "apple_app_attest",
- "assert_matches",
  "async-dropper",
  "async-trait",
  "chrono",
@@ -9912,7 +9884,6 @@ dependencies = [
  "android_attest",
  "anyhow",
  "apple_app_attest",
- "assert_matches",
  "attestation_data",
  "attestation_types",
  "audit_log",
@@ -10697,7 +10668,6 @@ checksum = "9edde0db4769d2dc68579893f2306b26c6ecfbe0ef499b013d731b7b9247e0b9"
 name = "wscd"
 version = "0.6.0-dev"
 dependencies = [
- "assert_matches",
  "attestation_types",
  "chrono",
  "crypto",

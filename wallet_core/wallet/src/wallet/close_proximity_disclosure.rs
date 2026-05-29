@@ -790,11 +790,11 @@ pub fn verify_device_request(
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::collections::HashMap;
     use std::collections::HashSet;
     use std::sync::Arc;
 
-    use assert_matches::assert_matches;
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::reader_auth::ReaderRegistration;

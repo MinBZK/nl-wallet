@@ -1,4 +1,5 @@
-use assert_matches::assert_matches;
+use std::assert_matches;
+
 use db_test::DbSetup;
 use dcql::CredentialFormat;
 use openid4vc::disclosure_session::DisclosureUriSource;

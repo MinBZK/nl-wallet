@@ -97,7 +97,8 @@ impl<const LEN: usize> FromStr for ReadableIdentifier<LEN> {
 
 #[cfg(test)]
 mod test {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
+
     use rstest::rstest;
 
     use super::ReadableIdentifier;
