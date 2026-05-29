@@ -15,11 +15,12 @@ import screen.security.PinScreen
 import screen.security.SecuritySetupCompletedScreen
 import screen.web.digid.DigidLoginMockWebPage
 import screen.web.digid.DigidLoginStartWebPage
+import util.MobileActions
 
 class OnboardingNavigator {
 
     fun toScreen(screen: OnboardingNavigatorScreen, bsn: String = DEFAULT_BSN) {
-        Thread.sleep(3000)
+        Thread.sleep(MobileActions.SET_FRAME_SYNC_MAX_WAIT_MILLIS)
         if (screen > OnboardingNavigatorScreen.Demo) DemoScreen().clickContinueButton()
         if (screen > OnboardingNavigatorScreen.Introduction) IntroductionScreen().clickSkipButton()
         if (screen > OnboardingNavigatorScreen.IntroductionPrivacy) IntroductionPrivacyScreen().clickNextButton()

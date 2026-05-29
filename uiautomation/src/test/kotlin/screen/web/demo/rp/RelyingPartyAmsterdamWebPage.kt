@@ -18,4 +18,9 @@ class RelyingPartyAmsterdamWebPage : MobileActions() {
         body.clickStartButton()
         popup.clickSameDeviceButton()
     }
+
+    fun openCrossDeviceWalletFlow() {
+        body.clickStartButton()
+        popup.clickCrossDeviceButton()
+    }
 }

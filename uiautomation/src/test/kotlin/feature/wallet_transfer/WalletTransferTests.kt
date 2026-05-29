@@ -74,7 +74,7 @@ class WalletTransferTests : TwoDeviceTestBase() {
         }
     }
 
-    @RetryingTest(3, name = "{displayName} - {index}")
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC62 Happy flow: wallet is transferred to destination device")
     fun walletTransferHappyFlow(testInfo: TestInfo) {
         setUp(testInfo)
@@ -117,7 +117,7 @@ class WalletTransferTests : TwoDeviceTestBase() {
         }
     }
 
-    @RetryingTest(3, name = "{displayName} - {index}")
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC63 Source device cancels transfer")
     fun walletTransferSourceLosesInternet(testInfo: TestInfo) {
         setUp(testInfo)
@@ -141,7 +141,7 @@ class WalletTransferTests : TwoDeviceTestBase() {
         }
     }
 
-    @RetryingTest(3, name = "{displayName} - {index}")
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("LTC64 Destination device cancels transfer")
     fun walletTransferDestinationCancels(testInfo: TestInfo) {
         setUp(testInfo)
