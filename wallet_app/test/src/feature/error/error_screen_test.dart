@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
+import 'package:wallet/src/feature/common/widget/button/icon/close_icon_button.dart';
 import 'package:wallet/src/feature/common/widget/button/primary_button.dart';
 import 'package:wallet/src/feature/common/widget/button/tertiary_button.dart';
+import 'package:wallet/src/feature/error/error_page.dart';
 import 'package:wallet/src/feature/error/error_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
@@ -27,7 +29,7 @@ void main() {
           ),
         ),
       );
-      await screenMatchesGolden('light');
+      await screenMatchesGolden('screen/light');
     });
 
     testGoldens('ErrorScreen dark', (tester) async {
@@ -46,78 +48,67 @@ void main() {
         ),
         brightness: Brightness.dark,
       );
-      await screenMatchesGolden('dark');
+      await screenMatchesGolden('screen/dark');
     });
 
     testGoldens('ErrorScreen.showGeneric()', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
-          builder: (context) {
-            return ErrorScreen.generic(context);
-          },
+          builder: (context) => ErrorScreen.fromError(context, const GenericError('test', sourceError: 'test')),
         ),
       );
       await tester.pumpAndSettle();
 
-      await screenMatchesGolden('generic.light');
+      await screenMatchesGolden('screen/generic.light');
     });
 
     testGoldens('ErrorScreen.network() (has internet)', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
-          builder: (context) {
-            return ErrorScreen.network(
-              context,
-              error: const NetworkError(hasInternet: true, sourceError: 'test'),
-            );
-          },
+          builder: (context) =>
+              ErrorScreen.fromError(context, const NetworkError(hasInternet: true, sourceError: 'test')),
         ),
       );
       await tester.pumpAndSettle();
 
-      await screenMatchesGolden('network.light');
+      await screenMatchesGolden('screen/network.light');
     });
 
     testGoldens('ErrorScreen.network() (no internet)', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
-          builder: (context) {
-            return ErrorScreen.network(
-              context,
-              error: const NetworkError(hasInternet: false, sourceError: 'test'),
-            );
-          },
+          builder: (context) =>
+              ErrorScreen.fromError(context, const NetworkError(hasInternet: false, sourceError: 'test')),
         ),
       );
       await tester.pumpAndSettle();
 
-      await screenMatchesGolden('network.no_internet.light');
+      await screenMatchesGolden('screen/network.no_internet.light');
     });
 
     testGoldens('ErrorScreen.deviceIncompatible()', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
-          builder: (context) {
-            return ErrorScreen.deviceIncompatible(context);
-          },
+          builder: (context) => ErrorScreen.fromError(context, const HardwareUnsupportedError(sourceError: 'test')),
         ),
       );
       await tester.pumpAndSettle();
 
-      await screenMatchesGolden('device_incompatible.light');
+      await screenMatchesGolden('screen/device_incompatible.light');
     });
 
     testGoldens('ErrorScreen.sessionExpired()', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
-          builder: (context) {
-            return ErrorScreen.sessionExpired(context);
-          },
+          builder: (context) => ErrorScreen.fromError(
+            context,
+            const SessionError(state: .expired, sourceError: 'test'),
+          ),
         ),
       );
       await tester.pumpAndSettle();
 
-      await screenMatchesGolden('session_expired.light');
+      await screenMatchesGolden('screen/session_expired.light');
     });
   });
 
@@ -155,7 +146,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
           builder: (context) {
-            return ErrorScreen.noInternet(context);
+            return ErrorScreen.fromError(context, const NetworkError(hasInternet: false, sourceError: ''));
           },
         ),
       );
@@ -179,9 +170,7 @@ void main() {
   testWidgets('Generic ErrorScreen renders expected widgets', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
       Builder(
-        builder: (context) {
-          return ErrorScreen.generic(context);
-        },
+        builder: (context) => ErrorScreen.fromError(context, const GenericError('', sourceError: '')),
       ),
     );
     await tester.pumpAndSettle();
@@ -203,9 +192,7 @@ void main() {
   testWidgets('Device incompatible ErrorScreen renders expected widgets', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
       Builder(
-        builder: (context) {
-          return ErrorScreen.deviceIncompatible(context);
-        },
+        builder: (context) => ErrorScreen.fromError(context, const HardwareUnsupportedError(sourceError: '')),
       ),
     );
     await tester.pumpAndSettle();
@@ -225,9 +212,9 @@ void main() {
   testWidgets('Network ErrorScreen renders expected widgets', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
       Builder(
-        builder: (context) => ErrorScreen.network(
+        builder: (context) => ErrorScreen.fromError(
           context,
-          error: const NetworkError(hasInternet: true, sourceError: ''),
+          const NetworkError(hasInternet: true, sourceError: ''),
         ),
       ),
     );
@@ -250,9 +237,7 @@ void main() {
   testWidgets('Session expired ErrorScreen renders expected widgets', (tester) async {
     await tester.pumpWidgetWithAppWrapper(
       Builder(
-        builder: (context) {
-          return ErrorScreen.sessionExpired(context);
-        },
+        builder: (context) => ErrorScreen.fromError(context, const SessionError(state: .expired, sourceError: '')),
       ),
     );
     await tester.pumpAndSettle();
@@ -268,5 +253,63 @@ void main() {
     expect(headlineFinder, findsOneWidget);
     expect(primaryActionFinder, findsOneWidget);
     expect(secondaryActionFinder, findsOneWidget);
+  });
+
+  /// ErrorScreen.fromError relies on ErrorPage.fromError which is tested thoroughly in error_page_test.dart.
+  /// Add some basic tests here to verify error mapping and provided CtaStyle is respected.
+  group('fromError', () {
+    testWidgets('maps GenericError to ErrorScreen with expected properties', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            final screen = ErrorScreen.fromError(
+              context,
+              const GenericError('msg', sourceError: 'error'),
+              style: ErrorCtaStyle.retry,
+            );
+            final expectedPage = ErrorPage.generic(context, style: ErrorCtaStyle.retry);
+            expect(screen.title, expectedPage.title);
+            expect(screen.description, expectedPage.description);
+            expect(screen.illustration, expectedPage.illustration);
+            expect(screen.actions, isEmpty);
+            return const SizedBox.shrink();
+          },
+        ),
+      );
+    });
+
+    testWidgets('maps NetworkError(hasInternet: true) to ErrorPage.server', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            final screen = ErrorScreen.fromError(
+              context,
+              const NetworkError(hasInternet: true, sourceError: 'error'),
+            );
+            final expectedPage = ErrorPage.server(context, style: ErrorCtaStyle.retry);
+            expect(screen.title, expectedPage.title);
+            expect(screen.description, expectedPage.description);
+            return const SizedBox.shrink();
+          },
+        ),
+      );
+    });
+
+    testWidgets('applies ErrorCtaStyle.close and provides CloseIconButton', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            final screen = ErrorScreen.fromError(
+              context,
+              const GenericError('msg', sourceError: 'error'),
+              style: ErrorCtaStyle.close,
+            );
+            expect(screen.actions, hasLength(1));
+            expect(screen.actions.first, isA<CloseIconButton>());
+            return const SizedBox.shrink();
+          },
+        ),
+      );
+    });
   });
 }

@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../data/service/announcement_service.dart';
 import '../../domain/model/flow_progress.dart';
+import '../../domain/model/result/application_error.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
@@ -58,10 +59,8 @@ class ChangePinScreen extends StatelessWidget {
     final bloc = context.bloc;
     unawaited(_runAnnouncements(context, state));
     switch (state) {
-      case ChangePinGenericError():
-        ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
-      case ChangePinNetworkError(:final error):
-        ErrorScreen.showNetwork(context, error: error, secured: false);
+      case ChangePinError(:final error):
+        ErrorScreen.show(context, error, secured: false, style: ErrorCtaStyle.retry);
       case ChangePinSelectNewPinFailed():
         await PinValidationErrorDialog.show(
           context,
@@ -91,8 +90,7 @@ class ChangePinScreen extends StatelessWidget {
       ChangePinConfirmNewPinFailed() => _buildConfirmNewPinPage(context, enteredDigits: kPinDigits),
       ChangePinUpdating() => _buildChangePinUpdating(context),
       ChangePinCompleted() => _buildChangePinSuccess(context),
-      ChangePinGenericError() => _buildChangePinFailed(context),
-      ChangePinNetworkError() => _buildChangePinFailed(context),
+      ChangePinError(:final error) => _buildChangePinFailed(context, error),
     };
     return FakePagingAnimatedSwitcher(
       animateBackwards: state.didGoBack,
@@ -110,8 +108,7 @@ class ChangePinScreen extends StatelessWidget {
       ChangePinConfirmNewPinFailed() => const FlowProgress(currentStep: 3, totalSteps: kTotalNrOfPages),
       ChangePinUpdating() => const FlowProgress(currentStep: 3, totalSteps: kTotalNrOfPages),
       ChangePinCompleted() => const FlowProgress(currentStep: kTotalNrOfPages, totalSteps: kTotalNrOfPages),
-      ChangePinGenericError() => null,
-      ChangePinNetworkError() => null,
+      ChangePinError() => null,
     };
   }
 
@@ -163,13 +160,14 @@ class ChangePinScreen extends StatelessWidget {
   }
 
   /// This is more a placeholder/fallback over anything else.
-  /// Whenever the user is hit with a [ChangePinGenericError] or [ChangePinNetworkError]
+  /// Whenever the user is hit with a [ChangePinError] or [ChangePinNetworkError]
   /// this is built, but the listener should trigger the [ErrorScreen] while the bloc resets
   /// the flow so the user can try again. That said, to be complete we need to build something
   /// in this state, hence this method is kept around.
-  Widget _buildChangePinFailed(BuildContext context) {
-    return ErrorPage.generic(
+  Widget _buildChangePinFailed(BuildContext context, ApplicationError error) {
+    return ErrorPage.fromError(
       context,
+      error,
       style: ErrorCtaStyle.retry,
       onPrimaryActionPressed: () => context.bloc.add(ChangePinRetryPressed()),
     );
@@ -239,8 +237,7 @@ class ChangePinScreen extends StatelessWidget {
       case ChangePinConfirmNewPinInProgress():
       case ChangePinConfirmNewPinFailed():
       case ChangePinUpdating():
-      case ChangePinGenericError():
-      case ChangePinNetworkError():
+      case ChangePinError():
         return const TitleText('');
     }
   }

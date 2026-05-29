@@ -181,7 +181,7 @@ void main() {
     expect: () => [
       const WalletPersonalizeAuthenticating(),
       isA<WalletPersonalizeLoadInProgress>(),
-      WalletPersonalizeDigidCancelled(),
+      const WalletPersonalizeDigidCancelled(),
     ],
   );
 
@@ -236,7 +236,7 @@ void main() {
       WalletPersonalizeCheckData(availableAttributes: WalletMockData.card.attributes),
       WalletPersonalizeConfirmPin(WalletMockData.card.attributes),
       isA<WalletPersonalizeLoadInProgress>(),
-      isA<WalletPersonalizeGenericError>(),
+      isA<WalletPersonalizeError>(),
     ],
   );
 

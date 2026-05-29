@@ -6,7 +6,6 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/bloc/error_state.dart';
-import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/pin/pin_validation_error.dart';
 import '../../../domain/model/result/application_error.dart';
@@ -21,6 +20,7 @@ import '../../../wallet_constants.dart';
 import '../../../wallet_core/error/core_error.dart';
 
 part 'recover_pin_event.dart';
+
 part 'recover_pin_state.dart';
 
 class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
@@ -207,19 +207,15 @@ class RecoverPinBloc extends Bloc<RecoverPinEvent, RecoverPinState> {
         emit(const RecoverPinDigidMismatch());
       case DeniedDigidError():
         emit(const RecoverPinDigidLoginCancelled());
-      case NetworkError():
-        emit(RecoverPinNetworkError(error: error));
       case RedirectUriError():
         if ([RedirectError.accessDenied, RedirectError.loginRequired].contains(error.redirectError)) {
           emit(const RecoverPinDigidLoginCancelled());
         } else {
           emit(RecoverPinDigidFailure(error: error));
         }
-      case SessionError():
-        emit(RecoverPinSessionExpired(error: error));
       default:
-        Fimber.w('Handling ${error.runtimeType} as generic error.', ex: error);
-        emit(RecoverPinGenericError(error: error));
+        Fimber.w('Handling ${error.runtimeType} as with default error handling.', ex: error);
+        emit(RecoverPinError(error: error));
     }
   }
 }

@@ -127,7 +127,7 @@ void main() {
         () => const Result.error(GenericError(CoreGenericError('generic'), sourceError: 'test')),
       ),
       skip: 6,
-      expect: () => [isA<PinValidateGenericError>()],
+      expect: () => [isA<PinValidateError>()],
     );
     blocTest<PinBloc, PinState>(
       'Verify that CheckPinResultServerError results in PinValidateNetworkError with true as hasInternet flag',
@@ -138,8 +138,8 @@ void main() {
       ),
       skip: 6,
       expect: () => [
-        isA<PinValidateNetworkError>().having(
-          (state) => state.error.hasInternet,
+        isA<PinValidateError>().having(
+          (state) => (state.error as NetworkError).hasInternet,
           'hasInternet should be true',
           isTrue,
         ),
@@ -155,8 +155,8 @@ void main() {
       ),
       skip: 6,
       expect: () => [
-        isA<PinValidateNetworkError>().having(
-          (state) => state.error.hasInternet,
+        isA<PinValidateError>().having(
+          (state) => (state.error as NetworkError).hasInternet,
           'hasInternet should be false',
           isFalse,
         ),

@@ -100,27 +100,11 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
                 onCtaPressed: () => _navigateToSplashScreen(context),
               ),
               WalletTransferStopped() => _buildWalletStopped(context, state),
-              WalletTransferGenericError() => ErrorPage.generic(
+              WalletTransferError(:final error) => ErrorPage.fromError(
                 context,
+                error,
                 onPrimaryActionPressed: () => _closeTransferScreen(context),
                 style: ErrorCtaStyle.close,
-              ),
-              WalletTransferNetworkError(:final error) =>
-                error.hasInternet
-                    ? ErrorPage.server(
-                        context,
-                        onPrimaryActionPressed: () => _closeTransferScreen(context),
-                        style: ErrorCtaStyle.close,
-                      )
-                    : ErrorPage.noInternet(
-                        context,
-                        onPrimaryActionPressed: () => _closeTransferScreen(context),
-                        style: ErrorCtaStyle.close,
-                      ),
-              WalletTransferSessionExpired() => ErrorPage.sessionExpired(
-                context,
-                style: ErrorCtaStyle.close,
-                onPrimaryActionPressed: () => _closeTransferScreen(context),
               ),
               WalletTransferFailed() => TerminalPage(
                 title: context.l10n.walletTransferScreenFailedTitle,
@@ -214,9 +198,7 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
       case WalletTransferCancelling():
       case WalletTransferSuccess():
       case WalletTransferStopped():
-      case WalletTransferGenericError():
-      case WalletTransferNetworkError():
-      case WalletTransferSessionExpired():
+      case WalletTransferError():
       case WalletTransferFailed():
         return const SizedBox.shrink();
     }
@@ -258,9 +240,7 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
     switch (state) {
       case WalletTransferInitial():
       case WalletTransferStopped():
-      case WalletTransferGenericError():
-      case WalletTransferNetworkError():
-      case WalletTransferSessionExpired():
+      case WalletTransferError():
       case WalletTransferFailed():
         return true;
       case WalletTransferIntroduction():
@@ -299,12 +279,7 @@ class _WalletTransferSourceScreenState extends State<WalletTransferSourceScreen>
       WalletTransferTransferring() => TitleText(context.l10n.walletTransferSourceScreenTransferringTitle),
       WalletTransferSuccess() => TitleText(context.l10n.walletTransferSourceScreenSuccessTitle),
       WalletTransferStopped() => TitleText(context.l10n.walletTransferScreenStoppedTitle),
-      WalletTransferGenericError() => TitleText(context.l10n.errorScreenGenericHeadline),
-      WalletTransferNetworkError(:final error) =>
-        error.hasInternet
-            ? TitleText(context.l10n.errorScreenServerHeadline)
-            : TitleText(context.l10n.errorScreenNoInternetHeadline),
-      WalletTransferSessionExpired() => TitleText(context.l10n.errorScreenSessionExpiredHeadline),
+      WalletTransferError(:final error) => TitleText(ErrorPage.titleFromError(context, error)),
       WalletTransferFailed() => TitleText(context.l10n.walletTransferScreenFailedTitle),
       WalletTransferCancelling() => const SizedBox.shrink(),
     };

@@ -7,7 +7,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../data/repository/pid/pid_repository.dart';
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/bloc/error_state.dart';
-import '../../../../domain/model/bloc/network_error_state.dart';
 import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/flow_progress.dart';
 import '../../../../domain/model/result/application_error.dart';
@@ -65,16 +64,15 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       onSuccess: (previewAttributes) => add(WalletPersonalizeLoginWithDigidSucceeded(previewAttributes)),
       onError: (error) {
         switch (error) {
-          case NetworkError():
-            emit(WalletPersonalizeNetworkError(error: error));
           case DeniedDigidError():
             add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: true, error: error));
           case RedirectUriError():
             // Currently seeing 'accessDenied/loginRequired' when pressing cancel in the digid connector. Verify on prod. (PVW-2352)
             final cancelled = [RedirectError.accessDenied, RedirectError.loginRequired].contains(error.redirectError);
             add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: cancelled, error: error));
+          case NetworkError():
           case RelyingPartyError():
-            emit(WalletPersonalizeRelyingPartyError(error: error, organizationName: error.organizationName));
+            emit(WalletPersonalizeError(error: error));
           default:
             add(WalletPersonalizeLoginWithDigidFailed(error: error));
         }
@@ -96,9 +94,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       onError: (error) {
         switch (error) {
           case NetworkError():
-            emit(WalletPersonalizeNetworkError(error: error));
           case RelyingPartyError():
-            emit(WalletPersonalizeRelyingPartyError(error: error, organizationName: error.organizationName));
+            emit(WalletPersonalizeError(error: error));
           default:
             emit(WalletPersonalizeDigidFailure(error: error));
         }
@@ -121,7 +118,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     await cancelPidIssuanceUseCase.invoke(); // Confirm cancellation to the server
 
     if (event.cancelledByUser) {
-      emit(WalletPersonalizeDigidCancelled());
+      emit(const WalletPersonalizeDigidCancelled());
     } else {
       emit(WalletPersonalizeDigidFailure(error: event.error));
     }
@@ -130,16 +127,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   Future<void> _onAcceptPidFailed(WalletPersonalizeAcceptPidFailed event, Emitter<WalletPersonalizeState> emit) async {
     emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
     await cancelPidIssuanceUseCase.invoke(); // Confirm cancellation to the server
-
-    final appError = event.error;
-    switch (appError) {
-      case NetworkError():
-        emit(WalletPersonalizeNetworkError(error: appError));
-      case SessionError():
-        emit(WalletPersonalizeSessionExpired(error: appError));
-      default:
-        emit(WalletPersonalizeGenericError(error: appError));
-    }
+    emit(WalletPersonalizeError(error: event.error));
   }
 
   Future<void> _onOfferingVerified(
@@ -180,7 +168,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       await _loadCardsAndEmitSuccessState(userCanTransfer: event.transferState == TransferState.available);
     } else {
       Fimber.e('Pin confirmed from unexpected screen');
-      emit(WalletPersonalizeFailure());
+      emit(WalletPersonalizeError(error: GenericError('Unexpected state', sourceError: Exception())));
     }
   }
 
@@ -199,7 +187,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       },
       onError: (error) {
         Fimber.e('Failed to fetch cards', ex: error);
-        add(WalletPersonalizeUpdateState(WalletPersonalizeFailure()));
+        add(WalletPersonalizeUpdateState(WalletPersonalizeError(error: error)));
       },
     );
   }

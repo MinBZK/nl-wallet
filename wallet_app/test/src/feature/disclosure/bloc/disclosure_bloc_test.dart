@@ -636,7 +636,7 @@ void main() {
       act: (bloc) => bloc.add(const DisclosureSessionStarted(StartDisclosureRequest.deeplink(''))),
       expect: () => [
         isA<DisclosureLoadInProgress>(),
-        isA<DisclosureGenericError>(),
+        isA<DisclosureError>(),
       ],
     );
 
@@ -648,9 +648,9 @@ void main() {
       build: create,
       act: (bloc) => bloc.add(const DisclosureSessionStarted(StartDisclosureRequest.deeplink(''))),
       verify: (bloc) {
-        expect(bloc.state, isA<DisclosureNetworkError>());
-        expect((bloc.state as DisclosureNetworkError).error.hasInternet, isTrue);
-        expect((bloc.state as DisclosureNetworkError).error, isA<NetworkError>());
+        expect(bloc.state, isA<DisclosureError>());
+        expect((bloc.state as DisclosureError).error, isA<NetworkError>());
+        expect((((bloc.state as DisclosureError).error) as NetworkError).hasInternet, isTrue);
       },
     );
 
@@ -669,9 +669,9 @@ void main() {
       build: create,
       act: (bloc) => bloc.add(const DisclosureSessionStarted(StartDisclosureRequest.deeplink(''))),
       verify: (bloc) {
-        expect(bloc.state, isA<DisclosureNetworkError>());
-        expect((bloc.state as DisclosureNetworkError).error.hasInternet, isFalse);
-        expect((bloc.state as DisclosureNetworkError).error, isA<NetworkError>());
+        expect(bloc.state, isA<DisclosureError>());
+        expect((bloc.state as DisclosureError).error, isA<NetworkError>());
+        expect((((bloc.state as DisclosureError).error) as NetworkError).hasInternet, isFalse);
       },
     );
 
@@ -697,7 +697,7 @@ void main() {
       },
       wait: const Duration(milliseconds: 150),
       skip: 4,
-      expect: () => [isA<DisclosureNetworkError>()],
+      expect: () => [isA<DisclosureError>().having((it) => it.error, 'Network error', isA<NetworkError>())],
     );
 
     blocTest(
@@ -786,7 +786,7 @@ void main() {
       act: (bloc) async => bloc.add(const DisclosureSessionStarted(StartDisclosureRequest.deeplink(''))),
       expect: () => [
         isA<DisclosureLoadInProgress>(),
-        isA<DisclosureGenericError>().having(
+        isA<DisclosureError>().having(
           (error) => error.returnUrl,
           'return url matches that of the error',
           'https://example.org',
@@ -819,13 +819,16 @@ void main() {
         isA<DisclosureCheckUrl>(),
         isA<DisclosureConfirmDataAttributes>(),
         isA<DisclosureLoadInProgress>(),
-        DisclosureSessionCancelled(
-          error: const SessionError(
-            state: SessionState.cancelled,
-            crossDevice: SessionType.crossDevice,
-            sourceError: 'test',
+        isA<DisclosureError>().having(
+          (it) => it.error,
+          'Has correct SessionError',
+          equals(
+            const SessionError(
+              state: SessionState.cancelled,
+              crossDevice: SessionType.crossDevice,
+              sourceError: 'test',
+            ),
           ),
-          relyingParty: WalletMockData.organization,
         ),
       ],
     );
@@ -844,7 +847,7 @@ void main() {
       act: (bloc) async => bloc.add(const DisclosureSessionStarted(StartDisclosureRequest.deeplink(''))),
       expect: () => [
         isA<DisclosureLoadInProgress>(),
-        isA<DisclosureRelyingPartyError>(),
+        isA<DisclosureError>().having((it) => it.error, 'RP Error', isA<RelyingPartyError>()),
       ],
     );
   });
@@ -944,7 +947,7 @@ void main() {
       expect: () => [
         isA<DisclosureConfirmDataAttributes>(),
         isA<DisclosureLoadInProgress>(),
-        isA<DisclosureGenericError>(),
+        isA<DisclosureError>(),
       ],
     );
 
@@ -989,7 +992,7 @@ void main() {
     blocTest(
       'proximity events are ignored when state is an ErrorState',
       build: create,
-      seed: () => const DisclosureGenericError(error: GenericError('test', sourceError: 'test')),
+      seed: () => const DisclosureError(error: GenericError('test', sourceError: 'test')),
       act: (bloc) => bloc.add(const DisclosureCloseProximityEventReceived(BleDisconnected())),
       expect: () => [],
       verify: (bloc) => verifyNever(cancelDisclosureUseCase.invoke()),

@@ -87,11 +87,9 @@ class RenewPidScreen extends StatelessWidget {
         title = context.l10n.renewPidCheckDetailsPageTitle;
       case RenewPidSuccess():
         title = context.l10n.renewPidSuccessPageTitle;
+      case RenewPidError(:final error):
+        title = ErrorPage.titleFromError(context, error);
       case RenewPidConfirmPin():
-      case RenewPidDigidFailure():
-      case RenewPidNetworkError():
-      case RenewPidGenericError():
-      case RenewPidSessionExpired():
       case RenewPidLoadingDigidUrl():
       case RenewPidAwaitingDigidAuthentication():
       case RenewPidVerifyingDigidAuthentication():
@@ -176,29 +174,11 @@ class RenewPidScreen extends StatelessWidget {
             );
           case RenewPidStopped():
             result = RenewPidStoppedPage(onPrimaryPressed: () => Navigator.pop(context));
-          case RenewPidNetworkError(:final error):
-            result = error.hasInternet
-                ? ErrorPage.server(
-                    context,
-                    onPrimaryActionPressed: () => context.bloc.add(const RenewPidRetryPressed()),
-                    style: ErrorCtaStyle.retry,
-                  )
-                : ErrorPage.noInternet(
-                    context,
-                    onPrimaryActionPressed: () => context.bloc.add(const RenewPidRetryPressed()),
-                    style: ErrorCtaStyle.retry,
-                  );
-          case RenewPidDigidFailure():
-          case RenewPidGenericError():
-            result = ErrorPage.generic(
+          case RenewPidError(:final error):
+            result = ErrorPage.fromError(
               context,
-              onPrimaryActionPressed: () => context.bloc.add(const RenewPidLoginWithDigidClicked()),
-              style: ErrorCtaStyle.retry,
-            );
-          case RenewPidSessionExpired():
-            result = ErrorPage.sessionExpired(
-              context,
-              onPrimaryActionPressed: () => context.bloc.add(const RenewPidLoginWithDigidClicked()),
+              error,
+              onPrimaryActionPressed: () => context.bloc.add(const RenewPidRetryPressed()),
               style: ErrorCtaStyle.retry,
             );
         }
@@ -230,11 +210,8 @@ class RenewPidScreen extends StatelessWidget {
     switch (state) {
       case RenewPidInitial():
       case RenewPidSuccess():
-      case RenewPidDigidFailure():
       case RenewPidDigidLoginCancelled():
-      case RenewPidNetworkError():
-      case RenewPidGenericError():
-      case RenewPidSessionExpired():
+      case RenewPidError():
       case RenewPidDigidMismatch():
       case RenewPidStopped():
         return true;
@@ -260,11 +237,8 @@ class RenewPidScreen extends StatelessWidget {
       case RenewPidUpdatingCards():
         return false;
       case RenewPidInitial():
-      case RenewPidDigidFailure():
       case RenewPidDigidLoginCancelled():
-      case RenewPidNetworkError():
-      case RenewPidGenericError():
-      case RenewPidSessionExpired():
+      case RenewPidError():
       case RenewPidDigidMismatch():
       case RenewPidStopped():
         return true;

@@ -59,7 +59,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
-          const SetupSecurityGenericError(error: GenericError('test', sourceError: 'test')),
+          const SetupSecurityError(error: GenericError('test', sourceError: 'test')),
         ),
       );
       await screenMatchesGolden('generic_error.light');
@@ -154,7 +154,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
-          SetupSecurityCreatingWallet(),
+          const SetupSecurityCreatingWallet(),
         ),
       );
       await screenMatchesGolden('creating_wallet.light');
@@ -211,34 +211,35 @@ void main() {
       expect(titleFinder, findsOneWidget);
     });
 
-    testWidgets('ltc51 SetupSecurityScreen shows the server error for SetupSecurityNetworkError hasInternet true', (
-      tester,
-    ) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
-          MockSetupSecurityBloc(),
-          const SetupSecurityNetworkError(
-            error: NetworkError(hasInternet: true, sourceError: 'test'),
+    testWidgets(
+      'ltc51 SetupSecurityScreen shows the server error for SetupSecurityError(NetworkError) hasInternet true',
+      (
+        tester,
+      ) async {
+        await tester.pumpWidgetWithAppWrapper(
+          const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+            MockSetupSecurityBloc(),
+            const SetupSecurityError(error: NetworkError(hasInternet: true, sourceError: 'test')),
           ),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      final l10n = await TestUtils.englishLocalizations;
+        final l10n = await TestUtils.englishLocalizations;
 
-      // Verify the 'server error' title is shown
-      final noInternetHeadlineFinder = find.text(l10n.errorScreenServerHeadline, findRichText: true);
-      expect(noInternetHeadlineFinder, findsAtLeastNWidgets(1));
+        // Verify the 'server error' title is shown
+        final noInternetHeadlineFinder = find.text(l10n.errorScreenServerHeadline, findRichText: true);
+        expect(noInternetHeadlineFinder, findsAtLeastNWidgets(1));
 
-      // Verify the 'try again' cta is shown
-      final tryAgainCtaFinder = find.text(l10n.generalRetry, findRichText: true);
-      expect(tryAgainCtaFinder, findsOneWidget);
+        // Verify the 'try again' cta is shown
+        final tryAgainCtaFinder = find.text(l10n.generalRetry, findRichText: true);
+        expect(tryAgainCtaFinder, findsOneWidget);
 
-      // Verify the 'show details' cta is shown
-      final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta, findRichText: true);
-      expect(showDetailsCtaFinder, findsOneWidget);
-    });
+        // Verify the 'show details' cta is shown
+        final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta, findRichText: true);
+        expect(showDetailsCtaFinder, findsOneWidget);
+      },
+    );
 
     testWidgets('ltc51 SetupSecurityScreen shows the generic error for SetupSecurityGenericError state', (
       tester,
@@ -246,7 +247,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
-          const SetupSecurityGenericError(error: GenericError('generic', sourceError: 'test')),
+          const SetupSecurityError(error: GenericError('generic', sourceError: 'test')),
         ),
       );
 
@@ -275,7 +276,7 @@ void main() {
         await tester.pumpWidgetWithAppWrapper(
           const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
             MockSetupSecurityBloc(),
-            const SetupSecurityDeviceIncompatibleError(error: HardwareUnsupportedError(sourceError: 'test')),
+            const SetupSecurityError(error: HardwareUnsupportedError(sourceError: 'test')),
           ),
           providers: [
             RepositoryProvider<WalletRepository>(
