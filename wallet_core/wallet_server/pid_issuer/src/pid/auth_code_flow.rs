@@ -296,6 +296,9 @@ mod tests {
             Attribute::Single(AttributeValue::Text(expected_hmac)),
         )])));
 
-        assert_eq!(attrs, expected_attrs);
+        assert_eq!(
+            attrs, expected_attrs,
+            "The result should be the attributes we started with, with a recovery_code attribute added to it."
+        );
     }
 }
