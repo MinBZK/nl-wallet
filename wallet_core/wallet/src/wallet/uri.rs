@@ -41,6 +41,9 @@ pub enum UriIdentificationError {
 /// Custom URL schemes for disclosure flows.
 const DISCLOSURE_URL_SCHEMES: &[&str] = &["eu-eaap", "openid4vp", "haip-vp"];
 
+/// Custom URL schemes for issuance flows.
+const ISSUANCE_URL_SCHEMES: &[&str] = &["eu-eaa-offer", "haip-vci", "openid-credential-offer"];
+
 pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
     let uri_str = uri.as_str();
 
@@ -66,6 +69,10 @@ pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
 
     if DISCLOSURE_URL_SCHEMES.contains(&uri.scheme()) {
         return Some(UriType::Disclosure);
+    }
+
+    if ISSUANCE_URL_SCHEMES.contains(&uri.scheme()) {
+        return Some(UriType::PidIssuance); // TODO: Should be a new UriType reflecting
     }
 
     None
