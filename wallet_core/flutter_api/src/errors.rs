@@ -293,6 +293,7 @@ impl FlutterApiErrorFields for IssuanceError {
             | IssuanceError::MissingSignature
             | IssuanceError::AttestationStorage(_)
             | IssuanceError::AttestationQuery(_)
+            | IssuanceError::SessionStorage(_)
             | IssuanceError::KeyNotFound(_)
             | IssuanceError::Attestations(_)
             | IssuanceError::Notifications(_)

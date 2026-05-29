@@ -355,7 +355,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
+
     use http_utils::urls;
     use openid4vc::disclosure_session::mock::MockDisclosureClient;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;

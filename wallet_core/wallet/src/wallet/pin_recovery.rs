@@ -489,7 +489,6 @@ mod tests {
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
-    use rstest::rstest;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use url::Url;
