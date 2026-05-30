@@ -139,6 +139,7 @@ mod tests {
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use utils::vec_nonempty;
 
+    use super::super::issuance::SessionState;
     use super::super::issuance::WalletIssuanceSession;
     use super::super::test;
     use super::super::test::TestWalletMockStorage;
@@ -198,10 +199,12 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_reset_full() {
         let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
-            pid_purpose: Some(PidIssuancePurpose::Enrollment),
-            preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
-            protocol_state: MockIssuanceSession::default(),
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session_state: SessionState::Issuance {
+                preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
+                protocol_state: MockIssuanceSession::default(),
+            },
         }));
 
         wallet

@@ -16,6 +16,7 @@ use crate::PidIssuancePurpose;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::repository::Repository;
 use crate::wallet::Session;
+use crate::wallet::issuance::SessionState;
 use crate::wallet::issuance::WalletIssuanceSession;
 use crate::wallet::pin_recovery::PinRecoverySession;
 
@@ -96,9 +97,9 @@ where
             Some(UriType::PidIssuance)
                 if matches!(
                     self.session,
-                    Some(Session::Issuance(WalletIssuanceSession::OAuth {
+                    Some(Session::Issuance(WalletIssuanceSession::Pid {
                         purpose: PidIssuancePurpose::Enrollment,
-                        ..
+                        session_state: SessionState::Authorization { .. },
                     })),
                 ) =>
             {
@@ -107,9 +108,9 @@ where
             Some(UriType::PidIssuance)
                 if matches!(
                     self.session,
-                    Some(Session::Issuance(WalletIssuanceSession::OAuth {
+                    Some(Session::Issuance(WalletIssuanceSession::Pid {
                         purpose: PidIssuancePurpose::Renewal,
-                        ..
+                        session_state: SessionState::Authorization { .. },
                     })),
                 ) =>
             {
@@ -147,6 +148,7 @@ mod tests {
     use super::super::test::WalletDeviceVendor;
     use super::*;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
+    use crate::wallet::issuance::SessionState;
     use crate::wallet::issuance::WalletIssuanceSession;
 
     #[tokio::test]
@@ -181,18 +183,22 @@ mod tests {
         );
 
         // Set up an enrollment session that will match the URI.
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_session: MockAuthorizationSession::new(),
+            session_state: SessionState::Authorization {
+                authorization_session: MockAuthorizationSession::new(),
+            },
         }));
 
         // The wallet should now recognise the DigiD URI.
         assert_matches!(wallet.identify_uri(digid_uri).unwrap(), UriType::PidIssuance);
 
         // Set up a PID renewal session that will match the URI.
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Renewal,
-            authorization_session: MockAuthorizationSession::new(),
+            session_state: SessionState::Authorization {
+                authorization_session: MockAuthorizationSession::new(),
+            },
         }));
 
         // The wallet should now recognise the DigiD URI.

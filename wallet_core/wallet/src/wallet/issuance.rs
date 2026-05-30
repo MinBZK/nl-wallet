@@ -175,15 +175,56 @@ pub enum IssuanceError {
 
 #[derive(Debug)]
 pub enum WalletIssuanceSession<AS, IS> {
-    OAuth {
+    Pid {
         purpose: PidIssuancePurpose,
+        session_state: SessionState<AS, IS>,
+    },
+    General {
+        session_state: SessionState<AS, IS>,
+    },
+}
+
+#[derive(Debug)]
+pub enum SessionState<AS, IS> {
+    Authorization {
         authorization_session: AS,
     },
     Issuance {
-        pid_purpose: Option<PidIssuancePurpose>, // None if we're not doing PID issuance
         preview_attestations: VecNonEmpty<AttestationPresentation>,
         protocol_state: IS,
     },
+}
+
+impl<AS, IS> WalletIssuanceSession<AS, IS> {
+    pub fn new(pid_purpose: Option<PidIssuancePurpose>, session_state: SessionState<AS, IS>) -> Self {
+        match pid_purpose {
+            Some(purpose) => WalletIssuanceSession::Pid { purpose, session_state },
+            None => WalletIssuanceSession::General { session_state },
+        }
+    }
+
+    pub fn pid_purpose(&self) -> Option<PidIssuancePurpose> {
+        match self {
+            WalletIssuanceSession::Pid { purpose, .. } => Some(*purpose),
+            WalletIssuanceSession::General { .. } => None,
+        }
+    }
+
+    pub fn session_state_mut(&mut self) -> &mut SessionState<AS, IS> {
+        match self {
+            WalletIssuanceSession::Pid { session_state, .. } | WalletIssuanceSession::General { session_state } => {
+                session_state
+            }
+        }
+    }
+
+    pub fn into_session_state(self) -> SessionState<AS, IS> {
+        match self {
+            WalletIssuanceSession::Pid { session_state, .. } | WalletIssuanceSession::General { session_state } => {
+                session_state
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -281,9 +322,9 @@ where
 
         info!("OAuth URL generated");
         let auth_url = authorization_session.auth_url().clone();
-        self.session.replace(Session::Issuance(WalletIssuanceSession::OAuth {
+        self.session.replace(Session::Issuance(WalletIssuanceSession::Pid {
             purpose,
-            authorization_session,
+            session_state: SessionState::Authorization { authorization_session },
         }));
 
         Ok(auth_url)
@@ -297,7 +338,7 @@ where
     ) -> Result<(), IssuanceError> {
         info!("Issuance cancelled / rejected");
 
-        if let WalletIssuanceSession::Issuance { protocol_state, .. } = session {
+        if let SessionState::Issuance { protocol_state, .. } = session.into_session_state() {
             let organization = protocol_state.issuer_registration().organization.clone();
 
             info!("Rejecting issuance");
@@ -326,15 +367,18 @@ where
         info!("Checking if there is an active OAuth issuance session");
         if !matches!(
             self.session,
-            Some(Session::Issuance(WalletIssuanceSession::OAuth { .. }))
+            Some(Session::Issuance(WalletIssuanceSession::Pid {
+                session_state: SessionState::Authorization { .. },
+                ..
+            }))
         ) {
             return Err(IssuanceError::SessionState);
         }
 
         // Take ownership of the active session, now that we know that it exists.
-        let Some(Session::Issuance(WalletIssuanceSession::OAuth {
-            authorization_session,
+        let Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose,
+            session_state: SessionState::Authorization { authorization_session },
         })) = self.session.take()
         else {
             panic!()
@@ -425,11 +469,13 @@ where
         // The IssuanceSession trait guarantees that credential_preview_data()
         // returns at least one value, so this unwrap() is safe.
         let event_attestations = attestations.clone().try_into().unwrap();
-        self.session.replace(Session::Issuance(WalletIssuanceSession::Issuance {
+        self.session.replace(Session::Issuance(WalletIssuanceSession::new(
             pid_purpose,
-            preview_attestations: event_attestations,
-            protocol_state: issuance_session,
-        }));
+            SessionState::Issuance {
+                preview_attestations: event_attestations,
+                protocol_state: issuance_session,
+            },
+        )));
 
         Ok(attestations)
     }
@@ -452,13 +498,15 @@ where
         let remote_wscd = RemoteEcdsaWscd::new(remote_instruction_client.clone());
 
         info!("Checking if there is an active issuance session");
-        let Some(Session::Issuance(WalletIssuanceSession::Issuance {
-            protocol_state,
-            pid_purpose,
-            ..
-        })) = &mut self.session
-        else {
+        let Some(Session::Issuance(issuance_session)) = &mut self.session else {
             return Err(IssuanceError::SessionState);
+        };
+
+        let pid_purpose = issuance_session.pid_purpose();
+
+        let protocol_state = match issuance_session.session_state_mut() {
+            SessionState::Issuance { protocol_state, .. } => protocol_state,
+            _ => return Err(IssuanceError::SessionState),
         };
 
         info!("Signing nonce using Wallet Provider");
@@ -482,13 +530,14 @@ where
             _ => issuance_result?,
         };
 
-        let pid_purpose = *pid_purpose;
-
         info!("Issuance succeeded; removing issuance session state");
         let preview_attestations = match self.session.take() {
-            Some(Session::Issuance(WalletIssuanceSession::Issuance {
-                preview_attestations, ..
-            })) => preview_attestations,
+            Some(Session::Issuance(session)) => match session.into_session_state() {
+                SessionState::Issuance {
+                    preview_attestations, ..
+                } => preview_attestations,
+                _ => unreachable!(),
+            },
             _ => unreachable!(),
         };
 
@@ -846,9 +895,11 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Set up a mock DigiD session.
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_session: MockAuthorizationSession::new(),
+            session_state: SessionState::Authorization {
+                authorization_session: MockAuthorizationSession::new(),
+            },
         }));
 
         // Creating a DigiD authentication URL on a `Wallet` that
@@ -869,10 +920,12 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup a mock OpenID4VCI session.
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
-            pid_purpose: Some(purpose),
-            preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
-            protocol_state: MockIssuanceSession::default(),
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
+            purpose,
+            session_state: SessionState::Issuance {
+                preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
+                protocol_state: MockIssuanceSession::default(),
+            },
         }));
 
         // Creating a DigiD authentication URL on a `Wallet` that has
@@ -890,9 +943,11 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Set up a mock DigiD session.
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_session: MockAuthorizationSession::new(),
+            session_state: SessionState::Authorization {
+                authorization_session: MockAuthorizationSession::new(),
+            },
         }));
 
         assert!(wallet.session.is_some());
@@ -915,10 +970,12 @@ mod tests {
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
             client
         };
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
-            pid_purpose: Some(PidIssuancePurpose::Enrollment),
-            preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
-            protocol_state: pid_issuer,
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session_state: SessionState::Issuance {
+                preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
+                protocol_state: pid_issuer,
+            },
         }));
 
         // Cancelling PID issuance should not fail.
@@ -1038,9 +1095,9 @@ mod tests {
         authorization_session
             .expect_start_issuance_sync()
             .return_once(|| Err(WalletIssuanceError::OAuth(OAuthError::Denied)));
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_session,
+            session_state: SessionState::Authorization { authorization_session },
         }));
 
         let denied_redirect = Url::parse(&(REDIRECT_URI.to_string() + "?error=access_denied&state=whatever")).unwrap();
@@ -1118,9 +1175,9 @@ mod tests {
             session.expect_issuer().return_const(IssuerRegistration::new_mock());
             Ok(session)
         });
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_session,
+            session_state: SessionState::Authorization { authorization_session },
         }));
         (wallet, redirect_uri)
     }
@@ -1136,9 +1193,9 @@ mod tests {
             .expect_start_issuance_sync()
             .return_once(|| Err(WalletIssuanceError::IssuerMismatch));
 
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_session,
+            session_state: SessionState::Authorization { authorization_session },
         }));
 
         // Continuing PID issuance on a wallet should forward this error.
@@ -1265,10 +1322,12 @@ mod tests {
 
             client
         };
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
-            pid_purpose: Some(PidIssuancePurpose::Enrollment),
-            preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
-            protocol_state: pid_issuer,
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session_state: SessionState::Issuance {
+                preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
+                protocol_state: pid_issuer,
+            },
         }));
 
         // Canceling PID issuance on a wallet should forward this error.
@@ -1355,10 +1414,12 @@ mod tests {
 
         let credential_count = issuer_credentials.len();
         let (pid_issuer, attestations) = mock_issuance_session(issuer_credentials);
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
-            pid_purpose: Some(PidIssuancePurpose::Enrollment),
-            preview_attestations: attestations,
-            protocol_state: pid_issuer,
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session_state: SessionState::Issuance {
+                preview_attestations: attestations,
+                protocol_state: pid_issuer,
+            },
         }));
 
         wallet
@@ -1568,10 +1629,12 @@ mod tests {
 
             client
         };
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
-            pid_purpose: Some(PidIssuancePurpose::Enrollment),
-            preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
-            protocol_state: pid_issuer,
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session_state: SessionState::Issuance {
+                preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
+                protocol_state: pid_issuer,
+            },
         }));
 
         // Accepting PID issuance should result in an error.
@@ -1661,10 +1724,12 @@ mod tests {
 
             client
         };
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
-            pid_purpose: Some(PidIssuancePurpose::Enrollment),
-            preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
-            protocol_state: pid_issuer,
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session_state: SessionState::Issuance {
+                preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
+                protocol_state: pid_issuer,
+            },
         }));
 
         // Accepting PID issuance should result in an error.
@@ -1687,10 +1752,12 @@ mod tests {
         // Have the mock OpenID4VCI session issue the PID only in Mdoc format.
         let (mdoc_credential, metadata_documents, _) = mdoc_pid();
         let (pid_issuer, attestations) = mock_issuance_session([(mdoc_credential, metadata_documents)]);
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
-            pid_purpose: Some(PidIssuancePurpose::Enrollment),
-            preview_attestations: attestations,
-            protocol_state: pid_issuer,
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session_state: SessionState::Issuance {
+                preview_attestations: attestations,
+                protocol_state: pid_issuer,
+            },
         }));
 
         wallet
@@ -1718,10 +1785,12 @@ mod tests {
         // Have the mock OpenID4VCI session issue an SD-JWT PID.
         let (sd_jwt_credential, metadata_documents, _) = sd_jwt_pid();
         let (pid_issuer, attestations) = mock_issuance_session([(sd_jwt_credential, metadata_documents)]);
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
-            pid_purpose: Some(PidIssuancePurpose::Enrollment),
-            preview_attestations: attestations,
-            protocol_state: pid_issuer,
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session_state: SessionState::Issuance {
+                preview_attestations: attestations,
+                protocol_state: pid_issuer,
+            },
         }));
 
         // Have the storage return an error on query.
@@ -1892,10 +1961,12 @@ mod tests {
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
             client
         };
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Issuance {
-            pid_purpose: Some(PidIssuancePurpose::Enrollment),
-            preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
-            protocol_state: pid_issuer,
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
+            purpose: PidIssuancePurpose::Enrollment,
+            session_state: SessionState::Issuance {
+                preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
+                protocol_state: pid_issuer,
+            },
         }));
 
         let error = wallet

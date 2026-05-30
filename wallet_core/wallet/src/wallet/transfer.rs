@@ -489,6 +489,7 @@ mod tests {
     use crate::storage::InstructionData;
     use crate::storage::test::SqlCipherKey;
     use crate::wallet::Session;
+    use crate::wallet::issuance::SessionState;
     use crate::wallet::issuance::WalletIssuanceSession;
     use crate::wallet::test::create_wp_result;
 
@@ -533,9 +534,11 @@ mod tests {
     #[tokio::test]
     async fn test_transfer_error_issuance_session_active() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
-            authorization_session: MockAuthorizationSession::new(),
+            session_state: SessionState::Authorization {
+                authorization_session: MockAuthorizationSession::new(),
+            },
         }));
 
         let error = wallet
