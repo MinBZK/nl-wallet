@@ -306,10 +306,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub(super) async fn cancel_issuance<AS, IS: IssuanceSession>(
-        &mut self,
-        session: WalletIssuanceSession<AS, IS>,
-    ) -> Result<(), IssuanceError> {
+    pub(super) async fn cancel_issuance(&mut self) -> Result<(), IssuanceError> {
         info!("Issuance cancelled / rejected");
 
         self.storage
@@ -318,6 +315,10 @@ where
             .delete_data::<PersistedIssuanceSessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
             .await
             .map_err(IssuanceError::SessionStorage)?;
+
+        let Some(Session::Issuance(session)) = self.session.take() else {
+            return Err(IssuanceError::SessionState);
+        };
 
         if let WalletIssuanceSession::Issuance { protocol_state, .. } = session {
             let organization = protocol_state.issuer_registration().organization.clone();
@@ -353,21 +354,20 @@ where
             return Err(IssuanceError::SessionState);
         }
 
-        // Take ownership of the active session, now that we know that it exists.
-        let Some(Session::Issuance(WalletIssuanceSession::OAuth {
-            authorization_session,
-            purpose,
-        })) = self.session.take()
-        else {
-            panic!()
-        };
-
         self.storage
             .write()
             .await
             .delete_data::<PersistedIssuanceSessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
             .await
             .map_err(IssuanceError::SessionStorage)?;
+
+        let Some(Session::Issuance(WalletIssuanceSession::OAuth {
+            authorization_session,
+            purpose,
+        })) = self.session.take()
+        else {
+            return Err(IssuanceError::SessionState);
+        };
 
         let config = self.config_repository.get();
         let trust_anchors = config.issuer_trust_anchors();
@@ -518,7 +518,7 @@ where
             Some(Session::Issuance(WalletIssuanceSession::Issuance {
                 preview_attestations, ..
             })) => preview_attestations,
-            _ => unreachable!(),
+            _ => return Err(IssuanceError::SessionState),
         };
 
         let transfer_session_id = if pid_purpose.is_some() {
@@ -952,6 +952,37 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_cancel_pid_issuance_delete_persisted_session_error_keeps_session() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
+            purpose: PidIssuancePurpose::Enrollment,
+            authorization_session: MockAuthorizationSession::new(),
+        }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Err(StorageError::NotOpened));
+
+        let error = wallet
+            .cancel_session()
+            .await
+            .expect_err("Cancelling PID issuance should have resulted in an error");
+
+        assert_matches!(
+            error,
+            CancelSessionError::Issuance(IssuanceError::SessionStorage(StorageError::NotOpened))
+        );
+        assert_matches!(
+            wallet.session,
+            Some(Session::Issuance(WalletIssuanceSession::OAuth {
+                purpose: PidIssuancePurpose::Enrollment,
+                ..
+            }))
+        );
+    }
+
+    #[tokio::test]
     async fn test_cancel_pid_issuance_pid() {
         // Prepare a registered and unlocked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -1106,6 +1137,34 @@ mod tests {
             .expect_err("Continuing PID issuance should have resulted in error");
 
         assert_matches!(error, IssuanceError::AuthorizationDenied);
+    }
+
+    #[tokio::test]
+    async fn test_continue_pid_issuance_delete_persisted_session_error_keeps_session() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
+            purpose: PidIssuancePurpose::Enrollment,
+            authorization_session: MockAuthorizationSession::new(),
+        }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Err(StorageError::NotOpened));
+
+        let error = wallet
+            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
+            .await
+            .expect_err("Continuing PID issuance should have resulted in error");
+
+        assert_matches!(error, IssuanceError::SessionStorage(StorageError::NotOpened));
+        assert_matches!(
+            wallet.session,
+            Some(Session::Issuance(WalletIssuanceSession::OAuth {
+                purpose: PidIssuancePurpose::Enrollment,
+                ..
+            }))
+        );
     }
 
     #[tokio::test]

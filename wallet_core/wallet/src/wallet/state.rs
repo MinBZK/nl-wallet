@@ -302,11 +302,12 @@ where
 
         info!("Checking if a session is present");
 
+        if matches!(self.session, Some(Session::Issuance(..))) {
+            self.cancel_issuance().await?;
+            return Ok(None);
+        }
+
         match self.session.take() {
-            Some(Session::Issuance(session)) => {
-                self.cancel_issuance(session).await?;
-                Ok(None)
-            }
             Some(Session::Disclosure(session)) => Ok(self.terminate_disclosure_session(session).await?),
             Some(Session::CloseProximityDisclosure(session)) => {
                 self.terminate_close_proximity_disclosure_session(session).await?;

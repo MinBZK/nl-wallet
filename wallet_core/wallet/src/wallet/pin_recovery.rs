@@ -210,16 +210,16 @@ where
             return Err(PinRecoveryError::SessionState);
         }
 
-        let Some(Session::PinRecovery(PinRecoverySession::OAuth { authorization_session })) = self.session.take()
-        else {
-            unreachable!("session contained no PinRecovery OAuth session"); // we just checked this above
-        };
-
         self.storage
             .write()
             .await
             .delete_data::<PersistedPinRecoverySessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
             .await?;
+
+        let Some(Session::PinRecovery(PinRecoverySession::OAuth { authorization_session })) = self.session.take()
+        else {
+            return Err(PinRecoveryError::SessionState);
+        };
 
         // Fetch issuance previews
         let config = self.config_repository.get();
@@ -306,10 +306,10 @@ where
         let Some(Session::PinRecovery(PinRecoverySession::Issuance {
             pid_config,
             pid_attestation_type: offered_pid,
-            issuance_session,
-        })) = &mut self.session.take()
+            mut issuance_session,
+        })) = self.session.take()
         else {
-            unreachable!("session contained no PIN recovery issuance session"); // we just checked this above
+            return Err(PinRecoveryError::SessionState);
         };
 
         validate_pin(&new_pin)?;
@@ -354,7 +354,7 @@ where
         let issuance_result = issuance_session
             .accept_issuance(config.issuer_trust_anchors(), &pin_recovery_wscd, true)
             .await
-            .map_err(|error| Self::handle_accept_issuance_error(error, issuance_session));
+            .map_err(|error| Self::handle_accept_issuance_error(error, &issuance_session));
 
         let issuance_result = match issuance_result {
             Err(error @ IssuanceError::Instruction(InstructionError::AccountRevoked(data))) => {
@@ -387,7 +387,7 @@ where
         // Get an SD-JWT copy out of the PID we just received.
         let attestation = issuance_result
             .into_iter()
-            .find(|attestation| attestation.attestation_type == *offered_pid)
+            .find(|attestation| attestation.attestation_type == offered_pid)
             .expect("no PID received"); // accept_issuance() already checks this against the previews
 
         let pid_attestation_type = attestation.attestation_type;
@@ -786,6 +786,30 @@ mod tests {
         let err = wallet.continue_pin_recovery(denied_redirect).await.unwrap_err();
 
         assert_matches!(err, PinRecoveryError::AuthorizationDenied);
+    }
+
+    #[tokio::test]
+    async fn continue_pin_recovery_delete_persisted_session_error_keeps_session() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
+            authorization_session: MockAuthorizationSession::new(),
+        }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Err(crate::errors::StorageError::NotOpened));
+
+        let err = wallet
+            .continue_pin_recovery(AUTH_URL.parse().unwrap())
+            .await
+            .unwrap_err();
+
+        assert_matches!(err, PinRecoveryError::Storage(crate::errors::StorageError::NotOpened));
+        assert_matches!(
+            wallet.session,
+            Some(Session::PinRecovery(PinRecoverySession::OAuth { .. }))
+        );
     }
 
     #[tokio::test]
