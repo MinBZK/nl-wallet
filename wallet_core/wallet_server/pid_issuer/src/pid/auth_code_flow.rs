@@ -163,8 +163,8 @@ impl AuthorizationCodeFlow for UpstreamOidcAuthorizationCodeFlow {
         // substitute the upstream challenge into the request, and store the upstream verifier
         // keyed by the wallet's challenge so `issuables` can recover it at `/token` time.
         // TODO (PVW-5953): move this logic to a separate function
-        let wallet_code_challenge = match &request.code_challenge {
-            PkceCodeChallenge::S256 { code_challenge } => code_challenge.clone(),
+        let wallet_code_challenge = match request.code_challenge {
+            PkceCodeChallenge::S256 { code_challenge } => code_challenge,
             PkceCodeChallenge::Plain { .. } => return Err(Error::UnsupportedCodeChallenge),
         };
 
