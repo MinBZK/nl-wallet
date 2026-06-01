@@ -272,7 +272,7 @@ where
         info!("Fetching issuer metadata to discover authorization server");
         let issuance_flow = self
             .issuance_discovery
-            .start_with_credential_offer(
+            .start(
                 &config.pid_credential_offer,
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
@@ -754,20 +754,17 @@ mod tests {
         assert!(wallet.session.is_none());
 
         // Set up the credential issuer discovery mock
-        wallet
-            .issuance_discovery
-            .expect_start_with_credential_offer_sync()
-            .return_once(|| {
-                let mut authorization_session = MockAuthorizationSession::new();
+        wallet.issuance_discovery.expect_start_sync().return_once(|| {
+            let mut authorization_session = MockAuthorizationSession::new();
 
-                authorization_session
-                    .expect_get_auth_url()
-                    .return_const(Url::parse(AUTH_URL).unwrap());
+            authorization_session
+                .expect_get_auth_url()
+                .return_const(Url::parse(AUTH_URL).unwrap());
 
-                let flow = IssuanceFlow::AuthorizationCode { authorization_session };
+            let flow = IssuanceFlow::AuthorizationCode { authorization_session };
 
-                Ok(flow)
-            });
+            Ok(flow)
+        });
 
         wallet
             .mut_storage()

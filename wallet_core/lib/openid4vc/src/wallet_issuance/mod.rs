@@ -261,7 +261,7 @@ pub trait IssuanceDiscovery {
     /// [`AuthorizationSession`] the caller can use to redirect the user into a web-based OAuth flow (if the Credential
     /// Offer contains an Authorization Code) or immediately returns an [`IssuanceSession`] that contains the caller
     /// can use to request issued credentials (if the Credential Offer contains a Pre-Authorized Code).
-    async fn start_with_credential_offer(
+    async fn start(
         &self,
         offer_uri: &Url,
         client_id: String,

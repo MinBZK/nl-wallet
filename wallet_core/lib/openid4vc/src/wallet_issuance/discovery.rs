@@ -36,7 +36,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
     type Authorization = HttpAuthorizationSession;
     type Issuance = HttpIssuanceSession;
 
-    async fn start_with_credential_offer(
+    async fn start(
         &self,
         offer_uri: &Url,
         client_id: String,
@@ -471,7 +471,7 @@ mod test {
     #[case::empty_grants(IssuanceDiscoveryScenario::EmptyGrants { has_grant_types_supported: true })]
     #[case::empty_grants_no_grant_types(IssuanceDiscoveryScenario::EmptyGrants { has_grant_types_supported: false })]
     #[tokio::test]
-    async fn http_issuance_discovery_start_with_credential_offer(
+    async fn http_issuance_discovery_start(
         #[case] scenario: IssuanceDiscoveryScenario,
         #[values(false, true)] is_by_reference: bool,
     ) {
@@ -526,7 +526,7 @@ mod test {
         // Start issuance based on this Credential Offer URL.
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
         let flow = discovery
-            .start_with_credential_offer(
+            .start(
                 &offer_url,
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -598,12 +598,12 @@ mod test {
     }
 
     #[tokio::test]
-    async fn start_with_credential_offer_missing_query() {
+    async fn start_missing_query() {
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
         let offer_url = Url::parse("openid-credential-offer://").unwrap();
 
         let result = discovery
-            .start_with_credential_offer(
+            .start(
                 &offer_url,
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -615,12 +615,12 @@ mod test {
     }
 
     #[tokio::test]
-    async fn start_with_credential_offer_deserialization_error() {
+    async fn start_deserialization_error() {
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
         let offer_url = Url::parse("openid-credential-offer://?credential_offer=invalid_json").unwrap();
 
         let result = discovery
-            .start_with_credential_offer(
+            .start(
                 &offer_url,
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -632,7 +632,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn start_with_credential_offer_credential_offer_http_error() {
+    async fn start_credential_offer_http_error() {
         let server = MockServer::start_async().await;
 
         // Construct a Credential Offer that contains an invalid URI.
@@ -643,7 +643,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let result = discovery
-            .start_with_credential_offer(
+            .start(
                 &offer_url,
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -655,7 +655,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn pre_authorized_code_flow_unknown_grants() {
+    async fn start_credential_offer_unknown_grants_error() {
         let server = MockServer::start_async().await;
         let credential_issuer = server.base_url().parse::<IssuerIdentifier>().unwrap();
 
@@ -680,7 +680,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let result = discovery
-            .start_with_credential_offer(
+            .start(
                 &offer_url,
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -696,7 +696,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn pre_authorized_code_flow_credential_offer_authorization_code_not_supported() {
+    async fn start_authorization_code_not_supported_error() {
         let server = MockServer::start_async().await;
         let credential_issuer = server.base_url().parse::<IssuerIdentifier>().unwrap();
 
@@ -716,7 +716,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let result = discovery
-            .start_with_credential_offer(
+            .start(
                 &offer_url,
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),
@@ -728,7 +728,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn pre_authorized_code_flow_credential_offer_tx_code() {
+    async fn start_credential_offer_tx_code_unsupported_error() {
         let server = MockServer::start_async().await;
         let credential_issuer = server.base_url().parse::<IssuerIdentifier>().unwrap();
 
@@ -752,7 +752,7 @@ mod test {
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
         let result = discovery
-            .start_with_credential_offer(
+            .start(
                 &offer_url,
                 MOCK_WALLET_CLIENT_ID.to_string(),
                 REDIRECT_URI.clone(),

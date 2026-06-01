@@ -102,7 +102,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
 
     let credential_offer = create_pid_credential_offer(&issuer_url.public);
     let issuance_flow = credential_issuer_discovery
-        .start_with_credential_offer(
+        .start(
             &credential_offer,
             String::from(NL_WALLET_CLIENT_ID),
             redirect_uri,

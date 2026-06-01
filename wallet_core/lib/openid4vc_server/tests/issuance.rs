@@ -209,7 +209,7 @@ async fn authorization_code_flow(
 
     // Start authorization code flow — fetches metadata and creates an auth session.
     let flow = discovery
-        .start_with_credential_offer(
+        .start(
             &credential_offer_url,
             MOCK_WALLET_CLIENT_ID.to_string(),
             redirect_uri.clone(),
@@ -299,7 +299,7 @@ async fn pre_authorized_code_flow(
     );
 
     let flow = discovery
-        .start_with_credential_offer(
+        .start(
             &credential_offer_url,
             MOCK_WALLET_CLIENT_ID.to_string(),
             "https://wallet.example.com/callback".parse().unwrap(),
@@ -342,7 +342,7 @@ async fn reject_issuance() {
     );
 
     let flow = discovery
-        .start_with_credential_offer(
+        .start(
             &offer_url,
             MOCK_WALLET_CLIENT_ID.to_string(),
             "https://wallet.example.com/callback".parse().unwrap(),

@@ -132,7 +132,7 @@ where
 
         let issuance_flow = self
             .issuance_discovery
-            .start_with_credential_offer(
+            .start(
                 &redirect_uri,
                 NL_WALLET_CLIENT_ID.to_string(),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
@@ -309,24 +309,21 @@ mod tests {
 
         // Setup wallet issuance state
         let credential_preview = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::MsoMdoc);
-        wallet
-            .issuance_discovery
-            .expect_start_with_credential_offer_sync()
-            .return_once(move || {
-                let mut issuance_session = MockIssuanceSession::new();
+        wallet.issuance_discovery.expect_start_sync().return_once(move || {
+            let mut issuance_session = MockIssuanceSession::new();
 
-                issuance_session
-                    .expect_normalized_credential_previews()
-                    .return_const(vec![credential_preview]);
+            issuance_session
+                .expect_normalized_credential_previews()
+                .return_const(vec![credential_preview]);
 
-                issuance_session
-                    .expect_issuer()
-                    .return_const(IssuerRegistration::new_mock());
+            issuance_session
+                .expect_issuer()
+                .return_const(IssuerRegistration::new_mock());
 
-                let mock = IssuanceFlow::PreAuthorizedCode { issuance_session };
+            let mock = IssuanceFlow::PreAuthorizedCode { issuance_session };
 
-                Ok(mock)
-            });
+            Ok(mock)
+        });
 
         wallet
             .mut_storage()
@@ -507,7 +504,7 @@ mod tests {
         // Set up issuance discovery to result in an Authorization Code flow, when we expected a Pre-Authorized flow.
         wallet
             .issuance_discovery
-            .expect_start_with_credential_offer_sync()
+            .expect_start_sync()
             .times(1)
             .return_once(move || {
                 let authorization_session = MockAuthorizationSession::new();
