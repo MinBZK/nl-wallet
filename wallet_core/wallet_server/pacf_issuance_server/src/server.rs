@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use axum::Router;
 use http_utils::health::HealthChecker;
 use http_utils::health::create_health_router;
 use issuer_common::IssuanceServerIssuer;
@@ -18,12 +17,13 @@ use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::offer::create_offer_router;
+
 pub async fn serve(
     issuer: Arc<IssuanceServerIssuer>,
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
-    disclosure_router: Router,
 ) -> Result<()> {
     serve_with_listeners(
         create_wallet_listener(&server_settings.wallet_server).await?,
@@ -32,12 +32,10 @@ pub async fn serve(
         server_settings,
         serve_status_lists,
         health_checkers,
-        disclosure_router,
     )
     .await
 }
 
-#[expect(clippy::too_many_arguments, reason = "Setup function")]
 pub async fn serve_with_listeners(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
@@ -45,12 +43,10 @@ pub async fn serve_with_listeners(
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
-    disclosure_router: Router,
 ) -> Result<()> {
     let status_list_services = VecNonEmpty::try_from(issuer.status_lists().cloned().collect_vec())?;
 
-    let mut router = add_cache_control_no_store_layer(create_pre_authorized_token_router(issuer))
-        .nest("/disclosure", add_cache_control_no_store_layer(disclosure_router));
+    let mut router = add_cache_control_no_store_layer(create_pre_authorized_token_router(Arc::clone(&issuer)));
 
     if serve_status_lists {
         let status_list_router = create_serve_router(
@@ -63,6 +59,7 @@ pub async fn serve_with_listeners(
     }
 
     let (internal_router, internal_openapi) = create_revocation_router(status_list_services);
+    let internal_router = internal_router.merge(create_offer_router(issuer));
 
     #[cfg(feature = "test_internal_ui")]
     let mut internal_router = internal_router.merge(

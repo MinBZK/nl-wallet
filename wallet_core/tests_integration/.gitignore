@@ -1,6 +1,7 @@
 /static_server.toml
 /gba_hc_converter.toml
 /pid_issuer.toml
+/pacf_issuance_server.toml
 /issuance_server.toml
 /update_policy_server.toml
 /wallet.toml

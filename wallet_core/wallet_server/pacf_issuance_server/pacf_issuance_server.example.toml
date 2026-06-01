@@ -1,0 +1,60 @@
+# Example pacf_issuance_server config
+
+# Whether HTTP requests/responses should be logged, default value: false
+log_requests = false
+
+# Emit logs in JSON format, default value: false
+structured_logging = false
+
+# Array of CAs with trusted issuers
+issuer_trust_anchors = ["MII..."]
+
+# The wallet must be able to reach the server at this URL
+public_url = 'http://localhost:8001/'
+
+# The `client_id` values that this server accepts, identifying the wallet
+# implementation (not individual instances, i.e., the `client_id` value of
+# a wallet implementation is constant across all wallets of that implementation)
+# Default value: https://wallet.edi.rijksoverheid.nl
+wallet_client_ids = ["https://wallet.edi.rijksoverheid.nl"]
+
+# Files containing SD-JWT Type Metadata documents for issued attestations
+metadata = ["com_example_address_metadata.json"]
+
+# The maximum amount of credentials a holder will be able to request, in the range 1-255
+batch_size = 10
+
+# Public and private endpoint for the issuer
+[wallet_server]
+ip = "127.0.0.1"
+port = 8001
+
+[internal_server]
+ip = "127.0.0.1"
+port = 8002
+
+# Where to store session state. can be `memory://` or a `postgres://..` url
+# Memory is ephemeral, default value: memory://
+[storage]
+url = "postgres://postgres:postgres@localhost:5432/pacf_issuance_server"
+
+# Optional, when using an HSM
+[hsm]
+library_path = "/path/to/hsm.so"
+user_pin = "12345678"
+max_sessions = 3
+max_session_lifetime_in_sec = 900
+
+# Status list settings (values are the defaults if unset)
+[status_lists]
+list_size = 100_000
+create_threshold_ratio = 0.1
+expiry_in_hours = 24
+refresh_threshold_ratio = 0.25
+serve = true
+
+# Settings for caching status list tokens (values are the defaults if unset)
+[status_list_token_cache_settings]
+capacity = 100
+default_ttl_in_sec = 0
+error_ttl_in_sec = 0

@@ -5366,6 +5366,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "pacf_issuance_server"
+version = "0.6.0-dev"
+dependencies = [
+ "anyhow",
+ "attestation_types",
+ "axum",
+ "config",
+ "derive_more",
+ "health_checkers",
+ "hsm",
+ "http_utils",
+ "issuer_common",
+ "itertools 0.14.0",
+ "openid4vc",
+ "openid4vc_server",
+ "serde",
+ "serde_urlencoded",
+ "server_utils",
+ "status_lists",
+ "thiserror 2.0.17",
+ "tokio",
+ "url",
+ "utils",
+ "utoipa-swagger-ui",
+]
+
+[[package]]
+name = "pacf_issuance_server_migrations"
+version = "0.6.0-dev"
+dependencies = [
+ "issuer_common_migrations",
+ "sea-orm-migration",
+ "tokio",
+]
+
+[[package]]
 name = "parcel_selectors"
 version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

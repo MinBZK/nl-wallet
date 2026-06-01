@@ -1,0 +1,44 @@
+public_url = 'http://${SERVICES_HOST}:${PACF_ISSUANCE_SERVER_PORT}/'
+issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
+
+metadata = [
+    "${ISSUER_METADATA_LOYALTY_PATH}"
+]
+
+batch_size = 4
+
+[storage]
+url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/pacf_issuance_server'
+
+[wallet_server]
+ip = '0.0.0.0'
+port = ${PACF_ISSUANCE_SERVER_PORT}
+
+[internal_server]
+ip = '0.0.0.0'
+port = ${PACF_ISSUANCE_SERVER_IS_PORT}
+
+[status_lists]
+list_size = 100
+
+[hsm]
+library_path = "${HSM_LIBRARY_PATH}"
+user_pin = "${HSM_USER_PIN}"
+max_sessions = 3
+max_session_lifetime_in_sec = 900
+
+[credential_configurations."com.example.jum.bonuskaart"]
+format = "mso_mdoc"
+attestation_type = "com.example.jum.bonuskaart"
+valid_days = 365
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_LOYALTY_ISSUER}"
+certificate = "${DEMO_ISSUER_CRT_LOYALTY_ISSUER}"
+
+[credential_configurations."com.example.jum.bonuskaart".status_list]
+group_name = "com.example.jum.bonuskaart"
+context_path = "/tsl"
+publish_dir = "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
+private_key_type = "software"
+private_key = "${DEMO_ISSUER_KEY_LOYALTY_TSL}"
+certificate = "${DEMO_ISSUER_CRT_LOYALTY_TSL}"

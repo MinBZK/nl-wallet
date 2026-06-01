@@ -6,4 +6,6 @@ create database verification_server;
 
 create database issuance_server;
 
+create database pacf_issuance_server;
+
 create database pid_issuer;
