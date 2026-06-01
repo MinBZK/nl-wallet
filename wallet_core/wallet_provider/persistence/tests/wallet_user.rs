@@ -1,7 +1,8 @@
+use std::assert_matches;
+
 use android_attest::attestation_extension::key_attestation::OsVersion;
 use android_attest::attestation_extension::key_attestation::PatchLevel;
 use apple_app_attest::AssertionCounter;
-use assert_matches::assert_matches;
 use chrono::SubsecRound;
 use chrono::Utc;
 use crypto::utils::random_string;

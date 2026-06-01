@@ -31,6 +31,7 @@ use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredential;
@@ -185,7 +186,7 @@ async fn authorization_code_flow(
     #[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
 ) {
     let upstream_oauth_id: Url = "https://auth.example.com/".parse().unwrap();
-    let (_, trust_anchor, issuer_identifier, wia_keypair, tls_trust_anchor) =
+    let (_, trust_anchors, issuer_identifier, wia_keypair, tls_trust_anchor) =
         start_server(attestation_count, Some(upstream_oauth_id)).await;
 
     let redirect_uri: Url = "https://wallet.example.com/callback".parse().unwrap();
@@ -242,16 +243,15 @@ async fn authorization_code_flow(
     let mut received_redirect = redirect_uri;
     received_redirect.set_query(Some(&format!("code=fake_auth_code&state={state}")));
 
-    let trust_anchors = &trust_anchor;
     let mut session = auth_session
-        .start_issuance(&received_redirect, trust_anchors)
+        .start_issuance(&received_redirect, &trust_anchors)
         .await
         .unwrap();
 
     assert_eq!(session.normalized_credential_preview().len(), attestation_count.get());
 
     let wscd = MockRemoteWscd::new_with_wia_keypair(wia_keypair);
-    let issued_creds = session.accept_issuance(trust_anchors, &wscd, true).await.unwrap();
+    let issued_creds = session.accept_issuance(&trust_anchors, &wscd, true).await.unwrap();
 
     let copy_count = 4;
     verify_issued_credentials(
@@ -267,7 +267,7 @@ async fn authorization_code_flow(
 async fn pre_authorized_code_flow(
     #[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
 ) {
-    let (issuer, trust_anchor, issuer_identifier, wia_keypair, tls_trust_anchor) =
+    let (issuer, trust_anchors, issuer_identifier, wia_keypair, tls_trust_anchor) =
         start_server(attestation_count, None).await;
 
     let documents = mock_issuable_documents(attestation_count);
@@ -279,15 +279,26 @@ async fn pre_authorized_code_flow(
         HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
     );
 
-    let trust_anchors = &trust_anchor;
-    let mut session = discovery
-        .start_pre_authorized_code_flow(&credential_offer_url, MOCK_WALLET_CLIENT_ID.to_string(), trust_anchors)
+    let flow = discovery
+        .start_with_credential_offer(
+            &credential_offer_url,
+            MOCK_WALLET_CLIENT_ID.to_string(),
+            "https://wallet.example.com/callback".parse().unwrap(),
+            &trust_anchors,
+        )
         .await
         .unwrap();
 
+    let IssuanceFlow::PreAuthorizedCode {
+        issuance_session: mut session,
+    } = flow
+    else {
+        panic!("should have received Pre-Authorized Code flow");
+    };
+
     let copy_count = 4;
     let wscd = MockRemoteWscd::new_with_wia_keypair(wia_keypair);
-    let issued_creds = session.accept_issuance(trust_anchors, &wscd, true).await.unwrap();
+    let issued_creds = session.accept_issuance(&trust_anchors, &wscd, true).await.unwrap();
 
     verify_issued_credentials(
         issued_creds,
@@ -300,7 +311,7 @@ async fn pre_authorized_code_flow(
 #[tokio::test]
 async fn reject_issuance() {
     let attestation_count = NonZeroUsize::MIN;
-    let (issuer, trust_anchor, issuer_identifier, _, tls_trust_anchor) = start_server(attestation_count, None).await;
+    let (issuer, trust_anchors, issuer_identifier, _, tls_trust_anchor) = start_server(attestation_count, None).await;
 
     let documents = mock_issuable_documents(attestation_count);
     let session_token = issuer.new_session(documents).await.unwrap();
@@ -311,11 +322,22 @@ async fn reject_issuance() {
         HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])).unwrap(),
     );
 
-    let trust_anchors = &trust_anchor;
-    let session = discovery
-        .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), trust_anchors)
+    let flow = discovery
+        .start_with_credential_offer(
+            &offer_url,
+            MOCK_WALLET_CLIENT_ID.to_string(),
+            "https://wallet.example.com/callback".parse().unwrap(),
+            &trust_anchors,
+        )
         .await
         .unwrap();
+
+    let IssuanceFlow::PreAuthorizedCode {
+        issuance_session: session,
+    } = flow
+    else {
+        panic!("should have received Pre-Authorized Code flow");
+    };
 
     session.reject_issuance().await.unwrap();
 }

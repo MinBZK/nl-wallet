@@ -72,7 +72,6 @@ status_lists = { path = "../../lib/status_lists", features = ["axum"] }
 token_status_list.path = "../../lib/token_status_list"
 
 [dev-dependencies]
-assert_matches.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 

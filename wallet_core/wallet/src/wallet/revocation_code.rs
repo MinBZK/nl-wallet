@@ -116,9 +116,9 @@ where
 
 #[cfg(test)]
 mod test {
+    use std::assert_matches;
     use std::sync::Arc;
 
-    use assert_matches::assert_matches;
     use crypto::utils::random_bytes;
     use update_policy_model::update_policy::VersionState;
     use wallet_account::messages::errors::AccountError;

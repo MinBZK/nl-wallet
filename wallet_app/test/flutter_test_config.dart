@@ -11,6 +11,8 @@ import 'package:wallet/src/domain/model/close_proximity/ble_connection_event.dar
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
+import 'package:wallet/src/domain/model/help/help_category.dart';
+import 'package:wallet/src/domain/model/help/topic_block.dart';
 import 'package:wallet/src/domain/model/issuance/start_issuance_result.dart' as domain;
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/domain/model/notification/app_notification.dart';
@@ -161,6 +163,8 @@ void _setupMockitoDummies() {
   provideDummy<Result<List<Attribute>>>(const Result.success([]));
   provideDummy<Result<List<WalletCard>>>(const Result.success([]));
   provideDummy<Result<List<TourVideo>>>(const Result.success([]));
+  provideDummy<Result<List<HelpCategory>>>(const Result.success([]));
+  provideDummy<Result<List<TopicBlock>>>(const Result.success([]));
 
   // Result dummies - specific objects
   provideDummy<Result<NavigationRequest>>(const Result.success(GenericNavigationRequest('/mock_destination')));

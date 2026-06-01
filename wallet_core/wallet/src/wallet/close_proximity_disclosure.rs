@@ -217,6 +217,10 @@ pub enum CloseProximityDisclosureError {
     #[category(critical)]
     PlatformError(#[from] PlatformError),
 
+    #[error("close proximity disclosure session disconnected")]
+    #[category(expected)]
+    Disconnected,
+
     #[error("failed creating device response: {0}")]
     #[category(pd)]
     DeviceResponse(#[source] mdoc::Error),
@@ -257,6 +261,7 @@ fn error_device_response_status(error: &CloseProximityDisclosureError) -> Option
         // so we do not expect to send a protocol-level error DeviceResponse for them.
         CloseProximityDisclosureError::DeviceResponseEncoding(_)
         | CloseProximityDisclosureError::PlatformError(_)
+        | CloseProximityDisclosureError::Disconnected
         | CloseProximityDisclosureError::DeviceResponse(_) => None,
     }
 }
@@ -603,9 +608,15 @@ where
             }
         };
 
-        // Actually perform the disclosure by sending the device response to the reader
-        // if serialization fails, there's a bug in the code
-        CPC::send_device_response(cbor_serialize(&device_response).unwrap()).await?;
+        // Actually perform the disclosure by sending the device response to the reader. If the
+        // transport is already gone, surface the domain-specific disconnected state instead of a
+        // generic platform error.
+        CPC::send_device_response(cbor_serialize(&device_response).unwrap())
+            .await
+            .map_err(|error| {
+                error!("Error while sending close proximity device response: {error}");
+                DisclosureError::from(CloseProximityDisclosureError::Disconnected)
+            })?;
 
         // Disclosure is now successful. Any errors that occur after this point will result in the `Wallet` not having
         // an active disclosure session anymore.
@@ -790,11 +801,11 @@ pub fn verify_device_request(
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::collections::HashMap;
     use std::collections::HashSet;
     use std::sync::Arc;
 
-    use assert_matches::assert_matches;
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::reader_auth::ReaderRegistration;
@@ -1813,6 +1824,46 @@ mod tests {
 
         // Close proximity disclosure has no redirect URI.
         assert_eq!(result, None);
+        assert!(wallet.session.is_none());
+    }
+
+    #[tokio::test]
+    #[serial(MockCloseProximityDisclosureClient)]
+    async fn test_wallet_accept_close_proximity_disclosure_send_device_response_error_reports_disconnected() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+        setup_close_proximity_disclosure_proposed_session(&mut wallet);
+
+        setup_mock_sign_instruction(&mut wallet);
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_increment_attestation_copies_usage_count()
+            .once()
+            .returning(|_| Ok(()));
+
+        wallet.mut_storage().expect_log_disclosure_event().never();
+
+        let context = MockCloseProximityDisclosureClient::send_device_response_context();
+        context.expect().once().returning(|_| {
+            Err(PlatformError::PlatformError {
+                reason: "transport closed".to_string(),
+            })
+        });
+
+        let error = wallet
+            .accept_disclosure(&[0], PIN.to_string())
+            .await
+            .expect_err("accepting close proximity disclosure should report the disconnect");
+
+        assert_matches!(
+            error,
+            DisclosureError::CloseProximityDisclosureSessionError(CloseProximityDisclosureError::Disconnected)
+        );
         assert!(wallet.session.is_none());
     }
 

@@ -57,9 +57,9 @@ impl From<revocation_info::RevocationInfo> for RevocationInfo {
 
 #[cfg(test)]
 mod test {
+    use std::assert_matches;
     use std::sync::Arc;
 
-    use assert_matches::assert_matches;
     use attestation_types::status_claim::StatusClaim;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;

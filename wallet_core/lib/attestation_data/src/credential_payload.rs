@@ -699,10 +699,10 @@ mod mock {
 
 #[cfg(test)]
 mod test {
+    use std::assert_matches;
     use std::sync::Arc;
     use std::time::Duration;
 
-    use assert_matches::assert_matches;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::qualification::AttestationQualification;

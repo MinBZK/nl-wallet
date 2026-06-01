@@ -101,7 +101,8 @@ impl Notification {
 
 #[cfg(test)]
 mod tests {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
+
     use attestation_data::validity::ValidityWindow;
     use chrono::Duration;
     use chrono::Utc;

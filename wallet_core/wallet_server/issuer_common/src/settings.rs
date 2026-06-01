@@ -583,6 +583,10 @@ impl StatusListAttestationSettings {
         let service = PostgresStatusListService::try_new(&self.group_name, connection, config, NoRevokeAll)
             .await
             .map_err(StatusListAttestationSettingsError::Service)?;
+        service
+            .initialize_lists()
+            .await
+            .map_err(StatusListAttestationSettingsError::Service)?;
 
         Ok(service)
     }
@@ -590,11 +594,11 @@ impl StatusListAttestationSettings {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::collections::HashMap;
     use std::num::NonZeroU8;
     use std::num::NonZeroU16;
 
-    use assert_matches::assert_matches;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::x509::CertificateTypeError;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;

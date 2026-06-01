@@ -32,7 +32,6 @@ import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 import 'package:wallet/src/util/mapper/context_mapper.dart';
 import 'package:wallet/src/util/mapper/policy/policy_body_text_mapper.dart';
-import 'package:wallet/src/wallet_core/error/core_error.dart' hide SessionType;
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mock_data.dart';
@@ -191,7 +190,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          const DisclosureGenericError(error: GenericError('generic', sourceError: 'test')),
+          const DisclosureError(error: GenericError('generic', sourceError: 'test')),
         ),
       );
       await screenMatchesGolden('generic_error.light');
@@ -471,15 +470,9 @@ void main() {
     testGoldens('ltc15 DisclosureCancelledSessionError Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
-          MockDisclosureBloc(),
-          DisclosureSessionCancelled(
-            relyingParty: WalletMockData.organization,
-            returnUrl: 'https://example.com',
-            error: const SessionError(
-              state: SessionState.cancelled,
-              returnUrl: 'https://example.com',
-              sourceError: CoreCancelledSessionError('test'),
-            ),
+          MockDisclosureBloc(startDisclosureResult: kSampleReadyToDiscloseResult),
+          const DisclosureError(
+            error: SessionError(state: .cancelled, sourceError: 'test'),
           ),
         ),
       );
@@ -537,9 +530,8 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureRelyingPartyError(
-            error: const GenericError('relying_party', sourceError: 'rp'),
-            organizationName: WalletMockData.organization.displayName,
+          DisclosureError(
+            error: RelyingPartyError(sourceError: 'test', organizationName: WalletMockData.organization.displayName),
           ),
         ),
       );
@@ -579,7 +571,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          const DisclosureNetworkError(
+          const DisclosureError(
             error: NetworkError(hasInternet: false, sourceError: 'no internet'),
           ),
         ),
@@ -611,7 +603,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          const DisclosureNetworkError(
+          const DisclosureError(
             error: NetworkError(hasInternet: true, sourceError: 'server'),
           ),
         ),
@@ -641,7 +633,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          const DisclosureGenericError(error: GenericError('generic', sourceError: 'test')),
+          const DisclosureError(error: GenericError('generic', sourceError: 'test')),
         ),
       );
 

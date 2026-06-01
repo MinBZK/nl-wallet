@@ -108,45 +108,15 @@ class RenewPidSuccess extends RenewPidState {
   List<Object?> get props => [addedCards, ...super.props];
 }
 
-class RenewPidDigidFailure extends RenewPidState implements ErrorState {
-  @override
-  final ApplicationError error;
-
-  const RenewPidDigidFailure({required this.error});
-
-  @override
-  List<Object?> get props => [error, ...super.props];
-}
-
 class RenewPidDigidLoginCancelled extends RenewPidState {
   const RenewPidDigidLoginCancelled();
 }
 
-class RenewPidNetworkError extends RenewPidState implements NetworkErrorState {
-  @override
-  final NetworkError error;
-
-  const RenewPidNetworkError({required this.error});
-
-  @override
-  List<Object?> get props => [error, ...super.props];
-}
-
-class RenewPidGenericError extends RenewPidState implements ErrorState {
+class RenewPidError extends RenewPidState implements ErrorState {
   @override
   final ApplicationError error;
 
-  const RenewPidGenericError({required this.error});
-
-  @override
-  List<Object?> get props => [error, ...super.props];
-}
-
-class RenewPidSessionExpired extends RenewPidState implements ErrorState {
-  @override
-  final ApplicationError error;
-
-  const RenewPidSessionExpired({required this.error});
+  const RenewPidError({required this.error});
 
   @override
   List<Object?> get props => [error, ...super.props];

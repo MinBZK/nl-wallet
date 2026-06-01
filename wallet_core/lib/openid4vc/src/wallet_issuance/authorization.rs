@@ -103,12 +103,18 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         oauth_metadata: AuthorizationServerMetadata,
         client_id: String,
         redirect_uri: Url,
+        issuer_state: Option<String>,
     ) -> Result<Self, WalletIssuanceError> {
         let pkce_pair = P::generate();
         let state = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
 
-        let par_request =
-            VciAuthorizationRequest::for_par(client_id.clone(), redirect_uri.clone(), state.clone(), &pkce_pair);
+        let par_request = VciAuthorizationRequest::for_par(
+            client_id.clone(),
+            redirect_uri.clone(),
+            state.clone(),
+            issuer_state,
+            &pkce_pair,
+        );
 
         let par_endpoint = oauth_metadata
             .pushed_authorization_request_endpoint
@@ -155,6 +161,11 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         })
     }
 
+    #[cfg(any(test, feature = "test"))]
+    pub fn state(&self) -> &str {
+        &self.state
+    }
+
     fn matches_received_redirect_uri(&self, received_redirect_uri: &Url) -> bool {
         received_redirect_uri.as_str().starts_with(self.redirect_uri.as_str())
     }
@@ -195,10 +206,6 @@ impl AuthorizationSession for HttpAuthorizationSession {
         &self.auth_url
     }
 
-    fn state(&self) -> &str {
-        &self.state
-    }
-
     async fn start_issuance(
         self,
         received_redirect_uri: &Url,
@@ -229,9 +236,9 @@ impl AuthorizationSession for HttpAuthorizationSession {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::collections::HashMap;
 
-    use assert_matches::assert_matches;
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
     use http_utils::reqwest::HttpJsonClient;
@@ -309,14 +316,31 @@ mod tests {
         assert_matches!(error, OAuthError::Denied);
     }
 
+    #[rstest]
+    #[case::without_issuer_state(None)]
+    #[case::with_issuer_state(Some("foobar"))]
     #[tokio::test]
     #[serial(MockPkcePair)]
-    async fn test_auth_url() {
+    async fn test_auth_url(#[case] issuer_state: Option<&str>) {
         let server = MockServer::start_async().await;
 
         server
             .mock_async(|when, then| {
-                when.method(POST).path("/issuance/par");
+                let when = when
+                    .method(POST)
+                    .path("/issuance/par")
+                    .form_urlencoded_tuple("client_id", MOCK_WALLET_CLIENT_ID)
+                    .form_urlencoded_tuple("redirect_uri", REDIRECT_URI);
+
+                match issuer_state {
+                    None => {
+                        when.form_urlencoded_tuple_missing("issuer_state");
+                    }
+                    Some(issuer_state) => {
+                        when.form_urlencoded_tuple("issuer_state", issuer_state);
+                    }
+                }
+
                 then.status(201)
                     .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
                     .json_body(json!({
@@ -344,6 +368,7 @@ mod tests {
             oauth_metadata,
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
+            issuer_state.map(str::to_string),
         )
         .await
         .unwrap();
@@ -356,6 +381,7 @@ mod tests {
         assert!(!params.contains_key("code_challenge"));
         assert!(!params.contains_key("state"));
         assert!(!params.contains_key("redirect_uri"));
+        assert!(!params.contains_key("issuer_state"));
     }
 
     #[tokio::test]

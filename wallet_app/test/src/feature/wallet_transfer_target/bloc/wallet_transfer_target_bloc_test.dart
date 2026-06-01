@@ -79,7 +79,7 @@ void main() {
       act: (bloc) => bloc.add(const WalletTransferOptInEvent()),
       expect: () => [
         const WalletTransferLoadingQrData(),
-        isA<WalletTransferGenericError>().having((e) => e.error, 'error', isA<GenericError>()),
+        isA<WalletTransferError>().having((e) => e.error, 'error', isA<GenericError>()),
       ],
     );
 
@@ -92,7 +92,9 @@ void main() {
       act: (bloc) => bloc.add(const WalletTransferOptInEvent()),
       expect: () => [
         const WalletTransferLoadingQrData(),
-        isA<WalletTransferNetworkError>().having((e) => e.error.hasInternet, 'error', isFalse),
+        isA<WalletTransferError>()
+            .having((it) => it.error, 'network', isA<NetworkError>())
+            .having((it) => (it.error as NetworkError).hasInternet, 'no internet', isFalse),
       ],
     );
 
@@ -129,7 +131,7 @@ void main() {
       expect: () => [
         const WalletTransferLoadingQrData(),
         const WalletTransferAwaitingQrScan(qrData),
-        isA<WalletTransferGenericError>().having((e) => e.error.sourceError, 'sourceError', isA<Exception>()),
+        isA<WalletTransferError>().having((e) => e.error.sourceError, 'sourceError', isA<Exception>()),
       ],
     );
 
@@ -148,7 +150,7 @@ void main() {
       expect: () => [
         const WalletTransferLoadingQrData(),
         const WalletTransferAwaitingQrScan(qrData),
-        isA<WalletTransferNetworkError>(),
+        isA<WalletTransferError>().having((it) => it.error, 'network', isA<NetworkError>()),
       ],
     );
   });

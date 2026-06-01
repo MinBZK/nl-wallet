@@ -17,5 +17,4 @@ serde = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 
 [dev-dependencies]
-assert_matches.workspace = true
 rstest.workspace = true

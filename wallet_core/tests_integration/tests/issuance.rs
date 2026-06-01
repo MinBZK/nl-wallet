@@ -1,4 +1,5 @@
-use assert_matches::assert_matches;
+use std::assert_matches;
+
 use attestation_data::attributes::Attributes;
 use db_test::DbSetup;
 use itertools::Itertools;

@@ -10,6 +10,7 @@ import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../data/service/auto_lock_service.dart';
+import '../../../domain/model/result/application_error.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../../common/widget/utility/do_on_init.dart';
 import '../../error/error_screen.dart';
@@ -46,7 +47,7 @@ class TourVideoScreen extends StatefulWidget {
 
 class _TourVideoScreenState extends State<TourVideoScreen> {
   late VideoPlayerController _controller;
-  VideoPlayerInitState _playerInitState = VideoPlayerInitState.initializing;
+  VideoPlayerInitState _playerInitState = const VideoPlayerInitializing();
 
   @override
   void initState() {
@@ -66,11 +67,11 @@ class _TourVideoScreenState extends State<TourVideoScreen> {
         closedCaptionFile: _loadCaptions(widget.subtitleUrl),
       );
       await _controller.initialize();
-      setState(() => _playerInitState = VideoPlayerInitState.ok);
+      setState(() => _playerInitState = const VideoPlayerOk());
       _controller.addListener(_onTick);
     } catch (ex) {
       Fimber.e('Error playing video', ex: ex);
-      setState(() => _playerInitState = VideoPlayerInitState.error);
+      setState(() => _playerInitState = VideoPlayerError(ex));
     }
   }
 
@@ -93,9 +94,9 @@ class _TourVideoScreenState extends State<TourVideoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: switch (_playerInitState) {
-        VideoPlayerInitState.initializing => const CenteredLoadingIndicator(),
-        VideoPlayerInitState.ok => _buildOk(context),
-        VideoPlayerInitState.error => _buildError(context),
+        VideoPlayerInitializing() => const CenteredLoadingIndicator(),
+        VideoPlayerOk() => _buildOk(context),
+        VideoPlayerError(:final error) => _buildError(context, error),
       },
     );
   }
@@ -125,7 +126,7 @@ class _TourVideoScreenState extends State<TourVideoScreen> {
     );
   }
 
-  Widget _buildError(BuildContext context) {
+  Widget _buildError(BuildContext context, Object error) {
     return FutureBuilder<bool>(
       future: (widget.internetConnectionChecker ?? InternetConnectionChecker.instance).hasConnection,
       builder: (context, snapshot) {
@@ -135,14 +136,16 @@ class _TourVideoScreenState extends State<TourVideoScreen> {
         late Widget errorPage;
         final hasInternet = snapshot.data ?? false;
         if (hasInternet) {
-          errorPage = ErrorScreen.generic(
+          errorPage = ErrorScreen.fromError(
             context,
-            style: ErrorCtaStyle.close,
+            GenericError('', sourceError: error),
+            style: .close,
           );
         } else {
-          errorPage = ErrorScreen.noInternet(
+          errorPage = ErrorScreen.fromError(
             context,
-            style: ErrorCtaStyle.close,
+            NetworkError(hasInternet: false, sourceError: error),
+            style: .close,
           );
         }
         return DoOnInit(
@@ -168,4 +171,20 @@ class _TourVideoScreenState extends State<TourVideoScreen> {
   }
 }
 
-enum VideoPlayerInitState { initializing, ok, error }
+sealed class VideoPlayerInitState {
+  const VideoPlayerInitState();
+}
+
+class VideoPlayerInitializing extends VideoPlayerInitState {
+  const VideoPlayerInitializing();
+}
+
+class VideoPlayerOk extends VideoPlayerInitState {
+  const VideoPlayerOk();
+}
+
+class VideoPlayerError extends VideoPlayerInitState {
+  final Object error;
+
+  const VideoPlayerError(this.error);
+}

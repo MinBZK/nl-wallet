@@ -138,9 +138,9 @@ impl IssuerSigned {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::collections::HashSet;
 
-    use assert_matches::assert_matches;
     use attestation_types::claim_path::ClaimPath;
     use itertools::Itertools;
     use rstest::rstest;

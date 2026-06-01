@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-04-28T13:39:02+02:00",
+    "@@last_modified": "2026-05-21T14:42:26+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -38,7 +38,7 @@
     "appBlockedScreenNewWalletCta": "Create a new NL Wallet",
     "appBlockedScreenPermanentDescription": "You cannot use NL Wallet right now. You also cannot create a new NL Wallet. This may have several reasons.\n\nContact the help desk for help and more information.",
     "appBlockedScreenPermanentTitle": "You have been blocked",
-    "appBlockedScreenSolutionRevokedDescription": "You cannot use NL Wallet right now due to a technical problem on our side.\n\nWant to know more? Read more information.",
+    "appBlockedScreenSolutionRevokedDescription": "You cannot use NL Wallet due to a technical problem on our side.\n\nWant to know more? Read more information.",
     "appBlockedScreenSolutionRevokedTitle": "NL Wallet can no longer be used",
     "appBlockedScreenTitle": "Your NL Wallet is blocked",
     "appTitle": "NL Wallet",
@@ -117,7 +117,6 @@
     },
     "cardDataIncorrectScreenDescription": "Incorrect data can cause problems. Contact your issuer to have your data changed.\n\nAre you still waiting for an adjustment? It may take a while before it is available in the app.",
     "cardDataIncorrectScreenSubhead": "Are your details incorrect?",
-    "cardDataScreenDataPrivacyBanner": "This overview is only for you. Only share data using an invitation through the app.",
     "cardDataScreenIncorrectCta": "Are your details incorrect?",
     "cardDataScreenTitle": "Data from {title}",
     "cardDetailScreenCardDataCta": "Details in this card",
@@ -125,15 +124,6 @@
     "cardDetailScreenCardDeleteCta": "Delete card",
     "cardDetailScreenCardDeleteWarning": "This card will be deleted",
     "cardDetailScreenCardHistoryCta": "Card activities",
-    "cardDetailScreenCardValidUntil": "Valid until {dateTime}",
-    "@cardDetailScreenCardValidUntil": {
-        "placeholders": {
-            "dateTime": {
-                "example": "April 25 13:31",
-                "type": "String"
-            }
-        }
-    },
     "cardDetailScreenFallbackTitle": "Card details",
     "cardDetailScreenIssuerCta": "About the issuer",
     "cardDetailScreenLatestSuccessInteraction": "{shareStatus} {timeAgo} with {organization}",
@@ -343,15 +333,6 @@
     "dashboardScreenMenuWCAGLabel": "Navigation menu",
     "dashboardScreenOverviewAnnouncement": "NL Wallet overview",
     "dashboardScreenTitle": "Menu",
-    "dataAttributeSectionTitle": "From {source}",
-    "@dataAttributeSectionTitle": {
-        "placeholders": {
-            "source": {
-                "example": "Persoonsgegevens",
-                "type": "String"
-            }
-        }
-    },
     "dataIncorrectScreenApproveCta": "Add card anyway",
     "dataIncorrectScreenApproveDescription": "Add the card now, and update it later once the data changes.",
     "dataIncorrectScreenApproveTitle": "Add card",
@@ -458,13 +439,8 @@
     "disclosureDisconnectedPageLoginAction": "logging in",
     "disclosureDisconnectedPageSharingAction": "sharing",
     "disclosureDisconnectedPageTitle": "Sorry, connection lost",
-    "disclosureGenericErrorPageTitle": "Something went wrong",
     "disclosureLoadingSubtitle": "Your request is being retrieved",
     "disclosureLoadingTitle": "Please wait",
-    "disclosureRelyingPartyErrorCloseCta": "Close",
-    "disclosureRelyingPartyErrorDescription": "This action was unsuccessful. This may have several reasons.\n\nGo back to the organization's website where you started and try again. If it still doesn’t work, contact the organization.",
-    "disclosureRelyingPartyErrorDescriptionWithOrganizationName": "This action was unsuccessful. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
-    "disclosureRelyingPartyErrorTitle": "Sorry, something went wrong",
     "disclosureReportSubmittedPageCloseCta": "Close",
     "disclosureReportSubmittedPageSubtitle": "Your report has been sent anonymously. \n\nNever share any data with organizations you do not trust.",
     "disclosureReportSubmittedPageTitle": "Thanks for your feedback",
@@ -532,18 +508,8 @@
     },
     "disclosureStoppedPageTitle": "Stopped",
     "disclosureStoppedPageToWebsiteCta": "Go to website",
-    "disclosureSuccessPageCloseCta": "Close",
     "disclosureSuccessPageDescription": "Your data has been shared with {organization}. Close this screen and continue on the website of {organization}.",
     "@disclosureSuccessPageDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "disclosureSuccessPageDescriptionForCloseProximity": "You are logged in. Continue on the website of {organization}.",
-    "@disclosureSuccessPageDescriptionForCloseProximity": {
         "placeholders": {
             "organization": {
                 "example": "DUO",
@@ -575,6 +541,7 @@
     "disclosureSuccessPageToWebsiteCta": "Go to website",
     "errorDetailsSheetTitle": "Error details",
     "errorScreenCancelledSessionDescription": "It seems you have stopped on the webpage. {organization} may not have received your information.",
+    "errorScreenCancelledSessionDescriptionUnknownOrganization": "It seems you have stopped on the webpage. The organization may not have received your information.",
     "errorScreenCancelledSessionHeadline": "Stopped",
     "errorScreenDeviceIncompatibleDescription": "It is not possible to use the NL Wallet app on this device. Uninstall the app from this device and download the app to a suitable device.",
     "errorScreenDeviceIncompatibleHeadline": "Sorry, this device is not suitable",
@@ -656,9 +623,7 @@
         }
     },
     "generalNeedHelpCta": "Need help?",
-    "generalOff": "Off",
     "generalOkCta": "OK",
-    "generalOn": "On",
     "generalOsVersionText": "OS version:",
     "generalPageChangeWCAGAnnouncement": "Showing page {current} of {total}.",
     "generalPolicyAllTermsCta": "All terms",
@@ -706,8 +671,8 @@
     "generalWCAGQr": "Scan QR code",
     "generalWCAGSeeAllActivities": "See all activities",
     "generalWCAGStepper": "Step {current} out of {total}.",
-    "genericRelyingPartyErrorDescription": "The card(s) couldn’t be added. This may have several reasons.\n\nGo back to the organization's website where you started and try again. If it still doesn’t work, contact the organization.",
-    "genericRelyingPartyErrorDescriptionWithOrganizationName": "The card(s) couldn’t be added. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
+    "genericRelyingPartyErrorDescription": "This action was unsuccessful. This may have several reasons.\n\nGo back to the organization's website where you started and try again. If it still doesn’t work, contact the organization.",
+    "genericRelyingPartyErrorDescriptionWithOrganizationName": "This action was unsuccessful. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
     "genericRelyingPartyErrorTitle": "Sorry, something went wrong",
     "helpScreenGroupTitleHelp": "Help",
     "helpScreenGroupTitleInformation": "Information",
@@ -807,8 +772,6 @@
             }
         }
     },
-    "historyDetailScreenOperationStatusExpiredDescription": "Your card is expired.",
-    "historyDetailScreenOperationStatusRenewedDescription": "Card updated",
     "historyDetailScreenPurposeTitle": "Sharing reason",
     "historyDetailScreenReportIssueCta": "Would you like to report a problem?",
     "historyDetailScreenSharedAttributesSubtitle": "{count, plural, one {Only the following detail was shared.} other {Only the following {count} details were shared.}}",
@@ -884,9 +847,6 @@
     "issuanceCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
     "issuanceCheckDataOfferingPageTitle": "Is the retrieved data correct?",
     "issuanceConfirmPinPageTitle": "Agree with your PIN",
-    "issuanceGenericErrorPageCloseCta": "Close",
-    "issuanceGenericErrorPageDescription": "Something went wrong. Try again later.",
-    "issuanceGenericErrorPageTitle": "Something went wrong",
     "issuanceLoadingCardsDescription": "Cards are being retrieved",
     "issuanceLoadingCardsTitle": "Please wait",
     "issuanceLoadingRequestDescription": "Your request is being retrieved",
@@ -901,9 +861,8 @@
         }
     },
     "issuanceNoCardsPageTitle": "No cards found",
-    "issuanceRelyingPartyErrorCloseCta": "Close",
     "issuanceRelyingPartyErrorDescription": "The card(s) couldn’t be added. This may have several reasons.\n\nGo back to the organization's website where you started and try again. If it still doesn’t work, contact the organization.",
-    "issuanceRelyingPartyErrorDescriptionWithOrganizationName": "The cards couldn’t be added. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
+    "issuanceRelyingPartyErrorDescriptionWithOrganizationName": "The card(s) couldn’t be added. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
     "issuanceRelyingPartyErrorTitle": "Sorry, something went wrong",
     "issuanceRequestedAttributeDescription": "To receive your cards, you will share your {attribute} so {organization} can be sure it's really you.",
     "@issuanceRequestedAttributeDescription": {
@@ -1001,12 +960,6 @@
         }
     },
     "issuanceReviewCardsPageToggleAddCta": "Check details",
-    "issuanceSelectCardsPageAddCta": "Add",
-    "issuanceSelectCardsPageDataIncorrectCta": "Is something not right?",
-    "issuanceSelectCardsPageDescription": "Select the ones you would like to add",
-    "issuanceSelectCardsPageNoSelectionError": "Select one or more cards to add",
-    "issuanceSelectCardsPageStopCta": "Stop",
-    "issuanceSelectCardsPageTitle": "The following cards have been retrieved.",
     "issuanceStopSheetDescription": "If you stop, no cards will be added from {organization} to your NL Wallet.",
     "@issuanceStopSheetDescription": {
         "placeholders": {
@@ -1126,7 +1079,6 @@
     "needHelpScreenQrTitle": "QR code",
     "needHelpScreenSecuritySubtitle": "Security steps and secure sharing",
     "needHelpScreenSecurityTitle": "Security",
-    "needHelpScreenSettingsSubtitle": "Change settings and remove data",
     "needHelpScreenSettingsTitle": "App settings",
     "needHelpScreenShareSubtitle": "Sharing details and logging in",
     "needHelpScreenShareTitle": "Share data",
@@ -1134,8 +1086,6 @@
     "organizationApprovePageApproveCta": "Share",
     "organizationApprovePageCancelLoginCta": "Stop",
     "organizationApprovePageDenyCta": "Stop",
-    "organizationApprovePageFraudInfoPart1": "Beware of fraud. Check the web address where you scanned the QR code.",
-    "organizationApprovePageFraudInfoPart2": "Only proceed if the address matches {url}.",
     "organizationApprovePageGenericTitle": "Do you recognize {organization}?",
     "@organizationApprovePageGenericTitle": {
         "placeholders": {
@@ -1172,7 +1122,6 @@
     "organizationButtonLabel": "About this organization",
     "organizationDetailScreenCategoryInfo": "Organization type",
     "organizationDetailScreenDepartmentInfo": "Department",
-    "organizationDetailScreenKvk": "KVK: {kvk}",
     "organizationDetailScreenKvkInfo": "Chamber of Commerce number (KVK)",
     "organizationDetailScreenLegalNameInfo": "Legal name",
     "organizationDetailScreenLocationInfo": "Location",
@@ -1183,7 +1132,6 @@
     "organizationDetailScreenWebsiteInfo": "Website",
     "organizationFallbackName": "The organization",
     "pageIndicatorSemanticsLabel": "Step {current} out of {total}",
-    "pidIdCardTitle": "Personal data",
     "pinBlockedScreenDescription": "You have entered your PIN incorrectly too many times.\n\nDo you want to use the Wallet again? Then you have to start again. Clear the Wallet and choose a new PIN.",
     "pinBlockedScreenHeadline": "Your app has been blocked",
     "pinBlockedScreenResetWalletCta": "Delete Wallet",
@@ -1305,7 +1253,6 @@
     "qrPresentScreenBluetoothDisabledPageTitle": "Turn on Bluetooth first",
     "qrPresentScreenCenterQrCodeCta": "Center QR code on screen",
     "qrPresentScreenConnectedTitle": "Please wait. Your request is being retrieved.",
-    "qrPresentScreenConnectingTitle": "Please wait. Connecting to the organisation.",
     "qrPresentScreenConnectionFailedPageDescription": "Keep the devices close together. Check your Bluetooth connection. Then try again.",
     "qrPresentScreenConnectionFailedPageTitle": "Sorry, connection failed",
     "qrPresentScreenDialogTitle": "Show your QR code below",
@@ -1324,7 +1271,6 @@
     "qrShowBluetoothPermissionDescription": "This is needed to connect to a nearby bluetooth. Go to Settings > App info > Permission > Bluetooth.",
     "qrShowBluetoothPermissionSettingsCta": "OPEN SETTINGS",
     "qrShowBluetoothPermissionTitle": "Allow NL Wallet to find Bluetooth devices.",
-    "recoverPinAwaitingDigidAuthenticationDescription": "DigiD app is being opened",
     "recoverPinChooseNewPinPageTitle": "Choose a 6-digit PIN",
     "recoverPinConfirmNewPinPageTitle": "Repeat your PIN",
     "recoverPinContinueWithDigiDDescription": "That's how you can get your details",
@@ -1517,7 +1463,6 @@
             }
         }
     },
-    "sharedAttributesCardOutdatedFooter": "These details are outdated.",
     "sharedAttributesCardTitle": "{count} from {cardTitle}",
     "showDetailsCta": "View",
     "signConfirmPinPageDescription": "By entering your PIN you agree to exchange your data.",
@@ -1532,9 +1477,6 @@
     },
     "signConfirmPinPageErrorTitle": "Invalid PIN",
     "signConfirmPinPageTitle": "Enter your PIN",
-    "signGenericErrorPageCloseCta": "Close",
-    "signGenericErrorPageDescription": "Something went wrong. Please try again later.",
-    "signGenericErrorPageTitle": "Something went wrong",
     "signScreenCancelSheetDescription": "If you stop, no agreements will be signed.",
     "signScreenCancelSheetNegativeCta": "No",
     "signScreenCancelSheetPositiveCta": "Yes, stop",
@@ -1681,15 +1623,11 @@
     "walletPersonalizeIntroPageDescription": "This way, you get your Personal Data card.",
     "walletPersonalizeIntroPageDigidWebsiteCta": "Go to DigiD website",
     "walletPersonalizeIntroPageLoginWithDigidCta": "Open the DigiD app",
-    "walletPersonalizeIntroPageNoDigidCta": "No DigiD?",
     "walletPersonalizeIntroPageTitle": "Log in with DigiD to show that it’s really you",
     "walletPersonalizeScreenAddingCardsSubtitle": "Card is being added",
     "walletPersonalizeScreenAwaitingUserAuthDescription": "That's how you can get your details",
     "walletPersonalizeScreenAwaitingUserAuthTitle": "Continue in your DigiD app",
     "walletPersonalizeScreenDigidLoadingStopCta": "Stop",
-    "walletPersonalizeScreenErrorDescription": "Something went wrong, please try again.",
-    "walletPersonalizeScreenErrorRetryCta": "Try again",
-    "walletPersonalizeScreenErrorTitle": "Personalization failed",
     "walletPersonalizeScreenExitSheetCancelCta": "No",
     "walletPersonalizeScreenExitSheetConfirmCta": "Yes, stop",
     "walletPersonalizeScreenExitSheetDescription": "Are you sure you want to quit setting up your Wallet?",

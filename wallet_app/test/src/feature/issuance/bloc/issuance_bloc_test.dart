@@ -51,7 +51,7 @@ void main() {
     act: (bloc) => bloc.add(const IssuanceSessionStarted('https://example.org')),
     expect: () => [
       isA<IssuanceLoadInProgress>(),
-      isA<IssuanceGenericError>(),
+      isA<IssuanceError>(),
     ],
   );
 
@@ -259,7 +259,7 @@ void main() {
       isA<IssuanceCheckOrganization>(),
       isA<IssuanceProvidePinForDisclosure>(),
       isA<IssuanceLoadInProgress>(),
-      isA<IssuanceNetworkError>(),
+      isA<IssuanceError>().having((it) => it.error, 'Network', isA<NetworkError>()),
     ],
   );
 
@@ -288,7 +288,7 @@ void main() {
       isA<IssuanceReviewCards>(),
       isA<IssuanceProvidePinForIssuance>(),
       isA<IssuanceLoadInProgress>(),
-      isA<IssuanceNetworkError>(),
+      isA<IssuanceError>().having((it) => it.error, 'Network', isA<NetworkError>()),
     ],
     verify: (_) {
       // once during init, network error and the close callback.
@@ -348,7 +348,11 @@ void main() {
       isA<IssuanceCheckOrganization>(),
       isA<IssuanceProvidePinForDisclosure>(),
       isA<IssuanceLoadInProgress>(),
-      isA<IssuanceSessionCancelled>(),
+      isA<IssuanceError>().having(
+        (it) => (it.error as SessionError).state,
+        'Cancellation error',
+        SessionState.cancelled,
+      ),
     ],
   );
 
@@ -374,7 +378,7 @@ void main() {
       isA<IssuanceLoadInProgress>(),
       isA<IssuanceReviewCards>(),
       isA<IssuanceLoadInProgress>(),
-      isA<IssuanceGenericError>(),
+      isA<IssuanceError>(),
     ],
   );
 

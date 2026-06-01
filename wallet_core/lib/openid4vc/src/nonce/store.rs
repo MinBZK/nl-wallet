@@ -32,10 +32,10 @@ pub trait NonceStore {
 
 #[cfg(any(test, feature = "test"))]
 pub mod test {
+    use std::assert_matches;
     use std::sync::Arc;
     use std::time::Duration;
 
-    use assert_matches::assert_matches;
     use chrono::DateTime;
     use chrono::Utc;
     use jwt::nonce::Nonce;

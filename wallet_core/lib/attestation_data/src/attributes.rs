@@ -699,7 +699,8 @@ mod mock {
 
 #[cfg(test)]
 pub mod test {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
+
     use attestation_types::claim_path::ClaimPath;
     use indexmap::IndexMap;
     use mdoc::Entry;

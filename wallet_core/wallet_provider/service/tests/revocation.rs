@@ -1,9 +1,9 @@
+use std::assert_matches;
 use std::collections::HashSet;
 use std::num::NonZeroUsize;
 use std::time::Duration;
 use std::vec;
 
-use assert_matches::assert_matches;
 use attestation_types::status_claim::StatusClaim;
 use audit_log::model::mock::MockAuditLog;
 use chrono::Utc;

@@ -52,7 +52,6 @@ error_category = { path = "../../lib/error_category", optional = true }
 platform_support = { path = "../../wallet/platform_support", optional = true }
 
 [dev-dependencies]
-assert_matches.workspace = true
 futures.workspace = true
 rand_core.workspace = true
 rstest.workspace = true

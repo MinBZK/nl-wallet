@@ -77,9 +77,9 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::sync::Arc;
 
-    use assert_matches::assert_matches;
     use attestation_data::validity::ValidityWindow;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;

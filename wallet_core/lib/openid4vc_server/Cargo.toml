@@ -55,5 +55,5 @@ tokio = { workspace = true, features = ["test-util", "macros", "net"] }
 url = { workspace = true, features = ["serde"] }
 
 http_utils = { path = "../http_utils", features = ["client"] }
-openid4vc = { path = "../openid4vc", features = ["integration"] }
+openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
 wscd = { path = "../wscd", features = ["mock"] }

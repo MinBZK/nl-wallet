@@ -99,7 +99,7 @@ void main() {
     await tester.pumpWidgetWithAppWrapper(
       const IssuanceRequestDetailsScreen().withState<IssuanceBloc, IssuanceState>(
         MockIssuanceBloc(),
-        const IssuanceGenericError(
+        const IssuanceError(
           error: GenericError('An error occurred', sourceError: CoreGenericError('test')),
         ),
       ),

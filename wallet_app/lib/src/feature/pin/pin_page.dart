@@ -67,7 +67,7 @@ class PinPage extends StatelessWidget {
   final PinStateInterceptor? onStateChanged;
 
   /// Called when the [PinBloc] exposes an [ErrorState] (i.e [PinValidateNetworkError]
-  /// or [PinValidateGenericError]). When [onPinError] is provided these [ErrorState]s
+  /// or [PinValidateError]). When [onPinError] is provided these [ErrorState]s
   /// are no longer handled by the [PinPage].
   final OnPinErrorCallback? onPinError;
 
@@ -114,10 +114,8 @@ class PinPage extends StatelessWidget {
         PinTimeoutScreen.show(context, state.expiryTime);
       case PinValidateBlocked():
         PinBlockedScreen.show(context);
-      case PinValidateNetworkError(:final error):
-        ErrorScreen.showNetwork(context, secured: false, error: error);
-      case PinValidateGenericError():
-        ErrorScreen.showGeneric(context, secured: false);
+      case PinValidateError(:final error):
+        ErrorScreen.show(context, error, secured: false);
       case PinValidateFailure():
         await _showErrorDialog(context, state);
 
@@ -316,8 +314,7 @@ class PinPage extends StatelessWidget {
       PinEntryInProgress() => true,
       PinValidateFailure() => true,
       PinValidateTimeout() => true,
-      PinValidateNetworkError() => true,
-      PinValidateGenericError() => true,
+      PinValidateError() => true,
       PinValidateInProgress() => false,
       PinValidateSuccess() => false,
       PinValidateBlocked() => false,
@@ -332,8 +329,7 @@ class PinPage extends StatelessWidget {
       PinValidateSuccess() => false,
       PinValidateTimeout() => false,
       PinValidateBlocked() => false,
-      PinValidateNetworkError() => false,
-      PinValidateGenericError() => false,
+      PinValidateError() => false,
     };
   }
 
@@ -345,8 +341,7 @@ class PinPage extends StatelessWidget {
       PinValidateFailure() => 0,
       PinValidateTimeout() => 0,
       PinValidateBlocked() => 0,
-      PinValidateNetworkError() => 0,
-      PinValidateGenericError() => 0,
+      PinValidateError() => 0,
     };
   }
 

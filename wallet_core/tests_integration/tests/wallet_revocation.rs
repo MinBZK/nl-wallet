@@ -1,6 +1,6 @@
+use std::assert_matches;
 use std::iter;
 
-use assert_matches::assert_matches;
 use audit_log::entity;
 use axum::http::StatusCode;
 use db_test::DbSetup;

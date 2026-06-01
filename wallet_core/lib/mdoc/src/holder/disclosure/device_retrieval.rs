@@ -116,7 +116,8 @@ pub mod test {
 
 #[cfg(test)]
 mod tests {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
+
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
     use utils::generator::TimeGenerator;

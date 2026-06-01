@@ -1,8 +1,10 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 
+import '../../domain/model/attribute/attribute.dart';
 import '../../domain/model/result/application_error.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/navigator_state_extension.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
@@ -48,11 +50,14 @@ class ErrorPage extends StatelessWidget {
   ///
   /// Use [onPrimaryActionPressed] to handle the primary button action.
   /// Use [style] to determine the CTA button behavior (retry or close).
+  /// Use [organizationName] to provide an (optional) organization name, used
+  ///     in some UIs when it can't be resolved from the error type itself.
   factory ErrorPage.fromError(
     BuildContext context,
     ApplicationError error, {
     required VoidCallback onPrimaryActionPressed,
     required ErrorCtaStyle style,
+    String? organizationName,
   }) {
     switch (error) {
       case GenericError():
@@ -61,15 +66,34 @@ class ErrorPage extends StatelessWidget {
         return ErrorPage.server(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
       case NetworkError(hasInternet: false):
         return ErrorPage.noInternet(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
-      case SessionError():
+      case SessionError(state: .expired):
         return ErrorPage.sessionExpired(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
+      case SessionError(state: .cancelled):
+        return ErrorPage.cancelledSession(
+          context,
+          onPrimaryActionPressed: onPrimaryActionPressed,
+          style: style,
+          organizationName: organizationName,
+        );
       case RelyingPartyError():
-        return ErrorPage.relyingParty(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
+        final organizationName = error.organizationName?.l10nValue(context);
+        return ErrorPage.relyingParty(
+          context,
+          onPrimaryActionPressed: onPrimaryActionPressed,
+          style: style,
+          organizationName: organizationName,
+        );
+      case HardwareUnsupportedError():
+        Fimber.i('Hardware unsupported, primary action always defaults to resetToSplash');
+        return ErrorPage.deviceIncompatible(context);
       default:
         Fimber.i('No specific handling defined for $error, defaulting to generic error page.');
         return ErrorPage.generic(context, onPrimaryActionPressed: onPrimaryActionPressed, style: style);
     }
   }
+
+  static String titleFromError(BuildContext context, ApplicationError error) =>
+      ErrorPage.fromError(context, error, onPrimaryActionPressed: () {}, style: .retry).title;
 
   /// Creates an [ErrorPage] for generic, unspecified errors.
   ///
@@ -141,10 +165,7 @@ class ErrorPage extends StatelessWidget {
   }
 
   /// Creates an [ErrorPage] for when the device does not meet application requirements.
-  factory ErrorPage.deviceIncompatible(
-    BuildContext context, {
-    required VoidCallback onPrimaryActionPressed,
-  }) {
+  factory ErrorPage.deviceIncompatible(BuildContext context) {
     return ErrorPage(
       title: context.l10n.errorScreenDeviceIncompatibleHeadline,
       description: context.l10n.errorScreenDeviceIncompatibleDescription,
@@ -152,7 +173,7 @@ class ErrorPage extends StatelessWidget {
       primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(
         context,
         ErrorCtaStyle.close,
-        onPressed: onPrimaryActionPressed,
+        onPressed: () => Navigator.of(context).resetToSplash(),
       ),
       secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
     );
@@ -189,18 +210,18 @@ class ErrorPage extends StatelessWidget {
   /// [organizationName] is the name of the organization with whom the session was cancelled.
   factory ErrorPage.cancelledSession(
     BuildContext context, {
-    required String organizationName,
+    String? organizationName,
     VoidCallback? onPrimaryActionPressed,
+    ErrorCtaStyle style = ErrorCtaStyle.close,
   }) {
+    final description = organizationName == null
+        ? context.l10n.errorScreenCancelledSessionDescriptionUnknownOrganization
+        : context.l10n.errorScreenCancelledSessionDescription(organizationName);
     return ErrorPage(
       title: context.l10n.errorScreenCancelledSessionHeadline,
-      description: context.l10n.errorScreenCancelledSessionDescription(organizationName),
+      description: description,
       illustration: WalletAssets.svg_stopped,
-      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(
-        context,
-        ErrorCtaStyle.close,
-        onPressed: onPrimaryActionPressed,
-      ),
+      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style, onPressed: onPrimaryActionPressed),
       secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
     );
   }
@@ -208,22 +229,37 @@ class ErrorPage extends StatelessWidget {
   /// Creates an [ErrorPage] for errors related to a relying party (service provider).
   ///
   /// [organizationName] is the optional name of the organization where the error occurred.
+  /// [useIssuanceStyle] can be set to true to use issuance related copy/illustration.
   factory ErrorPage.relyingParty(
     BuildContext context, {
     String? organizationName,
     VoidCallback? onPrimaryActionPressed,
     ErrorCtaStyle style = ErrorCtaStyle.retry,
+    bool useIssuanceStyle = false,
   }) {
-    final description = organizationName == null
-        ? context.l10n.genericRelyingPartyErrorDescription
-        : context.l10n.genericRelyingPartyErrorDescriptionWithOrganizationName(organizationName);
-    return ErrorPage(
-      title: context.l10n.genericRelyingPartyErrorTitle,
-      description: description,
-      illustration: WalletAssets.svg_error_card_blocked,
-      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style, onPressed: onPrimaryActionPressed),
-      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
-    );
+    if (useIssuanceStyle) {
+      final description = organizationName == null
+          ? context.l10n.issuanceRelyingPartyErrorDescription
+          : context.l10n.issuanceRelyingPartyErrorDescriptionWithOrganizationName(organizationName);
+      return ErrorPage(
+        title: context.l10n.issuanceRelyingPartyErrorTitle,
+        description: description,
+        illustration: WalletAssets.svg_error_card_blocked,
+        primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style, onPressed: onPrimaryActionPressed),
+        secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+      );
+    } else {
+      final description = organizationName == null
+          ? context.l10n.genericRelyingPartyErrorDescription
+          : context.l10n.genericRelyingPartyErrorDescriptionWithOrganizationName(organizationName);
+      return ErrorPage(
+        title: context.l10n.genericRelyingPartyErrorTitle,
+        description: description,
+        illustration: WalletAssets.svg_error_general,
+        primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style, onPressed: onPrimaryActionPressed),
+        secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+      );
+    }
   }
 
   /// Creates an [ErrorPage] for when a close proximity connection (e.g. Bluetooth) is lost.

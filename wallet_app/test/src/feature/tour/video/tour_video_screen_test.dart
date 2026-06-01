@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:video_player/video_player.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/feature/error/error_screen.dart';
 import 'package:wallet/src/feature/tour/video/tour_video_screen.dart';
 
@@ -171,12 +172,18 @@ void main() {
     });
   });
 
-  group('VideoPlayerInitState enum', () {
-    test('ltc14 has expected values', () {
-      expect(VideoPlayerInitState.values, hasLength(3));
-      expect(VideoPlayerInitState.values, contains(VideoPlayerInitState.initializing));
-      expect(VideoPlayerInitState.values, contains(VideoPlayerInitState.ok));
-      expect(VideoPlayerInitState.values, contains(VideoPlayerInitState.error));
+  group('VideoPlayerInitState', () {
+    test('ltc14 equals behaves as expected', () {
+      expect(const VideoPlayerInitializing(), equals(const VideoPlayerInitializing()));
+      expect(const VideoPlayerOk(), equals(const VideoPlayerOk()));
+      expect(
+        const VideoPlayerError(GenericError('', sourceError: 'test')),
+        equals(const VideoPlayerError(GenericError('', sourceError: 'test'))),
+      );
+      expect(
+        const VideoPlayerError(GenericError('', sourceError: 'test')),
+        isNot(equals(const VideoPlayerError(GenericError('alt', sourceError: 'test')))),
+      );
     });
   });
 }

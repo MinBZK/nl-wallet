@@ -1408,11 +1408,11 @@ pub mod test_storage {
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use std::assert_matches;
     use std::ops::Add;
     use std::ops::Sub;
     use std::sync::LazyLock;
 
-    use assert_matches::assert_matches;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::credential_payload::CredentialPayload;

@@ -40,7 +40,7 @@ pub enum Error {
 /// - CDATA sections are converted to escaped text nodes.
 /// - `<use>`, `<animate>`, `<set>`, `<script>`, `<style>`, and `<foreignObject>` are blocked.
 /// - The `style` and `class` attributes are stripped; the renderer does not support CSS.
-#[derive(Clone, Debug, AsRef, Into)]
+#[derive(Clone, Debug, AsRef, Into, PartialEq, Eq, Hash)]
 pub struct SanitizedSvg(String);
 
 impl SanitizedSvg {

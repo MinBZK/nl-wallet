@@ -194,9 +194,9 @@ impl AttestationAttributeValue {
 
 #[cfg(test)]
 pub mod test {
+    use std::assert_matches;
     use std::collections::HashSet;
 
-    use assert_matches::assert_matches;
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;

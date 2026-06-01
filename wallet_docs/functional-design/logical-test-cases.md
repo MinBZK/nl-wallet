@@ -85,9 +85,7 @@ or automated tests.
 
 ### LTC7
 
-% manual
-
-#### Cross-device generic issuance
+#### Cross-device disclosure based issuance
 
 **Given** user is on a device with wallet installed<br>
 **When** relying party presents a QR code<br>
@@ -208,9 +206,7 @@ from an issuer<br>
 
 ### LTC16
 
-% manual
-
-#### Cross-device share data
+#### Cross-device data sharing
 
 **Given** user starts disclosure on a non-mobile device<br>
 **When** user scans QR code with wallet<br>
@@ -249,8 +245,6 @@ from an issuer<br>
 ---
 
 ### LTC19
-
-% manual
 
 #### Cross-device login
 

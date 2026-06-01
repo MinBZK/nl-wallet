@@ -1,12 +1,10 @@
 import 'dart:async';
 
 import 'package:equatable/equatable.dart';
-import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/bloc/error_state.dart';
-import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/result/application_error.dart';
@@ -71,17 +69,14 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
         emit(const RenewPidDigidMismatch());
       case DeniedDigidError():
         emit(const RenewPidDigidLoginCancelled());
-      case NetworkError():
-        emit(RenewPidNetworkError(error: error));
       case RedirectUriError():
         if ([RedirectError.accessDenied, RedirectError.loginRequired].contains(error.redirectError)) {
           emit(const RenewPidDigidLoginCancelled());
         } else {
-          emit(RenewPidGenericError(error: error));
+          emit(RenewPidError(error: error));
         }
       default:
-        Fimber.w('Handling ${error.runtimeType} as generic error.', ex: error);
-        emit(RenewPidGenericError(error: error));
+        emit(RenewPidError(error: error));
     }
   }
 
@@ -120,9 +115,8 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
     }
   }
 
-  FutureOr<void> _onRetryPressed(RenewPidRetryPressed event, Emitter<RenewPidState> emit) {
-    add(const RenewPidLoginWithDigidClicked());
-  }
+  FutureOr<void> _onRetryPressed(RenewPidRetryPressed event, Emitter<RenewPidState> emit) async =>
+      add(const RenewPidLoginWithDigidClicked());
 
   FutureOr<void> _onStopPressed(RenewPidStopPressed event, Emitter<RenewPidState> emit) async {
     unawaited(_cancelPidIssuanceUseCase.invoke());

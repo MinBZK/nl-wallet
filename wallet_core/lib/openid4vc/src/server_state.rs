@@ -213,10 +213,10 @@ impl From<SessionToken> for AuthorizationCode {
 
 #[cfg(any(test, feature = "test"))]
 pub mod test {
+    use std::assert_matches;
     use std::fmt::Debug;
     use std::sync::Arc;
 
-    use assert_matches::assert_matches;
     use parking_lot::RwLock;
     use tokio::time;
     use utils::generator::mock::MockTimeGenerator;

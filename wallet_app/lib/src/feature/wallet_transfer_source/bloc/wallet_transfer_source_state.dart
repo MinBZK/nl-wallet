@@ -82,33 +82,11 @@ class WalletTransferStopped extends WalletTransferSourceState {
 }
 
 /// Represents the UI state for generic/unknown errors
-class WalletTransferGenericError extends WalletTransferSourceState implements ErrorState {
+class WalletTransferError extends WalletTransferSourceState implements ErrorState {
   @override
   final ApplicationError error;
 
-  const WalletTransferGenericError(this.error);
-
-  @override
-  List<Object?> get props => [...super.props, error];
-}
-
-/// Represents the UI state for network/internet related errors
-class WalletTransferNetworkError extends WalletTransferSourceState implements NetworkErrorState {
-  @override
-  final NetworkError error;
-
-  const WalletTransferNetworkError(this.error);
-
-  @override
-  List<Object?> get props => [...super.props, error];
-}
-
-/// Represents the UI state for session errors
-class WalletTransferSessionExpired extends WalletTransferSourceState implements ErrorState {
-  @override
-  final ApplicationError error;
-
-  const WalletTransferSessionExpired(this.error);
+  const WalletTransferError(this.error);
 
   @override
   List<Object?> get props => [...super.props, error];

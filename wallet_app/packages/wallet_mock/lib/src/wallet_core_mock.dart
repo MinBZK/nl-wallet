@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet_core/core.dart';
 
@@ -413,4 +414,19 @@ class WalletCoreMock implements WalletCoreApi {
   Future<String> crateApiFullStartCloseProximityDisclosure({
     required FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) callback,
   }) async => 'mdoc:example.org';
+
+  @override
+  String crateModelsImageSanitizedSvgXml({required SanitizedSvg that}) => '<svg></svg>';
+
+  @override
+  // ignore: non_constant_identifier_names
+  RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_SanitizedSvg => throw UnimplementedError();
+
+  @override
+  // ignore: non_constant_identifier_names
+  RustArcDecrementStrongCountFnType get rust_arc_decrement_strong_count_SanitizedSvg => throw UnimplementedError();
+
+  @override
+  // ignore: non_constant_identifier_names
+  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_SanitizedSvgPtr => throw UnimplementedError();
 }

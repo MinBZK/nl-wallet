@@ -67,10 +67,23 @@ pub struct VciAuthorizationRequest {
 
     #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, String>>")]
     pub scope: Option<IndexSet<String>>,
+
+    /// String value identifying a certain processing context at the Credential Issuer. A value for this parameter is
+    /// typically passed in a Credential Offer from the Credential Issuer to the Wallet. This request parameter is used
+    /// to pass the `issuer_state` value back to the Credential Issuer.
+    ///
+    /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-5.1.3-2.1>
+    pub issuer_state: Option<String>,
 }
 
 impl VciAuthorizationRequest {
-    pub fn for_par<P: PkcePair>(client_id: String, redirect_uri: Url, state: String, pkce_pair: &P) -> Self {
+    pub fn for_par<P: PkcePair>(
+        client_id: String,
+        redirect_uri: Url,
+        state: String,
+        issuer_state: Option<String>,
+        pkce_pair: &P,
+    ) -> Self {
         Self {
             oauth_request: AuthorizationRequestBase {
                 response_type: ResponseType::Code.into(),
@@ -84,6 +97,7 @@ impl VciAuthorizationRequest {
             },
             authorization_details: None,
             scope: None,
+            issuer_state,
         }
     }
 }
@@ -247,6 +261,7 @@ mod tests {
                 code_challenge: "challenge-xyz".to_string(),
             },
             scope: Some(scope),
+            issuer_state: Some("state-xyz".to_string()),
         }
     }
 
@@ -267,6 +282,7 @@ mod tests {
             decoded.code_challenge,
             PkceCodeChallenge::S256 { code_challenge } if code_challenge == "challenge-xyz"
         ));
+        assert_eq!(decoded.issuer_state.as_deref(), Some("state-xyz"));
     }
 
     #[test]

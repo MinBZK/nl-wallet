@@ -12,6 +12,7 @@ import 'package:wallet/src/data/repository/card/wallet_card_repository.dart';
 import 'package:wallet/src/data/repository/close_proximity/close_proximity_repository.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
 import 'package:wallet/src/data/repository/event/wallet_event_repository.dart';
+import 'package:wallet/src/data/repository/help/help_content_repository.dart';
 import 'package:wallet/src/data/repository/issuance/issuance_repository.dart';
 import 'package:wallet/src/data/repository/language/language_repository.dart';
 import 'package:wallet/src/data/repository/network/network_repository.dart';
@@ -57,6 +58,8 @@ import 'package:wallet/src/domain/usecase/event/get_most_recent_wallet_event_use
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_for_card_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/observe_recent_wallet_events_usecase.dart';
+import 'package:wallet/src/domain/usecase/help/get_help_categories_usecase.dart';
+import 'package:wallet/src/domain/usecase/help/get_help_topic_blocks_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/cancel_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart';
@@ -140,6 +143,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<InternetConnectionChecker>()])
 @GenerateNiceMocks([MockSpec<NavigatorState>()])
 @GenerateNiceMocks([MockSpec<VideoPlayerController>()])
+@GenerateNiceMocks([MockSpec<SanitizedSvg>()])
 /// Mock mappers
 @GenerateNiceMocks([MockSpec<ContextMapper>()])
 @GenerateNiceMocks([MockSpec<Mapper>()])
@@ -147,6 +151,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<BiometricRepository>()])
 @GenerateNiceMocks([MockSpec<ConfigurationRepository>()])
 @GenerateNiceMocks([MockSpec<DisclosureRepository>()])
+@GenerateNiceMocks([MockSpec<HelpContentRepository>()])
 @GenerateNiceMocks([MockSpec<IssuanceRepository>()])
 @GenerateNiceMocks([MockSpec<LanguageRepository>()])
 @GenerateNiceMocks([MockSpec<NotificationRepository>()])
@@ -206,6 +211,8 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<DiscloseForIssuanceUseCase>()])
 @GenerateNiceMocks([MockSpec<FetchTourVideosUseCase>()])
 @GenerateNiceMocks([MockSpec<GetAvailableBiometricsUseCase>()])
+@GenerateNiceMocks([MockSpec<GetHelpCategoriesUseCase>()])
+@GenerateNiceMocks([MockSpec<GetHelpTopicBlocksUseCase>()])
 @GenerateNiceMocks([MockSpec<GetMostRecentWalletEventUseCase>()])
 @GenerateNiceMocks([MockSpec<GetPidCardsUseCase>()])
 @GenerateNiceMocks([MockSpec<GetPidIssuanceUrlUseCase>()])
@@ -297,6 +304,7 @@ class Mocks {
     sl.registerFactory<CloseProximityRepository>(MockCloseProximityRepository.new);
     sl.registerFactory<ConfigurationRepository>(_createConfigurationRepositoryMock);
     sl.registerFactory<DisclosureRepository>(MockDisclosureRepository.new);
+    sl.registerFactory<HelpContentRepository>(MockHelpContentRepository.new);
     sl.registerFactory<IssuanceRepository>(MockIssuanceRepository.new);
     sl.registerFactory<LanguageRepository>(MockLanguageRepository.new);
     sl.registerFactory<NetworkRepository>(_createNetworkRepositoryMock);
@@ -358,6 +366,8 @@ class Mocks {
     sl.registerFactory<DiscloseForIssuanceUseCase>(MockDiscloseForIssuanceUseCase.new);
     sl.registerFactory<FetchTourVideosUseCase>(MockFetchTourVideosUseCase.new);
     sl.registerFactory<GetAvailableBiometricsUseCase>(MockGetAvailableBiometricsUseCase.new);
+    sl.registerFactory<GetHelpCategoriesUseCase>(MockGetHelpCategoriesUseCase.new);
+    sl.registerFactory<GetHelpTopicBlocksUseCase>(MockGetHelpTopicBlocksUseCase.new);
     sl.registerFactory<GetMostRecentWalletEventUseCase>(MockGetMostRecentWalletEventUseCase.new);
     sl.registerFactory<GetPidCardsUseCase>(MockGetPidCardsUseCase.new);
     sl.registerFactory<GetPidIssuanceUrlUseCase>(MockGetPidIssuanceUrlUseCase.new);

@@ -19,6 +19,8 @@ import '../data/repository/disclosure/core/core_disclosure_repository.dart';
 import '../data/repository/disclosure/disclosure_repository.dart';
 import '../data/repository/event/core/core_wallet_event_repository.dart';
 import '../data/repository/event/wallet_event_repository.dart';
+import '../data/repository/help/help_content_repository.dart';
+import '../data/repository/help/impl/help_content_repository_impl.dart';
 import '../data/repository/issuance/core/core_issuance_repository.dart';
 import '../data/repository/issuance/issuance_repository.dart';
 import '../data/repository/language/impl/language_repository_impl.dart';
@@ -106,6 +108,9 @@ class WalletRepositoryProvider extends StatelessWidget {
         ),
         RepositoryProvider<TourRepository>(
           create: (context) => TourRepositoryImpl(context.read()),
+        ),
+        RepositoryProvider<HelpContentRepository>(
+          create: (context) => HelpContentRepositoryImpl(context.read()),
         ),
         RepositoryProvider<PidRepository>(
           create: (context) => CorePidRepository(context.read(), context.read()),

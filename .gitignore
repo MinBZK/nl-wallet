@@ -15,6 +15,7 @@ migrate_working_dir/
 .ruby-version
 .direnv
 .claude
+.dart_tool
 
 # IntelliJ related
 *.iml

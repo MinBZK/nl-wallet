@@ -2,19 +2,20 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::trust_anchor::TrustAnchors;
 use url::Url;
 
+use super::AuthorizationSession;
+use super::IssuanceDiscovery;
+use super::IssuanceFlow;
+use super::IssuanceSession;
+use super::WalletIssuanceError;
+use super::credential::CredentialWithMetadata;
+use super::preview::NormalizedCredentialPreview;
 use crate::issuer_identifier::IssuerIdentifier;
-use crate::wallet_issuance::AuthorizationSession;
-use crate::wallet_issuance::IssuanceDiscovery;
-use crate::wallet_issuance::IssuanceSession;
-use crate::wallet_issuance::WalletIssuanceError;
-use crate::wallet_issuance::credential::CredentialWithMetadata;
-use crate::wallet_issuance::preview::NormalizedCredentialPreview;
 
 mockall::mock! {
     #[derive(Debug)]
     pub IssuanceDiscovery {
         pub fn start_authorization_code_flow_sync(&self) -> Result<MockAuthorizationSession, WalletIssuanceError>;
-        pub fn start_pre_authorized_code_flow_sync(&self) -> Result<MockIssuanceSession, WalletIssuanceError>;
+        pub fn start_with_credential_offer_sync(&self) -> Result<IssuanceFlow<MockAuthorizationSession, MockIssuanceSession>, WalletIssuanceError>;
     }
 }
 
@@ -31,13 +32,14 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
         self.start_authorization_code_flow_sync()
     }
 
-    async fn start_pre_authorized_code_flow(
+    async fn start_with_credential_offer(
         &self,
-        _redirect_uri: &Url,
+        _offer_uri: &Url,
         _client_id: String,
-        _trust_anchors: &TrustAnchors,
-    ) -> Result<Self::Issuance, WalletIssuanceError> {
-        self.start_pre_authorized_code_flow_sync()
+        _redirect_uri: Url,
+        _issuer_trust_anchors: &TrustAnchors,
+    ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError> {
+        self.start_with_credential_offer_sync()
     }
 }
 
@@ -45,7 +47,6 @@ mockall::mock! {
     #[derive(Debug)]
     pub AuthorizationSession {
         pub fn get_auth_url(&self) -> &Url;
-        pub fn get_state(&self) -> &str;
         pub fn start_issuance_sync(&self) -> Result<MockIssuanceSession, WalletIssuanceError>;
     }
 }
@@ -55,10 +56,6 @@ impl AuthorizationSession for MockAuthorizationSession {
 
     fn auth_url(&self) -> &Url {
         self.get_auth_url()
-    }
-
-    fn state(&self) -> &str {
-        self.get_state()
     }
 
     async fn start_issuance(

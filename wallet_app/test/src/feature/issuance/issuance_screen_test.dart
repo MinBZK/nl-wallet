@@ -377,7 +377,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceGenericError(
+          const IssuanceError(
             error: GenericError('test', sourceError: CoreGenericError('test')),
           ),
         ),
@@ -389,7 +389,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceGenericError(
+          const IssuanceError(
             error: GenericError('test', sourceError: CoreGenericError('test')),
           ),
         ),
@@ -451,7 +451,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceNetworkError(error: NetworkError(hasInternet: false, sourceError: 'test')),
+          const IssuanceError(error: NetworkError(hasInternet: false, sourceError: 'test')),
         ),
       );
       await screenMatchesGolden('network_error.light');
@@ -461,7 +461,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceNetworkError(error: NetworkError(hasInternet: true, sourceError: 'test')),
+          const IssuanceError(error: NetworkError(hasInternet: true, sourceError: 'test')),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
@@ -505,7 +505,9 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceSessionCancelled(error: GenericError('test', sourceError: 'test')),
+          const IssuanceError(
+            error: SessionError(state: .cancelled, sourceError: 'test'),
+          ),
         ),
       );
       await screenMatchesGolden('cancelled_session_error.light');
@@ -515,9 +517,8 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceRelyingPartyError(
-            error: const GenericError('test', sourceError: 'test'),
-            organizationName: 'XYZ Bank'.untranslated,
+          IssuanceError(
+            error: RelyingPartyError(sourceError: 'test', organizationName: 'XYZ Bank'.untranslated),
           ),
         ),
       );
@@ -528,7 +529,9 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceSessionCancelled(error: GenericError('test', sourceError: 'test')),
+          const IssuanceError(
+            error: SessionError(state: SessionState.cancelled, sourceError: 'test'),
+          ),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,

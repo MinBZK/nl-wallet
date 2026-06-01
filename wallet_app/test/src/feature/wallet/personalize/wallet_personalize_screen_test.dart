@@ -272,19 +272,6 @@ void main() {
       await screenMatchesGolden('wallet_personalize/success.dark');
     });
 
-    testGoldens('ltc1 WalletPersonalizeFailure Light', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-          MockWalletPersonalizeBloc(),
-          WalletPersonalizeFailure(),
-        ),
-        providers: [
-          RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
-        ],
-      );
-      await screenMatchesGolden('wallet_personalize/failure.light');
-    });
-
     testGoldens('ltc1 WalletPersonalizeDigidFailure Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
@@ -302,7 +289,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          WalletPersonalizeDigidCancelled(),
+          const WalletPersonalizeDigidCancelled(),
         ),
         providers: [
           RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
@@ -326,11 +313,11 @@ void main() {
       await screenMatchesGolden('wallet_personalize/digid_failure.portrait.light');
     });
 
-    testGoldens('ltc1 WalletPersonalizeGenericError Light', (tester) async {
+    testGoldens('ltc1 WalletPersonalizeError (GenericError) Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          const WalletPersonalizeGenericError(error: GenericError('test', sourceError: 'sourceError')),
+          const WalletPersonalizeError(error: GenericError('test', sourceError: 'sourceError')),
         ),
         providers: [
           RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
@@ -339,13 +326,12 @@ void main() {
       await screenMatchesGolden('wallet_personalize/generic_error.light');
     });
 
-    testGoldens('ltc1 WalletPersonalizeRelyingPartyError Light - Relying Party X', (tester) async {
+    testGoldens('ltc1 WalletPersonalizeError (RelyingPartyError) Light - Relying Party X', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          WalletPersonalizeRelyingPartyError(
-            organizationName: 'Relying Party X'.untranslated,
-            error: const RelyingPartyError(sourceError: ''),
+          WalletPersonalizeError(
+            error: RelyingPartyError(sourceError: '', organizationName: 'Relying Party X'.untranslated),
           ),
         ),
         providers: [
@@ -355,11 +341,11 @@ void main() {
       await screenMatchesGolden('wallet_personalize/relying_party_error.light');
     });
 
-    testGoldens('ltc1 WalletPersonalizeRelyingPartyError Dark - Unknown relying party', (tester) async {
+    testGoldens('ltc1 WalletPersonalizeError (RelyingPartyError) Dark - Unknown relying party', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          const WalletPersonalizeRelyingPartyError(organizationName: null, error: RelyingPartyError(sourceError: '')),
+          const WalletPersonalizeError(error: RelyingPartyError(sourceError: '', organizationName: null)),
         ),
         providers: [
           RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
@@ -429,7 +415,7 @@ void main() {
         await tester.pumpWidgetWithAppWrapper(
           const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
             MockWalletPersonalizeBloc(),
-            const WalletPersonalizeNetworkError(
+            const WalletPersonalizeError(
               error: NetworkError(hasInternet: false, sourceError: 'test'),
             ),
           ),
@@ -462,7 +448,7 @@ void main() {
         await tester.pumpWidgetWithAppWrapper(
           const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
             MockWalletPersonalizeBloc(),
-            const WalletPersonalizeNetworkError(
+            const WalletPersonalizeError(
               error: NetworkError(hasInternet: true, sourceError: 'test'),
             ),
           ),
@@ -495,7 +481,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          const WalletPersonalizeGenericError(
+          const WalletPersonalizeError(
             error: GenericError('generic', sourceError: 'test'),
           ),
         ),
@@ -527,7 +513,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          const WalletPersonalizeSessionExpired(
+          const WalletPersonalizeError(
             error: SessionError(state: SessionState.expired, sourceError: 'test'),
           ),
         ),
@@ -679,26 +665,26 @@ void main() {
       expect(find.text(WalletRoutes.walletTransferTargetRoute), findsOneWidget);
     });
 
-    testWidgets('ltc1 Verify WalletPersonalizeFailure shows TerminalPage', (tester) async {
+    testWidgets('ltc1 Verify WalletPersonalizeError shows ErrorPage', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          WalletPersonalizeFailure(),
+          const WalletPersonalizeError(error: GenericError('test', sourceError: 'test')),
         ),
         providers: [
           RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
         ],
       );
-      expect(find.byType(TerminalPage), findsOneWidget);
+      expect(find.byType(ErrorPage), findsOneWidget);
       final l10n = await TestUtils.englishLocalizations;
-      expect(find.text(l10n.walletPersonalizeScreenErrorTitle), findsAtLeast(1));
+      expect(find.text(l10n.errorScreenGenericHeadline), findsAtLeast(1));
     });
 
     testWidgets('ltc1 Verify WalletPersonalizeDigidCancelled shows WalletPersonalizeDigidErrorPage', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          WalletPersonalizeDigidCancelled(),
+          const WalletPersonalizeDigidCancelled(),
         ),
         providers: [
           RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
@@ -724,11 +710,11 @@ void main() {
       expect(find.text(l10n.walletPersonalizeDigidErrorPageTitle), findsOneWidget);
     });
 
-    testWidgets('ltc1 Verify WalletPersonalizeNetworkError shows ErrorPage', (tester) async {
+    testWidgets('ltc1 Verify WalletPersonalizeError (NetworkError) shows server related ErrorPage', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          const WalletPersonalizeNetworkError(
+          const WalletPersonalizeError(
             error: NetworkError(hasInternet: true, sourceError: 'test'),
           ),
         ),
@@ -743,7 +729,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          const WalletPersonalizeGenericError(error: GenericError('generic', sourceError: 'test')),
+          const WalletPersonalizeError(error: GenericError('generic', sourceError: 'test')),
         ),
         providers: [
           RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
@@ -756,7 +742,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          const WalletPersonalizeSessionExpired(
+          const WalletPersonalizeError(
             error: SessionError(state: SessionState.expired, sourceError: 'test'),
           ),
         ),

@@ -331,11 +331,11 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::sync::Arc;
 
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::VerifiedAttestation;
-    use assert_matches::assert_matches;
     use crypto::x509::BorrowingCertificate;
     use futures::FutureExt;
     use http::StatusCode;

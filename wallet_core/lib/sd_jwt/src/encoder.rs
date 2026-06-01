@@ -126,10 +126,10 @@ impl<H: Hasher> SdObjectEncoder<H> {
 
 #[cfg(test)]
 mod test {
+    use std::assert_matches;
     use std::num::NonZeroUsize;
     use std::vec;
 
-    use assert_matches::assert_matches;
     use attestation_types::claim_path::ClaimPath;
     use serde_json::Value;
     use serde_json::json;

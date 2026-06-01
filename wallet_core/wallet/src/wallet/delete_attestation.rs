@@ -173,9 +173,9 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::sync::Arc;
 
-    use assert_matches::assert_matches;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use mockall::predicate::always;
     use mockall::predicate::eq;

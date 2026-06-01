@@ -1,6 +1,6 @@
+use std::assert_matches;
 use std::time::Duration;
 
-use assert_matches::assert_matches;
 use db_test::DbSetup;
 use rstest::rstest;
 use serial_test::serial;

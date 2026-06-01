@@ -222,11 +222,11 @@ impl PublishLock {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::io::Seek;
     use std::sync::atomic::AtomicBool;
     use std::sync::atomic::Ordering;
 
-    use assert_matches::assert_matches;
     use rstest::rstest;
     use tempfile::NamedTempFile;
 

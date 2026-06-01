@@ -45,6 +45,10 @@ import '../domain/usecase/event/impl/get_wallet_events_for_card_usecase_impl.dar
 import '../domain/usecase/event/impl/get_wallet_events_usecase_impl.dart';
 import '../domain/usecase/event/impl/observe_recent_wallet_events_usecase_impl.dart';
 import '../domain/usecase/event/observe_recent_wallet_events_usecase.dart';
+import '../domain/usecase/help/get_help_categories_usecase.dart';
+import '../domain/usecase/help/get_help_topic_blocks_usecase.dart';
+import '../domain/usecase/help/impl/get_help_categories_usecase_impl.dart';
+import '../domain/usecase/help/impl/get_help_topic_blocks_usecase_impl.dart';
 import '../domain/usecase/issuance/cancel_issuance_usecase.dart';
 import '../domain/usecase/issuance/impl/cancel_issuance_usecase_impl.dart';
 import '../domain/usecase/issuance/impl/start_issuance_usecase_impl.dart';
@@ -354,6 +358,12 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<FetchTourVideosUseCase>(
           create: (context) => FetchTourVideosUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<GetHelpCategoriesUseCase>(
+          create: (context) => GetHelpCategoriesUseCaseImpl(context.read()),
+        ),
+        RepositoryProvider<GetHelpTopicBlocksUseCase>(
+          create: (context) => GetHelpTopicBlocksUseCaseImpl(context.read()),
         ),
         RepositoryProvider<CancelWalletTransferUseCase>(
           create: (context) => CancelWalletTransferUseCaseImpl(context.read()),

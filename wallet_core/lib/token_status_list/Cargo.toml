@@ -45,7 +45,6 @@ rustls-pki-types = { workspace = true, optional = true }
 utoipa = { workspace = true, optional = true }
 
 [dev-dependencies]
-assert_matches.workspace = true
 dashmap.workspace = true
 futures.workspace = true
 mockall.workspace = true

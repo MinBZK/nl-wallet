@@ -1,4 +1,5 @@
-use assert_matches::assert_matches;
+use std::assert_matches;
+
 use chrono::Utc;
 use crypto::utils::random_string;
 use db_test::DbSetup;

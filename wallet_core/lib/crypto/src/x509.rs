@@ -562,9 +562,9 @@ pub struct CertificateConfiguration {
 
 #[cfg(test)]
 mod test {
+    use std::assert_matches;
     use std::slice::from_ref;
 
-    use assert_matches::assert_matches;
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;

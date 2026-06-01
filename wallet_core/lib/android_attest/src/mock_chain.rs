@@ -230,10 +230,10 @@ impl MockCaChain {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::time::SystemTime;
     use std::time::UNIX_EPOCH;
 
-    use assert_matches::assert_matches;
     use rsa::BigUint;
     use rsa::traits::PublicKeyParts;
     use rstest::rstest;

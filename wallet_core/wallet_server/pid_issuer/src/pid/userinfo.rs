@@ -162,9 +162,9 @@ fn verify_against_keys<C: DeserializeOwned>(
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::sync::LazyLock;
 
-    use assert_matches::assert_matches;
     use jsonwebtoken::Algorithm;
     use jsonwebtoken::EncodingKey;
     use jsonwebtoken::Header;

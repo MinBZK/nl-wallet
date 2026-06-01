@@ -309,7 +309,8 @@ pub mod mock {
 
 #[cfg(test)]
 mod test {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
+
     use chrono::Utc;
     use jwt::SignedJwt;
     use mockall::predicate::eq;

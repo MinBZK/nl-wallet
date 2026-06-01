@@ -42,9 +42,7 @@ void main() {
           onUnlock: () {},
         ).withState<PinBloc, PinState>(
           MockPinBloc(),
-          const PinValidateNetworkError(
-            error: NetworkError(hasInternet: true, sourceError: 'test'),
-          ),
+          const PinValidateError(error: NetworkError(hasInternet: true, sourceError: 'test')),
         ),
         providers: [
           RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (c) => MockIsBiometricLoginEnabledUseCase()),
@@ -75,7 +73,7 @@ void main() {
           onUnlock: () {},
         ).withState<PinBloc, PinState>(
           MockPinBloc(),
-          const PinValidateGenericError(
+          const PinValidateError(
             error: GenericError('generic', sourceError: 'test'),
           ),
         ),

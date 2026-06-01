@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../domain/model/result/application_error.dart';
 import '../../navigation/secured_page_route.dart';
-import '../../util/extension/navigator_state_extension.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/text/title_text.dart';
@@ -57,53 +56,14 @@ class ErrorScreen extends StatelessWidget {
     );
   }
 
-  /// Creates a generic [ErrorScreen] for unspecified errors.
-  ///
-  /// Use [style] to determine the CTA button behavior (retry or close).
-  factory ErrorScreen.generic(BuildContext context, {ErrorCtaStyle style = ErrorCtaStyle.retry}) {
-    final page = ErrorPage.generic(context, style: style);
-    return ErrorScreen.fromPage(page, actions: style.associatedActions);
-  }
-
-  /// Creates an [ErrorScreen] tailored for network-related errors.
-  ///
-  /// The screen content is determined by [error.hasInternet].
-  factory ErrorScreen.network(
-    BuildContext context, {
-    required NetworkError error,
+  /// Creates an [ErrorScreen] from an [ApplicationError].
+  factory ErrorScreen.fromError(
+    BuildContext context,
+    ApplicationError error, {
     ErrorCtaStyle style = ErrorCtaStyle.retry,
   }) {
-    if (!error.hasInternet) {
-      return ErrorScreen.noInternet(context, style: style);
-    } else {
-      return ErrorScreen.server(context, style: style);
-    }
-  }
-
-  /// Creates an [ErrorScreen] specifically for 'no internet' scenarios.
-  factory ErrorScreen.noInternet(BuildContext context, {ErrorCtaStyle style = ErrorCtaStyle.retry}) {
-    final page = ErrorPage.noInternet(context, style: style);
-    return ErrorScreen.fromPage(page, actions: style.associatedActions);
-  }
-
-  /// Creates an [ErrorScreen] specifically for 'server error' scenarios.
-  factory ErrorScreen.server(BuildContext context, {ErrorCtaStyle style = ErrorCtaStyle.retry}) {
-    final page = ErrorPage.server(context, style: style);
-    return ErrorScreen.fromPage(page, actions: style.associatedActions);
-  }
-
-  /// Creates an [ErrorScreen] for when the device does not meet requirements.
-  factory ErrorScreen.deviceIncompatible(BuildContext context) {
-    final page = ErrorPage.deviceIncompatible(
-      context,
-      onPrimaryActionPressed: () => Navigator.of(context).resetToSplash(),
-    );
-    return ErrorScreen.fromPage(page, actions: const []);
-  }
-
-  /// Creates an [ErrorScreen] for session expiration scenarios.
-  factory ErrorScreen.sessionExpired(BuildContext context, {ErrorCtaStyle style = ErrorCtaStyle.retry}) {
-    final page = ErrorPage.sessionExpired(context, style: style);
+    Future<bool> maybePop() => Navigator.maybePop(context);
+    final page = ErrorPage.fromError(context, error, onPrimaryActionPressed: maybePop, style: style);
     return ErrorScreen.fromPage(page, actions: style.associatedActions);
   }
 
@@ -125,38 +85,22 @@ class ErrorScreen extends StatelessWidget {
     );
   }
 
-  /// Shows a generic [ErrorScreen] (e.g., 'something went wrong').
+  /// Navigates to the appropriate [ErrorScreen] for the given [ApplicationError].
   ///
-  /// Use [style] to determine the CTA button behavior (retry or close).
-  /// Set [secured] to false to bypass using a [SecuredPageRoute].
-  static void showGeneric(BuildContext context, {ErrorCtaStyle style = ErrorCtaStyle.retry, bool secured = true}) {
-    final errorScreen = ErrorScreen.generic(context, style: style);
+  /// This method maps various [ApplicationError] types to their corresponding
+  /// specialized screens. If no specialized screen is available for an error
+  /// type, it defaults to a generic error screen and logs a warning.
+  ///
+  /// [style] determines the primary call-to-action button behavior (e.g., retry vs. close).
+  /// [secured] specifies whether the screen should be pushed as a [SecuredPageRoute].
+  static void show(
+    BuildContext context,
+    ApplicationError error, {
+    ErrorCtaStyle style = ErrorCtaStyle.retry,
+    bool secured = true,
+  }) {
+    final errorScreen = ErrorScreen.fromError(context, error, style: style);
     _showErrorScreen(context, secured: secured, errorScreen: errorScreen);
-  }
-
-  /// Shows an [ErrorScreen] tailored for the given [NetworkError].
-  ///
-  /// The screen content is determined by the [error] state (e.g., server outage or no internet).
-  /// Set [secured] to false to bypass using a [SecuredPageRoute].
-  static void showNetwork(BuildContext context, {required NetworkError error, bool secured = true}) {
-    final errorScreen = ErrorScreen.network(context, error: error);
-    _showErrorScreen(context, secured: secured, errorScreen: errorScreen);
-  }
-
-  /// Shows an [ErrorScreen] for device incompatibility errors.
-  ///
-  /// Set [secured] to false to bypass using a [SecuredPageRoute].
-  static void showDeviceIncompatible(BuildContext context, {bool secured = true}) {
-    final errorScreen = ErrorScreen.deviceIncompatible(context);
-    _showErrorScreen(context, secured: secured, errorScreen: errorScreen);
-  }
-
-  /// Shows an [ErrorScreen] for session expiration scenarios.
-  ///
-  /// Use [style] to determine the CTA button behavior (retry or close).
-  static void showSessionExpired(BuildContext context, {ErrorCtaStyle style = ErrorCtaStyle.retry}) {
-    final errorScreen = ErrorScreen.sessionExpired(context, style: style);
-    _showErrorScreen(context, errorScreen: errorScreen);
   }
 
   /// Internal helper to push the [ErrorScreen] onto the [Navigator] stack.

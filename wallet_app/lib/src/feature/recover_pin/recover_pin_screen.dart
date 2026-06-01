@@ -11,7 +11,6 @@ import '../../domain/model/bloc/error_state.dart';
 import '../../domain/model/navigation/navigation_request.dart';
 import '../../domain/model/result/application_error.dart';
 import '../../navigation/wallet_routes.dart';
-import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/list_extension.dart';
 import '../../util/extension/navigator_state_extension.dart';
@@ -60,10 +59,11 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
   @override
   Widget build(BuildContext context) {
     final state = context.watch<RecoverPinBloc>().state;
+    final title = _resolvePageTitle(context, state);
     return Scaffold(
       appBar: WalletAppBar(
         automaticallyImplyLeading: false,
-        title: _buildTitle(context),
+        title: title == null ? const SizedBox.shrink() : TitleText(title),
         leading: BackIconButton(
           onPressed: () => _handleBackPress(state, context),
         ).takeIf((_) => _canPop(state)),
@@ -97,33 +97,25 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
     }
   }
 
-  Widget _buildTitle(BuildContext context) {
-    final state = context.watch<RecoverPinBloc>().state;
+  /// Returns the title to be shown at the top of the page, or null if none should be visible for the provided [state].
+  String? _resolvePageTitle(BuildContext context, RecoverPinState state) {
     switch (state) {
       case RecoverPinInitial():
-        return TitleText(context.l10n.recoverPinIntroPageTitle);
+        return context.l10n.recoverPinIntroPageTitle;
       case RecoverPinDigidMismatch():
-        return TitleText(context.l10n.recoverPinDigidMismatchPageTitle);
+        return context.l10n.recoverPinDigidMismatchPageTitle;
       case RecoverPinStopped():
-        return TitleText(context.l10n.recoverPinStoppedPageTitle);
+        return context.l10n.recoverPinStoppedPageTitle;
       case RecoverPinSuccess():
-        return TitleText(context.l10n.recoverPinSuccessPageTitle);
+        return context.l10n.recoverPinSuccessPageTitle;
       case RecoverPinDigidLoginCancelled():
-        return TitleText(context.l10n.recoverPinLoginCancelledPageTitle);
+        return context.l10n.recoverPinLoginCancelledPageTitle;
       case RecoverPinDigidFailure():
-      case RecoverPinNetworkError():
-      case RecoverPinSessionExpired():
-      case RecoverPinGenericError():
-        return TitleText(context.l10n.recoverPinGenericErrorTitle);
-      case RecoverPinSelectPinFailed():
-      case RecoverPinConfirmPinFailed():
-      case RecoverPinChooseNewPin():
-      case RecoverPinConfirmNewPin():
-      case RecoverPinUpdatingPin():
-      case RecoverPinLoadingDigidUrl():
-      case RecoverPinAwaitingDigidAuthentication():
-      case RecoverPinVerifyingDigidAuthentication():
-        return const SizedBox.shrink();
+        return context.l10n.recoverPinGenericErrorTitle;
+      case RecoverPinError(:final error):
+        return ErrorPage.titleFromError(context, error);
+      default:
+        return null;
     }
   }
 
@@ -149,9 +141,7 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
       RecoverPinConfirmPinFailed() => true,
       RecoverPinDigidFailure() => true,
       RecoverPinDigidLoginCancelled() => true,
-      RecoverPinNetworkError() => true,
-      RecoverPinGenericError() => true,
-      RecoverPinSessionExpired() => true,
+      RecoverPinError() => true,
     };
   }
 
@@ -175,9 +165,7 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
       RecoverPinConfirmPinFailed() => false,
       RecoverPinDigidFailure() => false,
       RecoverPinDigidLoginCancelled() => false,
-      RecoverPinNetworkError() => false,
-      RecoverPinGenericError() => false,
-      RecoverPinSessionExpired() => false,
+      RecoverPinError() => false,
     };
   }
 
@@ -195,198 +183,188 @@ class _RecoverPinScreenState extends State<RecoverPinScreen> with LockStateMixin
         if (current is RecoverPinConfirmPinFailed) return false;
         return true;
       },
-      builder: (c, state) {
-        final pageTitle = tryCast<TitleText>(_buildTitle(c))?.data ?? '';
-        Widget page;
-        switch (state) {
-          case RecoverPinInitial():
-            page = TerminalPage(
-              title: pageTitle,
-              description: c.l10n.recoverPinIntroPageDescription,
-              illustration: const PageIllustration(asset: WalletAssets.svg_digid),
-              primaryButton: PrimaryButton(
-                text: Text(c.l10n.recoverPinIntroPageOpenDigidCta),
-                icon: const SvgOrImage(asset: WalletAssets.logo_digid),
-                onPressed: () => c.bloc.add(const RecoverPinLoginWithDigidClicked()),
-                key: const Key('primaryButtonCta'),
-              ),
-              secondaryButton: TertiaryButton(
-                text: Text(c.l10n.recoverPinOpenDigidWebsiteCta),
-                icon: const Icon(Icons.north_east_outlined),
-                onPressed: _launchDigidWebsite,
-                key: const Key('secondaryButtonCta'),
-              ),
-            );
-          case RecoverPinLoadingDigidUrl():
-            page = GenericLoadingPage(
-              title: c.l10n.recoverPinGenericLoadingTitle,
-              description: c.l10n.recoverPinLoadingDigidUrlDescription,
-            );
-          case RecoverPinAwaitingDigidAuthentication():
-            page = GenericLoadingPage(
-              title: c.l10n.recoverPinContinueWithDigiDTitle,
-              description: c.l10n.recoverPinContinueWithDigiDDescription,
-              cancelCta: c.l10n.generalStop,
-              loadingIndicator: const SizedBox.shrink(),
-              onCancel: () => _stopRecoverPin(c),
-            );
-          case RecoverPinVerifyingDigidAuthentication():
-            page = GenericLoadingPage(
-              contextImage: const SvgOrImage(asset: WalletAssets.logo_wallet, height: 64, width: 64),
-              title: c.l10n.recoverPinGenericLoadingTitle,
-              description: c.l10n.recoverPinVerifyingAuthenticationDescription,
-              cancelCta: c.l10n.generalStop,
-              onCancel: () => _stopRecoverPin(c),
-            );
-          case RecoverPinDigidMismatch():
-            page = TerminalPage(
-              title: pageTitle,
-              description: c.l10n.recoverPinDigidMismatchPageDescription,
-              illustration: const PageIllustration(
-                asset: WalletAssets.svg_error_general,
-              ),
-              primaryButton: PrimaryButton(
-                text: Text(c.l10n.recoverPinDigidMismatchPageRetryCta),
-                icon: const SvgOrImage(asset: WalletAssets.logo_digid),
-                onPressed: () => c.bloc.add(const RecoverPinRetryPressed()),
-                key: const Key('primaryButtonCta'),
-              ),
-              secondaryButton: TertiaryButton(
-                text: Text(c.l10n.recoverPinOpenDigidWebsiteCta),
-                icon: const Icon(Icons.north_east_outlined),
-                onPressed: _launchDigidWebsite,
-                key: const Key('secondaryButtonCta'),
-              ),
-            );
-          case RecoverPinStopped():
-            page = TerminalPage(
-              title: pageTitle,
-              description: c.l10n.recoverPinStoppedPageDescription,
-              illustration: const PageIllustration(
-                asset: WalletAssets.svg_stopped,
-              ),
-              primaryButton: PrimaryButton(
-                text: Text(c.l10n.generalClose),
-                icon: const Icon(Icons.close_outlined),
-                onPressed: () => Navigator.of(context).resetToDashboard(),
-                key: const Key('primaryButtonCta'),
-              ),
-            );
-          case RecoverPinChooseNewPin():
-            page = PinSetupPage(
-              title: c.l10n.recoverPinChooseNewPinPageTitle,
-              enteredDigits: state.enteredDigits,
-              onBackspacePressed: () => c.bloc.add(RecoverPinBackspacePressed()),
-              onBackspaceLongPressed: () => c.bloc.add(RecoverPinClearPressed()),
-              onKeyPressed: (digit) => c.bloc.add(RecoverPinDigitPressed(digit)),
-              onStopPressed: () => _stopRecoverPin(c),
-            );
-          case RecoverPinConfirmNewPin():
-            page = PinSetupPage(
-              title: c.l10n.recoverPinConfirmNewPinPageTitle,
-              enteredDigits: state.enteredDigits,
-              onBackspacePressed: () => c.bloc.add(RecoverPinBackspacePressed()),
-              onBackspaceLongPressed: () => c.bloc.add(RecoverPinClearPressed()),
-              onKeyPressed: (digit) => c.bloc.add(RecoverPinDigitPressed(digit)),
-              onStopPressed: () => _stopRecoverPin(c),
-            );
-          case RecoverPinUpdatingPin():
-            page = GenericLoadingPage(
-              contextImage: const SvgOrImage(asset: WalletAssets.logo_wallet, height: 64, width: 64),
-              title: c.l10n.recoverPinGenericLoadingTitle,
-              description: c.l10n.recoverPinUpdatingPinPageDescription,
-            );
-          case RecoverPinSuccess():
-            page = TerminalPage(
-              title: pageTitle,
-              description: c.l10n.recoverPinSuccessPageDescription,
-              illustration: const PageIllustration(
-                asset: WalletAssets.svg_pin_set,
-              ),
-              primaryButton: PrimaryButton(
-                text: Text(c.l10n.recoverPinSuccessPageToOverviewCta),
-                onPressed: () => Navigator.of(c).resetToDashboard(),
-                key: const Key('primaryButtonCta'),
-              ),
-              secondaryButton: TertiaryButton(
-                text: Text(c.l10n.recoverPinSuccessPageToHistoryCta),
-                icon: const Icon(Icons.north_east_outlined),
-                onPressed: () => Navigator.of(c)
-                  ..resetToDashboard()
-                  ..pushNamed(WalletRoutes.walletHistoryRoute),
-                key: const Key('secondaryButtonCta'),
-              ).takeIf((_) => false), // Reintroduce with PVW-5058 (also see PVW-5141)
-            );
-          case RecoverPinSelectPinFailed():
-            page = const CenteredLoadingIndicator();
-          case RecoverPinConfirmPinFailed():
-            page = const CenteredLoadingIndicator();
-          case RecoverPinDigidFailure():
-            page = TerminalPage(
-              title: pageTitle,
-              description: c.l10n.recoverPinFailurePageDescription,
-              illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
-              primaryButton: PrimaryButton(
-                text: Text(c.l10n.recoverPinFailurePageRetryCta),
-                icon: const SvgOrImage(asset: WalletAssets.logo_digid),
-                onPressed: () => c.bloc.add(const RecoverPinLoginWithDigidClicked()),
-                key: const Key('primaryButtonCta'),
-              ),
-              secondaryButton: TertiaryButton(
-                text: Text(c.l10n.recoverPinOpenDigidWebsiteCta),
-                icon: const Icon(Icons.north_east_outlined),
-                onPressed: _launchDigidWebsite,
-                key: const Key('secondaryButtonCta'),
-              ),
-            );
-          case RecoverPinDigidLoginCancelled():
-            page = TerminalPage(
-              title: pageTitle,
-              description: c.l10n.recoverPinLoginCancelledPageDescription,
-              illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
-              primaryButton: PrimaryButton(
-                text: Text(c.l10n.recoverPinLoginCancelledPageRetryCta),
-                icon: const SvgOrImage(asset: WalletAssets.logo_digid),
-                onPressed: () => c.bloc.add(const RecoverPinLoginWithDigidClicked()),
-                key: const Key('primaryButtonCta'),
-              ),
-              secondaryButton: TertiaryButton(
-                text: Text(c.l10n.recoverPinOpenDigidWebsiteCta),
-                icon: const Icon(Icons.north_east_outlined),
-                onPressed: _launchDigidWebsite,
-                key: const Key('secondaryButtonCta'),
-              ),
-            );
-          case RecoverPinNetworkError(:final error):
-            page = error.hasInternet
-                ? ErrorPage.server(
-                    c,
-                    onPrimaryActionPressed: () => c.bloc.add(const RecoverPinRetryPressed()),
-                    style: ErrorCtaStyle.retry,
-                  )
-                : ErrorPage.noInternet(
-                    c,
-                    onPrimaryActionPressed: () => c.bloc.add(const RecoverPinRetryPressed()),
-                    style: ErrorCtaStyle.retry,
-                  );
-          case RecoverPinGenericError():
-            page = ErrorPage.generic(
-              c,
-              onPrimaryActionPressed: () => c.bloc.add(const RecoverPinRetryPressed()),
-              style: ErrorCtaStyle.retry,
-            );
-          case RecoverPinSessionExpired():
-            page = ErrorPage.sessionExpired(
-              c,
-              onPrimaryActionPressed: () => c.bloc.add(const RecoverPinRetryPressed()),
-              style: ErrorCtaStyle.retry,
-            );
-        }
+      builder: (context, state) {
+        final Widget page = switch (state) {
+          RecoverPinInitial() => _buildInitial(context, state),
+          RecoverPinLoadingDigidUrl() => GenericLoadingPage(
+            title: context.l10n.recoverPinGenericLoadingTitle,
+            description: context.l10n.recoverPinLoadingDigidUrlDescription,
+          ),
+          RecoverPinAwaitingDigidAuthentication() => GenericLoadingPage(
+            title: context.l10n.recoverPinContinueWithDigiDTitle,
+            description: context.l10n.recoverPinContinueWithDigiDDescription,
+            cancelCta: context.l10n.generalStop,
+            loadingIndicator: const SizedBox.shrink(),
+            onCancel: () => _stopRecoverPin(context),
+          ),
+          RecoverPinVerifyingDigidAuthentication() => GenericLoadingPage(
+            contextImage: const SvgOrImage(asset: WalletAssets.logo_wallet, height: 64, width: 64),
+            title: context.l10n.recoverPinGenericLoadingTitle,
+            description: context.l10n.recoverPinVerifyingAuthenticationDescription,
+            cancelCta: context.l10n.generalStop,
+            onCancel: () => _stopRecoverPin(context),
+          ),
+          RecoverPinDigidMismatch() => _buildDigidMismatch(context, state),
+          RecoverPinStopped() => _buildStopped(context, state),
+          RecoverPinChooseNewPin() => PinSetupPage(
+            title: context.l10n.recoverPinChooseNewPinPageTitle,
+            enteredDigits: state.enteredDigits,
+            onBackspacePressed: () => context.bloc.add(RecoverPinBackspacePressed()),
+            onBackspaceLongPressed: () => context.bloc.add(RecoverPinClearPressed()),
+            onKeyPressed: (digit) => context.bloc.add(RecoverPinDigitPressed(digit)),
+            onStopPressed: () => _stopRecoverPin(context),
+          ),
+          RecoverPinConfirmNewPin() => PinSetupPage(
+            title: context.l10n.recoverPinConfirmNewPinPageTitle,
+            enteredDigits: state.enteredDigits,
+            onBackspacePressed: () => context.bloc.add(RecoverPinBackspacePressed()),
+            onBackspaceLongPressed: () => context.bloc.add(RecoverPinClearPressed()),
+            onKeyPressed: (digit) => context.bloc.add(RecoverPinDigitPressed(digit)),
+            onStopPressed: () => _stopRecoverPin(context),
+          ),
+          RecoverPinUpdatingPin() => GenericLoadingPage(
+            contextImage: const SvgOrImage(asset: WalletAssets.logo_wallet, height: 64, width: 64),
+            title: context.l10n.recoverPinGenericLoadingTitle,
+            description: context.l10n.recoverPinUpdatingPinPageDescription,
+          ),
+          RecoverPinSuccess() => _buildSuccess(context, state),
+          RecoverPinSelectPinFailed() => const CenteredLoadingIndicator(),
+          RecoverPinConfirmPinFailed() => const CenteredLoadingIndicator(),
+          RecoverPinDigidFailure() => _buildDigidFailure(context, state),
+          RecoverPinDigidLoginCancelled() => _buildLoginCancelled(context, state),
+          RecoverPinError(:final error) => ErrorPage.fromError(
+            context,
+            error,
+            onPrimaryActionPressed: () => context.bloc.add(const RecoverPinRetryPressed()),
+            style: ErrorCtaStyle.retry,
+          ),
+        };
         return FakePagingAnimatedSwitcher(
           animateBackwards: state.didGoBack,
           child: page,
         );
       },
+    );
+  }
+
+  Widget _buildLoginCancelled(BuildContext context, RecoverPinDigidLoginCancelled state) {
+    return TerminalPage(
+      title: _resolvePageTitle(context, state) ?? '',
+      description: context.l10n.recoverPinLoginCancelledPageDescription,
+      illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.recoverPinLoginCancelledPageRetryCta),
+        icon: const SvgOrImage(asset: WalletAssets.logo_digid),
+        onPressed: () => context.bloc.add(const RecoverPinLoginWithDigidClicked()),
+        key: const Key('primaryButtonCta'),
+      ),
+      secondaryButton: TertiaryButton(
+        text: Text(context.l10n.recoverPinOpenDigidWebsiteCta),
+        icon: const Icon(Icons.north_east_outlined),
+        onPressed: _launchDigidWebsite,
+        key: const Key('secondaryButtonCta'),
+      ),
+    );
+  }
+
+  Widget _buildDigidFailure(BuildContext context, RecoverPinDigidFailure state) {
+    return TerminalPage(
+      title: _resolvePageTitle(context, state) ?? '',
+      description: context.l10n.recoverPinFailurePageDescription,
+      illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.recoverPinFailurePageRetryCta),
+        icon: const SvgOrImage(asset: WalletAssets.logo_digid),
+        onPressed: () => context.bloc.add(const RecoverPinLoginWithDigidClicked()),
+        key: const Key('primaryButtonCta'),
+      ),
+      secondaryButton: TertiaryButton(
+        text: Text(context.l10n.recoverPinOpenDigidWebsiteCta),
+        icon: const Icon(Icons.north_east_outlined),
+        onPressed: _launchDigidWebsite,
+        key: const Key('secondaryButtonCta'),
+      ),
+    );
+  }
+
+  Widget _buildSuccess(BuildContext context, RecoverPinSuccess state) {
+    return TerminalPage(
+      title: _resolvePageTitle(context, state) ?? '',
+      description: context.l10n.recoverPinSuccessPageDescription,
+      illustration: const PageIllustration(
+        asset: WalletAssets.svg_pin_set,
+      ),
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.recoverPinSuccessPageToOverviewCta),
+        onPressed: () => Navigator.of(context).resetToDashboard(),
+        key: const Key('primaryButtonCta'),
+      ),
+      secondaryButton: TertiaryButton(
+        text: Text(context.l10n.recoverPinSuccessPageToHistoryCta),
+        icon: const Icon(Icons.north_east_outlined),
+        onPressed: () => Navigator.of(context)
+          ..resetToDashboard()
+          ..pushNamed(WalletRoutes.walletHistoryRoute),
+        key: const Key('secondaryButtonCta'),
+      ).takeIf((_) => false), // Reintroduce with PVW-5058 (also see PVW-5141)
+    );
+  }
+
+  Widget _buildStopped(BuildContext context, RecoverPinStopped state) {
+    return TerminalPage(
+      title: _resolvePageTitle(context, state) ?? '',
+      description: context.l10n.recoverPinStoppedPageDescription,
+      illustration: const PageIllustration(
+        asset: WalletAssets.svg_stopped,
+      ),
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.generalClose),
+        icon: const Icon(Icons.close_outlined),
+        onPressed: () => Navigator.of(context).resetToDashboard(),
+        key: const Key('primaryButtonCta'),
+      ),
+    );
+  }
+
+  Widget _buildDigidMismatch(BuildContext context, RecoverPinDigidMismatch state) {
+    return TerminalPage(
+      title: _resolvePageTitle(context, state) ?? '',
+      description: context.l10n.recoverPinDigidMismatchPageDescription,
+      illustration: const PageIllustration(
+        asset: WalletAssets.svg_error_general,
+      ),
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.recoverPinDigidMismatchPageRetryCta),
+        icon: const SvgOrImage(asset: WalletAssets.logo_digid),
+        onPressed: () => context.bloc.add(const RecoverPinRetryPressed()),
+        key: const Key('primaryButtonCta'),
+      ),
+      secondaryButton: TertiaryButton(
+        text: Text(context.l10n.recoverPinOpenDigidWebsiteCta),
+        icon: const Icon(Icons.north_east_outlined),
+        onPressed: _launchDigidWebsite,
+        key: const Key('secondaryButtonCta'),
+      ),
+    );
+  }
+
+  Widget _buildInitial(BuildContext context, RecoverPinInitial state) {
+    return TerminalPage(
+      title: _resolvePageTitle(context, state) ?? '',
+      description: context.l10n.recoverPinIntroPageDescription,
+      illustration: const PageIllustration(asset: WalletAssets.svg_digid),
+      primaryButton: PrimaryButton(
+        text: Text(context.l10n.recoverPinIntroPageOpenDigidCta),
+        icon: const SvgOrImage(asset: WalletAssets.logo_digid),
+        onPressed: () => context.bloc.add(const RecoverPinLoginWithDigidClicked()),
+        key: const Key('primaryButtonCta'),
+      ),
+      secondaryButton: TertiaryButton(
+        text: Text(context.l10n.recoverPinOpenDigidWebsiteCta),
+        icon: const Icon(Icons.north_east_outlined),
+        onPressed: _launchDigidWebsite,
+        key: const Key('secondaryButtonCta'),
+      ),
     );
   }
 

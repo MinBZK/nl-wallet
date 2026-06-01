@@ -275,7 +275,7 @@ where
             .start_authorization_code_flow(
                 &pid_issuance_config.url,
                 String::from(NL_WALLET_CLIENT_ID),
-                urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
+                urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
             )
             .await?;
 
@@ -683,10 +683,10 @@ fn compare_contents(
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::collections::HashMap;
     use std::ops::Add;
 
-    use assert_matches::assert_matches;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::validity::ValidityWindow;

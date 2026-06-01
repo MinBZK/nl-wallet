@@ -80,7 +80,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 879366194;
+  int get rustContentHash => -1466530841;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -90,6 +90,8 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
 }
 
 abstract class WalletCoreApi extends BaseApi {
+  String crateModelsImageSanitizedSvgXml({required SanitizedSvg that});
+
   Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({
     required List<int> selectedIndices,
     required String pin,
@@ -223,6 +225,12 @@ abstract class WalletCoreApi extends BaseApi {
   Future<WalletInstructionResult> crateApiFullUnlockWallet({required String pin});
 
   Future<void> crateApiFullUnlockWalletWithBiometrics();
+
+  RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_SanitizedSvg;
+
+  RustArcDecrementStrongCountFnType get rust_arc_decrement_strong_count_SanitizedSvg;
+
+  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_SanitizedSvgPtr;
 }
 
 class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreApi {
@@ -232,6 +240,32 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     required super.generalizedFrbRustBinding,
     required super.portManager,
   });
+
+  @override
+  String crateModelsImageSanitizedSvgXml({required SanitizedSvg that}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          var arg0 = cst_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
+            that,
+          );
+          return wire.wire__crate__models__image__SanitizedSvg_xml(arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateModelsImageSanitizedSvgXmlConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateModelsImageSanitizedSvgXmlConstMeta => const TaskConstMeta(
+    debugName: "SanitizedSvg_xml",
+    argNames: ["that"],
+  );
 
   @override
   Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({
@@ -1799,10 +1833,32 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     };
   }
 
+  RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_SanitizedSvg =>
+      wire.rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg;
+
+  RustArcDecrementStrongCountFnType get rust_arc_decrement_strong_count_SanitizedSvg =>
+      wire.rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg;
+
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return AnyhowException(raw as String);
+  }
+
+  @protected
+  SanitizedSvg dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return SanitizedSvgImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  SanitizedSvg dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return SanitizedSvgImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
@@ -1823,6 +1879,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Object dco_decode_DartOpaque(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return decodeDartOpaque(raw, generalizedFrbRustBinding);
+  }
+
+  @protected
+  SanitizedSvg dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return SanitizedSvgImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
@@ -2216,7 +2278,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (raw[0]) {
       case 0:
         return Image_Svg(
-          xml: dco_decode_String(raw[1]),
+          svg: dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(raw[1]),
         );
       case 1:
         return Image_Png(
@@ -2777,10 +2839,34 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  SanitizedSvg sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return SanitizedSvgImpl.frbInternalSseDecode(sse_decode_usize(deserializer), sse_decode_i_32(deserializer));
+  }
+
+  @protected
+  SanitizedSvg sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return SanitizedSvgImpl.frbInternalSseDecode(sse_decode_usize(deserializer), sse_decode_i_32(deserializer));
+  }
+
+  @protected
   Object sse_decode_DartOpaque(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_isize(deserializer);
     return decodeDartOpaque(inner, generalizedFrbRustBinding);
+  }
+
+  @protected
+  SanitizedSvg sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return SanitizedSvgImpl.frbInternalSseDecode(sse_decode_usize(deserializer), sse_decode_i_32(deserializer));
   }
 
   @protected
@@ -3188,8 +3274,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        var var_xml = sse_decode_String(deserializer);
-        return Image_Svg(xml: var_xml);
+        var var_svg = sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
+          deserializer,
+        );
+        return Image_Svg(svg: var_svg);
       case 1:
         var var_data = sse_decode_list_prim_u_8_strict(deserializer);
         return Image_Png(data: var_data);
@@ -3890,6 +3978,22 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  int cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
+    SanitizedSvg raw,
+  ) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as SanitizedSvgImpl).frbInternalCstEncode(move: true);
+  }
+
+  @protected
+  int cst_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(SanitizedSvg raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as SanitizedSvgImpl).frbInternalCstEncode(move: false);
+  }
+
+  @protected
   PlatformPointer cst_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
     FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) raw,
   ) {
@@ -3913,6 +4017,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   PlatformPointer cst_encode_DartOpaque(Object raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return encodeDartOpaque(raw, portManager.dartHandlerPort, generalizedFrbRustBinding);
+  }
+
+  @protected
+  int cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(SanitizedSvg raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    // ignore: invalid_use_of_internal_member
+    return (raw as SanitizedSvgImpl).frbInternalCstEncode();
   }
 
   @protected
@@ -4006,6 +4117,24 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
+    SanitizedSvg self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize((self as SanitizedSvgImpl).frbInternalSseEncode(move: true), serializer);
+  }
+
+  @protected
+  void sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
+    SanitizedSvg self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize((self as SanitizedSvgImpl).frbInternalSseEncode(move: false), serializer);
+  }
+
+  @protected
   void sse_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
     FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) self,
     SseSerializer serializer,
@@ -4038,6 +4167,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       ),
       serializer,
     );
+  }
+
+  @protected
+  void sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
+    SanitizedSvg self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize((self as SanitizedSvgImpl).frbInternalSseEncode(move: null), serializer);
   }
 
   @protected
@@ -4437,9 +4575,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_image(Image self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     switch (self) {
-      case Image_Svg(xml: final xml):
+      case Image_Svg(svg: final svg):
         sse_encode_i_32(0, serializer);
-        sse_encode_String(xml, serializer);
+        sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerSanitizedSvg(
+          svg,
+          serializer,
+        );
       case Image_Png(data: final data):
         sse_encode_i_32(1, serializer);
         sse_encode_list_prim_u_8_strict(data, serializer);
@@ -5024,4 +5165,24 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_i_32(10, serializer);
     }
   }
+}
+
+@sealed
+class SanitizedSvgImpl extends RustOpaque implements SanitizedSvg {
+  // Not to be used by end users
+  SanitizedSvgImpl.frbInternalDcoDecode(List<dynamic> wire) : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  SanitizedSvgImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
+    : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: WalletCore.instance.api.rust_arc_increment_strong_count_SanitizedSvg,
+    rustArcDecrementStrongCount: WalletCore.instance.api.rust_arc_decrement_strong_count_SanitizedSvg,
+    rustArcDecrementStrongCountPtr: WalletCore.instance.api.rust_arc_decrement_strong_count_SanitizedSvgPtr,
+  );
+
+  String xml() => WalletCore.instance.api.crateModelsImageSanitizedSvgXml(
+    that: this,
+  );
 }

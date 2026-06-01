@@ -220,7 +220,8 @@ pub struct KeyBindingJwtClaims {
 
 #[cfg(test)]
 mod test {
-    use assert_matches::assert_matches;
+    use std::assert_matches;
+
     use base64::Engine;
     use base64::prelude::*;
     use chrono::TimeZone;

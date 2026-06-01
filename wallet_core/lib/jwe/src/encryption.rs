@@ -220,9 +220,9 @@ impl From<JwePublicKey> for JweEncrypter {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::collections::HashMap;
 
-    use assert_matches::assert_matches;
     use jwk_simple::Key;
     use jwk_simple::KeyUse;
     use rstest::rstest;
