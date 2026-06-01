@@ -207,6 +207,7 @@ fn check_accept(header: &HeaderValue) -> Result<(), StatusCode> {
         })?;
     if content_types
         .into_iter()
+        // */* is pure for convenience of using curl and friends to test
         .any(|media_type| media_type == ALL_MEDIA_TYPE || media_type == STATUSLIST_JWT_MEDIA_TYPE)
     {
         return Ok(());
