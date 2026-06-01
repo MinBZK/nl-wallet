@@ -34,7 +34,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         wia_trust_anchors: settings.wia_trust_anchors,
     };
 
-    let digid_metadata_cache = Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings)?);
+    let digid_metadata_cache = DigidMetadataCache::try_new(settings.digid.client_settings)?;
     let brp_client = HttpBrpClient::new(settings.brp_server);
     let recovery_code_secret_key = SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?;
     let digid_client_id = settings.digid.client_id;

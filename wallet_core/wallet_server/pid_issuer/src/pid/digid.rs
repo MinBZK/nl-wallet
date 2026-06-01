@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::tls_pinned_client_builder;
 use jsonwebtoken::Algorithm;
@@ -86,15 +84,11 @@ impl DigidMetadataCache {
 pub struct OpenIdClient {
     decrypter: JweDecrypter,
     client_id: String,
-    cache: Arc<DigidMetadataCache>,
+    cache: DigidMetadataCache,
 }
 
 impl OpenIdClient {
-    pub fn try_new(
-        bsn_privkey: &Key,
-        client_id: impl Into<String>,
-        cache: Arc<DigidMetadataCache>,
-    ) -> Result<Self, Error> {
+    pub fn try_new(bsn_privkey: &Key, client_id: impl Into<String>, cache: DigidMetadataCache) -> Result<Self, Error> {
         let jwe_private_key =
             JweRsaPrivateKey::try_from_jwk(bsn_privkey, EXPECTED_JWE_RSA_ALGORITHM).map_err(Error::RsaJwk)?;
 

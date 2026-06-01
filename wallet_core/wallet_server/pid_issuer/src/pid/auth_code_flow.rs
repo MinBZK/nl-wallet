@@ -110,7 +110,7 @@ impl UpstreamOidcAuthorizationCodeFlow {
         brp_client: HttpBrpClient,
         bsn_privkey: &Key,
         client_id: impl Into<String>,
-        digid_metadata_cache: Arc<DigidMetadataCache>,
+        digid_metadata_cache: DigidMetadataCache,
         recovery_code_secret_key: SecretKeyVariant,
         pkce_flow_store: Arc<IssuerPkceStore>,
     ) -> Result<Self, Error> {

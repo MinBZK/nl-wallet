@@ -63,7 +63,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .transpose()
         .unwrap();
 
-    let digid_metadata_cache = Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings.clone()).unwrap());
+    let digid_metadata_cache = DigidMetadataCache::try_new(settings.digid.client_settings.clone()).unwrap();
     let pkce_store = Arc::new(IssuerPkceStore::new(
         StoreConnection::try_new(settings.issuer_settings.server_settings.storage.url.clone())
             .await
