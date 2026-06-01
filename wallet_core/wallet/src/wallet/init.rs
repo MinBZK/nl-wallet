@@ -210,6 +210,7 @@ where
         repositories: WalletRepositories<CR, UR>,
         wallet_clients: WalletClients<APC, CID, DCC, SLC>,
         registration_status: RegistrationStatus,
+        session: Option<Session<CID::Authorization, CID::Issuance, DCC::Session>>,
     ) -> Self {
         let registration = match registration_status {
             RegistrationStatus::Unregistered => WalletRegistration::Unregistered,
@@ -243,7 +244,7 @@ where
             disclosure_client: wallet_clients.disclosure_client,
             close_proximity_disclosure: PhantomData,
             status_list_client: Arc::new(wallet_clients.status_list_client),
-            session: None,
+            session,
             lock: WalletLock::new(true),
             attestations_callback: Arc::default(),
             recent_history_callback: None,
@@ -281,8 +282,14 @@ where
             None
         };
 
-        let mut wallet = Self::new(storage, key_holder, repositories, wallet_clients, registration_status);
-        wallet.session = restored_session;
+        let mut wallet = Self::new(
+            storage,
+            key_holder,
+            repositories,
+            wallet_clients,
+            registration_status,
+            restored_session,
+        );
 
         wallet.start_background_revocation_checks(REVOCATION_CHECK_FREQUENCY);
 

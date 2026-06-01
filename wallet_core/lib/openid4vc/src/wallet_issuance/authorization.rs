@@ -213,25 +213,15 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
 
 impl HttpAuthorizationSession {
     pub fn restore(http_client: HttpJsonClient, data: HttpAuthorizationSessionData) -> Self {
-        let HttpAuthorizationSessionData {
-            issuer_metadata,
-            oauth_metadata,
-            auth_url,
-            client_id,
-            redirect_uri,
-            code_verifier,
-            state,
-        } = data;
-
         Self {
-            issuer_metadata,
-            oauth_metadata,
+            issuer_metadata: data.issuer_metadata,
+            oauth_metadata: data.oauth_metadata,
             http_client,
-            auth_url,
-            client_id,
-            redirect_uri,
-            pkce_pair: S256PkcePair::from_code_verifier(code_verifier),
-            state,
+            auth_url: data.auth_url,
+            client_id: data.client_id,
+            redirect_uri: data.redirect_uri,
+            pkce_pair: S256PkcePair::from_code_verifier(data.code_verifier),
+            state: data.state,
         }
     }
 }

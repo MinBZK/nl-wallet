@@ -126,7 +126,7 @@ where
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn create_pin_recovery_redirect_uri(&mut self) -> Result<Url, PinRecoveryError> {
-        info!("Generating OAuth authorization URL, starting issuer discovery");
+        info!("Generating OAuth URL, starting issuer discovery");
 
         info!("Checking if blocked");
         if self.is_blocked() {
@@ -169,7 +169,7 @@ where
             .await
             .map_err(IssuanceError::IssuanceSession)?;
 
-        info!("PIN recovery OAuth authorization URL generated");
+        info!("PIN recovery OAuth URL generated");
         let auth_url = authorization_session.auth_url().clone();
         self.storage
             .write()
