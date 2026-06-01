@@ -4,6 +4,7 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::urls;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::return_url::credential_offer_base_uri;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
 use tracing::info;
@@ -28,6 +29,7 @@ pub enum UriType {
     Disclosure,
     DisclosureBasedIssuance,
     Transfer,
+    CredentialOffer,
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -42,8 +44,8 @@ pub enum UriIdentificationError {
 /// Custom URL schemes for disclosure flows.
 const DISCLOSURE_URL_SCHEMES: &[&str] = &["eu-eaap", "openid4vp", "haip-vp"];
 
-/// Custom URL schemes for issuance flows.
-const ISSUANCE_URL_SCHEMES: &[&str] = &["eu-eaa-offer", "haip-vci", "openid-credential-offer"];
+/// Custom URL schemes for credential offer issuance flows.
+const CREDENTIAL_OFFER_URI_SCHEMES: &[&str] = &["eu-eaa-offer", "haip-vci", "openid-credential-offer"];
 
 pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
     let uri_str = uri.as_str();
@@ -64,6 +66,10 @@ pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
         return Some(UriType::Disclosure);
     }
 
+    if uri_str.starts_with(credential_offer_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str()) {
+        return Some(UriType::CredentialOffer);
+    }
+
     if uri_str.starts_with(urls::transfer_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str()) {
         return Some(UriType::Transfer);
     }
@@ -72,8 +78,8 @@ pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
         return Some(UriType::Disclosure);
     }
 
-    if ISSUANCE_URL_SCHEMES.contains(&uri.scheme()) {
-        return Some(UriType::PidIssuance); // TODO: Should be a new UriType reflecting
+    if CREDENTIAL_OFFER_URI_SCHEMES.contains(&uri.scheme()) {
+        return Some(UriType::CredentialOffer);
     }
 
     None
@@ -226,6 +232,13 @@ mod tests {
 
         // The transfer URI should be recognised.
         assert_matches!(wallet.identify_uri(transfer_uri.as_str()).unwrap(), UriType::Transfer);
+
+        // The credential offer URI should be recognised.
+        let credential_offer_uri = credential_offer_base_uri(&UNIVERSAL_LINK_BASE_URL).join("offer123");
+        assert_matches!(
+            wallet.identify_uri(credential_offer_uri.as_str()).unwrap(),
+            UriType::CredentialOffer
+        );
     }
 
     #[rstest]
@@ -238,5 +251,17 @@ mod tests {
         let wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
         let actual = wallet.identify_uri(uri).expect("uri is identifiable");
         assert_matches!(actual, UriType::Disclosure);
+    }
+
+    #[rstest]
+    #[case("eu-eaa-offer://")]
+    #[case("haip-vci://")]
+    #[case("openid-credential-offer://")]
+    #[case("openid-credential-offer://request?credential_offer=%7B%22issuer%22%3A%22https%3A%2F%2Fexample.com%22%7D")] // credential_offer={"issuer":"https://example.com"}
+    #[tokio::test]
+    async fn test_wallet_identify_credential_offer_scheme(#[case] uri: &str) {
+        let wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
+        let actual = wallet.identify_uri(uri).expect("uri is identifiable");
+        assert_matches!(actual, UriType::CredentialOffer);
     }
 }

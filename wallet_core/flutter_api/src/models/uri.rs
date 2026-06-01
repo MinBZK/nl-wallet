@@ -8,6 +8,7 @@ pub enum IdentifyUriResult {
     Disclosure,
     DisclosureBasedIssuance,
     Transfer,
+    CredentialOffer,
 }
 
 impl TryFrom<Result<UriType, UriIdentificationError>> for IdentifyUriResult {
@@ -22,6 +23,7 @@ impl TryFrom<Result<UriType, UriIdentificationError>> for IdentifyUriResult {
                 UriType::Disclosure => Ok(Self::Disclosure),
                 UriType::DisclosureBasedIssuance => Ok(Self::DisclosureBasedIssuance),
                 UriType::Transfer => Ok(Self::Transfer),
+                UriType::CredentialOffer => Ok(Self::CredentialOffer),
             },
             Err(e) => Err(e),
         }
