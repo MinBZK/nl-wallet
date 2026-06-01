@@ -2682,6 +2682,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "svg_sanitize",
  "tokio",
  "tracing",
  "tracing-subscriber",

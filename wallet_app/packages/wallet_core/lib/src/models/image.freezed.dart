@@ -125,10 +125,10 @@ return asset(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String xml)?  svg,TResult Function( Uint8List data)?  png,TResult Function( Uint8List data)?  jpeg,TResult Function( String path)?  asset,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( SanitizedSvg svg)?  svg,TResult Function( Uint8List data)?  png,TResult Function( Uint8List data)?  jpeg,TResult Function( String path)?  asset,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case Image_Svg() when svg != null:
-return svg(_that.xml);case Image_Png() when png != null:
+return svg(_that.svg);case Image_Png() when png != null:
 return png(_that.data);case Image_Jpeg() when jpeg != null:
 return jpeg(_that.data);case Image_Asset() when asset != null:
 return asset(_that.path);case _:
@@ -149,10 +149,10 @@ return asset(_that.path);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String xml)  svg,required TResult Function( Uint8List data)  png,required TResult Function( Uint8List data)  jpeg,required TResult Function( String path)  asset,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( SanitizedSvg svg)  svg,required TResult Function( Uint8List data)  png,required TResult Function( Uint8List data)  jpeg,required TResult Function( String path)  asset,}) {final _that = this;
 switch (_that) {
 case Image_Svg():
-return svg(_that.xml);case Image_Png():
+return svg(_that.svg);case Image_Png():
 return png(_that.data);case Image_Jpeg():
 return jpeg(_that.data);case Image_Asset():
 return asset(_that.path);}
@@ -169,10 +169,10 @@ return asset(_that.path);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String xml)?  svg,TResult? Function( Uint8List data)?  png,TResult? Function( Uint8List data)?  jpeg,TResult? Function( String path)?  asset,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( SanitizedSvg svg)?  svg,TResult? Function( Uint8List data)?  png,TResult? Function( Uint8List data)?  jpeg,TResult? Function( String path)?  asset,}) {final _that = this;
 switch (_that) {
 case Image_Svg() when svg != null:
-return svg(_that.xml);case Image_Png() when png != null:
+return svg(_that.svg);case Image_Png() when png != null:
 return png(_that.data);case Image_Jpeg() when jpeg != null:
 return jpeg(_that.data);case Image_Asset() when asset != null:
 return asset(_that.path);case _:
@@ -187,10 +187,10 @@ return asset(_that.path);case _:
 
 
 class Image_Svg extends Image {
-  const Image_Svg({required this.xml}): super._();
+  const Image_Svg({required this.svg}): super._();
   
 
- final  String xml;
+ final  SanitizedSvg svg;
 
 /// Create a copy of Image
 /// with the given fields replaced by the non-null parameter values.
@@ -202,16 +202,16 @@ $Image_SvgCopyWith<Image_Svg> get copyWith => _$Image_SvgCopyWithImpl<Image_Svg>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Image_Svg&&(identical(other.xml, xml) || other.xml == xml));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Image_Svg&&(identical(other.svg, svg) || other.svg == svg));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,xml);
+int get hashCode => Object.hash(runtimeType,svg);
 
 @override
 String toString() {
-  return 'Image.svg(xml: $xml)';
+  return 'Image.svg(svg: $svg)';
 }
 
 
@@ -222,7 +222,7 @@ abstract mixin class $Image_SvgCopyWith<$Res> implements $ImageCopyWith<$Res> {
   factory $Image_SvgCopyWith(Image_Svg value, $Res Function(Image_Svg) _then) = _$Image_SvgCopyWithImpl;
 @useResult
 $Res call({
- String xml
+ SanitizedSvg svg
 });
 
 
@@ -239,10 +239,10 @@ class _$Image_SvgCopyWithImpl<$Res>
 
 /// Create a copy of Image
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? xml = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? svg = null,}) {
   return _then(Image_Svg(
-xml: null == xml ? _self.xml : xml // ignore: cast_nullable_to_non_nullable
-as String,
+svg: null == svg ? _self.svg : svg // ignore: cast_nullable_to_non_nullable
+as SanitizedSvg,
   ));
 }
 
