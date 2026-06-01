@@ -17,7 +17,6 @@ use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
-use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::authorization::OAuthError;
@@ -88,10 +87,6 @@ pub enum IssuanceError {
     #[error("cannot renew PID: wallet has no PID")]
     #[category(critical)]
     NoPidPresent,
-
-    #[error("no Authorization Code flow present in PID issuance Credential Offer")]
-    #[category(critical)]
-    NoPidAuthorizationCodeFlow,
 
     #[error("user denied DigiD authentication")]
     #[category(expected)]
@@ -270,21 +265,14 @@ where
         let config = self.config_repository.get();
 
         info!("Fetching issuer metadata to discover authorization server");
-        let issuance_flow = self
+        let authorization_session = self
             .issuance_discovery
-            .start(
+            .start_authorization_code_flow(
                 &config.pid_credential_offer,
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
-                config.issuer_trust_anchors(),
             )
             .await?;
-
-        // We expect the Credential Offer contained in the Wallet Configuration or fetched from the issuer not to
-        // contain a Pre-Authorized code.
-        let IssuanceFlow::AuthorizationCode { authorization_session } = issuance_flow else {
-            return Err(IssuanceError::NoPidAuthorizationCodeFlow);
-        };
 
         info!("OAuth URL generated");
         let auth_url = authorization_session.auth_url().clone();
@@ -754,17 +742,18 @@ mod tests {
         assert!(wallet.session.is_none());
 
         // Set up the credential issuer discovery mock
-        wallet.issuance_discovery.expect_start_sync().return_once(|| {
-            let mut authorization_session = MockAuthorizationSession::new();
+        wallet
+            .issuance_discovery
+            .expect_start_authorization_code_flow_sync()
+            .return_once(|| {
+                let mut authorization_session = MockAuthorizationSession::new();
 
-            authorization_session
-                .expect_get_auth_url()
-                .return_const(Url::parse(AUTH_URL).unwrap());
+                authorization_session
+                    .expect_get_auth_url()
+                    .return_const(Url::parse(AUTH_URL).unwrap());
 
-            let flow = IssuanceFlow::AuthorizationCode { authorization_session };
-
-            Ok(flow)
-        });
+                Ok(authorization_session)
+            });
 
         wallet
             .mut_storage()
