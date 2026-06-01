@@ -1,5 +1,5 @@
 import 'package:collection/collection.dart';
-import 'package:country_codes/country_codes.dart';
+import 'package:country_codes_plus/country_codes_plus.dart';
 import 'package:fimber/fimber.dart';
 
 class CountryCodeFormatter {
