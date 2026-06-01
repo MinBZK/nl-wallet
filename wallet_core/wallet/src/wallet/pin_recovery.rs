@@ -86,7 +86,7 @@ pub enum PinRecoveryError {
     #[category(unexpected)]
     CommittedToPinRecovery,
 
-    #[error("user denied DigiD authentication")]
+    #[error("user denied authentication")]
     #[category(expected)]
     AuthorizationDenied,
 

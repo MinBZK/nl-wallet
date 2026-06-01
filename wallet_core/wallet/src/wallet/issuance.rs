@@ -96,7 +96,7 @@ pub enum IssuanceError {
     #[category(expected)]
     IssuerMetadataDiscovery(#[from] WellKnownError),
 
-    #[error("user denied DigiD authentication")]
+    #[error("user denied authentication")]
     #[category(expected)]
     AuthorizationDenied,
 
