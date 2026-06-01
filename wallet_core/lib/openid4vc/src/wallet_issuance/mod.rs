@@ -244,6 +244,14 @@ pub enum WalletIssuanceError {
     #[error("a Credential Offer containing a Pre-Authorized code with a Transaction Code is unsupported")]
     #[category(expected)]
     CredentialOfferTxCodeUnsupported,
+
+    #[error("the Credential Offer did not resolve to using the Authorization Code flow")]
+    #[category(expected)]
+    CredentialOfferNoAuthorizationCode,
+
+    #[error("the Credential Offer did not contain a Pre-Authorized Code")]
+    #[category(expected)]
+    CredentialOfferNoPreAuthorizedCode,
 }
 
 #[derive(Debug)]
@@ -257,10 +265,10 @@ pub trait IssuanceDiscovery {
     type Authorization: AuthorizationSession<Issuance = Self::Issuance>;
     type Issuance: IssuanceSession;
 
-    /// Parses the credential offer from the redirect URI, fetches issuer and OAuth metadata and then either returns an
+    /// Parses the Credential Offer from the redirect URI, fetches issuer and OAuth metadata and then either returns an
     /// [`AuthorizationSession`] the caller can use to redirect the user into a web-based OAuth flow (if the Credential
-    /// Offer contains an Authorization Code) or immediately returns an [`IssuanceSession`] that contains the caller
-    /// can use to request issued credentials (if the Credential Offer contains a Pre-Authorized Code).
+    /// Offer resolves to an Authorization Code flow) or immediately returns an [`IssuanceSession`] that the caller can
+    /// use to request issued credentials (if the Credential Offer contains a Pre-Authorized Code).
     async fn start(
         &self,
         offer_uri: &Url,
@@ -268,6 +276,26 @@ pub trait IssuanceDiscovery {
         redirect_uri: Url,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>;
+
+    /// Parses the Credential Offer from the redirect URI, fetches issuer and OAuth metadata and then returns an
+    /// [`AuthorizationSession`] the caller can use to redirect the user into a web-based OAuth flow. If the credential
+    /// offer contains a Pre-Authorized code, this returns an error.
+    async fn start_authorization_code_flow(
+        &self,
+        offer_uri: &Url,
+        client_id: String,
+        redirect_uri: Url,
+    ) -> Result<Self::Authorization, WalletIssuanceError>;
+
+    /// Parses the Credential Offer from the redirect URI, fetches issuer and OAuth metadata and then returns an
+    /// [`IssuanceSession`] that the caller can use to request issued credentials. If the Credential Offer resolves to
+    /// an Authorization Code flow, this returns an error.
+    async fn start_pre_authorized_code_flow(
+        &self,
+        offer_uri: &Url,
+        client_id: String,
+        issuer_trust_anchors: &TrustAnchors,
+    ) -> Result<Self::Issuance, WalletIssuanceError>;
 }
 
 /// Represents an in-progress OAuth authorization code flow.

@@ -43,45 +43,12 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         redirect_uri: Url,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError> {
-        let credential_offer = self.process_credential_offer(offer_uri).await?;
-
-        // TODO (PVW-5528): Use the authorization server from the Credential Offer, if provided.
-        let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer.credential_issuer).await?;
-
-        let flow = match credential_offer.grant {
-            CredentialOfferGrant::GrantWithFlow { flow } => flow,
-            CredentialOfferGrant::NoKnownGrant => {
-                // According to the OpenID4VCI 1.0 specification:
-                // (source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-2.3)
-                //
-                // "If grants is not present or is empty, the Wallet MUST determine the Grant Types the Credential
-                // Issuer's Authorization Server supports using the respective metadata. "
-                //
-                // Since a Pre-Authorized Code grant type without an actual code does not make any sense, we only check
-                // for the Authorization Code grant type here and use that if the Authorization Server supports it.
-                if !oauth_metadata
-                    .grant_types_supported
-                    .as_ref()
-                    .map(|grant_types| grant_types.contains("authorization_code"))
-                    // RFC 8414 says about the "grant_types" field:
-                    // (source: https://datatracker.ietf.org/doc/html/rfc8414#section-2)
-                    //
-                    // If omitted, the default value is "["authorization_code", "implicit"]".
-                    .unwrap_or(true)
-                {
-                    return Err(WalletIssuanceError::AuthorizationCodeNotSupported);
-                }
-
-                CredentialOfferFlow::AuthorizationCode { issuer_state: None }
-            }
-        };
-
-        let http_client = self.http_client.clone();
+        let (flow, issuer_metadata, oauth_metadata) = self.resolve_credential_offer_flow(offer_uri).await?;
 
         let issuance_flow = match flow {
             CredentialOfferFlow::AuthorizationCode { issuer_state } => {
                 let authorization_session = HttpAuthorizationSession::create(
-                    http_client,
+                    self.http_client.clone(),
                     issuer_metadata,
                     oauth_metadata,
                     client_id,
@@ -93,29 +60,66 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                 IssuanceFlow::AuthorizationCode { authorization_session }
             }
             CredentialOfferFlow::PreAuthorizedCode { pre_authorized_code } => {
-                let token_request = TokenRequest {
-                    grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
-                    code_verifier: None,
-                    client_id: Some(client_id),
-                    redirect_uri: None,
-                };
-
-                let message_client = HttpVcMessageClient::new(http_client);
-
-                let issuance_session = HttpIssuanceSession::create(
-                    message_client,
-                    issuer_metadata,
-                    oauth_metadata,
-                    token_request,
-                    issuer_trust_anchors,
-                )
-                .await?;
+                let issuance_session = self
+                    .create_issuance_session(
+                        pre_authorized_code,
+                        issuer_metadata,
+                        oauth_metadata,
+                        client_id,
+                        issuer_trust_anchors,
+                    )
+                    .await?;
 
                 IssuanceFlow::PreAuthorizedCode { issuance_session }
             }
         };
 
         Ok(issuance_flow)
+    }
+
+    async fn start_authorization_code_flow(
+        &self,
+        offer_uri: &Url,
+        client_id: String,
+        redirect_uri: Url,
+    ) -> Result<Self::Authorization, WalletIssuanceError> {
+        let (flow, issuer_metadata, oauth_metadata) = self.resolve_credential_offer_flow(offer_uri).await?;
+
+        let CredentialOfferFlow::AuthorizationCode { issuer_state } = flow else {
+            return Err(WalletIssuanceError::CredentialOfferNoAuthorizationCode);
+        };
+
+        HttpAuthorizationSession::create(
+            self.http_client.clone(),
+            issuer_metadata,
+            oauth_metadata,
+            client_id,
+            redirect_uri,
+            issuer_state,
+        )
+        .await
+    }
+
+    async fn start_pre_authorized_code_flow(
+        &self,
+        offer_uri: &Url,
+        client_id: String,
+        issuer_trust_anchors: &TrustAnchors,
+    ) -> Result<Self::Issuance, WalletIssuanceError> {
+        let (flow, issuer_metadata, oauth_metadata) = self.resolve_credential_offer_flow(offer_uri).await?;
+
+        let CredentialOfferFlow::PreAuthorizedCode { pre_authorized_code } = flow else {
+            return Err(WalletIssuanceError::CredentialOfferNoPreAuthorizedCode);
+        };
+
+        self.create_issuance_session(
+            pre_authorized_code,
+            issuer_metadata,
+            oauth_metadata,
+            client_id,
+            issuer_trust_anchors,
+        )
+        .await
     }
 }
 
@@ -206,11 +210,13 @@ impl NormalizedCredentialOffer {
 }
 
 impl HttpIssuanceDiscovery {
+    /// Parse a [`CredentialOffer`] from the URI or fetch it from a remote server, then convert it to a
+    /// [`NormalizedCredentialOffer`].
     async fn process_credential_offer(
         &self,
-        redirect_uri: &Url,
+        offer_uri: &Url,
     ) -> Result<NormalizedCredentialOffer, WalletIssuanceError> {
-        let query = redirect_uri
+        let query = offer_uri
             .query()
             .ok_or(WalletIssuanceError::MissingCredentialOfferQuery)?;
 
@@ -231,6 +237,7 @@ impl HttpIssuanceDiscovery {
         Ok(normalized)
     }
 
+    /// Fetch the Issuer Metadata, select an Authorization Server and fetch the OAuth server metadata from that.
     async fn fetch_metadata(
         &self,
         credential_issuer: &IssuerIdentifier,
@@ -250,6 +257,74 @@ impl HttpIssuanceDiscovery {
 
         Ok((issuer_metadata, oauth_metadata))
     }
+
+    /// Parse or fetch the [`CredentialOffer`], fetch both the issuer and OAuth metadata and determine the flow type.
+    async fn resolve_credential_offer_flow(
+        &self,
+        offer_uri: &Url,
+    ) -> Result<(CredentialOfferFlow, IssuerMetadata, AuthorizationServerMetadata), WalletIssuanceError> {
+        let credential_offer = self.process_credential_offer(offer_uri).await?;
+
+        // TODO (PVW-5528): Use the authorization server from the Credential Offer, if provided.
+        let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer.credential_issuer).await?;
+
+        let flow = match credential_offer.grant {
+            CredentialOfferGrant::GrantWithFlow { flow } => flow,
+            CredentialOfferGrant::NoKnownGrant => {
+                // According to the OpenID4VCI 1.0 specification:
+                // (source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-2.3)
+                //
+                // "If grants is not present or is empty, the Wallet MUST determine the Grant Types the Credential
+                // Issuer's Authorization Server supports using the respective metadata. "
+                //
+                // Since a Pre-Authorized Code grant type without an actual code does not make any sense, we only check
+                // for the Authorization Code grant type here and use that if the Authorization Server supports it.
+                if !oauth_metadata
+                    .grant_types_supported
+                    .as_ref()
+                    .map(|grant_types| grant_types.contains("authorization_code"))
+                    // RFC 8414 says about the "grant_types" field:
+                    // (source: https://datatracker.ietf.org/doc/html/rfc8414#section-2)
+                    //
+                    // If omitted, the default value is "["authorization_code", "implicit"]".
+                    .unwrap_or(true)
+                {
+                    return Err(WalletIssuanceError::AuthorizationCodeNotSupported);
+                }
+
+                CredentialOfferFlow::AuthorizationCode { issuer_state: None }
+            }
+        };
+
+        Ok((flow, issuer_metadata, oauth_metadata))
+    }
+
+    async fn create_issuance_session(
+        &self,
+        pre_authorized_code: AuthorizationCode,
+        issuer_metadata: IssuerMetadata,
+        oauth_metadata: AuthorizationServerMetadata,
+        client_id: String,
+        issuer_trust_anchors: &TrustAnchors,
+    ) -> Result<HttpIssuanceSession, WalletIssuanceError> {
+        let message_client = HttpVcMessageClient::new(self.http_client.clone());
+
+        let token_request = TokenRequest {
+            grant_type: TokenRequestGrantType::PreAuthorizedCode { pre_authorized_code },
+            code_verifier: None,
+            client_id: Some(client_id),
+            redirect_uri: None,
+        };
+
+        HttpIssuanceSession::create(
+            message_client,
+            issuer_metadata,
+            oauth_metadata,
+            token_request,
+            issuer_trust_anchors,
+        )
+        .await
+    }
 }
 
 #[cfg(test)]
@@ -265,6 +340,7 @@ mod test {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
+    use futures::future::try_join_all;
     use http::header;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
     use http_utils::reqwest::HttpJsonClient;
@@ -535,7 +611,7 @@ mod test {
             .await
             .expect("starting issuance should succeed");
 
-        let issuance_session = match (scenario, flow) {
+        let issuance_sessions = match (scenario, flow) {
             (
                 IssuanceDiscoveryScenario::AuthorizationCode,
                 IssuanceFlow::AuthorizationCode {
@@ -554,47 +630,84 @@ mod test {
                     authorization_session: auth_session,
                 },
             ) => {
-                // Verify the auth URL points to the expected authorization endpoint and carries PAR params.
-                assert!(auth_session.auth_url().as_str().starts_with(AUTHORIZATION_ENDPOINT));
-                let auth_params: HashMap<String, String> = auth_session
-                    .auth_url()
-                    .query_pairs()
-                    .map(|(k, v)| (k.to_string(), v.to_string()))
-                    .collect();
-                assert!(auth_params.contains_key("request_uri"));
-                assert!(!auth_params.contains_key("state"));
-
-                // State is carried inside the PAR-stored request, not the auth URL; read it from the session.
-                let state = auth_session.state().to_owned();
-
-                // Simulate the authorization server redirecting back with a code and state.
-                let mut received_redirect_uri = REDIRECT_URI.clone();
-                received_redirect_uri.set_query(Some(&format!("code=fake_auth_code&state={state}")));
-
-                // Complete the flow — exchanges the code for a token and fetches credential previews.
-                auth_session
-                    .start_issuance(&received_redirect_uri, &trust_anchor)
+                // Start issuance again, this time directly expecting the Authorization Code flow.
+                let second_auth_session = discovery
+                    .start_authorization_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), REDIRECT_URI.clone())
                     .await
-                    .unwrap()
+                    .expect("starting authorization code issuance should succeed");
+
+                // Staring issuance while expecting a Pre-Authorized Code flow results in an error.
+                let error = discovery
+                    .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &trust_anchor)
+                    .await
+                    .expect_err("staring pre-authorized code issuance should fail");
+
+                assert_matches!(error, WalletIssuanceError::CredentialOfferNoPreAuthorizedCode);
+
+                // Continue issuance for both authorization sessions, turning them into issuance sessions.
+                try_join_all(
+                    [auth_session, second_auth_session]
+                        .into_iter()
+                        .map(async |auth_session| {
+                            // Verify the auth URL points to the expected authorization endpoint and carries PAR params.
+                            assert!(auth_session.auth_url().as_str().starts_with(AUTHORIZATION_ENDPOINT));
+                            let auth_params: HashMap<String, String> = auth_session
+                                .auth_url()
+                                .query_pairs()
+                                .map(|(k, v)| (k.to_string(), v.to_string()))
+                                .collect();
+                            assert!(auth_params.contains_key("request_uri"));
+                            assert!(!auth_params.contains_key("state"));
+
+                            // State is carried inside the PAR-stored request, not the auth URL; read it from the
+                            // session.
+                            let state = auth_session.state().to_owned();
+
+                            // Simulate the authorization server redirecting back with a code and state.
+                            let mut received_redirect_uri = REDIRECT_URI.clone();
+                            received_redirect_uri.set_query(Some(&format!("code=fake_auth_code&state={state}")));
+
+                            // Complete the flow — exchanges the code for a token and fetches credential previews.
+                            auth_session.start_issuance(&received_redirect_uri, &trust_anchor).await
+                        }),
+                )
+                .await
+                .unwrap()
             }
             (IssuanceDiscoveryScenario::PreAuthorizedCode, IssuanceFlow::PreAuthorizedCode { issuance_session }) => {
-                // In case of the pre-authorized flow, we directly have an issuance session.
-                issuance_session
+                // Start issuance again, this time directly expecting the Pre-Authorized Code flow.
+                let second_issuance_session = discovery
+                    .start_pre_authorized_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), &trust_anchor)
+                    .await
+                    .expect("staring pre-authorized code issuance should succeed");
+
+                // Staring issuance while expecting an Authorization Code flow results in an error.
+                let error = discovery
+                    .start_authorization_code_flow(&offer_url, MOCK_WALLET_CLIENT_ID.to_string(), REDIRECT_URI.clone())
+                    .await
+                    .expect_err("staring authorization code issuance should fail");
+
+                assert_matches!(error, WalletIssuanceError::CredentialOfferNoAuthorizationCode);
+
+                // In case of the pre-authorized flow, we now have two issuance sessions.
+                vec![issuance_session, second_issuance_session]
             }
             _ => {
                 panic!("unexpected issuance flow type received");
             }
         };
 
-        // Check that the issuance session contains the expected credential preview.
-        assert_eq!(issuance_session.normalized_credential_preview().len(), 1);
-        assert_eq!(
-            issuance_session.normalized_credential_preview()[0]
-                .content
-                .credential_payload
-                .attestation_type,
-            PID_ATTESTATION_TYPE
-        );
+        for issuance_session in issuance_sessions {
+            // Check that the issuance session contains the expected credential preview.
+            assert_eq!(issuance_session.normalized_credential_preview().len(), 1);
+            assert_eq!(
+                issuance_session.normalized_credential_preview()[0]
+                    .content
+                    .credential_payload
+                    .attestation_type,
+                PID_ATTESTATION_TYPE
+            );
+        }
     }
 
     #[tokio::test]
