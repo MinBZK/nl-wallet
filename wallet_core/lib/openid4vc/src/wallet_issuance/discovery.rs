@@ -9,6 +9,7 @@ use super::WalletIssuanceError;
 use super::authorization::HttpAuthorizationSession;
 use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
+use crate::credential_offer::CredentialOffer;
 use crate::credential_offer::CredentialOfferContainer;
 use crate::credential_offer::Grants;
 use crate::issuer_identifier::IssuerIdentifier;
@@ -47,9 +48,37 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         // TODO (PVW-5528): Use the authorization server from the Credential Offer, if provided.
         let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer.credential_issuer).await?;
 
+        let flow = match credential_offer.grant {
+            CredentialOfferGrant::GrantWithFlow { flow } => flow,
+            CredentialOfferGrant::NoKnownGrant => {
+                // According to the OpenID4VCI 1.0 specification:
+                // (source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-2.3)
+                //
+                // "If grants is not present or is empty, the Wallet MUST determine the Grant Types the Credential
+                // Issuer's Authorization Server supports using the respective metadata. "
+                //
+                // Since a Pre-Authorized Code grant type without an actual code does not make any sense, we only check
+                // for the Authorization Code grant type here and use that if the Authorization Server supports it.
+                if !oauth_metadata
+                    .grant_types_supported
+                    .as_ref()
+                    .map(|grant_types| grant_types.contains("authorization_code"))
+                    // RFC 8414 says about the "grant_types" field:
+                    // (source: https://datatracker.ietf.org/doc/html/rfc8414#section-2)
+                    //
+                    // If omitted, the default value is "["authorization_code", "implicit"]".
+                    .unwrap_or(true)
+                {
+                    return Err(WalletIssuanceError::AuthorizationCodeNotSupported);
+                }
+
+                CredentialOfferFlow::AuthorizationCode { issuer_state: None }
+            }
+        };
+
         let http_client = self.http_client.clone();
 
-        let flow = match credential_offer.flow {
+        let issuance_flow = match flow {
             CredentialOfferFlow::AuthorizationCode { issuer_state } => {
                 let authorization_session = HttpAuthorizationSession::create(
                     http_client,
@@ -84,43 +113,9 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
 
                 IssuanceFlow::PreAuthorizedCode { issuance_session }
             }
-            CredentialOfferFlow::NoGrants => {
-                // According to the OpenID4VCI 1.0 specification:
-                // (source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-2.3)
-                //
-                // "If grants is not present or is empty, the Wallet MUST determine the Grant Types the Credential
-                // Issuer's Authorization Server supports using the respective metadata. "
-                //
-                // Since a Pre-Authorized Code grant type without an actual code does not make any sense, we only check
-                // for the Authorization Code grant type here and use that if the Authorization Server supports it.
-                if !oauth_metadata
-                    .grant_types_supported
-                    .as_ref()
-                    .map(|grant_types| grant_types.contains("authorization_code"))
-                    // RFC 8414 says about the "grant_types" field:
-                    // (source: https://datatracker.ietf.org/doc/html/rfc8414#section-2)
-                    //
-                    // If omitted, the default value is "["authorization_code", "implicit"]".
-                    .unwrap_or(true)
-                {
-                    return Err(WalletIssuanceError::AuthorizationCodeNotSupported);
-                }
-
-                let authorization_session = HttpAuthorizationSession::create(
-                    http_client,
-                    issuer_metadata,
-                    oauth_metadata,
-                    client_id,
-                    redirect_uri,
-                    None,
-                )
-                .await?;
-
-                IssuanceFlow::AuthorizationCode { authorization_session }
-            }
         };
 
-        Ok(flow)
+        Ok(issuance_flow)
     }
 }
 
@@ -133,19 +128,24 @@ struct NormalizedCredentialOffer {
     // TODO (PVW-5528): Use this field when considering which authorization server to choose.
     #[expect(dead_code)]
     authorization_server: Option<IssuerIdentifier>,
-    flow: CredentialOfferFlow,
+    grant: CredentialOfferGrant,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
+enum CredentialOfferGrant {
+    GrantWithFlow { flow: CredentialOfferFlow },
+    NoKnownGrant,
+}
+
+#[derive(Debug)]
 enum CredentialOfferFlow {
     AuthorizationCode { issuer_state: Option<String> },
     PreAuthorizedCode { pre_authorized_code: AuthorizationCode },
-    NoGrants,
 }
 
-impl CredentialOfferFlow {
-    fn from_grants(grants: Grants) -> Result<(Self, Option<IssuerIdentifier>), WalletIssuanceError> {
-        let result = match (grants.authorization_code, grants.pre_authorized_code) {
+impl NormalizedCredentialOffer {
+    fn from_credential_offer(credential_offer: CredentialOffer) -> Result<Self, WalletIssuanceError> {
+        let (grant, authorization_server) = match credential_offer.grants {
             // According to the OpenID4VCI 1.0 specification:
             // (source: https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1.1-2.3)
             // "When multiple grants are present, it is at the Wallet's discretion which one to use."
@@ -153,39 +153,55 @@ impl CredentialOfferFlow {
             // Since there is no point in making the user go through an OAuth authorization flow when they have already
             // been pre-authorized, we always choose the pre-authorized code from the `CredentialOffer` if it is
             // available.
-            (_, Some(pre_authorized_code)) => {
+            Some(Grants {
+                pre_authorized_code: Some(pre_authorized_code),
+                ..
+            }) => {
                 if pre_authorized_code.tx_code.is_some() {
                     return Err(WalletIssuanceError::CredentialOfferTxCodeUnsupported);
                 }
 
-                let flow = Self::PreAuthorizedCode {
-                    pre_authorized_code: pre_authorized_code.pre_authorized_code,
+                let grant = CredentialOfferGrant::GrantWithFlow {
+                    flow: CredentialOfferFlow::PreAuthorizedCode {
+                        pre_authorized_code: pre_authorized_code.pre_authorized_code,
+                    },
                 };
 
-                (flow, pre_authorized_code.authorization_server)
+                (grant, pre_authorized_code.authorization_server)
             }
-            (Some(authorization_code), None) => {
-                let flow = Self::AuthorizationCode {
-                    issuer_state: authorization_code.issuer_state,
+            Some(Grants {
+                authorization_code: Some(authorization_code),
+                pre_authorized_code: None,
+                ..
+            }) => {
+                let grant = CredentialOfferGrant::GrantWithFlow {
+                    flow: CredentialOfferFlow::AuthorizationCode {
+                        issuer_state: authorization_code.issuer_state,
+                    },
                 };
 
-                (flow, authorization_code.authorization_server)
+                (grant, authorization_code.authorization_server)
             }
-            (None, None) => {
-                // If the Credential Offer does not contain an Authorization Code or Pre-Authorized Code grant, but does
-                // contain some other unknown grant type, we should not fall back to consulting the Authorization Server
-                // metadata for supported grant types. As we do not support the grant type, this is an error case.
-                if !grants.unknown.is_empty() {
-                    return Err(WalletIssuanceError::CredentialOfferUnknownGrants(
-                        grants.unknown.into_keys().collect(),
-                    ));
-                }
-
-                (Self::NoGrants, None)
+            Some(Grants {
+                authorization_code: None,
+                pre_authorized_code: None,
+                unknown,
+            }) if !unknown.is_empty() => {
+                return Err(WalletIssuanceError::CredentialOfferUnknownGrants(
+                    unknown.into_keys().collect(),
+                ));
             }
+            Some(Grants { .. }) | None => (CredentialOfferGrant::NoKnownGrant, None),
         };
 
-        Ok(result)
+        let normalized = NormalizedCredentialOffer {
+            credential_issuer: credential_offer.credential_issuer,
+            credential_configuration_ids: credential_offer.credential_configuration_ids,
+            authorization_server,
+            grant,
+        };
+
+        Ok(normalized)
     }
 }
 
@@ -201,7 +217,7 @@ impl HttpIssuanceDiscovery {
         let offer_container = serde_urlencoded::from_str::<CredentialOfferContainer>(query)
             .map_err(WalletIssuanceError::CredentialOfferDeserialization)?;
 
-        let offer = match offer_container {
+        let credential_offer = match offer_container {
             CredentialOfferContainer::Offer { credential_offer } => *credential_offer,
             CredentialOfferContainer::Uri { credential_offer_uri } => self
                 .http_client
@@ -210,18 +226,7 @@ impl HttpIssuanceDiscovery {
                 .map_err(WalletIssuanceError::CredentialOfferHttp)?,
         };
 
-        let (flow, authorization_server) = if let Some(grants) = offer.grants {
-            CredentialOfferFlow::from_grants(grants)?
-        } else {
-            (CredentialOfferFlow::NoGrants, None)
-        };
-
-        let normalized = NormalizedCredentialOffer {
-            credential_issuer: offer.credential_issuer,
-            credential_configuration_ids: offer.credential_configuration_ids,
-            authorization_server,
-            flow,
-        };
+        let normalized = NormalizedCredentialOffer::from_credential_offer(credential_offer)?;
 
         Ok(normalized)
     }
