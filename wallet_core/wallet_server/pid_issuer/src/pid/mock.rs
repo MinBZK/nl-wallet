@@ -2,12 +2,13 @@ use std::convert::Infallible;
 
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
-use derive_more::Constructor;
 use openid4vc::Format;
+use openid4vc::authorization::VciAuthorizationRequest;
+use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
+use openid4vc::authorization_code_flow::AuthorizeOutcome;
 use openid4vc::issuable_document::IssuableDocument;
-use openid4vc::issuer::AttributeService;
-use openid4vc::issuer::UpstreamCodeVerifier;
 use openid4vc::token::TokenRequest;
+use url::Url;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -27,8 +28,17 @@ use crate::pid::constants::PID_RESIDENT_HOUSE_NUMBER;
 use crate::pid::constants::PID_RESIDENT_POSTAL_CODE;
 use crate::pid::constants::PID_RESIDENT_STREET;
 
-#[derive(Debug, Constructor)]
-pub struct MockAttributeService(VecNonEmpty<IssuableDocument>);
+/// Mock [`AuthorizationCodeFlow`] for pid having a preloaded redirect URL and issuable documents.
+pub struct MockPidAuthorizationCodeFlow {
+    redirect_to: Url,
+    documents: VecNonEmpty<IssuableDocument>,
+}
+
+impl MockPidAuthorizationCodeFlow {
+    pub fn new(redirect_to: Url, documents: VecNonEmpty<IssuableDocument>) -> Self {
+        Self { redirect_to, documents }
+    }
+}
 
 pub fn mock_issuable_documents_pid() -> VecNonEmpty<IssuableDocument> {
     vec_nonempty![
@@ -47,29 +57,37 @@ pub fn mock_issuable_documents_pid() -> VecNonEmpty<IssuableDocument> {
     ]
 }
 
-impl Default for MockAttributeService {
+impl Default for MockPidAuthorizationCodeFlow {
     fn default() -> Self {
-        Self::new(mock_issuable_documents_pid())
+        Self::new(
+            Url::parse("https://upstream.example.com/authorize").unwrap(),
+            mock_issuable_documents_pid(),
+        )
     }
 }
 
-impl AttributeService for MockAttributeService {
+impl AuthorizationCodeFlow for MockPidAuthorizationCodeFlow {
     type Error = Infallible;
 
-    async fn attributes(
-        &self,
-        _token_request: TokenRequest,
-        _upstream_code_verifier: Option<UpstreamCodeVerifier>,
-    ) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
-        let Self(documents) = self;
+    async fn authorize(&self, request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error> {
+        // Encode the (untransformed) authorization request as the redirect URL's query string,
+        // matching what a real upstream-OIDC flow does. Integration test wallet helpers parse
+        // `redirect_uri` and `state` out of this URL to complete the fake OIDC dance.
+        let query_string =
+            serde_urlencoded::to_string(&request).expect("VciAuthorizationRequest should always urlencode-serialize");
+        let mut redirect_url = self.redirect_to.clone();
+        redirect_url.set_query(Some(&query_string));
+        Ok(AuthorizeOutcome::RedirectTo(redirect_url))
+    }
 
-        // Create a copy of the document having a new random id, ensuring unique batch_ids
-        let documents = documents
+    async fn issuables(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
+        // Return copies with fresh ids so each call yields unique batch_ids.
+        let documents = self
+            .documents
             .nonempty_iter()
             .cloned()
             .map(|mut document| {
                 document.id = Uuid::new_v4();
-
                 document
             })
             .collect();

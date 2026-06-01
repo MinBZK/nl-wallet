@@ -11,11 +11,12 @@ use serde_with::skip_serializing_none;
 use strum::EnumString;
 use url::Url;
 
-use crate::issuer::AuthorizeError;
+use crate::authorizing_issuer::AuthorizeError;
+use crate::authorizing_issuer::ParError;
+use crate::authorizing_issuer::TokenRequestError as AuthorizingIssuerTokenRequestError;
 use crate::issuer::CredentialPreviewError;
 use crate::issuer::CredentialRequestError;
 use crate::issuer::IssuanceError;
-use crate::issuer::ParError;
 use crate::issuer::TokenRequestError;
 use crate::verifier::CancelSessionError;
 use crate::verifier::DisclosedAttributesError;
@@ -191,21 +192,38 @@ pub enum TokenErrorCode {
     Other(String),
 }
 
+impl From<TokenRequestError> for TokenErrorCode {
+    fn from(err: TokenRequestError) -> Self {
+        match err {
+            TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
+            | TokenRequestError::AttributesError(_)
+            | TokenRequestError::CredentialTypeNotOffered(_, _) => TokenErrorCode::ServerError,
+            TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
+            TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
+            TokenRequestError::SessionNotFound => TokenErrorCode::InvalidGrant,
+        }
+    }
+}
+
 impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
     fn from(err: TokenRequestError) -> Self {
         let description = err.to_string();
         ErrorResponse {
+            error: err.into(),
+            error_description: Some(description),
+            error_uri: None,
+        }
+    }
+}
+
+impl From<AuthorizingIssuerTokenRequestError> for ErrorResponse<TokenErrorCode> {
+    fn from(err: AuthorizingIssuerTokenRequestError) -> Self {
+        let description = err.to_string();
+        ErrorResponse {
             error: match err {
-                TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
-                | TokenRequestError::AttributesError(_)
-                | TokenRequestError::AttributeService(_)
-                | TokenRequestError::CredentialTypeNotOffered(_, _)
-                | TokenRequestError::PkceStore(_) => TokenErrorCode::ServerError,
-                TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
-                TokenRequestError::UnexpectedGrantType { .. } => TokenErrorCode::UnsupportedGrantType,
-                TokenRequestError::MissingCodeVerifier | TokenRequestError::PkceVerificationFailed => {
-                    TokenErrorCode::InvalidGrant
-                }
+                AuthorizingIssuerTokenRequestError::SessionStoreWrite(_)
+                | AuthorizingIssuerTokenRequestError::AuthorizationCodeFlow(_) => TokenErrorCode::ServerError,
+                AuthorizingIssuerTokenRequestError::IssuerTokenRequest(err) => err.into(),
             },
             error_description: Some(description),
             error_uri: None,
@@ -226,7 +244,7 @@ impl From<ParError> for ErrorResponse<ParErrorCode> {
         let description = err.to_string();
         ErrorResponse {
             error: match err {
-                ParError::InvalidClient(_) => ParErrorCode::InvalidClient,
+                ParError::UnknownClient(_) => ParErrorCode::InvalidClient,
                 ParError::Store(_) => ParErrorCode::ServerError,
             },
             error_description: Some(description),
@@ -258,15 +276,13 @@ impl From<AuthorizeError> for ErrorResponse<AuthorizeErrorCode> {
         let description = err.to_string();
         ErrorResponse {
             error: match err {
-                AuthorizeError::InvalidClient(_) => AuthorizeErrorCode::InvalidClient,
-                AuthorizeError::UnknownRequestUri(_) | AuthorizeError::UnsupportedCodeChallenge => {
-                    AuthorizeErrorCode::InvalidRequest
+                AuthorizeError::UnknownClient(_) | AuthorizeError::MismatchedClient { .. } => {
+                    AuthorizeErrorCode::InvalidClient
                 }
-                AuthorizeError::NoUpstreamAdapter
-                | AuthorizeError::ParStore(_)
-                | AuthorizeError::PkceStore(_)
-                | AuthorizeError::UpstreamResolve(_)
-                | AuthorizeError::Encode(_) => AuthorizeErrorCode::ServerError,
+                AuthorizeError::UnknownRequestUri(_) => AuthorizeErrorCode::InvalidRequest,
+                AuthorizeError::ParStore(_) | AuthorizeError::AuthorizationCodeFlow(_) | AuthorizeError::Encode(_) => {
+                    AuthorizeErrorCode::ServerError
+                }
             },
             error_description: Some(description),
             error_uri: None,

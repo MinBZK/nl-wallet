@@ -112,23 +112,6 @@ where
     }
 }
 
-/// A no-op [`Store`] implementation for use when no store is needed.
-impl<K: Send + Sync, V: Send> Store<K, V> for () {
-    type Error = Infallible;
-
-    async fn store(&self, _: K, _: V) -> Result<(), Infallible> {
-        Ok(())
-    }
-
-    async fn consume(&self, _: impl Into<K> + Send) -> Result<Option<V>, Infallible> {
-        Ok(None)
-    }
-
-    async fn cleanup(&self) -> Result<(), Infallible> {
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
