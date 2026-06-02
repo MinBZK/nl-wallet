@@ -2027,6 +2027,8 @@ dependencies = [
  "http_utils",
  "itertools 0.14.0",
  "openid4vc",
+ "pacf_issuance_server",
+ "reqwest",
  "serde",
  "serde_urlencoded",
  "serde_valid",

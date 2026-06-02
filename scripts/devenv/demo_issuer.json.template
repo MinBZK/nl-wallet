@@ -14,6 +14,19 @@
     "key": "${DEMO_ISSUER_ATTESTATION_SERVER_KEY}"
   },
   "usecases": {
+    "loyalty": {
+      "offer_url": "http://${SERVICES_HOST}:${PACF_ISSUANCE_SERVER_IS_PORT}/offer",
+      "data": [
+        {
+          "format": "mso_mdoc",
+          "attestation_type": "com.example.jum.bonuskaart",
+          "attributes": {
+            "branch": "Demodam",
+            "loyalty_number": "123456789"
+          }
+        }
+      ]
+    },
     "university_mdoc": {
       "client_id": "${DEMO_ISSUER_CLIENT_ID_UNIVERSITY_READER}",
       "data": {

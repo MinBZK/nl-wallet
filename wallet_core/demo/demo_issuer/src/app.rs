@@ -29,6 +29,8 @@ use openid4vc::openid4vp::VpRequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::VerifierUrlParameters;
+use pacf_issuance_server::offer::OfferRequest;
+use pacf_issuance_server::offer::OfferResponse;
 use server_utils::log_requests::log_request_response;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
@@ -43,6 +45,7 @@ use web_utils::headers::set_static_cache_control;
 use web_utils::language::LANGUAGE_JS_SHA256;
 use web_utils::language::Language;
 
+use crate::settings::IssuableDocumentTemplates;
 use crate::settings::Settings;
 use crate::settings::Usecase;
 use crate::translations::TRANSLATIONS;
@@ -184,26 +187,57 @@ async fn usecase(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase_id): Path<String>,
     language: Language,
-) -> Response {
+) -> Result<Response> {
     let Some(usecase) = state.usecases.get(&usecase_id) else {
-        return StatusCode::NOT_FOUND.into_response();
+        return Ok(StatusCode::NOT_FOUND.into_response());
     };
 
-    let universal_links = disclosure_based_issuance_universal_links(
-        &state.issuance_server_url,
-        &usecase_id,
-        &state.universal_link_base_url,
-        &usecase.client_id,
-    );
+    Ok(match usecase {
+        Usecase::PreAuthorized { data, offer_url } => {
+            let data = data.clone();
+            let offer_url = offer_url.clone();
+            pre_authorized_usecase(
+                &usecase_id,
+                language,
+                &data,
+                offer_url,
+                state.help_base_url.clone().into_inner(),
+            )
+            .await?
+        }
+        Usecase::DisclosureBased { client_id, .. } => {
+            let client_id = client_id.clone();
+            disclosure_based_usecase(
+                &state.issuance_server_url,
+                &usecase_id,
+                &state.universal_link_base_url,
+                language,
+                &client_id,
+                state.help_base_url.clone().into_inner(),
+            )
+        }
+    })
+}
+
+fn disclosure_based_usecase(
+    issuance_server_url: &BaseUrl,
+    usecase: &str,
+    universal_link_base_url: &BaseUrl,
+    selected_lang: Language,
+    client_id: &str,
+    help_base_url: Url,
+) -> Response {
+    let universal_links =
+        disclosure_based_issuance_universal_links(issuance_server_url, usecase, universal_link_base_url, client_id);
     UsecaseTemplate {
-        usecase: &usecase_id,
+        usecase,
         same_device_ul: universal_links.get(&SessionType::SameDevice).unwrap().to_owned(),
         cross_device_ul: universal_links.get(&SessionType::CrossDevice).unwrap().to_owned(),
-        help_base_url: state.help_base_url.clone().into_inner(),
+        help_base_url,
         wallet_web_sha256: &WALLET_WEB_JS_SHA256,
         base: BaseTemplate {
-            selected_lang: language,
-            trans: &TRANSLATIONS[language],
+            selected_lang,
+            trans: &TRANSLATIONS[selected_lang],
             available_languages: &Language::iter().collect_vec(),
             language_js_sha256: &LANGUAGE_JS_SHA256,
         },
@@ -211,22 +245,67 @@ async fn usecase(
     .into_response()
 }
 
+async fn pre_authorized_usecase(
+    usecase: &str,
+    selected_lang: Language,
+    data: &IssuableDocumentTemplates,
+    offer_url: Url,
+    help_base_url: Url,
+) -> Result<Response> {
+    let documents = data
+        .iter()
+        .map(|doc| {
+            let (format, attestation_type, attributes) = doc.clone().into();
+            IssuableDocument::try_new_with_random_id(format, attestation_type, attributes)
+                .map_err(|err| web_utils::error::Error::from(anyhow::Error::from(err)))
+        })
+        .collect::<Result<Vec<_>>>()?
+        .try_into()
+        .unwrap(); // we started with a VecNonEmpty
+
+    let offer_response = reqwest::Client::new()
+        .post(offer_url)
+        .json(&OfferRequest { documents })
+        .send()
+        .await
+        .and_then(|r| r.error_for_status())
+        .map_err(anyhow::Error::from)?
+        .json::<OfferResponse>()
+        .await
+        .map_err(anyhow::Error::from)?;
+
+    Ok(UsecaseTemplate {
+        usecase,
+        same_device_ul: offer_response.credential_offer_url.clone(),
+        cross_device_ul: offer_response.credential_offer_url,
+        help_base_url,
+        wallet_web_sha256: &WALLET_WEB_JS_SHA256,
+        base: BaseTemplate {
+            selected_lang,
+            trans: &TRANSLATIONS[selected_lang],
+            available_languages: &Language::iter().collect_vec(),
+            language_js_sha256: &LANGUAGE_JS_SHA256,
+        },
+    }
+    .into_response())
+}
+
 async fn attestation(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
-    Json(disclosed): Json<VecNonEmpty<DemoDisclosedAttestations>>,
+    Json(disclosed_attestations): Json<VecNonEmpty<DemoDisclosedAttestations>>,
 ) -> Result<Response> {
-    let Some(usecase) = state.usecases.get(&usecase) else {
+    let Some(Usecase::DisclosureBased { data, disclosed, .. }) = state.usecases.get(&usecase) else {
         return Ok(StatusCode::NOT_FOUND.into_response());
     };
 
     // get the requested attribute from the disclosed attributes, ignore everything else as we trust the issuance_server
     // blindly
-    let requested_path = usecase.disclosed.path.iter().map(String::as_str).collect::<Vec<_>>();
-    let attribute_value = disclosed
+    let requested_path = disclosed.path.iter().map(String::as_str).collect::<Vec<_>>();
+    let attribute_value = disclosed_attestations
         .iter()
         .flat_map(|demo_attestations| &demo_attestations.attestations)
-        .filter(|attestation| attestation.attestation_type == usecase.disclosed.credential_type)
+        .filter(|attestation| attestation.attestation_type == disclosed.credential_type)
         .exactly_one()
         .ok()
         .and_then(|document| {
@@ -240,8 +319,7 @@ async fn attestation(
         })
         .ok_or(anyhow::Error::msg("invalid disclosure result"))?;
 
-    let documents: Vec<IssuableDocument> = usecase
-        .data
+    let documents: Vec<IssuableDocument> = data
         .get(attribute_value)
         .map(|docs| {
             docs.iter()

@@ -18,6 +18,7 @@ use serde::Deserialize;
 use serde_valid::Validate;
 use serde_with::DisplayFromStr;
 use serde_with::serde_as;
+use url::Url;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -41,10 +42,17 @@ pub struct Server {
 }
 
 #[derive(Deserialize, Clone)]
-pub struct Usecase {
-    pub data: HashMap<AttributeValue, IssuableDocumentTemplates>,
-    pub client_id: String,
-    pub disclosed: Disclosed,
+#[serde(untagged)]
+pub enum Usecase {
+    PreAuthorized {
+        data: IssuableDocumentTemplates,
+        offer_url: Url,
+    },
+    DisclosureBased {
+        data: HashMap<AttributeValue, IssuableDocumentTemplates>,
+        client_id: String,
+        disclosed: Disclosed,
+    },
 }
 
 pub type IssuableDocumentTemplates = VecNonEmpty<IssuableDocumentTemplate>;

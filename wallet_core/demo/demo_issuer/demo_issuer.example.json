@@ -14,6 +14,19 @@
     "key": "key"
   },
   "usecases": {
+    "loyalty": {
+      "offer_url": "http://localhost:3008/offer",
+      "data": [
+        {
+          "format": "mso_mdoc",
+          "attestation_type": "com.example.loyalty",
+          "attributes": {
+            "branch": "Demodam",
+            "loyalty_number": "123456789"
+          }
+        }
+      ]
+    },
     "university": {
       "client_id": "x509_hash:example-university-reader-cert-hash",
       "data": {
