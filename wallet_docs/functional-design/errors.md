@@ -20,6 +20,7 @@ The use case descriptions in the functional design specify when such errors can 
 - [Unknown Issuer Error](#unknown-issuer-error)
 - [Known Verifier Error](#known-verifier-error)
 - [Unknown Verifier Error](#unknown-verifier-error)
+- [Bluetooth Disconnected Error](#bluetooth-disconnected-error)
 
 ---
 
@@ -180,3 +181,24 @@ An error occurred while verifying card(s) which was likely caused by the verifyi
 
 1. Retry later.
 2. If the issue persists, contact the service desk of the verifying organization.
+
+---
+
+## Bluetooth Disconnected Error
+
+The Bluetooth connection between the wallet app and the reader was lost during a close proximity disclosure flow. The current action cannot be completed and the user must restart the flow.
+
+**Possible causes:**
+
+- The devices moved too far apart during the exchange.
+- Bluetooth was disabled on the mobile device or the reader.
+- The mobile app was sent to the background (e.g. the user switched apps).
+- The reader was closed or restarted mid-flow.
+- Interference or an unstable Bluetooth connection.
+
+**Possible resolutions:**
+
+1. Close the error screen and restart the flow from the beginning.
+2. Keep both devices close together throughout the exchange.
+3. Ensure Bluetooth is enabled on the mobile device.
+4. If the issue persists, contact the service desk of the verifying organization.

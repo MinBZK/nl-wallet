@@ -3,6 +3,7 @@ package service
 import io.appium.java_client.service.local.AppiumDriverLocalService
 import io.appium.java_client.service.local.AppiumServiceBuilder
 import io.appium.java_client.service.local.flags.GeneralServerFlag
+import java.io.File
 
 object AppiumServiceProvider {
     var service: AppiumDriverLocalService? = null
@@ -15,7 +16,8 @@ object AppiumServiceProvider {
                 .usingAnyFreePort()
                 .withArgument(GeneralServerFlag.ALLOW_INSECURE, "chromedriver_autodownload")
                 .withArgument(GeneralServerFlag.DEBUG_LOG_SPACING)
-                .withArgument(GeneralServerFlag.LOG_LEVEL, "info")
+                .withArgument(GeneralServerFlag.LOG_LEVEL, "debug")
+                .withLogFile(File("appium.log"))
                 .withArgument(GeneralServerFlag.RELAXED_SECURITY)
                 // SESSION_OVERRIDE omitted when false — two concurrent sessions must coexist
                 .apply { if (sessionOverride) withArgument(GeneralServerFlag.SESSION_OVERRIDE) }
