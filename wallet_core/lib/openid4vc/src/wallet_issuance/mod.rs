@@ -219,10 +219,6 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     DifferentIssuerRegistrations(#[source] MultipleItemsFound),
 
-    #[error("issuer has no credential configurations supported")]
-    #[category(critical)]
-    NoCredentialConfigurationsSupported,
-
     #[error("missing query in credential offer URI")]
     #[category(critical)]
     MissingCredentialOfferQuery,

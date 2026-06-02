@@ -47,12 +47,14 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         redirect_uri: Url,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError> {
-        let (flow, issuer_metadata, oauth_metadata) = self.resolve_credential_offer_flow(offer_uri).await?;
+        let (credential_configuration_ids, flow, issuer_metadata, oauth_metadata) =
+            self.resolve_credential_offer_flow(offer_uri).await?;
 
         let issuance_flow = match flow {
             CredentialOfferFlow::AuthorizationCode { issuer_state } => {
                 let authorization_session = HttpAuthorizationSession::create(
                     self.http_client.clone(),
+                    credential_configuration_ids,
                     issuer_metadata,
                     oauth_metadata,
                     client_id,
@@ -67,6 +69,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                 let issuance_session = self
                     .create_issuance_session(
                         pre_authorized_code,
+                        credential_configuration_ids,
                         issuer_metadata,
                         oauth_metadata,
                         client_id,
@@ -87,7 +90,8 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         client_id: String,
         redirect_uri: Url,
     ) -> Result<Self::Authorization, WalletIssuanceError> {
-        let (flow, issuer_metadata, oauth_metadata) = self.resolve_credential_offer_flow(offer_uri).await?;
+        let (credential_configuration_ids, flow, issuer_metadata, oauth_metadata) =
+            self.resolve_credential_offer_flow(offer_uri).await?;
 
         let CredentialOfferFlow::AuthorizationCode { issuer_state } = flow else {
             return Err(WalletIssuanceError::CredentialOfferNoAuthorizationCode);
@@ -95,6 +99,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
 
         HttpAuthorizationSession::create(
             self.http_client.clone(),
+            credential_configuration_ids,
             issuer_metadata,
             oauth_metadata,
             client_id,
@@ -110,7 +115,8 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         client_id: String,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
-        let (flow, issuer_metadata, oauth_metadata) = self.resolve_credential_offer_flow(offer_uri).await?;
+        let (credential_configuration_ids, flow, issuer_metadata, oauth_metadata) =
+            self.resolve_credential_offer_flow(offer_uri).await?;
 
         let CredentialOfferFlow::PreAuthorizedCode { pre_authorized_code } = flow else {
             return Err(WalletIssuanceError::CredentialOfferNoPreAuthorizedCode);
@@ -118,6 +124,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
 
         self.create_issuance_session(
             pre_authorized_code,
+            credential_configuration_ids,
             issuer_metadata,
             oauth_metadata,
             client_id,
@@ -264,7 +271,15 @@ impl HttpIssuanceDiscovery {
     async fn resolve_credential_offer_flow(
         &self,
         offer_uri: &Url,
-    ) -> Result<(CredentialOfferFlow, IssuerMetadata, AuthorizationServerMetadata), WalletIssuanceError> {
+    ) -> Result<
+        (
+            VecNonEmpty<CredentialConfigurationId>,
+            CredentialOfferFlow,
+            IssuerMetadata,
+            AuthorizationServerMetadata,
+        ),
+        WalletIssuanceError,
+    > {
         let credential_offer = self.process_credential_offer(offer_uri).await?;
 
         // TODO (PVW-5528): Use the authorization server from the Credential Offer, if provided.
@@ -336,12 +351,19 @@ impl HttpIssuanceDiscovery {
             }
         };
 
-        Ok((flow, issuer_metadata, oauth_metadata))
+        Ok((
+            credential_offer.credential_configuration_ids,
+            flow,
+            issuer_metadata,
+            oauth_metadata,
+        ))
     }
 
+    #[expect(clippy::too_many_arguments, reason = "internal helper method")]
     async fn create_issuance_session(
         &self,
         pre_authorized_code: AuthorizationCode,
+        credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
         issuer_metadata: IssuerMetadata,
         oauth_metadata: AuthorizationServerMetadata,
         client_id: String,
@@ -358,6 +380,7 @@ impl HttpIssuanceDiscovery {
 
         HttpIssuanceSession::create(
             message_client,
+            credential_configuration_ids,
             issuer_metadata,
             oauth_metadata,
             token_request,

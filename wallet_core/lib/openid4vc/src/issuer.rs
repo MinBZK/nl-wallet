@@ -1718,10 +1718,19 @@ mod tests {
             .await
             .unwrap();
 
+        let credential_config_ids = message_client
+            .issuer
+            .credential_configs()
+            .all_configuration_ids()
+            .into_nonempty_iter()
+            .cloned()
+            .collect();
+
         let issuer_metadata = message_client.issuer.metadata().clone();
         let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
         let mut session = HttpIssuanceSession::create(
             message_client,
+            credential_config_ids,
             issuer_metadata,
             oauth_metadata,
             TokenRequest::new_mock_with_pre_authorized_code(session_token.to_string()),

@@ -369,6 +369,7 @@ fn credential_request_types_from_preview(
 impl<H: VcMessageClient> HttpIssuanceSession<H> {
     pub(crate) async fn create(
         message_client: H,
+        credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
         issuer_metadata: IssuerMetadata,
         oauth_metadata: AuthorizationServerMetadata,
         token_request: TokenRequest,
@@ -379,15 +380,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .as_ref()
             .map(|url| url.clone().into_url())
             .ok_or(WalletIssuanceError::NoCredentialPreviewEndpoint)?; // TODO (PVW-5559): skip preview when no credential preview endpoint
-
-        // TODO (PVW-5856): Get the credential configuration ids from the `CredentialOffer` instead.
-        let credential_configuration_ids: VecNonEmpty<CredentialConfigurationId> = issuer_metadata
-            .credential_configurations_supported
-            .keys()
-            .cloned()
-            .collect_vec()
-            .try_into()
-            .map_err(|_| WalletIssuanceError::NoCredentialConfigurationsSupported)?;
 
         let token_endpoint = oauth_metadata.token_endpoint;
         let dpop_signing_key = SigningKey::random(&mut OsRng);
@@ -980,10 +972,18 @@ mod tests {
                 })
             });
 
+        let credential_config_ids = issuer_metadata
+            .credential_configurations_supported
+            .keys()
+            .cloned()
+            .collect_vec()
+            .try_into()
+            .unwrap();
         let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_metadata.issuer_identifier().clone());
 
         HttpIssuanceSession::create(
             mock_msg_client,
+            credential_config_ids,
             issuer_metadata,
             oauth_metadata,
             TokenRequest::new_mock(),
@@ -1154,6 +1154,7 @@ mod tests {
 
         let error = HttpIssuanceSession::create(
             mock_msg_client,
+            vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
             issuer_metadata,
             oauth_metadata,
             TokenRequest::new_mock(),

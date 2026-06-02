@@ -5,12 +5,14 @@ use error_category::ErrorCategory;
 use http_utils::reqwest::HttpJsonClient;
 use serde::Deserialize;
 use url::Url;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
 use crate::authorization::AuthorizationResponse;
 use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
+use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::pkce::PkcePair;
@@ -82,6 +84,7 @@ pub enum OAuthError {
 /// The state of an in-progress OAuth authorization code flow.
 #[derive(Debug)]
 pub struct HttpAuthorizationSession<P = S256PkcePair> {
+    credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
     issuer_metadata: IssuerMetadata,
     oauth_metadata: AuthorizationServerMetadata,
     http_client: HttpJsonClient,
@@ -97,8 +100,10 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
     /// POST the authorization parameters to the PAR endpoint, then build the authorization URL
     /// using the returned `request_uri`. Returns an error if the provider has no PAR endpoint,
     /// the PAR request is rejected, or the URL cannot be constructed.
+    #[expect(clippy::too_many_arguments, reason = "internal constructor")]
     pub(super) async fn create(
         http_client: HttpJsonClient,
+        credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
         issuer_metadata: IssuerMetadata,
         oauth_metadata: AuthorizationServerMetadata,
         client_id: String,
@@ -150,6 +155,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             .append_pair("request_uri", &par_response.request_uri);
 
         Ok(Self {
+            credential_configuration_ids,
             issuer_metadata,
             oauth_metadata,
             http_client,
@@ -225,6 +231,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
 
         HttpIssuanceSession::create(
             message_client,
+            self.credential_configuration_ids,
             self.issuer_metadata,
             self.oauth_metadata,
             token_request,
@@ -249,6 +256,7 @@ mod tests {
     use serde_json::json;
     use serial_test::serial;
     use url::Url;
+    use utils::vec_nonempty;
 
     use super::HttpAuthorizationSession;
     use super::OAuthError;
@@ -280,6 +288,7 @@ mod tests {
         pkce_pair.expect_code_challenge().return_const("challenge".to_string());
         HttpAuthorizationSession {
             issuer_metadata: IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test"),
+            credential_configuration_ids: vec_nonempty!["config_id".to_string().into()],
             oauth_metadata: AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
             http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: ISSUER_URL.parse().unwrap(),
@@ -364,6 +373,7 @@ mod tests {
 
         let session = HttpAuthorizationSession::<MockPkcePair>::create(
             HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            vec_nonempty!["config_id".to_string().into()],
             IssuerMetadata::new_mock(server.base_url().parse().unwrap(), "test"),
             oauth_metadata,
             MOCK_WALLET_CLIENT_ID.to_string(),
