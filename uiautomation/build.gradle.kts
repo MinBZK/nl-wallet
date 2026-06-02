@@ -36,6 +36,7 @@ dependencies {
     implementation("org.tomlj:tomlj:1.1.1")
     implementation("com.google.zxing:core:3.5.3")
     implementation("com.google.zxing:javase:3.5.3")
+    implementation("com.upokecenter:cbor:4.5.4")
 }
 
 tasks.test {
@@ -107,6 +108,7 @@ tasks.withType<Test>().configureEach {
         "test.config.device.name" to "emulator-5554",
         "test.config.platform.name" to "Android",
         "test.config.platform.version" to 14.0,
+        "test.config.device.udid" to "",
         "test.config.remote" to false,
         "test.config.automation.name" to "UIAutomator2",
         "test.config.commit.sha" to "",

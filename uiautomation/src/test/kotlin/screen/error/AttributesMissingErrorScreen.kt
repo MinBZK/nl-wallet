@@ -6,7 +6,7 @@ class AttributesMissingErrorScreen : MobileActions() {
 
     private val attributesMissingMessage = l10n.getString("missingAttributesPageTitle")
 
-    fun attributesMissingMessageVisible() = elementWithTextVisible(attributesMissingMessage)
+    fun attributesMissingMessageVisible() = elementWithTextVisible(attributesMissingMessage, 10)
 
 }
 

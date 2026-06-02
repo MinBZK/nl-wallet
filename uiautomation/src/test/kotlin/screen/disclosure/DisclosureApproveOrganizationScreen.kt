@@ -22,6 +22,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val swapCardButton = l10n.getString("sharedAttributesCardChangeCardCta")
     private val stopButton = l10n.getString("organizationApprovePageDenyCta")
     private val bottomSheetConfirmStopButton = l10n.getString("disclosureStopSheetPositiveCta")
+    private val disclosureSuccessPageToDashboardCta = l10n.getString("disclosureSuccessPageToDashboardCta")
     private val toDashboardButton = l10n.getString("disclosureSuccessPageToDashboardCta")
 
     fun login() = clickElementWithText(loginButton)
@@ -60,8 +61,6 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     fun goBack() = clickElementWithText(goBackButton)
 
     fun stopRequestAfterMissingAttributeFailure() = clickElementWithText(stopRequestButton)
-
-    fun closeDisclosureAfterCompletedOrUncompleted() = clickElementWithText(closeButton)
 
     fun viewSharedData(count: String, cardTitle: String) {
         val title = l10n.getString("sharedAttributesCardTitle").replace("{count}", count).replace("{cardTitle}", cardTitle)
@@ -125,4 +124,6 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     fun bottomSheetConfirmStop() = clickElementWithText(bottomSheetConfirmStopButton)
 
     fun goToDashboard() = clickElementWithText(toDashboardButton)
+
+    fun goToDashBoard() =clickElementWithText(disclosureSuccessPageToDashboardCta)
 }

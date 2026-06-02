@@ -10,6 +10,7 @@ class TestConfigRepository {
             deviceName = System.getProperty("test.config.device.name"),
             platformName = System.getProperty("test.config.platform.name").lowercase(),
             platformVersion = System.getProperty("test.config.platform.version"),
+            udid = System.getProperty("test.config.device.udid", ""),
             remote = System.getProperty("test.config.remote").toBoolean(),
             automationName = System.getProperty("test.config.automation.name"),
             commitSha = System.getProperty("test.config.commit.sha"),

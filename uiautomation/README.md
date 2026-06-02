@@ -75,9 +75,12 @@ code base using Appium and BrowserStack.
      show_debug_options:true`
 - to create an apk for your local environment run:
   `CONFIG_ENV=dev bundle exec fastlane android build build_mode:debug file_format:apk demo_index_url:http://localhost:3005/ show_debug_options:true`
+- to create an ipa for your local environment run:
+  `CONFIG_ENV=dev bundle exec fastlane ios build build_mode:profile allow_insecure_url:true demo_index_url:[local ip]:3005/ universal_link_base:[local ip] show_debug_options:true fake_attestation:true`
+  followed by signing it with:
+  `bundle exec fastlane ios sign app_store:false`
 - Create an IPA for the test environment by executing:
    `CONFIG_ENV="ont" \
-    UL_HOSTNAME=app.example.com \
     UNIVERSAL_LINK_BASE="https://app.example.com/deeplink/" \
     APPLE_ATTESTATION_ENVIRONMENT="production" \
     bundle exec fastlane ios build \
