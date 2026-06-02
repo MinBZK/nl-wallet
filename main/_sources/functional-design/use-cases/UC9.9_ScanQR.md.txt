@@ -39,7 +39,7 @@
 | 1.5b    | Case: QR resolves to sharing flow                                                                                     | Go to: [UC5.1 Share data](UC5.1_ShareDataWithRP.md)                                 |
 | 1.5c    | Case: QR resolves to login flow                                                                                       | Go to: [UC5.2 Log in to Relying Party application](UC5.2_LoginToApplicationOfRP.md) |
 | 1.5d    | Case: QR resolves to transfer wallet flow                                                                             | Go to: [UC9.10 Wallet device transfer](UC9.10_TransferWallet.md)                    |
-| 1.5c    | Case: QR resolves to login flow                                                                                       | Go to: [UC5.2 Log in to Relying Party application](UC5.2_LoginToApplicationOfRP.md) | 
+| 1.5c    | Case: QR resolves to login flow                                                                                       | Go to: [UC5.2 Log in to Relying Party application](UC5.2_LoginToApplicationOfRP.md) |
 | 1.1e    | Error: Generic                                                                                                        | Error flow: [Generic](../errors.md#generic-error)                                   |
 | 1.1f    | Error: No internet                                                                                                    | Error flow: [No Internet](../errors.md#no-internet)                                 |
 | 1.1g    | Error: Server unreachable                                                                                             | Error flow: [Server Unreachable](../errors.md#server-unreachable)                   |

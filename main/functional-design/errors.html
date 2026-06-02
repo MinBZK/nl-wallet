@@ -97,6 +97,7 @@
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/UC5.3_ShowQR.html">Use Case 5.3 Show QR</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
@@ -209,6 +210,7 @@
 <li><p><a class="reference internal" href="#unknown-issuer-error">Unknown Issuer Error</a></p></li>
 <li><p><a class="reference internal" href="#known-verifier-error">Known Verifier Error</a></p></li>
 <li><p><a class="reference internal" href="#unknown-verifier-error">Unknown Verifier Error</a></p></li>
+<li><p><a class="reference internal" href="#bluetooth-disconnected-error">Bluetooth Disconnected Error</a></p></li>
 </ul>
 </section>
 <hr class="docutils" />
@@ -362,6 +364,26 @@
 <li><p>If the issue persists, contact the service desk of the verifying organization.</p></li>
 </ol>
 <details class="error-references"><summary>Occurs in</summary><ul><li><a href="use-cases/UC5.1_ShareDataWithRP.html">functional-design/use-cases/UC5.1_ShareDataWithRP</a></li><li><a href="use-cases/UC5.2_LoginToApplicationOfRP.html">functional-design/use-cases/UC5.2_LoginToApplicationOfRP</a></li></ul></details></section>
+<hr class="docutils" />
+<section id="bluetooth-disconnected-error">
+<h2>Bluetooth Disconnected Error<a class="headerlink" href="#bluetooth-disconnected-error" title="Link to this heading"></a></h2>
+<p>The Bluetooth connection between the wallet app and the reader was lost during a close proximity disclosure flow. The current action cannot be completed and the user must restart the flow.</p>
+<p><strong>Possible causes:</strong></p>
+<ul class="simple">
+<li><p>The devices moved too far apart during the exchange.</p></li>
+<li><p>Bluetooth was disabled on the mobile device or the reader.</p></li>
+<li><p>The mobile app was sent to the background (e.g. the user switched apps).</p></li>
+<li><p>The reader was closed or restarted mid-flow.</p></li>
+<li><p>Interference or an unstable Bluetooth connection.</p></li>
+</ul>
+<p><strong>Possible resolutions:</strong></p>
+<ol class="arabic simple">
+<li><p>Close the error screen and restart the flow from the beginning.</p></li>
+<li><p>Keep both devices close together throughout the exchange.</p></li>
+<li><p>Ensure Bluetooth is enabled on the mobile device.</p></li>
+<li><p>If the issue persists, contact the service desk of the verifying organization.</p></li>
+</ol>
+<details class="error-references"><summary>Occurs in</summary><ul><li><a href="use-cases/UC5.1_ShareDataWithRP.html">functional-design/use-cases/UC5.1_ShareDataWithRP</a></li></ul></details></section>
 </section>
 
 

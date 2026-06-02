@@ -462,6 +462,7 @@ window.addEventListener("load", load);
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/UC5.3_ShowQR.html">Use Case 5.3 Show QR</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
@@ -631,7 +632,8 @@ CARD[&quot;&lt;a href='use-cases/UC7.2_ShowCardDetails.html'&gt;7.2 View card De
 
 MENU[&quot;&lt;a href='use-cases/UC9.1_ShowAppMenu.html'&gt;9.1 View app menu&lt;/a&gt;&quot;]
 APP_INFO[&quot;&lt;a href='use-cases/UC9.2_GetAppInformation.html'&gt;9.2 Get app info&lt;/a&gt;&quot;]
-QR[&quot;&lt;a href='use-cases/UC9.9_ScanQR.html'&gt;9.9 Scan QR&lt;/a&gt;&quot;]
+SCAN_QR[&quot;&lt;a href='use-cases/UC9.9_ScanQR.html'&gt;9.9 Scan QR&lt;/a&gt;&quot;]
+SHOW_QR[&quot;&lt;a href='use-cases/UC5.3_ShowQR.html'&gt;5.3 SHOW QR&lt;/a&gt;&quot;]
 
 RECOVER_PIN[&quot;&lt;a href='use-cases/UC2.3.2_RecoverPIN.html'&gt;2.3.2 Recover PIN&lt;/a&gt;&quot;]
 RENEW_PID[&quot;&lt;a href='use-cases/UC3.2_RenewPid.html'&gt;3.3 Renew PID&lt;/a&gt;&quot;]
@@ -641,7 +643,8 @@ START --&gt; ALL_CARDS
 
 ALL_CARDS --&gt; APP_TOUR
 ALL_CARDS --&gt; MENU
-ALL_CARDS --&gt; QR
+ALL_CARDS --&gt; SCAN_QR
+ALL_CARDS --&gt; SHOW_QR
 ALL_CARDS --&gt; ALL_HISTORY
 ALL_CARDS --&gt; CARD
 ALL_CARDS --&gt; APP_INFO

@@ -2,16 +2,16 @@
 
 ## Overview
 
-| Aspect                       | Description                                                                                                                                                                                 |
-|------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Summary**                  | The user deletes an EAA card from their wallet by confirming this with their PIN to complete the process. |
-| **Goal**                     | The user delete an EAA card from NL Wallet in a safe way.                                                                                                                                   |
-| **Preconditions**            | *None*                                                                                                                                                                                      |
-| **Postconditions**           | <ul><li>Card is no longer available in the wallet</li><li>Card deleted event is added in the history.</li></ul>                                                                             |
-| **Triggered by**             | <ul><li>User selects 'Delete card' in [UC7.2 Show card details](UC7.2_ShowCardDetails.md)</li></ul>                                                                                         |
-| **Additional Documentation** | *None*                                                                                                                                                                                      |
-| **Possible errors**          | *None*                                                                                                                                                                                      |
-| **Logical test cases**       | <ul><li>[LTC79 Delete card](../logical-test-cases.md#ltc79)</li></ul>                                                                                                                       |
+| Aspect                       | Description                                                                                                     |
+|------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| **Summary**                  | The user deletes an EAA card from their wallet by confirming this with their PIN to complete the process.       |
+| **Goal**                     | The user delete an EAA card from NL Wallet in a safe way.                                                       |
+| **Preconditions**            | *None*                                                                                                          |
+| **Postconditions**           | <ul><li>Card is no longer available in the wallet</li><li>Card deleted event is added in the history.</li></ul> |
+| **Triggered by**             | <ul><li>User selects 'Delete card' in [UC7.2 Show card details](UC7.2_ShowCardDetails.md)</li></ul>             |
+| **Additional Documentation** | *None*                                                                                                          |
+| **Possible errors**          | *None*                                                                                                          |
+| **Logical test cases**       | <ul><li>[LTC78 Delete card](../logical-test-cases.md#ltc78)</li></ul>                                           |
 
 ---
 

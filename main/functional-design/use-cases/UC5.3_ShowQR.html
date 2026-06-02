@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Use Case 9.12 View revocation code in Settings &mdash; NL Wallet 0.6.0-dev documentation</title>
+  <title>Use Case 5.3 Show QR &mdash; NL Wallet 0.6.0-dev documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=dfe61b34" />
@@ -23,8 +23,8 @@
     <link rel="author" title="About these documents" href="../../about.html" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Use Case 9.1 Show app menu" href="UC9.1_ShowAppMenu.html" />
-    <link rel="prev" title="Use Case 9.11 Configure Notifications" href="UC9.11_ConfigureNotifications.html" /> 
+    <link rel="next" title="Use Case 6.1 Show complete history" href="UC6.1_ShowCompleteUsageAndManagementHistory.html" />
+    <link rel="prev" title="Use Case 5.2 Log in to Relying Party application" href="UC5.2_LoginToApplicationOfRP.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -97,7 +97,7 @@
 <li class="toctree-l2"><a class="reference internal" href="UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
-<li class="toctree-l2"><a class="reference internal" href="UC5.3_ShowQR.html">Use Case 5.3 Show QR</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Use Case 5.3 Show QR</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
@@ -106,7 +106,7 @@
 <li class="toctree-l2"><a class="reference internal" href="UC7.4_DeleteEAACard.html">Use Case 7.4 Delete EAA card</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.10_TransferWallet.html">Use Case 9.10 Transfer Wallet to another device</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.11_ConfigureNotifications.html">Use Case 9.11 Configure Notifications</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Use Case 9.12 View revocation code in Settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC9.12_ViewRevocationCode.html">Use Case 9.12 View revocation code in Settings</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.1_ShowAppMenu.html">Use Case 9.1 Show app menu</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.2_GetAppInformation.html">Use Case 9.2 Get app information</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC9.3_ChangeAppLanguage.html">Use Case 9.3 Change app language</a></li>
@@ -180,9 +180,9 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../use-cases.html">Use Cases</a></li>
-      <li class="breadcrumb-item active">Use Case 9.12 View revocation code in Settings</li>
+      <li class="breadcrumb-item active">Use Case 5.3 Show QR</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/functional-design/use-cases/UC9.12_ViewRevocationCode.md.txt" rel="nofollow"> View page source</a>
+            <a href="../../_sources/functional-design/use-cases/UC5.3_ShowQR.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -190,8 +190,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="use-case-9-12-view-revocation-code-in-settings">
-<h1>Use Case 9.12 View revocation code in Settings<a class="headerlink" href="#use-case-9-12-view-revocation-code-in-settings" title="Link to this heading"></a></h1>
+  <section id="use-case-5-3-show-qr">
+<h1>Use Case 5.3 Show QR<a class="headerlink" href="#use-case-5-3-show-qr" title="Link to this heading"></a></h1>
 <section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
 <table class="docutils align-default">
@@ -202,10 +202,10 @@
 </thead>
 <tbody>
 <tr class="row-even"><td><p><strong>Summary</strong></p></td>
-<td><p>User views its existing revocation code after confirming with its remote PIN.</p></td>
+<td><p>The user shows the QR to a third party reader, to initiate a close proximity sharing session.</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Goal</strong></p></td>
-<td><p>Show the revocation code so the user can keep it in a safe place and use it if they need to revoke or reset it again if needed.</p></td>
+<td><p>Starting a close proximity sharing session.</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Preconditions</strong></p></td>
 <td><p><em>None</em></p></td>
@@ -214,16 +214,16 @@
 <td><p><em>None</em></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Triggered by</strong></p></td>
-<td><p><ul><li>User selects ‘About this app’ in <a class="reference internal" href="UC9.1_ShowAppMenu.html"><span class="std std-doc">UC9.1 Show app menu</span></a>.</li></ul></p></td>
+<td><p><ul><li>User selects ‘Show your QR code’ in <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="std std-doc">UC7.1 Show all available cards</span></a></li></ul></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>Additional Documentation</strong></p></td>
+<tr class="row-odd"><td><p><strong>Additional documentation</strong></p></td>
 <td><p><em>None</em></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Possible errors</strong></p></td>
 <td><p><em>None</em></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>Logical Test Cases</strong></p></td>
-<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc73"><span class="std std-ref">LTC73 View revocation code</span></a></li></ul></p></td>
+<tr class="row-odd"><td><p><strong>Logical test cases</strong></p></td>
+<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc79"><span class="std std-ref">LTC79 Close proximity data sharing</span></a></li></ul></p></td>
 </tr>
 </tbody>
 </table>
@@ -244,48 +244,112 @@
 <td><p></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>1.1</strong></p></td>
-<td><p><strong>System displays screen ‘View revocation code’</strong><ul>&gt;<li>Message: You use this code to delete your NL Wallet from a distance.</li><li>Actions: View, Back, Help</li></ul></p></td>
+<td><p><strong>System determines whether Bluetooth permissions were granted</strong></p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p>1.1a</p></td>
-<td><p>User selects View</p></td>
-<td><p>1.2</p></td>
+<td><p>Case: Bluetooth permissions are granted</p></td>
+<td><p>1.3</p></td>
 </tr>
 <tr class="row-odd"><td><p>1.1b</p></td>
-<td><p>User selects Back</p></td>
-<td><p>Back</p></td>
+<td><p>Case: Bluetooth permissions are not granted</p></td>
+<td><p>1.2</p></td>
 </tr>
 <tr class="row-even"><td><p>1.1c</p></td>
+<td><p>Case: Bluetooth permissions have been rejected before</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.1c</p></td>
+<td><p>Case: Bluetooth is disabled</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>1.2</strong></p></td>
+<td><p><strong>System asks permission to use Bluetooth</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p>1.2a</p></td>
+<td><p>User grants permission</p></td>
+<td><p>1.3</p></td>
+</tr>
+<tr class="row-even"><td><p>1.2b</p></td>
+<td><p>User rejects permission</p></td>
+<td><p>2</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>1.3</strong></p></td>
+<td><p><strong>System displays screen ‘Show your QR code’</strong><ul><li>Actions: Center QR code on screen, Back, Help, Would you like to report a problem?</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>1.3a</p></td>
+<td><p>User scans Center QR code on screen</p></td>
+<td><p>1.4</p></td>
+</tr>
+<tr class="row-odd"><td><p>1.3b</p></td>
+<td><p>User selects Back</p></td>
+<td><p>Go to: <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="doc std std-doc">UC7.1 Show all available cards</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>1.3c</p></td>
 <td><p>User selects Help</p></td>
 <td><p>Show placeholder ‘under construction’</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>1.2</strong></p></td>
-<td><p><strong>System executes partial flow <a class="reference internal" href="../partial-flows/PF2.4_ConfirmProtectedAction.html"><span class="std std-doc">PF2.4 Confirm a protected action</span></a></strong><ul><li>Not cancelable</li></ul></p></td>
+<tr class="row-odd"><td><p>1.3d</p></td>
+<td><p>User selects Would you like to report a problem?</p></td>
+<td><p>Show placeholder ‘under construction’</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>1.4</strong></p></td>
+<td><p><strong>System displays modal with centered QR code</strong><ul><li>Actions: Close</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>1.2a</p></td>
-<td><p>Result: Confirm</p></td>
+<tr class="row-odd"><td><p>1.4a</p></td>
+<td><p>User selects Close</p></td>
 <td><p>1.3</p></td>
 </tr>
-<tr class="row-odd"><td><p>1.2b</p></td>
-<td><p>Result: Back</p></td>
-<td><p>1.1</p></td>
+<tr class="row-even"><td><p><strong>2</strong></p></td>
+<td><p><strong>WHEN NO BLUETOOTH PERMISSION</strong></p></td>
+<td><p></p></td>
 </tr>
-<tr class="row-even"><td><p><strong>1.3</strong></p></td>
-<td><p><strong>System displays screen ‘Revocation code’</strong><ul><li>Message: Write down your revocation code.</li><li>Code display: [XXXX-XXXX-XXXX-XXXX-XX] (formatted with dashes)</li><li>Actions: I have written it down, Close, Help</li></ul></p></td>
-<td><p>1.6</p></td>
+<tr class="row-odd"><td><p><strong>2.1</strong></p></td>
+<td><p><strong>System displays prompt ‘Allow NL Wallet to find Bluetooth devices.’</strong><ul><li>Actions: Close, Open Settings</li></ul></p></td>
+<td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>1.3a</p></td>
-<td><p>User selects I have written it down</p></td>
-<td><p>1.1</p></td>
-</tr>
-<tr class="row-even"><td><p>1.3b</p></td>
+<tr class="row-even"><td><p>2.1a</p></td>
 <td><p>User selects Close</p></td>
-<td><p>to: <a class="reference internal" href="UC9.1_ShowAppMenu.html"><span class="std std-doc">UC9.1 Show app menu</span></a></p></td>
+<td><p>End</p></td>
 </tr>
-<tr class="row-odd"><td><p>1.3c</p></td>
-<td><p>User selects I have written it down</p></td>
+<tr class="row-odd"><td><p>2.1b</p></td>
+<td><p>User selects Open Settings<br>→ System opens OS settings and suspends app</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>3</strong></p></td>
+<td><p><strong>WHEN BLUETOOTH PERMISSION IS DISABLED</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>3.1</strong></p></td>
+<td><p><strong>System displays screen ‘Turn on Bluetooth first’</strong><ul><li>Actions: Close, Help, Turn on Bluetooth (Android only)</li></ul></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>3.1a</p></td>
+<td><p>User selects Close</p></td>
+<td><p>Go to: <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="doc std std-doc">UC7.1 Show all available cards</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>3.1b</p></td>
+<td><p>User selects Help</p></td>
 <td><p>Show placeholder ‘under construction’</p></td>
+</tr>
+<tr class="row-even"><td><p>3.1c</p></td>
+<td><p>User selects Turn on Bluetooth</p></td>
+<td><p>Show placeholder ‘under construction’</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>3.2</strong></p></td>
+<td><p><strong>System asks permission to turn on Bluetooth</strong></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p>3.2a</p></td>
+<td><p>User grants permission</p></td>
+<td><p>1.3</p></td>
+</tr>
+<tr class="row-odd"><td><p>3.2b</p></td>
+<td><p>User rejects permission</p></td>
+<td><p>3.1</p></td>
 </tr>
 </tbody>
 </table>
@@ -296,8 +360,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="UC9.11_ConfigureNotifications.html" class="btn btn-neutral float-left" title="Use Case 9.11 Configure Notifications" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="UC9.1_ShowAppMenu.html" class="btn btn-neutral float-right" title="Use Case 9.1 Show app menu" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="UC5.2_LoginToApplicationOfRP.html" class="btn btn-neutral float-left" title="Use Case 5.2 Log in to Relying Party application" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="UC6.1_ShowCompleteUsageAndManagementHistory.html" class="btn btn-neutral float-right" title="Use Case 6.1 Show complete history" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
@@ -325,11 +389,11 @@
             <dt>Releases</dt>
             <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
             <dd><a href="../../../v0.4.1/index.html">v0.4.1</a></dd>
-            <dd><a href="../../../v0.5.0/functional-design/use-cases/UC9.12_ViewRevocationCode.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="UC9.12_ViewRevocationCode.html">main</a></dd>
+            <dd><a href="UC5.3_ShowQR.html">main</a></dd>
         </dl>
     </div>
 </div><script>

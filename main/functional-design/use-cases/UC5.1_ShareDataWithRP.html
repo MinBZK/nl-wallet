@@ -97,6 +97,7 @@
 <li class="toctree-l2"><a class="reference internal" href="UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Use Case 5.1 Share data with a Relying Party</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="UC5.3_ShowQR.html">Use Case 5.3 Show QR</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
@@ -213,16 +214,16 @@
 <td><p><ul><li>Data is shared with Relying Party.</li><li>The disclosure event is added in the history.</li></ul></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Triggered by</strong></p></td>
-<td><p><ul><li>User invokes a universal link that contains the URL to a Relying Party.</li><li>User scans QR with in-app scanner <a class="reference internal" href="UC9.9_ScanQR.html"><span class="std std-doc">UC9.9 Scan QR</span></a></li></ul></p></td>
+<td><p><ul><li>User invokes a universal link that contains the URL to a Relying Party.</li><li>User scans QR with in-app scanner <a class="reference internal" href="UC9.9_ScanQR.html"><span class="std std-doc">UC9.9 Scan QR</span></a></li><li>Verifier scans QR <a class="reference internal" href="UC5.3_ShowQR.html"><span class="std std-doc">UC5.3 Show QR</span></a></li></ul></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Additional Documentation</strong></p></td>
 <td><p><ul><li><a class="reference internal" href="../../architecture/use-cases/disclosure-with-openid4vp.html"><span class="std std-doc">Disclosure with openidp4vp</span></a></li></ul></p></td>
 </tr>
 <tr class="row-even"><td><p><strong>Possible errors</strong></p></td>
-<td><p><ul><li><a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></li><li><a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></li><li><a class="reference internal" href="../errors.html#session-expired"><span class="std std-ref">Session Expired</span></a></li><li><a class="reference internal" href="../errors.html#known-verifier-error"><span class="std std-ref">Known Verifier Error</span></a></li><li><a class="reference internal" href="../errors.html#unknown-verifier-error"><span class="std std-ref">Unknown Verifier Error</span></a></li></ul></p></td>
+<td><p><ul><li><a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></li><li><a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></li><li><a class="reference internal" href="../errors.html#session-expired"><span class="std std-ref">Session Expired</span></a></li><li><a class="reference internal" href="../errors.html#known-verifier-error"><span class="std std-ref">Known Verifier Error</span></a></li><li><a class="reference internal" href="../errors.html#unknown-verifier-error"><span class="std std-ref">Unknown Verifier Error</span></a></li><li><a class="reference internal" href="../errors.html#bluetooth-disconnected-error"><span class="std std-ref">Bluetooth Disconnected Error</span></a></li></ul></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>Logical test cases</strong></p></td>
-<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc15"><span class="std std-ref">LTC15 Share data</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc16"><span class="std std-ref">LTC16 Cross-device share data</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc17"><span class="std std-ref">LTC17 Decline consent to share data</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc10"><span class="std std-ref">LTC10 Wallet does not contain requested attributes</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc26"><span class="std std-ref">LTC26 Disclosure fails</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc65"><span class="std std-ref">LTC65 Select another card to be disclosed </span></a></li></ul></p></td>
+<td><p><ul><li><a class="reference internal" href="../logical-test-cases.html#ltc15"><span class="std std-ref">LTC15 Share data</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc16"><span class="std std-ref">LTC16 Cross-device share data</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc17"><span class="std std-ref">LTC17 Decline consent to share data</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc10"><span class="std std-ref">LTC10 Wallet does not contain requested attributes</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc26"><span class="std std-ref">LTC26 Disclosure fails</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc65"><span class="std std-ref">LTC65 Select another card to be disclosed </span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc79"><span class="std std-ref">LTC79 Close proximity data sharing</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc80"><span class="std std-ref">LTC80 Missing attributes at close proximity</span></a></li><li><a class="reference internal" href="../logical-test-cases.html#ltc81"><span class="std std-ref">LTC81 Reader disconnects during close proximity</span></a></li></ul></p></td>
 </tr>
 </tbody>
 </table>
@@ -251,7 +252,7 @@
 <td><p>1.2</p></td>
 </tr>
 <tr class="row-odd"><td><p>1.1b</p></td>
-<td><p>Case: Requested data is available in wallet (same-device flow)</p></td>
+<td><p>Case: Requested data is available in wallet (same-device &amp; close proximity flow)</p></td>
 <td><p>1.3</p></td>
 </tr>
 <tr class="row-even"><td><p>1.1c</p></td>
@@ -282,117 +283,125 @@
 <td><p>Error: Known verifier error</p></td>
 <td><p>Error flow: <a class="reference internal" href="../errors.html#known-verifier-error"><span class="std std-ref">Known Verifier Error</span></a></p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>1.2</strong></p></td>
+<tr class="row-odd"><td><p>1.1i</p></td>
+<td><p>Error: Bluetooth disconnected error (close proximity flow only)</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#bluetooth-disconnected-error"><span class="std std-ref">Bluetooth Disconnected Error</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>1.2</strong></p></td>
 <td><p><strong>System displays screen ‘Website check’ (cross-device only)</strong><ul><li>Message: Is the website starting with: [organization url]?</li><li>Actions: Yes continue, Stop, About the website check, Help</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>1.2a</p></td>
+<tr class="row-odd"><td><p>1.2a</p></td>
 <td><p>User selects Yes continue</p></td>
 <td><p>1.3</p></td>
 </tr>
-<tr class="row-odd"><td><p>1.2b</p></td>
+<tr class="row-even"><td><p>1.2b</p></td>
 <td><p>User selects Stop</p></td>
 <td><p>2</p></td>
 </tr>
-<tr class="row-even"><td><p>1.2c</p></td>
+<tr class="row-odd"><td><p>1.2c</p></td>
 <td><p>User selects About the website check</p></td>
 <td><p>3</p></td>
 </tr>
-<tr class="row-odd"><td><p>1.2d</p></td>
+<tr class="row-even"><td><p>1.2d</p></td>
 <td><p>User selects Help</p></td>
 <td><p>Show placeholder ‘under construction’</p></td>
 </tr>
-<tr class="row-even"><td><p><strong>1.3</strong></p></td>
+<tr class="row-odd"><td><p><strong>1.3</strong></p></td>
 <td><p><strong>System determines whether user has multiple cards to fulfill disclosure</strong></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p>1.3a</p></td>
+<tr class="row-even"><td><p>1.3a</p></td>
 <td><p>Case: User has one card</p></td>
 <td><p>1.4</p></td>
 </tr>
-<tr class="row-even"><td><p>1.3b</p></td>
+<tr class="row-odd"><td><p>1.3b</p></td>
 <td><p>Case: User has multiple cards</p></td>
 <td><p>10</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>1.4</strong></p></td>
+<tr class="row-even"><td><p><strong>1.4</strong></p></td>
 <td><p><strong>System displays screen ‘Approve organization’</strong><ul><li>Do you want to share details with [Organization]?</li><li>Actions: Share, About [organization], View data, Read the agreement, Help, Close, Stop</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>1.4a</p></td>
+<tr class="row-odd"><td><p>1.4a</p></td>
 <td><p>User selects Share</p></td>
 <td><p>1.5</p></td>
 </tr>
-<tr class="row-odd"><td><p>1.4b</p></td>
+<tr class="row-even"><td><p>1.4b</p></td>
 <td><p>User selects About [organization]</p></td>
 <td><p>7</p></td>
 </tr>
-<tr class="row-even"><td><p>1.4c</p></td>
+<tr class="row-odd"><td><p>1.4c</p></td>
 <td><p>User selects View data</p></td>
 <td><p>4</p></td>
 </tr>
-<tr class="row-odd"><td><p>1.4d</p></td>
+<tr class="row-even"><td><p>1.4d</p></td>
 <td><p>User selects Help</p></td>
 <td><p>Show placeholder ‘under construction’</p></td>
 </tr>
-<tr class="row-even"><td><p>1.4e</p></td>
+<tr class="row-odd"><td><p>1.4e</p></td>
 <td><p>User selects Close</p></td>
 <td><p>2</p></td>
 </tr>
-<tr class="row-odd"><td><p>1.4f</p></td>
+<tr class="row-even"><td><p>1.4f</p></td>
 <td><p>User selects Stop</p></td>
 <td><p>2</p></td>
 </tr>
-<tr class="row-even"><td><p>1.4g</p></td>
+<tr class="row-odd"><td><p>1.4g</p></td>
 <td><p>User selects Read the agreement</p></td>
 <td><p>6</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>1.5</strong></p></td>
+<tr class="row-even"><td><p><strong>1.5</strong></p></td>
 <td><p><strong>System executes partial flow <a class="reference internal" href="../partial-flows/PF2.4_ConfirmProtectedAction.html"><span class="std std-doc">PF2.4 Confirm a protected action</span></a></strong><ul><li>Cancelable</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>1.5a</p></td>
+<tr class="row-odd"><td><p>1.5a</p></td>
 <td><p>Result: Confirm</p></td>
 <td><p>1.6</p></td>
 </tr>
-<tr class="row-odd"><td><p>1.5b</p></td>
+<tr class="row-even"><td><p>1.5b</p></td>
 <td><p>Result: Cancel</p></td>
 <td><p>2</p></td>
 </tr>
-<tr class="row-even"><td><p>1.5c</p></td>
+<tr class="row-odd"><td><p>1.5c</p></td>
 <td><p>Result: Back</p></td>
 <td><p>Back</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>1.6</strong></p></td>
+<tr class="row-even"><td><p><strong>1.6</strong></p></td>
 <td><p><strong>System displays screen ‘Disclosure success’</strong><ul><li>Message: Success!</li><li>Actions: To my overview (cross-device flow), Go to website (same-device flow), See activity, Help, Close</li></ul></p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>1.6a</p></td>
+<tr class="row-odd"><td><p>1.6a</p></td>
 <td><p>User selects To my overview (in cross-device flow only)</p></td>
 <td><p>Go to: <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="std std-doc">UC7.1 Show all available cards</span></a></p></td>
 </tr>
-<tr class="row-odd"><td><p>1.6b</p></td>
+<tr class="row-even"><td><p>1.6b</p></td>
 <td><p>User selects Go to website <br>→ System opens browser and suspends app (in same-device flow only)</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-even"><td><p>1.6c</p></td>
+<tr class="row-odd"><td><p>1.6c</p></td>
 <td><p>User selects See activity</p></td>
 <td><p>Go to: <a class="reference internal" href="UC6.3_ShowHistoryEvent.html"><span class="std std-doc">UC6.3 Show event</span></a></p></td>
 </tr>
-<tr class="row-odd"><td><p>1.6d</p></td>
+<tr class="row-even"><td><p>1.6d</p></td>
 <td><p>User selects Help</p></td>
 <td><p>Show placeholder ‘under construction’</p></td>
 </tr>
-<tr class="row-even"><td><p>1.6e</p></td>
+<tr class="row-odd"><td><p>1.6e</p></td>
 <td><p>User selects Close <br>→ System opens browser and suspends app</p></td>
 <td><p>Go to: <a class="reference internal" href="UC7.1_ShowAllAvailableCards.html"><span class="std std-doc">UC7.1 Show all available cards</span></a></p></td>
 </tr>
-<tr class="row-odd"><td><p>1.6f</p></td>
+<tr class="row-even"><td><p>1.6f</p></td>
 <td><p>Error: No internet</p></td>
 <td><p>Error flow: <a class="reference internal" href="../errors.html#no-internet"><span class="std std-ref">No Internet</span></a></p></td>
 </tr>
-<tr class="row-even"><td><p>1.6g</p></td>
+<tr class="row-odd"><td><p>1.6g</p></td>
 <td><p>Error: Server unreachable</p></td>
 <td><p>Error flow: <a class="reference internal" href="../errors.html#server-unreachable"><span class="std std-ref">Server Unreachable</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>1.6h</p></td>
+<td><p>Error: Bluetooth disconnected error (close proximity flow only)</p></td>
+<td><p>Error flow: <a class="reference internal" href="../errors.html#bluetooth-disconnected-error"><span class="std std-ref">Bluetooth Disconnected Error</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>2</strong></p></td>
 <td><p><strong>STOP</strong></p></td>

@@ -97,6 +97,7 @@
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC4.1_ObtainCardsFromEAAIssuer.html">Use Case 4.1 Obtain one or more cards from a (Q)EAA Issuer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC5.1_ShareDataWithRP.html">Use Case 5.1 Share data with a Relying Party</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC5.2_LoginToApplicationOfRP.html">Use Case 5.2 Log in to Relying Party application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="use-cases/UC5.3_ShowQR.html">Use Case 5.3 Show QR</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC6.1_ShowCompleteUsageAndManagementHistory.html">Use Case 6.1 Show complete history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC6.2_ShowUsageAndManagementHistoryOfCard.html">Use Case 6.2 Show card history</a></li>
 <li class="toctree-l2"><a class="reference internal" href="use-cases/UC6.3_ShowHistoryEvent.html">Use Case 6.3 Show history event</a></li>
@@ -1201,8 +1202,8 @@ instructs user to choose a new PIN<br></p>
 </section>
 <details class="ltc-implementations"><summary>Implementations</summary><ul><li><a href="https://github.com/MinBZK/nl-wallet/blob/main/uiautomation/src/test/kotlin/feature/revocation/RevokeWalletsTests.kt#L146"><code>uiautomation/src/test/kotlin/feature/revocation/RevokeWalletsTests.kt:146</code></a></li></ul></details><details class="ltc-covers"><summary>Covered Use Case</summary><ul><li><a href="partial-flows/PF2.4_ConfirmProtectedAction.html"><code>Partial Flow 2.4 Confirm a protected action</code></a></li></ul></details></section>
 <hr class="docutils" />
-<section id="ltc79">
-<h3>LTC79<a class="headerlink" href="#ltc79" title="Link to this heading"></a></h3>
+<section id="ltc78">
+<h3>LTC78<a class="headerlink" href="#ltc78" title="Link to this heading"></a></h3>
 <section id="delete-eaa-card">
 <h4>Delete EAA card<a class="headerlink" href="#delete-eaa-card" title="Link to this heading"></a></h4>
 <p><strong>Given</strong> wallet contains an eaa card<br>
@@ -1211,6 +1212,42 @@ instructs user to choose a new PIN<br></p>
 <strong>And</strong> a delete event is added to the history<br></p>
 </section>
 <details class="ltc-implementations"><summary>Implementations</summary><ul><li><a href="https://github.com/MinBZK/nl-wallet/blob/main/uiautomation/src/test/kotlin/feature/cards_and_history/DeleteCardTests.kt#L67"><code>uiautomation/src/test/kotlin/feature/cards_and_history/DeleteCardTests.kt:67</code></a></li></ul></details><details class="ltc-covers"><summary>Covered Use Case</summary><ul><li><a href="use-cases/UC7.4_DeleteEAACard.html"><code>Use Case 7.4 Delete EAA card</code></a></li></ul></details></section>
+<hr class="docutils" />
+<section id="ltc79">
+<h3>LTC79<a class="headerlink" href="#ltc79" title="Link to this heading"></a></h3>
+<section id="close-proximity-data-sharing">
+<h4>Close proximity data sharing<a class="headerlink" href="#close-proximity-data-sharing" title="Link to this heading"></a></h4>
+<p><strong>Given</strong> user has completed PID setup and opened the app<br>
+<strong>When</strong> user starts disclosure process by showing its QR code to a third party verifier<br>
+<strong>Then</strong> system requests user consent<br>
+<strong>When</strong> user approves with PIN<br>
+<strong>Then</strong> system discloses attributes to relying party<br>
+<strong>And</strong> system displays data shared message<br></p>
+</section>
+<details class="ltc-implementations"><summary>Implementations</summary><ul><li><a href="https://github.com/MinBZK/nl-wallet/blob/main/uiautomation/src/test/kotlin/feature/close_proximity/CloseProximityDisclosureTests.kt#L52"><code>uiautomation/src/test/kotlin/feature/close_proximity/CloseProximityDisclosureTests.kt:52</code></a></li></ul></details><details class="ltc-covers"><summary>Covered Use Case</summary><ul><li><a href="use-cases/UC5.1_ShareDataWithRP.html"><code>Use Case 5.1 Share data with a Relying Party</code></a></li><li><a href="use-cases/UC5.3_ShowQR.html"><code>Use Case 5.3 Show QR</code></a></li></ul></details></section>
+<hr class="docutils" />
+<section id="ltc80">
+<h3>LTC80<a class="headerlink" href="#ltc80" title="Link to this heading"></a></h3>
+<section id="wallet-does-not-contain-requested-attributes-at-close-proximity-disclosure">
+<h4>Wallet does not contain requested attributes at close proximity disclosure<a class="headerlink" href="#wallet-does-not-contain-requested-attributes-at-close-proximity-disclosure" title="Link to this heading"></a></h4>
+<p><strong>Given</strong> wallet does not contain attributes to fulfill a disclosure request<br>
+<strong>When</strong> user starts disclosure process by showing its QR code to a third party verifier<br>
+<strong>Then</strong> System displays an error message with instructions<br></p>
+</section>
+<details class="ltc-implementations"><summary>Implementations</summary><ul><li><a href="https://github.com/MinBZK/nl-wallet/blob/main/uiautomation/src/test/kotlin/feature/close_proximity/CloseProximityDisclosureTests.kt#L93"><code>uiautomation/src/test/kotlin/feature/close_proximity/CloseProximityDisclosureTests.kt:93</code></a></li></ul></details><details class="ltc-covers"><summary>Covered Use Case</summary><ul><li><a href="use-cases/UC5.1_ShareDataWithRP.html"><code>Use Case 5.1 Share data with a Relying Party</code></a></li></ul></details></section>
+<hr class="docutils" />
+<section id="ltc81">
+<h3>LTC81<a class="headerlink" href="#ltc81" title="Link to this heading"></a></h3>
+<section id="ble-connection-lost-from-reader-during-close-proximity-disclosure">
+<h4>BLE connection lost from reader during close proximity disclosure<a class="headerlink" href="#ble-connection-lost-from-reader-during-close-proximity-disclosure" title="Link to this heading"></a></h4>
+<p><strong>Given</strong> user has completed PID setup and opened the app<br>
+<strong>When</strong> user starts disclosure process by showing its QR code to a third party verifier<br>
+<strong>Then</strong> system requests user consent<br>git add
+<strong>When</strong> reader disconnect BLE connection<br>
+<strong>When</strong> user approves with PIN<br>
+<strong>Then</strong> System displays an error message with instructions<br></p>
+</section>
+<details class="ltc-implementations"><summary>Implementations</summary><ul><li><a href="https://github.com/MinBZK/nl-wallet/blob/main/uiautomation/src/test/kotlin/feature/close_proximity/CloseProximityDisclosureTests.kt#L111"><code>uiautomation/src/test/kotlin/feature/close_proximity/CloseProximityDisclosureTests.kt:111</code></a></li></ul></details><details class="ltc-covers"><summary>Covered Use Case</summary><ul><li><a href="use-cases/UC5.1_ShareDataWithRP.html"><code>Use Case 5.1 Share data with a Relying Party</code></a></li></ul></details></section>
 </section>
 </section>
 
