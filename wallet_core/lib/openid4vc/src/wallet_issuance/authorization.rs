@@ -113,7 +113,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         let pkce_pair = P::generate();
         let state = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
 
-        let par_request = VciAuthorizationRequest::for_par(
+        let par_request = VciAuthorizationRequest::for_auth_code(
             client_id.clone(),
             redirect_uri.clone(),
             state.clone(),

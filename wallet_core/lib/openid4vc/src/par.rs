@@ -25,7 +25,7 @@ pub mod test {
     use crate::store::Store;
 
     fn example_request() -> VciAuthorizationRequest {
-        VciAuthorizationRequest::for_par(
+        VciAuthorizationRequest::for_auth_code(
             String::from("client-1"),
             "uri://redirect_uri".parse().unwrap(),
             String::from("state"),

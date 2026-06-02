@@ -216,8 +216,7 @@ impl UpstreamOidcAuthorizationCodeFlow {
 impl AuthorizationCodeFlow for UpstreamOidcAuthorizationCodeFlow {
     type Error = Error;
 
-    // TODO (PVW-5953): create separate nl-rdo-max AuthorizationRequest and remove `mut` qualifier
-    async fn authorize(&self, mut request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error> {
+    async fn authorize(&self, request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error> {
         // Capture the wallet-side parameters we'll need at callback time to redirect the
         // user-agent back to the wallet, and the wallet's PKCE challenge that the framework's
         // /token handler will verify against.
@@ -225,38 +224,35 @@ impl AuthorizationCodeFlow for UpstreamOidcAuthorizationCodeFlow {
             PkceCodeChallenge::S256 { code_challenge } => code_challenge,
             PkceCodeChallenge::Plain { .. } => return Err(Error::UnsupportedCodeChallenge),
         };
-        let wallet_redirect_uri = request.redirect_uri.into_inner();
-        let wallet_state = request.oauth_request.state.clone();
 
         // Generate the upstream PKCE pair and the random `issuer_state` we'll use as `state` in
         // the upstream redirect. The upstream provider will echo it back to our callback.
         let upstream_pkce = S256PkcePair::generate();
-        let upstream_code_challenge = upstream_pkce.code_challenge().to_string();
-        let upstream_code_verifier = upstream_pkce.into_code_verifier();
         let issuer_state = random_string(ISSUER_STATE_LENGTH);
 
+        // Create a new upstream authorization request
+        let mut upstream_request = VciAuthorizationRequest::for_auth_code(
+            self.client_id.clone(),
+            self.callback_uri.clone(),
+            issuer_state.clone(),
+            None,
+            &upstream_pkce,
+        );
+        upstream_request.scope = Some(self.scopes.clone());
+
         let entry = StateBridgeEntry {
-            wallet_redirect_uri,
-            wallet_state,
+            wallet_redirect_uri: request.redirect_uri.into_inner(),
+            wallet_state: request.oauth_request.state.clone(),
             wallet_code_challenge,
-            upstream_code_verifier,
+            upstream_code_verifier: upstream_pkce.into_code_verifier(),
         };
         self.state_bridge_store
-            .store(issuer_state.clone(), entry)
+            .store(issuer_state, entry)
             .await
             .map_err(Error::StateBridge)?;
 
-        // Substitute the upstream-facing parameters in the original wallet request, then encode.
-        request.code_challenge = PkceCodeChallenge::S256 {
-            code_challenge: upstream_code_challenge,
-        };
-        request.oauth_request.client_id = self.client_id.clone();
-        request.oauth_request.state = Some(issuer_state);
-        request.redirect_uri = self.callback_uri.clone().into();
-        request.scope = Some(self.scopes.clone());
-
         let oidc_request = OidcAuthorizationRequest {
-            vci_request: request,
+            vci_request: upstream_request,
             nonce: Some(Nonce::new_random()),
         };
 

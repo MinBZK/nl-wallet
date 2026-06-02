@@ -77,7 +77,7 @@ pub struct VciAuthorizationRequest {
 }
 
 impl VciAuthorizationRequest {
-    pub fn for_par<P: PkcePair>(
+    pub fn for_auth_code<P: PkcePair>(
         client_id: String,
         redirect_uri: Url,
         state: String,
