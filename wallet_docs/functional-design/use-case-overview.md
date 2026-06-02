@@ -78,7 +78,8 @@ CARD["<a href='use-cases/UC7.2_ShowCardDetails.html'>7.2 View card Details</a>"]
 
 MENU["<a href='use-cases/UC9.1_ShowAppMenu.html'>9.1 View app menu</a>"]
 APP_INFO["<a href='use-cases/UC9.2_GetAppInformation.html'>9.2 Get app info</a>"]
-QR["<a href='use-cases/UC9.9_ScanQR.html'>9.9 Scan QR</a>"]
+SCAN_QR["<a href='use-cases/UC9.9_ScanQR.html'>9.9 Scan QR</a>"]
+SHOW_QR["<a href='use-cases/UC5.3_ShowQR.html'>5.3 SHOW QR</a>"]
 
 RECOVER_PIN["<a href='use-cases/UC2.3.2_RecoverPIN.html'>2.3.2 Recover PIN</a>"]
 RENEW_PID["<a href='use-cases/UC3.2_RenewPid.html'>3.3 Renew PID</a>"]
@@ -88,7 +89,8 @@ START --> ALL_CARDS
 
 ALL_CARDS --> APP_TOUR
 ALL_CARDS --> MENU
-ALL_CARDS --> QR
+ALL_CARDS --> SCAN_QR
+ALL_CARDS --> SHOW_QR
 ALL_CARDS --> ALL_HISTORY
 ALL_CARDS --> CARD
 ALL_CARDS --> APP_INFO

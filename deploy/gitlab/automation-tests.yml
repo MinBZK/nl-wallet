@@ -34,6 +34,16 @@ scheduled-automation-tests-trigger:
     IOS_ACCEPT_ALERTS: "true"
     ENABLE_BROWSERSTACK_A11Y_CHECKS: false
 
+.extract-reader-ca-credentials:
+  before_script:
+    - !reference [.run-automation-tests-base, before_script]
+    - READER_CA_KEY_DER=$(kubectl get secret nl-wallet-server-trust-anchors -o jsonpath='{.data.reader_private_key}' | base64 --decode)
+    - READER_CA_CRT_DER=$(kubectl get configmap nl-wallet-server-trust-anchors -o jsonpath='{.data.reader_trust_anchors}')
+    - echo "$READER_CA_KEY_DER" | base64 -d | openssl pkey -inform DER -outform PEM > /tmp/ca.reader.key.pem
+    - echo "$READER_CA_CRT_DER" | base64 -d | openssl x509 -inform DER -outform PEM > /tmp/ca.reader.crt.pem
+    - export READER_CA_KEY_FILE=/tmp/ca.reader.key.pem
+    - export READER_CA_CRT_FILE=/tmp/ca.reader.crt.pem
+
 .run-automation-tests-common-setup:
   resource_group: automation-tests
   extends: .run-automation-tests-base
