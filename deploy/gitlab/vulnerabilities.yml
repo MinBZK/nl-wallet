@@ -10,12 +10,9 @@ dependency-check:
     - OSS_INDEX_PASSWORD=$(kubectl get secret nl-wallet-oss-index -o jsonpath='{.data.password}' | base64 --decode)
     - mkdir -p $CI_PROJECT_DIR/dependency_check_data
   script:
-    # TODO (PVW-5908): restore credentials once Sonatype account is migrated
-    #      --ossIndexUsername "$OSS_INDEX_USERNAME"
-    #      --ossIndexPassword "$OSS_INDEX_PASSWORD"
     - dependency-check.sh --data $CI_PROJECT_DIR/dependency_check_data --disableDart --disableAssembly
       --disableYarnAudit --enableExperimental --format "HTML" --format "JSON" --format "XML" --scan "." --suppression
-      $CI_PROJECT_DIR/deploy/dependencies/dependency-check-suppressions.xml --nvdApiKey "$NVD_API_KEY" --failOnCVSS 0.1
+      $CI_PROJECT_DIR/deploy/dependencies/dependency-check-suppressions.xml --nvdApiKey "$NVD_API_KEY" --ossIndexUsername "$OSS_INDEX_USERNAME" --ossIndexPassword "$OSS_INDEX_PASSWORD" --failOnCVSS 0.1
   after_script:
     - for ext in json html xml; do deploy/bin/store-artifact.sh dependency-check-report.$ext
       qt/quality-time/dependency-check/report.$ext; done
