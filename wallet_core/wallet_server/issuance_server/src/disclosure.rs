@@ -103,8 +103,8 @@ pub enum IssuanceResultHandlerError {
     #[error("failed to create session: {0}")]
     SessionStore(#[from] SessionStoreError),
 
-    #[error("credential offer URL encoding failed: {0}")]
-    CredentialOfferEncoding(#[source] serde_json::Error),
+    #[error("credential offer URL serialization failed: {0}")]
+    CredentialOfferSerialization(#[source] serde_json::Error),
 }
 
 impl ToPostAuthResponseErrorCode for IssuanceResultHandlerError {
@@ -173,7 +173,7 @@ where
         );
 
         let credential_offer_json = serde_json::to_string(&credential_offer).map_err(|error| {
-            DisclosureResultHandlerError::new(IssuanceResultHandlerError::CredentialOfferEncoding(error))
+            DisclosureResultHandlerError::new(IssuanceResultHandlerError::CredentialOfferSerialization(error))
         })?;
 
         let query_params = HashMap::from([("credential_offer".to_string(), credential_offer_json)]);
