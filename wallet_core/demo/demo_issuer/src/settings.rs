@@ -18,7 +18,6 @@ use serde::Deserialize;
 use serde_valid::Validate;
 use serde_with::DisplayFromStr;
 use serde_with::serde_as;
-use url::Url;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -28,6 +27,7 @@ pub struct Settings {
     pub issuance_server: Server,
     pub issuance_server_tls_config: Option<TlsServerConfig>,
     pub issuance_server_url: BaseUrl,
+    pub pacf_issuance_server_url: BaseUrl,
     pub universal_link_base_url: BaseUrl,
     pub help_base_url: BaseUrl,
     pub structured_logging: bool,
@@ -46,7 +46,6 @@ pub struct Server {
 pub enum Usecase {
     PreAuthorized {
         data: IssuableDocumentTemplates,
-        offer_url: Url,
     },
     DisclosureBased {
         data: HashMap<AttributeValue, IssuableDocumentTemplates>,

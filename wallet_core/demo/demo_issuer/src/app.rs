@@ -54,6 +54,7 @@ use crate::translations::Words;
 struct ApplicationState {
     usecases: HashMap<String, Usecase>,
     issuance_server_url: BaseUrl,
+    pacf_issuance_server_url: BaseUrl,
     universal_link_base_url: BaseUrl,
     help_base_url: BaseUrl,
 }
@@ -78,6 +79,7 @@ pub fn create_routers(settings: Settings) -> (Router, Router) {
     let application_state = Arc::new(ApplicationState {
         usecases: settings.usecases,
         issuance_server_url: settings.issuance_server_url,
+        pacf_issuance_server_url: settings.pacf_issuance_server_url,
         universal_link_base_url: settings.universal_link_base_url,
         help_base_url: settings.help_base_url,
     });
@@ -193,14 +195,13 @@ async fn usecase(
     };
 
     Ok(match usecase {
-        Usecase::PreAuthorized { data, offer_url } => {
+        Usecase::PreAuthorized { data } => {
             let data = data.clone();
-            let offer_url = offer_url.clone();
             pre_authorized_usecase(
+                &state.pacf_issuance_server_url,
                 &usecase_id,
                 language,
                 &data,
-                offer_url,
                 state.help_base_url.clone().into_inner(),
             )
             .await?
@@ -246,10 +247,10 @@ fn disclosure_based_usecase(
 }
 
 async fn pre_authorized_usecase(
+    pacf_issuance_server_url: &BaseUrl,
     usecase: &str,
     selected_lang: Language,
     data: &IssuableDocumentTemplates,
-    offer_url: Url,
     help_base_url: Url,
 ) -> Result<Response> {
     let documents = data
@@ -264,7 +265,7 @@ async fn pre_authorized_usecase(
         .unwrap(); // we started with a VecNonEmpty
 
     let offer_response = reqwest::Client::new()
-        .post(offer_url)
+        .post(pacf_issuance_server_url.join("offer"))
         .json(&OfferRequest { documents })
         .send()
         .await

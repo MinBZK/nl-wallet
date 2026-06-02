@@ -1,5 +1,6 @@
 {
   "issuance_server_url": "http://${SERVICES_HOST}:${ISSUANCE_SERVER_PORT}",
+  "pacf_issuance_server_url": "http://${SERVICES_HOST}:${PACF_ISSUANCE_SERVER_IS_PORT}",
   "help_base_url": "https://example.com/",
   "webserver": {
     "ip": "0.0.0.0",
@@ -15,7 +16,6 @@
   },
   "usecases": {
     "loyalty": {
-      "offer_url": "http://${SERVICES_HOST}:${PACF_ISSUANCE_SERVER_IS_PORT}/offer",
       "data": [
         {
           "format": "mso_mdoc",
