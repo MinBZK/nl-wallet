@@ -209,8 +209,7 @@ impl<K, L> CredentialConfigurations<K, L> {
             .keys()
             .collect_vec()
             .try_into()
-            // This type's constructor guarantees a non-zero amount of credential configurations.
-            .unwrap()
+            .expect("a non-zero amount of credential configurations is guaranteed by this type's constructor")
     }
 
     pub fn get_by_configuration_id(
