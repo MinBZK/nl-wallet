@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crypto::trust_anchor::TrustAnchors;
 use http_utils::reqwest::HttpJsonClient;
 use url::Url;
@@ -126,8 +128,6 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
 #[derive(Debug)]
 struct NormalizedCredentialOffer {
     credential_issuer: IssuerIdentifier,
-    // TODO (PVW-5856): Use this field when all issuance starts with a CredentialOffer.
-    #[expect(dead_code)]
     credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
     // TODO (PVW-5528): Use this field when considering which authorization server to choose.
     #[expect(dead_code)]
@@ -268,6 +268,29 @@ impl HttpIssuanceDiscovery {
         // TODO (PVW-5528): Use the authorization server from the Credential Offer, if provided.
         let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer.credential_issuer).await?;
 
+        // Collect the indices of all Credential Configuration IDs that appear in the Credential Offer, but not in the
+        // Issuer Metadata. If any are missing we can use these indices to collect the owned values for returning the
+        // error.
+        let missing_id_indices = credential_offer
+            .credential_configuration_ids
+            .iter()
+            .enumerate()
+            .filter_map(|(index, id)| {
+                (!issuer_metadata.credential_configurations_supported.contains_key(id)).then_some(index)
+            })
+            .collect::<HashSet<_>>();
+
+        if !missing_id_indices.is_empty() {
+            let missing_ids = credential_offer
+                .credential_configuration_ids
+                .into_iter()
+                .enumerate()
+                .filter_map(|(index, id)| missing_id_indices.contains(&index).then_some(id))
+                .collect();
+
+            return Err(WalletIssuanceError::MissingCredentialConfigId(missing_ids));
+        }
+
         let flow = match credential_offer.grant {
             CredentialOfferGrant::GrantWithFlow { flow } => flow,
             CredentialOfferGrant::NoKnownGrant => {
@@ -366,6 +389,7 @@ mod test {
     use crate::credential_offer::Grants;
     use crate::credential_offer::PreAuthTransactionCode;
     use crate::issuer_identifier::IssuerIdentifier;
+    use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::preview::CredentialPreviewResponse;
     use crate::token::CredentialPreview;
@@ -874,5 +898,42 @@ mod test {
             .await;
 
         assert_matches!(result, Err(WalletIssuanceError::CredentialOfferTxCodeUnsupported));
+    }
+
+    #[tokio::test]
+    async fn start_missing_credential_config_id_error() {
+        let (_server, issuer_identifier, trust_anchor) = start_httpmock_issuer(true).await;
+
+        // Construct a Pre-Authorized Code Credential Offer with Credential Configurations ID that are not in the Issuer
+        // Metadata.
+        let credential_offer = CredentialOffer {
+            credential_issuer: issuer_identifier,
+            credential_configuration_ids: vec_nonempty![
+                "other_id".to_string().into(),
+                PID_ATTESTATION_TYPE.to_string().into(),
+                "another_id".to_string().into()
+            ],
+            grants: Some(Grants::new_pre_authorized("fake_pre_auth_code".to_string().into())),
+        };
+        let offer_container = CredentialOfferContainer::new_offer(credential_offer);
+        let query = serde_urlencoded::to_string(&offer_container).unwrap();
+        let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
+
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+
+        let result = discovery
+            .start(
+                &offer_url,
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
+                &trust_anchor,
+            )
+            .await;
+
+        assert_matches!(
+            result,
+            Err(WalletIssuanceError::MissingCredentialConfigId(config_ids))
+                if config_ids.iter().map(CredentialConfigurationId::as_ref).sorted().eq(["another_id", "other_id"])
+        );
     }
 }
