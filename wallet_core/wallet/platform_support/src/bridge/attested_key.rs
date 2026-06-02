@@ -30,7 +30,10 @@ pub enum AttestationData {
     },
     Google {
         certificate_chain: Vec<Vec<u8>>,
-        app_attestation_token: String,
+        /// Google Play Integrity token. `None` on devices without Google Play services
+        /// (e.g. GrapheneOS, LineageOS, /e/OS), in which case registration relies on the
+        /// hardware key attestation certificate chain alone.
+        app_attestation_token: Option<String>,
     },
 }
 

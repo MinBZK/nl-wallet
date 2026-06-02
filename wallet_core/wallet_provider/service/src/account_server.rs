@@ -8,6 +8,9 @@ use std::time::Duration;
 use android_attest::android_crl;
 use android_attest::android_crl::GoogleRevocationListClient;
 use android_attest::android_crl::RevocationStatusList;
+use android_attest::attestation_extension::key_attestation::KeyAttestation;
+use android_attest::attestation_extension::key_description::SecurityLevel;
+use android_attest::attestation_extension::key_description::VerifiedBootState;
 use android_attest::certificate_chain::GoogleKeyAttestationError;
 use android_attest::certificate_chain::verify_google_key_attestation_with_params;
 use android_attest::play_integrity::client::PlayIntegrityClient;
@@ -181,6 +184,20 @@ pub enum AndroidKeyAttestationError {
     Verification(#[from] GoogleKeyAttestationError),
     #[error("certificate chain contains at least one revoked certificate")]
     RevokedCertificates,
+    #[error("Play Integrity token is required: key-attestation-only registration is not enabled")]
+    IntegrityTokenRequired,
+    #[error("key attestation security level is not hardware-backed: {0:?}")]
+    InsufficientSecurityLevel(SecurityLevel),
+    #[error("key attestation does not contain a hardware-enforced root of trust")]
+    MissingRootOfTrust,
+    #[error("key attestation verified boot state is not accepted: {0:?}")]
+    VerifiedBootStateNotAccepted(VerifiedBootState),
+    #[error("key attestation indicates the bootloader is not locked")]
+    BootloaderNotLocked,
+    #[error("key attestation application identity does not match expected package '{0}'")]
+    ApplicationIdentityMismatch(String),
+    #[error("key attestation signature digest does not match a configured app signing certificate")]
+    SignatureDigestMismatch,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -458,6 +475,100 @@ pub struct AndroidAttestationConfiguration {
     pub package_name: String,
     pub installation_method: InstallationMethod,
     pub certificate_hashes: HashSet<Vec<u8>>,
+    /// Policy for accepting registrations that rely on hardware key attestation alone, without a
+    /// Google Play Integrity token (e.g. devices without Google Play services or a Google account).
+    /// `None` disables this path entirely, preserving the default behaviour of requiring a Play
+    /// Integrity verdict for every Android device.
+    pub key_attestation_only_policy: Option<KeyAttestationOnlyPolicy>,
+}
+
+/// Conditions under which a registration without a Google Play Integrity token is accepted, relying
+/// on the hardware key attestation certificate chain alone. The hardware-backed security level is
+/// always required (a software-only attestation is never accepted). The remaining conditions are
+/// configurable so that a deployment can decide, as a matter of policy, which de-Googled devices and
+/// bootloader states it trusts.
+#[derive(Debug, Clone)]
+pub struct KeyAttestationOnlyPolicy {
+    /// Verified boot states accepted when no Play Integrity token is present. For the strongest
+    /// guarantee a deployment accepts only [`VerifiedBootState::Verified`] (a device with a locked
+    /// bootloader and a verified OS, including relocked GrapheneOS).
+    pub allowed_verified_boot_states: Vec<VerifiedBootState>,
+    /// Require a locked bootloader (`RootOfTrust.device_locked == true`).
+    pub require_device_locked: bool,
+    /// Require that one of the app signing certificate digests in the key attestation's
+    /// `attestation_application_id` matches the configured `certificate_hashes`. This replaces the
+    /// app-authenticity guarantee that Play Integrity would otherwise provide.
+    pub require_matching_signature_digest: bool,
+}
+
+/// Verify a key-attestation-only registration (no Play Integrity token) against `policy`. This
+/// enforces a hardware root of trust and binds the attestation to our app, so that dropping Play
+/// Integrity for de-Googled devices is a replacement of the integrity signal rather than a removal.
+fn verify_key_attestation_only_policy(
+    key_attestation: &KeyAttestation,
+    config: &AndroidAttestationConfiguration,
+    policy: &KeyAttestationOnlyPolicy,
+) -> Result<(), AndroidKeyAttestationError> {
+    // 1. The attestation must be hardware-backed; a software-only attestation provides no hardware root of trust and is
+    //    never accepted on this path.
+    if matches!(key_attestation.attestation_security_level, SecurityLevel::Software) {
+        return Err(AndroidKeyAttestationError::InsufficientSecurityLevel(
+            key_attestation.attestation_security_level,
+        ));
+    }
+
+    // 2. Verified boot state and bootloader lock state, taken from the hardware-enforced root of trust.
+    let root_of_trust = key_attestation
+        .hardware_enforced
+        .root_of_trust
+        .as_ref()
+        .ok_or(AndroidKeyAttestationError::MissingRootOfTrust)?;
+
+    if !policy
+        .allowed_verified_boot_states
+        .contains(&root_of_trust.verified_boot_state)
+    {
+        return Err(AndroidKeyAttestationError::VerifiedBootStateNotAccepted(
+            root_of_trust.verified_boot_state,
+        ));
+    }
+
+    if policy.require_device_locked && !root_of_trust.device_locked {
+        return Err(AndroidKeyAttestationError::BootloaderNotLocked);
+    }
+
+    // 3. App identity binding: the attested application id (populated by Android KeyMint, not by the app) must
+    //    reference our package and, optionally, match a configured app signing certificate digest. KeyMint records the
+    //    application id in the software-enforced authorization list.
+    let application_id = key_attestation
+        .software_enforced
+        .attestation_application_id
+        .as_ref()
+        .ok_or_else(|| AndroidKeyAttestationError::ApplicationIdentityMismatch(config.package_name.clone()))?;
+
+    let package_matches = application_id
+        .package_infos
+        .to_vec()
+        .iter()
+        .any(|info| info.package_name.as_ref() == config.package_name.as_bytes());
+    if !package_matches {
+        return Err(AndroidKeyAttestationError::ApplicationIdentityMismatch(
+            config.package_name.clone(),
+        ));
+    }
+
+    if policy.require_matching_signature_digest {
+        let digest_matches = application_id
+            .signature_digests
+            .to_vec()
+            .iter()
+            .any(|digest| config.certificate_hashes.contains(digest.as_ref()));
+        if !digest_matches {
+            return Err(AndroidKeyAttestationError::SignatureDigestMismatch);
+        }
+    }
+
+    Ok(())
 }
 
 pub struct AccountServerKeys {
@@ -691,50 +802,82 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 let hw_pubkey = VerifyingKey::from_public_key_der(leaf_certificate.public_key().raw)
                     .map_err(|error| AndroidKeyAttestationError::LeafPublicKey(Box::new(error)))?;
 
-                debug!("Validating Android app attestation");
+                // Validate the Android app attestation. When a Play Integrity token is present we verify
+                // it as usual. When it is absent (e.g. a de-Googled device without Google Play services,
+                // or a device without a Google account), we fall back to validating the hardware key
+                // attestation alone, subject to the configured key attestation policy. This keeps a
+                // hardware root of trust without requiring Google Play services or a Google account.
+                let integrity_verdict_json = match integrity_token {
+                    Some(integrity_token) => {
+                        debug!("Validating Android app attestation using Play Integrity");
 
-                let (integrity_verdict, integrity_verdict_json) = self
-                    .play_integrity_client
-                    .decode_token(&integrity_token)
-                    .await
-                    .map_err(|error| {
-                        warn!("Could not decode integrity token using Play Integrity API: {0}", error);
+                        let (integrity_verdict, integrity_verdict_json) = self
+                            .play_integrity_client
+                            .decode_token(&integrity_token)
+                            .await
+                            .map_err(|error| {
+                                warn!("Could not decode integrity token using Play Integrity API: {0}", error);
 
-                        AndroidAppAttestationError::DecodeIntegrityToken
-                    })?;
+                                AndroidAppAttestationError::DecodeIntegrityToken
+                            })?;
 
-                let request_hash = BASE64_STANDARD.encode(&challenge_hash);
+                        let request_hash = BASE64_STANDARD.encode(&challenge_hash);
 
-                #[cfg(feature = "spoof_integrity_verdict_hash")]
-                let integrity_verdict = {
-                    use android_attest::play_integrity::integrity_verdict::RequestDetails;
+                        #[cfg(feature = "spoof_integrity_verdict_hash")]
+                        let integrity_verdict = {
+                            use android_attest::play_integrity::integrity_verdict::RequestDetails;
 
-                    warn!("Spoofing Android integrity verdict request hash");
+                            warn!("Spoofing Android integrity verdict request hash");
 
-                    IntegrityVerdict {
-                        request_details: RequestDetails {
-                            request_hash: request_hash.clone(),
-                            ..integrity_verdict.request_details
-                        },
-                        ..integrity_verdict
+                            IntegrityVerdict {
+                                request_details: RequestDetails {
+                                    request_hash: request_hash.clone(),
+                                    ..integrity_verdict.request_details
+                                },
+                                ..integrity_verdict
+                            }
+                        };
+
+                        let _ = VerifiedIntegrityVerdict::verify_with_time(
+                            integrity_verdict,
+                            &self.android_config.package_name,
+                            &request_hash,
+                            &self.android_config.certificate_hashes,
+                            self.android_config.installation_method,
+                            attestation_timestamp,
+                        )
+                        .map_err(|error| {
+                            warn!(
+                                "rejected Android app attestation with integrity verdict: '{0}', cause: '{error}'",
+                                integrity_verdict_json,
+                            );
+                            AndroidAppAttestationError::IntegrityVerdict(error)
+                        })?;
+
+                        Some(integrity_verdict_json)
+                    }
+                    None => {
+                        // No Play Integrity token: only allowed when the deployment has explicitly opted
+                        // in to key-attestation-only registration to support devices without Google Play
+                        // services (e.g. GrapheneOS, LineageOS, /e/OS).
+                        let policy = self
+                            .android_config
+                            .key_attestation_only_policy
+                            .as_ref()
+                            .ok_or(AndroidKeyAttestationError::IntegrityTokenRequired)?;
+
+                        debug!("No Play Integrity token present; validating Android key attestation policy");
+
+                        verify_key_attestation_only_policy(&key_attestation, &self.android_config, policy).map_err(
+                            |error| {
+                                warn!("rejected Android key-attestation-only registration: '{error}'");
+                                error
+                            },
+                        )?;
+
+                        None
                     }
                 };
-
-                let _ = VerifiedIntegrityVerdict::verify_with_time(
-                    integrity_verdict,
-                    &self.android_config.package_name,
-                    &request_hash,
-                    &self.android_config.certificate_hashes,
-                    self.android_config.installation_method,
-                    attestation_timestamp,
-                )
-                .map_err(|error| {
-                    warn!(
-                        "rejected Android app attestation with integrity verdict: '{0}', cause: '{error}'",
-                        integrity_verdict_json,
-                    );
-                    AndroidAppAttestationError::IntegrityVerdict(error)
-                })?;
 
                 debug!("Checking registration signatures");
 
@@ -1776,6 +1919,7 @@ pub mod mock {
                 package_name: integrity_client.package_name.clone(),
                 certificate_hashes: integrity_client.certificate_hashes.clone(),
                 installation_method: InstallationMethod::default(),
+                key_attestation_only_policy: None,
             },
             crl,
             integrity_client,
@@ -2179,7 +2323,7 @@ mod tests {
                 let registration_message = ChallengeResponse::new_google(
                     &attested_private_key,
                     attested_certificate_chain.try_into().unwrap(),
-                    integrity_token,
+                    Some(integrity_token),
                     pin_privkey,
                     challenge,
                 )
@@ -3935,5 +4079,153 @@ mod tests {
             .expect_err("start pin recovery should fail due to wallet solution revoked");
 
         assert_matches!(err, InstructionError::WalletSolutionRevoked);
+    }
+}
+
+#[cfg(test)]
+mod key_attestation_only_policy_tests {
+    use std::collections::HashSet;
+
+    use android_attest::attestation_extension::key_attestation::KeyAttestation;
+    use android_attest::attestation_extension::key_description::SecurityLevel;
+    use android_attest::attestation_extension::key_description::VerifiedBootState;
+    use android_attest::play_integrity::verification::InstallationMethod;
+
+    use super::AndroidAttestationConfiguration;
+    use super::AndroidKeyAttestationError;
+    use super::KeyAttestationOnlyPolicy;
+    use super::verify_key_attestation_only_policy;
+
+    const PACKAGE_NAME: &str = "nl.test.wallet";
+    const SIGNATURE_DIGEST: &[u8] = b"app-signing-cert-digest";
+
+    fn test_config() -> AndroidAttestationConfiguration {
+        AndroidAttestationConfiguration {
+            root_public_keys: vec![],
+            package_name: PACKAGE_NAME.to_string(),
+            installation_method: InstallationMethod::PlayStore,
+            certificate_hashes: HashSet::from([SIGNATURE_DIGEST.to_vec()]),
+            key_attestation_only_policy: None,
+        }
+    }
+
+    fn strict_policy(require_matching_signature_digest: bool) -> KeyAttestationOnlyPolicy {
+        KeyAttestationOnlyPolicy {
+            allowed_verified_boot_states: vec![VerifiedBootState::Verified],
+            require_device_locked: true,
+            require_matching_signature_digest,
+        }
+    }
+
+    #[test]
+    fn accepts_hardware_backed_verified_locked_device() {
+        let key_attestation = KeyAttestation::new_mock(
+            SecurityLevel::TrustedEnvironment,
+            VerifiedBootState::Verified,
+            true,
+            PACKAGE_NAME,
+            vec![SIGNATURE_DIGEST.to_vec()],
+        );
+
+        verify_key_attestation_only_policy(&key_attestation, &test_config(), &strict_policy(true))
+            .expect("a hardware-backed, verified, locked device with a matching app should be accepted");
+    }
+
+    #[test]
+    fn rejects_software_only_attestation() {
+        let key_attestation = KeyAttestation::new_mock(
+            SecurityLevel::Software,
+            VerifiedBootState::Verified,
+            true,
+            PACKAGE_NAME,
+            vec![SIGNATURE_DIGEST.to_vec()],
+        );
+
+        let error = verify_key_attestation_only_policy(&key_attestation, &test_config(), &strict_policy(false))
+            .expect_err("a software-only attestation must be rejected");
+        assert!(matches!(
+            error,
+            AndroidKeyAttestationError::InsufficientSecurityLevel(SecurityLevel::Software)
+        ));
+    }
+
+    #[test]
+    fn rejects_disallowed_verified_boot_state() {
+        let key_attestation = KeyAttestation::new_mock(
+            SecurityLevel::TrustedEnvironment,
+            VerifiedBootState::Unverified,
+            true,
+            PACKAGE_NAME,
+            vec![SIGNATURE_DIGEST.to_vec()],
+        );
+
+        let error = verify_key_attestation_only_policy(&key_attestation, &test_config(), &strict_policy(false))
+            .expect_err("an unverified boot state must be rejected by the strict policy");
+        assert!(matches!(
+            error,
+            AndroidKeyAttestationError::VerifiedBootStateNotAccepted(VerifiedBootState::Unverified)
+        ));
+    }
+
+    #[test]
+    fn rejects_unlocked_bootloader_when_required() {
+        let key_attestation = KeyAttestation::new_mock(
+            SecurityLevel::StrongBox,
+            VerifiedBootState::Verified,
+            false,
+            PACKAGE_NAME,
+            vec![SIGNATURE_DIGEST.to_vec()],
+        );
+
+        let error = verify_key_attestation_only_policy(&key_attestation, &test_config(), &strict_policy(false))
+            .expect_err("an unlocked bootloader must be rejected when device lock is required");
+        assert!(matches!(error, AndroidKeyAttestationError::BootloaderNotLocked));
+    }
+
+    #[test]
+    fn rejects_mismatched_package_name() {
+        let key_attestation = KeyAttestation::new_mock(
+            SecurityLevel::TrustedEnvironment,
+            VerifiedBootState::Verified,
+            true,
+            "com.malicious.app",
+            vec![SIGNATURE_DIGEST.to_vec()],
+        );
+
+        let error = verify_key_attestation_only_policy(&key_attestation, &test_config(), &strict_policy(false))
+            .expect_err("a key attestation for a different app must be rejected");
+        assert!(matches!(
+            error,
+            AndroidKeyAttestationError::ApplicationIdentityMismatch(_)
+        ));
+    }
+
+    #[test]
+    fn rejects_mismatched_signature_digest_when_required() {
+        let key_attestation = KeyAttestation::new_mock(
+            SecurityLevel::TrustedEnvironment,
+            VerifiedBootState::Verified,
+            true,
+            PACKAGE_NAME,
+            vec![b"some-other-digest".to_vec()],
+        );
+
+        let error = verify_key_attestation_only_policy(&key_attestation, &test_config(), &strict_policy(true))
+            .expect_err("a non-matching signing certificate digest must be rejected when required");
+        assert!(matches!(error, AndroidKeyAttestationError::SignatureDigestMismatch));
+    }
+
+    #[test]
+    fn ignores_signature_digest_when_not_required() {
+        let key_attestation = KeyAttestation::new_mock(
+            SecurityLevel::TrustedEnvironment,
+            VerifiedBootState::Verified,
+            true,
+            PACKAGE_NAME,
+            vec![b"some-other-digest".to_vec()],
+        );
+
+        verify_key_attestation_only_policy(&key_attestation, &test_config(), &strict_policy(false))
+            .expect("a non-matching digest should be ignored when signature digest matching is disabled");
     }
 }

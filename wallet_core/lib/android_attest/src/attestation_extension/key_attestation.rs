@@ -28,6 +28,8 @@ use super::key_description;
 use super::key_description::KeyDescription;
 use super::key_description::RootOfTrust;
 use super::key_description::SecurityLevel;
+#[cfg(feature = "mock")]
+use super::key_description::VerifiedBootState;
 
 macro_rules! integer_int_enum_conversion {
     ($type:ty, $repr:ty, $error_type:ident, $invalid_error:ident) => {
@@ -556,6 +558,48 @@ impl KeyAttestation {
             .map_err(KeyAttestationVerificationError::KeyMintSecurityLevel)?;
 
         Ok(())
+    }
+}
+
+#[cfg(feature = "mock")]
+impl KeyAttestation {
+    /// Construct a parsed key attestation for tests, with a hardware-enforced root of trust and a
+    /// software-enforced application id. Useful for exercising server-side key attestation policies
+    /// (e.g. the key-attestation-only registration path) without producing a real certificate chain.
+    pub fn new_mock(
+        attestation_security_level: SecurityLevel,
+        verified_boot_state: VerifiedBootState,
+        device_locked: bool,
+        package_name: &str,
+        signature_digests: Vec<Vec<u8>>,
+    ) -> Self {
+        KeyAttestation {
+            attestation_version: AttestationVersion::V400,
+            attestation_security_level,
+            key_mint_version: KeyMintVersion::V400,
+            key_mint_security_level: attestation_security_level,
+            attestation_challenge: OctetString::copy_from_slice(b"challenge"),
+            unique_id: OctetString::copy_from_slice(b"unique_id"),
+            software_enforced: AuthorizationList {
+                attestation_application_id: Some(AttestationApplicationId {
+                    package_infos: SetOf::from_vec(vec![AttestationPackageInfo {
+                        package_name: OctetString::copy_from_slice(package_name.as_bytes()),
+                        version: 0.into(),
+                    }]),
+                    signature_digests: SetOf::from_vec(signature_digests.into_iter().map(OctetString::from).collect()),
+                }),
+                ..Default::default()
+            },
+            hardware_enforced: AuthorizationList {
+                root_of_trust: Some(RootOfTrust {
+                    verified_boot_key: OctetString::copy_from_slice(&[0u8; 32]),
+                    device_locked,
+                    verified_boot_state,
+                    verified_boot_hash: OctetString::copy_from_slice(&[0u8; 32]),
+                }),
+                ..Default::default()
+            },
+        }
     }
 }
 

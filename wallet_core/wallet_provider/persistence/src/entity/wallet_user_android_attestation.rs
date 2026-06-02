@@ -8,7 +8,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub certificate_chain: Vec<Vec<u8>>,
-    pub integrity_verdict_json: String,
+    pub integrity_verdict_json: Option<String>,
     pub brand: Option<String>,
     pub model: Option<String>,
     pub os_version: Option<i32>,

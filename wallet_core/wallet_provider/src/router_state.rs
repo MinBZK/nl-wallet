@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use android_attest::attestation_extension::key_description::VerifiedBootState;
 use android_attest::root_public_key::RootPublicKey;
 use audit_log::model::PostgresAuditLog;
 use chrono::Duration;
@@ -29,6 +30,7 @@ use wallet_provider_service::account_server::AccountServerKeys;
 use wallet_provider_service::account_server::AccountServerPinKeys;
 use wallet_provider_service::account_server::AndroidAttestationConfiguration;
 use wallet_provider_service::account_server::AppleAttestationConfiguration;
+use wallet_provider_service::account_server::KeyAttestationOnlyPolicy;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::flags::WalletRepoFlags;
 use wallet_provider_service::instructions::HandleInstruction;
@@ -106,11 +108,25 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             .into_iter()
             .map(RootPublicKey::from)
             .collect();
+        let android_key_attestation_only_policy = settings
+            .android
+            .key_attestation_only
+            .filter(|policy| policy.enabled)
+            .map(|policy| KeyAttestationOnlyPolicy {
+                allowed_verified_boot_states: policy
+                    .allowed_verified_boot_states
+                    .into_iter()
+                    .map(VerifiedBootState::from)
+                    .collect(),
+                require_device_locked: policy.require_device_locked,
+                require_matching_signature_digest: policy.require_matching_signature_digest,
+            });
         let android_config = AndroidAttestationConfiguration {
             root_public_keys: android_root_public_keys,
             package_name: settings.android.package_name,
             installation_method: android_installation_method,
             certificate_hashes: settings.android.play_store_certificate_hashes,
+            key_attestation_only_policy: android_key_attestation_only_policy,
         };
 
         let account_server = AccountServer::new(

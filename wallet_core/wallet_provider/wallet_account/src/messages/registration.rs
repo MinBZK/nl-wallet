@@ -43,7 +43,12 @@ pub enum RegistrationAttestation {
     Google {
         #[serde_as(as = "Vec<Base64>")]
         certificate_chain: VecAtLeastTwo<Vec<u8>>,
-        integrity_token: String,
+        /// Google Play Integrity token. Optional: devices without Google Play services
+        /// (e.g. GrapheneOS, LineageOS, /e/OS) cannot produce one. When absent, the account
+        /// server falls back to validating the hardware key attestation certificate chain
+        /// alone, subject to its configured key attestation policy.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        integrity_token: Option<String>,
     },
 }
 
@@ -122,7 +127,7 @@ mod client {
         pub async fn new_google<SK, PK>(
             secure_key: &SK,
             certificate_chain: VecAtLeastTwo<Vec<u8>>,
-            integrity_token: String,
+            integrity_token: Option<String>,
             pin_signing_key: &PK,
             challenge: Vec<u8>,
         ) -> Result<Self, EncodeError>
