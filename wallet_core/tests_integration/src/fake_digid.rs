@@ -58,14 +58,44 @@ pub async fn fake_digid_auth(
     // To actually simulate autosubmitting that form and running some related JavaScript would be a bit of a hassle,
     // so here we skip autosubmitting that form. Turns out the DigiD bridge is fine with this.
 
-    // Get the HTML page containing the redirect_uri back to our own app
+    // Get the redirect from the DigiD bridge's mock acs endpoint which points at the issuer's `/digid/callback`
+    // endpoint.
     let finish_digid_path = format!("acs?SAMLart={bsn}&RelayState={relay_state}&mocking=1");
 
     let digid_base_url: BaseUrl = digid_url.parse::<Url>().unwrap().try_into().unwrap();
-    let response = do_get_request(&http_client, digid_base_url.join(&finish_digid_path)).await;
-    let redirect_url = response.headers().get(header::LOCATION).unwrap().to_str().unwrap();
+    let acs_response = do_get_request(&http_client, digid_base_url.join(&finish_digid_path)).await;
+    let mut issuer_callback_url: Url = acs_response
+        .headers()
+        .get(header::LOCATION)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .parse()
+        .expect("failed to parse issuer callback url");
 
-    Url::parse(redirect_url).expect("failed to parse redirect url")
+    // nl-rdo-max validated and echoed back the issuer's fixed, pre-registered callback URL.
+    // Substitute the host and port in that callback url with those of the actual running pid_issuer.
+    issuer_callback_url
+        .set_host(authorization_url.host_str())
+        .expect("authorization_url should have a host");
+    issuer_callback_url
+        .set_port(authorization_url.port())
+        .expect("should be able to set port on issuer callback url");
+
+    // Follow that one extra hop: the issuer's `/digid/callback` exchanges the upstream code for
+    // the BSN, queries the BRP, generates its own authorization code, writes the `AuthCodeIssued`
+    // session, and 302s back to the wallet's redirect_uri. The resulting Location is the
+    // wallet-facing URL (carrying the issuer-minted code + the wallet's state) that
+    // `start_issuance` expects.
+    let callback_response = do_get_request(&http_client, issuer_callback_url).await;
+    callback_response
+        .headers()
+        .get(header::LOCATION)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .parse()
+        .expect("failed to parse redirect url")
 }
 
 async fn do_get_request(client: &reqwest::Client, url: Url) -> Response {
