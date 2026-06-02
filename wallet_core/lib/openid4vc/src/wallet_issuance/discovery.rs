@@ -2,6 +2,8 @@ use std::collections::HashSet;
 
 use crypto::trust_anchor::TrustAnchors;
 use http_utils::reqwest::HttpJsonClient;
+use itertools::Either;
+use itertools::Itertools;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -271,14 +273,16 @@ impl HttpIssuanceDiscovery {
         // Collect the indices of all Credential Configuration IDs that appear in the Credential Offer, but not in the
         // Issuer Metadata. If any are missing we can use these indices to collect the owned values for returning the
         // error.
-        let missing_id_indices = credential_offer
+        let (credential_configs, missing_id_indices): (Vec<_>, HashSet<_>) = credential_offer
             .credential_configuration_ids
             .iter()
             .enumerate()
-            .filter_map(|(index, id)| {
-                (!issuer_metadata.credential_configurations_supported.contains_key(id)).then_some(index)
-            })
-            .collect::<HashSet<_>>();
+            .partition_map(
+                |(index, id)| match issuer_metadata.credential_configurations_supported.get(id) {
+                    Some(config) => Either::Left(config),
+                    None => Either::Right(index),
+                },
+            );
 
         if !missing_id_indices.is_empty() {
             let missing_ids = credential_offer
@@ -289,6 +293,19 @@ impl HttpIssuanceDiscovery {
                 .collect();
 
             return Err(WalletIssuanceError::MissingCredentialConfigId(missing_ids));
+        }
+
+        // According to HAIP, if the issuer requires key binding for any of its credential configurations, it MUST also
+        // offer a nonce endpoint. As the wallet, we interpret this a bit more loosely and reject issuance whenever any
+        // of the credential configurations offered require key binding, as the metadata may contain other
+        // configurations that do not concern this particular issuance session.
+        // See: https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-4.1-5
+        if issuer_metadata.nonce_endpoint.is_none()
+            && credential_configs
+                .iter()
+                .any(|config| config.cryptographic_binding.is_some())
+        {
+            return Err(WalletIssuanceError::NoNonceEndpoint);
         }
 
         let flow = match credential_offer.grant {
@@ -411,25 +428,33 @@ mod test {
     async fn httpmock_issuer_add_metadata(
         server: &MockServer,
         issuer_identifier: &IssuerIdentifier,
+        has_nonce_enpdoint: bool,
+        requires_key_binding: bool,
         grant_types_supported: Option<&[&str]>,
     ) {
         // Construct issuer metadata JSON.
-        let issuer_metadata_json = json!({
+        let mut issuer_metadata_json = json!({
             "credential_issuer": issuer_identifier.to_string(),
             "credential_endpoint": server.url("/issuance/credential"),
             "batch_credential_endpoint": server.url("/issuance/batch_credential"),
-            "nonce_endpoint": server.url("/issuance/nonce"),
             "credential_preview_endpoint": server.url("/issuance/credential_preview"),
             "credential_configurations_supported": {
                 PID_ATTESTATION_TYPE: {
                     "format": "mso_mdoc",
                     "doctype": PID_ATTESTATION_TYPE,
-                    "proof_types_supported": {
-                        "jwt": { "proof_signing_alg_values_supported": ["ES256"] }
-                    },
                 }
             },
         });
+        if requires_key_binding {
+            let config = &mut issuer_metadata_json["credential_configurations_supported"][PID_ATTESTATION_TYPE];
+            config["cryptographic_binding_methods_supported"] = json!(["jwk"]);
+            config["proof_types_supported"] = json!({
+                "jwt": { "proof_signing_alg_values_supported": ["ES256"] }
+            });
+        }
+        if has_nonce_enpdoint {
+            issuer_metadata_json["nonce_endpoint"] = json!(server.url("/issuance/nonce"));
+        }
 
         // Construct OAuth metadata JSON.
         let mut oauth_metadata_json = json!({
@@ -466,9 +491,28 @@ mod test {
             .await;
     }
 
+    #[derive(Debug, Clone, Copy)]
+    struct IssuerMetadataOptions {
+        has_nonce_endpoint: bool,
+        requires_key_binding: bool,
+        has_grant_types_supported: bool,
+    }
+
+    impl Default for IssuerMetadataOptions {
+        fn default() -> Self {
+            Self {
+                has_nonce_endpoint: true,
+                requires_key_binding: true,
+                has_grant_types_supported: true,
+            }
+        }
+    }
+
     /// Starts a wiremock server that serves the well-known metadata endpoints, a token endpoint,
     /// and a credential preview endpoint. Returns the server, issuer identifier, and trust anchor.
-    async fn start_httpmock_issuer(has_grant_types_supported: bool) -> (MockServer, IssuerIdentifier, TrustAnchors) {
+    async fn start_httpmock_issuer(
+        metadata_options: IssuerMetadataOptions,
+    ) -> (MockServer, IssuerIdentifier, TrustAnchors) {
         let server = MockServer::start_async().await;
         let issuer_identifier = server.base_url().parse::<IssuerIdentifier>().unwrap();
 
@@ -514,7 +558,11 @@ mod test {
         httpmock_issuer_add_metadata(
             &server,
             &issuer_identifier,
-            has_grant_types_supported.then_some(DEFAULT_GRANT_TYPES_SUPPORTED),
+            metadata_options.has_nonce_endpoint,
+            metadata_options.requires_key_binding,
+            metadata_options
+                .has_grant_types_supported
+                .then_some(DEFAULT_GRANT_TYPES_SUPPORTED),
         )
         .await;
 
@@ -586,7 +634,11 @@ mod test {
             } => *has_grant_types_supported,
         };
 
-        let (server, issuer_identifier, trust_anchor) = start_httpmock_issuer(has_grant_types_supported).await;
+        let (server, issuer_identifier, trust_anchor) = start_httpmock_issuer(IssuerMetadataOptions {
+            has_grant_types_supported,
+            ..IssuerMetadataOptions::default()
+        })
+        .await;
 
         // Construct a Credential Offer based on the scenario.
         let grants = match scenario {
@@ -838,7 +890,7 @@ mod test {
         let credential_issuer = server.base_url().parse::<IssuerIdentifier>().unwrap();
 
         // Have the OAuth Authorization Server metadata not include "authorization_code" as a supported grant type.
-        httpmock_issuer_add_metadata(&server, &credential_issuer, Some(&["implicit"])).await;
+        httpmock_issuer_add_metadata(&server, &credential_issuer, true, true, Some(&["implicit"])).await;
 
         // Construct a Credential Offer that contains no grants.
         let credential_offer = CredentialOffer {
@@ -902,7 +954,7 @@ mod test {
 
     #[tokio::test]
     async fn start_missing_credential_config_id_error() {
-        let (_server, issuer_identifier, trust_anchor) = start_httpmock_issuer(true).await;
+        let (_server, issuer_identifier, trust_anchor) = start_httpmock_issuer(IssuerMetadataOptions::default()).await;
 
         // Construct a Pre-Authorized Code Credential Offer with Credential Configurations ID that are not in the Issuer
         // Metadata.
@@ -935,5 +987,64 @@ mod test {
             Err(WalletIssuanceError::MissingCredentialConfigId(config_ids))
                 if config_ids.iter().map(CredentialConfigurationId::as_ref).sorted().eq(["another_id", "other_id"])
         );
+    }
+
+    #[tokio::test]
+    async fn start_no_nonce_endpoint_error() {
+        // Starting issuance when the issuer metadata indicates that key binding is mandatory, yet offers no nonce
+        // endpoint should fail.
+        let (_server, issuer_identifier, trust_anchor) = start_httpmock_issuer(IssuerMetadataOptions {
+            has_nonce_endpoint: false,
+            ..IssuerMetadataOptions::default()
+        })
+        .await;
+
+        let offer_container = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            issuer_identifier,
+            vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            "fake_pre_auth_code".to_string().into(),
+        ));
+        let query = serde_urlencoded::to_string(&offer_container).unwrap();
+        let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
+
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+
+        let error = discovery
+            .start(
+                &offer_url,
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
+                &trust_anchor,
+            )
+            .await
+            .expect_err("starting issuance should fail");
+
+        assert_matches!(error, WalletIssuanceError::NoNonceEndpoint);
+
+        // When key binding is not mandatory however, the nonce endpoint can be absent.
+        let (_server, issuer_identifier, trust_anchor) = start_httpmock_issuer(IssuerMetadataOptions {
+            has_nonce_endpoint: false,
+            requires_key_binding: false,
+            ..IssuerMetadataOptions::default()
+        })
+        .await;
+
+        let offer_container = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            issuer_identifier,
+            vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            "fake_pre_auth_code".to_string().into(),
+        ));
+        let query = serde_urlencoded::to_string(&offer_container).unwrap();
+        let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
+
+        let _flow = discovery
+            .start(
+                &offer_url,
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
+                &trust_anchor,
+            )
+            .await
+            .expect("starting issuance should succeed");
     }
 }
