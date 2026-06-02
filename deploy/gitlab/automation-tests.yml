@@ -28,6 +28,11 @@ scheduled-automation-tests-trigger:
     - java -version
     - cd uiautomation
     - set -euxo pipefail
+  variables:
+    APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
+    AUTO_GRANT_PERMISSIONS: "true"
+    IOS_ACCEPT_ALERTS: "true"
+    ENABLE_BROWSERSTACK_A11Y_CHECKS: false
 
 .extract-reader-ca-credentials:
   before_script:
@@ -38,11 +43,6 @@ scheduled-automation-tests-trigger:
     - echo "$READER_CA_CRT_DER" | base64 -d | openssl x509 -inform DER -outform PEM > /tmp/ca.reader.crt.pem
     - export READER_CA_KEY_FILE=/tmp/ca.reader.key.pem
     - export READER_CA_CRT_FILE=/tmp/ca.reader.crt.pem
-  variables:
-    APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
-    AUTO_GRANT_PERMISSIONS: "true"
-    IOS_ACCEPT_ALERTS: "true"
-    ENABLE_BROWSERSTACK_A11Y_CHECKS: false
 
 .run-automation-tests-common-setup:
   resource_group: automation-tests

@@ -7,7 +7,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val loginButton = l10n.getString("organizationApprovePageLoginCta")
     private val goToWebsiteButton = l10n.getString("disclosureSuccessPageToWebsiteCta")
     private val shareButton = l10n.getString("disclosureConfirmDataAttributesPageApproveCta")
-    private val closeButton = l10n.getString("disclosureSuccessPageCloseCta")
+    private val closeButton = l10n.getString("generalClose")
     private val viewLoginDisclosureDetailsButton = l10n.getString("organizationApprovePageMoreInfoLoginCta")
     private val viewDisclosureOrganizationDetailsButton = l10n.getString("organizationButtonLabel")
     private val goBackButton = l10n.getString("generalBottomBackCta")
