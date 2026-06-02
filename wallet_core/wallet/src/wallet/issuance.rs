@@ -18,6 +18,7 @@ use openid4vc::metadata::well_known::WellKnownError;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
+use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
 use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::authorization::OAuthError;
@@ -232,6 +233,12 @@ pub struct IssuanceResult {
     pub transfer_session_id: Option<TransferSessionId>,
 }
 
+#[derive(Debug)]
+pub enum IssuanceStartResult {
+    AuthorizationUrl(Url),
+    Previews(Vec<AttestationPresentation>),
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PidIssuancePurpose {
     Enrollment,
@@ -352,6 +359,51 @@ where
         // so we don't need to match `session` on that arm.
 
         Ok(())
+    }
+
+    #[instrument(skip_all)]
+    #[sentry_capture_error]
+    pub async fn start_issuance_from_offer(&mut self, offer_uri: Url) -> Result<IssuanceStartResult, IssuanceError> {
+        info!("Starting issuance from credential offer URI");
+
+        self.check_session_preconditions()?;
+
+        if self.session.is_some() {
+            return Err(IssuanceError::SessionState);
+        }
+
+        let config = self.config_repository.get();
+        let trust_anchors = config.issuer_trust_anchors();
+        let redirect_uri = urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
+
+        let flow = self
+            .issuance_discovery
+            .start_with_credential_offer(
+                &offer_uri,
+                String::from(NL_WALLET_CLIENT_ID),
+                redirect_uri,
+                trust_anchors,
+            )
+            .await?;
+
+        match flow {
+            IssuanceFlow::AuthorizationCode { authorization_session } => {
+                let auth_url = authorization_session.auth_url().clone();
+
+                let session_data = WalletIssuanceSession::General {
+                    session_state: SessionState::Authorization { authorization_session },
+                };
+                self.session.replace(Session::Issuance(session_data));
+
+                let authorization_url = IssuanceStartResult::AuthorizationUrl(auth_url);
+                Ok(authorization_url)
+            }
+            IssuanceFlow::PreAuthorizedCode { issuance_session } => {
+                let attestations = self.issuance_process_previews(issuance_session, None).await?;
+                let previews = IssuanceStartResult::Previews(attestations);
+                Ok(previews)
+            }
+        }
     }
 
     #[instrument(skip_all)]
@@ -747,6 +799,7 @@ mod tests {
     use itertools::multiunzip;
     use mockall::predicate::*;
     use openid4vc::Format;
+    use openid4vc::wallet_issuance::IssuanceFlow;
     use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
@@ -1337,6 +1390,124 @@ mod tests {
             .expect_err("Rejecting PID issuance should have resulted in an error");
 
         assert_matches!(error, CancelSessionError::Issuance(IssuanceError::IssuerServer { .. }));
+    }
+
+    const OFFER_URI: &str =
+        "openid-credential-offer://credential_offer?credential_offer_uri=https%3A%2F%2Fexample.com%2Foffer";
+
+    #[tokio::test]
+    async fn test_start_issuance_from_offer_authorization_code() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        assert!(wallet.session.is_none());
+
+        wallet
+            .issuance_discovery
+            .expect_start_with_credential_offer_sync()
+            .return_once(|| {
+                let mut session = MockAuthorizationSession::new();
+                session
+                    .expect_get_auth_url()
+                    .return_const(Url::parse(AUTH_URL).unwrap());
+                Ok(IssuanceFlow::AuthorizationCode {
+                    authorization_session: session,
+                })
+            });
+
+        let result = wallet
+            .start_issuance_from_offer(Url::parse(OFFER_URI).unwrap())
+            .await
+            .expect("Could not start issuance from offer");
+
+        assert_matches!(result, IssuanceStartResult::AuthorizationUrl(url) if url.as_str().starts_with(AUTH_URL));
+        assert!(wallet.session.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_start_issuance_from_offer_pre_authorized_code() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        let time_generator = MockTimeGenerator::default();
+        let preview = create_example_preview_data(&time_generator, Format::SdJwt, "some_attestation_type");
+
+        wallet
+            .issuance_discovery
+            .expect_start_with_credential_offer_sync()
+            .return_once(move || {
+                let mut session = MockIssuanceSession::new();
+                session
+                    .expect_normalized_credential_previews()
+                    .return_const(vec![preview]);
+                session.expect_issuer().return_const(IssuerRegistration::new_mock());
+                Ok(IssuanceFlow::PreAuthorizedCode {
+                    issuance_session: session,
+                })
+            });
+
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_types()
+            .return_once(|_| Ok(vec![]));
+
+        let result = wallet
+            .start_issuance_from_offer(Url::parse(OFFER_URI).unwrap())
+            .await
+            .expect("Could not start issuance from offer");
+
+        assert_matches!(result, IssuanceStartResult::Previews(attestations) if attestations.len() == 1);
+        assert!(wallet.session.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_start_issuance_from_offer_error_locked() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet.lock();
+
+        let error = wallet
+            .start_issuance_from_offer(Url::parse(OFFER_URI).unwrap())
+            .await
+            .expect_err("Starting issuance from offer on a locked wallet should have resulted in an error");
+
+        assert_matches!(
+            error,
+            IssuanceError::CheckPreconditions(CheckPreconditionsError::Locked)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_start_issuance_from_offer_error_unregistered() {
+        let mut wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
+
+        let error = wallet
+            .start_issuance_from_offer(Url::parse(OFFER_URI).unwrap())
+            .await
+            .expect_err("Starting issuance from offer on an unregistered wallet should have resulted in an error");
+
+        assert_matches!(
+            error,
+            IssuanceError::CheckPreconditions(CheckPreconditionsError::NotRegistered)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_start_issuance_from_offer_error_session_state() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        // Set up an active issuance session.
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::General {
+            session_state: SessionState::Authorization {
+                authorization_session: MockAuthorizationSession::new(),
+            },
+        }));
+
+        // Starting issuance from offer with an active session should result in an error.
+        let error = wallet
+            .start_issuance_from_offer(Url::parse(OFFER_URI).unwrap())
+            .await
+            .expect_err("Starting issuance from offer with an active session should have resulted in an error");
+
+        assert_matches!(error, IssuanceError::SessionState);
     }
 
     const PIN: &str = "051097";
