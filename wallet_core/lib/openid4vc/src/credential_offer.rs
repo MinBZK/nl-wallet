@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use http_utils::urls::BaseUrl;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::IgnoredAny;
@@ -13,6 +12,7 @@ use strum::EnumString;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::token::AuthorizationCode;
 
@@ -32,7 +32,7 @@ pub enum CredentialOfferContainer {
     },
 
     Uri {
-        credential_offer_uri: BaseUrl,
+        credential_offer_uri: IssuerUrl,
     },
 }
 
@@ -43,7 +43,7 @@ impl CredentialOfferContainer {
         }
     }
 
-    pub fn new_uri(credential_offer_uri: BaseUrl) -> Self {
+    pub fn new_uri(credential_offer_uri: IssuerUrl) -> Self {
         Self::Uri { credential_offer_uri }
     }
 }
@@ -417,7 +417,7 @@ mod tests {
         };
 
         assert_eq!(
-            credential_offer_uri.as_ref().as_str(),
+            credential_offer_uri.as_url().as_str(),
             "https://server.example.com/credential-offer/GkurKxf5T0Y-mnPFCHqWOMiZi4VS138cQO_V7PZHAdM"
         );
     }

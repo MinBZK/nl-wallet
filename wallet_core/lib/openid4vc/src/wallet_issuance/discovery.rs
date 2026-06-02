@@ -236,7 +236,7 @@ impl HttpIssuanceDiscovery {
             CredentialOfferContainer::Offer { credential_offer } => *credential_offer,
             CredentialOfferContainer::Uri { credential_offer_uri } => self
                 .http_client
-                .get(credential_offer_uri.into_inner())
+                .get(credential_offer_uri.into_url())
                 .await
                 .map_err(WalletIssuanceError::CredentialOfferHttp)?,
         };
