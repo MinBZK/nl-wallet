@@ -8,7 +8,8 @@
     - export DEPLOY_IMAGE_VERSION="${CI_COMMIT_SHORT_SHA}"
     - export K8S_CLUSTER
     - export K8S_NAMESPACE
-    - envsubst '${DEPLOY_ENV} ${DEPLOY_IMAGE_VERSION} ${K8S_CLUSTER} ${K8S_NAMESPACE}' < deploy/gitlab-templates/deploy-template.yml > deploy-${DEPLOY_ENV}.yml
+    - envsubst '${DEPLOY_ENV} ${DEPLOY_IMAGE_VERSION} ${K8S_CLUSTER} ${K8S_NAMESPACE}' <
+      deploy/gitlab-templates/deploy-template.yml > deploy-${DEPLOY_ENV}.yml
   artifacts:
     name: deploy-${DEPLOY_ENV}
     paths:
@@ -47,6 +48,10 @@ create-deployment-ont:
     - job: build-issuance-server-image
       artifacts: false
     - job: build-issuance-server-migrations-image
+      artifacts: false
+    - job: build-pacf-issuance-server-image
+      artifacts: false
+    - job: build-pacf-issuance-server-migrations-image
       artifacts: false
     - job: build-pid-issuer-image
       artifacts: false
