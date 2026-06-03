@@ -1,6 +1,6 @@
 renovate:
   image:
-    name: "${HARBOR_REGISTRY}/docker-hub-proxy/renovate/renovate:39@sha256:f2209c61a9c3c8c74ac58eecb5f15ec43651f1ba694aa33493ff2062b90ff4d3"
+    name: "${HARBOR_REGISTRY}/docker-hub-proxy/renovate/renovate:41@sha256:e998e1218fe572e23278d8808186a310784f7cb2ac8055307183ffc51d3a59e5"
     entrypoint: [""]
   rules:
     - !reference [.on-schedule-scan, rules]
