@@ -1,4 +1,5 @@
 use std::assert_matches;
+use std::collections::HashSet;
 
 use attestation_data::attributes::Attributes;
 use attestation_types::credential_format::Format;
@@ -23,6 +24,7 @@ use serial_test::serial;
 use tests_integration::common::*;
 use utils::vec_at_least::VecNonEmpty;
 use wallet::AttestationAttributeValue;
+use wallet::AttestationPresentation;
 use wallet::PidIssuancePurpose;
 use wallet::attestation_data::AttributeValue;
 use wallet::errors::IssuanceError;
@@ -37,13 +39,48 @@ async fn ltc1_test_pid_ok() {
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
-    // Verify that the first mdoc contains the bsn
     let attestations = wallet_attestations(&mut wallet).await;
-    let pid_attestation = attestations
-        .iter()
-        .find(|attestation| attestation.attestation_type == PID_ATTESTATION_TYPE)
-        .expect("should have received PID attestation");
 
+    assert_eq!(attestations.len(), 2);
+
+    for pid_attestation in &attestations {
+        test_pid_attestation(pid_attestation)
+    }
+
+    // Both formats should have been issued.
+    let formats = attestations
+        .iter()
+        .map(|attestation| attestation.format)
+        .collect::<HashSet<_>>();
+
+    assert!(formats.contains(&Format::MsoMdoc));
+    assert!(formats.contains(&Format::SdJwt));
+
+    // After the wallet is enrolled and has a PID, the PID can be renewed.
+    wallet = do_pid_renewal(wallet, pin.to_owned()).await;
+
+    let attestations = wallet_attestations(&mut wallet).await;
+
+    assert_eq!(attestations.len(), 2);
+
+    for pid_attestation in &attestations {
+        test_pid_attestation(pid_attestation)
+    }
+
+    // Check that both formats are still present.
+    let renewed_formats = attestations
+        .iter()
+        .map(|attestation| attestation.format)
+        .collect::<HashSet<_>>();
+
+    assert_eq!(formats, renewed_formats);
+}
+
+fn test_pid_attestation(pid_attestation: &AttestationPresentation) {
+    // A PID attestation should have the PID attestation type.
+    assert_eq!(pid_attestation.attestation_type, PID_ATTESTATION_TYPE);
+
+    // It should all contain the BSN.
     let bsn_attr = pid_attestation
         .attributes
         .iter()
@@ -55,26 +92,13 @@ async fn ltc1_test_pid_ok() {
         AttestationAttributeValue::Basic(AttributeValue::Text("999991772".to_string()))
     );
 
-    // Recovery code is hidden from presentation
+    // The recovery code should be hidden from presentation.
     let recovery_code_result = pid_attestation
         .attributes
         .iter()
         .find(|a| a.key.iter().eq([PID_RECOVERY_CODE]));
 
     assert_eq!(recovery_code_result, None);
-
-    // After the wallet is enrolled and has a PID, the PID can be renewed.
-    wallet = do_pid_renewal(wallet, pin.to_owned()).await;
-
-    let attestations = wallet_attestations(&mut wallet).await;
-    assert_eq!(
-        attestations
-            .iter()
-            .find(|attestation| attestation.attestation_type == PID_ATTESTATION_TYPE)
-            .iter()
-            .count(),
-        1
-    );
 }
 
 fn pid_without_optionals_with_address() -> VecNonEmpty<IssuableDocument> {
