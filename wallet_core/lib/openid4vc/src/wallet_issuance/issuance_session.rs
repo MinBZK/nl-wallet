@@ -1152,9 +1152,17 @@ mod tests {
         let issuer_metadata = IssuerMetadata::new_mock(issuer_identifier.clone(), PID_ATTESTATION_TYPE);
         let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
 
+        let credential_config_ids = issuer_metadata
+            .credential_configurations_supported
+            .keys()
+            .cloned()
+            .collect_vec()
+            .try_into()
+            .unwrap();
+
         let error = HttpIssuanceSession::create(
             mock_msg_client,
-            vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            credential_config_ids,
             issuer_metadata,
             oauth_metadata,
             TokenRequest::new_mock(),
