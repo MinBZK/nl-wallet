@@ -34,6 +34,8 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         wia_trust_anchors: settings.wia_trust_anchors,
     };
 
+    let wallet_redirect_uris = settings.wallet_redirect_uris;
+
     let digid_metadata_cache = DigidMetadataCache::try_new(settings.digid.client_settings)?;
     let brp_client = HttpBrpClient::new(settings.brp_server);
     let recovery_code_secret_key = SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?;
@@ -44,7 +46,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
 
     let (issuer, database_checkers, _, server_settings) = settings
         .issuer_settings
-        .into_authorizing_issuer(hsm, Some(wia_config), |store_connection| {
+        .into_authorizing_issuer(hsm, Some(wia_config), wallet_redirect_uris, |store_connection| {
             UpstreamOidcAuthorizationCodeFlow::try_new(
                 brp_client,
                 &bsn_privkey,

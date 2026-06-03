@@ -238,6 +238,7 @@ impl From<AuthorizingIssuerTokenRequestError> for ErrorResponse<TokenErrorCode> 
 #[strum(serialize_all = "snake_case")]
 pub enum ParErrorCode {
     InvalidClient,
+    InvalidRequest,
     ServerError,
 }
 
@@ -247,6 +248,7 @@ impl From<ParError> for ErrorResponse<ParErrorCode> {
         ErrorResponse {
             error: match err {
                 ParError::UnknownClient(_) => ParErrorCode::InvalidClient,
+                ParError::InvalidRedirectUri(_) => ParErrorCode::InvalidRequest,
                 ParError::Store(_) => ParErrorCode::ServerError,
             },
             error_description: Some(description),
@@ -259,6 +261,7 @@ impl ErrorStatusCode for ParErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
             Self::InvalidClient => StatusCode::UNAUTHORIZED,
+            Self::InvalidRequest => StatusCode::BAD_REQUEST,
             Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }

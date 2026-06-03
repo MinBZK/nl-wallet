@@ -844,11 +844,15 @@ where
         wia_trust_anchors: settings.wia_trust_anchors,
     };
 
+    let wallet_redirect_uris = settings.wallet_redirect_uris;
+
     let flow = flow_builder(&public_url);
 
     let (issuer, _, _, server_settings) = settings
         .issuer_settings
-        .into_authorizing_issuer(hsm, Some(wia_config), |_| Ok::<_, Infallible>(flow))
+        .into_authorizing_issuer(hsm, Some(wia_config), wallet_redirect_uris, |_| {
+            Ok::<_, Infallible>(flow)
+        })
         .await
         .unwrap();
 

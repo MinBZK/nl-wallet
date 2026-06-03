@@ -443,6 +443,7 @@ mod tests {
     use token_status_list::status_list_service::mock::MockStatusListService;
     use url::Url;
     use utils::path::prefix_local_path;
+    use utils::vec_nonempty;
 
     use super::Error;
     use super::StateBridgeEntry;
@@ -567,7 +568,12 @@ mod tests {
         let sessions = Arc::new(MemorySessionStore::default());
         let (issuer, _, _) = setup_mock_issuer(issuer_identifier, NonZeroUsize::MIN, Arc::clone(&sessions));
         let par_store = MemoryStore::new(PAR_TTL);
-        let authorizing_issuer = AuthorizingIssuer::new(Arc::new(issuer), par_store, flow);
+        let authorizing_issuer = AuthorizingIssuer::new(
+            Arc::new(issuer),
+            par_store,
+            flow,
+            vec_nonempty![WALLET_REDIRECT_URI.parse().unwrap()],
+        );
         (authorizing_issuer, sessions)
     }
 

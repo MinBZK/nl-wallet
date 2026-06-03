@@ -44,6 +44,9 @@ pub enum ParError {
     #[error("unknown client_id: {0}")]
     UnknownClient(String),
 
+    #[error("redirect_uri not allowed: {0}")]
+    InvalidRedirectUri(Url),
+
     #[error("storing PAR request failed: {0}")]
     Store(#[source] Box<dyn Error + Send + Sync + 'static>),
 }
@@ -100,6 +103,9 @@ pub struct AuthorizingIssuer<K, L, S, N, PAS, AF> {
     issuer: Arc<Issuer<K, L, S, N>>,
     par_store: PAS,
     flow: AF,
+    /// Exact-match allowlist of `redirect_uri` values the wallet may use in a Pushed Authorization
+    /// Request. Validated at `/par`.
+    wallet_redirect_uris: VecNonEmpty<Url>,
 }
 
 impl<K, L, S, N, PAS, AF> AuthorizingIssuer<K, L, S, N, PAS, AF> {
@@ -144,6 +150,15 @@ where
             .any(|id| id == request.oauth_request.client_id.as_str())
         {
             return Err(ParError::UnknownClient(request.oauth_request.client_id));
+        }
+
+        // Exact-match the wallet's redirect_uri against the configured allowlist.
+        if !self
+            .wallet_redirect_uris
+            .iter()
+            .any(|uri| uri == request.redirect_uri.as_ref())
+        {
+            return Err(ParError::InvalidRedirectUri(request.redirect_uri.as_ref().clone()));
         }
 
         let request_uri = par::generate_request_uri();
@@ -281,6 +296,8 @@ mod tests {
     use std::sync::Arc;
 
     use url::Url;
+    use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_nonempty;
 
     use super::AuthorizeError;
     use super::AuthorizingIssuer;
@@ -312,6 +329,12 @@ mod tests {
 
     fn upstream_url() -> Url {
         "https://auth.example.com/oauth2/authorize".parse().unwrap()
+    }
+
+    /// Allowlist containing exactly the `WALLET_REDIRECT_URI` that `vci_request` uses, so the PAR
+    /// redirect_uri check passes in tests that aren't exercising redirect_uri rejection.
+    fn allowed_redirect_uris() -> VecNonEmpty<Url> {
+        vec_nonempty![WALLET_REDIRECT_URI.parse().unwrap()]
     }
 
     fn vci_request(client_id: &str) -> VciAuthorizationRequest {
@@ -369,6 +392,7 @@ mod tests {
             issuer,
             par_store,
             FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
+            allowed_redirect_uris(),
         );
 
         let error = authorizing_issuer
@@ -388,6 +412,7 @@ mod tests {
             issuer,
             par_store,
             FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
+            allowed_redirect_uris(),
         );
 
         let response = authorizing_issuer
@@ -410,12 +435,35 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn process_par_rejects_disallowed_redirect_uri() {
+        let (issuer, par_store, _sessions) = issuer_and_par(vec![]);
+        // The client_id is accepted, but the allowlist does not contain WALLET_REDIRECT_URI, so the
+        // request must be rejected on the redirect_uri check alone.
+        let authorizing_issuer = AuthorizingIssuer::new(
+            issuer,
+            par_store,
+            FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
+            vec_nonempty!["https://other.example.com/callback".parse().unwrap()],
+        );
+
+        let error = authorizing_issuer
+            .process_pushed_authorization_request(vci_request(MOCK_WALLET_CLIENT_ID))
+            .await
+            .unwrap_err();
+
+        assert_matches!(error, ParError::InvalidRedirectUri(uri) if uri.as_str() == WALLET_REDIRECT_URI);
+        // The rejected request must not have been stored.
+        assert!(authorizing_issuer.par_store.is_empty());
+    }
+
+    #[tokio::test]
     async fn process_authorize_rejects_unknown_client_id() {
         let (issuer, par_store, _sessions) = issuer_and_par(vec![]);
         let authorizing_issuer = AuthorizingIssuer::new(
             issuer,
             par_store,
             FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
+            allowed_redirect_uris(),
         );
 
         let error = authorizing_issuer
@@ -434,6 +482,7 @@ mod tests {
             issuer,
             par_store,
             FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
+            allowed_redirect_uris(),
         );
 
         let error = authorizing_issuer
@@ -453,6 +502,7 @@ mod tests {
             issuer,
             par_store,
             FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
+            allowed_redirect_uris(),
         );
 
         let error = authorizing_issuer
@@ -475,6 +525,7 @@ mod tests {
             issuer,
             par_store,
             FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
+            allowed_redirect_uris(),
         );
 
         let redirect_url = authorizing_issuer
@@ -494,6 +545,7 @@ mod tests {
             issuer,
             par_store,
             FixedOutcomeFlow(AuthorizeOutcome::IssuedCode(code.clone())),
+            allowed_redirect_uris(),
         );
 
         let redirect_url = authorizing_issuer
@@ -515,6 +567,7 @@ mod tests {
             issuer,
             par_store,
             FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
+            allowed_redirect_uris(),
         );
 
         let documents = mock_issuable_documents(NonZeroUsize::MIN);
@@ -560,6 +613,7 @@ mod tests {
             issuer,
             par_store,
             FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
+            allowed_redirect_uris(),
         );
 
         let (_code, redirect_url) = authorizing_issuer

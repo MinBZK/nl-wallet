@@ -21,6 +21,7 @@ use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::SecretKey;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
+use url::Url;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -33,6 +34,9 @@ pub struct PidIssuerSettings {
 
     #[debug(skip)]
     pub wia_trust_anchors: TrustAnchors,
+
+    /// Exact-match allowlist of `redirect_uri` values the wallet may use in a Pushed Authorization Request.
+    pub wallet_redirect_uris: VecNonEmpty<Url>,
 
     #[debug(skip)]
     pub recovery_code: SecretKey,

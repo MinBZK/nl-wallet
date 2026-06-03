@@ -51,6 +51,7 @@ use rstest::rstest;
 use tokio::net::TcpListener;
 use url::Url;
 use utils::generator::TimeGenerator;
+use utils::vec_nonempty;
 use wscd::mock_remote::MockRemoteWscd;
 
 fn generate_localhost_tls() -> (TlsServerConfig, ReqwestTrustAnchor) {
@@ -90,8 +91,13 @@ async fn start_auth_code_flow_server(attestation_count: NonZeroUsize, upstream: 
     let mock_documents = mock_issuable_documents(attestation_count);
 
     let flow = StaticAuthorizationCodeFlow::new(upstream, mock_documents);
-    let (authorizing_issuer, trust_anchors, wia_keypair) =
-        setup_mock_authorizing_issuer(issuer_identifier.clone(), attestation_count, sessions, flow);
+    let (authorizing_issuer, trust_anchors, wia_keypair) = setup_mock_authorizing_issuer(
+        issuer_identifier.clone(),
+        attestation_count,
+        sessions,
+        flow,
+        vec_nonempty!["https://wallet.example.com/callback".parse().unwrap()],
+    );
     let authorizing_issuer = Arc::new(authorizing_issuer);
     let issuer = Arc::clone(authorizing_issuer.issuer());
 

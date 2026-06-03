@@ -265,13 +265,14 @@ pub fn setup_mock_authorizing_issuer<G>(
     attestation_count: NonZeroUsize,
     sessions: Arc<MemorySessionStore<IssuanceData, G>>,
     flow: StaticAuthorizationCodeFlow,
+    wallet_redirect_uris: VecNonEmpty<Url>,
 ) -> (MockAuthorizingIssuer<G>, TrustAnchors, KeyPair)
 where
     G: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let par_store = MemoryStore::new(PAR_TTL);
     let (issuer, trust_anchor, wia_keypair) = setup_mock_issuer(issuer_identifier, attestation_count, sessions);
-    let authorizing_issuer = AuthorizingIssuer::new(Arc::new(issuer), par_store, flow);
+    let authorizing_issuer = AuthorizingIssuer::new(Arc::new(issuer), par_store, flow, wallet_redirect_uris);
 
     (authorizing_issuer, trust_anchor, wia_keypair)
 }
