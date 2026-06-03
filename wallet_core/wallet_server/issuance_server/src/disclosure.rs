@@ -12,7 +12,6 @@ use itertools::Itertools;
 use openid4vc::Format;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential_offer::CredentialOffer;
-use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
@@ -104,11 +103,8 @@ pub enum IssuanceResultHandlerError {
     #[error("failed to create session: {0}")]
     SessionStore(#[from] SessionStoreError),
 
-    #[error("URL encoding failed: {0}")]
-    UrlEncoding(#[from] serde_urlencoded::ser::Error),
-
-    #[error("URL decoding failed: {0}")]
-    UrlDecoding(#[from] serde_urlencoded::de::Error),
+    #[error("credential offer URL serialization failed: {0}")]
+    CredentialOfferSerialization(#[source] serde_json::Error),
 }
 
 impl ToPostAuthResponseErrorCode for IssuanceResultHandlerError {
@@ -170,19 +166,17 @@ where
             .await
             .map_err(|err| DisclosureResultHandlerError::new(IssuanceResultHandlerError::SessionStore(err)))?;
 
-        let offer_container = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+        let credential_offer = CredentialOffer::new_pre_authorized(
             self.issuer.issuer_identifier().clone(),
             credential_configuration_ids,
             token.into(),
-        ));
+        );
 
-        // If `serde_urlencoded` would have something like `serde_json::Value` or `ciborium::Value`,
-        // then this would be a lot less awkward.
-        let query_params = serde_urlencoded::from_str(
-            &serde_urlencoded::to_string(offer_container)
-                .map_err(|err| DisclosureResultHandlerError::new(IssuanceResultHandlerError::UrlEncoding(err)))?,
-        )
-        .map_err(|err| DisclosureResultHandlerError::new(IssuanceResultHandlerError::UrlDecoding(err)))?;
+        let credential_offer_json = serde_json::to_string(&credential_offer).map_err(|error| {
+            DisclosureResultHandlerError::new(IssuanceResultHandlerError::CredentialOfferSerialization(error))
+        })?;
+
+        let query_params = HashMap::from([("credential_offer".to_string(), credential_offer_json)]);
 
         Ok(query_params)
     }

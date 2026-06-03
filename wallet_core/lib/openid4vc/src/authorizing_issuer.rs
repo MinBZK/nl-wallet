@@ -13,11 +13,14 @@ use std::sync::Arc;
 use crypto::EcdsaKey;
 use serde::Serialize;
 use url::Url;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 
 use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
 use crate::authorization_code_flow::AuthorizationCodeFlow;
 use crate::authorization_code_flow::AuthorizeOutcome;
+use crate::credential_offer::CredentialOffer;
 use crate::dpop::Dpop;
 use crate::issuer::IssuanceData;
 use crate::issuer::Issuer;
@@ -85,6 +88,24 @@ pub struct AuthorizingIssuer<K, L, S, N, PAS, AF> {
 impl<K, L, S, N, PAS, AF> AuthorizingIssuer<K, L, S, N, PAS, AF> {
     pub fn issuer(&self) -> &Arc<Issuer<K, L, S, N>> {
         &self.issuer
+    }
+
+    /// Creates a [`CredentialOffer`] for all Credential Configurations present in the issuer. This offer instructs a
+    /// wallet to start an Autorization Code flow to obtain the credentials.
+    pub fn authorization_code_credential_offer(&self) -> CredentialOffer {
+        let credential_configuration_ids = self
+            .issuer
+            .credential_configs()
+            .all_configuration_ids()
+            .into_nonempty_iter()
+            .map(Clone::clone)
+            .collect();
+
+        CredentialOffer::new_authorization(
+            self.issuer.issuer_identifier().clone(),
+            credential_configuration_ids,
+            None,
+        )
     }
 }
 

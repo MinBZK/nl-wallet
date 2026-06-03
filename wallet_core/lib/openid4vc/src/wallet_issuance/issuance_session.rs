@@ -369,6 +369,7 @@ fn credential_request_types_from_preview(
 impl<H: VcMessageClient> HttpIssuanceSession<H> {
     pub(crate) async fn create(
         message_client: H,
+        credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
         issuer_metadata: IssuerMetadata,
         oauth_metadata: AuthorizationServerMetadata,
         token_request: TokenRequest,
@@ -379,34 +380,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .as_ref()
             .map(|url| url.clone().into_url())
             .ok_or(WalletIssuanceError::NoCredentialPreviewEndpoint)?; // TODO (PVW-5559): skip preview when no credential preview endpoint
-
-        // TODO (PVW-5856): Get the credential configuration ids from the `CredentialOffer` instead.
-        let credential_configuration_ids: VecNonEmpty<CredentialConfigurationId> = issuer_metadata
-            .credential_configurations_supported
-            .keys()
-            .cloned()
-            .collect_vec()
-            .try_into()
-            .map_err(|_| WalletIssuanceError::NoCredentialConfigurationsSupported)?;
-
-        // According to HAIP, if the issuer requires key binding for any of its credential configurations, it MUST also
-        // offer a nonce endpoint. As the wallet, we interpret this a bit more loosely and reject issuance whenever any
-        // of the credential configurations offered require key binding, as the metadata may contain other
-        // configurations that do not concern this particular issuance session.
-        // See: https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-4.1-5
-        if issuer_metadata.nonce_endpoint.is_none()
-            && credential_configuration_ids.iter().any(|config_id| {
-                issuer_metadata
-                    .credential_configurations_supported
-                    .get(config_id)
-                    // This unwrap is safe, because we just got the ids from the issuer metadata.
-                    .unwrap()
-                    .cryptographic_binding
-                    .is_some()
-            })
-        {
-            return Err(WalletIssuanceError::NoNonceEndpoint);
-        }
 
         let token_endpoint = oauth_metadata.token_endpoint;
         let dpop_signing_key = SigningKey::random(&mut OsRng);
@@ -999,10 +972,18 @@ mod tests {
                 })
             });
 
+        let credential_config_ids = issuer_metadata
+            .credential_configurations_supported
+            .keys()
+            .cloned()
+            .collect_vec()
+            .try_into()
+            .unwrap();
         let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_metadata.issuer_identifier().clone());
 
         HttpIssuanceSession::create(
             mock_msg_client,
+            credential_config_ids,
             issuer_metadata,
             oauth_metadata,
             TokenRequest::new_mock(),
@@ -1046,48 +1027,6 @@ mod tests {
                 .unwrap()
                 .0
         );
-    }
-
-    #[test]
-    fn test_start_issuance_no_nonce_endpoint() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
-        // Starting issuance when the issuer metadata indicates that key
-        // binding is mandatary, yet offers no nonce endpoint should fail.
-        let mut issuer_metadata =
-            IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE);
-        issuer_metadata.nonce_endpoint = None;
-
-        let error = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
-            issuer_metadata.clone(),
-            vec![PreviewableCredentialPayload::example_family_name(
-                &MockTimeGenerator::default(),
-            )],
-            TypeMetadata::pid_example(),
-            Format::MsoMdoc,
-        )
-        .expect_err("starting issuance session should not succeed");
-
-        assert_matches!(error, WalletIssuanceError::NoNonceEndpoint);
-
-        // When key binding is not mandatory however, the nonce endpoint can be absent.
-        for config in issuer_metadata.credential_configurations_supported.values_mut() {
-            config.cryptographic_binding = None;
-        }
-
-        let _ = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
-            issuer_metadata,
-            vec![PreviewableCredentialPayload::example_family_name(
-                &MockTimeGenerator::default(),
-            )],
-            TypeMetadata::pid_example(),
-            Format::MsoMdoc,
-        )
-        .expect("starting issuance session should succeed");
     }
 
     #[test]
@@ -1213,8 +1152,17 @@ mod tests {
         let issuer_metadata = IssuerMetadata::new_mock(issuer_identifier.clone(), PID_ATTESTATION_TYPE);
         let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
 
+        let credential_config_ids = issuer_metadata
+            .credential_configurations_supported
+            .keys()
+            .cloned()
+            .collect_vec()
+            .try_into()
+            .unwrap();
+
         let error = HttpIssuanceSession::create(
             mock_msg_client,
+            credential_config_ids,
             issuer_metadata,
             oauth_metadata,
             TokenRequest::new_mock(),

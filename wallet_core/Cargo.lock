@@ -3976,7 +3976,6 @@ dependencies = [
  "sd_jwt_vc_metadata",
  "serde",
  "serde_json",
- "serde_urlencoded",
  "serde_with",
  "server_utils",
  "status_lists",

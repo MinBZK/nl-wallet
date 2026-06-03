@@ -9,13 +9,17 @@ use super::IssuanceSession;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use super::preview::NormalizedCredentialPreview;
-use crate::issuer_identifier::IssuerIdentifier;
 
 mockall::mock! {
     #[derive(Debug)]
     pub IssuanceDiscovery {
+        pub fn start_sync(
+            &self,
+        ) -> Result<IssuanceFlow<MockAuthorizationSession, MockIssuanceSession>, WalletIssuanceError>;
+
         pub fn start_authorization_code_flow_sync(&self) -> Result<MockAuthorizationSession, WalletIssuanceError>;
-        pub fn start_with_credential_offer_sync(&self) -> Result<IssuanceFlow<MockAuthorizationSession, MockIssuanceSession>, WalletIssuanceError>;
+
+        pub fn start_pre_authorized_code_flow_sync(&self) -> Result<MockIssuanceSession, WalletIssuanceError>;
     }
 }
 
@@ -23,23 +27,32 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
     type Authorization = MockAuthorizationSession;
     type Issuance = MockIssuanceSession;
 
-    async fn start_authorization_code_flow(
-        &self,
-        _identifier: &IssuerIdentifier,
-        _client_id: String,
-        _redirect_uri: Url,
-    ) -> Result<Self::Authorization, WalletIssuanceError> {
-        self.start_authorization_code_flow_sync()
-    }
-
-    async fn start_with_credential_offer(
+    async fn start(
         &self,
         _offer_uri: &Url,
         _client_id: String,
         _redirect_uri: Url,
         _issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError> {
-        self.start_with_credential_offer_sync()
+        self.start_sync()
+    }
+
+    async fn start_authorization_code_flow(
+        &self,
+        _offer_uri: &Url,
+        _client_id: String,
+        _redirect_uri: Url,
+    ) -> Result<Self::Authorization, WalletIssuanceError> {
+        self.start_authorization_code_flow_sync()
+    }
+
+    async fn start_pre_authorized_code_flow(
+        &self,
+        _offer_uri: &Url,
+        _client_id: String,
+        _issuer_trust_anchors: &TrustAnchors,
+    ) -> Result<Self::Issuance, WalletIssuanceError> {
+        self.start_pre_authorized_code_flow_sync()
     }
 }
 

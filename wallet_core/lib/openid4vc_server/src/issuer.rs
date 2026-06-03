@@ -39,6 +39,7 @@ use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
 use openid4vc::credential::CredentialResponses;
+use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::DPOP_NONCE_HEADER_NAME;
 use openid4vc::dpop::Dpop;
@@ -147,6 +148,7 @@ where
     let issuance_router = create_issuance_router(Arc::clone(authorizing_issuer.issuer()));
 
     let authorization_router = Router::new()
+        .route("/issuance/credential_offer", get(credential_offer))
         .route("/issuance/par", post(pushed_authorization_request))
         .route("/issuance/authorize", get(authorize))
         .route("/issuance/token", post(token))
@@ -304,6 +306,12 @@ where
         HeaderValue::from_str(&dpop_nonce).unwrap(),
     )]);
     Ok((headers, Json(response)))
+}
+
+async fn credential_offer<K, L, S, N, PAS, AF>(
+    State(state): State<AuthorizationState<K, L, S, N, PAS, AF>>,
+) -> Json<CredentialOffer> {
+    Json(state.authorizing_issuer.authorization_code_credential_offer())
 }
 
 async fn pushed_authorization_request<K, L, S, N, PAS, AF>(

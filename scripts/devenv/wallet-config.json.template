@@ -31,10 +31,7 @@
       }
     }
   },
-  "pid_issuance": {
-    "url": "http://${SERVICES_HOST}:${PID_ISSUER_PORT}/",
-    "client_id": "${NL_WALLET_CLIENT_ID}"
-  },
+  "pid_credential_offer": "eu-eaa-offer://?credential_offer_uri=http%3A%2F%2F${SERVICES_HOST}%3A${PID_ISSUER_PORT}%2Fissuance%2Fcredential_offer",
   "disclosure": {
     "rp_trust_anchors": [
       "${READER_CA_CRT}"
