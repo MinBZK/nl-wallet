@@ -61,7 +61,7 @@ spec:
             - name: DEMO_ISSUER__ISSUANCE_SERVER_URL
               value: {{ .Values.issuanceServerBaseUrl }}
             - name: DEMO_ISSUER__PACF_ISSUANCE_SERVER_URL
-              value: {{ .Values.pacfIssuanceServerBaseUrl }}
+              value: "http://demo-issuer-pacf-issuance-server:8080/"
             - name: DEMO_ISSUER__UNIVERSAL_LINK_BASE_URL
               value: {{ .Values.universalLinkBaseUrl }}
             - name: DEMO_ISSUER__HELP_BASE_URL

@@ -30,7 +30,7 @@
   ],
   "claims": [
     {
-      "path": ["university"],
+      "path": ["branch"],
       "display": [
         {
           "lang": "nl-NL",
