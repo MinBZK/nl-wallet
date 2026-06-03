@@ -8,7 +8,7 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["deploy/gitlab/renovate\\.yml"],
+      "managerFilePatterns": ["/deploy/gitlab/renovate\\.yml/"],
       "matchStrings": ["docker-hub-proxy/renovate/renovate:(?<currentValue>[^@]+)@(?<currentDigest>sha256:[a-f0-9]+)"],
       "datasourceTemplate": "docker",
       "depNameTemplate": "renovate/renovate",
@@ -17,18 +17,12 @@
   ],
   "packageRules": [
     {
-      "description": "1. Disable all standard updates",
-      "matchPackagePatterns": ["*"],
-      "enabled": false
+      "description": "1. Defer all standard updates indefinitely (security fixes bypass the schedule)",
+      "matchPackageNames": ["*"],
+      "schedule": ["on the 1st day of February in 2200"]
     },
     {
-      "description": "2. Enable fixes for ANY vulnerable package (Direct or Transitive)",
-      "matchPackagePatterns": ["*"],
-      "matchIsVulnerable": true,
-      "enabled": true
-    },
-    {
-      "description": "3. Keep Renovate image up to date",
+      "description": "2. Keep Renovate image up to date",
       "matchPackageNames": ["renovate/renovate"],
       "matchUpdateTypes": ["digest"],
       "enabled": true
