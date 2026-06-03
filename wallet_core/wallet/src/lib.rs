@@ -64,6 +64,10 @@ pub mod attestation_data {
     pub use attestation_data::validity::ValidityWindow;
 }
 
+pub mod attestation_types {
+    pub use attestation_types::credential_format::Format;
+}
+
 pub mod configuration {
     pub use wallet_configuration::wallet_config::AccountServerConfiguration;
     pub use wallet_configuration::wallet_config::DisclosureConfiguration;

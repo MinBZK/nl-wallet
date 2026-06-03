@@ -4,6 +4,7 @@ use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::credential_format::Format;
 use chrono::NaiveDate;
 use indexmap::IndexMap;
 use mdoc::iso::mdocs::Entry;
@@ -38,6 +39,7 @@ impl AttestationPresentation {
 
         Self::create_from_attributes(
             identity,
+            Format::MsoMdoc,
             metadata,
             issuer_organization,
             validity,
@@ -56,12 +58,22 @@ impl AttestationPresentation {
     ) -> Result<Self, AttestationError> {
         let attributes: Attributes = sd_jwt_claims.try_into()?;
 
-        Self::create_from_attributes(identity, metadata, issuer_organization, validity, &attributes, config)
+        Self::create_from_attributes(
+            identity,
+            Format::SdJwt,
+            metadata,
+            issuer_organization,
+            validity,
+            &attributes,
+            config,
+        )
     }
 
     // Construct a new `AttestationPresentation` from a combination of metadata and nested attributes.
+    #[expect(clippy::too_many_arguments, reason = "internal constructor")]
     pub(crate) fn create_from_attributes(
         identity: AttestationIdentity,
+        format: Format,
         metadata: NormalizedTypeMetadata,
         issuer: Box<Organization>,
         validity: AttestationValidity,
@@ -147,6 +159,7 @@ impl AttestationPresentation {
         // Finally, construct the `AttestationPresentation` type.
         Ok(AttestationPresentation {
             identity,
+            format,
             display_metadata,
             attestation_type,
             issuer,
@@ -203,6 +216,7 @@ pub mod test {
     use attestation_data::auth::Organization;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_BSN;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
@@ -453,6 +467,7 @@ pub mod test {
 
         let attestation_presentation = AttestationPresentation::create_from_attributes(
             AttestationIdentity::Ephemeral,
+            Format::SdJwt,
             type_metadata,
             Organization::new_mock(),
             AttestationValidity {
@@ -534,6 +549,7 @@ pub mod test {
 
         let error = AttestationPresentation::create_from_attributes(
             AttestationIdentity::Ephemeral,
+            Format::SdJwt,
             type_metadata,
             Organization::new_mock(),
             AttestationValidity {

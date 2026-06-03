@@ -615,8 +615,9 @@ pub fn mock_issuance_session(
                     )
                     .unwrap(),
                     IssuedCredential::SdJwt { sd_jwt, .. } => {
-                        let attributes = sd_jwt.decoded_claims().unwrap().try_into().unwrap();
-                        AttestationPresentation::create_from_attributes(
+                        let sd_jwt_claims = sd_jwt.decoded_claims().unwrap();
+
+                        AttestationPresentation::create_from_sd_jwt_claims(
                             AttestationIdentity::Ephemeral,
                             normalized_type_metadata.clone(),
                             issuer_registration.organization.clone(),
@@ -624,7 +625,7 @@ pub fn mock_issuance_session(
                                 revocation_status: None,
                                 validity_window,
                             },
-                            &attributes,
+                            sd_jwt_claims,
                             &EmptyPresentationConfig,
                         )
                         .unwrap()

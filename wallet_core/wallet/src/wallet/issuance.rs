@@ -424,6 +424,7 @@ where
             .map(|(preview_data, identity)| {
                 let attestation = AttestationPresentation::create_from_attributes(
                     identity.map_or(AttestationIdentity::Ephemeral, |id| AttestationIdentity::Fixed { id }),
+                    preview_data.content.format,
                     preview_data.normalized_metadata.clone(),
                     organization.clone(),
                     AttestationValidity {

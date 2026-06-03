@@ -1419,6 +1419,7 @@ pub(crate) mod tests {
     use attestation_data::validity::ValidityWindow;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+    use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::Days;
     use chrono::Duration;
@@ -2547,6 +2548,7 @@ pub(crate) mod tests {
                 let payload = CredentialPayload::from_sd_jwt(sd_jwt, &normalized_metadata).unwrap();
                 AttestationPresentation::create_from_attributes(
                     AttestationIdentity::Fixed { id: attestation_id },
+                    Format::SdJwt,
                     normalized_metadata,
                     issuer_registration.organization,
                     AttestationValidity {
