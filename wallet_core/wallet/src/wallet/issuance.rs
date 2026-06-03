@@ -414,7 +414,7 @@ where
                 previews,
                 stored,
                 &TimeGenerator,
-                pid_purpose.is_some().then(|| &config.pid_attributes),
+                pid_purpose.is_some().then_some(&config.pid_attributes),
             );
 
         info!("successfully received token and previews from issuer");
