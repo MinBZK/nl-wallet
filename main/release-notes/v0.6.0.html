@@ -259,6 +259,11 @@ by <code class="docutils literal notranslate"><span class="pre">wia_trust_anchor
 used to validate WIA tokens.</p></li>
 </ul>
 </li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">pid_issuance</span></code> section of the wallet configuration has been replaced with
+<code class="docutils literal notranslate"><span class="pre">pid_credential_offer</span></code>, which contains a single string value. This string
+value contains a Credential Offer URI that should be used as the basis for PID
+issuance. Note that this URI can contain a Credential Offer either by value or
+by reference and must use the Authorization Code flow.</p></li>
 </ul>
 </section>
 <section id="new-features">
@@ -310,8 +315,9 @@ Pre-authorized Code flow.</p></li>
 passed using the <code class="docutils literal notranslate"><span class="pre">credential_offer_uri</span></code> query parameter.</p></li>
 </ul>
 </li>
-<li><p>The well-known path is now derived according to spec for Credential Issuer Metadata
-and Oauth 2.0 Authorization Server Metadata when a subpath is involved.</p></li>
+<li><p>The well-known path is now derived according to spec for Credential Issuer
+Metadata and Oauth 2.0 Authorization Server Metadata when a subpath is
+involved.</p></li>
 </ul>
 </section>
 </section>
