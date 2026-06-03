@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::trust_anchor::TrustAnchors;
 use serde::Deserialize;
@@ -8,9 +10,10 @@ use super::AuthorizationSession;
 use super::IssuanceDiscovery;
 use super::IssuanceFlow;
 use super::IssuanceSession;
+use super::IssuanceTypeMetadata;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
-use super::preview::NormalizedCredentialPreview;
+use crate::token::CredentialPreview;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MockAuthorizationSessionData {
@@ -119,7 +122,9 @@ mockall::mock! {
 
         pub fn reject(&self) -> Result<(), WalletIssuanceError>;
 
-        pub fn normalized_credential_previews(&self) -> &[NormalizedCredentialPreview];
+        pub fn credential_previews(&self) -> &[CredentialPreview];
+
+        pub fn type_metadata(&self) -> &HashMap<String, IssuanceTypeMetadata>;
 
         pub fn issuer(&self) -> &IssuerRegistration;
     }
@@ -139,8 +144,12 @@ impl IssuanceSession for MockIssuanceSession {
         self.reject()
     }
 
-    fn normalized_credential_preview(&self) -> &[NormalizedCredentialPreview] {
-        self.normalized_credential_previews()
+    fn credential_previews(&self) -> &[CredentialPreview] {
+        self.credential_previews()
+    }
+
+    fn type_metadata(&self) -> &HashMap<String, IssuanceTypeMetadata> {
+        self.type_metadata()
     }
 
     fn issuer_registration(&self) -> &IssuerRegistration {

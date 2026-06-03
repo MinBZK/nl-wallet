@@ -83,7 +83,6 @@ use crate::server_state::SessionToken;
 use crate::token::AccessToken;
 use crate::token::AuthorizationCode;
 use crate::token::CredentialPreview;
-use crate::token::CredentialPreviewContent;
 use crate::token::TokenRequest;
 use crate::token::TokenResponse;
 
@@ -436,6 +435,7 @@ where
         let batch_credential_endpoint = server_url.join_issuer_url("/batch_credential");
         let nonce_endpoint = server_url.join_issuer_url("/nonce");
         let credential_preview_endpoint = server_url.join_issuer_url("/credential_preview");
+        let type_metadata_base_url = server_url.join_issuer_url("/type_metadata");
 
         let batch_credential_issuance = AtLeastTwoU64::try_new(batch_size.into())
             .ok()
@@ -452,7 +452,8 @@ where
             credential_response_encryption: None,
             batch_credential_issuance,
             display: None,
-            credential_configurations_supported: credential_configs.to_credential_configurations_supported(),
+            credential_configurations_supported: credential_configs
+                .to_credential_configurations_supported(&type_metadata_base_url),
             credential_preview_endpoint: Some(credential_preview_endpoint),
         };
 
@@ -647,13 +648,10 @@ where
             })?;
 
         let preview = CredentialPreview {
-            content: CredentialPreviewContent {
-                format: state.format,
-                batch_size: state.batch_size,
-                credential_payload: state.credential_payload.clone(),
-                issuer_certificate: credential_config.key_pair.certificate().clone(),
-            },
-            type_metadata: credential_config.metadata.documents().clone().into(),
+            format: state.format,
+            batch_size: state.batch_size,
+            credential_payload: state.credential_payload.clone(),
+            issuer_certificate: credential_config.key_pair.certificate().clone(),
         };
 
         Ok(preview)
@@ -1655,6 +1653,11 @@ mod tests {
                 .process_credential_preview(access_token.clone(), preview_request.clone())
                 .await
                 .map_err(|err| WalletIssuanceError::CredentialPreview(Box::new(err.into())))
+        }
+
+        async fn request_type_metadata(&self, url: Url) -> Result<TypeMetadataDocuments, WalletIssuanceError> {
+            let id = url.path_segments().unwrap().next_back().unwrap().to_string().into();
+            Ok(self.issuer.type_metadata(&id).unwrap())
         }
 
         async fn request_nonce(&self, _url: Url) -> Result<(NonceResponse, Option<String>), WalletIssuanceError> {

@@ -18,6 +18,7 @@ use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use ssri::Integrity;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::ProofType;
@@ -224,6 +225,7 @@ impl<K, L> CredentialConfigurations<K, L> {
 
     pub fn to_credential_configurations_supported(
         &self,
+        type_metadata_base_url: &IssuerUrl,
     ) -> HashMap<CredentialConfigurationId, issuer_metadata::CredentialConfiguration> {
         self.configs_by_id
             .iter()
@@ -232,6 +234,7 @@ impl<K, L> CredentialConfigurations<K, L> {
                 let proof_types = vec![ProofType::Jwt];
                 let display = config.metadata.normalized.display().to_vec();
                 let claims = config.metadata.normalized.claims().to_vec();
+                let type_metadata_uri = type_metadata_base_url.join_config_id(config_id);
 
                 let credential_configuration = match config.format {
                     Format::MsoMdoc => issuer_metadata::CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(
@@ -239,12 +242,14 @@ impl<K, L> CredentialConfigurations<K, L> {
                         proof_types,
                         display,
                         claims,
+                        type_metadata_uri,
                     ),
                     Format::SdJwt => issuer_metadata::CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
                         config.attestation_type.clone(),
                         proof_types,
                         display,
                         claims,
+                        type_metadata_uri,
                     ),
                 };
 
@@ -334,7 +339,8 @@ mod tests {
         assert_eq!(id.as_ref(), "degree_dc+sd-jwt");
         assert_eq!(config.format, Format::SdJwt);
 
-        let metadata_configs = configs.to_credential_configurations_supported();
+        let type_metadata_base_url = "https://example.com".parse().unwrap();
+        let metadata_configs = configs.to_credential_configurations_supported(&type_metadata_base_url);
         assert_eq!(metadata_configs.len(), 2);
 
         assert_matches!(

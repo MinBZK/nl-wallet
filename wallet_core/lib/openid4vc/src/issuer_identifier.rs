@@ -36,7 +36,7 @@ pub enum IssuerIdentifierError {
     HasFragment(Box<BaseUrl>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, AsRef, Display, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, Display, SerializeDisplay, DeserializeFromStr)]
 pub struct IssuerUrl(BaseUrl);
 
 /// A URL that uses the "https" scheme, as contained within the Credential Issuer Metadata.
@@ -73,7 +73,7 @@ impl IssuerUrl {
     pub fn join_issuer_url(&self, path: &str) -> Self {
         let base_url = self.as_ref().join_base_url(path);
 
-        // The sheme cannot have changed, so the guarantees of the validation in `try_new()` still hold.
+        // The scheme cannot have changed, so the guarantees of the validation in `try_new()` still hold.
         Self(base_url)
     }
 

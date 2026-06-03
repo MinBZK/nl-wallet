@@ -316,12 +316,14 @@ impl CredentialConfiguration {
         proof_types: Vec<ProofType>,
         vc_display: Vec<DisplayMetadata>,
         vc_claims: Vec<ClaimMetadata>,
+        type_metadata_uri: IssuerUrl,
     ) -> Self {
         Self::new_ecdsa_p256_sha256(
             CredentialFormat::new_mdoc_ecdsa_p256_sha256(doctype),
             CryptographicBinding::new_mdoc_ecdsa_p256_sha256(proof_types),
             vc_display,
             vc_claims,
+            type_metadata_uri,
         )
     }
 
@@ -330,12 +332,14 @@ impl CredentialConfiguration {
         proof_types: Vec<ProofType>,
         vc_display: Vec<DisplayMetadata>,
         vc_claims: Vec<ClaimMetadata>,
+        type_metadata_uri: IssuerUrl,
     ) -> Self {
         Self::new_ecdsa_p256_sha256(
             CredentialFormat::new_sd_jwt_ecdsa_p256_sha256(vct),
             CryptographicBinding::new_sd_jwt_ecdsa_p256_sha256(proof_types),
             vc_display,
             vc_claims,
+            type_metadata_uri,
         )
     }
 
@@ -344,13 +348,14 @@ impl CredentialConfiguration {
         cryptographic_binding: CryptographicBinding,
         vc_display: Vec<DisplayMetadata>,
         vc_claims: Vec<ClaimMetadata>,
+        type_metadata_uri: IssuerUrl,
     ) -> Self {
         Self {
             format,
             scope: None,
             cryptographic_binding: Some(cryptographic_binding),
             credential_metadata: Some(CredentialMetadata::new_from_sd_jwt_vc(vc_display, vc_claims)),
-            type_metadata_uri: None,
+            type_metadata_uri: Some(type_metadata_uri),
         }
     }
 }

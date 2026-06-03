@@ -2,11 +2,11 @@ pub mod authorization;
 pub mod credential;
 pub mod discovery;
 pub mod issuance_session;
-pub mod preview;
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;
 
+use std::collections::HashMap;
 use std::collections::HashSet;
 
 use attestation_data::attributes::AttributesError;
@@ -37,12 +37,14 @@ use crate::TokenErrorCode;
 use crate::credential::Credential;
 use crate::dpop::DpopError;
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::well_known::WellKnownError;
+use crate::token::CredentialPreview;
 use crate::token::CredentialPreviewError;
 use crate::wallet_issuance::authorization::OAuthError;
 use crate::wallet_issuance::credential::CredentialWithMetadata;
-use crate::wallet_issuance::preview::NormalizedCredentialPreview;
+use crate::wallet_issuance::issuance_session::IssuanceTypeMetadata;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -106,6 +108,10 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     CredentialPreview(Box<ErrorResponse<CredentialPreviewErrorCode>>),
 
+    #[error("could not retrieve type metadata from issuer: {0:?}")]
+    #[category(expected)]
+    TypeMetadataHttp(#[source] reqwest::Error),
+
     #[error("could not retrieve nonce from issuer: {0:?}")]
     #[category(expected)]
     NonceHttp(#[source] reqwest::Error),
@@ -153,6 +159,22 @@ pub enum WalletIssuanceError {
     #[error("error reading HTTP error: {0}")]
     #[category(pd)]
     HeaderToStr(#[from] ToStrError),
+
+    #[error("type metadata uri `{0}` does not start with issuer identifier `{1}`")]
+    #[category(critical)]
+    TypeMetadataUriNotBasedFromIssuerIdentifier(IssuerUrl, Box<IssuerIdentifier>),
+
+    #[error("different attestation types found for same type metadata uri `{0}`")]
+    #[category(critical)]
+    DifferentAttestationTypeForSameTypeMetadataUri(IssuerUrl),
+
+    #[error("different type metadata found for attestation type `{0}`")]
+    #[category(critical)]
+    DifferentTypeMetadataForSameAttestationType(String),
+
+    #[error("type metadata for `{0}` not found")]
+    #[category(critical)]
+    TypeMetadataNotFound(String),
 
     #[error("error verifying credential preview: {0}")]
     CredentialPreviewVerification(#[source] CredentialPreviewError),
@@ -351,7 +373,9 @@ pub trait IssuanceSession {
 
     async fn reject_issuance(&self) -> Result<(), WalletIssuanceError>;
 
-    fn normalized_credential_preview(&self) -> &[NormalizedCredentialPreview];
+    fn credential_previews(&self) -> &[CredentialPreview];
+
+    fn type_metadata(&self) -> &HashMap<String, IssuanceTypeMetadata>;
 
     fn issuer_registration(&self) -> &IssuerRegistration;
 }

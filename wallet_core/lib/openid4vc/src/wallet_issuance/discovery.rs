@@ -463,13 +463,14 @@ mod test {
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::preview::CredentialPreviewResponse;
     use crate::token::CredentialPreview;
-    use crate::token::CredentialPreviewContent;
     use crate::token::TokenResponse;
     use crate::token::TokenType;
     use crate::wallet_issuance::AuthorizationSession;
     use crate::wallet_issuance::IssuanceFlow;
     use crate::wallet_issuance::IssuanceSession;
     use crate::wallet_issuance::WalletIssuanceError;
+
+    static CONFIG_ID: LazyLock<CredentialConfigurationId> = LazyLock::new(|| "pid".to_string().into());
 
     const DEFAULT_GRANT_TYPES_SUPPORTED: &[&str] = &[
         "authorization_code",
@@ -480,11 +481,12 @@ mod test {
 
     async fn httpmock_issuer_add_metadata(
         server: &MockServer,
-        issuer_identifier: &IssuerIdentifier,
         has_nonce_enpdoint: bool,
         requires_key_binding: bool,
         grant_types_supported: Option<&[&str]>,
-    ) {
+    ) -> IssuerIdentifier {
+        let issuer_identifier = server.base_url().parse::<IssuerIdentifier>().unwrap();
+
         // Construct issuer metadata JSON.
         let mut issuer_metadata_json = json!({
             "credential_issuer": issuer_identifier.to_string(),
@@ -492,14 +494,15 @@ mod test {
             "batch_credential_endpoint": server.url("/issuance/batch_credential"),
             "credential_preview_endpoint": server.url("/issuance/credential_preview"),
             "credential_configurations_supported": {
-                PID_ATTESTATION_TYPE: {
+                CONFIG_ID.as_ref(): {
                     "format": "mso_mdoc",
                     "doctype": PID_ATTESTATION_TYPE,
+                    "type_metadata_uri": issuer_identifier.join_issuer_url("/issuance/type_metadata").join_config_id(&CONFIG_ID),
                 }
             },
         });
         if requires_key_binding {
-            let config = &mut issuer_metadata_json["credential_configurations_supported"][PID_ATTESTATION_TYPE];
+            let config = &mut issuer_metadata_json["credential_configurations_supported"][CONFIG_ID.as_ref()];
             config["cryptographic_binding_methods_supported"] = json!(["jwk"]);
             config["proof_types_supported"] = json!({
                 "jwt": { "proof_signing_alg_values_supported": ["ES256"] }
@@ -542,6 +545,8 @@ mod test {
                     .json_body(oauth_metadata_json);
             })
             .await;
+
+        issuer_identifier
     }
 
     #[derive(Debug, Clone, Copy)]
@@ -567,7 +572,6 @@ mod test {
         metadata_options: IssuerMetadataOptions,
     ) -> (MockServer, IssuerIdentifier, TrustAnchors) {
         let server = MockServer::start_async().await;
-        let issuer_identifier = server.base_url().parse::<IssuerIdentifier>().unwrap();
 
         // Create CA and issuer certificate for the credential preview.
         let ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -586,13 +590,10 @@ mod test {
         let credential_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
 
         let preview = CredentialPreview {
-            content: CredentialPreviewContent {
-                format: Format::MsoMdoc,
-                batch_size: NonZeroU8::new(4).unwrap(),
-                credential_payload,
-                issuer_certificate: issuance_keypair.certificate().clone(),
-            },
-            type_metadata: type_metadata_documents,
+            format: Format::MsoMdoc,
+            batch_size: NonZeroU8::new(4).unwrap(),
+            credential_payload,
+            issuer_certificate: issuance_keypair.certificate().clone(),
         };
 
         let preview_response = CredentialPreviewResponse {
@@ -608,9 +609,8 @@ mod test {
             authorization_details: None,
         };
 
-        httpmock_issuer_add_metadata(
+        let issuer_identifier = httpmock_issuer_add_metadata(
             &server,
-            &issuer_identifier,
             metadata_options.has_nonce_endpoint,
             metadata_options.requires_key_binding,
             metadata_options
@@ -618,6 +618,16 @@ mod test {
                 .then_some(DEFAULT_GRANT_TYPES_SUPPORTED),
         )
         .await;
+
+        server
+            .mock_async(|when, then| {
+                when.method(GET)
+                    .path(format!("/issuance/type_metadata/{}", CONFIG_ID.as_ref()));
+                then.status(200)
+                    .header(header::CONTENT_TYPE.as_str(), mime::APPLICATION_JSON.as_ref())
+                    .json_body(json!(type_metadata_documents));
+            })
+            .await;
 
         server
             .mock_async(|when, then| {
@@ -704,7 +714,7 @@ mod test {
         };
         let credential_offer = CredentialOffer {
             credential_issuer: issuer_identifier,
-            credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()],
             grants,
         };
 
@@ -828,10 +838,9 @@ mod test {
 
         for issuance_session in issuance_sessions {
             // Check that the issuance session contains the expected credential preview.
-            assert_eq!(issuance_session.normalized_credential_preview().len(), 1);
+            assert_eq!(issuance_session.credential_previews().len(), 1);
             assert_eq!(
-                issuance_session.normalized_credential_preview()[0]
-                    .content
+                issuance_session.credential_previews()[0]
                     .credential_payload
                     .attestation_type,
                 PID_ATTESTATION_TYPE
@@ -904,7 +913,7 @@ mod test {
         // Construct a Credential Offer URL with only unknown grant types.
         let credential_offer = json!({
             "credential_issuer": credential_issuer.as_ref(),
-            "credential_configuration_ids": [PID_ATTESTATION_TYPE],
+            "credential_configuration_ids": [CONFIG_ID.as_ref()],
             "grants": {
                 "foo": {
                     "key": "value"
@@ -940,15 +949,14 @@ mod test {
     #[tokio::test]
     async fn start_authorization_code_not_supported_error() {
         let server = MockServer::start_async().await;
-        let credential_issuer = server.base_url().parse::<IssuerIdentifier>().unwrap();
 
         // Have the OAuth Authorization Server metadata not include "authorization_code" as a supported grant type.
-        httpmock_issuer_add_metadata(&server, &credential_issuer, true, true, Some(&["implicit"])).await;
+        let credential_issuer = httpmock_issuer_add_metadata(&server, true, true, Some(&["implicit"])).await;
 
         // Construct a Credential Offer that contains no grants.
         let credential_offer = CredentialOffer {
             credential_issuer,
-            credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()],
             grants: None,
         };
         let offer_container = CredentialOfferContainer::new_offer(credential_offer);
@@ -1055,7 +1063,7 @@ mod test {
             credential_issuer: issuer_identifier,
             credential_configuration_ids: vec_nonempty![
                 "other_id".to_string().into(),
-                PID_ATTESTATION_TYPE.to_string().into(),
+                CONFIG_ID.clone(),
                 "another_id".to_string().into()
             ],
             grants: Some(Grants::new_pre_authorized("fake_pre_auth_code".to_string().into())),
@@ -1094,7 +1102,7 @@ mod test {
 
         let offer_container = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
             issuer_identifier,
-            vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            vec_nonempty![CONFIG_ID.clone()],
             "fake_pre_auth_code".to_string().into(),
         ));
         let query = serde_urlencoded::to_string(&offer_container).unwrap();
@@ -1124,7 +1132,7 @@ mod test {
 
         let offer_container = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
             issuer_identifier,
-            vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            vec_nonempty![CONFIG_ID.clone()],
             "fake_pre_auth_code".to_string().into(),
         ));
         let query = serde_urlencoded::to_string(&offer_container).unwrap();
