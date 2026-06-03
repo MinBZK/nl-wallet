@@ -528,7 +528,7 @@ run-performance-test-ont-existing-deploy:
   extends: .run-performance-test-ont-base
   rules:
     - !reference [.on-schedule-nightly-performance-test, rules]
-    - !reference [.default-or-merge-request-manual, rules]
+    - !reference [.default-manual-or-merge-request-manual, rules]
   needs:
     - job: build-performance-test
       artifacts: true
