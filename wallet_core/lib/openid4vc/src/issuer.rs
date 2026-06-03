@@ -241,7 +241,7 @@ pub struct AuthCodeIssued {
     pub grant: Grant,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum Grant {
     PreAuthorizedCode,
     AuthorizationCode { wallet_code_challenge: String },
@@ -883,20 +883,16 @@ impl Session<AuthCodeIssued> {
         credential_configurations: &CredentialConfigurations<K, L>,
         batch_size: NonZeroU8,
     ) -> ProcessTokenRequest {
-        let result = self
-            .session_data()
-            .grant
-            .verify_pkce(token_request)
-            .and_then(|()| {
-                build_token_response(
-                    token_request,
-                    dpop,
-                    server_url,
-                    credential_configurations,
-                    batch_size,
-                    self.session_data().issuable_documents.clone(),
-                )
-            });
+        let result = self.session_data().grant.verify_pkce(token_request).and_then(|()| {
+            build_token_response(
+                token_request,
+                dpop,
+                server_url,
+                credential_configurations,
+                batch_size,
+                self.session_data().issuable_documents.clone(),
+            )
+        });
 
         finalize_token_response(self, accepted_wallet_client_ids, result)
     }
