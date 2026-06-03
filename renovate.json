@@ -25,6 +25,7 @@
       "description": "2. Keep Renovate image up to date",
       "matchPackageNames": ["renovate/renovate"],
       "matchUpdateTypes": ["digest"],
+      "schedule": ["at any time"],
       "enabled": true
     }
   ]
