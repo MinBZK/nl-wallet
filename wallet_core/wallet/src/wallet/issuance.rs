@@ -192,6 +192,15 @@ pub enum WalletIssuanceSession<AS, IS> {
     },
 }
 
+impl<AS, IS> WalletIssuanceSession<AS, IS> {
+    fn issuance_protocol_state(&self) -> Option<&IS> {
+        match self {
+            Self::Issuance { protocol_state, .. } => Some(protocol_state),
+            Self::OAuth { .. } => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct IssuanceResult {
     pub transfer_session_id: Option<TransferSessionId>,
@@ -309,10 +318,8 @@ where
     pub(super) async fn cancel_issuance(&mut self) -> Result<(), IssuanceError> {
         info!("Issuance cancelled / rejected");
 
-        let should_reject = match self.session.as_ref() {
-            Some(Session::Issuance(WalletIssuanceSession::Issuance { .. })) => true,
-            Some(Session::Issuance(WalletIssuanceSession::OAuth { .. })) => false,
-            _ => return Err(IssuanceError::SessionState),
+        let Some(Session::Issuance(session)) = self.session.as_ref() else {
+            return Err(IssuanceError::SessionState);
         };
 
         self.storage
@@ -322,11 +329,7 @@ where
             .await
             .map_err(IssuanceError::SessionStorage)?;
 
-        if should_reject {
-            let Some(Session::Issuance(WalletIssuanceSession::Issuance { protocol_state, .. })) = self.session.as_ref()
-            else {
-                return Err(IssuanceError::SessionState);
-            };
+        if let Some(protocol_state) = session.issuance_protocol_state() {
             let organization = protocol_state.issuer_registration().organization.clone();
 
             info!("Rejecting issuance");
@@ -336,6 +339,7 @@ where
                 .map_err(|error| IssuanceError::IssuerServer { organization, error })?;
         }
 
+        let _ = session;
         self.session = None;
 
         Ok(())
