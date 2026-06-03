@@ -661,7 +661,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         Ok(docs)
     }
 
-    async fn reject_issuance(self) -> Result<(), WalletIssuanceError> {
+    async fn reject_issuance(&self) -> Result<(), WalletIssuanceError> {
         let url = self
             .session_state
             .issuer_metadata

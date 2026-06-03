@@ -326,7 +326,7 @@ pub trait IssuanceSession {
     where
         W: IssuanceWscd;
 
-    async fn reject_issuance(self) -> Result<(), WalletIssuanceError>;
+    async fn reject_issuance(&self) -> Result<(), WalletIssuanceError>;
 
     fn normalized_credential_preview(&self) -> &[NormalizedCredentialPreview];
 

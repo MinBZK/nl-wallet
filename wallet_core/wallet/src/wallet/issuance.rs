@@ -309,6 +309,12 @@ where
     pub(super) async fn cancel_issuance(&mut self) -> Result<(), IssuanceError> {
         info!("Issuance cancelled / rejected");
 
+        let should_reject = match self.session.as_ref() {
+            Some(Session::Issuance(WalletIssuanceSession::Issuance { .. })) => true,
+            Some(Session::Issuance(WalletIssuanceSession::OAuth { .. })) => false,
+            _ => return Err(IssuanceError::SessionState),
+        };
+
         self.storage
             .write()
             .await
@@ -316,11 +322,11 @@ where
             .await
             .map_err(IssuanceError::SessionStorage)?;
 
-        let Some(Session::Issuance(session)) = self.session.take() else {
-            return Err(IssuanceError::SessionState);
-        };
-
-        if let WalletIssuanceSession::Issuance { protocol_state, .. } = session {
+        if should_reject {
+            let Some(Session::Issuance(WalletIssuanceSession::Issuance { protocol_state, .. })) = self.session.as_ref()
+            else {
+                return Err(IssuanceError::SessionState);
+            };
             let organization = protocol_state.issuer_registration().organization.clone();
 
             info!("Rejecting issuance");
@@ -328,10 +334,9 @@ where
                 .reject_issuance()
                 .await
                 .map_err(|error| IssuanceError::IssuerServer { organization, error })?;
-        };
+        }
 
-        // In the OAuth stage of PID issuance we don't have to do anything with the session state,
-        // so we don't need to match `session` on that arm.
+        self.session = None;
 
         Ok(())
     }
@@ -1405,6 +1410,13 @@ mod tests {
             .expect_err("Rejecting PID issuance should have resulted in an error");
 
         assert_matches!(error, CancelSessionError::Issuance(IssuanceError::IssuerServer { .. }));
+        assert_matches!(
+            wallet.session,
+            Some(Session::Issuance(WalletIssuanceSession::Issuance {
+                pid_purpose: Some(PidIssuancePurpose::Enrollment),
+                ..
+            }))
+        );
     }
 
     const PIN: &str = "051097";
