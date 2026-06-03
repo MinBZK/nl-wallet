@@ -363,13 +363,23 @@ where
 }
 
 fn redirect_to_wallet_error(entry: &StateBridgeEntry, error: &Error) -> Response {
+    #[derive(Serialize)]
+    struct RedirectErrorQuery<'a> {
+        error: &'a str,
+        error_description: &'a str,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        state: Option<&'a str>,
+    }
+
     let mut url = entry.wallet_redirect_uri.clone();
-    let query = serde_urlencoded::to_string([
-        ("error", "server_error"),
-        ("error_description", &error.to_string()),
-        ("state", entry.wallet_state.as_deref().unwrap_or_default()),
-    ])
+
+    let query = serde_urlencoded::to_string(RedirectErrorQuery {
+        error: "server_error",
+        error_description: &error.to_string(),
+        state: entry.wallet_state.as_deref(),
+    })
     .expect("encoding error query string should never fail");
+
     url.set_query(Some(&query));
     (StatusCode::FOUND, [(header::LOCATION, url.to_string())]).into_response()
 }
