@@ -1100,7 +1100,7 @@ pub async fn do_pid_issuance_with_purpose(
     let redirect_url = fake_oidc_redirect(redirect_uri).await;
 
     let _attestations = wallet
-        .continue_pid_issuance(redirect_url)
+        .continue_issuance(redirect_url)
         .await
         .expect("Could not continue pid issuance");
     wallet

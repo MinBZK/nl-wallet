@@ -240,7 +240,7 @@ async fn ltc2_test_pid_missing_required_attributes() {
         .expect("should create PID issuance redirect URL");
 
     let _unsigned_mdocs = wallet
-        .continue_pid_issuance(fake_oidc_redirect(redirect_uri).await)
+        .continue_issuance(fake_oidc_redirect(redirect_uri).await)
         .await
         .expect("should continue PID issuance");
     let error = wallet

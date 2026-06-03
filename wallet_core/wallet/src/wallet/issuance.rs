@@ -211,6 +211,14 @@ impl<AS, IS> WalletIssuanceSession<AS, IS> {
         }
     }
 
+    pub fn session_state(&self) -> &SessionState<AS, IS> {
+        match self {
+            WalletIssuanceSession::Pid { session_state, .. } | WalletIssuanceSession::General { session_state } => {
+                session_state
+            }
+        }
+    }
+
     pub fn session_state_mut(&mut self) -> &mut SessionState<AS, IS> {
         match self {
             WalletIssuanceSession::Pid { session_state, .. } | WalletIssuanceSession::General { session_state } => {
@@ -225,6 +233,10 @@ impl<AS, IS> WalletIssuanceSession<AS, IS> {
                 session_state
             }
         }
+    }
+
+    pub fn is_in_authorization_state(&self) -> bool {
+        matches!(self.session_state(), SessionState::Authorization { .. })
     }
 }
 
@@ -408,7 +420,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn continue_pid_issuance(
+    pub async fn continue_issuance(
         &mut self,
         redirect_uri: Url,
     ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
@@ -416,24 +428,22 @@ where
 
         self.check_session_preconditions()?;
 
-        info!("Checking if there is an active OAuth issuance session");
+        info!("Checking if there is an active issuance session");
         if !matches!(
-            self.session,
-            Some(Session::Issuance(WalletIssuanceSession::Pid {
-                session_state: SessionState::Authorization { .. },
-                ..
-            }))
+            &self.session,
+            Some(Session::Issuance(issuance_session)) if issuance_session.is_in_authorization_state()
         ) {
             return Err(IssuanceError::SessionState);
         }
 
         // Take ownership of the active session, now that we know that it exists.
-        let Some(Session::Issuance(WalletIssuanceSession::Pid {
-            purpose,
-            session_state: SessionState::Authorization { authorization_session },
-        })) = self.session.take()
-        else {
-            panic!()
+        let Some(Session::Issuance(issuance_session)) = self.session.take() else {
+            return Err(IssuanceError::SessionState);
+        };
+
+        let purpose = issuance_session.pid_purpose();
+        let SessionState::Authorization { authorization_session } = issuance_session.into_session_state() else {
+            return Err(IssuanceError::SessionState);
         };
 
         let config = self.config_repository.get();
@@ -447,7 +457,7 @@ where
                 e => IssuanceError::IssuanceSession(e),
             })?;
 
-        self.issuance_process_previews(issuance_session, Some(purpose)).await
+        self.issuance_process_previews(issuance_session, purpose).await
     }
 
     #[instrument(skip_all)]
@@ -1090,10 +1100,15 @@ mod tests {
 
     const REDIRECT_URI: &str = "redirect://here";
 
+    #[rstest]
     #[tokio::test]
-    async fn test_continue_pid_issuance() {
+    async fn test_continue_issuance(
+        #[values(None, Some(PidIssuancePurpose::Enrollment), Some(PidIssuancePurpose::Renewal))] pid_purpose: Option<
+            PidIssuancePurpose,
+        >,
+    ) {
         // `setup_wallet_with_oauth_session_and_database_mock` already sets up the mock `start` expectation.
-        let (mut wallet, redirect_uri) = setup_wallet_with_oauth_session_and_database_mock().await;
+        let (mut wallet, redirect_uri) = setup_mock_wallet_in_authorization_state(pid_purpose).await;
 
         let stored = {
             let (sd_jwt, metadata) = create_example_pid_sd_jwt();
@@ -1123,7 +1138,7 @@ mod tests {
 
         // Continuing PID issuance should result in one preview `Attestation`.
         let attestations = wallet
-            .continue_pid_issuance(redirect_uri)
+            .continue_issuance(redirect_uri)
             .await
             .expect("Could not continue PID issuance");
 
@@ -1131,8 +1146,12 @@ mod tests {
 
         let attestation = attestations.into_iter().next().unwrap();
 
-        // A new PID always overwrites an older PID
-        assert_matches!(attestation.identity, AttestationIdentity::Fixed { .. });
+        if pid_purpose.is_some() {
+            // A new PID always overwrites an older PID
+            assert_matches!(attestation.identity, AttestationIdentity::Fixed { .. });
+        } else {
+            assert_matches!(attestation.identity, AttestationIdentity::Ephemeral);
+        }
         assert_eq!(attestation.attributes.len(), 4);
         assert_eq!(attestation.attributes[0].key, vec_nonempty!["family_name".to_string()]);
         assert_matches!(
@@ -1142,7 +1161,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_continue_pid_issuance_user_cancelled() {
+    async fn test_continue_issuance_user_cancelled() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let mut authorization_session = MockAuthorizationSession::new();
         authorization_session
@@ -1155,7 +1174,7 @@ mod tests {
 
         let denied_redirect = Url::parse(&(REDIRECT_URI.to_string() + "?error=access_denied&state=whatever")).unwrap();
         let error = wallet
-            .continue_pid_issuance(denied_redirect)
+            .continue_issuance(denied_redirect)
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
@@ -1163,7 +1182,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_continue_pid_issuance_error_locked() {
+    async fn test_continue_issuance_error_locked() {
         // Prepare a registered and locked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -1171,7 +1190,7 @@ mod tests {
 
         // Continuing PID issuance on a locked wallet should result in an error.
         let error = wallet
-            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
+            .continue_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
@@ -1182,13 +1201,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_continue_pid_issuance_error_unregistered() {
+    async fn test_continue_issuance_error_unregistered() {
         // Prepare an unregistered wallet.
         let mut wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
         // Continuing PID issuance on an unregistered wallet should result in an error.
         let error = wallet
-            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
+            .continue_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
@@ -1199,20 +1218,22 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_continue_pid_issuance_error_session_state() {
+    async fn test_continue_issuance_error_session_state() {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Continuing PID issuance on a wallet with no active `DigidSession` should result in an error.
         let error = wallet
-            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
+            .continue_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
         assert_matches!(error, IssuanceError::SessionState);
     }
 
-    async fn setup_wallet_with_oauth_session_and_database_mock() -> (TestWalletMockStorage, Url) {
+    async fn setup_mock_wallet_in_authorization_state(
+        purpose: Option<PidIssuancePurpose>,
+    ) -> (TestWalletMockStorage, Url) {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let redirect_uri = Url::parse(REDIRECT_URI).unwrap();
@@ -1228,15 +1249,17 @@ mod tests {
             session.expect_issuer().return_const(IssuerRegistration::new_mock());
             Ok(session)
         });
-        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
-            purpose: PidIssuancePurpose::Enrollment,
-            session_state: SessionState::Authorization { authorization_session },
-        }));
+        let session_state = SessionState::Authorization { authorization_session };
+        let issuance_session = match purpose {
+            Some(purpose) => WalletIssuanceSession::Pid { purpose, session_state },
+            None => WalletIssuanceSession::General { session_state },
+        };
+        wallet.session = Some(Session::Issuance(issuance_session));
         (wallet, redirect_uri)
     }
 
     #[tokio::test]
-    async fn test_continue_pid_issuance_error_pid_issuer() {
+    async fn test_continue_issuance_error_pid_issuer() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let redirect_uri = Url::parse(REDIRECT_URI).unwrap();
 
@@ -1253,7 +1276,7 @@ mod tests {
 
         // Continuing PID issuance on a wallet should forward this error.
         let error = wallet
-            .continue_pid_issuance(redirect_uri)
+            .continue_issuance(redirect_uri)
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
