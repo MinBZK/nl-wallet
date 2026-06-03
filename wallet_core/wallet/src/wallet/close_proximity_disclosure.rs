@@ -813,6 +813,7 @@ mod tests {
     use attestation_data::disclosure_type::DisclosureType;
     use attestation_data::verifier_certificate::VerifierCertificate;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+    use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_FAMILY_NAME;
     use attestation_types::pid_constants::PID_GIVEN_NAME;
@@ -821,7 +822,6 @@ mod tests {
     use crypto::p256_der::DerSignature;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
-    use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
     use entity::disclosure_event::EventStatus;
     use futures::future::join_all;
@@ -1203,19 +1203,19 @@ mod tests {
         *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() = Attribute::Single(AttributeValue::Text("Jane".to_string()));
         pid_credential_payload.previewable_payload.attributes = attributes_root.into();
         let pid1 = example_stored_attestation_copy(
-            CredentialFormat::MsoMdoc,
+            Format::MsoMdoc,
             pid_credential_payload.clone(),
             NormalizedTypeMetadata::nl_pid_example(),
             &SigningKey::random(&mut OsRng),
         );
 
-        let (pid2, _) = example_pid_stored_attestation_copy(CredentialFormat::MsoMdoc);
+        let (pid2, _) = example_pid_stored_attestation_copy(Format::MsoMdoc);
 
         let mut attributes_root = pid_credential_payload.previewable_payload.attributes.into_inner();
         *attributes_root.get_mut(PID_GIVEN_NAME).unwrap() = Attribute::Single(AttributeValue::Text("John".to_string()));
         pid_credential_payload.previewable_payload.attributes = attributes_root.into();
         let pid3 = example_stored_attestation_copy(
-            CredentialFormat::MsoMdoc,
+            Format::MsoMdoc,
             pid_credential_payload,
             NormalizedTypeMetadata::nl_pid_example(),
             &SigningKey::random(&mut OsRng),
@@ -1225,8 +1225,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_types_and_format()
             .withf(move |attestation_types, format, _| {
-                *attestation_types == HashSet::from([PID_ATTESTATION_TYPE.to_owned()])
-                    && *format == CredentialFormat::MsoMdoc
+                *attestation_types == HashSet::from([PID_ATTESTATION_TYPE.to_owned()]) && *format == Format::MsoMdoc
             })
             .once()
             .return_once(move |_, _, _| Ok(vec![pid1, pid2.clone(), pid3]));
@@ -1588,7 +1587,7 @@ mod tests {
 
         let (pid_credential_payload, holder_key) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
         let pid = example_stored_attestation_copy(
-            CredentialFormat::MsoMdoc,
+            Format::MsoMdoc,
             pid_credential_payload.clone(),
             NormalizedTypeMetadata::nl_pid_example(),
             &holder_key,
@@ -1665,7 +1664,7 @@ mod tests {
             None,
         );
 
-        let (stored_attestation_copy, holder_key) = example_pid_stored_attestation_copy(CredentialFormat::MsoMdoc);
+        let (stored_attestation_copy, holder_key) = example_pid_stored_attestation_copy(Format::MsoMdoc);
 
         (
             disclosable_attestation_from_credential_requests(stored_attestation_copy, &credential_requests),
@@ -1729,7 +1728,7 @@ mod tests {
             .to_string();
 
         let (pid1, key1) = pid_given_name_disclosable_attestation();
-        let (pid2, key2) = example_pid_stored_attestation_copy(CredentialFormat::MsoMdoc);
+        let (pid2, key2) = example_pid_stored_attestation_copy(Format::MsoMdoc);
 
         let key_id1 = pid1.partial_attestation().private_key_id().to_owned();
         let key_id2 = pid2.private_key_id().to_owned();

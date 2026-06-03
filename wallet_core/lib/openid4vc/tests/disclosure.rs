@@ -17,6 +17,7 @@ use attestation_data::test_credential::nl_pid_credentials_full_name;
 use attestation_data::test_credential::nl_pid_credentials_given_name;
 use attestation_data::test_credential::nl_pid_credentials_given_name_for_query_id;
 use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_GIVEN_NAME;
 use attestation_types::pid_constants::ROOT_PID_ATTESTATION_TYPE;
@@ -35,7 +36,6 @@ use crypto::wscd::DisclosureResult;
 use crypto::wscd::DisclosureWscd;
 use crypto::wscd::WscdPoa;
 use crypto::x509::CertificateUsage;
-use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::normalized::NormalizedCredentialRequests;
@@ -248,7 +248,7 @@ fn disclosure_jwe(
 #[tokio::test]
 async fn disclosure_using_message_client(
     #[case] test_credentials: TestCredentials,
-    #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
+    #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
 ) {
     let formats = std::iter::repeat_n(format, test_credentials.as_ref().len()).collect_vec();
 
@@ -267,10 +267,8 @@ async fn disclosure_using_message_client(
     // Initialize the "wallet"
     let wscd = MockRemoteWscd::default();
     let disclosable_attestations = match format {
-        CredentialFormat::MsoMdoc => {
-            DisclosableAttestations::MsoMdoc(test_credentials.to_partial_mdocs(&issuer_keypair, &wscd))
-        }
-        CredentialFormat::SdJwt => {
+        Format::MsoMdoc => DisclosableAttestations::MsoMdoc(test_credentials.to_partial_mdocs(&issuer_keypair, &wscd)),
+        Format::SdJwt => {
             DisclosableAttestations::SdJwt(test_credentials.to_unsigned_sd_jwt_presentations(&issuer_keypair, &wscd))
         }
     }
@@ -306,7 +304,7 @@ async fn disclosure_using_message_client(
 #[derive(Debug, Clone)]
 struct DirectMockVpMessageClient {
     test_credentials: TestCredentials,
-    formats: Vec<CredentialFormat>,
+    formats: Vec<Format>,
     encryption_secret_key: JweEcdhSecretKey,
     auth_keypair: KeyPair,
     auth_request: NormalizedVpAuthorizationRequest,
@@ -319,7 +317,7 @@ struct DirectMockVpMessageClient {
 impl DirectMockVpMessageClient {
     fn new(
         test_credentials: TestCredentials,
-        formats: Vec<CredentialFormat>,
+        formats: Vec<Format>,
         auth_keypair: KeyPair,
         trust_anchors: TrustAnchors,
         status_list_keypair: KeyPair,
@@ -510,7 +508,7 @@ async fn test_client_and_server(
     #[case] return_url_template: ReturnUrlTemplate,
     #[case] use_case: &str,
     #[case] test_credentials: TestCredentials,
-    #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
+    #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
     #[values(None, Some("query_param".to_string()))] result_query_param: Option<String>,
 ) {
     let formats = std::iter::repeat_n(format, test_credentials.as_ref().len()).collect_vec();
@@ -541,10 +539,8 @@ async fn test_client_and_server(
 
     // Finish the disclosure.
     let disclosable_attestations = match format {
-        CredentialFormat::MsoMdoc => {
-            DisclosableAttestations::MsoMdoc(test_credentials.to_partial_mdocs(&issuer_keypair, &wscd))
-        }
-        CredentialFormat::SdJwt => {
+        Format::MsoMdoc => DisclosableAttestations::MsoMdoc(test_credentials.to_partial_mdocs(&issuer_keypair, &wscd)),
+        Format::SdJwt => {
             DisclosableAttestations::SdJwt(test_credentials.to_unsigned_sd_jwt_presentations(&issuer_keypair, &wscd))
         }
     }
@@ -661,7 +657,7 @@ async fn test_client_and_server_cancel_after_created() {
 #[tokio::test]
 async fn test_client_and_server_cancel_after_wallet_start() {
     let test_credentials = nl_pid_credentials_all();
-    let dcql_query = test_credentials.to_dcql_query([CredentialFormat::SdJwt]);
+    let dcql_query = test_credentials.to_dcql_query([Format::SdJwt]);
 
     let (verifier, trust_anchor, issuer_keypair) = setup_verifier(&dcql_query, None);
 
@@ -753,7 +749,7 @@ async fn test_disclosure_invalid_poa() {
     }
 
     let test_credentials = nl_pid_credentials_full_name() + nl_pid_address_minimal_address();
-    let dcql_query = test_credentials.to_dcql_query([CredentialFormat::SdJwt, CredentialFormat::SdJwt]);
+    let dcql_query = test_credentials.to_dcql_query([Format::SdJwt, Format::SdJwt]);
     let use_case = DEFAULT_RETURN_URL_USE_CASE;
 
     let (verifier, rp_trust_anchor, issuer_keypair) = setup_verifier(&dcql_query, None);
@@ -949,7 +945,7 @@ async fn test_verifier_auth_request_metadata_contract() {
 
 #[tokio::test]
 async fn test_rp_initiated_usecase_verifier_cancel() {
-    let dcql_query = nl_pid_credentials_full_name().to_dcql_query([CredentialFormat::SdJwt]);
+    let dcql_query = nl_pid_credentials_full_name().to_dcql_query([Format::SdJwt]);
 
     let (verifier, rp_trust_anchor, _issuer_keypair) = setup_verifier(&dcql_query, None);
 
@@ -1060,7 +1056,7 @@ where
 
     // Initialize the verifier
     let test_credentials = nl_pid_credentials_full_name();
-    let dcql_query = test_credentials.to_dcql_query([CredentialFormat::SdJwt]);
+    let dcql_query = test_credentials.to_dcql_query([Format::SdJwt]);
     let reader_registration = ReaderRegistration::mock_from_dcql_query(&dcql_query);
     let use_case = WalletInitiatedUseCase::new(
         generate_reader_mock_with_registration(&rp_ca, reader_registration.clone()).unwrap(),

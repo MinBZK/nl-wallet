@@ -14,6 +14,7 @@ use attestation_data::validity::ValidityWindow;
 use attestation_data::verifier_certificate::VerifierCertificate;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_RECOVERY_CODE;
 use attestation_types::status_claim::StatusClaim;
@@ -25,13 +26,11 @@ use crypto::server_keys::generate::Ca;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificateExtension;
-use dcql::CredentialFormat;
 use futures::future::FutureExt;
 use itertools::Itertools;
 use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
-use openid4vc::Format;
 use openid4vc::disclosure_session::mock::MockDisclosureClient;
 use openid4vc::token::CredentialPreviewContent;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
@@ -664,7 +663,7 @@ pub fn mock_verifier_certificate() -> VerifierCertificate {
 }
 
 pub fn example_stored_attestation_copy(
-    format: CredentialFormat,
+    format: Format,
     credential_payload: CredentialPayload,
     metadata: NormalizedTypeMetadata,
     holder_key: &SigningKey,
@@ -679,14 +678,14 @@ pub fn example_stored_attestation_copy(
 }
 
 fn example_stored_attestation_copy_with_issuer_keypair(
-    format: CredentialFormat,
+    format: Format,
     credential_payload: CredentialPayload,
     metadata: NormalizedTypeMetadata,
     issuer_keypair: &KeyPair,
     holder_key: &SigningKey,
 ) -> StoredAttestationCopy {
     match format {
-        CredentialFormat::MsoMdoc => StoredAttestationCopy::new(
+        Format::MsoMdoc => StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),
             ValidityWindow::new_valid_mock(),
@@ -696,7 +695,7 @@ fn example_stored_attestation_copy_with_issuer_keypair(
             metadata,
             None,
         ),
-        CredentialFormat::SdJwt => StoredAttestationCopy::new(
+        Format::SdJwt => StoredAttestationCopy::new(
             Uuid::new_v4(),
             Uuid::new_v4(),
             ValidityWindow::new_valid_mock(),
@@ -710,7 +709,7 @@ fn example_stored_attestation_copy_with_issuer_keypair(
     }
 }
 
-pub fn example_pid_stored_attestation_copy(format: CredentialFormat) -> (StoredAttestationCopy, SigningKey) {
+pub fn example_pid_stored_attestation_copy(format: Format) -> (StoredAttestationCopy, SigningKey) {
     let (credential_payload, holder_key) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());
 
     (
@@ -725,7 +724,7 @@ pub fn example_pid_stored_attestation_copy(format: CredentialFormat) -> (StoredA
 }
 
 pub fn example_pid_stored_attestation_copy_with_issuer_keypair(
-    format: CredentialFormat,
+    format: Format,
     issuer_keypair: &KeyPair,
 ) -> StoredAttestationCopy {
     let (credential_payload, holder_key) = CredentialPayload::nl_pid_example(&MockTimeGenerator::default());

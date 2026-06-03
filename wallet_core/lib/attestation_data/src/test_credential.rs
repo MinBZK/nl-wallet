@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use std::ops::Add;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::PID_ADDRESS_GROUP;
 use attestation_types::pid_constants::PID_BIRTH_DATE;
 use attestation_types::pid_constants::PID_BSN;
@@ -17,7 +18,6 @@ use attestation_types::status_claim::StatusClaim;
 use chrono::Utc;
 use crypto::mock_remote::MockRemoteWscd;
 use crypto::server_keys::KeyPair;
-use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::normalized::MdocAttributeRequest;
@@ -96,7 +96,7 @@ impl TestCredentials {
 
     pub fn to_normalized_credential_requests(
         &self,
-        formats: impl IntoIterator<Item = CredentialFormat>,
+        formats: impl IntoIterator<Item = Format>,
     ) -> NormalizedCredentialRequests {
         self.as_ref()
             .iter()
@@ -107,7 +107,7 @@ impl TestCredentials {
             .unwrap()
     }
 
-    pub fn to_dcql_query(&self, formats: impl IntoIterator<Item = CredentialFormat>) -> Query {
+    pub fn to_dcql_query(&self, formats: impl IntoIterator<Item = Format>) -> Query {
         self.to_normalized_credential_requests(formats).into()
     }
 
@@ -144,7 +144,7 @@ impl TestCredentials {
     pub fn assert_matches_disclosed_attestations(
         &self,
         disclosed_attestations: &UniqueIdVec<DisclosedAttestations>,
-        expected_formats: impl IntoIterator<Item = CredentialFormat>,
+        expected_formats: impl IntoIterator<Item = Format>,
     ) {
         for ((credential, disclosed), expected_format) in self
             .as_ref()
@@ -224,10 +224,10 @@ impl TestCredential {
         }
     }
 
-    pub fn to_normalized_credential_request(&self, format: CredentialFormat) -> NormalizedCredentialRequest {
+    pub fn to_normalized_credential_request(&self, format: Format) -> NormalizedCredentialRequest {
         match format {
-            CredentialFormat::MsoMdoc => self.to_mdoc_normalized_credential_request(),
-            CredentialFormat::SdJwt => self.to_sd_jwt_normalized_credential_request(),
+            Format::MsoMdoc => self.to_mdoc_normalized_credential_request(),
+            Format::SdJwt => self.to_sd_jwt_normalized_credential_request(),
         }
     }
 
@@ -369,10 +369,10 @@ impl TestCredential {
     pub fn assert_matches_disclosed_attributes(
         &self,
         disclosed_attributes: &DisclosedAttributes,
-        expected_format: CredentialFormat,
+        expected_format: Format,
     ) {
         match (&disclosed_attributes, expected_format) {
-            (DisclosedAttributes::MsoMdoc(attributes), CredentialFormat::MsoMdoc) => {
+            (DisclosedAttributes::MsoMdoc(attributes), Format::MsoMdoc) => {
                 let expected_attributes = self
                     .to_mdoc_attributes()
                     .into_iter()
@@ -388,7 +388,7 @@ impl TestCredential {
 
                 assert_eq!(*attributes, expected_attributes);
             }
-            (DisclosedAttributes::SdJwt(attributes), CredentialFormat::SdJwt) => {
+            (DisclosedAttributes::SdJwt(attributes), Format::SdJwt) => {
                 let disclosed_paths = attributes
                     .claim_paths(AttributesTraversalBehaviour::OnlyLeaves)
                     .into_iter()

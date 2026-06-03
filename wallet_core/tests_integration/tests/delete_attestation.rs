@@ -1,5 +1,5 @@
+use attestation_types::credential_format::Format;
 use db_test::DbSetup;
-use dcql::CredentialFormat;
 use openid4vc::issuable_document::IssuableDocument;
 use sea_orm::ColumnTrait;
 use sea_orm::EntityTrait;
@@ -67,7 +67,7 @@ async fn test_delete_attestation_ok() {
         pin.to_owned(),
         &issuance_urls.issuance_server.public,
         &issuance_urls.degree_client_ids,
-        CredentialFormat::MsoMdoc,
+        Format::MsoMdoc,
     )
     .await;
 

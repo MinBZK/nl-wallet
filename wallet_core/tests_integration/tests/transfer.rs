@@ -1,7 +1,7 @@
 use std::assert_matches;
 
+use attestation_types::credential_format::Format;
 use db_test::DbSetup;
-use dcql::CredentialFormat;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use serial_test::serial;
 use tempfile::TempDir;
@@ -58,7 +58,7 @@ async fn init_wallets(db_setup: &DbSetup) -> (WalletData, WalletData) {
             &universal_link(
                 issuance_data.issuance_server.public.as_base_url(),
                 &issuance_data.degree_client_ids,
-                CredentialFormat::SdJwt,
+                Format::SdJwt,
             ),
             DisclosureUriSource::Link,
         )

@@ -32,7 +32,6 @@ use wscd::wscd::IssuanceWscd;
 use crate::CredentialErrorCode;
 use crate::CredentialPreviewErrorCode;
 use crate::ErrorResponse;
-use crate::Format;
 use crate::TokenErrorCode;
 use crate::credential::Credential;
 use crate::dpop::DpopError;
@@ -211,10 +210,6 @@ pub enum WalletIssuanceError {
 
     #[error("error converting SD-JWT to a CredentialPayload: {0}")]
     SdJwtCredentialPayloadError(#[from] SdJwtCredentialPayloadError),
-
-    #[error("unsupported credential format proposed for credential \"{0}\": {1}")]
-    #[category(pd)]
-    UnsupportedCredentialFormat(String, Format),
 
     #[error("different issuer registrations found in credential previews")]
     #[category(critical)]

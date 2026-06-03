@@ -1,10 +1,10 @@
 use attestation_data::attributes::Attributes;
 use attestation_data::validity::IssuanceValidity;
+use attestation_types::credential_format::Format;
 use attestation_types::qualification::AttestationQualification;
 use dcql::CredentialQueryIdentifier;
 use dcql::unique_id_vec::MayHaveUniqueId;
 use http_utils::urls::HttpsUri;
-use openid4vc::Format;
 use serde::Deserialize;
 use utils::vec_at_least::VecNonEmpty;
 

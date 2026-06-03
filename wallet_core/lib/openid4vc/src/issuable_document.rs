@@ -1,6 +1,7 @@
 use attestation_data::attributes::Attributes;
 use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_types::credential_format::Format;
 use attestation_types::qualification::AttestationQualification;
 use chrono::DateTime;
 use chrono::Utc;
@@ -12,8 +13,6 @@ use serde_valid::Validate;
 use serde_with::DisplayFromStr;
 use serde_with::serde_as;
 use uuid::Uuid;
-
-use crate::Format;
 
 /// Generic data model used to pass the attributes to be issued from the issuer backend to the wallet server. This model
 /// should be convertable into all documents that are actually issued to the wallet, i.e. mdoc and sd-jwt.

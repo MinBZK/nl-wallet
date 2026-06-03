@@ -1,3 +1,4 @@
+use attestation_types::credential_format::Format;
 use crypto::x509::KeyIdentifier;
 use derive_more::IntoIterator;
 use error_category::ErrorCategory;
@@ -12,7 +13,6 @@ use utils::vec_at_least::VecNonEmpty;
 use crate::ClaimPath;
 use crate::ClaimsQuery;
 use crate::ClaimsSelection;
-use crate::CredentialFormat;
 use crate::CredentialQuery;
 use crate::CredentialQueryFormat;
 use crate::CredentialQueryIdentifier;
@@ -68,10 +68,10 @@ pub enum NormalizedCredentialRequest {
 }
 
 impl NormalizedCredentialRequest {
-    pub fn format(&self) -> CredentialFormat {
+    pub fn format(&self) -> Format {
         match self {
-            Self::MsoMdoc { .. } => CredentialFormat::MsoMdoc,
-            Self::SdJwt { .. } => CredentialFormat::SdJwt,
+            Self::MsoMdoc { .. } => Format::MsoMdoc,
+            Self::SdJwt { .. } => Format::SdJwt,
         }
     }
 

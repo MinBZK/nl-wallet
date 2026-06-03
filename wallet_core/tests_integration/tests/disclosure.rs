@@ -3,8 +3,8 @@ use std::collections::HashSet;
 
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::test_credential::TestCredentials;
+use attestation_types::credential_format::Format;
 use db_test::DbSetup;
-use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::Query;
 use dcql::TrustedAuthoritiesQuery;
@@ -12,7 +12,6 @@ use dcql::normalized::NormalizedCredentialRequests;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::error::HttpJsonErrorBody;
 use itertools::Itertools;
-use openid4vc::Format;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
@@ -50,7 +49,7 @@ async fn assert_disclosure_ok(
     session_type: SessionType,
     usecase: String,
     return_url_template: Option<ReturnUrlTemplate>,
-    format: CredentialFormat,
+    format: Format,
     dcql_query: Query,
     test_credentials: TestCredentials,
 ) {
@@ -224,7 +223,7 @@ async fn ltc15_ltc16_test_disclosure_usecases_ok(
     #[case] return_url_template: Option<ReturnUrlTemplate>,
     #[case] usecase: String,
     #[case] test_credentials: TestCredentials,
-    #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
+    #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
 ) {
     let dcql_query = test_credentials.to_dcql_query(std::iter::repeat_n(format, test_credentials.as_ref().len()));
 
@@ -245,7 +244,7 @@ async fn ltc15_test_disclosure_extended_vct_ok() {
     let session_type = SessionType::SameDevice;
     let return_url_template = Some("http://localhost:3004/return".parse().unwrap());
     let usecase = "xyz_bank_sd_jwt".to_owned();
-    let format = CredentialFormat::SdJwt;
+    let format = Format::SdJwt;
 
     let query_id = "eudi_pid_given_name";
     let test_credentials = nl_pid_credentials_given_name_for_query_id(query_id);
@@ -386,7 +385,7 @@ async fn test_disclosure_aki_ok() {
     let session_type = SessionType::SameDevice;
     let return_url_template = None;
     let usecase = "xyz_bank_no_return_url".to_owned();
-    let format = CredentialFormat::SdJwt;
+    let format = Format::SdJwt;
 
     let test_credentials = nl_pid_credentials_full_name();
     let mut dcql_query = test_credentials.to_dcql_query(std::iter::repeat_n(format, test_credentials.as_ref().len()));

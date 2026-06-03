@@ -10,8 +10,8 @@ use attestation_data::disclosure::AttestationRequest;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::verifier_certificate::VerifierCertificate;
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::credential_format::Format;
 use chrono::Utc;
-use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequest;
 use entity::disclosure_event::EventStatus;
@@ -382,11 +382,11 @@ pub(super) fn is_request_for_recovery_code(
     };
 
     match request.format() {
-        CredentialFormat::MsoMdoc => pid_attributes
+        Format::MsoMdoc => pid_attributes
             .mso_mdoc
             .get(request.credential_types().collect::<VecNonEmpty<_>>().first())
             .is_some_and(matches_recovery_code_paths),
-        CredentialFormat::SdJwt => request
+        Format::SdJwt => request
             .credential_types()
             .any(|vct| pid_attributes.sd_jwt.get(&vct).is_some_and(matches_recovery_code_paths)),
     }
@@ -1004,6 +1004,7 @@ mod tests {
     use attestation_data::verifier_certificate::VerifierCertificate;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ADDRESS_GROUP;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -1014,7 +1015,6 @@ mod tests {
     use attestation_types::pid_constants::PID_RESIDENT_POSTAL_CODE;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::KeyIdentifier;
-    use dcql::CredentialFormat;
     use dcql::normalized::MdocAttributeRequest;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
@@ -1108,10 +1108,10 @@ mod tests {
         NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(&[PID_ATTESTATION_TYPE], &[&[PID_FAMILY_NAME]])])
     });
 
-    fn default_pid_credential_requests(requested_format: CredentialFormat) -> NormalizedCredentialRequests {
+    fn default_pid_credential_requests(requested_format: Format) -> NormalizedCredentialRequests {
         match requested_format {
-            CredentialFormat::MsoMdoc => DEFAULT_MDOC_PID_CREDENTIAL_REQUESTS.clone(),
-            CredentialFormat::SdJwt => DEFAULT_SD_JWT_PID_CREDENTIAL_REQUESTS.clone(),
+            Format::MsoMdoc => DEFAULT_MDOC_PID_CREDENTIAL_REQUESTS.clone(),
+            Format::SdJwt => DEFAULT_SD_JWT_PID_CREDENTIAL_REQUESTS.clone(),
         }
     }
 
@@ -1163,7 +1163,7 @@ mod tests {
     }
 
     fn setup_wallet_disclosure_session_missing_attributes(
-        requested_format: CredentialFormat,
+        requested_format: Format,
     ) -> (
         Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
@@ -1181,7 +1181,7 @@ mod tests {
     }
 
     fn setup_wallet_disclosure_session(
-        requested_format: CredentialFormat,
+        requested_format: Format,
     ) -> (
         Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession>,
         VerifierCertificate,
@@ -1234,15 +1234,13 @@ mod tests {
     /// `Wallet::start_disclosure()` and `Wallet::accept_disclosure()`.
     #[rstest]
     #[tokio::test]
-    async fn test_wallet_disclosure(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
-    ) {
+    async fn test_wallet_disclosure(#[values(Format::MsoMdoc, Format::SdJwt)] requested_format: Format) {
         // Populate a registered wallet with an example PID.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Set up the relevant mocks.
         let credential_requests = match requested_format {
-            CredentialFormat::MsoMdoc => NormalizedCredentialRequests::new_mock_mdoc_from_slices(
+            Format::MsoMdoc => NormalizedCredentialRequests::new_mock_mdoc_from_slices(
                 &[
                     (PID_ATTESTATION_TYPE, &[&[PID_ATTESTATION_TYPE, PID_GIVEN_NAME]]),
                     (
@@ -1261,7 +1259,7 @@ mod tests {
                 ],
                 None,
             ),
-            CredentialFormat::SdJwt => NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[
+            Format::SdJwt => NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[
                 (&[PID_ATTESTATION_TYPE], &[&[PID_GIVEN_NAME]]),
                 (
                     &[ADDRESS_ATTESTATION_TYPE],
@@ -1460,7 +1458,7 @@ mod tests {
             .withf(move |disclosable_attestations| {
                 // Make sure that the correct set of attributes is disclosed.
                 match (requested_format, disclosable_attestations.as_ref()) {
-                    (CredentialFormat::MsoMdoc, DisclosableAttestations::MsoMdoc(partial_mdocs)) => {
+                    (Format::MsoMdoc, DisclosableAttestations::MsoMdoc(partial_mdocs)) => {
                         let attributes = partial_mdocs
                             .iter()
                             .map(|(id, partial_mdocs)| {
@@ -1506,7 +1504,7 @@ mod tests {
 
                         attributes == expected_attributes
                     }
-                    (CredentialFormat::SdJwt, DisclosableAttestations::SdJwt(sd_jwt_presentations)) => {
+                    (Format::SdJwt, DisclosableAttestations::SdJwt(sd_jwt_presentations)) => {
                         let attributes = sd_jwt_presentations
                             .iter()
                             .map(|(id, presentations)| {
@@ -1808,7 +1806,7 @@ mod tests {
 
         let _verifier_certificate = setup_disclosure_client_start(
             &mut wallet.disclosure_client,
-            default_pid_credential_requests(CredentialFormat::MsoMdoc),
+            default_pid_credential_requests(Format::MsoMdoc),
         );
 
         wallet
@@ -1834,18 +1832,17 @@ mod tests {
 
         setup_disclosure_client_start(
             &mut wallet.disclosure_client,
-            default_pid_credential_requests(CredentialFormat::MsoMdoc),
+            default_pid_credential_requests(Format::MsoMdoc),
         );
 
-        let (stored_attestation_copy, _) = example_pid_stored_attestation_copy(CredentialFormat::MsoMdoc);
+        let (stored_attestation_copy, _) = example_pid_stored_attestation_copy(Format::MsoMdoc);
 
         let expectation_attestation_copy = stored_attestation_copy.clone();
         wallet
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_types_and_format()
             .withf(move |attestation_types, format, _| {
-                *attestation_types == HashSet::from([PID_ATTESTATION_TYPE.to_owned()])
-                    && *format == CredentialFormat::MsoMdoc
+                *attestation_types == HashSet::from([PID_ATTESTATION_TYPE.to_owned()]) && *format == Format::MsoMdoc
             })
             .times(1)
             .return_once(move |_, _, _| Ok(vec![expectation_attestation_copy.clone()]));
@@ -1870,7 +1867,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_wallet_start_disclosure_error_attributes_not_available_not_present(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+        #[values(Format::MsoMdoc, Format::SdJwt)] requested_format: Format,
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -1921,22 +1918,22 @@ mod tests {
     }
 
     #[rstest]
-    #[case(CredentialFormat::MsoMdoc, &[PID_ATTESTATION_TYPE, "favourite_colour"])]
-    #[case(CredentialFormat::MsoMdoc, &["family_name"])]
-    #[case(CredentialFormat::MsoMdoc, &["long", "path", "family_name"])]
-    #[case(CredentialFormat::SdJwt, &["favourite_colour"])]
-    #[case(CredentialFormat::SdJwt, &[PID_ATTESTATION_TYPE, "family_name"])]
-    #[case(CredentialFormat::SdJwt, &["long", "path", "family_name"])]
+    #[case(Format::MsoMdoc, &[PID_ATTESTATION_TYPE, "favourite_colour"])]
+    #[case(Format::MsoMdoc, &["family_name"])]
+    #[case(Format::MsoMdoc, &["long", "path", "family_name"])]
+    #[case(Format::SdJwt, &["favourite_colour"])]
+    #[case(Format::SdJwt, &[PID_ATTESTATION_TYPE, "family_name"])]
+    #[case(Format::SdJwt, &["long", "path", "family_name"])]
     #[tokio::test]
     async fn test_wallet_start_disclosure_error_attributes_not_available_non_matching(
-        #[case] requested_format: CredentialFormat,
+        #[case] requested_format: Format,
         #[case] path: &[&str],
     ) {
         let credential_requests = match requested_format {
-            CredentialFormat::MsoMdoc => {
+            Format::MsoMdoc => {
                 NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(PID_ATTESTATION_TYPE, &[path])], None)
             }
-            CredentialFormat::SdJwt => {
+            Format::SdJwt => {
                 NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(&[PID_ATTESTATION_TYPE], &[path])])
             }
         };
@@ -1999,7 +1996,7 @@ mod tests {
     }
 
     fn default_pid_credential_requests_with_aki(
-        requested_format: CredentialFormat,
+        requested_format: Format,
         aki: &KeyIdentifier,
     ) -> NormalizedCredentialRequests {
         default_pid_credential_requests(requested_format)
@@ -2013,7 +2010,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_wallet_start_disclosure_matching_aki(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+        #[values(Format::MsoMdoc, Format::SdJwt)] requested_format: Format,
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -2040,7 +2037,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_wallet_start_disclosure_error_aki_mismatch(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+        #[values(Format::MsoMdoc, Format::SdJwt)] requested_format: Format,
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -2074,7 +2071,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_wallet_start_disclosure_no_aki_requested_no_aki_in_cert(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+        #[values(Format::MsoMdoc, Format::SdJwt)] requested_format: Format,
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -2101,7 +2098,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_wallet_start_disclosure_error_aki_requested_but_cert_has_no_aki(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+        #[values(Format::MsoMdoc, Format::SdJwt)] requested_format: Format,
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
@@ -2137,18 +2134,18 @@ mod tests {
     }
 
     #[rstest]
-    #[case(CredentialFormat::MsoMdoc, &[PID_ATTESTATION_TYPE, PID_RECOVERY_CODE])]
-    #[case(CredentialFormat::SdJwt, &[PID_RECOVERY_CODE])]
+    #[case(Format::MsoMdoc, &[PID_ATTESTATION_TYPE, PID_RECOVERY_CODE])]
+    #[case(Format::SdJwt, &[PID_RECOVERY_CODE])]
     #[tokio::test]
     async fn test_wallet_start_disclosure_error_recovery_code_requested(
-        #[case] requested_format: CredentialFormat,
+        #[case] requested_format: Format,
         #[case] path: &[&str],
     ) {
         let credential_requests = match requested_format {
-            CredentialFormat::MsoMdoc => {
+            Format::MsoMdoc => {
                 NormalizedCredentialRequests::new_mock_mdoc_from_slices(&[(PID_ATTESTATION_TYPE, &[path])], None)
             }
-            CredentialFormat::SdJwt => {
+            Format::SdJwt => {
                 NormalizedCredentialRequests::new_mock_sd_jwt_from_slices(&[(&[PID_ATTESTATION_TYPE], &[path])])
             }
         };
@@ -2171,7 +2168,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_wallet_cancel_disclosure(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+        #[values(Format::MsoMdoc, Format::SdJwt)] requested_format: Format,
         #[values(false, true)] has_missing_attributes: bool,
     ) {
         // Prepare a registered and unlocked wallet with an active disclosure session.
@@ -2227,7 +2224,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_wallet_cancel_disclosure_error_blocked(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+        #[values(Format::MsoMdoc, Format::SdJwt)] requested_format: Format,
     ) {
         // Prepare a registered and unlocked wallet with an active disclosure session that is blocked.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -2272,7 +2269,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_wallet_cancel_disclosure_error_locked(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+        #[values(Format::MsoMdoc, Format::SdJwt)] requested_format: Format,
     ) {
         // Prepare a registered and locked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -2317,7 +2314,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_wallet_cancel_disclosure_error_vp_client_return_url(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+        #[values(Format::MsoMdoc, Format::SdJwt)] requested_format: Format,
     ) {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -2367,7 +2364,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_wallet_cancel_disclosure_error_event_storage(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+        #[values(Format::MsoMdoc, Format::SdJwt)] requested_format: Format,
     ) {
         // Prepare a registered and unlocked wallet with an active disclosure session and a faulty database.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -2415,7 +2412,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_wallet_accept_disclosure_abridged(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+        #[values(Format::MsoMdoc, Format::SdJwt)] requested_format: Format,
     ) {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -2477,7 +2474,7 @@ mod tests {
     async fn test_wallet_accept_disclosure_error_blocked() {
         // Prepare a registered and unlocked wallet with an active disclosure session that is blocked.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(Format::MsoMdoc);
         wallet.session = Some(session);
 
         wallet.update_policy_repository.state = VersionState::Block;
@@ -2521,7 +2518,7 @@ mod tests {
     async fn test_wallet_accept_disclosure_error_locked() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(Format::MsoMdoc);
         wallet.session = Some(session);
 
         wallet.lock();
@@ -2564,7 +2561,7 @@ mod tests {
     async fn test_wallet_accept_disclosure_error_unexpected_redirect_uri_purpose() {
         // Prepare a registered and unlocked wallet with an active disclosure based issuance session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(Format::MsoMdoc);
         wallet.session = Some(session);
 
         let Some(Session::Disclosure(session)) = &mut wallet.session else {
@@ -2595,7 +2592,7 @@ mod tests {
     async fn test_wallet_accept_disclosure_error_session_state_missing_attributes() {
         // Prepare a registered and unlocked wallet with an active disclosure session that has missing attributes.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(Format::MsoMdoc);
         wallet.session = Some(session);
 
         let Some(Session::Disclosure(session)) = &mut wallet.session else {
@@ -2621,7 +2618,7 @@ mod tests {
     async fn test_wallet_accept_disclosure_panic_query_index_out_of_bounds() {
         // Prepare a registered and unlocked wallet with an active disclosure based issuance session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::SdJwt);
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(Format::SdJwt);
         wallet.session = Some(session);
 
         wallet
@@ -2639,7 +2636,7 @@ mod tests {
     async fn test_wallet_accept_disclosure_panic_proposal_index_out_of_bounds() {
         // Prepare a registered and unlocked wallet with an active disclosure based issuance session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (session, _verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::SdJwt);
+        let (session, _verifier_certificate) = setup_wallet_disclosure_session(Format::SdJwt);
         wallet.session = Some(session);
 
         wallet
@@ -2659,7 +2656,7 @@ mod tests {
     async fn test_wallet_accept_disclosure_error_increment_usage_count() {
         // Prepare a registered and unlocked wallet with an active disclosure session and a faulty database.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (session, verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
+        let (session, verifier_certificate) = setup_wallet_disclosure_session(Format::MsoMdoc);
         wallet.session = Some(session);
 
         let storage = wallet.mut_storage();
@@ -2762,7 +2759,7 @@ mod tests {
     {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (session, verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
+        let (session, verifier_certificate) = setup_wallet_disclosure_session(Format::MsoMdoc);
         wallet.session = Some(session);
 
         let Some(Session::Disclosure(session)) = &wallet.session else {
@@ -2827,7 +2824,7 @@ mod tests {
                 Err((
                     Box::new(setup_disclosure_session_verifier_certificate(
                         disclose_verifier_certificate,
-                        default_pid_credential_requests(CredentialFormat::MsoMdoc),
+                        default_pid_credential_requests(Format::MsoMdoc),
                     )),
                     disclosure_error,
                 ))
@@ -2868,7 +2865,7 @@ mod tests {
                 Err((
                     Box::new(setup_disclosure_session_verifier_certificate(
                         disclose_verifier_certificate,
-                        default_pid_credential_requests(CredentialFormat::MsoMdoc),
+                        default_pid_credential_requests(Format::MsoMdoc),
                     )),
                     disclosure_error,
                 ))
@@ -2944,7 +2941,7 @@ mod tests {
     ) {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (session, verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
+        let (session, verifier_certificate) = setup_wallet_disclosure_session(Format::MsoMdoc);
         wallet.session = Some(session);
 
         let Some(Session::Disclosure(session)) = &wallet.session else {
@@ -3021,7 +3018,7 @@ mod tests {
             .return_once(move |_disclosable_attestations| {
                 let mut session = setup_disclosure_session_verifier_certificate(
                     verifier_certificate,
-                    default_pid_credential_requests(CredentialFormat::MsoMdoc),
+                    default_pid_credential_requests(Format::MsoMdoc),
                 );
 
                 if instruction_expectation == InstructionExpectation::Termination {
@@ -3125,7 +3122,7 @@ mod tests {
 
         // Create an attestation for the above metadata and credential payload
         let attestation = example_stored_attestation_copy(
-            CredentialFormat::SdJwt,
+            Format::SdJwt,
             previewable_payload,
             type_metadata_with_non_selectively_disclocable_claim,
             &holder_key,
@@ -3137,7 +3134,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_types_and_format()
             .withf(move |attestation_types, format, _| {
-                *attestation_types == HashSet::from([attestation_type.to_owned()]) && *format == CredentialFormat::SdJwt
+                *attestation_types == HashSet::from([attestation_type.to_owned()]) && *format == Format::SdJwt
             })
             .times(1)
             .return_once(move |_, _, _| Ok(attestations));
@@ -3178,7 +3175,7 @@ mod tests {
     async fn test_accept_disclosure_error_revoked_user_request() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (session, verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
+        let (session, verifier_certificate) = setup_wallet_disclosure_session(Format::MsoMdoc);
         wallet.session = Some(session);
 
         wallet
@@ -3208,7 +3205,7 @@ mod tests {
         session.protocol_state.expect_disclose().times(1).return_once(move |_| {
             let session = setup_disclosure_session_verifier_certificate(
                 verifier_certificate,
-                default_pid_credential_requests(CredentialFormat::MsoMdoc),
+                default_pid_credential_requests(Format::MsoMdoc),
             );
 
             Err((
@@ -3244,7 +3241,7 @@ mod tests {
     async fn test_accept_disclosure_error_revoked_admin_request() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-        let (session, verifier_certificate) = setup_wallet_disclosure_session(CredentialFormat::MsoMdoc);
+        let (session, verifier_certificate) = setup_wallet_disclosure_session(Format::MsoMdoc);
         wallet.session = Some(session);
 
         wallet
@@ -3278,7 +3275,7 @@ mod tests {
         session.protocol_state.expect_disclose().times(1).return_once(move |_| {
             let session = setup_disclosure_session_verifier_certificate(
                 verifier_certificate,
-                default_pid_credential_requests(CredentialFormat::MsoMdoc),
+                default_pid_credential_requests(Format::MsoMdoc),
             );
 
             Err((
@@ -3338,43 +3335,43 @@ mod tests {
 
     #[rstest]
     #[case::mdoc_reco(
-        CredentialFormat::MsoMdoc,
+        Format::MsoMdoc,
         PID_ATTESTATION_TYPE,
         vec_nonempty![ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_owned()), ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())],
         true,
     )]
     #[case::mdoc_not_reco(
-        CredentialFormat::MsoMdoc,
+        Format::MsoMdoc,
         PID_ATTESTATION_TYPE,
         vec_nonempty![ClaimPath::SelectByKey(PID_ATTESTATION_TYPE.to_owned()), ClaimPath::SelectByKey(PID_FAMILY_NAME.to_owned())],
         false,
     )]
     #[case::mdoc_unknown(
-        CredentialFormat::MsoMdoc,
+        Format::MsoMdoc,
         "unknown_doctype",
         vec_nonempty![ClaimPath::SelectByKey("unknown_doctype".to_owned()), ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())],
         false,
     )]
     #[case::sdjwt_reco(
-        CredentialFormat::SdJwt,
+        Format::SdJwt,
         PID_ATTESTATION_TYPE,
         vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())],
         true,
     )]
     #[case::sdjwt_not_reco(
-        CredentialFormat::SdJwt,
+        Format::SdJwt,
         PID_ATTESTATION_TYPE,
         vec_nonempty![ClaimPath::SelectByKey(PID_FAMILY_NAME.to_owned())],
         false,
     )]
     #[case::sdjwt_unknown(
-        CredentialFormat::SdJwt,
+        Format::SdJwt,
         "unknown_vct",
         vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_owned())],
         false,
     )]
     fn test_is_request_for_recovery_code(
-        #[case] format: CredentialFormat,
+        #[case] format: Format,
         #[case] credential_type: &str,
         #[case] path: VecNonEmpty<ClaimPath>,
         #[case] expected: bool,
@@ -3382,7 +3379,7 @@ mod tests {
         let pid_attributes = setup_pid_attributes_config();
 
         let request = match format {
-            CredentialFormat::MsoMdoc => NormalizedCredentialRequest::MsoMdoc {
+            Format::MsoMdoc => NormalizedCredentialRequest::MsoMdoc {
                 id: "identifier".try_into().unwrap(),
                 doctype_value: credential_type.to_owned(),
                 aki: vec![],
@@ -3391,7 +3388,7 @@ mod tests {
                     intent_to_retain: Some(false),
                 }],
             },
-            CredentialFormat::SdJwt => NormalizedCredentialRequest::SdJwt {
+            Format::SdJwt => NormalizedCredentialRequest::SdJwt {
                 id: "identifier".try_into().unwrap(),
                 vct_values: vec_nonempty![credential_type.to_owned()],
                 aki: vec![],

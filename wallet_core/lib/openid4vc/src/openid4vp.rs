@@ -1139,6 +1139,7 @@ mod tests {
     use attestation_data::test_credential::nl_pid_address_minimal_address;
     use attestation_data::test_credential::nl_pid_credentials_full_name;
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use base64::prelude::*;
     use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -1148,7 +1149,6 @@ mod tests {
     use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::CertificateUsage;
-    use dcql::CredentialFormat;
     use dcql::CredentialQueryIdentifier;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
@@ -2586,7 +2586,7 @@ mod tests {
     ) {
         let test_credentials = nl_pid_credentials_full_name() + nl_pid_address_minimal_address();
         let credential_requests =
-            test_credentials.to_normalized_credential_requests([CredentialFormat::MsoMdoc, CredentialFormat::MsoMdoc]);
+            test_credentials.to_normalized_credential_requests([Format::MsoMdoc, Format::MsoMdoc]);
 
         let (_, _, _, auth_request) = setup_with_credential_requests(credential_requests);
 
