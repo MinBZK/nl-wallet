@@ -34,9 +34,17 @@ STATIC_HOSTNAME=$3
 CONFIG_PUBLIC_KEY=$4
 CONFIG_SERVER_CAS=("${@:5}")
 
+# Create temp dir for intermediate files and clean on exit
+trap clean EXIT
+clean() {
+    if [[ -n "${TEMP_OUTDIR:-}" ]]; then
+        rm -rf "${TEMP_OUTDIR}"
+    fi
+}
+TEMP_OUTDIR="$(mktemp -d)"
+
 # Create a temporary PEM file with all of the CA certificates.
-CA_FILE=$(mktemp --tmpdir "generate_wallet_env_file.config_server_ca.XXXXXXXXXX")
-trap 'rm -f "$CA_FILE"' 0 2 3 15 # remove the file whenever the script exits.
+CA_FILE="${TEMP_OUTDIR}/ca.pem"
 
 for CA in "${CONFIG_SERVER_CAS[@]}"; do
     {
@@ -53,8 +61,7 @@ JWT_PAYLOAD=$(echo "$CONFIG_JWT" | cut -d . -f 2)
 JWT_SIGNATURE=$(echo "$CONFIG_JWT" | cut -d . -f 3)
 
 # Store the provided public key in a temporary PEM file.
-CONFIG_PUB_KEY_FILE=$(mktemp --tmpdir "generate_wallet_env_file.config_public_key.XXXXXXXXXX")
-trap 'rm -f "$CONFIG_PUB_KEY_FILE"' 0 2 3 15 # remove the file whenever the script exits.
+CONFIG_PUB_KEY_FILE="${TEMP_OUTDIR}/config.pub.pem"
 {
     echo "-----BEGIN PUBLIC KEY-----"
     echo "$CONFIG_PUBLIC_KEY"
@@ -62,8 +69,7 @@ trap 'rm -f "$CONFIG_PUB_KEY_FILE"' 0 2 3 15 # remove the file whenever the scri
 } >> "$CONFIG_PUB_KEY_FILE"
 
 # Generate a temporary ASN1 configuration containing both the R and S values of the ECDSA signature, in hex.
-CONFIG_SIGNATURE_ASN1_FILE=$(mktemp --tmpdir "generate_wallet_env_file.config_signature_asn1.XXXXXXXXXX")
-trap 'rm -f "$CONFIG_SIGNATURE_ASN1_FILE"' 0 2 3 15 # remove the file whenever the script exits.
+CONFIG_SIGNATURE_ASN1_FILE="${TEMP_OUTDIR}/config_signature.asn1"
 
 SIGNATURE_R=$(base64_url_decode "$JWT_SIGNATURE" | xxd -p -l 32 -c 32)
 SIGNATURE_S=$(base64_url_decode "$JWT_SIGNATURE" | xxd -p -s 32 -c 32)
@@ -75,9 +81,7 @@ SIGNATURE_S=$(base64_url_decode "$JWT_SIGNATURE" | xxd -p -s 32 -c 32)
 } > "$CONFIG_SIGNATURE_ASN1_FILE"
 
 # Generate a temporary binary signature file in DER format.
-CONFIG_SIGNATURE_FILE=$(mktemp --tmpdir "generate_wallet_env_file.config_signature.XXXXXXXXXX")
-trap 'rm -f "$CONFIG_SIGNATURE_FILE"' 0 2 3 15 # remove the file whenever the script exits.
-
+CONFIG_SIGNATURE_FILE="${TEMP_OUTDIR}/config_signature.der"
 openssl asn1parse -genconf "$CONFIG_SIGNATURE_ASN1_FILE" -out "$CONFIG_SIGNATURE_FILE" >/dev/null
 
 # Actually verify the header and payload against the signature.
@@ -91,18 +95,17 @@ base64_url_decode "$JWT_PAYLOAD" > "${OUTPUT_LOCATION}/wallet-config.json"
 
 # Output config_server_configuratino JSON
 jq -n \
-    --arg env "$WALLET_ENV" \
-    --arg url "https://${STATIC_HOSTNAME}/config/v1/" \
-    --arg ca "$(IFS="|" ; echo "${CONFIG_SERVER_CAS[*]}")" \
-    --arg pubkey "${CONFIG_PUBLIC_KEY}" \
-    --argjson freq 3600 \
     '{
         "environment": $env,
         "http_config": {
             "base_url": $url,
-            "trust_anchors": [$ca]
+            "trust_anchors": $ARGS.positional
         },
         "signing_public_key": $pubkey,
-        "update_frequency_in_sec": $freq
+        "update_frequency_in_sec": 3600
     }' \
+    --arg env "$WALLET_ENV" \
+    --arg url "https://${STATIC_HOSTNAME}/config/v1/" \
+    --arg pubkey "${CONFIG_PUBLIC_KEY}" \
+    --args "${CONFIG_SERVER_CAS[@]}" \
     > "${OUTPUT_LOCATION}/config-server-config.json"
