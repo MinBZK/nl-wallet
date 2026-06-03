@@ -50,6 +50,7 @@ serde_urlencoded.workspace = true
 serde_with = { workspace = true, features = ["base64", "json"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net", "sync"] }
+trait-variant.workspace = true
 tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
@@ -77,4 +78,5 @@ rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
 attestation_data = { path = "../../lib/attestation_data", features = ["generate", "mock"] }
+openid4vc = { path = "../../lib/openid4vc", features = ["mock", "test"] }
 utils = { path = "../../lib/utils", features = ["mock_time"] }

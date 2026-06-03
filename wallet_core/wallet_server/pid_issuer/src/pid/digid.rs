@@ -80,26 +80,57 @@ impl DigidMetadataCache {
     }
 }
 
-/// An OIDC client for exchanging an access token provided by the user for their BSN at the IdP.
-pub struct OpenIdClient {
+/// Abstraction over the DigiD operations the pid_issuer's authorization-code flow needs: resolving
+/// the upstream authorization endpoint and exchanging an authorization code for the user's BSN.
+#[trait_variant::make(Send)]
+pub trait DigidClient {
+    /// Resolve the upstream provider's authorization endpoint from its discovery metadata.
+    async fn authorization_endpoint(&self) -> Result<Url, Error>;
+
+    /// Exchange an upstream authorization `code` (with its PKCE `code_verifier` and the
+    /// `redirect_uri` used at `/authorize`) for the user's BSN via the upstream `/userinfo` endpoint.
+    async fn bsn(
+        &self,
+        code: AuthorizationCode,
+        code_verifier: String,
+        redirect_uri: Option<Url>,
+    ) -> Result<String, Error>;
+}
+
+/// HTTP-backed [`DigidClient`] that exchanges an access token provided by the user for their BSN at the IdP.
+pub struct HttpDigidClient {
     decrypter: JweDecrypter,
     client_id: String,
     cache: DigidMetadataCache,
 }
 
-impl OpenIdClient {
+impl HttpDigidClient {
     pub fn try_new(bsn_privkey: &Key, client_id: impl Into<String>, cache: DigidMetadataCache) -> Result<Self, Error> {
         let jwe_private_key =
             JweRsaPrivateKey::try_from_jwk(bsn_privkey, EXPECTED_JWE_RSA_ALGORITHM).map_err(Error::RsaJwk)?;
 
-        Ok(OpenIdClient {
+        Ok(HttpDigidClient {
             decrypter: JweDecrypter::from_rsa_private_key(&jwe_private_key),
             client_id: client_id.into(),
             cache,
         })
     }
+}
 
-    pub async fn bsn(
+impl DigidClient for HttpDigidClient {
+    async fn authorization_endpoint(&self) -> Result<Url, Error> {
+        let metadata = self.cache.metadata().await.map_err(Error::WellKnown)?;
+
+        let authorization_endpoint = metadata
+            .as_ref()
+            .authorization_endpoint
+            .clone()
+            .ok_or(Error::NoUpstreamAuthorizationEndpoint)?;
+
+        Ok(authorization_endpoint)
+    }
+
+    async fn bsn(
         &self,
         code: AuthorizationCode,
         code_verifier: String,
@@ -126,17 +157,5 @@ impl OpenIdClient {
         .map_err(Error::UserInfo)?;
 
         Ok(userinfo_claims.bsn)
-    }
-
-    pub async fn authorization_endpoint(&self) -> Result<Url, Error> {
-        let metadata = self.cache.metadata().await.map_err(Error::WellKnown)?;
-
-        let authorization_endpoint = metadata
-            .as_ref()
-            .authorization_endpoint
-            .clone()
-            .ok_or(Error::NoUpstreamAuthorizationEndpoint)?;
-
-        Ok(authorization_endpoint)
     }
 }

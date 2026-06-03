@@ -5675,6 +5675,7 @@ dependencies = [
  "token_status_list",
  "tokio",
  "tracing",
+ "trait-variant",
  "url",
  "utils",
  "utoipa-swagger-ui",

@@ -50,8 +50,9 @@ use crate::pid::constants::PID_ATTESTATION_TYPE;
 use crate::pid::constants::PID_BSN;
 use crate::pid::constants::PID_RECOVERY_CODE;
 use crate::pid::digid;
+use crate::pid::digid::DigidClient;
 use crate::pid::digid::DigidMetadataCache;
-use crate::pid::digid::OpenIdClient;
+use crate::pid::digid::HttpDigidClient;
 
 const ISSUER_STATE_LENGTH: usize = 32;
 
@@ -135,14 +136,13 @@ struct DigidCallbackQuery {
 /// - the BRP client (BSN → person attributes) and the recovery-code HMAC key;
 /// - the issuer's own callback URL, used both as the upstream `redirect_uri` and as the `redirect_uri` parameter of the
 ///   upstream `/token` exchange.
-pub struct UpstreamOidcAuthorizationCodeFlow {
-    brp_client: HttpBrpClient,
-    openid_client: OpenIdClient,
+pub struct UpstreamOidcAuthorizationCodeFlow<B = HttpBrpClient, O = HttpDigidClient> {
+    brp_client: B,
+    digid_client: O,
     recovery_code_secret_key: SecretKeyVariant,
     state_bridge_store: Arc<IssuerStateBridgeStore>,
     callback_uri: Url,
     client_id: String,
-    scopes: IndexSet<String>,
 }
 
 impl UpstreamOidcAuthorizationCodeFlow {
@@ -157,43 +157,37 @@ impl UpstreamOidcAuthorizationCodeFlow {
         callback_uri: Url,
     ) -> Result<Self, Error> {
         let client_id: String = client_id.into();
-        Ok(Self {
+        let digid_client =
+            HttpDigidClient::try_new(bsn_privkey, client_id.clone(), digid_metadata_cache).map_err(Error::Digid)?;
+
+        Ok(Self::new_with_clients(
             brp_client,
-            openid_client: OpenIdClient::try_new(bsn_privkey, client_id.clone(), digid_metadata_cache)
-                .map_err(Error::Digid)?,
+            digid_client,
+            client_id,
             recovery_code_secret_key,
             state_bridge_store,
             callback_uri,
-            client_id,
-            scopes: IndexSet::from_iter([String::from("openid")]),
-        })
+        ))
     }
+}
 
-    async fn insert_recovery_code(
-        mut attributes: Attributes,
-        secret_key: &SecretKeyVariant,
-    ) -> Result<Attributes, Error> {
-        let bsn = match attributes
-            .get(&vec_nonempty![ClaimPath::SelectByKey(PID_BSN.to_string())])
-            .map_err(Error::RetrievingBsn)?
-            .ok_or(Error::NoBsnFound)?
-        {
-            AttributeValue::Text(str) => str,
-            _ => return Err(Error::BsnUnexpectedType),
-        };
-
-        let recovery_code = AttributeValue::Text(hex::encode(
-            secret_key.sign_hmac(bsn.as_bytes()).await.map_err(Error::Hmac)?,
-        ));
-
-        attributes
-            .insert(
-                &vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
-                Attribute::Single(recovery_code),
-            )
-            .map_err(Error::InsertingRecoveryCode)?;
-
-        Ok(attributes)
+impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
+    fn new_with_clients(
+        brp_client: B,
+        digid_client: O,
+        client_id: impl Into<String>,
+        recovery_code_secret_key: SecretKeyVariant,
+        state_bridge_store: Arc<IssuerStateBridgeStore>,
+        callback_uri: Url,
+    ) -> Self {
+        Self {
+            brp_client,
+            digid_client,
+            recovery_code_secret_key,
+            state_bridge_store,
+            callback_uri,
+            client_id: client_id.into(),
+        }
     }
 
     /// Mount the `/digid/callback` route owned by this flow on a fresh [`Router`]. The
@@ -206,14 +200,20 @@ impl UpstreamOidcAuthorizationCodeFlow {
         S: SessionStore<IssuanceData> + Send + Sync + 'static,
         N: Send + Sync + 'static,
         PAS: Send + Sync + 'static,
+        B: BrpClient + Send + Sync + 'static,
+        O: DigidClient + Send + Sync + 'static,
     {
         Router::new()
-            .route("/digid/callback", get(digid_callback::<K, L, S, N, PAS>))
+            .route("/digid/callback", get(digid_callback::<K, L, S, N, PAS, B, O>))
             .with_state(authorizing_issuer)
     }
 }
 
-impl AuthorizationCodeFlow for UpstreamOidcAuthorizationCodeFlow {
+impl<B, O> AuthorizationCodeFlow for UpstreamOidcAuthorizationCodeFlow<B, O>
+where
+    B: BrpClient + Send + Sync,
+    O: DigidClient + Send + Sync,
+{
     type Error = Error;
 
     async fn authorize(&self, request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error> {
@@ -238,7 +238,7 @@ impl AuthorizationCodeFlow for UpstreamOidcAuthorizationCodeFlow {
             None,
             &upstream_pkce,
         );
-        upstream_request.scope = Some(self.scopes.clone());
+        upstream_request.scope = Some(IndexSet::from_iter([String::from("openid")]));
 
         let entry = StateBridgeEntry {
             wallet_redirect_uri: request.redirect_uri.into_inner(),
@@ -257,11 +257,7 @@ impl AuthorizationCodeFlow for UpstreamOidcAuthorizationCodeFlow {
         };
 
         let query_string = serde_urlencoded::to_string(&oidc_request).map_err(Error::Encode)?;
-        let mut redirect_url = self
-            .openid_client
-            .authorization_endpoint()
-            .await
-            .map_err(Error::Digid)?;
+        let mut redirect_url = self.digid_client.authorization_endpoint().await.map_err(Error::Digid)?;
         redirect_url.set_query(Some(&query_string));
 
         Ok(AuthorizeOutcome::RedirectTo(redirect_url))
@@ -274,11 +270,11 @@ impl AuthorizationCodeFlow for UpstreamOidcAuthorizationCodeFlow {
 /// issuer-side authorization code, writes the `AuthCodeIssued` session, and produces the wallet-facing
 /// redirect URL. Errors during the BSN / BRP / issuable-build steps surface to the wallet as an
 /// OAuth error redirect, since the wallet's redirect_uri is known by then.
-type DigidCallbackAuthorizingIssuer<K, L, S, N, PAS> =
-    Arc<AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow>>;
+type DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B, O> =
+    Arc<AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow<B, O>>>;
 
-async fn digid_callback<K, L, S, N, PAS>(
-    State(authorizing_issuer): State<DigidCallbackAuthorizingIssuer<K, L, S, N, PAS>>,
+async fn digid_callback<K, L, S, N, PAS, B, O>(
+    State(authorizing_issuer): State<DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B, O>>,
     Query(DigidCallbackQuery { code, state }): Query<DigidCallbackQuery>,
 ) -> Response
 where
@@ -287,6 +283,8 @@ where
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
     N: Send + Sync + 'static,
     PAS: Send + Sync + 'static,
+    B: BrpClient + Send + Sync + 'static,
+    O: DigidClient + Send + Sync + 'static,
 {
     let flow = authorizing_issuer.flow();
 
@@ -316,17 +314,19 @@ where
 /// Exchange the upstream `code` for the user's BSN, look up attributes, build the issuable documents, and hand them to
 /// the framework's [`AuthorizingIssuer::complete_authorization`], which mints the issuer-side authorization code,
 /// writes the `AuthCodeIssued` session, and returns the wallet-facing redirect URL.
-async fn complete_digid_callback<K, L, S, N, PAS>(
-    flow: &UpstreamOidcAuthorizationCodeFlow,
-    authorizing_issuer: &AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow>,
+async fn complete_digid_callback<K, L, S, N, PAS, B, O>(
+    flow: &UpstreamOidcAuthorizationCodeFlow<B, O>,
+    authorizing_issuer: &AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow<B, O>>,
     entry: &StateBridgeEntry,
     upstream_code: AuthorizationCode,
 ) -> Result<Url, Error>
 where
     S: SessionStore<IssuanceData>,
+    B: BrpClient,
+    O: DigidClient,
 {
     let bsn = flow
-        .openid_client
+        .digid_client
         .bsn(
             upstream_code,
             entry.upstream_code_verifier.clone(),
@@ -340,11 +340,7 @@ where
         return Err(Error::NoAttributesFound);
     }
     let person = persons.persons.remove(0);
-    let attributes = UpstreamOidcAuthorizationCodeFlow::insert_recovery_code(
-        person.into_attributes(),
-        &flow.recovery_code_secret_key,
-    )
-    .await?;
+    let attributes = insert_recovery_code(person.into_attributes(), &flow.recovery_code_secret_key).await?;
 
     let issuable_documents = vec_nonempty![
         IssuableDocument::try_new_with_random_id(Format::SdJwt, PID_ATTESTATION_TYPE.to_string(), attributes.clone(),)
@@ -378,25 +374,220 @@ fn redirect_to_wallet_error(entry: &StateBridgeEntry, error: &Error) -> Response
     (StatusCode::FOUND, [(header::LOCATION, url.to_string())]).into_response()
 }
 
+/// Add the BRP-derived BSN's recovery code (an HMAC over the BSN) as an attribute
+async fn insert_recovery_code(mut attributes: Attributes, secret_key: &SecretKeyVariant) -> Result<Attributes, Error> {
+    let bsn = match attributes
+        .get(&vec_nonempty![ClaimPath::SelectByKey(PID_BSN.to_string())])
+        .map_err(Error::RetrievingBsn)?
+        .ok_or(Error::NoBsnFound)?
+    {
+        AttributeValue::Text(str) => str,
+        _ => return Err(Error::BsnUnexpectedType),
+    };
+
+    let recovery_code = AttributeValue::Text(hex::encode(
+        secret_key.sign_hmac(bsn.as_bytes()).await.map_err(Error::Hmac)?,
+    ));
+
+    attributes
+        .insert(
+            &vec_nonempty![ClaimPath::SelectByKey(PID_RECOVERY_CODE.to_string())],
+            Attribute::Single(recovery_code),
+        )
+        .map_err(Error::InsertingRecoveryCode)?;
+
+    Ok(attributes)
+}
+
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+    use std::collections::HashMap;
+    use std::fs;
+    use std::num::NonZeroUsize;
+    use std::path::PathBuf;
+    use std::sync::Arc;
+
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
+    use axum::http::StatusCode;
+    use axum::http::header;
     use indexmap::IndexMap;
+    use issuer_common::state_bridge_store::IssuerStateBridgeStore;
+    use openid4vc::authorization::PkceCodeChallenge;
+    use openid4vc::authorization::VciAuthorizationRequest;
+    use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
+    use openid4vc::authorization_code_flow::AuthorizeOutcome;
+    use openid4vc::authorizing_issuer::AuthorizingIssuer;
+    use openid4vc::issuer::Grant;
+    use openid4vc::issuer::IssuanceData;
+    use openid4vc::issuer_identifier::IssuerIdentifier;
+    use openid4vc::nonce::memory_store::MemoryNonceStore;
+    use openid4vc::par::PAR_TTL;
+    use openid4vc::pkce::PkcePair;
+    use openid4vc::pkce::S256PkcePair;
+    use openid4vc::server_state::MemorySessionStore;
+    use openid4vc::server_state::SessionStore;
+    use openid4vc::server_state::SessionToken;
+    use openid4vc::store::MemoryStore;
+    use openid4vc::store::Store;
+    use openid4vc::test::setup_mock_issuer;
+    use openid4vc::token::AuthorizationCode;
+    use p256::ecdsa::SigningKey;
     use ring::hmac;
     use ring::hmac::HMAC_SHA256;
     use server_utils::keys::SecretKeyVariant;
     use server_utils::settings::SecretKey;
+    use server_utils::store::StoreConnection;
+    use token_status_list::status_list_service::mock::MockStatusListService;
+    use url::Url;
+    use utils::path::prefix_local_path;
 
+    use super::Error;
+    use super::StateBridgeEntry;
     use super::UpstreamOidcAuthorizationCodeFlow;
+    use super::complete_digid_callback;
+    use super::insert_recovery_code;
+    use super::redirect_to_wallet_error;
+    use crate::pid::brp::client::BrpClient;
+    use crate::pid::brp::client::BrpError;
+    use crate::pid::brp::data::BrpPersons;
+    use crate::pid::constants::PID_ATTESTATION_TYPE;
+    use crate::pid::digid::DigidClient;
+    use crate::pid::digid::Error as DigidError;
 
-    fn attributes(bsn: &str) -> Attributes {
-        IndexMap::from_iter([(
-            "bsn".to_string(),
-            Attribute::Single(AttributeValue::Text(bsn.to_string())),
-        )])
-        .into()
+    /// The in-memory [`AuthorizingIssuer`] flavour used by the callback tests: the mock inner issuer
+    /// from `openid4vc::test` wrapped around a fake-backed flow.
+    type TestAuthorizingIssuer = AuthorizingIssuer<
+        SigningKey,
+        MockStatusListService,
+        MemorySessionStore<IssuanceData>,
+        MemoryNonceStore,
+        MemoryStore<String, VciAuthorizationRequest>,
+        UpstreamOidcAuthorizationCodeFlow<FakeBrpClient, FakeDigidClient>,
+    >;
+
+    const CLIENT_ID: &str = "issuer-client-id";
+    const CALLBACK_URI: &str = "https://issuer.example.com/digid/callback";
+    const UPSTREAM_AUTHORIZATION_ENDPOINT: &str = "https://digid.example.com/oauth2/authorize";
+    const WALLET_REDIRECT_URI: &str = "https://wallet.example.com/callback";
+    const WALLET_STATE: &str = "wallet-state";
+    const WALLET_CODE_CHALLENGE: &str = "wallet-code-challenge";
+
+    /// [`BrpClient`] returning a `BrpPersons` deserialized from a haal-centraal test
+    /// fixture, so the callback path can be exercised without a live BRP proxy.
+    struct FakeBrpClient {
+        persons_json: String,
+    }
+
+    impl FakeBrpClient {
+        fn from_fixture(name: &str) -> Self {
+            let persons_json = fs::read_to_string(prefix_local_path(PathBuf::from(format!(
+                "resources/test/haal-centraal-examples/{name}.json"
+            ))))
+            .unwrap();
+            Self { persons_json }
+        }
+    }
+
+    impl BrpClient for FakeBrpClient {
+        async fn get_person_by_bsn(&self, _bsn: &str) -> Result<BrpPersons, BrpError> {
+            Ok(serde_json::from_str(&self.persons_json)?)
+        }
+    }
+
+    /// [`DigidClient`] returning fixed values, so the flow can be tested without a live
+    /// upstream provider.
+    struct FakeDigidClient {
+        authorization_endpoint: Url,
+        bsn: String,
+    }
+
+    impl Default for FakeDigidClient {
+        fn default() -> Self {
+            Self {
+                authorization_endpoint: UPSTREAM_AUTHORIZATION_ENDPOINT.parse().unwrap(),
+                bsn: "999991772".to_string(),
+            }
+        }
+    }
+
+    impl DigidClient for FakeDigidClient {
+        async fn authorization_endpoint(&self) -> Result<Url, DigidError> {
+            Ok(self.authorization_endpoint.clone())
+        }
+
+        async fn bsn(
+            &self,
+            _code: AuthorizationCode,
+            _code_verifier: String,
+            _redirect_uri: Option<Url>,
+        ) -> Result<String, DigidError> {
+            Ok(self.bsn.clone())
+        }
+    }
+
+    fn recovery_code_secret_key() -> SecretKeyVariant {
+        SecretKeyVariant::from_settings(
+            SecretKey::Software {
+                secret_key: (0..32).collect::<Vec<_>>().try_into().unwrap(),
+            },
+            None,
+        )
+        .unwrap()
+    }
+
+    fn memory_bridge_store() -> Arc<IssuerStateBridgeStore> {
+        Arc::new(IssuerStateBridgeStore::new(StoreConnection::Memory))
+    }
+
+    fn flow_with_clients(
+        brp_client: FakeBrpClient,
+        digid_client: FakeDigidClient,
+        state_bridge_store: Arc<IssuerStateBridgeStore>,
+    ) -> UpstreamOidcAuthorizationCodeFlow<FakeBrpClient, FakeDigidClient> {
+        UpstreamOidcAuthorizationCodeFlow::new_with_clients(
+            brp_client,
+            digid_client,
+            CLIENT_ID,
+            recovery_code_secret_key(),
+            state_bridge_store,
+            CALLBACK_URI.parse().unwrap(),
+        )
+    }
+
+    /// Wrap a flow in an [`AuthorizingIssuer`] backed by an in-memory issuer + session store, so the
+    /// callback path (which writes a session via `complete_authorization`) can be exercised. Returns
+    /// the session store so tests can read the written session back.
+    fn authorizing_issuer_with_flow(
+        flow: UpstreamOidcAuthorizationCodeFlow<FakeBrpClient, FakeDigidClient>,
+    ) -> (TestAuthorizingIssuer, Arc<MemorySessionStore<IssuanceData>>) {
+        let issuer_identifier = IssuerIdentifier::try_new("https://issuer.example.com".to_string()).unwrap();
+        let sessions = Arc::new(MemorySessionStore::default());
+        let (issuer, _, _) = setup_mock_issuer(issuer_identifier, NonZeroUsize::MIN, Arc::clone(&sessions));
+        let par_store = MemoryStore::new(PAR_TTL);
+        let authorizing_issuer = AuthorizingIssuer::new(Arc::new(issuer), par_store, flow);
+        (authorizing_issuer, sessions)
+    }
+
+    fn wallet_request() -> VciAuthorizationRequest {
+        VciAuthorizationRequest::for_auth_code(
+            CLIENT_ID.to_string(),
+            WALLET_REDIRECT_URI.parse().unwrap(),
+            WALLET_STATE.to_string(),
+            None,
+            &S256PkcePair::generate(),
+        )
+    }
+
+    fn state_bridge_entry() -> StateBridgeEntry {
+        StateBridgeEntry {
+            wallet_redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
+            wallet_state: Some(WALLET_STATE.to_string()),
+            wallet_code_challenge: WALLET_CODE_CHALLENGE.to_string(),
+            upstream_code_verifier: "upstream-verifier".to_string(),
+        }
     }
 
     #[tokio::test]
@@ -404,9 +595,13 @@ mod tests {
         let bsn = "123";
         let key: Vec<_> = (0..32).collect();
 
-        let attrs = attributes(bsn);
+        let attrs: Attributes = IndexMap::from_iter([(
+            "bsn".to_string(),
+            Attribute::Single(AttributeValue::Text(bsn.to_string())),
+        )])
+        .into();
 
-        let recovery_code_secret_key = SecretKeyVariant::from_settings(
+        let secret_key = SecretKeyVariant::from_settings(
             SecretKey::Software {
                 secret_key: key.clone().try_into().unwrap(),
             },
@@ -414,21 +609,182 @@ mod tests {
         )
         .unwrap();
 
-        let attrs = UpstreamOidcAuthorizationCodeFlow::insert_recovery_code(attrs, &recovery_code_secret_key)
-            .await
-            .unwrap();
+        let attrs = insert_recovery_code(attrs, &secret_key).await.unwrap();
 
         let hmac_key = &hmac::Key::new(HMAC_SHA256, &key);
         let expected_hmac = hex::encode(hmac::sign(hmac_key, bsn.as_bytes()));
 
-        let expected_attrs = Attributes::from(IndexMap::from_iter(attributes(bsn).into_inner().into_iter().chain([(
-            "recovery_code".to_string(),
-            Attribute::Single(AttributeValue::Text(expected_hmac)),
-        )])));
+        let expected_attrs = Attributes::from(IndexMap::from_iter([
+            (
+                "bsn".to_string(),
+                Attribute::Single(AttributeValue::Text(bsn.to_string())),
+            ),
+            (
+                "recovery_code".to_string(),
+                Attribute::Single(AttributeValue::Text(expected_hmac)),
+            ),
+        ]));
 
         assert_eq!(
             attrs, expected_attrs,
             "The result should be the attributes we started with, with a recovery_code attribute added to it."
         );
+    }
+
+    #[tokio::test]
+    async fn authorize_rejects_plain_code_challenge() {
+        let flow = flow_with_clients(
+            FakeBrpClient::from_fixture("frouke"),
+            FakeDigidClient::default(),
+            memory_bridge_store(),
+        );
+
+        let mut request = wallet_request();
+        request.code_challenge = PkceCodeChallenge::Plain {
+            code_challenge: "plain-challenge".to_string(),
+        };
+
+        let error = flow.authorize(request).await.unwrap_err();
+        assert_matches!(error, Error::UnsupportedCodeChallenge);
+    }
+
+    #[tokio::test]
+    async fn authorize_builds_upstream_redirect_and_bridge_entry() {
+        let bridge = memory_bridge_store();
+        let flow = flow_with_clients(
+            FakeBrpClient::from_fixture("frouke"),
+            FakeDigidClient::default(),
+            Arc::clone(&bridge),
+        );
+
+        let request = wallet_request();
+        let wallet_code_challenge = match &request.code_challenge {
+            PkceCodeChallenge::S256 { code_challenge } => code_challenge.clone(),
+            PkceCodeChallenge::Plain { .. } => unreachable!(),
+        };
+
+        let outcome = flow.authorize(request).await.unwrap();
+        let AuthorizeOutcome::RedirectTo(redirect_url) = outcome else {
+            panic!("expected a RedirectTo outcome");
+        };
+
+        // The redirect targets the upstream authorization endpoint.
+        assert!(redirect_url.as_str().starts_with(UPSTREAM_AUTHORIZATION_ENDPOINT));
+
+        let params: HashMap<_, _> = redirect_url.query_pairs().into_owned().collect();
+        // The upstream request carries the issuer's own client_id and callback as redirect_uri.
+        assert_eq!(params.get("client_id").map(String::as_str), Some(CLIENT_ID));
+        assert_eq!(params.get("redirect_uri").map(String::as_str), Some(CALLBACK_URI));
+        assert_eq!(params.get("scope").map(String::as_str), Some("openid"));
+        assert!(params.contains_key("nonce"));
+        // The upstream PKCE challenge is freshly generated, not the wallet's.
+        assert_eq!(params.get("code_challenge_method").map(String::as_str), Some("S256"));
+        assert_ne!(
+            params.get("code_challenge").map(String::as_str),
+            Some(wallet_code_challenge.as_str())
+        );
+
+        // The `state` is the issuer_state, which keys the bridge entry.
+        let issuer_state = params
+            .get("state")
+            .expect("redirect should carry a state param")
+            .clone();
+        let entry: StateBridgeEntry = bridge
+            .consume(issuer_state.as_str())
+            .await
+            .unwrap()
+            .expect("a bridge entry should be stored under the issuer_state");
+        assert_eq!(entry.wallet_redirect_uri.as_str(), WALLET_REDIRECT_URI);
+        assert_eq!(entry.wallet_state.as_deref(), Some(WALLET_STATE));
+        assert_eq!(entry.wallet_code_challenge, wallet_code_challenge);
+        assert!(!entry.upstream_code_verifier.is_empty());
+    }
+
+    #[tokio::test]
+    async fn complete_callback_happy_path() {
+        let flow = flow_with_clients(
+            FakeBrpClient::from_fixture("frouke"),
+            FakeDigidClient::default(),
+            memory_bridge_store(),
+        );
+        let (authorizing_issuer, sessions) = authorizing_issuer_with_flow(flow);
+        let entry = state_bridge_entry();
+
+        let redirect_url = complete_digid_callback(
+            authorizing_issuer.flow(),
+            &authorizing_issuer,
+            &entry,
+            AuthorizationCode::from("upstream-code".to_string()),
+        )
+        .await
+        .unwrap();
+
+        // The wallet is redirected back to its redirect_uri with a code and the echoed state.
+        assert!(redirect_url.as_str().starts_with(WALLET_REDIRECT_URI));
+        let params: HashMap<_, _> = redirect_url.query_pairs().into_owned().collect();
+        assert_eq!(params.get("state").map(String::as_str), Some(WALLET_STATE));
+        let code = params.get("code").expect("redirect should carry a code").clone();
+
+        // An AuthCodeIssued session was written, keyed by the generated code, carrying both PID
+        // documents (SD-JWT + mdoc) and the wallet's PKCE challenge.
+        let session = sessions
+            .get(&SessionToken::from(AuthorizationCode::from(code)))
+            .await
+            .unwrap()
+            .expect("a session should have been written under the migeneratednted code");
+        let IssuanceData::AuthCodeIssued(auth_code_issued) = session.data else {
+            panic!("expected an AuthCodeIssued session");
+        };
+        assert_eq!(
+            auth_code_issued.grant,
+            Grant::AuthorizationCode {
+                wallet_code_challenge: WALLET_CODE_CHALLENGE.to_string()
+            }
+        );
+        assert_eq!(auth_code_issued.issuable_documents.len().get(), 2);
+        assert!(
+            auth_code_issued
+                .issuable_documents
+                .as_ref()
+                .iter()
+                .all(|doc| doc.attestation_type == PID_ATTESTATION_TYPE)
+        );
+    }
+
+    #[tokio::test]
+    async fn complete_callback_rejects_when_no_attributes_found() {
+        let flow = flow_with_clients(
+            FakeBrpClient::from_fixture("empty"),
+            FakeDigidClient::default(),
+            memory_bridge_store(),
+        );
+        let (authorizing_issuer, _sessions) = authorizing_issuer_with_flow(flow);
+        let entry = state_bridge_entry();
+
+        let error = complete_digid_callback(
+            authorizing_issuer.flow(),
+            &authorizing_issuer,
+            &entry,
+            AuthorizationCode::from("upstream-code".to_string()),
+        )
+        .await
+        .unwrap_err();
+
+        assert_matches!(error, Error::NoAttributesFound);
+    }
+
+    #[test]
+    fn error_redirect_carries_oauth_error() {
+        let entry = state_bridge_entry();
+        let response = redirect_to_wallet_error(&entry, &Error::NoAttributesFound);
+
+        assert_eq!(response.status(), StatusCode::FOUND);
+        let location = response.headers().get(header::LOCATION).unwrap().to_str().unwrap();
+        let location_url: Url = location.parse().unwrap();
+        assert!(location_url.as_str().starts_with(WALLET_REDIRECT_URI));
+        let params: HashMap<_, _> = location_url.query_pairs().into_owned().collect();
+        assert_eq!(params.get("error").map(String::as_str), Some("server_error"));
+        assert_eq!(params.get("state").map(String::as_str), Some(WALLET_STATE));
+        assert!(params.contains_key("error_description"));
     }
 }
