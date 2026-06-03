@@ -14,12 +14,14 @@ pre-authorized code flow.
 
 ## Pre-authorized code flow
 
-In the [Pre-Authorized Code Flow][3] the issuer generates a pre-authorized code
-out of band, hands it to the wallet inside an [OpenID4VCI Credential Offer][2],
-and the wallet sends that code to the issuer's `/token` endpoint with
-`grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code`. The issuer's
-`AttributeService` resolves the pre-authorized code into the attributes to be
-issued. The wallet then obtains a `c_nonce` from the issuer's [nonce
+In the [Pre-Authorized Code Flow][3] the issuer has already determined the
+attributes to be issued out of band, binds them to a freshly generated
+pre-authorized code in an issuance session, and hands that code to the wallet
+inside an [OpenID4VCI Credential Offer][2]. The wallet sends the code to the
+issuer's `/token` endpoint with
+`grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code`; the issuer
+loads the session keyed by the code to find the attributes to issue (this grant
+carries no PKCE). The wallet then obtains a `c_nonce` from the issuer's [nonce
 endpoint][14] and exchanges proofs of possession for attestations at the
 `/credential` endpoint.
 
@@ -151,57 +153,84 @@ field in the `wallet-config.json` for details.
 In the `pid_issuer`, the Authorization Server and Credential Issuer roles are
 combined: the wallet talks to a single `PID Issuer`, which hosts its own `/par`,
 `/authorize`, `/token`, `/nonce` and `/credential` endpoints. Behind the scenes,
-the `PID Issuer` still delegates the actual user authentication to an upstream
-OpenID Connect provider — in practice [RDO Max][6] acting as a DigiD broker.
+the `PID Issuer` delegates the actual user authentication to an upstream OpenID
+Connect provider — in practice [RDO Max][6] acting as a DigiD broker.
 
-For the internal structure of the `PID Issuer` — which crates contribute the
-handlers, the `AttributeService` and `UpstreamAuthorizationEndpointResolver`
-seams, where state lives, and how a single `/token` request flows through the
-components — see
+For the internal structure of the `PID Issuer`, see
 [PID Issuer architecture](../../development/pid-issuer-architecture.md).
 
-### Delegation to RDO Max: what is decoupled, what is passed through
+### Two fully separate OAuth exchanges
 
-Conceptually the `PID Issuer` runs its own Authorization Server in front of RDO
-Max. Most OAuth parameters are therefore _decoupled_: the wallet's values are
-terminated at the `PID Issuer`, which substitutes its own for the upstream
-server. A few parameters are _shared_ so that RDO Max can redirect the browser
-straight back to the wallet without any intermediary redirects to the PID
-Issuer's domain, and lets RDO Max's error/cancel responses reach the wallet
-directly.
+The `PID Issuer` runs two independent OAuth 2.0 authorization-code exchanges
+that share no parameters:
 
-Parameter handling on **upstream `/authorize`**:
+1. **Wallet ↔ PID Issuer** — the HAIP exchange described above. The wallet
+   pushes a PAR, is sent to the `PID Issuer`'s `/authorize`, eventually receives
+   an authorization code at its own `redirect_uri`, and exchanges it at the
+   `PID Issuer`'s `/token`. The wallet's `client_id`, `redirect_uri`, `state`,
+   PKCE pair, WIA (`client_assertion`) and DPoP all terminate at the
+   `PID Issuer`.
 
-| Parameter                  | Handling                                                                |
-| -------------------------- | ----------------------------------------------------------------------- |
-| `client_id`                | **decoupled** — wallet's client id → PID Issuer's DigiD client id       |
-| `redirect_uri`             | **shared** — wallet's universal link, passed through                    |
-| `code_challenge`/`_method` | **decoupled** — PID Issuer generates its own PKCE pair for the upstream |
-| `state`                    | **shared** — so the wallet can verify it when the code comes back       |
-| `response_type=code`       | **shared**                                                              |
-| `scope`                    | **terminated** — replaced with `openid`                                 |
-| `nonce` (OIDC)             | PID Issuer generates its own for the upstream session                   |
-| `client_assertion` (WIA)   | **terminated** — wallet ↔ PID Issuer only                              |
+2. **PID Issuer ↔ RDO Max** — a second, freshly minted exchange the
+   `PID Issuer` starts while handling the wallet's `/authorize`. Every parameter
+   here is the `PID Issuer`'s own: its DigiD `client_id`, its own `redirect_uri`
+   (the `PID Issuer`'s `/digid/callback`), a random `state` (the
+   `issuer_state`), its own PKCE pair, `scope=openid` and a fresh OIDC `nonce`.
+   RDO Max redirects back to the `PID Issuer`'s callback — **never to the
+   wallet**.
 
-Parameter handling on **upstream `/token`**:
+The `PID Issuer` terminates the upstream round-trip at its own callback,
+generates its **own** authorization code, and only then redirects the browser
+back to the wallet. RDO Max never redirects the browser to the wallet directly.
+The two exchanges are linked solely by a server-side **state-bridge** entry,
+keyed by the `issuer_state`, that remembers the wallet's original
+`redirect_uri`, `state` and PKCE challenge (and the upstream PKCE verifier)
+while the user is away at DigiD.
 
-| Parameter                       | Handling                                                               |
-| ------------------------------- | ---------------------------------------------------------------------- |
-| `client_id`                     | **decoupled** — rewritten as above                                     |
-| `code`                          | **shared** — the upstream code flows wallet → PID Issuer → RDO Max     |
-| `redirect_uri`                  | **shared**                                                             |
-| `code_verifier`                 | **decoupled** — wallet sends its verifier; PID Issuer swaps in its own |
-| `grant_type=authorization_code` | **shared**                                                             |
-| `client_assertion` (WIA)        | **terminated**                                                         |
-| `DPoP` header                   | **terminated** — RDO Max is not DPoP-aware; upstream client auth used  |
+Because the upstream round-trip is terminated at the `PID Issuer`, the upstream
+`/token` + `/userinfo` exchange (which yields the BSN) and the BRP attribute
+lookup happen **in the `/digid/callback` handler**, before the wallet ever calls
+`/token`. By the time the wallet exchanges its code at `/token`, the attributes
+are already determined and stored in the issuance session, so `/token` only
+verifies the wallet's PKCE `code_verifier` and issues the access token — there
+is no upstream interaction at `/token`. If anything fails in the callback (BSN,
+BRP, document build), the `PID Issuer` redirects the browser back to the
+wallet's `redirect_uri` with an OAuth `error` response.
+
+Parameter handling, **wallet ↔ PID Issuer** (everything terminates at the PID
+Issuer):
+
+| Parameter                  | Handling                                                                 |
+| -------------------------- | ------------------------------------------------------------------------ |
+| `client_id`                | validated against accepted wallet client ids; never forwarded            |
+| `redirect_uri`             | wallet's universal link; the PID Issuer redirects here with its own code |
+| `state`                    | remembered in the state bridge, echoed on the final wallet redirect      |
+| `code_challenge`/`_method` | wallet's PKCE (`c1`, `S256`); verified at the PID Issuer's `/token`      |
+| `scope`                    | the requested PID credential configuration                               |
+| `client_assertion` (WIA)   | wallet ↔ PID Issuer only                                                |
+| `DPoP` header              | wallet ↔ PID Issuer only                                                |
+
+Parameter handling, **PID Issuer → RDO Max** (all freshly generated by the PID
+Issuer, on both upstream `/authorize` and `/token`):
+
+| Parameter                  | Value                                                              |
+| -------------------------- | ------------------------------------------------------------------ |
+| `client_id`                | the PID Issuer's DigiD client id                                   |
+| `redirect_uri`             | the PID Issuer's own `/digid/callback`                             |
+| `state`                    | random `issuer_state`; keys the state-bridge entry                 |
+| `code_challenge`/`_method` | the PID Issuer's own PKCE pair (`c2`, `S256`)                      |
+| `scope`                    | `openid`                                                           |
+| `nonce` (OIDC)             | fresh random, required by nl-rdo-max                               |
+| `code_verifier` (`/token`) | the PID Issuer's own verifier (`v2`); upstream client auth applied |
 
 To keep the diagram focused on the OpenID4VCI / RDO Max delegation, the
 wallet-side DPoP layer and the Wallet Instance Attestation (WIA,
 `client_assertion`) are omitted below — both sit strictly between the wallet and
 the `PID Issuer` and do not affect the delegation to RDO Max.
 
-PKCE tracer values: wallet uses `(v1, c1)`, the `PID Issuer` uses `(v2, c2)` on
-the upstream server.
+PKCE tracer values: the wallet uses `(v1, c1)` toward the `PID Issuer`; the
+`PID Issuer` uses `(v2, c2)` toward RDO Max. Each verifier is checked only by
+the party that issued the challenge.
 
 ```{mermaid}
 sequenceDiagram
@@ -235,34 +264,37 @@ sequenceDiagram
     %% ---- PAR ----
     Wallet->>PI: POST /par
     note right of Wallet: response_type=code<br/>client_id=nl-wallet-app<br/>redirect_uri=<wallet_ul><br/>code_challenge=c1, code_challenge_method=S256<br/>state=s1<br/>scope=eu.europa.ec.eudi.pid_vc_sd_jwt<br/>issuer_state=s_iss   ← if from offer
-    PI->>PI: bind session S,<br/>store PAR keyed by request_uri
+    PI->>PI: store PAR keyed by request_uri
     PI->>Wallet: 201 { request_uri: "urn:...abc", expires_in: 60 }
 
     %% ---- Front-channel authorization ----
     Wallet->>OS: open browser → GET <PID_Issuer>/authorize?<br/>client_id=nl-wallet-app&request_uri=urn:...abc
     OS->>PI: GET /authorize?client_id=nl-wallet-app&request_uri=urn:...abc
+    PI->>PI: consume PAR, validate client_id
     PI-->>RDO: GET /.well-known/openid-configuration<br/>(first upstream use, cached thereafter)
     RDO-->>PI: upstream OIDC metadata<br/>(authorization_endpoint, token_endpoint, userinfo_endpoint)
-    PI->>PI: generate PKCE_P (v2, c2)<br/>and upstream nonce, attach to session S
-    note right of PI: rewrite on the way to RDO Max:<br/>client_id       nl-wallet-app  →  pid-issuer-digid<br/>code_challenge  c1             →  c2<br/>scope           terminated     →  scope=openid<br/>redirect_uri    (passed through)<br/>state           (passed through)<br/>response_type   (passed through)
-    PI->>OS: 302 Location: <RDO>/authorize?<br/>response_type=code&client_id=pid-issuer-digid&<br/>redirect_uri=<wallet_ul>&<br/>code_challenge=c2&code_challenge_method=S256&<br/>state=s1&scope=openid
+    PI->>PI: generate PKCE_P (v2, c2) and random issuer_state=s2,<br/>store state_bridge[s2] = {<br/>  wallet_redirect_uri=<wallet_ul>, wallet_state=s1,<br/>  wallet_code_challenge=c1, upstream_code_verifier=v2 }
+    PI->>OS: 302 Location: <RDO>/authorize?<br/>response_type=code&client_id=pid-issuer-digid&<br/>redirect_uri=<PI>/digid/callback&<br/>code_challenge=c2&code_challenge_method=S256&<br/>state=s2&scope=openid&nonce=<random>
     OS->>RDO: GET /authorize?...
     note over OS,RDO: user authenticates via DigiD
-    RDO->>OS: 302 Location: <wallet_ul>?<br/>code=code1&state=s1
+    RDO->>OS: 302 Location: <PI>/digid/callback?<br/>code=up_code&state=s2
+    OS->>PI: GET /digid/callback?code=up_code&state=s2
+
+    %% ---- Upstream token + userinfo, BRP, mint issuer code ----
+    PI->>PI: consume state_bridge[s2] → { wallet_*, v2 }
+    PI->>RDO: POST /token<br/>(grant_type=authorization_code, code=up_code,<br/>redirect_uri=<PI>/digid/callback, code_verifier=v2,<br/>client_id=pid-issuer-digid, upstream client auth)
+    RDO->>PI: { access_token: <upstream_at>, ... }
+    PI->>RDO: GET /userinfo (Authorization: Bearer <upstream_at>)
+    RDO->>PI: BSN (encrypted JWE)
+    PI->>PI: Lookup attributes in BRP,<br/>build PID documents (SD-JWT + mdoc),<br/>mint authorization code=code1,<br/>store AuthCodeIssued session[code1] = {<br/>  documents, wallet_code_challenge=c1 }
+    PI->>OS: 302 Location: <wallet_ul>?code=code1&state=s1
     OS->>Wallet: openWallet(code=code1, state=s1)
     Wallet->>Wallet: verify state == s1
 
     %% ---- Token exchange ----
     Wallet->>PI: POST /token
     note right of Wallet: grant_type=authorization_code<br/>code=code1<br/>redirect_uri=<wallet_ul><br/>code_verifier=v1      ← wallet's PKCE<br/>client_id=nl-wallet-app
-    PI->>PI: verify code_verifier v1 against c1,<br/>load session S → v2
-    note right of PI: rewrite on the way to RDO Max:<br/>client_id      nl-wallet-app  →  pid-issuer-digid<br/>code_verifier  v1             →  v2<br/>code, redirect_uri, grant_type  (passed through),<br/>upstream client auth applied
-    PI->>RDO: POST /token
-    note right of PI: grant_type=authorization_code<br/>code=code1<br/>redirect_uri=<wallet_ul><br/>code_verifier=v2<br/>client_id=pid-issuer-digid<br/>(with upstream client auth)
-    RDO->>PI: { access_token: <upstream_at>, ... }
-    PI->>RDO: GET /userinfo (Authorization: Bearer <upstream_at>)
-    RDO->>PI: BSN (encrypted JWE)
-    PI->>PI: Lookup attributes in BRP
+    PI->>PI: load session[code1],<br/>verify S256(v1) == c1 (wallet PKCE),<br/>no upstream interaction
     PI->>Wallet: { access_token: <at>, token_type: "Bearer",<br/>  expires_in: 3600,<br/>  authorization_details: [{..., credential_identifiers:[...]}] }
 
     Note over OS,RDO: Issuance phase
