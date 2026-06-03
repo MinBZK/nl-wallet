@@ -78,6 +78,11 @@ variables:
     - !reference [.default-branch, rules]
     - !reference [.merge-request-manual, rules]
 
+.default-manual-or-merge-request-manual:
+  rules:
+    - !reference [.default-branch-manual, rules]
+    - !reference [.merge-request-manual, rules]
+
 .on-schedule-automation:
   rules:
     - if: $SCHEDULED == "automation" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
