@@ -94,7 +94,7 @@ spec:
             secretName: nl-wallet-pacf-issuance-server-settings
         - name: metadata
           configMap:
-            name: nl-wallet-pacf-issuer-metadata
+            name: nl-wallet-pacf-issuance-server-metadata
         - name: status-lists
           persistentVolumeClaim:
             claimName: {{ include "common.names.fullname" . }}
