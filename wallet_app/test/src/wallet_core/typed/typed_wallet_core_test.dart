@@ -369,7 +369,7 @@ void main() {
 
     test('continuePidIssuance is passed on to core', () async {
       await typedWalletCore.continuePidIssuance('uri');
-      verify(core.crateApiFullContinuePidIssuance(uri: 'uri')).called(1);
+      verify(core.crateApiFullContinueIssuance(uri: 'uri')).called(1);
     });
 
     test('continueDisclosureBasedIssuance is passed on to core', () async {
@@ -563,7 +563,7 @@ void main() {
     });
 
     test('continuePidIssuance', () async {
-      when(core.crateApiFullContinuePidIssuance(uri: 'https://example.org')).thenThrow(ffiException);
+      when(core.crateApiFullContinueIssuance(uri: 'https://example.org')).thenThrow(ffiException);
       expect(() => typedWalletCore.continuePidIssuance('https://example.org'), throwsA(isA<CoreError>()));
     });
 

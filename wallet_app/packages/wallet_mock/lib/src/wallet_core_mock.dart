@@ -2,8 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:flutter_rust_bridge/src/droppable/_io.dart';
+import 'package:flutter_rust_bridge/src/rust_arc/_common.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet_core/core.dart';
+import 'package:wallet_core/src/models/issuance.dart';
 
 import '../mock.dart';
 import 'data/mock/mock_attestations.dart';
@@ -128,8 +131,27 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<List<AttestationPresentation>> crateApiFullContinuePidIssuance({required String uri}) async =>
-      kPidAttestations;
+  Future<List<AttestationPresentation>> crateApiFullContinueIssuance({required String uri}) async => kPidAttestations;
+
+  @override
+  Future<IssuanceStartResult> crateApiFullStartIssuanceFromOffer({required String offerUri}) {
+    // TODO: implement crateApiFullStartIssuanceFromOffer
+    throw UnimplementedError();
+  }
+
+  @override
+  // TODO: implement rust_arc_decrement_strong_count_IssuanceStartResult
+  RustArcDecrementStrongCountFnType get rust_arc_decrement_strong_count_IssuanceStartResult =>
+      throw UnimplementedError();
+
+  @override
+  // TODO: implement rust_arc_decrement_strong_count_IssuanceStartResultPtr
+  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_IssuanceStartResultPtr => throw UnimplementedError();
+
+  @override
+  // TODO: implement rust_arc_increment_strong_count_IssuanceStartResult
+  RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_IssuanceStartResult =>
+      throw UnimplementedError();
 
   @override
   Future<String> crateApiFullCreatePidIssuanceRedirectUri() async => MockConstants.pidIssuanceRedirectUri;

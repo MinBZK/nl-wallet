@@ -25,6 +25,7 @@
 
 // Section: imports
 
+use crate::models::issuance::*;
 use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
 use flutter_rust_bridge::{Handler, IntoIntoDart};
@@ -37,7 +38,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.11.1";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 879366194;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1099624247;
 
 // Section: executor
 
@@ -548,13 +549,13 @@ fn wire__crate__api__full__continue_disclosure_based_issuance_impl(
         },
     )
 }
-fn wire__crate__api__full__continue_pid_issuance_impl(
+fn wire__crate__api__full__continue_issuance_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     uri: impl CstDecode<String>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "continue_pid_issuance",
+            debug_name: "continue_issuance",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
@@ -563,7 +564,7 @@ fn wire__crate__api__full__continue_pid_issuance_impl(
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::continue_pid_issuance(api_uri).await?;
+                        let output_ok = crate::api::full::continue_issuance(api_uri).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1393,6 +1394,30 @@ fn wire__crate__api__full__start_disclosure_impl(
         },
     )
 }
+fn wire__crate__api__full__start_issuance_from_offer_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    offer_uri: impl CstDecode<String>,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "start_issuance_from_offer",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let api_offer_uri = offer_uri.cst_decode();
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::start_issuance_from_offer(api_offer_uri).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__full__transfer_wallet_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
@@ -1595,6 +1620,7 @@ impl CstDecode<crate::models::uri::IdentifyUriResult> for i32 {
             3 => crate::models::uri::IdentifyUriResult::Disclosure,
             4 => crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance,
             5 => crate::models::uri::IdentifyUriResult::Transfer,
+            6 => crate::models::uri::IdentifyUriResult::CredentialOffer,
             _ => unreachable!("Invalid variant for IdentifyUriResult: {}", self),
         }
     }
@@ -1686,11 +1712,30 @@ impl SseDecode for flutter_rust_bridge::for_generated::anyhow::Error {
     }
 }
 
+impl SseDecode for IssuanceStartResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner =
+            <RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<IssuanceStartResult>>>::sse_decode(
+                deserializer,
+            );
+        return flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(inner);
+    }
+}
+
 impl SseDecode for flutter_rust_bridge::DartOpaque {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <usize>::sse_decode(deserializer);
         return unsafe { flutter_rust_bridge::for_generated::sse_decode_dart_opaque(inner) };
+    }
+}
+
+impl SseDecode for RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<IssuanceStartResult>> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <usize>::sse_decode(deserializer);
+        return unsafe { decode_rust_opaque_nom(inner) };
     }
 }
 
@@ -2144,6 +2189,7 @@ impl SseDecode for crate::models::uri::IdentifyUriResult {
             3 => crate::models::uri::IdentifyUriResult::Disclosure,
             4 => crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance,
             5 => crate::models::uri::IdentifyUriResult::Transfer,
+            6 => crate::models::uri::IdentifyUriResult::CredentialOffer,
             _ => unreachable!("Invalid variant for IdentifyUriResult: {}", inner),
         };
     }
@@ -3033,6 +3079,20 @@ fn pde_ffi_dispatcher_sync_impl(
 // Section: rust2dart
 
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<IssuanceStartResult> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, StdArc<_>>(self.0).into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<IssuanceStartResult> {}
+
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<IssuanceStartResult>> for IssuanceStartResult {
+    fn into_into_dart(self) -> FrbWrapper<IssuanceStartResult> {
+        self.into()
+    }
+}
+
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::disclosure::AcceptDisclosureResult {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -3445,6 +3505,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::uri::IdentifyUriResult {
             Self::Disclosure => 3.into_dart(),
             Self::DisclosureBasedIssuance => 4.into_dart(),
             Self::Transfer => 5.into_dart(),
+            Self::CredentialOffer => 6.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -4024,10 +4085,29 @@ impl SseEncode for flutter_rust_bridge::for_generated::anyhow::Error {
     }
 }
 
+impl SseEncode for IssuanceStartResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<IssuanceStartResult>>>::sse_encode(
+            flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, StdArc<_>>(self),
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for flutter_rust_bridge::DartOpaque {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <usize>::sse_encode(self.encode(), serializer);
+    }
+}
+
+impl SseEncode for RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<IssuanceStartResult>> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        let (ptr, size) = self.sse_encode_raw();
+        <usize>::sse_encode(ptr, serializer);
+        <i32>::sse_encode(size, serializer);
     }
 }
 
@@ -4431,6 +4511,7 @@ impl SseEncode for crate::models::uri::IdentifyUriResult {
                 crate::models::uri::IdentifyUriResult::Disclosure => 3,
                 crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance => 4,
                 crate::models::uri::IdentifyUriResult::Transfer => 5,
+                crate::models::uri::IdentifyUriResult::CredentialOffer => 6,
                 _ => {
                     unimplemented!("");
                 }
@@ -5205,6 +5286,7 @@ mod io {
     // Section: imports
 
     use super::*;
+    use crate::models::issuance::*;
     use flutter_rust_bridge::for_generated::byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
     use flutter_rust_bridge::for_generated::{transform_result_dco, Lifetimeable, Lockable};
     use flutter_rust_bridge::{Handler, IntoIntoDart};
@@ -5221,10 +5303,26 @@ mod io {
             unimplemented!()
         }
     }
+    impl CstDecode<IssuanceStartResult> for usize {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> IssuanceStartResult {
+            flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(CstDecode::<
+                RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<IssuanceStartResult>>,
+            >::cst_decode(self))
+        }
+    }
     impl CstDecode<flutter_rust_bridge::DartOpaque> for *const std::ffi::c_void {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> flutter_rust_bridge::DartOpaque {
             unsafe { flutter_rust_bridge::for_generated::cst_decode_dart_opaque(self as _) }
+        }
+    }
+    impl CstDecode<RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<IssuanceStartResult>>> for usize {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(
+            self,
+        ) -> RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<IssuanceStartResult>> {
+            unsafe { decode_rust_opaque_nom(self as _) }
         }
     }
     impl CstDecode<StreamSink<bool, flutter_rust_bridge::for_generated::DcoCodec>> for *mut wire_cst_list_prim_u_8_strict {
@@ -6718,11 +6816,11 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__continue_pid_issuance(
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__continue_issuance(
         port_: i64,
         uri: *mut wire_cst_list_prim_u_8_strict,
     ) {
-        wire__crate__api__full__continue_pid_issuance_impl(port_, uri)
+        wire__crate__api__full__continue_issuance_impl(port_, uri)
     }
 
     #[unsafe(no_mangle)]
@@ -6959,6 +7057,14 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__start_issuance_from_offer(
+        port_: i64,
+        offer_uri: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__start_issuance_from_offer_impl(port_, offer_uri)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__transfer_wallet(port_: i64) {
         wire__crate__api__full__transfer_wallet_impl(port_)
     }
@@ -6974,6 +7080,24 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__unlock_wallet_with_biometrics(port_: i64) {
         wire__crate__api__full__unlock_wallet_with_biometrics_impl(port_)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
+        ptr: *const std::ffi::c_void,
+    ) {
+        unsafe {
+            StdArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<IssuanceStartResult>>::increment_strong_count(ptr as _);
+        }
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
+        ptr: *const std::ffi::c_void,
+    ) {
+        unsafe {
+            StdArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<IssuanceStartResult>>::decrement_strong_count(ptr as _);
+        }
     }
 
     #[unsafe(no_mangle)]

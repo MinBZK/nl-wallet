@@ -6,12 +6,5 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-enum IdentifyUriResult {
-  PidIssuance,
-  PidRenewal,
-  PinRecovery,
-  Disclosure,
-  DisclosureBasedIssuance,
-  Transfer,
-  CredentialOffer,
-}
+// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<IssuanceStartResult>>
+abstract class IssuanceStartResult implements RustOpaqueInterface {}

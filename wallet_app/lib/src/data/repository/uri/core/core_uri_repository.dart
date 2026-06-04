@@ -34,6 +34,9 @@ class CoreUriRepository implements UriRepository {
         return NavigationRequest.issuance(argument: IssuanceScreenArgument(uri: uri, isQrCode: false));
       case IdentifyUriResult.Transfer:
         return NavigationRequest.walletTransferSource(uri);
+      case IdentifyUriResult.CredentialOffer:
+        // TODO: Handle this case.
+        throw UnimplementedError();
     }
   }
 }

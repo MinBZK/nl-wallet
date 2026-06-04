@@ -9,6 +9,7 @@ import '../models/config.dart';
 import '../models/disclosure.dart';
 import '../models/image.dart';
 import '../models/instruction.dart';
+import '../models/issuance.dart';
 import '../models/localize.dart';
 import '../models/notification.dart';
 import '../models/pin.dart';
@@ -98,10 +99,13 @@ Future<void> completePinRecovery({required String pin}) =>
 
 Future<void> cancelPinRecovery() => WalletCore.instance.api.crateApiFullCancelPinRecovery();
 
+Future<IssuanceStartResult> startIssuanceFromOffer({required String offerUri}) =>
+    WalletCore.instance.api.crateApiFullStartIssuanceFromOffer(offerUri: offerUri);
+
 Future<void> cancelIssuance() => WalletCore.instance.api.crateApiFullCancelIssuance();
 
-Future<List<AttestationPresentation>> continuePidIssuance({required String uri}) =>
-    WalletCore.instance.api.crateApiFullContinuePidIssuance(uri: uri);
+Future<List<AttestationPresentation>> continueIssuance({required String uri}) =>
+    WalletCore.instance.api.crateApiFullContinueIssuance(uri: uri);
 
 Future<WalletInstructionResult> acceptIssuance({required String pin}) =>
     WalletCore.instance.api.crateApiFullAcceptIssuance(pin: pin);

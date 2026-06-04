@@ -63,6 +63,9 @@ class CoreQrRepository implements QrRepository {
         return NavigationRequest.issuance(argument: IssuanceScreenArgument(uri: rawValue, isQrCode: true));
       case IdentifyUriResult.Transfer:
         return NavigationRequest.walletTransferSource(rawValue);
+      case IdentifyUriResult.CredentialOffer:
+        // TODO: Handle this case.
+        throw UnimplementedError();
     }
   }
 }

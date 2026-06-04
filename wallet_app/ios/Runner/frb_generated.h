@@ -620,8 +620,8 @@ void frbgen_wallet_core_wire__crate__api__full__continue_disclosure_based_issuan
                                                                                    struct wire_cst_list_prim_u_16_loose *selected_indices,
                                                                                    struct wire_cst_list_prim_u_8_strict *pin);
 
-void frbgen_wallet_core_wire__crate__api__full__continue_pid_issuance(int64_t port_,
-                                                                      struct wire_cst_list_prim_u_8_strict *uri);
+void frbgen_wallet_core_wire__crate__api__full__continue_issuance(int64_t port_,
+                                                                  struct wire_cst_list_prim_u_8_strict *uri);
 
 void frbgen_wallet_core_wire__crate__api__full__continue_pin_recovery(int64_t port_,
                                                                       struct wire_cst_list_prim_u_8_strict *uri);
@@ -714,12 +714,19 @@ void frbgen_wallet_core_wire__crate__api__full__start_disclosure(int64_t port_,
                                                                  struct wire_cst_list_prim_u_8_strict *uri,
                                                                  bool is_qr_code);
 
+void frbgen_wallet_core_wire__crate__api__full__start_issuance_from_offer(int64_t port_,
+                                                                          struct wire_cst_list_prim_u_8_strict *offer_uri);
+
 void frbgen_wallet_core_wire__crate__api__full__transfer_wallet(int64_t port_);
 
 void frbgen_wallet_core_wire__crate__api__full__unlock_wallet(int64_t port_,
                                                               struct wire_cst_list_prim_u_8_strict *pin);
 
 void frbgen_wallet_core_wire__crate__api__full__unlock_wallet_with_biometrics(int64_t port_);
+
+void frbgen_wallet_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(const void *ptr);
+
+void frbgen_wallet_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(const void *ptr);
 
 struct wire_cst_attestation_presentation *frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation(void);
 
@@ -803,6 +810,8 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_prim_u_8_strict);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_record_i_32_notification_type);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_wallet_event);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_disclosure);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_issuance);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_pid_issuance);
@@ -825,7 +834,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__continue_change_pin);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__continue_close_proximity_disclosure);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__continue_disclosure_based_issuance);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__continue_pid_issuance);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__continue_issuance);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__continue_pin_recovery);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__create_pid_issuance_redirect_uri);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__create_pid_renewal_redirect_uri);
@@ -862,6 +871,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__skip_wallet_transfer);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__start_close_proximity_disclosure);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__start_disclosure);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__start_issuance_from_offer);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__transfer_wallet);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__unlock_wallet);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__unlock_wallet_with_biometrics);

@@ -15,6 +15,7 @@ pub mod config;
 pub mod disclosure;
 pub mod image;
 pub mod instruction;
+pub mod issuance;
 pub mod localize;
 pub mod notification;
 pub mod pin;

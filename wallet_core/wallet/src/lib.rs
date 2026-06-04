@@ -38,6 +38,7 @@ pub use crate::wallet::DisclosureAttestationOptions;
 pub use crate::wallet::DisclosureProposalPresentation;
 pub use crate::wallet::DisclosureUriSource;
 pub use crate::wallet::IssuanceResult;
+pub use crate::wallet::IssuanceStartResult;
 pub use crate::wallet::LockCallback;
 pub use crate::wallet::PidIssuancePurpose;
 pub use crate::wallet::ScheduledNotificationsCallback;
