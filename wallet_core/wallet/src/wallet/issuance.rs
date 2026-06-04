@@ -308,6 +308,7 @@ where
     #[sentry_capture_error]
     pub(super) async fn cancel_issuance(&mut self) -> Result<(), IssuanceError> {
         info!("Issuance cancelled / rejected");
+        let mut reject_result = Ok(());
 
         {
             let Some(Session::Issuance(session)) = self.session.as_ref() else {
@@ -323,18 +324,15 @@ where
 
             if let WalletIssuanceSession::Issuance { protocol_state, .. } = session {
                 let organization = protocol_state.issuer_registration().organization.clone();
-
                 info!("Rejecting issuance");
-                protocol_state
+                reject_result = protocol_state
                     .reject_issuance()
                     .await
-                    .map_err(|error| IssuanceError::IssuerServer { organization, error })?;
+                    .map_err(|error| IssuanceError::IssuerServer { organization, error });
             }
         }
-
         self.session = None;
-
-        Ok(())
+        return reject_result;
     }
 
     #[instrument(skip_all)]
