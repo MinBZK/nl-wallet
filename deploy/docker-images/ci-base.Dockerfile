@@ -8,6 +8,11 @@ RUN /tmp/apt.sh
 # Update and upgrade to the latest and greatest
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
 
+# Additional default config files for users created in this image
+COPY skel/ /etc/skel/
+RUN  find /etc/skel/ -type d -exec chmod 755 {} +
+RUN  find /etc/skel/ -type f -exec chmod 644 {} +
+
 # Add wallet user with same uid as gitlab-runner and
 RUN useradd -u 1001 -m -d /wallet -s /bin/bash wallet \
  # make /opt wallet group writable
