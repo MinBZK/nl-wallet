@@ -22,21 +22,21 @@ import '../../../mocks/wallet_mocks.dart';
 
 void main() {
   late MockStartDisclosureUseCase startDisclosureUseCase;
-  late MockCancelDisclosureUseCase cancelDisclosureUseCase;
+  late MockCancelSessionUseCase cancelActiveSessionUseCase;
   late MockGetMostRecentWalletEventUseCase getMostRecentWalletEventUseCase;
   late MockObserveCloseProximityConnectionUseCase observeCloseProximityConnectionUseCase;
 
   /// Create a new [DisclosureBloc] configured with the (mocked) usecases
   DisclosureBloc create() => DisclosureBloc(
     startDisclosureUseCase,
-    cancelDisclosureUseCase,
+    cancelActiveSessionUseCase,
     getMostRecentWalletEventUseCase,
     observeCloseProximityConnectionUseCase,
   );
 
   setUp(() {
     startDisclosureUseCase = MockStartDisclosureUseCase();
-    cancelDisclosureUseCase = MockCancelDisclosureUseCase();
+    cancelActiveSessionUseCase = MockCancelSessionUseCase();
     getMostRecentWalletEventUseCase = MockGetMostRecentWalletEventUseCase();
     observeCloseProximityConnectionUseCase = MockObserveCloseProximityConnectionUseCase();
     when(observeCloseProximityConnectionUseCase.invoke()).thenAnswer((_) => const Stream.empty());
@@ -546,14 +546,14 @@ void main() {
         bloc.add(const DisclosureStopRequested());
       },
       expect: () => [isA<DisclosureCheckUrl>(), isA<DisclosureLoadInProgress>(), isA<DisclosureStopped>()],
-      verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(greaterThan(0)),
+      verify: (bloc) => verify(cancelActiveSessionUseCase.invoke()).called(greaterThan(0)),
     );
 
     blocTest(
       'when BLoC receives DisclosureCancelRequested event, the active session is cancelled',
       build: create,
       act: (bloc) => bloc.add(const DisclosureCancelRequested()),
-      verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(1),
+      verify: (bloc) => verify(cancelActiveSessionUseCase.invoke()).called(1),
     );
 
     blocTest(
@@ -575,7 +575,7 @@ void main() {
         isA<DisclosureLoadInProgress>(),
         isA<DisclosureStopped>(),
       ],
-      verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(greaterThan(0)),
+      verify: (bloc) => verify(cancelActiveSessionUseCase.invoke()).called(greaterThan(0)),
     );
 
     blocTest(
@@ -592,7 +592,7 @@ void main() {
         await Future.delayed(const Duration(milliseconds: 25));
         bloc.add(const DisclosureReportPressed(option: ReportingOption.impersonatingOrganization));
       },
-      verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(greaterThan(0)),
+      verify: (bloc) => verify(cancelActiveSessionUseCase.invoke()).called(greaterThan(0)),
       expect: () => [
         isA<DisclosureCheckUrl>(),
         isA<DisclosureLoadInProgress>(),
@@ -606,7 +606,7 @@ void main() {
         when(startDisclosureUseCase.invoke(any)).thenAnswer((_) async {
           return Result.success(emptyRequest(sessionType: .sameDevice, type: .login));
         });
-        when(cancelDisclosureUseCase.invoke()).thenAnswer((_) async => const Result.success('http://example.org'));
+        when(cancelActiveSessionUseCase.invoke()).thenAnswer((_) async => const Result.success('http://example.org'));
       },
       build: create,
       act: (bloc) async {
@@ -905,7 +905,7 @@ void main() {
             ),
           );
         });
-        when(cancelDisclosureUseCase.invoke()).thenAnswer((_) async => const Result.success(''));
+        when(cancelActiveSessionUseCase.invoke()).thenAnswer((_) async => const Result.success(''));
       },
       build: create,
       act: (bloc) async {
@@ -917,7 +917,7 @@ void main() {
         isA<DisclosureConfirmDataAttributes>(),
         const DisclosureCloseProximityDisconnected(isLoginFlow: false),
       ],
-      verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(1),
+      verify: (bloc) => verify(cancelActiveSessionUseCase.invoke()).called(1),
     );
 
     blocTest(
@@ -977,7 +977,7 @@ void main() {
         isA<DisclosureConfirmPin>(),
         const DisclosureCloseProximityDisconnected(isLoginFlow: false),
       ],
-      verify: (bloc) => verifyNever(cancelDisclosureUseCase.invoke()),
+      verify: (bloc) => verifyNever(cancelActiveSessionUseCase.invoke()),
     );
 
     blocTest(
@@ -986,7 +986,7 @@ void main() {
       seed: () => DisclosureSuccess(relyingParty: WalletMockData.organization, isCrossDevice: false),
       act: (bloc) => bloc.add(const DisclosureCloseProximityEventReceived(BleDisconnected())),
       expect: () => [],
-      verify: (bloc) => verifyNever(cancelDisclosureUseCase.invoke()),
+      verify: (bloc) => verifyNever(cancelActiveSessionUseCase.invoke()),
     );
 
     blocTest(
@@ -995,7 +995,7 @@ void main() {
       seed: () => const DisclosureError(error: GenericError('test', sourceError: 'test')),
       act: (bloc) => bloc.add(const DisclosureCloseProximityEventReceived(BleDisconnected())),
       expect: () => [],
-      verify: (bloc) => verifyNever(cancelDisclosureUseCase.invoke()),
+      verify: (bloc) => verifyNever(cancelActiveSessionUseCase.invoke()),
     );
 
     blocTest(
@@ -1024,7 +1024,7 @@ void main() {
         bloc.add(const DisclosurePinConfirmed());
       },
       expect: () => [isA<DisclosureConfirmDataAttributes>(), isA<DisclosureConfirmPin>(), isA<DisclosureSuccess>()],
-      verify: (bloc) => verifyNever(cancelDisclosureUseCase.invoke()),
+      verify: (bloc) => verifyNever(cancelActiveSessionUseCase.invoke()),
     );
   });
 }

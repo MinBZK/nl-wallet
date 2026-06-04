@@ -27,13 +27,13 @@ final _kDefaultReadyToDiscloseResponse = StartIssuanceReadyToDisclose(
 
 void main() {
   final MockStartIssuanceUseCase startIssuanceUseCase = MockStartIssuanceUseCase();
-  final MockCancelIssuanceUseCase cancelIssuanceUseCase = MockCancelIssuanceUseCase();
+  final MockCancelSessionUseCase cancelSessionUseCase = MockCancelSessionUseCase();
 
   setUp(() {});
 
   IssuanceBloc createBloc({bool isRefreshFlow = false}) => IssuanceBloc(
     startIssuanceUseCase,
-    cancelIssuanceUseCase,
+    cancelSessionUseCase,
   );
 
   blocTest(
@@ -267,7 +267,7 @@ void main() {
     'ltc5 verify issuance failed with generic error path',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
-      clearInteractions(cancelIssuanceUseCase);
+      clearInteractions(cancelSessionUseCase);
       when(startIssuanceUseCase.invoke(any)).thenAnswer(
         (_) async => Result.success(_kDefaultReadyToDiscloseResponse),
       );
@@ -292,7 +292,7 @@ void main() {
     ],
     verify: (_) {
       // once during init, network error and the close callback.
-      verify(cancelIssuanceUseCase.invoke()).called(3);
+      verify(cancelSessionUseCase.invoke()).called(3);
     },
   );
 
@@ -300,7 +300,7 @@ void main() {
     'ltc5 verify path that contains a session error when trying to continue issuance',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
-      clearInteractions(cancelIssuanceUseCase);
+      clearInteractions(cancelSessionUseCase);
       when(startIssuanceUseCase.invoke(any)).thenAnswer(
         (_) async => Result.success(_kDefaultReadyToDiscloseResponse),
       );
@@ -328,7 +328,7 @@ void main() {
     'ltc5 verify path where session was cancelled externally leads to cancelled session state',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
-      clearInteractions(cancelIssuanceUseCase);
+      clearInteractions(cancelSessionUseCase);
       when(startIssuanceUseCase.invoke(any)).thenAnswer(
         (_) async => Result.success(_kDefaultReadyToDiscloseResponse),
       );
