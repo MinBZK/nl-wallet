@@ -195,9 +195,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   PlatformInt64 dco_decode_isize(dynamic raw);
 
   @protected
-  List<String> dco_decode_list_String(dynamic raw);
-
-  @protected
   List<AppNotification> dco_decode_list_app_notification(dynamic raw);
 
   @protected
@@ -226,6 +223,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   List<MissingAttribute> dco_decode_list_missing_attribute(dynamic raw);
+
+  @protected
+  List<PidAttestation> dco_decode_list_pid_attestation(dynamic raw);
 
   @protected
   List<int> dco_decode_list_prim_u_16_loose(dynamic raw);
@@ -280,6 +280,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   Organization dco_decode_organization(dynamic raw);
+
+  @protected
+  PidAttestation dco_decode_pid_attestation(dynamic raw);
 
   @protected
   PidIssuanceResult dco_decode_pid_issuance_result(dynamic raw);
@@ -502,9 +505,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   PlatformInt64 sse_decode_isize(SseDeserializer deserializer);
 
   @protected
-  List<String> sse_decode_list_String(SseDeserializer deserializer);
-
-  @protected
   List<AppNotification> sse_decode_list_app_notification(SseDeserializer deserializer);
 
   @protected
@@ -533,6 +533,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   List<MissingAttribute> sse_decode_list_missing_attribute(SseDeserializer deserializer);
+
+  @protected
+  List<PidAttestation> sse_decode_list_pid_attestation(SseDeserializer deserializer);
 
   @protected
   List<int> sse_decode_list_prim_u_16_loose(SseDeserializer deserializer);
@@ -587,6 +590,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   Organization sse_decode_organization(SseDeserializer deserializer);
+
+  @protected
+  PidAttestation sse_decode_pid_attestation(SseDeserializer deserializer);
 
   @protected
   PidIssuanceResult sse_decode_pid_issuance_result(SseDeserializer deserializer);
@@ -852,16 +858,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_list_String> cst_encode_list_String(List<String> raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    final ans = wire.cst_new_list_String(raw.length);
-    for (var i = 0; i < raw.length; ++i) {
-      ans.ref.ptr[i] = cst_encode_String(raw[i]);
-    }
-    return ans;
-  }
-
-  @protected
   ffi.Pointer<wire_cst_list_app_notification> cst_encode_list_app_notification(List<AppNotification> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ans = wire.cst_new_list_app_notification(raw.length);
@@ -963,6 +959,16 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     final ans = wire.cst_new_list_missing_attribute(raw.length);
     for (var i = 0; i < raw.length; ++i) {
       cst_api_fill_to_wire_missing_attribute(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_pid_attestation> cst_encode_list_pid_attestation(List<PidAttestation> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_pid_attestation(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_pid_attestation(raw[i], ans.ref.ptr[i]);
     }
     return ans;
   }
@@ -1332,7 +1338,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.inactive_warning_timeout = cst_encode_u_16(apiObj.inactiveWarningTimeout);
     wireObj.inactive_lock_timeout = cst_encode_u_16(apiObj.inactiveLockTimeout);
     wireObj.background_lock_timeout = cst_encode_u_16(apiObj.backgroundLockTimeout);
-    wireObj.pid_attestation_types = cst_encode_list_String(apiObj.pidAttestationTypes);
+    wireObj.pid_attestations = cst_encode_list_pid_attestation(apiObj.pidAttestations);
     wireObj.static_assets_base_url = cst_encode_String(apiObj.staticAssetsBaseUrl);
     wireObj.maintenance_window = cst_encode_opt_box_autoadd_record_string_string(apiObj.maintenanceWindow);
     wireObj.version = cst_encode_String(apiObj.version);
@@ -1449,6 +1455,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.category = cst_encode_list_localized_string(apiObj.category);
     wireObj.department = cst_encode_opt_list_localized_string(apiObj.department);
     wireObj.country_code = cst_encode_opt_String(apiObj.countryCode);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_pid_attestation(PidAttestation apiObj, wire_cst_pid_attestation wireObj) {
+    wireObj.format = cst_encode_format(apiObj.format);
+    wireObj.attestation_type = cst_encode_String(apiObj.attestationType);
   }
 
   @protected
@@ -1996,9 +2008,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_isize(PlatformInt64 self, SseSerializer serializer);
 
   @protected
-  void sse_encode_list_String(List<String> self, SseSerializer serializer);
-
-  @protected
   void sse_encode_list_app_notification(List<AppNotification> self, SseSerializer serializer);
 
   @protected
@@ -2027,6 +2036,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_list_missing_attribute(List<MissingAttribute> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_pid_attestation(List<PidAttestation> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_prim_u_16_loose(List<int> self, SseSerializer serializer);
@@ -2081,6 +2093,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_organization(Organization self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_pid_attestation(PidAttestation self, SseSerializer serializer);
 
   @protected
   void sse_encode_pid_issuance_result(PidIssuanceResult self, SseSerializer serializer);
@@ -3374,21 +3389,6 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_box_wallet_state = _cst_new_box_wallet_statePtr
       .asFunction<ffi.Pointer<wire_cst_wallet_state> Function()>();
 
-  ffi.Pointer<wire_cst_list_String> cst_new_list_String(
-    int len,
-  ) {
-    return _cst_new_list_String(
-      len,
-    );
-  }
-
-  late final _cst_new_list_StringPtr =
-      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_String> Function(ffi.Int32)>>(
-        'frbgen_wallet_core_cst_new_list_String',
-      );
-  late final _cst_new_list_String = _cst_new_list_StringPtr
-      .asFunction<ffi.Pointer<wire_cst_list_String> Function(int)>();
-
   ffi.Pointer<wire_cst_list_app_notification> cst_new_list_app_notification(
     int len,
   ) {
@@ -3538,6 +3538,21 @@ class WalletCoreWire implements BaseWire {
       );
   late final _cst_new_list_missing_attribute = _cst_new_list_missing_attributePtr
       .asFunction<ffi.Pointer<wire_cst_list_missing_attribute> Function(int)>();
+
+  ffi.Pointer<wire_cst_list_pid_attestation> cst_new_list_pid_attestation(
+    int len,
+  ) {
+    return _cst_new_list_pid_attestation(
+      len,
+    );
+  }
+
+  late final _cst_new_list_pid_attestationPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_pid_attestation> Function(ffi.Int32)>>(
+        'frbgen_wallet_core_cst_new_list_pid_attestation',
+      );
+  late final _cst_new_list_pid_attestation = _cst_new_list_pid_attestationPtr
+      .asFunction<ffi.Pointer<wire_cst_list_pid_attestation> Function(int)>();
 
   ffi.Pointer<wire_cst_list_prim_u_16_loose> cst_new_list_prim_u_16_loose(
     int len,
@@ -3982,13 +3997,6 @@ final class wire_cst_WalletState_Locked extends ffi.Struct {
   external ffi.Pointer<wire_cst_wallet_state> sub_state;
 }
 
-final class wire_cst_list_String extends ffi.Struct {
-  external ffi.Pointer<ffi.Pointer<wire_cst_list_prim_u_8_strict>> ptr;
-
-  @ffi.Int32()
-  external int len;
-}
-
 final class wire_cst_NotificationType_CardExpired extends ffi.Struct {
   external ffi.Pointer<wire_cst_attestation_presentation> card;
 }
@@ -4080,6 +4088,20 @@ final class wire_cst_missing_attribute extends ffi.Struct {
 
 final class wire_cst_list_missing_attribute extends ffi.Struct {
   external ffi.Pointer<wire_cst_missing_attribute> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
+final class wire_cst_pid_attestation extends ffi.Struct {
+  @ffi.Int32()
+  external int format;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> attestation_type;
+}
+
+final class wire_cst_list_pid_attestation extends ffi.Struct {
+  external ffi.Pointer<wire_cst_pid_attestation> ptr;
 
   @ffi.Int32()
   external int len;
@@ -4234,7 +4256,7 @@ final class wire_cst_flutter_configuration extends ffi.Struct {
   @ffi.Uint16()
   external int background_lock_timeout;
 
-  external ffi.Pointer<wire_cst_list_String> pid_attestation_types;
+  external ffi.Pointer<wire_cst_list_pid_attestation> pid_attestations;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> static_assets_base_url;
 

@@ -2226,7 +2226,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       inactiveWarningTimeout: dco_decode_u_16(arr[0]),
       inactiveLockTimeout: dco_decode_u_16(arr[1]),
       backgroundLockTimeout: dco_decode_u_16(arr[2]),
-      pidAttestationTypes: dco_decode_list_String(arr[3]),
+      pidAttestations: dco_decode_list_pid_attestation(arr[3]),
       staticAssetsBaseUrl: dco_decode_String(arr[4]),
       maintenanceWindow: dco_decode_opt_box_autoadd_record_string_string(arr[5]),
       version: dco_decode_String(arr[6]),
@@ -2322,12 +2322,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  List<String> dco_decode_list_String(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_String).toList();
-  }
-
-  @protected
   List<AppNotification> dco_decode_list_app_notification(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_app_notification).toList();
@@ -2385,6 +2379,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   List<MissingAttribute> dco_decode_list_missing_attribute(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_missing_attribute).toList();
+  }
+
+  @protected
+  List<PidAttestation> dco_decode_list_pid_attestation(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_pid_attestation).toList();
   }
 
   @protected
@@ -2531,6 +2531,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       category: dco_decode_list_localized_string(arr[8]),
       department: dco_decode_opt_list_localized_string(arr[9]),
       countryCode: dco_decode_opt_String(arr[10]),
+    );
+  }
+
+  @protected
+  PidAttestation dco_decode_pid_attestation(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return PidAttestation(
+      format: dco_decode_format(arr[0]),
+      attestationType: dco_decode_String(arr[1]),
     );
   }
 
@@ -3218,7 +3229,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var var_inactiveWarningTimeout = sse_decode_u_16(deserializer);
     var var_inactiveLockTimeout = sse_decode_u_16(deserializer);
     var var_backgroundLockTimeout = sse_decode_u_16(deserializer);
-    var var_pidAttestationTypes = sse_decode_list_String(deserializer);
+    var var_pidAttestations = sse_decode_list_pid_attestation(deserializer);
     var var_staticAssetsBaseUrl = sse_decode_String(deserializer);
     var var_maintenanceWindow = sse_decode_opt_box_autoadd_record_string_string(deserializer);
     var var_version = sse_decode_String(deserializer);
@@ -3227,7 +3238,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       inactiveWarningTimeout: var_inactiveWarningTimeout,
       inactiveLockTimeout: var_inactiveLockTimeout,
       backgroundLockTimeout: var_backgroundLockTimeout,
-      pidAttestationTypes: var_pidAttestationTypes,
+      pidAttestations: var_pidAttestations,
       staticAssetsBaseUrl: var_staticAssetsBaseUrl,
       maintenanceWindow: var_maintenanceWindow,
       version: var_version,
@@ -3320,18 +3331,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   PlatformInt64 sse_decode_isize(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getPlatformInt64();
-  }
-
-  @protected
-  List<String> sse_decode_list_String(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <String>[];
-    for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_String(deserializer));
-    }
-    return ans_;
   }
 
   @protected
@@ -3450,6 +3449,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var ans_ = <MissingAttribute>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_missing_attribute(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<PidAttestation> sse_decode_list_pid_attestation(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <PidAttestation>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_pid_attestation(deserializer));
     }
     return ans_;
   }
@@ -3661,6 +3672,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       department: var_department,
       countryCode: var_countryCode,
     );
+  }
+
+  @protected
+  PidAttestation sse_decode_pid_attestation(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_format = sse_decode_format(deserializer);
+    var var_attestationType = sse_decode_String(deserializer);
+    return PidAttestation(format: var_format, attestationType: var_attestationType);
   }
 
   @protected
@@ -4551,7 +4570,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_u_16(self.inactiveWarningTimeout, serializer);
     sse_encode_u_16(self.inactiveLockTimeout, serializer);
     sse_encode_u_16(self.backgroundLockTimeout, serializer);
-    sse_encode_list_String(self.pidAttestationTypes, serializer);
+    sse_encode_list_pid_attestation(self.pidAttestations, serializer);
     sse_encode_String(self.staticAssetsBaseUrl, serializer);
     sse_encode_opt_box_autoadd_record_string_string(self.maintenanceWindow, serializer);
     sse_encode_String(self.version, serializer);
@@ -4633,15 +4652,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_isize(PlatformInt64 self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putPlatformInt64(self);
-  }
-
-  @protected
-  void sse_encode_list_String(List<String> self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.length, serializer);
-    for (final item in self) {
-      sse_encode_String(item, serializer);
-    }
   }
 
   @protected
@@ -4731,6 +4741,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_missing_attribute(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_pid_attestation(List<PidAttestation> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_pid_attestation(item, serializer);
     }
   }
 
@@ -4907,6 +4926,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_list_localized_string(self.category, serializer);
     sse_encode_opt_list_localized_string(self.department, serializer);
     sse_encode_opt_String(self.countryCode, serializer);
+  }
+
+  @protected
+  void sse_encode_pid_attestation(PidAttestation self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_format(self.format, serializer);
+    sse_encode_String(self.attestationType, serializer);
   }
 
   @protected

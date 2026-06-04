@@ -72,6 +72,9 @@ pub mod configuration {
     pub use wallet_configuration::wallet_config::AccountServerConfiguration;
     pub use wallet_configuration::wallet_config::DisclosureConfiguration;
     pub use wallet_configuration::wallet_config::LockTimeoutConfiguration;
+    pub use wallet_configuration::wallet_config::PidAttributePaths;
+    pub use wallet_configuration::wallet_config::PidAttributesConfiguration;
+    pub use wallet_configuration::wallet_config::UpdatePolicyServerConfiguration;
     pub use wallet_configuration::wallet_config::WalletConfiguration;
 }
 

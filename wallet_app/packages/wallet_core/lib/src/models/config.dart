@@ -4,13 +4,14 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'attestation.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 class FlutterConfiguration {
   final int inactiveWarningTimeout;
   final int inactiveLockTimeout;
   final int backgroundLockTimeout;
-  final List<String> pidAttestationTypes;
+  final List<PidAttestation> pidAttestations;
   final String staticAssetsBaseUrl;
   final (String, String)? maintenanceWindow;
   final String version;
@@ -20,7 +21,7 @@ class FlutterConfiguration {
     required this.inactiveWarningTimeout,
     required this.inactiveLockTimeout,
     required this.backgroundLockTimeout,
-    required this.pidAttestationTypes,
+    required this.pidAttestations,
     required this.staticAssetsBaseUrl,
     this.maintenanceWindow,
     required this.version,
@@ -32,7 +33,7 @@ class FlutterConfiguration {
       inactiveWarningTimeout.hashCode ^
       inactiveLockTimeout.hashCode ^
       backgroundLockTimeout.hashCode ^
-      pidAttestationTypes.hashCode ^
+      pidAttestations.hashCode ^
       staticAssetsBaseUrl.hashCode ^
       maintenanceWindow.hashCode ^
       version.hashCode ^
@@ -46,9 +47,30 @@ class FlutterConfiguration {
           inactiveWarningTimeout == other.inactiveWarningTimeout &&
           inactiveLockTimeout == other.inactiveLockTimeout &&
           backgroundLockTimeout == other.backgroundLockTimeout &&
-          pidAttestationTypes == other.pidAttestationTypes &&
+          pidAttestations == other.pidAttestations &&
           staticAssetsBaseUrl == other.staticAssetsBaseUrl &&
           maintenanceWindow == other.maintenanceWindow &&
           version == other.version &&
           environment == other.environment;
+}
+
+class PidAttestation {
+  final Format format;
+  final String attestationType;
+
+  const PidAttestation({
+    required this.format,
+    required this.attestationType,
+  });
+
+  @override
+  int get hashCode => format.hashCode ^ attestationType.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PidAttestation &&
+          runtimeType == other.runtimeType &&
+          format == other.format &&
+          attestationType == other.attestationType;
 }
