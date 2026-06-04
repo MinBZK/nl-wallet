@@ -21,6 +21,7 @@ const _kSampleIssuer = CoreMockData.organization;
 const _kSampleCard = core.AttestationPresentation(
   identity: core.AttestationIdentity.ephemeral(),
   attestationType: 'urn:eudi:pid:nl:1',
+  format: .SdJwt,
   displayMetadata: [CoreMockData.enDisplayMetadata],
   attributes: [_kSampleAttributeName, _kSampleAttributeCity],
   issuer: _kSampleIssuer,
@@ -59,6 +60,7 @@ void main() {
       const input = core.AttestationPresentation(
         identity: core.AttestationIdentity.fixed(id: 'id-987'),
         attestationType: _kSampleAttestationType,
+        format: .SdJwt,
         displayMetadata: [CoreMockData.enDisplayMetadata],
         attributes: [],
         issuer: _kSampleIssuer,

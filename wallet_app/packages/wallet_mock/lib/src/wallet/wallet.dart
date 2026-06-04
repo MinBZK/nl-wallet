@@ -40,6 +40,7 @@ class Wallet {
           (e) => AttestationPresentation(
             identity: e.key.identity,
             attestationType: e.key.attestationType,
+            format: e.key.format,
             displayMetadata: e.key.displayMetadata,
             validityStatus: e.key.validityStatus,
             issuer: e.key.issuer,
