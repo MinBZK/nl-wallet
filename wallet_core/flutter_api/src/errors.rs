@@ -284,7 +284,7 @@ impl FlutterApiErrorFields for IssuanceError {
             IssuanceError::AttestationPreview(_)
             | IssuanceError::Attestation { .. }
             | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
-            IssuanceError::DeniedDigiD => FlutterApiErrorType::DeniedDigid,
+            IssuanceError::AuthorizationDenied => FlutterApiErrorType::DeniedDigid,
             IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
                 FlutterApiErrorType::WrongDigid
             }
@@ -295,6 +295,7 @@ impl FlutterApiErrorFields for IssuanceError {
             | IssuanceError::MissingSignature
             | IssuanceError::AttestationStorage(_)
             | IssuanceError::AttestationQuery(_)
+            | IssuanceError::SessionStorage(_)
             | IssuanceError::KeyNotFound(_)
             | IssuanceError::Attestations(_)
             | IssuanceError::Notifications(_)
@@ -696,7 +697,7 @@ impl FlutterApiErrorFields for PinRecoveryError {
             PinRecoveryError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
             PinRecoveryError::NotRegistered | PinRecoveryError::SessionState => FlutterApiErrorType::WalletState,
             PinRecoveryError::Issuance(issuance_error) => issuance_error.typ(),
-            PinRecoveryError::DeniedDigiD => FlutterApiErrorType::DeniedDigid,
+            PinRecoveryError::AuthorizationDenied => FlutterApiErrorType::DeniedDigid,
             PinRecoveryError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
                 FlutterApiErrorType::WrongDigid
             }

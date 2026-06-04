@@ -7,6 +7,7 @@ use itertools::Itertools;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 
+use super::AuthorizationSession;
 use super::IssuanceDiscovery;
 use super::IssuanceFlow;
 use super::WalletIssuanceError;
@@ -131,6 +132,13 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
             issuer_trust_anchors,
         )
         .await
+    }
+
+    fn restore_authorization_session(
+        &self,
+        data: <Self::Authorization as AuthorizationSession>::Persisted,
+    ) -> Self::Authorization {
+        HttpAuthorizationSession::restore(self.http_client.clone(), data)
     }
 }
 

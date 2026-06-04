@@ -60,6 +60,16 @@ impl PkcePair for S256PkcePair {
 }
 
 impl S256PkcePair {
+    pub fn from_code_verifier(code_verifier: String) -> Self {
+        let code_challenge = Self::challenge_for(&code_verifier);
+
+        Self(code_verifier, code_challenge)
+    }
+
+    pub fn code_verifier(&self) -> &str {
+        &self.0
+    }
+
     pub fn challenge_for(verifier: &str) -> String {
         BASE64_URL_SAFE_NO_PAD.encode(sha256(verifier.as_bytes()))
     }

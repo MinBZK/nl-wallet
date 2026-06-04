@@ -27,6 +27,8 @@ use p256::ecdsa::signature;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::GoogleAttestedKey;
+use serde::Deserialize;
+use serde::Serialize;
 use tracing::info;
 use tracing::instrument;
 use update_policy_model::update_policy::VersionState;
@@ -42,6 +44,7 @@ use wallet_account::messages::instructions::DiscloseRecoveryCode;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
+use super::PersistedIssuanceSessionData;
 use super::Wallet;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationError;
@@ -90,7 +93,7 @@ pub enum IssuanceError {
 
     #[error("user denied DigiD authentication")]
     #[category(expected)]
-    DeniedDigiD,
+    AuthorizationDenied,
 
     #[error("could not retrieve attestations from issuer: {0}")]
     IssuanceSession(#[from] WalletIssuanceError),
@@ -119,6 +122,9 @@ pub enum IssuanceError {
 
     #[error("could not query attestations in database: {0}")]
     AttestationQuery(#[source] StorageError),
+
+    #[error("could not update issuance OAuth session state in database: {0}")]
+    SessionStorage(#[source] StorageError),
 
     #[error("key '{0}' not found in Wallet Provider")]
     #[category(pd)]
@@ -186,7 +192,7 @@ pub struct IssuanceResult {
     pub transfer_session_id: Option<TransferSessionId>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PidIssuancePurpose {
     Enrollment,
     Renewal,
@@ -236,7 +242,7 @@ where
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn create_pid_issuance_auth_url(&mut self, purpose: PidIssuancePurpose) -> Result<Url, IssuanceError> {
-        info!("Generating DigiD auth URL, starting OAuth discovery");
+        info!("Generating OAuth URL, starting issuer discovery");
 
         self.check_session_preconditions()?;
 
@@ -276,6 +282,15 @@ where
 
         info!("OAuth URL generated");
         let auth_url = authorization_session.auth_url().clone();
+        self.storage
+            .write()
+            .await
+            .upsert_data(&PersistedIssuanceSessionData {
+                purpose,
+                authorization_session: authorization_session.persist(),
+            })
+            .await
+            .map_err(IssuanceError::SessionStorage)?;
         self.session.replace(Session::Issuance(WalletIssuanceSession::OAuth {
             purpose,
             authorization_session,
@@ -286,26 +301,33 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub(super) async fn cancel_issuance<AS, IS: IssuanceSession>(
-        &mut self,
-        session: WalletIssuanceSession<AS, IS>,
-    ) -> Result<(), IssuanceError> {
+    pub(super) async fn cancel_issuance(&mut self) -> Result<(), IssuanceError> {
         info!("Issuance cancelled / rejected");
+        let reject_result = {
+            let Some(Session::Issuance(session)) = self.session.as_ref() else {
+                return Err(IssuanceError::SessionState);
+            };
 
-        if let WalletIssuanceSession::Issuance { protocol_state, .. } = session {
-            let organization = protocol_state.issuer_registration().organization.clone();
-
-            info!("Rejecting issuance");
-            protocol_state
-                .reject_issuance()
+            self.storage
+                .write()
                 .await
-                .map_err(|error| IssuanceError::IssuerServer { organization, error })?;
+                .delete_data::<PersistedIssuanceSessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
+                .await
+                .map_err(IssuanceError::SessionStorage)?;
+
+            if let WalletIssuanceSession::Issuance { protocol_state, .. } = session {
+                let organization = protocol_state.issuer_registration().organization.clone();
+                info!("Rejecting issuance");
+                protocol_state
+                    .reject_issuance()
+                    .await
+                    .map_err(|error| IssuanceError::IssuerServer { organization, error })
+            } else {
+                Ok(())
+            }
         };
-
-        // In the DigiD stage of PID issuance we don't have to do anything with the DigiD session state,
-        // so we don't need to match `session` on that arm.
-
-        Ok(())
+        self.session = None;
+        reject_result
     }
 
     #[instrument(skip_all)]
@@ -326,13 +348,19 @@ where
             return Err(IssuanceError::SessionState);
         }
 
-        // Take ownership of the active session, now that we know that it exists.
+        self.storage
+            .write()
+            .await
+            .delete_data::<PersistedIssuanceSessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
+            .await
+            .map_err(IssuanceError::SessionStorage)?;
+
         let Some(Session::Issuance(WalletIssuanceSession::OAuth {
             authorization_session,
             purpose,
         })) = self.session.take()
         else {
-            panic!()
+            return Err(IssuanceError::SessionState);
         };
 
         let config = self.config_repository.get();
@@ -342,7 +370,7 @@ where
             .start_issuance(&redirect_uri, trust_anchors)
             .await
             .map_err(|e| match e {
-                WalletIssuanceError::OAuth(OAuthError::Denied) => IssuanceError::DeniedDigiD,
+                WalletIssuanceError::OAuth(OAuthError::Denied) => IssuanceError::AuthorizationDenied,
                 e => IssuanceError::IssuanceSession(e),
             })?;
 
@@ -484,7 +512,7 @@ where
             Some(Session::Issuance(WalletIssuanceSession::Issuance {
                 preview_attestations, ..
             })) => preview_attestations,
-            _ => unreachable!(),
+            _ => return Err(IssuanceError::SessionState),
         };
 
         let transfer_session_id = if pid_purpose.is_some() {
@@ -695,6 +723,7 @@ mod tests {
     use openid4vc::Format;
     use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use p256::ecdsa::SigningKey;
     use rstest::rstest;
@@ -751,7 +780,9 @@ mod tests {
                 authorization_session
                     .expect_get_auth_url()
                     .return_const(Url::parse(AUTH_URL).unwrap());
-
+                authorization_session
+                    .expect_get_state()
+                    .return_const("state".to_string());
                 Ok(authorization_session)
             });
 
@@ -759,8 +790,17 @@ mod tests {
             .mut_storage()
             .expect_has_any_attestations_with_types()
             .return_once(move |_| Ok(pid_present));
+        wallet
+            .mut_storage()
+            .expect_upsert_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .return_once(move |data| {
+                assert_eq!(data.purpose, purpose);
+                assert_eq!(data.authorization_session.auth_url.as_str(), AUTH_URL);
+                assert_eq!(data.authorization_session.state, "state");
+                Ok(())
+            });
 
-        // Have the `Wallet` generate a DigiD authentication URL and test it.
+        // Have the `Wallet` generate an OAuth URL and test it.
         let auth_url = wallet
             .create_pid_issuance_auth_url(purpose)
             .await
@@ -801,7 +841,7 @@ mod tests {
 
         wallet.lock();
 
-        // Creating a DigiD authentication URL on
+        // Creating an OAuth URL on
         // a locked wallet should result in an error.
         let error = wallet
             .create_pid_issuance_auth_url(purpose)
@@ -822,7 +862,7 @@ mod tests {
         // Prepare an unregistered wallet.
         let mut wallet = TestWalletMockStorage::new_unregistered(WalletDeviceVendor::Apple).await;
 
-        // Creating a DigiD authentication URL on an
+        // Creating an OAuth URL on an
         // unregistered wallet should result in an error.
         let error = wallet
             .create_pid_issuance_auth_url(purpose)
@@ -842,14 +882,18 @@ mod tests {
     ) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        // Set up a mock DigiD session.
+        // Set up a mock OAuth session.
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
             authorization_session: MockAuthorizationSession::new(),
         }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
 
-        // Creating a DigiD authentication URL on a `Wallet` that
-        // has an active DigiD session should return an error.
+        // Creating an OAuth URL on a `Wallet` that
+        // has an active OAuth session should return an error.
         let error = wallet
             .create_pid_issuance_auth_url(purpose)
             .await
@@ -872,7 +916,7 @@ mod tests {
             protocol_state: MockIssuanceSession::default(),
         }));
 
-        // Creating a DigiD authentication URL on a `Wallet` that has
+        // Creating an OAuth URL on a `Wallet` that has
         // an active OpenID4VCI session should return an error.
         let error = wallet
             .create_pid_issuance_auth_url(purpose)
@@ -886,11 +930,15 @@ mod tests {
     async fn test_cancel_pid_issuance_oauth() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        // Set up a mock DigiD session.
+        // Set up a mock OAuth session.
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
             purpose: PidIssuancePurpose::Enrollment,
             authorization_session: MockAuthorizationSession::new(),
         }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
 
         assert!(wallet.session.is_some());
 
@@ -898,6 +946,37 @@ mod tests {
         wallet.cancel_session().await.expect("Could not cancel PID issuance");
 
         assert!(wallet.session.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_cancel_pid_issuance_delete_persisted_session_error_keeps_session() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
+            purpose: PidIssuancePurpose::Enrollment,
+            authorization_session: MockAuthorizationSession::new(),
+        }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Err(StorageError::NotOpened));
+
+        let error = wallet
+            .cancel_session()
+            .await
+            .expect_err("Cancelling PID issuance should have resulted in an error");
+
+        assert_matches!(
+            error,
+            CancelSessionError::Issuance(IssuanceError::SessionStorage(StorageError::NotOpened))
+        );
+        assert_matches!(
+            wallet.session,
+            Some(Session::Issuance(WalletIssuanceSession::OAuth {
+                purpose: PidIssuancePurpose::Enrollment,
+                ..
+            }))
+        );
     }
 
     #[tokio::test]
@@ -917,6 +996,10 @@ mod tests {
             preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
             protocol_state: pid_issuer,
         }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
 
         // Cancelling PID issuance should not fail.
         wallet.cancel_session().await.expect("Could not cancel PID issuance");
@@ -966,7 +1049,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Cancelling PID issuance on a wallet with no
-        // active DigiD session should result in an error.
+        // active OAuth session should result in an error.
         let error = wallet
             .cancel_session()
             .await
@@ -1039,6 +1122,10 @@ mod tests {
             purpose: PidIssuancePurpose::Enrollment,
             authorization_session,
         }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
 
         let denied_redirect = Url::parse(&(REDIRECT_URI.to_string() + "?error=access_denied&state=whatever")).unwrap();
         let error = wallet
@@ -1046,7 +1133,35 @@ mod tests {
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
-        assert_matches!(error, IssuanceError::DeniedDigiD);
+        assert_matches!(error, IssuanceError::AuthorizationDenied);
+    }
+
+    #[tokio::test]
+    async fn test_continue_pid_issuance_delete_persisted_session_error_keeps_session() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::OAuth {
+            purpose: PidIssuancePurpose::Enrollment,
+            authorization_session: MockAuthorizationSession::new(),
+        }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Err(StorageError::NotOpened));
+
+        let error = wallet
+            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
+            .await
+            .expect_err("Continuing PID issuance should have resulted in error");
+
+        assert_matches!(error, IssuanceError::SessionStorage(StorageError::NotOpened));
+        assert_matches!(
+            wallet.session,
+            Some(Session::Issuance(WalletIssuanceSession::OAuth {
+                purpose: PidIssuancePurpose::Enrollment,
+                ..
+            }))
+        );
     }
 
     #[tokio::test]
@@ -1090,7 +1205,7 @@ mod tests {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        // Continuing PID issuance on a wallet with no active `DigidSession` should result in an error.
+        // Continuing PID issuance on a wallet with no active OAuth session should result in an error.
         let error = wallet
             .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
@@ -1119,6 +1234,10 @@ mod tests {
             purpose: PidIssuancePurpose::Enrollment,
             authorization_session,
         }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
         (wallet, redirect_uri)
     }
 
@@ -1137,6 +1256,10 @@ mod tests {
             purpose: PidIssuancePurpose::Enrollment,
             authorization_session,
         }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
 
         // Continuing PID issuance on a wallet should forward this error.
         let error = wallet
@@ -1267,6 +1390,10 @@ mod tests {
             preview_attestations: vec_nonempty![AttestationPresentation::new_mock()],
             protocol_state: pid_issuer,
         }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
 
         // Canceling PID issuance on a wallet should forward this error.
         let error = wallet
@@ -1275,6 +1402,7 @@ mod tests {
             .expect_err("Rejecting PID issuance should have resulted in an error");
 
         assert_matches!(error, CancelSessionError::Issuance(IssuanceError::IssuerServer { .. }));
+        assert_matches!(wallet.session, None);
     }
 
     const PIN: &str = "051097";

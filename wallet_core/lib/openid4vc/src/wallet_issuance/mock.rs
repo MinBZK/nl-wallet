@@ -1,5 +1,7 @@
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::trust_anchor::TrustAnchors;
+use serde::Deserialize;
+use serde::Serialize;
 use url::Url;
 
 use super::AuthorizationSession;
@@ -9,6 +11,12 @@ use super::IssuanceSession;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
 use super::preview::NormalizedCredentialPreview;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MockAuthorizationSessionData {
+    pub auth_url: Url,
+    pub state: String,
+}
 
 mockall::mock! {
     #[derive(Debug)]
@@ -20,6 +28,8 @@ mockall::mock! {
         pub fn start_authorization_code_flow_sync(&self) -> Result<MockAuthorizationSession, WalletIssuanceError>;
 
         pub fn start_pre_authorized_code_flow_sync(&self) -> Result<MockIssuanceSession, WalletIssuanceError>;
+
+        pub fn restore_authorization_session_sync(&self, data: MockAuthorizationSessionData) -> MockAuthorizationSession;
     }
 }
 
@@ -54,21 +64,41 @@ impl IssuanceDiscovery for MockIssuanceDiscovery {
     ) -> Result<Self::Issuance, WalletIssuanceError> {
         self.start_pre_authorized_code_flow_sync()
     }
+
+    fn restore_authorization_session(
+        &self,
+        data: <Self::Authorization as AuthorizationSession>::Persisted,
+    ) -> Self::Authorization {
+        self.restore_authorization_session_sync(data)
+    }
 }
 
 mockall::mock! {
     #[derive(Debug)]
     pub AuthorizationSession {
         pub fn get_auth_url(&self) -> &Url;
+        pub fn get_state(&self) -> &str;
         pub fn start_issuance_sync(&self) -> Result<MockIssuanceSession, WalletIssuanceError>;
     }
 }
 
 impl AuthorizationSession for MockAuthorizationSession {
     type Issuance = MockIssuanceSession;
+    type Persisted = MockAuthorizationSessionData;
 
     fn auth_url(&self) -> &Url {
         self.get_auth_url()
+    }
+
+    fn state(&self) -> &str {
+        self.get_state()
+    }
+
+    fn persist(&self) -> Self::Persisted {
+        MockAuthorizationSessionData {
+            auth_url: self.get_auth_url().clone(),
+            state: self.get_state().to_string(),
+        }
     }
 
     async fn start_issuance(
@@ -87,7 +117,7 @@ mockall::mock! {
             &self,
         ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>;
 
-        pub fn reject(self) -> Result<(), WalletIssuanceError>;
+        pub fn reject(&self) -> Result<(), WalletIssuanceError>;
 
         pub fn normalized_credential_previews(&self) -> &[NormalizedCredentialPreview];
 
@@ -105,7 +135,7 @@ impl IssuanceSession for MockIssuanceSession {
         self.accept()
     }
 
-    async fn reject_issuance(self) -> Result<(), WalletIssuanceError> {
+    async fn reject_issuance(&self) -> Result<(), WalletIssuanceError> {
         self.reject()
     }
 
