@@ -174,6 +174,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   FlutterVersionState dco_decode_flutter_version_state(dynamic raw);
 
   @protected
+  Format dco_decode_format(dynamic raw);
+
+  @protected
   int dco_decode_i_32(dynamic raw);
 
   @protected
@@ -476,6 +479,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   FlutterVersionState sse_decode_flutter_version_state(SseDeserializer deserializer);
+
+  @protected
+  Format sse_decode_format(SseDeserializer deserializer);
 
   @protected
   int sse_decode_i_32(SseDeserializer deserializer);
@@ -1129,6 +1135,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wire_cst_attestation_presentation wireObj,
   ) {
     cst_api_fill_to_wire_attestation_identity(apiObj.identity, wireObj.identity);
+    wireObj.format = cst_encode_format(apiObj.format);
     wireObj.attestation_type = cst_encode_String(apiObj.attestationType);
     wireObj.display_metadata = cst_encode_list_display_metadata(apiObj.displayMetadata);
     cst_api_fill_to_wire_organization(apiObj.issuer, wireObj.issuer);
@@ -1776,6 +1783,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   int cst_encode_disclosure_type(DisclosureType raw);
 
   @protected
+  int cst_encode_format(Format raw);
+
+  @protected
   int cst_encode_i_32(int raw);
 
   @protected
@@ -1963,6 +1973,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_flutter_version_state(FlutterVersionState self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_format(Format self, SseSerializer serializer);
 
   @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
@@ -3876,6 +3889,9 @@ final class wire_cst_list_attestation_attribute extends ffi.Struct {
 
 final class wire_cst_attestation_presentation extends ffi.Struct {
   external wire_cst_attestation_identity identity;
+
+  @ffi.Int32()
+  external int format;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> attestation_type;
 

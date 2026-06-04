@@ -1990,15 +1990,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   AttestationPresentation dco_decode_attestation_presentation(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7) throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 8) throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return AttestationPresentation(
       identity: dco_decode_attestation_identity(arr[0]),
-      attestationType: dco_decode_String(arr[1]),
-      displayMetadata: dco_decode_list_display_metadata(arr[2]),
-      issuer: dco_decode_organization(arr[3]),
-      revocationStatus: dco_decode_opt_box_autoadd_revocation_status(arr[4]),
-      validityStatus: dco_decode_validity_status(arr[5]),
-      attributes: dco_decode_list_attestation_attribute(arr[6]),
+      format: dco_decode_format(arr[1]),
+      attestationType: dco_decode_String(arr[2]),
+      displayMetadata: dco_decode_list_display_metadata(arr[3]),
+      issuer: dco_decode_organization(arr[4]),
+      revocationStatus: dco_decode_opt_box_autoadd_revocation_status(arr[5]),
+      validityStatus: dco_decode_validity_status(arr[6]),
+      attributes: dco_decode_list_attestation_attribute(arr[7]),
     );
   }
 
@@ -2252,6 +2253,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       default:
         throw Exception("unreachable");
     }
+  }
+
+  @protected
+  Format dco_decode_format(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return Format.values[raw as int];
   }
 
   @protected
@@ -2970,6 +2977,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   AttestationPresentation sse_decode_attestation_presentation(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_identity = sse_decode_attestation_identity(deserializer);
+    var var_format = sse_decode_format(deserializer);
     var var_attestationType = sse_decode_String(deserializer);
     var var_displayMetadata = sse_decode_list_display_metadata(deserializer);
     var var_issuer = sse_decode_organization(deserializer);
@@ -2978,6 +2986,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var var_attributes = sse_decode_list_attestation_attribute(deserializer);
     return AttestationPresentation(
       identity: var_identity,
+      format: var_format,
       attestationType: var_attestationType,
       displayMetadata: var_displayMetadata,
       issuer: var_issuer,
@@ -3246,6 +3255,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       default:
         throw UnimplementedError('');
     }
+  }
+
+  @protected
+  Format sse_decode_format(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return Format.values[inner];
   }
 
   @protected
@@ -4057,6 +4073,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  int cst_encode_format(Format raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    return cst_encode_i_32(raw.index);
+  }
+
+  @protected
   int cst_encode_i_32(int raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return raw;
@@ -4326,6 +4348,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_attestation_presentation(AttestationPresentation self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_attestation_identity(self.identity, serializer);
+    sse_encode_format(self.format, serializer);
     sse_encode_String(self.attestationType, serializer);
     sse_encode_list_display_metadata(self.displayMetadata, serializer);
     sse_encode_organization(self.issuer, serializer);
@@ -4551,6 +4574,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case FlutterVersionState_Block():
         sse_encode_i_32(4, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_format(Format self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected

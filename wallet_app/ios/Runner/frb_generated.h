@@ -213,6 +213,7 @@ typedef struct wire_cst_list_attestation_attribute {
 
 typedef struct wire_cst_attestation_presentation {
   struct wire_cst_attestation_identity identity;
+  int32_t format;
   struct wire_cst_list_prim_u_8_strict *attestation_type;
   struct wire_cst_list_display_metadata *display_metadata;
   struct wire_cst_organization issuer;

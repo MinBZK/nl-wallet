@@ -1603,6 +1603,16 @@ impl CstDecode<crate::models::disclosure::DisclosureType> for i32 {
         }
     }
 }
+impl CstDecode<crate::models::attestation::Format> for i32 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> crate::models::attestation::Format {
+        match self {
+            0 => crate::models::attestation::Format::MsoMdoc,
+            1 => crate::models::attestation::Format::SdJwt,
+            _ => unreachable!("Invalid variant for Format: {}", self),
+        }
+    }
+}
 impl CstDecode<i32> for i32 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> i32 {
@@ -1887,6 +1897,7 @@ impl SseDecode for crate::models::attestation::AttestationPresentation {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_identity = <crate::models::attestation::AttestationIdentity>::sse_decode(deserializer);
+        let mut var_format = <crate::models::attestation::Format>::sse_decode(deserializer);
         let mut var_attestationType = <String>::sse_decode(deserializer);
         let mut var_displayMetadata = <Vec<crate::models::attestation::DisplayMetadata>>::sse_decode(deserializer);
         let mut var_issuer = <crate::models::disclosure::Organization>::sse_decode(deserializer);
@@ -1895,6 +1906,7 @@ impl SseDecode for crate::models::attestation::AttestationPresentation {
         let mut var_attributes = <Vec<crate::models::attestation::AttestationAttribute>>::sse_decode(deserializer);
         return crate::models::attestation::AttestationPresentation {
             identity: var_identity,
+            format: var_format,
             attestation_type: var_attestationType,
             display_metadata: var_displayMetadata,
             issuer: var_issuer,
@@ -2165,6 +2177,18 @@ impl SseDecode for crate::models::version_state::FlutterVersionState {
                 unimplemented!("");
             }
         }
+    }
+}
+
+impl SseDecode for crate::models::attestation::Format {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::models::attestation::Format::MsoMdoc,
+            1 => crate::models::attestation::Format::SdJwt,
+            _ => unreachable!("Invalid variant for Format: {}", inner),
+        };
     }
 }
 
@@ -3185,6 +3209,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttestationPr
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.identity.into_into_dart().into_dart(),
+            self.format.into_into_dart().into_dart(),
             self.attestation_type.into_into_dart().into_dart(),
             self.display_metadata.into_into_dart().into_dart(),
             self.issuer.into_into_dart().into_dart(),
@@ -3495,6 +3520,22 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::version_state::FlutterVers
     for crate::models::version_state::FlutterVersionState
 {
     fn into_into_dart(self) -> crate::models::version_state::FlutterVersionState {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::attestation::Format {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::MsoMdoc => 0.into_dart(),
+            Self::SdJwt => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::attestation::Format {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::Format> for crate::models::attestation::Format {
+    fn into_into_dart(self) -> crate::models::attestation::Format {
         self
     }
 }
@@ -4235,6 +4276,7 @@ impl SseEncode for crate::models::attestation::AttestationPresentation {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::models::attestation::AttestationIdentity>::sse_encode(self.identity, serializer);
+        <crate::models::attestation::Format>::sse_encode(self.format, serializer);
         <String>::sse_encode(self.attestation_type, serializer);
         <Vec<crate::models::attestation::DisplayMetadata>>::sse_encode(self.display_metadata, serializer);
         <crate::models::disclosure::Organization>::sse_encode(self.issuer, serializer);
@@ -4485,6 +4527,22 @@ impl SseEncode for crate::models::version_state::FlutterVersionState {
                 unimplemented!("");
             }
         }
+    }
+}
+
+impl SseEncode for crate::models::attestation::Format {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::models::attestation::Format::MsoMdoc => 0,
+                crate::models::attestation::Format::SdJwt => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
     }
 }
 
@@ -5473,6 +5531,7 @@ mod io {
         fn cst_decode(self) -> crate::models::attestation::AttestationPresentation {
             crate::models::attestation::AttestationPresentation {
                 identity: self.identity.cst_decode(),
+                format: self.format.cst_decode(),
                 attestation_type: self.attestation_type.cst_decode(),
                 display_metadata: self.display_metadata.cst_decode(),
                 issuer: self.issuer.cst_decode(),
@@ -6289,6 +6348,7 @@ mod io {
         fn new_with_null_ptr() -> Self {
             Self {
                 identity: Default::default(),
+                format: Default::default(),
                 attestation_type: core::ptr::null_mut(),
                 display_metadata: core::ptr::null_mut(),
                 issuer: Default::default(),
@@ -7423,6 +7483,7 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_attestation_presentation {
         identity: wire_cst_attestation_identity,
+        format: i32,
         attestation_type: *mut wire_cst_list_prim_u_8_strict,
         display_metadata: *mut wire_cst_list_display_metadata,
         issuer: wire_cst_organization,
