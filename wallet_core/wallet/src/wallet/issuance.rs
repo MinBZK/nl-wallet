@@ -309,17 +309,17 @@ where
     pub(super) async fn cancel_issuance(&mut self) -> Result<(), IssuanceError> {
         info!("Issuance cancelled / rejected");
 
-        self.storage
-            .write()
-            .await
-            .delete_data::<PersistedIssuanceSessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
-            .await
-            .map_err(IssuanceError::SessionStorage)?;
-
         {
             let Some(Session::Issuance(session)) = self.session.as_ref() else {
                 return Err(IssuanceError::SessionState);
             };
+
+            self.storage
+                .write()
+                .await
+                .delete_data::<PersistedIssuanceSessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
+                .await
+                .map_err(IssuanceError::SessionStorage)?;
 
             if let WalletIssuanceSession::Issuance { protocol_state, .. } = session {
                 let organization = protocol_state.issuer_registration().organization.clone();
