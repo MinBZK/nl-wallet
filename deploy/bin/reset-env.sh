@@ -9,7 +9,7 @@ done
 
 # Clean WIA status lists on static server
 POD=$(kubectl get pod -l 'app.kubernetes.io/name=static-files' -o=name | head -n 1)
-kubectl exec -t $POD -- sh -c 'rm -rf /usr/share/nginx/html/wia/*'
+kubectl exec $POD -- sh -c 'rm -rf /usr/share/nginx/html/wia/*'
 
 # Delete PVCs created by helm install
 kubectl delete pvc --wait=true \
