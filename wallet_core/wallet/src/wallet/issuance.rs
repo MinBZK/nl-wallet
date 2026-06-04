@@ -327,7 +327,7 @@ where
             }
         };
         self.session = None;
-        return reject_result;
+        reject_result
     }
 
     #[instrument(skip_all)]
