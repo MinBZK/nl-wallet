@@ -4,6 +4,9 @@ use std::sync::LazyLock;
 
 use askama::Template;
 use askama_web::WebTemplate;
+use attestation_data::attributes::Attribute;
+use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attributes;
 use axum::Json;
 use axum::Router;
 use axum::extract::Path;
@@ -21,6 +24,7 @@ use demo_utils::disclosure::DemoDisclosedAttestations;
 use http_utils::health::create_health_router;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::disclosure_based_issuance_base_uri;
+use indexmap::IndexMap;
 use itertools::Itertools;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::openid4vp::ClientId;
@@ -31,6 +35,8 @@ use openid4vc::verifier::SessionType;
 use openid4vc::verifier::VerifierUrlParameters;
 use pacf_issuance_server::offer::OfferRequest;
 use pacf_issuance_server::offer::OfferResponse;
+use rand::RngCore;
+use rand::rngs::OsRng;
 use server_utils::log_requests::log_request_response;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
@@ -262,6 +268,9 @@ async fn pre_authorized_usecase(
         .iter()
         .map(|doc| {
             let (format, attestation_type, attributes) = doc.clone().into();
+
+            let attributes = random_values(attributes, &mut OsRng);
+
             IssuableDocument::try_new_with_random_id(format, attestation_type, attributes)
                 .map_err(|err| web_utils::error::Error::from(anyhow::Error::from(err)))
         })
@@ -341,4 +350,44 @@ async fn attestation(
         .unwrap_or_default();
 
     Ok(Json(documents).into_response())
+}
+
+/// Traverses all attributes and replaces every [`AttributeValue::Null`] (including those
+/// nested inside [`AttributeValue::Array`]) with a random hex string.
+fn random_values(attributes: Attributes, rng: &mut impl RngCore) -> Attributes {
+    attributes
+        .into_inner()
+        .into_iter()
+        .map(|(key, mut attribute)| {
+            random_values_in_attribute(&mut attribute, rng);
+            (key, attribute)
+        })
+        .collect::<IndexMap<_, _>>()
+        .into()
+}
+
+fn random_values_in_value(value: &mut AttributeValue, rng: &mut impl RngCore) {
+    match value {
+        AttributeValue::Text(text) if text.as_str() == "{{INSERT_RANDOM_VALUE}}" => {
+            let n: u64 = rng.next_u64() % 10_000_000_000;
+            *value = AttributeValue::Text(format!("{n:010}"));
+        }
+        AttributeValue::Array(elements) => {
+            for element in elements {
+                random_values_in_value(element, rng);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn random_values_in_attribute(attribute: &mut Attribute, rng: &mut impl RngCore) {
+    match attribute {
+        Attribute::Single(value) => random_values_in_value(value, rng),
+        Attribute::Nested(map) => {
+            for attr in map.values_mut() {
+                random_values_in_attribute(attr, rng);
+            }
+        }
+    }
 }

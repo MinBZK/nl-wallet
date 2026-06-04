@@ -22,7 +22,7 @@
           "attestation_type": "com.example.jum.bonuskaart",
           "attributes": {
             "branch": "Demodam",
-            "loyalty_number": "123456789"
+            "loyalty_number": "{{INSERT_RANDOM_VALUE}}"
           }
         }
       ]
