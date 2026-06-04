@@ -48,6 +48,8 @@ use update_policy_model::update_policy::VersionState;
 use url::Url;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wscd::Poa;
@@ -510,7 +512,7 @@ where
         let attestations = attestations.select_proposal(selected_indices);
 
         // There is guaranteed to be at least one attestation because of the logic in `start_disclosure()`.
-        let attestation_values = VecNonEmpty::try_from(attestations.values().copied().collect_vec()).unwrap();
+        let attestation_values = VecNonEmpty::try_from(attestations.into_values().collect_vec()).unwrap();
 
         // NOTE: If the disclosure fails and is retried, the disclosure count will jump by
         //       more than 1, since the same copies are shared with the verifier again.
@@ -518,7 +520,7 @@ where
         //       to the verifier, as we do not know if disclosure fails before or after the
         //       verifier has received the attributes.
         let (attestation_presentations, result) = self
-            .increment_usage_count_and_collect_presentations(attestation_values)
+            .increment_usage_count_and_collect_presentations(attestation_values.clone())
             .await;
 
         let disclosure_type = DisclosureType::Regular;
@@ -546,7 +548,7 @@ where
         }
 
         let device_response = match Self::create_close_proximity_device_response(
-            attestations.values().copied(),
+            attestation_values,
             session_transcript.as_ref(),
             *verifier_certificate,
             &remote_wscd,
@@ -691,7 +693,7 @@ where
     }
 
     async fn create_close_proximity_device_response<'a, K, W>(
-        attestations: impl IntoIterator<Item = &'a DisclosableAttestation>,
+        attestations: impl IntoNonEmptyIterator<Item = &'a DisclosableAttestation>,
         session_transcript: &SessionTranscript,
         verifier_certificate: VerifierCertificate,
         wscd: &W,
@@ -703,7 +705,7 @@ where
         // Gather all partial mdocs presentations by cloning the attestations held in the session, as disclosing
         // attestations needs to be retryable.
         let partial_mdocs = attestations
-            .into_iter()
+            .into_nonempty_iter()
             .map(|attestation| {
                 let PartialAttestation::MsoMdoc { partial_mdoc } = attestation.partial_attestation() else {
                     panic!("SD-JWT attestations are not supported in close proximity disclosure")
@@ -711,9 +713,7 @@ where
 
                 *partial_mdoc.clone()
             })
-            .collect_vec()
-            .try_into()
-            .unwrap();
+            .collect();
 
         // if this fails, there's a bug in the code
         let nonce = Nonce::from(hex::encode(cbor_serialize(&session_transcript).unwrap()));
@@ -1734,7 +1734,7 @@ mod tests {
         let key_id1 = pid1.partial_attestation().private_key_id().to_owned();
         let key_id2 = pid2.private_key_id().to_owned();
 
-        let disclosable_attestations = [
+        let disclosable_attestations = vec_nonempty![
             pid1,
             disclosable_attestation_from_credential_requests(
                 pid2,
@@ -1753,7 +1753,7 @@ mod tests {
 
         let device_response =
             TestWalletMockStorage::<LocalConfigurationRepository>::create_close_proximity_device_response(
-                disclosable_attestations.iter(),
+                disclosable_attestations.nonempty_iter(),
                 &session_transcript,
                 verifier_certificate,
                 &wscd,

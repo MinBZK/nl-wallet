@@ -2,7 +2,6 @@ use std::assert_matches;
 
 use attestation_data::attributes::Attributes;
 use db_test::DbSetup;
-use itertools::Itertools;
 use openid4vc::ErrorResponse;
 use openid4vc::Format;
 use openid4vc::issuable_document::IssuableDocument;
@@ -21,7 +20,10 @@ use pid_issuer::pid::constants::PID_RESIDENT_POSTAL_CODE;
 use pid_issuer::pid::constants::PID_RESIDENT_STREET;
 use serial_test::serial;
 use tests_integration::common::*;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use wallet::AttestationAttributeValue;
 use wallet::PidIssuancePurpose;
 use wallet::attestation_data::AttributeValue;
@@ -78,8 +80,8 @@ async fn ltc1_test_pid_ok() {
 }
 
 fn pid_without_optionals_with_address() -> VecNonEmpty<IssuableDocument> {
-    [Format::MsoMdoc, Format::SdJwt]
-        .into_iter()
+    vec_nonempty![Format::MsoMdoc, Format::SdJwt]
+        .into_nonempty_iter()
         .map(|format| {
             IssuableDocument::try_new_with_random_id(
                 format,
@@ -118,14 +120,12 @@ fn pid_without_optionals_with_address() -> VecNonEmpty<IssuableDocument> {
             )
             .unwrap()
         })
-        .collect_vec()
-        .try_into()
-        .unwrap()
+        .collect()
 }
 
 fn pid_missing_required_with_address() -> VecNonEmpty<IssuableDocument> {
-    [Format::MsoMdoc, Format::SdJwt]
-        .into_iter()
+    vec_nonempty![Format::MsoMdoc, Format::SdJwt]
+        .into_nonempty_iter()
         .map(|format| {
             IssuableDocument::try_new_with_random_id(
                 format,
@@ -163,9 +163,7 @@ fn pid_missing_required_with_address() -> VecNonEmpty<IssuableDocument> {
             )
             .unwrap()
         })
-        .collect_vec()
-        .try_into()
-        .unwrap()
+        .collect()
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]

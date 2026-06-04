@@ -380,6 +380,7 @@ pub mod mock {
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
     use mdoc::examples::EXAMPLE_NAMESPACE;
+    use utils::vec_at_least::NonEmptyIterator;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
@@ -444,18 +445,14 @@ pub mod mock {
             }
         }
 
-        pub fn new_mock_sd_jwt(id: &str, vcts: &[&str], attribute_paths: &[&[&str]]) -> Self {
+        pub fn new_mock_sd_jwt(
+            id: &str,
+            vct_values: VecNonEmpty<String>,
+            attribute_paths: &[VecNonEmpty<String>],
+        ) -> Self {
             CredentialQuery {
                 id: id.try_into().expect("identifier should be valid"),
-                format: CredentialQueryFormat::SdJwt {
-                    vct_values: vcts
-                        .iter()
-                        .copied()
-                        .map(str::to_string)
-                        .collect_vec()
-                        .try_into()
-                        .expect("should contain at least one vct"),
-                },
+                format: CredentialQueryFormat::SdJwt { vct_values },
                 multiple: false,
                 trusted_authorities: vec![],
                 require_cryptographic_holder_binding: true,
@@ -465,11 +462,9 @@ pub mod mock {
                         .map(|attributes| ClaimsQuery {
                             id: None,
                             path: attributes
-                                .iter()
+                                .nonempty_iter()
                                 .map(|attribute| ClaimPath::SelectByKey(attribute.to_string()))
-                                .collect_vec()
-                                .try_into()
-                                .expect("should contain at least one path element"),
+                                .collect(),
                             values: vec![],
                             intent_to_retain: None,
                         })
@@ -501,16 +496,23 @@ pub mod mock {
         pub fn new_mock_sd_jwt_pid_example() -> Self {
             Self::new_mock_sd_jwt(
                 "mock_sd_jwt_example",
-                &[PID_ATTESTATION_TYPE],
-                &[&["bsn"], &["given_name"], &["family_name"]],
+                vec_nonempty![PID_ATTESTATION_TYPE.to_owned()],
+                &[
+                    vec_nonempty!["bsn".to_owned()],
+                    vec_nonempty!["given_name".to_owned()],
+                    vec_nonempty!["family_name".to_owned()],
+                ],
             )
         }
 
         pub fn new_mock_sd_jwt_eu_pid_example() -> Self {
             Self::new_mock_sd_jwt(
                 "mock_sd_jwt_example",
-                &[ROOT_PID_ATTESTATION_TYPE],
-                &[&["given_name"], &["family_name"]],
+                vec_nonempty![ROOT_PID_ATTESTATION_TYPE.to_owned()],
+                &[
+                    vec_nonempty!["given_name".to_owned()],
+                    vec_nonempty!["family_name".to_owned()],
+                ],
             )
         }
     }
@@ -861,9 +863,7 @@ mod test {
         mdoc_example_query_mutate_first_credential_query(|mut c| {
             c.claims_selection = ClaimsSelection::Combinations {
                 claims: vec![mdoc_claims_query()].try_into().unwrap(),
-                claim_sets: vec![vec!["1".to_string().try_into().unwrap()].try_into().unwrap()]
-                    .try_into()
-                    .unwrap(),
+                claim_sets: vec_nonempty![vec!["1".to_string().try_into().unwrap()].try_into().unwrap()],
             };
             c
         })
@@ -872,9 +872,7 @@ mod test {
     fn mdoc_query_with_invalid_claim_path_variant_all() -> Query {
         let claims_query = {
             let mut claims_query = mdoc_claims_query();
-            claims_query.path = vec![ClaimPath::SelectByKey("ns".to_string()), ClaimPath::SelectAll]
-                .try_into()
-                .unwrap();
+            claims_query.path = vec_nonempty![ClaimPath::SelectByKey("ns".to_string()), ClaimPath::SelectAll];
             claims_query
         };
         mdoc_example_query_mutate_first_credential_query(move |mut c| {
@@ -888,9 +886,7 @@ mod test {
     fn mdoc_query_with_invalid_claim_path_variant_by_index() -> Query {
         let claims_query = {
             let mut claims_query = mdoc_claims_query();
-            claims_query.path = vec![ClaimPath::SelectByKey("ns".to_string()), ClaimPath::SelectByIndex(1)]
-                .try_into()
-                .unwrap();
+            claims_query.path = vec_nonempty![ClaimPath::SelectByKey("ns".to_string()), ClaimPath::SelectByIndex(1)];
             claims_query
         };
         mdoc_example_query_mutate_first_credential_query(move |mut c| {
@@ -937,8 +933,12 @@ mod test {
     fn sd_jwt_single_query() -> Query {
         Query::new_mock_single(CredentialQuery::new_mock_sd_jwt(
             "sd_jwt_0",
-            &["pid", "another_pid"],
-            &[&["given_name"], &["family_name"], &["address", "street_address"]],
+            vec_nonempty!["pid".to_owned(), "another_pid".to_owned()],
+            &[
+                vec_nonempty!["given_name".to_owned()],
+                vec_nonempty!["family_name".to_owned()],
+                vec_nonempty!["address".to_owned(), "street_address".to_owned()],
+            ],
         ))
     }
 
@@ -954,15 +954,13 @@ mod test {
             id: "mdoc_iso_example".try_into().unwrap(),
             doctype_value: "org.iso.18013.5.1.mDL".to_string(),
             aki: vec![],
-            claims: vec![MdocAttributeRequest {
+            claims: vec_nonempty![MdocAttributeRequest {
                 path: vec_nonempty![
                     ClaimPath::SelectByKey("ns".to_string()),
                     ClaimPath::SelectByKey("attr".to_string()),
                 ],
                 intent_to_retain: Some(true),
-            }]
-            .try_into()
-            .unwrap(),
+            }],
         }]
         .try_into()
         .unwrap()
@@ -971,20 +969,22 @@ mod test {
     fn normalized_sd_jwt_family_name() -> NormalizedCredentialRequests {
         vec![NormalizedCredentialRequest::SdJwt {
             id: "intent_to_retain".try_into().unwrap(),
-            vct_values: vec!["pid".to_string()].try_into().unwrap(),
+            vct_values: vec_nonempty!["pid".to_string()],
             aki: vec![],
-            claims: vec![SdJwtAttributeRequest {
+            claims: vec_nonempty![SdJwtAttributeRequest {
                 path: vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())],
-            }]
-            .try_into()
-            .unwrap(),
+            }],
         }]
         .try_into()
         .unwrap()
     }
 
     fn sd_jwt_values_query() -> Query {
-        let mut credential_query = CredentialQuery::new_mock_sd_jwt("intent_to_retain", &["pid"], &[&["family_name"]]);
+        let mut credential_query = CredentialQuery::new_mock_sd_jwt(
+            "intent_to_retain",
+            vec_nonempty!["pid".to_owned()],
+            &[vec_nonempty!["family_name".to_owned()]],
+        );
 
         credential_query.claims_selection = ClaimsSelection::All {
             claims: vec![ClaimsQuery {
@@ -1004,7 +1004,11 @@ mod test {
     }
 
     fn sd_jwt_no_selectively_disclosable_query() -> Query {
-        let mut credential_query = CredentialQuery::new_mock_sd_jwt("intent_to_retain", &["pid"], &[&["family_name"]]);
+        let mut credential_query = CredentialQuery::new_mock_sd_jwt(
+            "intent_to_retain",
+            vec_nonempty!["pid".to_owned()],
+            &[vec_nonempty!["family_name".to_owned()]],
+        );
 
         credential_query.claims_selection = ClaimsSelection::NoSelectivelyDisclosable;
 
@@ -1015,7 +1019,11 @@ mod test {
     }
 
     fn sd_jwt_intent_to_retain_query() -> Query {
-        let mut credential_query = CredentialQuery::new_mock_sd_jwt("intent_to_retain", &["pid"], &[&["family_name"]]);
+        let mut credential_query = CredentialQuery::new_mock_sd_jwt(
+            "intent_to_retain",
+            vec_nonempty!["pid".to_owned()],
+            &[vec_nonempty!["family_name".to_owned()]],
+        );
 
         credential_query.claims_selection = ClaimsSelection::All {
             claims: vec![ClaimsQuery {
