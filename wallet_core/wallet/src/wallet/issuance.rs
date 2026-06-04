@@ -1404,13 +1404,7 @@ mod tests {
             .expect_err("Rejecting PID issuance should have resulted in an error");
 
         assert_matches!(error, CancelSessionError::Issuance(IssuanceError::IssuerServer { .. }));
-        assert_matches!(
-            wallet.session,
-            Some(Session::Issuance(WalletIssuanceSession::Issuance {
-                pid_purpose: Some(PidIssuancePurpose::Enrollment),
-                ..
-            }))
-        );
+        assert_matches!(wallet.session, None);
     }
 
     const PIN: &str = "051097";
