@@ -128,6 +128,15 @@ void main() {
       expect(sessionError.sourceError, coreError);
     });
 
+    test('CoreCloseProximityDisconnectedError maps to CloseProximityDisconnectedError', () async {
+      const coreError = CoreCloseProximityDisconnectedError('description');
+
+      final applicationError = await coreError.asApplicationError();
+
+      expect(applicationError, isA<CloseProximityDisconnectedError>());
+      expect(applicationError.sourceError, coreError);
+    });
+
     group('CoreRelyingPartyError', () {
       test('maps to RelyingPartyError with organization name', () async {
         final coreError = CoreRelyingPartyError(

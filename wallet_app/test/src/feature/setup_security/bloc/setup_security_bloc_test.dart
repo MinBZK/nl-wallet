@@ -91,7 +91,7 @@ void main() {
       const SetupSecurityPinConfirmationInProgress(3),
       const SetupSecurityPinConfirmationInProgress(4),
       const SetupSecurityPinConfirmationInProgress(5),
-      SetupSecurityCreatingWallet(),
+      const SetupSecurityCreatingWallet(),
       const SetupSecurityCompleted(),
     ],
   );
@@ -133,8 +133,8 @@ void main() {
     },
     skip: 11 /* skip pin setup */,
     expect: () => [
-      SetupSecurityCreatingWallet(),
-      isA<SetupSecurityNetworkError>().having((e) => e.error.hasInternet, 'hasInternet', true),
+      const SetupSecurityCreatingWallet(),
+      isA<SetupSecurityError>().having((e) => (e.error as NetworkError).hasInternet, 'hasInternet', true),
       isA<SetupSecuritySelectPinInProgress>(),
     ],
   );
@@ -155,8 +155,8 @@ void main() {
     },
     skip: 11 /* skip pin setup */,
     expect: () => [
-      SetupSecurityCreatingWallet(),
-      isA<SetupSecurityGenericError>(),
+      const SetupSecurityCreatingWallet(),
+      isA<SetupSecurityError>(),
       isA<SetupSecuritySelectPinInProgress>(),
     ],
   );
@@ -177,8 +177,8 @@ void main() {
     },
     skip: 11 /* skip pin setup */,
     expect: () => [
-      SetupSecurityCreatingWallet(),
-      isA<SetupSecurityDeviceIncompatibleError>(),
+      const SetupSecurityCreatingWallet(),
+      isA<SetupSecurityError>().having((it) => it.error, 'HardwareUnsupported', isA<HardwareUnsupportedError>()),
       isA<SetupSecuritySelectPinInProgress>(),
     ],
   );
@@ -197,7 +197,7 @@ void main() {
     },
     skip: 11 /* skip pin & pin confirmation state changes */,
     expect: () => [
-      SetupSecurityCreatingWallet(),
+      const SetupSecurityCreatingWallet(),
       const SetupSecurityConfigureBiometrics(biometrics: Biometrics.some),
     ],
   );
@@ -225,7 +225,7 @@ void main() {
     },
     skip: 11 /* skip pin & pin confirmation state changes */,
     expect: () => [
-      SetupSecurityCreatingWallet(),
+      const SetupSecurityCreatingWallet(),
       const SetupSecurityConfigureBiometrics(biometrics: Biometrics.some),
       const SetupSecurityCompleted(enabledBiometrics: Biometrics.some),
     ],
@@ -249,7 +249,7 @@ void main() {
     },
     skip: 11 /* skip pin & pin confirmation state changes */,
     expect: () => [
-      SetupSecurityCreatingWallet(),
+      const SetupSecurityCreatingWallet(),
       const SetupSecurityConfigureBiometrics(biometrics: Biometrics.some),
       const SetupSecurityCompleted(),
     ],

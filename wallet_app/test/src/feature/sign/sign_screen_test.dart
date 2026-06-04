@@ -5,13 +5,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart';
 import 'package:wallet/src/feature/common/widget/centered_loading_indicator.dart';
+import 'package:wallet/src/feature/error/error_page.dart';
 import 'package:wallet/src/feature/organization/approve/organization_approve_page.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/sign/bloc/sign_bloc.dart';
 import 'package:wallet/src/feature/sign/page/check_agreement_page.dart';
 import 'package:wallet/src/feature/sign/page/confirm_agreement_page.dart';
 import 'package:wallet/src/feature/sign/page/sign_confirm_pin_page.dart';
-import 'package:wallet/src/feature/sign/page/sign_generic_error_page.dart';
 import 'package:wallet/src/feature/sign/page/sign_stopped_page.dart';
 import 'package:wallet/src/feature/sign/page/sign_success_page.dart';
 import 'package:wallet/src/feature/sign/sign_screen.dart';
@@ -256,7 +256,7 @@ void main() {
           const SignError(),
         ),
       );
-      expect(find.byType(SignGenericErrorPage), findsOneWidget);
+      expect(find.byType(ErrorPage), findsOneWidget);
     });
 
     testWidgets('SignStopped state renders SignStoppedPage', (tester) async {

@@ -5,6 +5,7 @@ data class TestConfig(
     val deviceName: String,
     val platformName: String,
     val platformVersion: String,
+    val udid: String,
     val remote: Boolean,
     val automationName: String,
     val commitSha: String,

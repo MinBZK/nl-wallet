@@ -169,7 +169,7 @@ void main() {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
               MockChangePinBloc(),
-              const ChangePinGenericError(error: GenericError('generic', sourceError: 'test')),
+              const ChangePinError(error: GenericError('generic', sourceError: 'test')),
             ),
           );
           await tester.pumpAndSettle();
@@ -178,12 +178,12 @@ void main() {
       );
 
       testGoldens(
-        'ltc45 ChangePinNetworkError',
+        'ltc45 ChangePinError (NetworkError)',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
               MockChangePinBloc(),
-              const ChangePinNetworkError(
+              const ChangePinError(
                 error: NetworkError(hasInternet: true, sourceError: 'test'),
               ),
             ),

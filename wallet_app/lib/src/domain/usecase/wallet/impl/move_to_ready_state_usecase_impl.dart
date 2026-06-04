@@ -1,7 +1,5 @@
 import 'package:fimber/fimber.dart';
 
-import '../../../../data/repository/disclosure/disclosure_repository.dart';
-import '../../../../data/repository/issuance/issuance_repository.dart';
 import '../../../../data/repository/pin/pin_repository.dart';
 import '../../../../data/repository/transfer/transfer_repository.dart';
 import '../../../../data/repository/wallet/wallet_repository.dart';
@@ -12,15 +10,11 @@ import '../move_to_ready_state_usecase.dart';
 
 class MoveToReadyStateUseCaseImpl extends MoveToReadyStateUseCase {
   final WalletRepository _walletRepository;
-  final IssuanceRepository _issuanceRepository;
-  final DisclosureRepository _disclosureRepository;
   final PinRepository _pinRepository;
   final TransferRepository _transferRepository;
 
   MoveToReadyStateUseCaseImpl(
     this._walletRepository,
-    this._issuanceRepository,
-    this._disclosureRepository,
     this._pinRepository,
     this._transferRepository,
   );
@@ -51,9 +45,8 @@ class MoveToReadyStateUseCaseImpl extends MoveToReadyStateUseCase {
               throw 'Destination transfer states should be explicitly cancelled: $state';
           }
         case WalletStateInDisclosureFlow():
-          await _disclosureRepository.cancelDisclosure();
         case WalletStateInIssuanceFlow():
-          await _issuanceRepository.cancelIssuance();
+          await _walletRepository.cancelSession();
         case WalletStateInPinRecoveryFlow():
           await _pinRepository.cancelPinRecovery();
       }

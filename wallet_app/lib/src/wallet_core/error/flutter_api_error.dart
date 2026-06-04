@@ -33,6 +33,8 @@ enum FlutterApiErrorType {
   expiredSession,
   @JsonValue('CancelledSession')
   cancelledSession,
+  @JsonValue('CloseProximityDisconnected')
+  closeProximityDisconnected,
   @JsonValue('Issuer')
   issuer,
   @JsonValue('Verifier')

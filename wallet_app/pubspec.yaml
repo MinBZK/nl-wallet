@@ -12,14 +12,14 @@ environment:
 dependencies:
   after_layout: ^1.2.0
   app_links: ^7.0.0
-  app_settings: ^6.1.1
+  app_settings: ^7.0.0
   bloc_concurrency: ^0.3.0
   bluetooth:
     path: ./plugins/bluetooth
   clock: ^1.1.2
   collection: ^1.19.1
   connectivity_plus: ^6.1.5
-  country_codes: ^3.3.0
+  country_codes_plus: ^5.1.1
   cupertino_icons: ^1.0.8
   device_info_plus: ^11.5.0
   equatable: ^2.0.7
@@ -84,7 +84,7 @@ dev_dependencies:
   mockito: ^5.5.0
   sentry_dart_plugin: ^3.1.1
   test: ^1.26.2
-  translations_cleaner: ^0.0.5
+  translations_cleaner: ^0.1.1
 
 flutter:
   uses-material-design: true
@@ -102,7 +102,7 @@ flutter:
     - assets/non-free/icons/
     - assets/non-free/lottie/
     - assets/non-free/markdown/
-    - assets/non-free/markdown/help/
+    - assets/non-free/markdown/help/help.yaml
     - assets/non-free/markdown/help/en/
     - assets/non-free/markdown/help/nl/
 

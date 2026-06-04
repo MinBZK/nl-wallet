@@ -7,14 +7,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../data/repository/pid/pid_repository.dart';
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/bloc/error_state.dart';
-import '../../../../domain/model/bloc/network_error_state.dart';
 import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/flow_progress.dart';
 import '../../../../domain/model/result/application_error.dart';
 import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
-import '../../../../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
+import '../../../../domain/usecase/session/cancel_session_usecase.dart';
 import '../../../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import '../../../../util/helper/onboarding_helper.dart';
 import '../../../../wallet_core/error/core_error.dart';
@@ -25,14 +24,14 @@ part 'wallet_personalize_state.dart';
 class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonalizeState> {
   final GetWalletCardsUseCase getWalletCardsUseCase;
   final GetPidIssuanceUrlUseCase getPidIssuanceUrlUseCase;
-  final CancelPidIssuanceUseCase cancelPidIssuanceUseCase;
+  final CancelSessionUseCase cancelSessionUseCase;
   final ContinuePidIssuanceUseCase continuePidIssuanceUseCase;
   final IsWalletInitializedWithPidUseCase isWalletInitializedWithPidUseCase;
 
   WalletPersonalizeBloc(
     this.getWalletCardsUseCase,
     this.getPidIssuanceUrlUseCase,
-    this.cancelPidIssuanceUseCase,
+    this.cancelSessionUseCase,
     this.continuePidIssuanceUseCase,
     this.isWalletInitializedWithPidUseCase, {
     bool continueFromDigiD = false,
@@ -65,16 +64,15 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       onSuccess: (previewAttributes) => add(WalletPersonalizeLoginWithDigidSucceeded(previewAttributes)),
       onError: (error) {
         switch (error) {
-          case NetworkError():
-            emit(WalletPersonalizeNetworkError(error: error));
           case DeniedDigidError():
             add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: true, error: error));
           case RedirectUriError():
             // Currently seeing 'accessDenied/loginRequired' when pressing cancel in the digid connector. Verify on prod. (PVW-2352)
             final cancelled = [RedirectError.accessDenied, RedirectError.loginRequired].contains(error.redirectError);
             add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: cancelled, error: error));
+          case NetworkError():
           case RelyingPartyError():
-            emit(WalletPersonalizeRelyingPartyError(error: error, organizationName: error.organizationName));
+            emit(WalletPersonalizeError(error: error));
           default:
             add(WalletPersonalizeLoginWithDigidFailed(error: error));
         }
@@ -88,7 +86,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   ) async {
     emit(const WalletPersonalizeLoadingIssuanceUrl());
     // Fixes PVW-2171 (lock during WalletPersonalizeCheckData)
-    await cancelPidIssuanceUseCase.invoke();
+    await cancelSessionUseCase.invoke();
 
     final urlResult = await getPidIssuanceUrlUseCase.invoke();
     await urlResult.process(
@@ -96,9 +94,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       onError: (error) {
         switch (error) {
           case NetworkError():
-            emit(WalletPersonalizeNetworkError(error: error));
           case RelyingPartyError():
-            emit(WalletPersonalizeRelyingPartyError(error: error, organizationName: error.organizationName));
+            emit(WalletPersonalizeError(error: error));
           default:
             emit(WalletPersonalizeDigidFailure(error: error));
         }
@@ -118,10 +115,10 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     Emitter<WalletPersonalizeState> emit,
   ) async {
     emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
-    await cancelPidIssuanceUseCase.invoke(); // Confirm cancellation to the server
+    await cancelSessionUseCase.invoke(); // Confirm cancellation to the server
 
     if (event.cancelledByUser) {
-      emit(WalletPersonalizeDigidCancelled());
+      emit(const WalletPersonalizeDigidCancelled());
     } else {
       emit(WalletPersonalizeDigidFailure(error: event.error));
     }
@@ -129,17 +126,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
 
   Future<void> _onAcceptPidFailed(WalletPersonalizeAcceptPidFailed event, Emitter<WalletPersonalizeState> emit) async {
     emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
-    await cancelPidIssuanceUseCase.invoke(); // Confirm cancellation to the server
-
-    final appError = event.error;
-    switch (appError) {
-      case NetworkError():
-        emit(WalletPersonalizeNetworkError(error: appError));
-      case SessionError():
-        emit(WalletPersonalizeSessionExpired(error: appError));
-      default:
-        emit(WalletPersonalizeGenericError(error: appError));
-    }
+    await cancelSessionUseCase.invoke(); // Confirm cancellation to the server
+    emit(WalletPersonalizeError(error: event.error));
   }
 
   Future<void> _onOfferingVerified(
@@ -154,7 +142,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     Emitter<WalletPersonalizeState> emit,
   ) async {
     emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
-    final cancelResult = await cancelPidIssuanceUseCase.invoke();
+    final cancelResult = await cancelSessionUseCase.invoke();
     if (cancelResult.hasError) Fimber.e('Failed to explicitly reject pid', ex: cancelResult.error);
     emit(const WalletPersonalizeInitial(didGoBack: true));
   }
@@ -180,7 +168,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       await _loadCardsAndEmitSuccessState(userCanTransfer: event.transferState == TransferState.available);
     } else {
       Fimber.e('Pin confirmed from unexpected screen');
-      emit(WalletPersonalizeFailure());
+      emit(WalletPersonalizeError(error: GenericError('Unexpected state', sourceError: Exception())));
     }
   }
 
@@ -199,7 +187,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       },
       onError: (error) {
         Fimber.e('Failed to fetch cards', ex: error);
-        add(WalletPersonalizeUpdateState(WalletPersonalizeFailure()));
+        add(WalletPersonalizeUpdateState(WalletPersonalizeError(error: error)));
       },
     );
   }

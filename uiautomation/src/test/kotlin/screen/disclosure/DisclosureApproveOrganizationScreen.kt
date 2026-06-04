@@ -7,7 +7,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val loginButton = l10n.getString("organizationApprovePageLoginCta")
     private val goToWebsiteButton = l10n.getString("disclosureSuccessPageToWebsiteCta")
     private val shareButton = l10n.getString("disclosureConfirmDataAttributesPageApproveCta")
-    private val closeButton = l10n.getString("disclosureSuccessPageCloseCta")
+    private val closeButton = l10n.getString("generalClose")
     private val viewLoginDisclosureDetailsButton = l10n.getString("organizationApprovePageMoreInfoLoginCta")
     private val viewDisclosureOrganizationDetailsButton = l10n.getString("organizationButtonLabel")
     private val goBackButton = l10n.getString("generalBottomBackCta")
@@ -22,6 +22,8 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val swapCardButton = l10n.getString("sharedAttributesCardChangeCardCta")
     private val stopButton = l10n.getString("organizationApprovePageDenyCta")
     private val bottomSheetConfirmStopButton = l10n.getString("disclosureStopSheetPositiveCta")
+    private val disclosureSuccessPageToDashboardCta = l10n.getString("disclosureSuccessPageToDashboardCta")
+    private val toDashboardButton = l10n.getString("disclosureSuccessPageToDashboardCta")
 
     fun login() = clickElementWithText(loginButton)
 
@@ -59,8 +61,6 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     fun goBack() = clickElementWithText(goBackButton)
 
     fun stopRequestAfterMissingAttributeFailure() = clickElementWithText(stopRequestButton)
-
-    fun closeDisclosureAfterCompletedOrUncompleted() = clickElementWithText(closeButton)
 
     fun viewSharedData(count: String, cardTitle: String) {
         val title = l10n.getString("sharedAttributesCardTitle").replace("{count}", count).replace("{cardTitle}", cardTitle)
@@ -122,4 +122,8 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     fun stop() = clickElementWithText(stopButton)
 
     fun bottomSheetConfirmStop() = clickElementWithText(bottomSheetConfirmStopButton)
+
+    fun goToDashboard() = clickElementWithText(toDashboardButton)
+
+    fun goToDashBoard() =clickElementWithText(disclosureSuccessPageToDashboardCta)
 }

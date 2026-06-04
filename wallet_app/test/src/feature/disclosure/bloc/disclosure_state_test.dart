@@ -183,27 +183,12 @@ void main() {
       });
 
       test('DisclosureGenericError has correct default FlowProgress', () {
-        final state = DisclosureGenericError(error: mockApplicationError);
-        expect(state.stepperProgress, isNull);
-      });
-
-      test('DisclosureRelyingPartyError has correct default FlowProgress', () {
-        final state = DisclosureRelyingPartyError(error: mockApplicationError);
+        final state = DisclosureError(error: mockApplicationError);
         expect(state.stepperProgress, isNull);
       });
 
       test('DisclosureSessionExpired has correct default FlowProgress', () {
         final state = DisclosureSessionExpired(error: mockApplicationError, isCrossDevice: false, canRetry: false);
-        expect(state.stepperProgress, isNull);
-      });
-
-      test('DisclosureSessionCancelled has correct default FlowProgress', () {
-        final state = DisclosureSessionCancelled(error: mockApplicationError);
-        expect(state.stepperProgress, isNull);
-      });
-
-      test('DisclosureNetworkError has correct default FlowProgress', () {
-        final state = const DisclosureNetworkError(error: NetworkError(hasInternet: false, sourceError: 'no_internet'));
         expect(state.stepperProgress, isNull);
       });
     });

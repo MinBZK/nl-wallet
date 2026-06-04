@@ -2,7 +2,6 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/bloc/error_state.dart';
-import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/pin/pin_validation_error.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/pin/change_pin_usecase.dart';
@@ -107,12 +106,7 @@ class ChangePinBloc extends Bloc<ChangePinEvent, ChangePinState> {
     await changePinResult.process(
       onSuccess: (_) => emit(ChangePinCompleted()),
       onError: (error) async {
-        switch (error) {
-          case NetworkError():
-            emit(ChangePinNetworkError(error: error));
-          default:
-            emit(ChangePinGenericError(error: error));
-        }
+        emit(ChangePinError(error: error));
         await _resetFlow(emit);
       },
     );

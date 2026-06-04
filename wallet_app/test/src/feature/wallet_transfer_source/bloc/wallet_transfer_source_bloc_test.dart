@@ -49,7 +49,7 @@ void main() {
     act: (bloc) => bloc.add(const WalletTransferAcknowledgeTransferEvent('https://example.org/transfer')),
     expect: () => [
       isA<WalletTransferLoading>(),
-      isA<WalletTransferGenericError>(),
+      isA<WalletTransferError>(),
     ],
   );
 
@@ -124,7 +124,7 @@ void main() {
       // State once [WalletTransferPinConfirmedEvent] is processed
       isA<WalletTransferTransferring>(),
       // State after [readyForTransferConfirmed] is processed (which calls StartWalletTransferUseCase)
-      isA<WalletTransferNetworkError>(),
+      isA<WalletTransferError>().having((it) => it.error, 'network', isA<NetworkError>()),
     ],
   );
 
@@ -231,7 +231,7 @@ void main() {
       isA<WalletTransferIntroduction>(),
       isA<WalletTransferConfirmPin>(),
       isA<WalletTransferTransferring>(),
-      isA<WalletTransferNetworkError>(),
+      isA<WalletTransferError>().having((it) => it.error, 'network', isA<NetworkError>()),
     ],
   );
 

@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../domain/model/result/application_error.dart';
 import '../../domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import '../../domain/usecase/disclosure/impl/accept_disclosure_usecase_impl.dart';
 import '../../navigation/wallet_routes.dart';
@@ -19,7 +20,6 @@ import '../common/dialog/scan_with_wallet_dialog.dart';
 import '../common/dialog/stop_to_reset_pin_dialog.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/page/missing_attributes_page.dart';
-import '../common/page/network_error_page.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
@@ -42,8 +42,6 @@ import 'argument/disclosure_screen_argument.dart';
 import 'bloc/disclosure_bloc.dart';
 import 'page/disclosure_confirm_data_attributes_page.dart';
 import 'page/disclosure_confirm_pin_page.dart';
-import 'page/disclosure_generic_error_page.dart';
-import 'page/disclosure_relying_party_error_page.dart';
 import 'page/disclosure_report_submitted_page.dart';
 import 'page/disclosure_stopped_page.dart';
 import 'page/disclosure_success_page.dart';
@@ -131,12 +129,9 @@ class DisclosureScreen extends StatelessWidget {
           DisclosureStopped() => _buildStoppedPage(context, state),
           DisclosureLeftFeedback() => _buildLeftFeedbackPage(context, state),
           DisclosureSuccess() => _buildSuccessPage(context, state),
-          DisclosureNetworkError() => _buildNetworkErrorPage(context, state),
-          DisclosureGenericError() => _buildGenericErrorPage(context, returnUrl: state.returnUrl),
+          DisclosureError() => _buildErrorPage(context, state.error, returnUrl: state.returnUrl),
           DisclosureSessionExpired() => _buildSessionExpiredPage(context, state),
-          DisclosureExternalScannerError() => _buildGenericErrorPage(context),
-          DisclosureSessionCancelled() => _buildCancelledSessionPage(context, state),
-          DisclosureRelyingPartyError() => _buildRelyingPartyErrorPage(context, state),
+          DisclosureExternalScannerError() => _buildErrorPage(context, state.error),
           DisclosureCloseProximityDisconnected() => _buildCloseProximityDisconnected(context, state),
         };
 
@@ -290,23 +285,17 @@ class DisclosureScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNetworkErrorPage(BuildContext context, DisclosureNetworkError state) {
-    return NetworkErrorPage(
-      hasInternet: state.error.hasInternet,
-      onStopPressed: () {
-        context.bloc.add(const DisclosureCancelRequested());
-        Navigator.pop(context);
-      },
-    );
-  }
-
-  Widget _buildGenericErrorPage(BuildContext context, {String? returnUrl}) {
-    return DisclosureGenericErrorPage(
-      onStopPressed: () {
+  Widget _buildErrorPage(BuildContext context, ApplicationError error, {String? returnUrl}) {
+    return ErrorPage.fromError(
+      context,
+      error,
+      onPrimaryActionPressed: () {
         context.bloc.add(const DisclosureCancelRequested());
         returnUrl?.let((url) => launchUrlStringCatching(url, mode: LaunchMode.externalApplication));
         Navigator.pop(context);
       },
+      style: .close,
+      organizationName: context.bloc.relyingParty?.displayName.l10nValue(context),
     );
   }
 
@@ -352,33 +341,11 @@ class DisclosureScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCancelledSessionPage(BuildContext context, DisclosureSessionCancelled state) {
-    return ErrorPage.cancelledSession(
-      context,
-      organizationName: state.relyingParty?.displayName.l10nValue(context) ?? context.l10n.organizationFallbackName,
-      onPrimaryActionPressed: () {
-        Navigator.pop(context);
-        state.returnUrl?.let((url) => launchUrlStringCatching(url, mode: LaunchMode.externalApplication));
-      },
-    );
-  }
-
-  Widget _buildRelyingPartyErrorPage(BuildContext context, DisclosureRelyingPartyError state) {
-    return DisclosureRelyingPartyErrorPage(
-      organizationName: state.organizationName?.l10nValue(context),
-      onClosePressed: () => Navigator.pop(context),
-    );
-  }
-
   String? _resolveTitleForState(BuildContext context, DisclosureState state) {
     return switch (state) {
       DisclosureInitial() => context.l10n.disclosureLoadingTitle,
-      DisclosureGenericError() => context.l10n.disclosureGenericErrorPageTitle,
-      DisclosureRelyingPartyError() => context.l10n.disclosureRelyingPartyErrorTitle,
+      DisclosureError(:final error) => ErrorPage.titleFromError(context, error),
       DisclosureSessionExpired() => context.l10n.errorScreenSessionExpiredHeadline,
-      DisclosureSessionCancelled() => context.l10n.errorScreenCancelledSessionHeadline,
-      DisclosureNetworkError(:final error) =>
-        error.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline,
       DisclosureCheckUrl() => context.l10n.fraudCheckPageTitle(state.originUrl),
       DisclosureCheckOrganizationForLogin() => OrganizationApprovePage.resolveTitle(
         context,

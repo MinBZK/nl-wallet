@@ -1,4 +1,6 @@
 use chrono::Utc;
+use svg_sanitize::SanitizedSvg;
+use tracing::warn;
 use wallet::attestation_data;
 use wallet::sd_jwt_vc_metadata::LogoMetadata;
 
@@ -109,7 +111,11 @@ impl From<wallet::sd_jwt_vc_metadata::RenderingMetadata> for RenderingMetadata {
                 background_color,
                 text_color,
             } => RenderingMetadata::Simple {
-                logo: logo.map(ImageWithMetadata::from),
+                logo: logo.and_then(|l| {
+                    ImageWithMetadata::try_from(l)
+                        .inspect_err(|e| warn!("error converting logo, not showing: {e}"))
+                        .ok()
+                }),
                 background_color,
                 text_color,
             },
@@ -118,16 +124,20 @@ impl From<wallet::sd_jwt_vc_metadata::RenderingMetadata> for RenderingMetadata {
     }
 }
 
-impl From<LogoMetadata> for ImageWithMetadata {
-    fn from(value: LogoMetadata) -> Self {
-        ImageWithMetadata {
+impl TryFrom<LogoMetadata> for ImageWithMetadata {
+    type Error = svg_sanitize::Error;
+
+    fn try_from(value: LogoMetadata) -> Result<Self, Self::Error> {
+        Ok(ImageWithMetadata {
             image: match value.image {
-                wallet::sd_jwt_vc_metadata::Image::Svg(xml) => Image::Svg { xml },
+                wallet::sd_jwt_vc_metadata::Image::Svg(xml) => Image::Svg {
+                    svg: SanitizedSvg::try_new(&xml)?.into(),
+                },
                 wallet::sd_jwt_vc_metadata::Image::Png(data) => Image::Png { data },
                 wallet::sd_jwt_vc_metadata::Image::Jpeg(data) => Image::Jpeg { data },
             },
             alt_text: value.alt_text.into_inner(),
-        }
+        })
     }
 }
 

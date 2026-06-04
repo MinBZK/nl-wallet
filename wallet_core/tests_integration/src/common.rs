@@ -1,3 +1,4 @@
+use std::convert::Infallible;
 use std::io;
 use std::net::IpAddr;
 use std::path::PathBuf;
@@ -31,17 +32,11 @@ use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use issuance_server::settings::IssuanceServerSettings;
-use issuer_common::par_store::IssuerParStore;
-use issuer_common::pkce_store::IssuerPkceStore;
 use jwt::SignedJwt;
-use openid4vc::authorization::OidcAuthorizationRequest;
-use openid4vc::authorization::VciAuthorizationRequest;
+use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuable_document::IssuableDocument;
-use openid4vc::issuer::AttributeService;
-use openid4vc::issuer::UpstreamAuthorizationAdapter;
-use openid4vc::issuer::UpstreamResolveError;
 use openid4vc::issuer::WiaConfig;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::openid4vp::ClientId;
@@ -53,7 +48,7 @@ use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
-use pid_issuer::pid::mock::MockAttributeService;
+use pid_issuer::pid::mock::MockPidAuthorizationCodeFlow;
 use pid_issuer::pid::mock::mock_issuable_documents_pid;
 use pid_issuer::settings::PidIssuerSettings;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
@@ -350,8 +345,10 @@ pub async fn setup_env(
     let pid_issuer_url = start_pid_issuer_server(
         issuer_settings,
         Some(hsm),
-        MockAttributeService::new(pid_issuable_documents),
-        StaticUpstreamAuthorizationAdapter::default(),
+        MockPidAuthorizationCodeFlow::new(
+            Url::parse("https://upstream.example.com/authorize").unwrap(),
+            pid_issuable_documents,
+        ),
     )
     .await;
 
@@ -361,9 +358,11 @@ pub async fn setup_env(
         degree_client_ids,
     };
 
+    let pid_credential_offer = create_pid_credential_offer(&issuer_data.pid_issuer.public);
+
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
-    served_wallet_config.pid_issuance.url = issuer_data.pid_issuer.public.clone();
+    served_wallet_config.pid_credential_offer = pid_credential_offer.clone();
     served_wallet_config.account_server.http_config = TlsPinningConfig::try_new(
         local_wp_base_url(wp_port),
         VecNonEmpty::try_from(served_wallet_config.account_server.http_config.trust_anchors().to_vec()).unwrap(),
@@ -382,7 +381,7 @@ pub async fn setup_env(
     };
 
     let mut wallet_config = default_wallet_config();
-    wallet_config.pid_issuance.url = issuer_data.pid_issuer.public.clone();
+    wallet_config.pid_credential_offer = pid_credential_offer.clone();
     wallet_config.account_server.http_config = TlsPinningConfig::try_new(
         local_wp_base_url(wp_port),
         VecNonEmpty::try_from(wallet_config.account_server.http_config.trust_anchors().to_vec()).unwrap(),
@@ -770,11 +769,8 @@ pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Op
 
     let serve_status_lists = settings.issuer_settings.status_lists.serve;
 
-    let (issuer, _, store_connection, server_settings) = settings
-        .issuer_settings
-        .into_issuer(hsm.clone(), None, (), |_| (), |_| (), None)
-        .await
-        .unwrap();
+    let (issuer, _, store_connection, server_settings) =
+        settings.issuer_settings.into_issuer(hsm.clone(), None).await.unwrap();
 
     let issuer = Arc::new(issuer);
 
@@ -820,46 +816,9 @@ pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Op
     }
 }
 
-/// Stand-in for [`pid_issuer::pid::digid::DigidAuthorizationAdapter`] in tests that don't need to
-/// reach a real upstream OIDC provider. The wallet-side `fake_oidc_redirect` helper only needs the
-/// `redirect_uri` and `state` query parameters from the issuer's `/authorize` redirect, so the
-/// concrete authorization endpoint URL is irrelevant — it is never fetched.
-pub struct StaticUpstreamAuthorizationAdapter {
-    authorization_endpoint: Url,
-}
-
-impl Default for StaticUpstreamAuthorizationAdapter {
-    fn default() -> Self {
-        Self {
-            authorization_endpoint: Url::parse("https://upstream.example.com/authorize").unwrap(),
-        }
-    }
-}
-
-impl UpstreamAuthorizationAdapter for StaticUpstreamAuthorizationAdapter {
-    async fn adapt(
-        &self,
-        request: VciAuthorizationRequest,
-    ) -> Result<(Url, OidcAuthorizationRequest), UpstreamResolveError> {
-        Ok((
-            self.authorization_endpoint.clone(),
-            OidcAuthorizationRequest {
-                vci_request: request,
-                nonce: None,
-            },
-        ))
-    }
-}
-
-pub async fn start_pid_issuer_server<A, UAA>(
-    mut settings: PidIssuerSettings,
-    hsm: Option<Pkcs11Hsm>,
-    attr_service: A,
-    upstream_authorization_adapter: UAA,
-) -> IssuerUrl
+pub async fn start_pid_issuer_server<AE>(mut settings: PidIssuerSettings, hsm: Option<Pkcs11Hsm>, flow: AE) -> IssuerUrl
 where
-    A: AttributeService + Sync + 'static,
-    UAA: UpstreamAuthorizationAdapter + Send + Sync + 'static,
+    AE: AuthorizationCodeFlow + Send + Sync + 'static,
 {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
@@ -878,14 +837,7 @@ where
 
     let (issuer, _, _, server_settings) = settings
         .issuer_settings
-        .into_issuer(
-            hsm,
-            Some(wia_config),
-            attr_service,
-            IssuerParStore::new,
-            IssuerPkceStore::new,
-            Some(upstream_authorization_adapter),
-        )
+        .into_authorizing_issuer(hsm, Some(wia_config), |_| Ok::<_, Infallible>(flow))
         .await
         .unwrap();
 
@@ -1199,4 +1151,18 @@ pub async fn wallet_attestations(wallet: &mut WalletWithStorage) -> Vec<Attestat
     }
 
     attestations.lock().unwrap().to_vec()
+}
+
+pub fn create_pid_credential_offer(issuer_identifier: &IssuerIdentifier) -> Url {
+    let credential_offer_uri = issuer_identifier
+        .as_base_url()
+        .join_base_url("/issuance/credential_offer")
+        .into_inner();
+
+    let mut pid_credential_offer = Url::parse("eu-eaa-offer://").unwrap();
+    pid_credential_offer
+        .query_pairs_mut()
+        .append_pair("credential_offer_uri", credential_offer_uri.as_str());
+
+    pid_credential_offer
 }

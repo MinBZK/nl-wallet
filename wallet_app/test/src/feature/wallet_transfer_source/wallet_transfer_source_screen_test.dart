@@ -127,7 +127,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
-          const WalletTransferGenericError(GenericError('generic_error', sourceError: 'mockError')),
+          const WalletTransferError(GenericError('generic_error', sourceError: 'mockError')),
         ),
       );
       await screenMatchesGolden('wallet_transfer_generic_error.light');
@@ -136,7 +136,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
-          const WalletTransferNetworkError(NetworkError(hasInternet: false, sourceError: 'mockNetworkError')),
+          const WalletTransferError(NetworkError(hasInternet: false, sourceError: 'mockNetworkError')),
         ),
       );
       await screenMatchesGolden('wallet_transfer_network_error.light');
@@ -145,7 +145,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
-          const WalletTransferSessionExpired(SessionError(state: SessionState.expired, sourceError: 'sessionError')),
+          const WalletTransferError(SessionError(state: SessionState.expired, sourceError: 'sessionError')),
         ),
       );
       await screenMatchesGolden('wallet_transfer_session_expired.light');
@@ -277,7 +277,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
-          const WalletTransferGenericError(GenericError('generic_error', sourceError: 'mockError')),
+          const WalletTransferError(GenericError('generic_error', sourceError: 'mockError')),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
@@ -288,7 +288,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
-          const WalletTransferNetworkError(NetworkError(hasInternet: false, sourceError: 'mockNetworkError')),
+          const WalletTransferError(NetworkError(hasInternet: false, sourceError: 'mockNetworkError')),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
@@ -299,7 +299,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferSourceScreen().withState<WalletTransferSourceBloc, WalletTransferSourceState>(
           MockWalletTransferSourceBloc(),
-          const WalletTransferSessionExpired(SessionError(state: SessionState.expired, sourceError: 'sessionError')),
+          const WalletTransferError(SessionError(state: SessionState.expired, sourceError: 'sessionError')),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,

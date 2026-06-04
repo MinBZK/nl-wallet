@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../data/service/announcement_service.dart';
+import '../../domain/model/result/application_error.dart';
 import '../../domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/biometrics_extension.dart';
@@ -78,9 +79,7 @@ class SetupSecurityScreen extends StatelessWidget {
           ),
           SetupSecurityPinConfirmationFailed() => _buildPinConfirmationPage(context, enteredDigits: kPinDigits),
           SetupSecurityCreatingWallet() => _buildCreatingWallet(context, state),
-          SetupSecurityGenericError() => _buildSetupFailed(context),
-          SetupSecurityNetworkError() => _buildSetupFailed(context),
-          SetupSecurityDeviceIncompatibleError() => _buildSetupFailed(context),
+          SetupSecurityError(:final error) => _buildSetupFailed(context, error),
           SetupSecurityConfigureBiometrics() => _buildConfigureBiometricsPage(context, state),
           SetupSecurityCompleted() => _buildSetupCompletedPage(context, state),
         };
@@ -116,18 +115,14 @@ class SetupSecurityScreen extends StatelessWidget {
   void _listenerForState(BuildContext context, SetupSecurityState state) {
     final bloc = context.bloc;
     switch (state) {
-      case SetupSecurityGenericError():
-        ErrorScreen.showGeneric(context, secured: false, style: ErrorCtaStyle.retry);
-      case SetupSecurityNetworkError(:final error):
-        ErrorScreen.showNetwork(context, error: error, secured: false);
+      case SetupSecurityError(:final error):
+        ErrorScreen.show(context, error, secured: false, style: ErrorCtaStyle.retry);
       case SetupSecuritySelectPinFailed():
         PinValidationErrorDialog.show(context, state.reason).then((_) => bloc.add(PinBackspacePressed()));
       case SetupSecurityPinConfirmationFailed():
         PinConfirmationErrorDialog.show(context, retryAllowed: state.retryAllowed).then((_) {
           bloc.add(state.retryAllowed ? PinBackspacePressed() : SetupSecurityRetryPressed());
         });
-      case SetupSecurityDeviceIncompatibleError():
-        ErrorScreen.showDeviceIncompatible(context);
       default:
         break;
     }
@@ -220,13 +215,14 @@ class SetupSecurityScreen extends StatelessWidget {
   }
 
   /// This is more a placeholder/fallback over anything else.
-  /// Whenever the user is hit with a [SetupSecurityGenericError] or [SetupSecurityNetworkError]
+  /// Whenever the user is hit with a [SetupSecurityError] or [SetupSecurityNetworkError]
   /// this is built, but the listener should trigger the [ErrorScreen] while the bloc resets
   /// the flow so the user can try again. That said, to be complete we need to build something
   /// in this state, hence this method is kept around.
-  Widget _buildSetupFailed(BuildContext context) {
-    return ErrorPage.generic(
+  Widget _buildSetupFailed(BuildContext context, ApplicationError error) {
+    return ErrorPage.fromError(
       context,
+      error,
       style: ErrorCtaStyle.retry,
       onPrimaryActionPressed: () => context.bloc.add(SetupSecurityRetryPressed()),
     );
@@ -240,9 +236,7 @@ class SetupSecurityScreen extends StatelessWidget {
       SetupSecurityPinConfirmationFailed() => '',
       SetupSecurityCreatingWallet() => '',
       SetupSecurityCompleted() => context.l10n.setupSecurityCompletedPageTitle,
-      SetupSecurityGenericError() => '',
-      SetupSecurityNetworkError() => '',
-      SetupSecurityDeviceIncompatibleError() => '',
+      SetupSecurityError(:final error) => ErrorPage.titleFromError(context, error),
       SetupSecurityConfigureBiometrics() => context.l10n.setupBiometricsPageTitle(
         state.biometrics.prettyPrint(context),
       ),

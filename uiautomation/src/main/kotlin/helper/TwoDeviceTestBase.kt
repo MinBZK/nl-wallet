@@ -48,6 +48,7 @@ open class TwoDeviceTestBase {
     }
 
     companion object {
+        const val MAX_RETRY_COUNT = TestBase.MAX_RETRY_COUNT
         const val DEFAULT_BSN = TestBase.DEFAULT_BSN
         const val DEFAULT_PIN = TestBase.DEFAULT_PIN
     }

@@ -32,7 +32,6 @@ import 'package:wallet/src/domain/usecase/card/observe_wallet_card_usecase.dart'
 import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart';
 import 'package:wallet/src/domain/usecase/close_proximity/observe_close_proximity_connection_usecase.dart';
 import 'package:wallet/src/domain/usecase/close_proximity/start_close_proximity_disclosure_usecase.dart';
-import 'package:wallet/src/domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_for_card_usecase.dart';
@@ -42,7 +41,6 @@ import 'package:wallet/src/domain/usecase/help/get_help_categories_usecase.dart'
 import 'package:wallet/src/domain/usecase/help/get_help_topic_blocks_usecase.dart';
 import 'package:wallet/src/domain/usecase/help/impl/get_help_categories_usecase_impl.dart';
 import 'package:wallet/src/domain/usecase/help/impl/get_help_topic_blocks_usecase_impl.dart';
-import 'package:wallet/src/domain/usecase/issuance/cancel_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
@@ -51,7 +49,6 @@ import 'package:wallet/src/domain/usecase/notification/observe_push_notification
 import 'package:wallet/src/domain/usecase/notification/set_push_notifications_setting_usecase.dart';
 import 'package:wallet/src/domain/usecase/permission/check_permission_usecase.dart';
 import 'package:wallet/src/domain/usecase/permission/request_permission_usecase.dart';
-import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/check_is_pid.dart';
 import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/get_pid_issuance_url_usecase.dart';
@@ -67,6 +64,7 @@ import 'package:wallet/src/domain/usecase/qr/decode_qr_usecase.dart';
 import 'package:wallet/src/domain/usecase/revocation/get_registration_revocation_code_usecase.dart';
 import 'package:wallet/src/domain/usecase/revocation/get_revocation_code_saved_usecase.dart';
 import 'package:wallet/src/domain/usecase/revocation/set_revocation_code_saved_usecase.dart';
+import 'package:wallet/src/domain/usecase/session/cancel_session_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/reject_sign_agreement_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/start_sign_usecase.dart';
 import 'package:wallet/src/domain/usecase/tour/fetch_tour_videos_usecase.dart';
@@ -228,9 +226,7 @@ List<SingleChildWidget> _getServiceProviders() {
 
 List<SingleChildWidget> _getUseCaseProviders() {
   return [
-    RepositoryProvider<CancelDisclosureUseCase>(create: (c) => Mocks.create()),
-    RepositoryProvider<CancelIssuanceUseCase>(create: (c) => Mocks.create()),
-    RepositoryProvider<CancelPidIssuanceUseCase>(create: (c) => Mocks.create()),
+    RepositoryProvider<CancelSessionUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<CancelPinRecoveryUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<CancelWalletTransferUseCase>(create: (c) => Mocks.create()),
     RepositoryProvider<ChangePinUseCase>(create: (c) => Mocks.create()),

@@ -320,7 +320,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
-          const WalletTransferGenericError(GenericError('generic_error', sourceError: 'mockError')),
+          const WalletTransferError(GenericError('generic_error', sourceError: 'mockError')),
         ),
         providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
@@ -331,7 +331,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
-          const WalletTransferGenericError(GenericError('generic_error', sourceError: 'mockError')),
+          const WalletTransferError(GenericError('generic_error', sourceError: 'mockError')),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
@@ -344,7 +344,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
-          const WalletTransferSessionExpired(SessionError(state: SessionState.expired, sourceError: 'sessionError')),
+          const WalletTransferError(SessionError(state: SessionState.expired, sourceError: 'sessionError')),
         ),
         providers: [RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase())],
       );
@@ -355,7 +355,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletTransferTargetScreen().withState<WalletTransferTargetBloc, WalletTransferTargetState>(
           MockWalletTransferTargetBloc(),
-          const WalletTransferSessionExpired(SessionError(state: SessionState.expired, sourceError: 'sessionError')),
+          const WalletTransferError(SessionError(state: SessionState.expired, sourceError: 'sessionError')),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,

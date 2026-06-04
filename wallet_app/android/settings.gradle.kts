@@ -17,10 +17,10 @@ pluginManagement {
 }
 
 plugins {
-    id("com.android.application") version "8.10.0" apply false
-    id("com.android.library") version "8.10.0" apply false
+    id("com.android.application") version "8.13.2" apply false
+    id("com.android.library") version "8.13.2" apply false
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("org.jetbrains.kotlin.android") version "2.2.0" apply false
+    id("org.jetbrains.kotlin.android") version "2.3.21" apply false
     id("net.razvan.jacoco-to-cobertura") version "2.0.0" apply false
 }
 

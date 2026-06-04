@@ -10,8 +10,14 @@ class IssuerWebPage : MobileActions() {
     private val popup = DemoPopup()
 
     fun openSameDeviceWalletFlow() {
-        Thread.sleep(1000)
+        Thread.sleep(SET_FRAME_SYNC_MAX_WAIT_MILLIS)
         body.clickStartButton()
         popup.clickSameDeviceButton()
+    }
+
+    fun openCrossDeviceWalletFlow() {
+        Thread.sleep(SET_FRAME_SYNC_MAX_WAIT_MILLIS)
+        body.clickStartButton()
+        popup.clickCrossDeviceButton()
     }
 }

@@ -14,14 +14,14 @@ import '../../../../mocks/wallet_mocks.dart';
 void main() {
   late MockGetWalletCardsUseCase mockGetWalletCardsUseCase;
   late MockGetPidIssuanceUrlUseCase mockGetPidIssuanceUrlUseCase;
-  late MockCancelPidIssuanceUseCase mockCancelPidIssuanceUseCase;
+  late MockCancelSessionUseCase mockCancelSessionUseCase;
   late MockContinuePidIssuanceUseCase mockContinuePidIssuanceUseCase;
   late MockIsWalletInitializedWithPidUseCase mockIsWalletInitializedWithPidUseCase;
 
   setUp(() async {
     mockGetWalletCardsUseCase = MockGetWalletCardsUseCase();
     mockGetPidIssuanceUrlUseCase = MockGetPidIssuanceUrlUseCase();
-    mockCancelPidIssuanceUseCase = MockCancelPidIssuanceUseCase();
+    mockCancelSessionUseCase = MockCancelSessionUseCase();
     mockContinuePidIssuanceUseCase = MockContinuePidIssuanceUseCase();
     mockIsWalletInitializedWithPidUseCase = MockIsWalletInitializedWithPidUseCase();
   });
@@ -31,7 +31,7 @@ void main() {
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
-      mockCancelPidIssuanceUseCase,
+      mockCancelSessionUseCase,
       mockContinuePidIssuanceUseCase,
       mockIsWalletInitializedWithPidUseCase,
     ),
@@ -46,7 +46,7 @@ void main() {
       () => WalletPersonalizeBloc(
         mockGetWalletCardsUseCase,
         mockGetPidIssuanceUrlUseCase,
-        mockCancelPidIssuanceUseCase,
+        mockCancelSessionUseCase,
         mockContinuePidIssuanceUseCase,
         mockIsWalletInitializedWithPidUseCase,
       ),
@@ -59,7 +59,7 @@ void main() {
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
-      mockCancelPidIssuanceUseCase,
+      mockCancelSessionUseCase,
       mockContinuePidIssuanceUseCase,
       mockIsWalletInitializedWithPidUseCase,
     ),
@@ -78,7 +78,7 @@ void main() {
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
-      mockCancelPidIssuanceUseCase,
+      mockCancelSessionUseCase,
       mockContinuePidIssuanceUseCase,
       mockIsWalletInitializedWithPidUseCase,
     ),
@@ -110,7 +110,7 @@ void main() {
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
-      mockCancelPidIssuanceUseCase,
+      mockCancelSessionUseCase,
       mockContinuePidIssuanceUseCase,
       mockIsWalletInitializedWithPidUseCase,
     ),
@@ -134,7 +134,7 @@ void main() {
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
-      mockCancelPidIssuanceUseCase,
+      mockCancelSessionUseCase,
       mockContinuePidIssuanceUseCase,
       mockIsWalletInitializedWithPidUseCase,
     ),
@@ -164,7 +164,7 @@ void main() {
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
-      mockCancelPidIssuanceUseCase,
+      mockCancelSessionUseCase,
       mockContinuePidIssuanceUseCase,
       mockIsWalletInitializedWithPidUseCase,
     ),
@@ -181,7 +181,7 @@ void main() {
     expect: () => [
       const WalletPersonalizeAuthenticating(),
       isA<WalletPersonalizeLoadInProgress>(),
-      WalletPersonalizeDigidCancelled(),
+      const WalletPersonalizeDigidCancelled(),
     ],
   );
 
@@ -190,7 +190,7 @@ void main() {
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
-      mockCancelPidIssuanceUseCase,
+      mockCancelSessionUseCase,
       mockContinuePidIssuanceUseCase,
       mockIsWalletInitializedWithPidUseCase,
     ),
@@ -215,7 +215,7 @@ void main() {
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
-      mockCancelPidIssuanceUseCase,
+      mockCancelSessionUseCase,
       mockContinuePidIssuanceUseCase,
       mockIsWalletInitializedWithPidUseCase,
     ),
@@ -236,7 +236,7 @@ void main() {
       WalletPersonalizeCheckData(availableAttributes: WalletMockData.card.attributes),
       WalletPersonalizeConfirmPin(WalletMockData.card.attributes),
       isA<WalletPersonalizeLoadInProgress>(),
-      isA<WalletPersonalizeGenericError>(),
+      isA<WalletPersonalizeError>(),
     ],
   );
 
@@ -245,7 +245,7 @@ void main() {
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
-      mockCancelPidIssuanceUseCase,
+      mockCancelSessionUseCase,
       mockContinuePidIssuanceUseCase,
       mockIsWalletInitializedWithPidUseCase,
     ),

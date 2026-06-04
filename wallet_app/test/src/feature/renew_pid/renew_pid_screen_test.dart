@@ -158,7 +158,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const RenewPidScreen().withState<RenewPidBloc, RenewPidState>(
           MockRenewPidBloc(),
-          const RenewPidNetworkError(error: NetworkError(hasInternet: false, sourceError: 'test')),
+          const RenewPidError(error: NetworkError(hasInternet: false, sourceError: 'test')),
         ),
       );
       await screenMatchesGolden('network_error.no_internet.light');
@@ -168,27 +168,17 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const RenewPidScreen().withState<RenewPidBloc, RenewPidState>(
           MockRenewPidBloc(),
-          const RenewPidNetworkError(error: NetworkError(hasInternet: true, sourceError: 'test')),
+          const RenewPidError(error: NetworkError(hasInternet: true, sourceError: 'test')),
         ),
       );
       await screenMatchesGolden('network_error.with_internet.light');
-    });
-
-    testGoldens('ltc66 RenewPidDigidFailure', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const RenewPidScreen().withState<RenewPidBloc, RenewPidState>(
-          MockRenewPidBloc(),
-          const RenewPidDigidFailure(error: GenericError('digid', sourceError: 'test')),
-        ),
-      );
-      await screenMatchesGolden('digid_failure.light');
     });
 
     testGoldens('ltc66 RenewPidGenericError', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const RenewPidScreen().withState<RenewPidBloc, RenewPidState>(
           MockRenewPidBloc(),
-          const RenewPidGenericError(error: GenericError('generic', sourceError: 'test')),
+          const RenewPidError(error: GenericError('generic', sourceError: 'test')),
         ),
       );
       await screenMatchesGolden('generic_error.light');
@@ -198,7 +188,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const RenewPidScreen().withState<RenewPidBloc, RenewPidState>(
           MockRenewPidBloc(),
-          const RenewPidSessionExpired(
+          const RenewPidError(
             error: SessionError(state: SessionState.expired, sourceError: 'test'),
           ),
         ),

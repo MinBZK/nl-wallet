@@ -1,6 +1,10 @@
 package util
 
 import com.codeborne.selenide.WebDriverRunner.getWebDriver
+import com.google.zxing.BinaryBitmap
+import com.google.zxing.MultiFormatReader
+import com.google.zxing.client.j2se.BufferedImageLuminanceSource
+import com.google.zxing.common.HybridBinarizer
 import data.TestConfigRepository.Companion.testConfig
 import helper.BrowserStackHelper
 import helper.LocalizationHelper
@@ -12,6 +16,8 @@ import io.appium.java_client.android.AndroidDriver
 import io.appium.java_client.ios.IOSDriver
 import org.openqa.selenium.By
 import org.openqa.selenium.JavascriptExecutor
+import org.openqa.selenium.OutputType
+import org.openqa.selenium.TakesScreenshot
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.interactions.PointerInput
 import org.openqa.selenium.interactions.PointerInput.Origin
@@ -19,8 +25,10 @@ import org.openqa.selenium.remote.RemoteWebDriver
 import org.openqa.selenium.remote.RemoteWebElement
 import org.openqa.selenium.support.ui.ExpectedConditions
 import org.openqa.selenium.support.ui.WebDriverWait
+import java.io.File
 import java.io.IOException
 import java.time.Duration
+import javax.imageio.ImageIO
 
 open class MobileActions {
 
@@ -74,6 +82,16 @@ open class MobileActions {
             null
         }
 
+    private fun findIosScrollView(): RemoteWebElement? =
+        driver.findElements(AppiumBy.iOSClassChain("**/XCUIElementTypeScrollView[1]"))
+            .firstOrNull() as? RemoteWebElement
+
+    private fun iosSwipeArgs(direction: String): Map<String, Any> {
+        val args = mutableMapOf<String, Any>("direction" to direction)
+        findIosScrollView()?.let { args["element"] = it.id }
+        return args
+    }
+
     fun scrollToElementWithText(text: String): WebElement {
         return when (val platform = platformName()) {
             "ANDROID" -> {
@@ -87,7 +105,6 @@ open class MobileActions {
             }
             "IOS" -> {
                 val quotedText = quoteForIos(text)
-                val scroll = driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeScrollView[1]")) as RemoteWebElement
                 val predicate = "name == $quotedText"
 
                 repeat(8) { // cap attempts to avoid infinite loops
@@ -95,7 +112,7 @@ open class MobileActions {
                     matches.firstOrNull { it.isDisplayed }?.let { return it }
                     (driver as JavascriptExecutor).executeScript(
                         "mobile: swipe",
-                        mapOf("element" to scroll.id, "direction" to "up")
+                        iosSwipeArgs("up")
                     )
                 }
                 throw NoSuchElementException("Couldn't bring '$text' into view")
@@ -117,7 +134,6 @@ open class MobileActions {
             }
             "IOS" -> {
                 val quotedText = quoteForIos(text)
-                val scroll = driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeScrollView[1]")) as RemoteWebElement
                 val predicate = "name CONTAINS $quotedText"
 
                 repeat(8) {
@@ -125,7 +141,7 @@ open class MobileActions {
                     matches.firstOrNull { it.isDisplayed }?.let { return it }
                     (driver as JavascriptExecutor).executeScript(
                         "mobile: swipe",
-                        mapOf("element" to scroll.id, "direction" to "up")
+                        iosSwipeArgs("up")
                     )
                 }
                 throw NoSuchElementException("Couldn't bring element containing '$text' into view")
@@ -147,18 +163,15 @@ open class MobileActions {
                 ) ?: throw NoSuchElementException("Element containing texts $partialTexts not found")
             }
             "IOS" -> {
-                val scroll = driver.findElement(AppiumBy.iOSClassChain("**/XCUIElementTypeScrollView[1]")) as RemoteWebElement
                 val predicate = partialTexts.joinToString(" AND ") { partialText ->
                     val quotedText = quoteForIos(partialText)
                     "name CONTAINS $quotedText"
                 }
+                val scrollArgs = mutableMapOf<String, Any>("predicateString" to predicate, "toVisible" to true)
+                findIosScrollView()?.let { scrollArgs["element"] = it.id }
                 (driver as JavascriptExecutor).executeScript(
                     "mobile: scroll",
-                    mapOf(
-                        "element" to scroll.id,
-                        "predicateString" to predicate,
-                        "toVisible" to true
-                    )
+                    scrollArgs
                 ) ?: throw NoSuchElementException("Element containing texts $partialTexts not found")
             }
             else -> throw IllegalArgumentException("Unsupported platform: $platform")
@@ -618,6 +631,21 @@ open class MobileActions {
         }
     }
 
+    fun decodeQrFromBytes(bytes: ByteArray): String {
+        val image = ImageIO.read(bytes.inputStream())
+        val binaryBitmap = BinaryBitmap(HybridBinarizer(BufferedImageLuminanceSource(image)))
+        return MultiFormatReader().decode(binaryBitmap).text
+    }
+
+    fun takeScreenshotOfElement(text: String): ByteArray {
+        val element = when (val platform = platformName()) {
+            "ANDROID" -> findWebElement(By.xpath("//*[@content-desc=${quoteForAndroid(text)}]"))
+            "IOS" -> findWebElement(AppiumBy.iOSNsPredicateString("name == ${quoteForIos(text)}"))
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+        return (element as TakesScreenshot).getScreenshotAs(OutputType.BYTES)
+    }
+
     fun printPageSource() {
         val driver = driver as AppiumDriver
         println(driver.pageSource)
@@ -638,6 +666,44 @@ open class MobileActions {
         Thread.sleep(SET_FRAME_SYNC_MAX_WAIT_MILLIS)
     }
 
+    fun startMockBleReaderApp(
+        mdocQrString: String,
+        timeoutSeconds: Int = 60,
+        readerCaCrtFile: String? = null,
+        readerCaKeyFile: String? = null,
+        readerAuthFile: String? = null,
+        waitForDeviceResponse: Boolean = false,
+    ): Process {
+        val qrPayload = mdocQrString.removePrefix("mdoc:")
+        val scriptPath = File("../scripts/close_proximity/disclosure_mac_reader.swift").canonicalPath
+        val cmd = mutableListOf("swift", scriptPath, "--qr-code", qrPayload, "--timeout", timeoutSeconds.toString())
+        if (readerCaCrtFile != null && readerCaKeyFile != null && readerAuthFile != null) {
+            cmd += listOf("--reader-ca-crt-file", readerCaCrtFile, "--reader-ca-key-file", readerCaKeyFile, "--reader-auth-file", readerAuthFile)
+        }
+        if (waitForDeviceResponse) {
+            cmd += "--print-device-response-hex"
+        }
+        return ProcessBuilder(cmd)
+            .directory(File("..").canonicalFile)
+            .redirectErrorStream(true)
+            .start()
+    }
+
+    fun openUrlInBrowser(url: String) {
+        when (val platform = platformName()) {
+            "ANDROID" -> (driver as JavascriptExecutor).executeScript(
+                "mobile: deepLink",
+                mapOf("url" to url, "package" to "com.android.chrome"),
+            )
+            "IOS" -> (driver as JavascriptExecutor).executeScript(
+                "mobile: safari launch",
+                mapOf("url" to url),
+            )
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+        Thread.sleep(SET_FRAME_SYNC_MAX_WAIT_MILLIS)
+    }
+
     fun closeApp() {
         val driver = when (val platform = platformName()) {
             "ANDROID" -> driver as AndroidDriver
@@ -648,7 +714,7 @@ open class MobileActions {
     }
 
     companion object {
-        private const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 2000L
+        const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 2000L
         private const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 8000L
         private const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 4000L
         private const val BROWSER_STARTUP_TIMEOUT = 2000L
@@ -661,4 +727,15 @@ open class MobileActions {
         private val browserStackAccessKey = EnvironmentUtil.getVar("BROWSERSTACK_KEY")
         private const val BROWSERSTACK_ENDPOINT = "https://api.browserstack.com/app-automate/sessions/"
     }
+}
+
+fun Process.captureOutput(): StringBuffer {
+    val buffer = StringBuffer()
+    Thread {
+        inputStream.bufferedReader().forEachLine { line ->
+            println(line)
+            buffer.appendLine(line)
+        }
+    }.also { it.isDaemon = true; it.start() }
+    return buffer
 }

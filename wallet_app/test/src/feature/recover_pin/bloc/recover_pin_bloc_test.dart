@@ -167,7 +167,7 @@ void main() {
       act: (bloc) => bloc.add(const RecoverPinLoginWithDigidClicked()),
       expect: () => [
         const RecoverPinLoadingDigidUrl(),
-        isA<RecoverPinNetworkError>(),
+        isA<RecoverPinError>().having((it) => it.error, 'Network Error', isA<NetworkError>()),
       ],
     );
 
@@ -191,7 +191,7 @@ void main() {
       act: (bloc) => bloc.add(const RecoverPinLoginWithDigidClicked()),
       expect: () => [
         const RecoverPinLoadingDigidUrl(),
-        isA<RecoverPinGenericError>(),
+        isA<RecoverPinError>(),
       ],
     );
 

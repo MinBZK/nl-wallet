@@ -162,7 +162,7 @@ where
         let authorization_session = self
             .issuance_discovery
             .start_authorization_code_flow(
-                &config.pid_issuance.url,
+                &config.pid_credential_offer,
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
             )
@@ -527,12 +527,15 @@ mod tests {
             .issuance_discovery
             .expect_start_authorization_code_flow_sync()
             .return_once(|| {
-                let mut session = MockAuthorizationSession::new();
-                session
+                let mut authorization_session = MockAuthorizationSession::new();
+
+                authorization_session
                     .expect_get_auth_url()
                     .return_const(Url::parse(AUTH_URL).unwrap());
-                session.expect_get_state().return_const("state".to_string());
-                Ok(session)
+                authorization_session
+                    .expect_get_state()
+                    .return_const("state".to_string());
+                Ok(authorization_session)
             });
     }
 

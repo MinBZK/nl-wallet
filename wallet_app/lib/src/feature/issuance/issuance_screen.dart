@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/model/attribute/attribute.dart';
+import '../../domain/model/result/application_error.dart';
 import '../../domain/usecase/pin/disclose_for_issuance_usecase.dart';
 import '../../domain/usecase/pin/impl/disclose_for_issuance_usecase_impl.dart';
 import '../../navigation/wallet_routes.dart';
@@ -18,7 +19,6 @@ import '../common/dialog/scan_with_wallet_dialog.dart';
 import '../common/dialog/stop_to_reset_pin_dialog.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/page/missing_attributes_page.dart';
-import '../common/page/network_error_page.dart';
 import '../common/page/terminal_page.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
@@ -45,8 +45,6 @@ import 'issuance_request_details_screen.dart';
 import 'issuance_stop_sheet.dart';
 import 'page/issuance_confirm_pin_for_disclosure_page.dart';
 import 'page/issuance_confirm_pin_for_issuance_page.dart';
-import 'page/issuance_generic_error_page.dart';
-import 'page/issuance_relying_party_error_page.dart';
 import 'page/issuance_review_cards_page.dart';
 import 'page/issuance_stopped_page.dart';
 import 'page/issuance_success_page.dart';
@@ -118,15 +116,12 @@ class IssuanceScreen extends StatelessWidget {
           IssuanceReviewCards() => _buildReviewCardsPage(context, state),
           IssuanceCompleted() => _buildIssuanceCompletedPage(context, state),
           IssuanceStopped() => _buildStoppedPage(context, state),
-          IssuanceGenericError() => _buildGenericErrorPage(context),
+          IssuanceError(:final error, :final returnUrl) => _buildGenericErrorPage(context, error, returnUrl: returnUrl),
           IssuanceProvidePinForDisclosure() => _buildProvidePinForDisclosurePage(context, state),
           IssuanceProvidePinForIssuance() => _buildProvidePinForIssuancePage(context, state),
           IssuanceNoCardsRetrieved() => _buildNoCardsReceived(context, state),
-          IssuanceExternalScannerError() => _buildGenericErrorPage(context),
-          IssuanceNetworkError() => _buildNetworkErrorPage(context, state),
+          IssuanceExternalScannerError(:final error) => _buildGenericErrorPage(context, error),
           IssuanceSessionExpired() => _buildSessionExpiredPage(context, state),
-          IssuanceSessionCancelled() => _buildCancelledSessionPage(context, state),
-          IssuanceRelyingPartyError() => _buildRelyingPartyErrorPage(context, state),
         };
 
         final skipAnim = !state.didGoBack && state is IssuanceCheckOrganization;
@@ -136,13 +131,6 @@ class IssuanceScreen extends StatelessWidget {
           child: result,
         );
       },
-    );
-  }
-
-  Widget _buildNetworkErrorPage(BuildContext context, IssuanceNetworkError state) {
-    return NetworkErrorPage(
-      hasInternet: state.error.hasInternet,
-      onStopPressed: () => Navigator.pop(context),
     );
   }
 
@@ -267,12 +255,18 @@ class IssuanceScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGenericErrorPage(BuildContext context, {String? returnUrl}) {
-    return IssuanceGenericErrorPage(
-      onClosePressed: () {
+  Widget _buildGenericErrorPage(BuildContext context, ApplicationError error, {String? returnUrl}) {
+    // Check for [RelyingPartyError], as the issuance flow uses non-standard copy for this state.
+    if (error is RelyingPartyError) return _buildRelyingPartyErrorPage(context, error);
+    return ErrorPage.fromError(
+      context,
+      error,
+      onPrimaryActionPressed: () {
         returnUrl?.let((url) => launchUrlStringCatching(url, mode: LaunchMode.externalApplication));
         Navigator.pop(context);
       },
+      style: .close,
+      organizationName: context.bloc.relyingParty?.displayName.l10nValue(context),
     );
   }
 
@@ -336,21 +330,13 @@ class IssuanceScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCancelledSessionPage(BuildContext context, IssuanceSessionCancelled state) {
-    return ErrorPage.cancelledSession(
+  Widget _buildRelyingPartyErrorPage(BuildContext context, RelyingPartyError error) {
+    return ErrorPage.relyingParty(
       context,
-      organizationName: state.relyingParty?.displayName.l10nValue(context) ?? context.l10n.organizationFallbackName,
-      onPrimaryActionPressed: () {
-        Navigator.pop(context);
-        state.returnUrl?.let((url) => launchUrlStringCatching(url, mode: LaunchMode.externalApplication));
-      },
-    );
-  }
-
-  Widget _buildRelyingPartyErrorPage(BuildContext context, IssuanceRelyingPartyError state) {
-    return IssuanceRelyingPartyErrorPage(
-      organizationName: state.organizationName?.l10nValue(context),
-      onClosePressed: () => Navigator.pop(context),
+      organizationName: (error.organizationName ?? context.bloc.relyingParty?.displayName)?.l10nValue(context),
+      onPrimaryActionPressed: () => Navigator.pop(context),
+      style: .close,
+      useIssuanceStyle: true,
     );
   }
 
@@ -386,14 +372,10 @@ class IssuanceScreen extends StatelessWidget {
       ),
       IssuanceCompleted() => context.l10n.issuanceSuccessPageTitle(state.addedCards.length),
       IssuanceStopped() => context.l10n.issuanceStoppedPageTitle,
-      IssuanceGenericError() => context.l10n.issuanceGenericErrorPageTitle,
+      IssuanceError(:final error) => ErrorPage.titleFromError(context, error),
       IssuanceNoCardsRetrieved() => context.l10n.issuanceNoCardsPageTitle,
-      IssuanceExternalScannerError() => context.l10n.issuanceGenericErrorPageTitle,
-      IssuanceNetworkError(:final error) =>
-        error.hasInternet ? context.l10n.errorScreenServerHeadline : context.l10n.errorScreenNoInternetHeadline,
+      IssuanceExternalScannerError() => context.l10n.errorScreenGenericHeadline,
       IssuanceSessionExpired() => context.l10n.errorScreenSessionExpiredHeadline,
-      IssuanceSessionCancelled() => context.l10n.errorScreenCancelledSessionHeadline,
-      IssuanceRelyingPartyError() => context.l10n.issuanceRelyingPartyErrorTitle,
     };
   }
 

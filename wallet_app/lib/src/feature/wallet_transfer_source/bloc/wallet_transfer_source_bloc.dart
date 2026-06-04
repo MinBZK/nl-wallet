@@ -6,7 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../data/service/auto_lock_service.dart';
 import '../../../domain/model/bloc/error_state.dart';
-import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/model/transfer/transfer_session_state.dart';
@@ -57,9 +56,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
       case WalletTransferIntroduction():
       case WalletTransferCancelling():
       case WalletTransferStopped():
-      case WalletTransferGenericError():
-      case WalletTransferNetworkError():
-      case WalletTransferSessionExpired():
+      case WalletTransferError():
       case WalletTransferFailed():
         _autoLockService.setAutoLock(enabled: true);
     }
@@ -138,14 +135,7 @@ class WalletTransferSourceBloc extends Bloc<WalletTransferSourceEvent, WalletTra
 
   Future<void> _handleError(ApplicationError error) async {
     _stopObservingSessionState();
-    switch (error) {
-      case NetworkError():
-        add(WalletTransferUpdateStateEvent(WalletTransferNetworkError(error)));
-      case SessionError():
-        add(WalletTransferUpdateStateEvent(WalletTransferSessionExpired(error)));
-      default:
-        add(WalletTransferUpdateStateEvent(WalletTransferGenericError(error)));
-    }
+    add(WalletTransferUpdateStateEvent(WalletTransferError(error)));
   }
 
   Future<void> _startObservingSessionState() async {

@@ -58,11 +58,6 @@ void main() {
       verify(core.continuePidIssuance(mockContinueUri));
     });
 
-    test('cancel pid issuance should be propagated to the core', () async {
-      await pidRepository.cancelIssuance();
-      verify(core.cancelIssuance());
-    });
-
     test('accept offered pid should be propagated to the core', () async {
       const samplePin = '000000';
       await pidRepository.acceptIssuance(samplePin);

@@ -18,11 +18,14 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use etag::EntityTag;
+use http::Method;
 use itertools::Itertools;
 use mediatype::MediaType;
 use mediatype::MediaTypeList;
 use mediatype::Name;
 use tower_http::compression::CompressionLayer;
+use tower_http::cors::Any;
+use tower_http::cors::CorsLayer;
 
 use crate::config::StatusListConfig;
 use crate::publish::PublishDir;
@@ -130,6 +133,13 @@ pub fn create_serve_router<'a>(
             )
         })
         .layer(middleware::from_fn(add_vary_header))
+        // The HTTP endpoint SHOULD support the use of Cross-Origin Resource Sharing (CORS) [...] to enable
+        // Browser-based clients to access it
+        .layer(
+            CorsLayer::new()
+                .allow_methods([Method::GET, Method::HEAD, Method::OPTIONS])
+                .allow_origin(Any),
+        )
         // The HTTP response SHOULD use gzip Content-Encoding as defined in [RFC9110].
         .layer(CompressionLayer::new());
 
@@ -207,6 +217,7 @@ fn check_accept(header: &HeaderValue) -> Result<(), StatusCode> {
         })?;
     if content_types
         .into_iter()
+        // */* is pure for convenience of using curl and friends to test
         .any(|media_type| media_type == ALL_MEDIA_TYPE || media_type == STATUSLIST_JWT_MEDIA_TYPE)
     {
         return Ok(());

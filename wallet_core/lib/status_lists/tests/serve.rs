@@ -64,6 +64,9 @@ async fn test_router_not_found() {
 #[rstest]
 #[case("application/statuslist+jwt", 200)]
 #[case("application/statuslist+cwt", 415)]
+#[case("application/statuslist+cwt, application/statuslist+jwt", 200)]
+#[case("text/plain", 415)]
+#[case("*/*", 200)]
 async fn test_router_media_type(#[case] accept: &str, #[case] status_code: u16) {
     let publish_dir = TempDir::new().unwrap();
     let url = setup_server(&publish_dir, None).await.unwrap();
