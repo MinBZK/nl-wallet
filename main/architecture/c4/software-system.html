@@ -247,6 +247,7 @@ Technology: sqlite (on Android/iOS)</p>
 <li><p>[I-405] Request app integrity verdict from Google Play Integrity (Android only)</p></li>
 <li><p>[I-406] Issue WIA to Wallet on activation</p></li>
 <li><p>[I-407] Called by Wallet Revocation portal for wallet revocation</p></li>
+<li><p>[I-409] Writes to auditdatabase</p></li>
 <li><p>[A-103] Wallet Unit management functions for Wallet User Support</p></li>
 <li><p>[A-104] Manage vulnerable devices</p></li>
 </ul>
@@ -290,8 +291,17 @@ Relations:</p>
 <li><p>Accessed by WalletBackend  [I-401]</p></li>
 </ul>
 </section>
+<section id="wb-audit-database">
+<h2>9. WB audit database<a class="headerlink" href="#wb-audit-database" title="Link to this heading"></a></h2>
+<p>Database used to write auditlog records.</p>
+<p>Technology: postgres
+Relations:</p>
+<ul class="simple">
+<li><p>Accessed by WalletBackend  [I-408]</p></li>
+</ul>
+</section>
 <section id="hsm-device">
-<h2>9. HSM device<a class="headerlink" href="#hsm-device" title="Link to this heading"></a></h2>
+<h2>10. HSM device<a class="headerlink" href="#hsm-device" title="Link to this heading"></a></h2>
 <p>Dedicated cryptographic hardware used to perform issuing of keys and signing operations.</p>
 <p>Technology: (not specified)</p>
 <p>Interaction:</p>
@@ -300,13 +310,23 @@ Relations:</p>
 </ul>
 </section>
 <section id="wallet-revocation-portal">
-<h2>10. Wallet revocation portal<a class="headerlink" href="#wallet-revocation-portal" title="Link to this heading"></a></h2>
+<h2>11. Wallet revocation portal<a class="headerlink" href="#wallet-revocation-portal" title="Link to this heading"></a></h2>
 <p>Portal for Wallet Users and Wallet Support to revoke a wallet using the deletion code that is presented during onboarding.</p>
 <p>Technology: (web)</p>
 <p>Interaction:</p>
 <ul class="simple">
 <li><p>Used by Users and Wallet Support</p></li>
 <li><p>Calls WalletBackend to invoke revocation on the wallet account requested. [I-407]</p></li>
+</ul>
+</section>
+<section id="admin-portal">
+<h2>12. Admin Portal<a class="headerlink" href="#admin-portal" title="Link to this heading"></a></h2>
+<p>GUI for administrative roles in the support organization that provides access to support functions, like revocation and vulnerable device management.</p>
+<p>Relations:</p>
+<ul class="simple">
+<li><p>Used by Wallet administrator</p></li>
+<li><p>[A-103] Revoke wallet by Wallet Provider</p></li>
+<li><p>[A-104] Manage list of vulnerable devices (devicetype, OS version, patchlevel)</p></li>
 </ul>
 </section>
 </section>
@@ -320,15 +340,6 @@ Relations:</p>
 <ul class="simple">
 <li><p>[A-101] Maintain runtime configuration and publish to ConfigurationServer</p></li>
 <li><p>[A-102] Maintain update policy and publish to UpdateServer</p></li>
-</ul>
-</section>
-<section id="e2-admin-portal">
-<h2>E2. Admin Portal<a class="headerlink" href="#e2-admin-portal" title="Link to this heading"></a></h2>
-<p>GUI for administrative roles in the support organization that provides access to support functions, like revocation and vulnerable device management.</p>
-<p>Relations:</p>
-<ul class="simple">
-<li><p>[A-103] Revoke wallet by Wallet Provider</p></li>
-<li><p>[A-104] Manage list of vulnerable devices (devicetype, OS version, patchlevel)</p></li>
 </ul>
 </section>
 <section id="e3-monitoring">
