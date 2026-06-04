@@ -112,9 +112,6 @@ class TypedWalletCore {
 
   Future<core.IdentifyUriResult> identifyUri(String uri) => call(() => core.identifyUri(uri: uri));
 
-  /// Cancel ongoing issuance session (includes PID issuance)
-  Future<void> cancelIssuance() => call(core.cancelIssuance);
-
   Future<List<core.AttestationPresentation>> continuePidIssuance(String uri) =>
       call(() => core.continuePidIssuance(uri: uri));
 
@@ -138,7 +135,7 @@ class TypedWalletCore {
 
   Future<core.StartDisclosureResult> continueCloseProximityDisclosure() => call(core.continueCloseProximityDisclosure);
 
-  Future<String?> cancelDisclosure() => call(core.cancelDisclosure);
+  Future<String?> cancelSession() => call(core.cancelSession);
 
   Future<core.AcceptDisclosureResult> acceptDisclosure(String pin, List<int> selectedIndices) =>
       call(() => core.acceptDisclosure(selectedIndices: selectedIndices, pin: pin));

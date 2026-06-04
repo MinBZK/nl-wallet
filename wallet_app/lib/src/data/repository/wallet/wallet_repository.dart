@@ -37,4 +37,6 @@ abstract class WalletRepository {
 
   /// Fetch the current state of the wallet
   Future<WalletState> getWalletState();
+
+  Future<String?> cancelSession();
 }

@@ -9,22 +9,16 @@ import '../../../../mocks/wallet_mocks.mocks.dart';
 void main() {
   late MoveToReadyStateUseCase usecase;
   late MockWalletRepository mockWalletRepository;
-  late MockIssuanceRepository mockIssuanceRepository;
-  late MockDisclosureRepository mockDisclosureRepository;
   late MockPinRepository mockPinRepository;
   late MockTransferRepository mockTransferRepository;
 
   setUp(() {
     mockWalletRepository = MockWalletRepository();
-    mockIssuanceRepository = MockIssuanceRepository();
-    mockDisclosureRepository = MockDisclosureRepository();
     mockPinRepository = MockPinRepository();
     mockTransferRepository = MockTransferRepository();
 
     usecase = MoveToReadyStateUseCaseImpl(
       mockWalletRepository,
-      mockIssuanceRepository,
-      mockDisclosureRepository,
       mockPinRepository,
       mockTransferRepository,
     );
@@ -80,7 +74,7 @@ void main() {
     test('when in WalletStateInDisclosureFlow, should cancel disclosure', () async {
       when(mockWalletRepository.getWalletState()).thenAnswer((_) async => const WalletStateInDisclosureFlow());
       await usecase.invoke();
-      verify(mockDisclosureRepository.cancelDisclosure()).called(1);
+      verify(mockWalletRepository.cancelSession()).called(1);
     });
 
     test('when in WalletStateInIssuanceFlow, should cancel issuance', () async {
@@ -88,7 +82,7 @@ void main() {
         mockWalletRepository.getWalletState(),
       ).thenAnswer((_) async => const WalletStateInIssuanceFlow());
       await usecase.invoke();
-      verify(mockIssuanceRepository.cancelIssuance()).called(1);
+      verify(mockWalletRepository.cancelSession()).called(1);
     });
 
     test('when in WalletStateInPinRecoveryFlow, should cancel pin recovery', () async {

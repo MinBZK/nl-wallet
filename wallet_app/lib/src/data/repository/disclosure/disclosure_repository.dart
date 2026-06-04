@@ -7,9 +7,5 @@ abstract class DisclosureRepository {
 
   Future<StartDisclosureResult> continueCloseProximityDisclosure();
 
-  Future<String?> cancelDisclosure();
-
-  Future<bool> hasActiveDisclosureSession();
-
   Future<String?> acceptDisclosure(String pin, List<int> selectedIndices);
 }

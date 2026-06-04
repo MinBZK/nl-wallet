@@ -33,8 +33,6 @@ import '../domain/usecase/close_proximity/impl/observe_close_proximity_usecase_i
 import '../domain/usecase/close_proximity/impl/start_close_proximity_disclosure_usecase_impl.dart';
 import '../domain/usecase/close_proximity/observe_close_proximity_connection_usecase.dart';
 import '../domain/usecase/close_proximity/start_close_proximity_disclosure_usecase.dart';
-import '../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
-import '../domain/usecase/disclosure/impl/cancel_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/impl/start_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import '../domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
@@ -49,8 +47,6 @@ import '../domain/usecase/help/get_help_categories_usecase.dart';
 import '../domain/usecase/help/get_help_topic_blocks_usecase.dart';
 import '../domain/usecase/help/impl/get_help_categories_usecase_impl.dart';
 import '../domain/usecase/help/impl/get_help_topic_blocks_usecase_impl.dart';
-import '../domain/usecase/issuance/cancel_issuance_usecase.dart';
-import '../domain/usecase/issuance/impl/cancel_issuance_usecase_impl.dart';
 import '../domain/usecase/issuance/impl/start_issuance_usecase_impl.dart';
 import '../domain/usecase/issuance/start_issuance_usecase.dart';
 import '../domain/usecase/maintenance/impl/observe_maintenance_state_usecase_impl.dart';
@@ -74,13 +70,11 @@ import '../domain/usecase/permission/impl/check_permission_usecase_impl.dart';
 import '../domain/usecase/permission/impl/request_permission_usecase_impl.dart';
 import '../domain/usecase/permission/request_permission_usecase.dart';
 import '../domain/usecase/pid/accept_offered_pid_usecase.dart';
-import '../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../domain/usecase/pid/check_is_pid.dart';
 import '../domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import '../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import '../domain/usecase/pid/get_pid_renewal_url_usecase.dart';
 import '../domain/usecase/pid/impl/accept_offered_pid_usecase_impl.dart';
-import '../domain/usecase/pid/impl/cancel_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/check_is_pid_impl.dart';
 import '../domain/usecase/pid/impl/continue_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/get_pid_issuance_url_usecase_impl.dart';
@@ -110,6 +104,8 @@ import '../domain/usecase/revocation/impl/get_revocation_code_saved_usecase_impl
 import '../domain/usecase/revocation/impl/get_revocation_code_usecase_impl.dart';
 import '../domain/usecase/revocation/impl/set_revocation_code_saved_usecase_impl.dart';
 import '../domain/usecase/revocation/set_revocation_code_saved_usecase.dart';
+import '../domain/usecase/session/cancel_session_usecase.dart';
+import '../domain/usecase/session/impl/cancel_session_usecase_impl.dart';
 import '../domain/usecase/sign/accept_sign_agreement_usecase.dart';
 import '../domain/usecase/sign/impl/accept_sign_agreement_usecase_impl.dart';
 import '../domain/usecase/sign/impl/reject_sign_agreement_usecase_impl.dart';
@@ -219,9 +215,6 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<DecodeQrUseCase>(
           create: (context) => DecodeQrUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<CancelPidIssuanceUseCase>(
-          create: (context) => CancelPidIssuanceUseCaseImpl(context.read()),
-        ),
         RepositoryProvider<SetupMockedWalletUseCase>(
           create: (context) => SetupMockedWalletUseCaseImpl(
             context.read(),
@@ -267,14 +260,11 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<StartDisclosureUseCase>(
           create: (context) => StartDisclosureUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<CancelDisclosureUseCase>(
-          create: (context) => CancelDisclosureUseCaseImpl(context.read()),
+        RepositoryProvider<CancelSessionUseCase>(
+          create: (context) => CancelSessionUseCaseImpl(context.read()),
         ),
         RepositoryProvider<StartIssuanceUseCase>(
           create: (context) => StartIssuanceUseCaseImpl(context.read()),
-        ),
-        RepositoryProvider<CancelIssuanceUseCase>(
-          create: (context) => CancelIssuanceUseCaseImpl(context.read()),
         ),
         RepositoryProvider<AcceptSignAgreementUseCase>(
           create: (context) => AcceptSignAgreementUseCaseImpl(context.read()),
@@ -427,8 +417,6 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<MoveToReadyStateUseCase>(
           create: (context) => MoveToReadyStateUseCaseImpl(
-            context.read(),
-            context.read(),
             context.read(),
             context.read(),
             context.read(),

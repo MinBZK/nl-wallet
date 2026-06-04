@@ -8,10 +8,6 @@ abstract class PidRepository {
   /// Continue the pidIssuance, returns a preview of all the attributes that will be added if the pid is accepted.
   Future<List<DataAttribute>> continuePidIssuance(String uri);
 
-  Future<void> cancelIssuance();
-
-  Future<bool> hasActiveIssuanceSession();
-
   Future<TransferState> acceptIssuance(String pin);
 }
 
