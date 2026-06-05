@@ -1181,6 +1181,43 @@ mod tests {
     }
 
     #[test]
+    fn test_start_issuance_type_metadata_uri_error() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+
+        // Create issuer metadata with incorrect type_metadata_uri
+        let config_id: CredentialConfigurationId = "config_id".to_string().into();
+        let issuer_metadata = IssuerMetadata::new_mock(
+            "https://example.com".parse().unwrap(),
+            PID_ATTESTATION_TYPE,
+            config_id.clone(),
+        );
+        let type_metadata_uri = IssuerUrl::try_new("https://metadata.example.com").unwrap();
+        let mut config = issuer_metadata.credential_configurations_supported[&config_id].clone();
+        config.type_metadata_uri = Some(type_metadata_uri.clone());
+        let issuer_metadata = IssuerMetadata {
+            credential_configurations_supported: [(config_id, config)].into(),
+            ..issuer_metadata
+        };
+
+        let configured_issuer_identifier = issuer_metadata.credential_issuer.clone();
+        let error = test_start_issuance(
+            &ca,
+            &TrustAnchors::from(&ca),
+            issuer_metadata,
+            vec![PreviewableCredentialPayload::example_empty(
+                PID_ATTESTATION_TYPE,
+                &MockTimeGenerator::default(),
+            )],
+            TypeMetadata::pid_example(),
+            Format::SdJwt,
+        )
+        .expect_err("starting issuance session should not succeed");
+
+        assert_matches!(error, WalletIssuanceError::TypeMetadataUriNotBasedFromIssuerIdentifier(uri, issuer_identifier)
+        if uri == type_metadata_uri && *issuer_identifier == configured_issuer_identifier);
+    }
+
+    #[test]
     fn test_start_issuance_error_different_issuer_registrations() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
 
