@@ -355,8 +355,8 @@ async fn attestation(
     Ok(Json(documents).into_response())
 }
 
-/// Traverses all attributes and replaces every [`AttributeValue::Null`] (including those
-/// nested inside [`AttributeValue::Array`]) with a random hex string.
+/// Traverses all attributes and replaces every [`AttributeValue::String({{INSERT_RANDOM_VALUE}})`] (including those
+/// nested inside [`AttributeValue::Array`]) with a random string of 10 digits.
 fn random_values(attributes: Attributes, rng: &mut impl RngCore) -> Attributes {
     attributes
         .into_inner()
