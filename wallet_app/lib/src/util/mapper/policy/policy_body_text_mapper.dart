@@ -57,8 +57,7 @@ enum PolicyType {
   sharedAndStored,
   notSharedNotStored,
   notSharedButStored,
-  unknown
-  ;
+  unknown;
 
   factory PolicyType.fromFlags({required bool isShared, required bool isStored}) {
     if (isShared && !isStored) return PolicyType.sharedNotStored;
