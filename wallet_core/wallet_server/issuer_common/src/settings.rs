@@ -231,7 +231,7 @@ impl CredentialConfigurationsSettings {
         let config_params = try_join_all(
             inner
                 .into_iter()
-                .zip_eq(itertools::repeat_n(
+                .zip_eq(std::iter::repeat_n(
                     (status_list_connection, public_url, hsm),
                     config_count,
                 ))

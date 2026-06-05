@@ -239,7 +239,7 @@ impl TestCredential {
 
     fn to_mdoc_claim_paths(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>> {
         self.to_mdoc_attributes().into_iter().flat_map(|(name_space, entries)| {
-            itertools::repeat_n(name_space, entries.len())
+            std::iter::repeat_n(name_space, entries.len())
                 .zip(entries)
                 .map(|(name_space, entry)| {
                     vec_nonempty![
