@@ -131,7 +131,6 @@ pub enum ClaimsSelection {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, EnumDiscriminants)]
 #[strum_discriminants(derive(Hash, strum::Display))]
-#[strum_discriminants(name(CredentialFormat))]
 #[serde(tag = "format", content = "meta", rename_all = "snake_case")]
 pub enum CredentialQueryFormat {
     MsoMdoc {

@@ -12,12 +12,12 @@ use std::collections::HashSet;
 use std::io;
 
 use attestation_data::disclosure_type::DisclosureType;
+use attestation_types::credential_format::Format;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::x509::BorrowingCertificate;
 #[cfg(any(test, feature = "test"))]
 pub use database_storage::test_storage::MockHardwareDatabaseStorage;
-use dcql::CredentialFormat;
 use derive_more::Constructor;
 use error_category::ErrorCategory;
 use mdoc::utils::cose::CoseError;
@@ -198,25 +198,25 @@ pub trait Storage: Send {
     /// one of types requested and for which at least one copy of the requested format exists. The returned copy
     /// will be of the requested format.
     ///
-    /// Additionally, if `CredentialFormat::SdJwt` is requested, the returned attestation copies will also include those
+    /// Additionally, if `Format::SdJwt` is requested, the returned attestation copies will also include those
     /// that extend at least one of the requested attestation types.
     async fn fetch_unique_attestations_by_types_and_format(
         &self,
         attestation_types: &HashSet<String>,
-        format: CredentialFormat,
+        format: Format,
     ) -> StorageResult<Vec<StoredAttestationCopy>>;
 
     /// Returns a single valid attestation copy of each stored attestation for which the attestation type is equal to
     /// one of types requested and for which at least one copy of the requested format exists. The returned copy
     /// will be of the requested format. Valid in this context means describes the revocation status.
     ///
-    /// Additionally, if `CredentialFormat::SdJwt` is requested, the returned attestation copies will also include those
+    /// Additionally, if `Format::SdJwt` is requested, the returned attestation copies will also include those
     /// that extend at least one of the requested attestation types.
     #[cfg_attr(test, mockall::concretize)]
     async fn fetch_valid_unique_attestations_by_types_and_format<T>(
         &self,
         attestation_types: &HashSet<String>,
-        format: CredentialFormat,
+        format: Format,
         time_generator: T,
     ) -> StorageResult<Vec<StoredAttestationCopy>>
     where

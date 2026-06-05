@@ -12,6 +12,7 @@ use attestation_data::credential_payload::CredentialPayloadError;
 use attestation_data::credential_payload::MdocCredentialPayloadError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
+use attestation_types::credential_format::Format;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::DurationRound;
@@ -45,7 +46,6 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use uuid::Uuid;
 
-use crate::Format;
 use crate::credential::Credential;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
@@ -1353,7 +1353,6 @@ impl CredentialResponse {
         match credential_format {
             Format::MsoMdoc => Self::new_for_mdoc(payload, credential_config).await,
             Format::SdJwt => Self::new_for_sd_jwt(payload, credential_config).await,
-            other => Err(CredentialRequestError::CredentialTypeNotOffered(other.to_string())),
         }
     }
 

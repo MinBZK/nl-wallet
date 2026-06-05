@@ -6,12 +6,12 @@ use std::path::PathBuf;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::validity::ValidityWindow;
+use attestation_types::credential_format::Format;
 use attestation_types::status_claim::StatusClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
-use dcql::CredentialFormat;
 use entity::attestation;
 use entity::attestation::ExtendedTypesModel;
 use entity::attestation::TypeMetadataModel;
@@ -119,10 +119,10 @@ struct OpenDatabaseStorage<K> {
     key_file_key: K,
 }
 
-fn attestation_format_for_credential_format(format: CredentialFormat) -> AttestationFormat {
+fn attestation_format_for_credential_format(format: Format) -> AttestationFormat {
     match format {
-        CredentialFormat::MsoMdoc => AttestationFormat::Mdoc,
-        CredentialFormat::SdJwt => AttestationFormat::SdJwt,
+        Format::MsoMdoc => AttestationFormat::Mdoc,
+        Format::SdJwt => AttestationFormat::SdJwt,
     }
 }
 
@@ -280,7 +280,7 @@ impl<K> DatabaseStorage<K> {
     async fn query_unique_attestations_with_parameters(
         &self,
         attestation_types: &HashSet<String>,
-        format: Option<CredentialFormat>,
+        format: Option<Format>,
         condition: Option<Condition>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
         // Collect all conditions for the requested attestation types using OR.
@@ -293,7 +293,7 @@ impl<K> DatabaseStorage<K> {
         //                       AS extended_attestation_type
         //                       WHERE extended_attestation_type.value IN ({attestation_types}))
         let attestation_type_condition = match format {
-            Some(CredentialFormat::SdJwt) => attestation_type_condition.add(Expr::exists(
+            Some(Format::SdJwt) => attestation_type_condition.add(Expr::exists(
                 Query::select()
                     .column(Asterisk)
                     .from_function(
@@ -303,7 +303,7 @@ impl<K> DatabaseStorage<K> {
                     .and_where(Expr::col(("extended_attestation_type", "value")).is_in(attestation_types))
                     .take(),
             )),
-            Some(CredentialFormat::MsoMdoc) | None => attestation_type_condition,
+            Some(Format::MsoMdoc) | None => attestation_type_condition,
         };
 
         // The `attestation_type` column should match any of the requested attestation types.
@@ -857,7 +857,7 @@ where
     async fn fetch_unique_attestations_by_types_and_format(
         &self,
         attestation_types: &HashSet<String>,
-        format: CredentialFormat,
+        format: Format,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.query_unique_attestations_with_parameters(attestation_types, Some(format), None)
             .await
@@ -866,7 +866,7 @@ where
     async fn fetch_valid_unique_attestations_by_types_and_format<T>(
         &self,
         attestation_types: &HashSet<String>,
-        format: CredentialFormat,
+        format: Format,
         time_generator: T,
     ) -> StorageResult<Vec<StoredAttestationCopy>>
     where
@@ -1419,6 +1419,7 @@ pub(crate) mod tests {
     use attestation_data::validity::ValidityWindow;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+    use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::Days;
     use chrono::Duration;
@@ -1794,7 +1795,7 @@ pub(crate) mod tests {
         let fetched_unique_mdoc = storage
             .fetch_valid_unique_attestations_by_types_and_format(
                 &attestation_types,
-                CredentialFormat::MsoMdoc,
+                Format::MsoMdoc,
                 MockTimeGenerator::default(),
             )
             .await
@@ -1803,7 +1804,7 @@ pub(crate) mod tests {
         let fetched_unique_sd_jwt = storage
             .fetch_valid_unique_attestations_by_types_and_format(
                 &attestation_types,
-                CredentialFormat::SdJwt,
+                Format::SdJwt,
                 MockTimeGenerator::default(),
             )
             .await
@@ -1812,7 +1813,7 @@ pub(crate) mod tests {
         let fetched_unique_other = storage
             .fetch_valid_unique_attestations_by_types_and_format(
                 &HashSet::from(["other".to_owned()]),
-                CredentialFormat::MsoMdoc,
+                Format::MsoMdoc,
                 MockTimeGenerator::default(),
             )
             .await
@@ -1835,7 +1836,7 @@ pub(crate) mod tests {
         let fetched = storage
             .fetch_valid_unique_attestations_by_types_and_format(
                 &attestation_types,
-                CredentialFormat::MsoMdoc,
+                Format::MsoMdoc,
                 MockTimeGenerator::new(Utc.timestamp_nanos(0)),
             )
             .await
@@ -1846,7 +1847,7 @@ pub(crate) mod tests {
         let fetched = storage
             .fetch_valid_unique_attestations_by_types_and_format(
                 &attestation_types,
-                CredentialFormat::MsoMdoc,
+                Format::MsoMdoc,
                 MockTimeGenerator::new(Utc::now() + Days::new(366)),
             )
             .await
@@ -1917,7 +1918,7 @@ pub(crate) mod tests {
         let fetched_unique = storage
             .fetch_valid_unique_attestations_by_types_and_format(
                 &extended_vcts,
-                CredentialFormat::MsoMdoc,
+                Format::MsoMdoc,
                 MockTimeGenerator::default(),
             )
             .await
@@ -2018,7 +2019,7 @@ pub(crate) mod tests {
         let fetched_unique_mdoc = storage
             .fetch_valid_unique_attestations_by_types_and_format(
                 &attestation_types,
-                CredentialFormat::MsoMdoc,
+                Format::MsoMdoc,
                 MockTimeGenerator::default(),
             )
             .await
@@ -2027,7 +2028,7 @@ pub(crate) mod tests {
         let fetched_unique_sd_jwt = storage
             .fetch_valid_unique_attestations_by_types_and_format(
                 &attestation_types,
-                CredentialFormat::SdJwt,
+                Format::SdJwt,
                 MockTimeGenerator::default(),
             )
             .await
@@ -2036,7 +2037,7 @@ pub(crate) mod tests {
         let fetched_unique_other = storage
             .fetch_valid_unique_attestations_by_types_and_format(
                 &HashSet::from(["other".to_owned()]),
-                CredentialFormat::SdJwt,
+                Format::SdJwt,
                 MockTimeGenerator::default(),
             )
             .await
@@ -2072,7 +2073,7 @@ pub(crate) mod tests {
         let fetched_unique = storage
             .fetch_valid_unique_attestations_by_types_and_format(
                 &extended_vcts,
-                CredentialFormat::SdJwt,
+                Format::SdJwt,
                 MockTimeGenerator::default(),
             )
             .await
@@ -2099,7 +2100,7 @@ pub(crate) mod tests {
         let fetched = storage
             .fetch_valid_unique_attestations_by_types_and_format(
                 &attestation_types,
-                CredentialFormat::SdJwt,
+                Format::SdJwt,
                 MockTimeGenerator::new(Utc.timestamp_nanos(0)),
             )
             .await
@@ -2110,7 +2111,7 @@ pub(crate) mod tests {
         let fetched = storage
             .fetch_valid_unique_attestations_by_types_and_format(
                 &attestation_types,
-                CredentialFormat::SdJwt,
+                Format::SdJwt,
                 MockTimeGenerator::new(Utc::now() + Days::new(366)),
             )
             .await
@@ -2547,6 +2548,7 @@ pub(crate) mod tests {
                 let payload = CredentialPayload::from_sd_jwt(sd_jwt, &normalized_metadata).unwrap();
                 AttestationPresentation::create_from_attributes(
                     AttestationIdentity::Fixed { id: attestation_id },
+                    Format::SdJwt,
                     normalized_metadata,
                     issuer_registration.organization,
                     AttestationValidity {

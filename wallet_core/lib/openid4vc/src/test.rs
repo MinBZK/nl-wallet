@@ -7,6 +7,7 @@ use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::credential_format::Format;
 use attestation_types::qualification::AttestationQualification;
 use chrono::DateTime;
 use chrono::Days;
@@ -30,7 +31,6 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
-use crate::Format;
 use crate::authorization::PkceCodeChallenge;
 use crate::authorization::VciAuthorizationRequest;
 use crate::authorization_code_flow::AuthorizationCodeFlow;

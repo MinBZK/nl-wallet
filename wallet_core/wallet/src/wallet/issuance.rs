@@ -414,7 +414,7 @@ where
                 previews,
                 stored,
                 &TimeGenerator,
-                pid_purpose.is_some().then(|| &config.pid_attributes),
+                pid_purpose.is_some().then_some(&config.pid_attributes),
             );
 
         info!("successfully received token and previews from issuer");
@@ -424,6 +424,7 @@ where
             .map(|(preview_data, identity)| {
                 let attestation = AttestationPresentation::create_from_attributes(
                     identity.map_or(AttestationIdentity::Ephemeral, |id| AttestationIdentity::Fixed { id }),
+                    preview_data.content.format,
                     preview_data.normalized_metadata.clone(),
                     organization.clone(),
                     AttestationValidity {
@@ -714,13 +715,13 @@ mod tests {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::validity::ValidityWindow;
     use attestation_data::x509::CertificateType;
+    use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::Duration;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use itertools::multiunzip;
     use mockall::predicate::*;
-    use openid4vc::Format;
     use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;

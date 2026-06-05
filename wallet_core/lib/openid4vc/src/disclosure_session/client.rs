@@ -1,7 +1,7 @@
+use attestation_types::credential_format::Format;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::utils as crypto_utils;
 use crypto::x509::BorrowingCertificate;
-use dcql::CredentialFormat;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
 use derive_more::Constructor;
@@ -255,11 +255,11 @@ where
         // Validate that the verifier's vp_formats_supported covers the required format and includes ES256.
         let vp_formats = &auth_request.client_metadata.vp_formats_supported;
         let format_supported = match format {
-            CredentialFormat::MsoMdoc => vp_formats
+            Format::MsoMdoc => vp_formats
                 .mso_mdoc
                 .as_ref()
                 .is_some_and(MsoMdocAlgValues::contains_ecdsa_p256),
-            CredentialFormat::SdJwt => vp_formats.sd_jwt.as_ref().is_some_and(SdJwtAlgValues::contains_es_256),
+            Format::SdJwt => vp_formats.sd_jwt.as_ref().is_some_and(SdJwtAlgValues::contains_es_256),
         };
 
         if !format_supported {
@@ -295,6 +295,7 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::x509::CertificateTypeError;
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
@@ -302,7 +303,6 @@ mod tests {
     use crypto::trust_anchor::TrustAnchors;
     use crypto::x509::BorrowingCertificateExtension;
     use crypto::x509::CertificateUsage;
-    use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequest;
     use dcql::normalized::NormalizedCredentialRequests;
     use futures::FutureExt;
@@ -407,15 +407,15 @@ mod tests {
         uri_source: DisclosureUriSource,
         request_uri_method: VpRequestUriMethod,
         redirect_uri: Option<BaseUrl>,
-        credential_format: CredentialFormat,
+        credential_format: Format,
         transform_verifier_session: SF,
     ) -> StartDisclosureResult
     where
         SF: FnOnce(MockVerifierSession) -> MockVerifierSession,
     {
         let credential_request = match credential_format {
-            CredentialFormat::MsoMdoc => NormalizedCredentialRequest::new_mock_mdoc_pid_example(),
-            CredentialFormat::SdJwt => NormalizedCredentialRequest::new_mock_sd_jwt_pid_example(),
+            Format::MsoMdoc => NormalizedCredentialRequest::new_mock_mdoc_pid_example(),
+            Format::SdJwt => NormalizedCredentialRequest::new_mock_sd_jwt_pid_example(),
         };
 
         let authorized_attributes = credential_request
@@ -448,7 +448,7 @@ mod tests {
     #[case(SessionType::SameDevice, DisclosureUriSource::Link)]
     #[case(SessionType::CrossDevice, DisclosureUriSource::QrCode)]
     fn test_vp_disclosure_client_full(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] credential_format: CredentialFormat,
+        #[values(Format::MsoMdoc, Format::SdJwt)] credential_format: Format,
         #[case] session_type: SessionType,
         #[case] uri_source: DisclosureUriSource,
         #[values(VpRequestUriMethod::GET, VpRequestUriMethod::POST)] request_uri_method: VpRequestUriMethod,
@@ -491,8 +491,8 @@ mod tests {
         assert_eq!(
             *disclosure_session.credential_requests(),
             match credential_format {
-                CredentialFormat::MsoMdoc => NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
-                CredentialFormat::SdJwt => NormalizedCredentialRequests::new_mock_sd_jwt_pid_example(),
+                Format::MsoMdoc => NormalizedCredentialRequests::new_mock_mdoc_pid_example(),
+                Format::SdJwt => NormalizedCredentialRequests::new_mock_sd_jwt_pid_example(),
             }
         );
 
@@ -517,7 +517,7 @@ mod tests {
         let wscd = MockRemoteWscd::new(vec![attestation_key.clone()]);
 
         let attestations = match credential_format {
-            CredentialFormat::MsoMdoc => {
+            Format::MsoMdoc => {
                 let partial_mdoc = PartialMdoc::new_mock_with_ca_and_key(&ca, &attestation_key);
 
                 DisclosableAttestations::MsoMdoc(HashMap::from([(
@@ -527,7 +527,7 @@ mod tests {
                 .try_into()
                 .unwrap()
             }
-            CredentialFormat::SdJwt => {
+            Format::SdJwt => {
                 let issuer_key_pair = ca
                     .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
                     .unwrap();
@@ -734,7 +734,7 @@ mod tests {
             uri_source,
             VpRequestUriMethod::POST,
             None,
-            CredentialFormat::MsoMdoc,
+            Format::MsoMdoc,
             std::convert::identity,
         )
         .expect_err(
@@ -760,7 +760,7 @@ mod tests {
             DisclosureUriSource::Link,
             VpRequestUriMethod::POST,
             None,
-            CredentialFormat::MsoMdoc,
+            Format::MsoMdoc,
             |mut verifier_session| {
                 let mut request_uri = verifier_session.request_uri.clone().into_inner();
                 request_uri.set_query(None);
@@ -782,7 +782,7 @@ mod tests {
             DisclosureUriSource::Link,
             VpRequestUriMethod::POST,
             None,
-            CredentialFormat::MsoMdoc,
+            Format::MsoMdoc,
             |mut verifier_session| {
                 let mut request_uri = verifier_session.request_uri.clone().into_inner();
                 request_uri.set_query(Some("session_type=unrecognized_value"));
@@ -803,7 +803,7 @@ mod tests {
             DisclosureUriSource::Link,
             VpRequestUriMethod::POST,
             None,
-            CredentialFormat::MsoMdoc,
+            Format::MsoMdoc,
             |mut verifier_session| {
                 verifier_session.trust_anchors = TrustAnchors::empty();
 
@@ -916,7 +916,7 @@ mod tests {
             DisclosureUriSource::Link,
             VpRequestUriMethod::POST,
             None,
-            CredentialFormat::MsoMdoc,
+            Format::MsoMdoc,
             |mut verifier_session| {
                 verifier_session.client_id = "other_client_id".to_string();
                 verifier_session.state = Some("authorization_state".to_string());
@@ -1089,7 +1089,7 @@ mod tests {
 
     #[rstest]
     fn test_vp_disclosure_client_start_error_vp_formats_not_supported(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] credential_format: CredentialFormat,
+        #[values(Format::MsoMdoc, Format::SdJwt)] credential_format: Format,
     ) {
         // Calling `VpDisclosureClient::start()` where the verifier's vp_formats_supported does not
         // include ES256 for the required format should result in an error.

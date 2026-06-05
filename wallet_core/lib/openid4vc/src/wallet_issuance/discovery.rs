@@ -408,6 +408,7 @@ mod test {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
+    use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
@@ -430,7 +431,6 @@ mod test {
 
     use super::HttpIssuanceDiscovery;
     use super::IssuanceDiscovery;
-    use crate::Format;
     use crate::credential_offer::CredentialOffer;
     use crate::credential_offer::CredentialOfferContainer;
     use crate::credential_offer::GrantPreAuthorizedCode;

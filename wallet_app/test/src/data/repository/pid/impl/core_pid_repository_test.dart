@@ -46,6 +46,7 @@ void main() {
       final testAttestation = AttestationPresentation(
         identity: const AttestationIdentity_Ephemeral(),
         attestationType: 'pid',
+        format: .SdJwt,
         displayMetadata: [CoreMockData.enDisplayMetadata],
         issuer: CoreMockData.organization,
         attributes: CoreMockData.attestation.attributes,

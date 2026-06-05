@@ -8,6 +8,7 @@ abstract class CoreMockData {
   static const AttestationPresentation attestation = AttestationPresentation(
     identity: AttestationIdentity_Ephemeral(),
     attestationType: MockAttestationTypes.pid,
+    format: .SdJwt,
     displayMetadata: [enDisplayMetadata, nlDisplayMetadata],
     issuer: organization,
     attributes: [attestationAttributeName],

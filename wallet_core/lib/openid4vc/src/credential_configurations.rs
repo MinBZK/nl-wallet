@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
+use attestation_types::credential_format::Format;
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
 use crypto::server_keys::KeyPair;
@@ -17,7 +18,6 @@ use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use ssri::Integrity;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::Format;
 use crate::metadata::issuer_metadata;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::ProofType;
@@ -29,9 +29,6 @@ pub enum CredentialConfigurationsError {
 
     #[error("could not parse SD-JWT VC Type Metadata chain: {0}")]
     TypeMetadata(#[source] TypeMetadataChainError),
-
-    #[error("unsupported credential format: {0}")]
-    UnsupportedFormat(Format),
 
     #[error(
         "multiple credential configurations for the same combination of format and attestation type: {}",
@@ -159,10 +156,6 @@ impl<K, L> CredentialConfigurations<K, L> {
         let configs_by_id = config_params
             .into_iter()
             .map(|(config_id, params)| {
-                if !params.format.is_supported() {
-                    return Err(CredentialConfigurationsError::UnsupportedFormat(params.format));
-                }
-
                 let format_and_attestation_type = (params.format, params.attestation_type.clone());
                 ids_by_format_and_attestation_type
                     .entry(format_and_attestation_type)
@@ -253,8 +246,6 @@ impl<K, L> CredentialConfigurations<K, L> {
                         display,
                         claims,
                     ),
-                    // Unsupported formats are filtered out in this type's constructor.
-                    _ => unreachable!(),
                 };
 
                 (config_id.clone(), credential_configuration)
@@ -271,6 +262,7 @@ mod tests {
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
+    use attestation_types::credential_format::Format;
     use attestation_types::qualification::AttestationQualification;
     use chrono::Days;
     use crypto::server_keys::generate::Ca;
@@ -281,7 +273,6 @@ mod tests {
     use super::CredentialConfigurationParameters;
     use super::CredentialConfigurations;
     use super::CredentialConfigurationsError;
-    use crate::Format;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::CredentialFormat;
     use crate::metadata::issuer_metadata::ProofType;
@@ -423,19 +414,6 @@ mod tests {
             .expect_err("creating credential configurations from parameters should fail");
 
         assert_matches!(error, CredentialConfigurationsError::TypeMetadata(_));
-    }
-
-    #[test]
-    fn test_credential_configurations_try_new_error_unsupported_format() {
-        let mut params = credential_configuration_parameters();
-        for params in params.values_mut() {
-            params.format = Format::AcVc;
-        }
-
-        let error = CredentialConfigurations::try_new(params)
-            .expect_err("creating credential configurations from parameters should fail");
-
-        assert_matches!(error, CredentialConfigurationsError::UnsupportedFormat(Format::AcVc));
     }
 
     #[test]
