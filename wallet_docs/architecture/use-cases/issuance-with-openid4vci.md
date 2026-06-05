@@ -69,7 +69,7 @@ sequenceDiagram
         CI->>Wallet: c_nonce
         Wallet-->>CI: GET metadata
         CI-->>Wallet: metadata
-        Wallet->>CI: POST Credential Request<br/>(access_token, WUA) to /credential
+        Wallet->>CI: POST Credential Request<br/>(access_token, WIA) to /credential
         CI->>Wallet: Credential Response (attestation copies)
     end
 ```
@@ -136,7 +136,7 @@ sequenceDiagram
         CI->>Wallet: c_nonce
         Wallet-->>CI: GET metadata
         CI-->>Wallet: metadata
-        Wallet->>CI: POST Credential Request<br/>(access_token, WUA) to /credential
+        Wallet->>CI: POST Credential Request<br/>(access_token, WIA) to /credential
         CI->>Wallet: Credential Response (attestation copies)
     end
 ```
