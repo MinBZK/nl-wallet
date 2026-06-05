@@ -416,7 +416,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .expect("there are always credential_previews in the preview response")
             .clone();
 
-        let normalized_credential_previews: VecNonEmpty<_> = credential_previews
+        let normalized_credential_previews = credential_previews
             .into_nonempty_iter()
             .map(|preview| {
                 // Verify the issuer certificate against the trust anchors.
@@ -426,7 +426,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 let state = NormalizedCredentialPreview::try_new(preview)?;
                 Ok::<_, WalletIssuanceError>(state)
             })
-            .collect::<Result<VecNonEmpty<_>, _>>()?;
+            .collect::<Result<_, _>>()?;
 
         let credential_request_types = credential_request_types_from_preview(&normalized_credential_previews)?;
 
