@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'bluetooth'
-  s.version          = '0.1.0'
+  s.version          = '0.1.1'
   s.summary          = 'A Flutter bluetooth plugin.'
   s.description      = <<-DESC
 A Flutter bluetooth plugin.
@@ -13,7 +13,8 @@ A Flutter bluetooth plugin.
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'NL Wallet' => 'email@example.org' }
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/**/*'
+  s.source_files = 'bluetooth/Sources/bluetooth/**/*.swift'
+  s.resource_bundles = {'bluetooth_privacy' => ['bluetooth/Sources/bluetooth/PrivacyInfo.xcprivacy']}
   s.dependency 'Flutter'
   s.platform = :ios, '13.0'
 
