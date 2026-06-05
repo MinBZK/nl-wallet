@@ -119,7 +119,7 @@ pub fn create_serve_router<'a>(
 
     let router = route_sources
         .into_iter()
-        .zip_eq(itertools::repeat_n(content_type, route_count))
+        .zip_eq(std::iter::repeat_n(content_type, route_count))
         .fold(Router::new(), |router, ((path, route_source), content_type)| {
             let state = RouterState {
                 publish_dir: Arc::new(route_source.publish_dir),

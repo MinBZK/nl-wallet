@@ -66,7 +66,7 @@ impl From<ItemsRequest> for Vec<VecNonEmpty<ClaimPath>> {
             .flat_map(|(name_space, attributes)| {
                 let attribute_count = attributes.as_ref().len();
 
-                itertools::repeat_n(name_space, attribute_count).zip(attributes).map(
+                std::iter::repeat_n(name_space, attribute_count).zip(attributes).map(
                     |(name_space, (attribute, _intent_to_retain))| {
                         vec_nonempty![ClaimPath::SelectByKey(name_space), ClaimPath::SelectByKey(attribute)]
                     },

@@ -189,7 +189,7 @@ impl From<String> for MissingAttribute {
 
         let labels = LANGUAGES
             .iter()
-            .zip(itertools::repeat_n(value, LANGUAGES.len()))
+            .zip(std::iter::repeat_n(value, LANGUAGES.len()))
             .map(|(language, value)| LocalizedString {
                 language: language.to_string(),
                 value,

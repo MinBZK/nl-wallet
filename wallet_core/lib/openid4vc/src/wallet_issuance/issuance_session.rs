@@ -1360,7 +1360,7 @@ mod tests {
                     let credential_responses = credential_requests
                         .credential_requests
                         .iter()
-                        .zip(itertools::repeat_n(
+                        .zip(std::iter::repeat_n(
                             signer,
                             credential_requests.credential_requests.len().get(),
                         ))
