@@ -22,6 +22,7 @@ use demo_utils::WALLET_WEB_CSS_SHA256;
 use demo_utils::WALLET_WEB_JS_SHA256;
 use demo_utils::disclosure::DemoDisclosedAttestations;
 use http_utils::health::create_health_router;
+use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use indexmap::IndexMap;
@@ -278,7 +279,9 @@ async fn pre_authorized_usecase(
         .try_into()
         .unwrap(); // we started with a VecNonEmpty
 
-    let offer_response = reqwest::Client::new()
+    let offer_response = default_reqwest_client_builder()
+        .build()
+        .map_err(anyhow::Error::from)?
         .post(pacf_issuance_server_url.join("offer"))
         .json(&OfferRequest { documents })
         .send()
