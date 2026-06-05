@@ -4,6 +4,7 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::credential_format::Format;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::KeyIdentifier;
 use mdoc::IssuerSigned;
@@ -151,6 +152,13 @@ impl StoredAttestationCopy {
 
     pub fn attestation_copy_id(&self) -> Uuid {
         self.attestation_copy_id
+    }
+
+    pub fn format(&self) -> Format {
+        match self.attestation {
+            StoredAttestation::MsoMdoc { .. } => Format::MsoMdoc,
+            StoredAttestation::SdJwt { .. } => Format::SdJwt,
+        }
     }
 
     /// Returns true if `aki` is empty, and otherwise returns whether any of the attestation's issuer certificates
