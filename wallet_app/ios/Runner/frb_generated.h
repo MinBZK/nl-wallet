@@ -485,6 +485,24 @@ typedef struct wire_cst_flutter_version_state {
   union FlutterVersionStateKind kind;
 } wire_cst_flutter_version_state;
 
+typedef struct wire_cst_IssuanceStartResult_AuthorizationUrl {
+  struct wire_cst_list_prim_u_8_strict *field0;
+} wire_cst_IssuanceStartResult_AuthorizationUrl;
+
+typedef struct wire_cst_IssuanceStartResult_Previews {
+  struct wire_cst_list_attestation_presentation *field0;
+} wire_cst_IssuanceStartResult_Previews;
+
+typedef union IssuanceStartResultKind {
+  struct wire_cst_IssuanceStartResult_AuthorizationUrl AuthorizationUrl;
+  struct wire_cst_IssuanceStartResult_Previews Previews;
+} IssuanceStartResultKind;
+
+typedef struct wire_cst_issuance_start_result {
+  int32_t tag;
+  union IssuanceStartResultKind kind;
+} wire_cst_issuance_start_result;
+
 typedef struct wire_cst_PidIssuanceResult_Ok {
   bool transfer_available;
 } wire_cst_PidIssuanceResult_Ok;
@@ -724,10 +742,6 @@ void frbgen_wallet_core_wire__crate__api__full__unlock_wallet(int64_t port_,
 
 void frbgen_wallet_core_wire__crate__api__full__unlock_wallet_with_biometrics(int64_t port_);
 
-void frbgen_wallet_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(const void *ptr);
-
-void frbgen_wallet_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(const void *ptr);
-
 struct wire_cst_attestation_presentation *frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation(void);
 
 struct wire_cst_image *frbgen_wallet_core_cst_new_box_autoadd_image(void);
@@ -810,8 +824,6 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_prim_u_8_strict);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_record_i_32_notification_type);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_wallet_event);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_disclosure);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_issuance);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_wire__crate__api__full__accept_pid_issuance);

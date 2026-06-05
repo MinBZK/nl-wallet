@@ -226,12 +226,6 @@ abstract class WalletCoreApi extends BaseApi {
   Future<WalletInstructionResult> crateApiFullUnlockWallet({required String pin});
 
   Future<void> crateApiFullUnlockWalletWithBiometrics();
-
-  RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_IssuanceStartResult;
-
-  RustArcDecrementStrongCountFnType get rust_arc_decrement_strong_count_IssuanceStartResult;
-
-  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_IssuanceStartResultPtr;
 }
 
 class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreApi {
@@ -1677,8 +1671,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           return wire.wire__crate__api__full__start_issuance_from_offer(port_, arg0);
         },
         codec: DcoCodec(
-          decodeSuccessData:
-              dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult,
+          decodeSuccessData: dco_decode_issuance_start_result,
           decodeErrorData: dco_decode_AnyhowException,
         ),
         constMeta: kCrateApiFullStartIssuanceFromOfferConstMeta,
@@ -1833,23 +1826,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     };
   }
 
-  RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_IssuanceStartResult => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult;
-
-  RustArcDecrementStrongCountFnType get rust_arc_decrement_strong_count_IssuanceStartResult => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult;
-
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return AnyhowException(raw as String);
-  }
-
-  @protected
-  IssuanceStartResult
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return IssuanceStartResultImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
@@ -1870,14 +1850,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   Object dco_decode_DartOpaque(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return decodeDartOpaque(raw, generalizedFrbRustBinding);
-  }
-
-  @protected
-  IssuanceStartResult dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return IssuanceStartResultImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
@@ -2305,6 +2277,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   PlatformInt64 dco_decode_isize(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dcoDecodeI64(raw);
+  }
+
+  @protected
+  IssuanceStartResult dco_decode_issuance_start_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return IssuanceStartResult_AuthorizationUrl(
+          dco_decode_String(raw[1]),
+        );
+      case 1:
+        return IssuanceStartResult_Previews(
+          dco_decode_list_attestation_presentation(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
   }
 
   @protected
@@ -2832,27 +2821,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  IssuanceStartResult
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return IssuanceStartResultImpl.frbInternalSseDecode(sse_decode_usize(deserializer), sse_decode_i_32(deserializer));
-  }
-
-  @protected
   Object sse_decode_DartOpaque(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_isize(deserializer);
     return decodeDartOpaque(inner, generalizedFrbRustBinding);
-  }
-
-  @protected
-  IssuanceStartResult sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return IssuanceStartResultImpl.frbInternalSseDecode(sse_decode_usize(deserializer), sse_decode_i_32(deserializer));
   }
 
   @protected
@@ -3288,6 +3260,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   PlatformInt64 sse_decode_isize(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getPlatformInt64();
+  }
+
+  @protected
+  IssuanceStartResult sse_decode_issuance_start_result(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        var var_field0 = sse_decode_String(deserializer);
+        return IssuanceStartResult_AuthorizationUrl(var_field0);
+      case 1:
+        var var_field0 = sse_decode_list_attestation_presentation(deserializer);
+        return IssuanceStartResult_Previews(var_field0);
+      default:
+        throw UnimplementedError('');
+    }
   }
 
   @protected
@@ -3962,15 +3951,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  int cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-    IssuanceStartResult raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as IssuanceStartResultImpl).frbInternalCstEncode(move: true);
-  }
-
-  @protected
   PlatformPointer cst_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
     FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) raw,
   ) {
@@ -3994,15 +3974,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   PlatformPointer cst_encode_DartOpaque(Object raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return encodeDartOpaque(raw, portManager.dartHandlerPort, generalizedFrbRustBinding);
-  }
-
-  @protected
-  int cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-    IssuanceStartResult raw,
-  ) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    // ignore: invalid_use_of_internal_member
-    return (raw as IssuanceStartResultImpl).frbInternalCstEncode();
   }
 
   @protected
@@ -4096,15 +4067,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-    IssuanceStartResult self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize((self as IssuanceStartResultImpl).frbInternalSseEncode(move: true), serializer);
-  }
-
-  @protected
   void sse_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
     FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) self,
     SseSerializer serializer,
@@ -4137,15 +4099,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       ),
       serializer,
     );
-  }
-
-  @protected
-  void sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-    IssuanceStartResult self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize((self as IssuanceStartResultImpl).frbInternalSseEncode(move: null), serializer);
   }
 
   @protected
@@ -4571,6 +4524,19 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_isize(PlatformInt64 self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putPlatformInt64(self);
+  }
+
+  @protected
+  void sse_encode_issuance_start_result(IssuanceStartResult self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case IssuanceStartResult_AuthorizationUrl(field0: final field0):
+        sse_encode_i_32(0, serializer);
+        sse_encode_String(field0, serializer);
+      case IssuanceStartResult_Previews(field0: final field0):
+        sse_encode_i_32(1, serializer);
+        sse_encode_list_attestation_presentation(field0, serializer);
+    }
   }
 
   @protected
@@ -5132,20 +5098,4 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_i_32(10, serializer);
     }
   }
-}
-
-@sealed
-class IssuanceStartResultImpl extends RustOpaque implements IssuanceStartResult {
-  // Not to be used by end users
-  IssuanceStartResultImpl.frbInternalDcoDecode(List<dynamic> wire) : super.frbInternalDcoDecode(wire, _kStaticData);
-
-  // Not to be used by end users
-  IssuanceStartResultImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
-    : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
-
-  static final _kStaticData = RustArcStaticData(
-    rustArcIncrementStrongCount: WalletCore.instance.api.rust_arc_increment_strong_count_IssuanceStartResult,
-    rustArcDecrementStrongCount: WalletCore.instance.api.rust_arc_decrement_strong_count_IssuanceStartResult,
-    rustArcDecrementStrongCountPtr: WalletCore.instance.api.rust_arc_decrement_strong_count_IssuanceStartResultPtr,
-  );
 }

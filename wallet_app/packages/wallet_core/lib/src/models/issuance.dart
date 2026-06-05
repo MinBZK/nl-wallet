@@ -4,7 +4,23 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'attestation.dart';
+import 'disclosure.dart';
+import 'image.dart';
+import 'localize.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
+import 'revocation.dart';
+part 'issuance.freezed.dart';
 
-// Rust type: RustOpaqueNom<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<IssuanceStartResult>>
-abstract class IssuanceStartResult implements RustOpaqueInterface {}
+@freezed
+sealed class IssuanceStartResult with _$IssuanceStartResult {
+  const IssuanceStartResult._();
+
+  const factory IssuanceStartResult.authorizationUrl(
+    String field0,
+  ) = IssuanceStartResult_AuthorizationUrl;
+  const factory IssuanceStartResult.previews(
+    List<AttestationPresentation> field0,
+  ) = IssuanceStartResult_Previews;
+}

@@ -33,15 +33,8 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     required super.portManager,
   });
 
-  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_IssuanceStartResultPtr => wire
-      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResultPtr;
-
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw);
-
-  @protected
-  IssuanceStartResult
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(dynamic raw);
 
   @protected
   FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate)
@@ -53,11 +46,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   Object dco_decode_DartOpaque(dynamic raw);
-
-  @protected
-  IssuanceStartResult dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-    dynamic raw,
-  );
 
   @protected
   RustStreamSink<bool> dco_decode_StreamSink_bool_Dco(dynamic raw);
@@ -187,6 +175,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   PlatformInt64 dco_decode_isize(dynamic raw);
+
+  @protected
+  IssuanceStartResult dco_decode_issuance_start_result(dynamic raw);
 
   @protected
   List<String> dco_decode_list_String(dynamic raw);
@@ -342,18 +333,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
-  IssuanceStartResult
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-    SseDeserializer deserializer,
-  );
-
-  @protected
   Object sse_decode_DartOpaque(SseDeserializer deserializer);
-
-  @protected
-  IssuanceStartResult sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-    SseDeserializer deserializer,
-  );
 
   @protected
   RustStreamSink<bool> sse_decode_StreamSink_bool_Dco(SseDeserializer deserializer);
@@ -487,6 +467,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   PlatformInt64 sse_decode_isize(SseDeserializer deserializer);
+
+  @protected
+  IssuanceStartResult sse_decode_issuance_start_result(SseDeserializer deserializer);
 
   @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
@@ -1386,6 +1369,22 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_issuance_start_result(IssuanceStartResult apiObj, wire_cst_issuance_start_result wireObj) {
+    if (apiObj is IssuanceStartResult_AuthorizationUrl) {
+      var pre_field0 = cst_encode_String(apiObj.field0);
+      wireObj.tag = 0;
+      wireObj.kind.AuthorizationUrl.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is IssuanceStartResult_Previews) {
+      var pre_field0 = cst_encode_list_attestation_presentation(apiObj.field0);
+      wireObj.tag = 1;
+      wireObj.kind.Previews.field0 = pre_field0;
+      return;
+    }
+  }
+
+  @protected
   void cst_api_fill_to_wire_localized_string(LocalizedString apiObj, wire_cst_localized_string wireObj) {
     wireObj.language = cst_encode_String(apiObj.language);
     wireObj.value = cst_encode_String(apiObj.value);
@@ -1728,11 +1727,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  int cst_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-    IssuanceStartResult raw,
-  );
-
-  @protected
   PlatformPointer cst_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
     FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) raw,
   );
@@ -1744,11 +1738,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   PlatformPointer cst_encode_DartOpaque(Object raw);
-
-  @protected
-  int cst_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-    IssuanceStartResult raw,
-  );
 
   @protected
   int cst_encode_blocked_reason(BlockedReason raw);
@@ -1796,12 +1785,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_AnyhowException(AnyhowException self, SseSerializer serializer);
 
   @protected
-  void sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-    IssuanceStartResult self,
-    SseSerializer serializer,
-  );
-
-  @protected
   void sse_encode_DartFn_Inputs_close_proximity_disclosure_flutter_update_Output_unit_AnyhowException(
     FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) self,
     SseSerializer serializer,
@@ -1815,12 +1798,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_DartOpaque(Object self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-    IssuanceStartResult self,
-    SseSerializer serializer,
-  );
 
   @protected
   void sse_encode_StreamSink_bool_Dco(RustStreamSink<bool> self, SseSerializer serializer);
@@ -1965,6 +1942,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_isize(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_issuance_start_result(IssuanceStartResult self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
@@ -3189,40 +3169,6 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__unlock_wallet_with_biometrics =
       _wire__crate__api__full__unlock_wallet_with_biometricsPtr.asFunction<void Function(int)>();
 
-  void
-  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-    ffi.Pointer<ffi.Void> ptr,
-  ) {
-    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-      ptr,
-    );
-  }
-
-  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResultPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'frbgen_wallet_core_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult',
-      );
-  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult =
-      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResultPtr
-          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
-
-  void
-  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-    ffi.Pointer<ffi.Void> ptr,
-  ) {
-    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult(
-      ptr,
-    );
-  }
-
-  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResultPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'frbgen_wallet_core_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult',
-      );
-  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResult =
-      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerIssuanceStartResultPtr
-          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
-
   ffi.Pointer<wire_cst_attestation_presentation> cst_new_box_autoadd_attestation_presentation() {
     return _cst_new_box_autoadd_attestation_presentation();
   }
@@ -4230,6 +4176,27 @@ final class wire_cst_flutter_version_state extends ffi.Struct {
   external int tag;
 
   external FlutterVersionStateKind kind;
+}
+
+final class wire_cst_IssuanceStartResult_AuthorizationUrl extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> field0;
+}
+
+final class wire_cst_IssuanceStartResult_Previews extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_attestation_presentation> field0;
+}
+
+final class IssuanceStartResultKind extends ffi.Union {
+  external wire_cst_IssuanceStartResult_AuthorizationUrl AuthorizationUrl;
+
+  external wire_cst_IssuanceStartResult_Previews Previews;
+}
+
+final class wire_cst_issuance_start_result extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external IssuanceStartResultKind kind;
 }
 
 final class wire_cst_PidIssuanceResult_Ok extends ffi.Struct {
