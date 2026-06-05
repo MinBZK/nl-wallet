@@ -32,6 +32,7 @@ axum = [
     "dep:utoipa-axum",
     "axum/json",
     "tower-http/compression-gzip",
+    "tower-http/cors",
     "utoipa/uuid",
     "token_status_list/axum",
 ]
