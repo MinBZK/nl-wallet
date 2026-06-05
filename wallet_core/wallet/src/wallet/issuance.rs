@@ -15,6 +15,7 @@ use http_utils::urls;
 use itertools::Itertools;
 use jwt::error::JwtError;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::wallet_issuance::AuthorizationSession;
@@ -143,9 +144,9 @@ pub enum IssuanceError {
     #[error("failed to read issuer registration from issuer certificate: {0}")]
     AttestationPreview(#[from] CredentialPreviewError),
 
-    #[error("type metadata for attestation type `{0}` not found")]
+    #[error("type metadata for config id `{0}` not found")]
     #[category(critical)]
-    MissingTypeMetadata(String),
+    MissingTypeMetadata(CredentialConfigurationId),
 
     #[error("error finalizing pin change: {0}")]
     ChangePin(#[from] ChangePinError),
@@ -427,11 +428,10 @@ where
         let attestations = previews_and_identity
             .into_iter()
             .map(|(preview_data, identity)| {
-                let attestation_type = &preview_data.credential_payload.attestation_type;
                 let normalized_metadata = &type_metadata
-                    .get(attestation_type)
+                    .get(&preview_data.config_id)
                     .map(Ok)
-                    .unwrap_or_else(|| Err(IssuanceError::MissingTypeMetadata(attestation_type.clone())))?
+                    .unwrap_or_else(|| Err(IssuanceError::MissingTypeMetadata(preview_data.config_id.clone())))?
                     .normalized_metadata;
 
                 let attestation = AttestationPresentation::create_from_attributes(
@@ -1250,7 +1250,7 @@ mod tests {
                 create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
             session
                 .expect_type_metadata()
-                .return_const([(preview.credential_payload.attestation_type.clone(), type_metadata)].into());
+                .return_const([(preview.config_id.clone(), type_metadata)].into());
             session.expect_credential_previews().return_const(vec![preview]);
             session.expect_issuer().return_const(IssuerRegistration::new_mock());
             Ok(session)
@@ -1374,7 +1374,9 @@ mod tests {
         let preview_count = preview_formats.len();
         let previews = std::iter::repeat_n(payload, preview_count)
             .zip_eq(preview_formats.into_iter())
-            .map(move |(payload, format)| modifier(create_preview_from_payload(payload, format)))
+            .map(move |(payload, format)| {
+                modifier(create_preview_from_payload(payload, format, format.to_string().into()))
+            })
             .collect_vec();
 
         let ca = Ca::generate("myca", Default::default()).unwrap();
@@ -1415,11 +1417,11 @@ mod tests {
         // Set up the `MockIssuanceSession` directly.
         let mut issuance_session = MockIssuanceSession::new();
         issuance_session.expect_type_metadata().return_const(
-            [(
-                previews.first().unwrap().credential_payload.attestation_type.clone(),
-                type_metadata,
-            )]
-            .into(),
+            previews
+                .iter()
+                .map(|preview| preview.config_id.clone())
+                .zip_eq(std::iter::repeat_n(type_metadata, preview_count))
+                .collect(),
         );
         issuance_session.expect_credential_previews().return_const(previews);
         issuance_session

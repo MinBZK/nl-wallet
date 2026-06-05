@@ -13,6 +13,7 @@ use super::IssuanceSession;
 use super::IssuanceTypeMetadata;
 use super::WalletIssuanceError;
 use super::credential::CredentialWithMetadata;
+use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::token::CredentialPreview;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -124,7 +125,7 @@ mockall::mock! {
 
         pub fn credential_previews(&self) -> &[CredentialPreview];
 
-        pub fn type_metadata(&self) -> &HashMap<String, IssuanceTypeMetadata>;
+        pub fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, IssuanceTypeMetadata>;
 
         pub fn issuer(&self) -> &IssuerRegistration;
     }
@@ -148,7 +149,7 @@ impl IssuanceSession for MockIssuanceSession {
         self.credential_previews()
     }
 
-    fn type_metadata(&self) -> &HashMap<String, IssuanceTypeMetadata> {
+    fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, IssuanceTypeMetadata> {
         self.type_metadata()
     }
 

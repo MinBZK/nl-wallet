@@ -30,6 +30,7 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::authorization::AuthorizationDetails;
+use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::server_state::SessionToken;
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
@@ -151,6 +152,8 @@ impl TokenResponse {
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialPreview {
+    pub config_id: CredentialConfigurationId,
+
     pub format: Format,
 
     // TODO (PVW-5634): Use the `batch_credential_issuance` field in the issuer metadata instead.

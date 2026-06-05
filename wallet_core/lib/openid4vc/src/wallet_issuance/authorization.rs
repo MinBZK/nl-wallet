@@ -309,6 +309,7 @@ mod tests {
     use super::HttpAuthorizationSessionData;
     use super::OAuthError;
     use crate::AuthorizationErrorCode;
+    use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
@@ -334,11 +335,12 @@ mod tests {
     }
 
     fn create_session() -> HttpAuthorizationSession<MockPkcePair> {
+        let config_id: CredentialConfigurationId = "config_id".to_string().into();
         let mut pkce_pair = MockPkcePair::new();
         pkce_pair.expect_code_challenge().return_const("challenge".to_string());
         HttpAuthorizationSession {
-            issuer_metadata: IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test"),
-            credential_configuration_ids: vec_nonempty!["config_id".to_string().into()],
+            issuer_metadata: IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test", config_id.clone()),
+            credential_configuration_ids: vec_nonempty![config_id],
             oauth_metadata: AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
             http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: ISSUER_URL.parse().unwrap(),
@@ -421,10 +423,11 @@ mod tests {
             pkce_pair
         });
 
+        let config_id: CredentialConfigurationId = "config_id".to_string().into();
         let session = HttpAuthorizationSession::<MockPkcePair>::create(
             HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
-            vec_nonempty!["config_id".to_string().into()],
-            IssuerMetadata::new_mock(server.base_url().parse().unwrap(), "test"),
+            vec_nonempty![config_id.clone()],
+            IssuerMetadata::new_mock(server.base_url().parse().unwrap(), "test", config_id),
             oauth_metadata,
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
@@ -525,9 +528,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_persist_and_restore() {
+        let config_id: CredentialConfigurationId = "config_id".to_string().into();
         let persisted = HttpAuthorizationSessionData {
-            credential_configuration_ids: vec_nonempty!["config_id".to_string().into()],
-            issuer_metadata: IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test"),
+            credential_configuration_ids: vec_nonempty![config_id.clone()],
+            issuer_metadata: IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test", config_id),
             oauth_metadata: AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
             auth_url: ISSUER_URL.parse().unwrap(),
             client_id: CLIENT_ID.to_string(),

@@ -640,6 +640,7 @@ where
         &self,
         state: &CredentialPreviewState,
     ) -> Result<CredentialPreview, CredentialPreviewError> {
+        let config_id = state.credential_configuration_id.clone();
         let credential_config = self
             .issuer_data
             .credential_configuration_for_preview_state(state)
@@ -648,6 +649,7 @@ where
             })?;
 
         let preview = CredentialPreview {
+            config_id,
             format: state.format,
             batch_size: state.batch_size,
             credential_payload: state.credential_payload.clone(),

@@ -32,6 +32,7 @@ use jwt::SignedJwt;
 use jwt::UnverifiedJwt;
 use mdoc::holder::Mdoc;
 use openid4vc::disclosure_session::mock::MockDisclosureClient;
+use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::token::CredentialPreview;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredential;
@@ -213,8 +214,13 @@ pub fn create_example_credential_payload(
     )
 }
 
-pub fn create_preview_from_payload(credential_payload: CredentialPayload, format: Format) -> CredentialPreview {
+pub fn create_preview_from_payload(
+    credential_payload: CredentialPayload,
+    format: Format,
+    config_id: CredentialConfigurationId,
+) -> CredentialPreview {
     CredentialPreview {
+        config_id,
         format,
         batch_size: NonZeroU8::MIN,
         credential_payload: credential_payload.previewable_payload,
@@ -233,9 +239,13 @@ pub fn create_example_preview_data(
     time_generator: &impl Generator<DateTime<Utc>>,
     format: Format,
     attestation_type: &str,
+    config_id: CredentialConfigurationId,
 ) -> (CredentialPreview, IssuanceTypeMetadata) {
     let (credential_payload, type_metadata) = create_example_credential_payload(time_generator, attestation_type);
-    (create_preview_from_payload(credential_payload, format), type_metadata)
+    (
+        create_preview_from_payload(credential_payload, format, config_id),
+        type_metadata,
+    )
 }
 
 /// Generate valid `CredentialPreviewData`.
@@ -243,7 +253,12 @@ pub fn create_example_pid_preview_data(
     time_generator: &impl Generator<DateTime<Utc>>,
     format: Format,
 ) -> (CredentialPreview, IssuanceTypeMetadata) {
-    create_example_preview_data(time_generator, format, PID_ATTESTATION_TYPE)
+    create_example_preview_data(
+        time_generator,
+        format,
+        PID_ATTESTATION_TYPE,
+        "config_id".to_string().into(),
+    )
 }
 
 /// Generates a valid [`VerifiedSdJwt`] that contains a full mdoc PID.

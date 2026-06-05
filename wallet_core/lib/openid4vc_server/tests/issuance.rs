@@ -18,6 +18,7 @@ use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
 use openid4vc::issuer_identifier::IssuerIdentifier;
+use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::test::MOCK_ATTESTATION_TYPES;
@@ -159,7 +160,7 @@ fn make_credential_offer_url(
 fn verify_issued_credentials(
     issued_creds: Vec<CredentialWithMetadata>,
     credential_previews: Iter<CredentialPreview>,
-    type_metadata: &HashMap<String, IssuanceTypeMetadata>,
+    type_metadata: &HashMap<CredentialConfigurationId, IssuanceTypeMetadata>,
     expected_attestations: usize,
     expected_copies: usize,
 ) {
@@ -174,7 +175,7 @@ fn verify_issued_credentials(
         .zip(credential_previews)
         .for_each(|(credential, preview_data)| {
             let normalized_metadata = &type_metadata
-                .get(&preview_data.credential_payload.attestation_type)
+                .get(&preview_data.config_id)
                 .expect("credential type metadata is missing")
                 .normalized_metadata;
             credential

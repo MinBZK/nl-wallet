@@ -299,13 +299,9 @@ mod tests {
             .return_once(move || {
                 let mut issuance_session = MockIssuanceSession::new();
 
-                issuance_session.expect_type_metadata().return_const(
-                    [(
-                        credential_preview.credential_payload.attestation_type.clone(),
-                        type_metadata,
-                    )]
-                    .into(),
-                );
+                issuance_session
+                    .expect_type_metadata()
+                    .return_const([(credential_preview.config_id.clone(), type_metadata)].into());
 
                 issuance_session
                     .expect_credential_previews()

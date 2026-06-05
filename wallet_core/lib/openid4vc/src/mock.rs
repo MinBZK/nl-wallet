@@ -50,9 +50,11 @@ impl AuthorizationServerMetadata {
 }
 
 impl IssuerMetadata {
-    pub fn new_mock(issuer_identifier: IssuerIdentifier, attestation_type: &str) -> IssuerMetadata {
-        let config_id: CredentialConfigurationId = attestation_type.to_string().into();
-
+    pub fn new_mock(
+        issuer_identifier: IssuerIdentifier,
+        attestation_type: &str,
+        config_id: CredentialConfigurationId,
+    ) -> IssuerMetadata {
         let credential_endpoint = issuer_identifier.join_issuer_url("/issuance/credential");
         let batch_credential_endpoint = issuer_identifier.join_issuer_url("/issuance/batch_credential");
         let nonce_endpoint = issuer_identifier.join_issuer_url("/issuance/nonce");

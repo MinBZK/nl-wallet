@@ -590,6 +590,7 @@ mod test {
         let credential_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
 
         let preview = CredentialPreview {
+            config_id: CONFIG_ID.clone(),
             format: Format::MsoMdoc,
             batch_size: NonZeroU8::new(4).unwrap(),
             credential_payload,

@@ -164,17 +164,9 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     TypeMetadataUriNotBasedFromIssuerIdentifier(IssuerUrl, Box<IssuerIdentifier>),
 
-    #[error("different attestation types found for same type metadata uri `{0}`")]
-    #[category(critical)]
-    DifferentAttestationTypeForSameTypeMetadataUri(IssuerUrl),
-
-    #[error("different type metadata found for attestation type `{0}`")]
-    #[category(critical)]
-    DifferentTypeMetadataForSameAttestationType(String),
-
     #[error("type metadata for `{0}` not found")]
     #[category(critical)]
-    TypeMetadataNotFound(String),
+    TypeMetadataNotFound(CredentialConfigurationId),
 
     #[error("error verifying credential preview: {0}")]
     CredentialPreviewVerification(#[source] CredentialPreviewError),
@@ -375,7 +367,7 @@ pub trait IssuanceSession {
 
     fn credential_previews(&self) -> &[CredentialPreview];
 
-    fn type_metadata(&self) -> &HashMap<String, IssuanceTypeMetadata>;
+    fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, IssuanceTypeMetadata>;
 
     fn issuer_registration(&self) -> &IssuerRegistration;
 }
