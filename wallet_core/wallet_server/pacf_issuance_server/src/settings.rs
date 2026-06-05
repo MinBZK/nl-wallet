@@ -11,18 +11,10 @@ use serde::Deserialize;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
-use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
 use utils::path::prefix_local_path;
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct PacfIssuanceServerSettings {
-    #[serde(flatten)]
-    pub issuer_settings: IssuerSettings,
-
-    /// Configuration for caching status list tokens.
-    #[serde(default)]
-    pub status_list_token_cache_settings: StatusListTokenCacheSettings,
-}
+pub struct PacfIssuanceServerSettings(pub IssuerSettings);
 
 impl ServerSettings for PacfIssuanceServerSettings {
     type ValidationError = IssuerSettingsValidationError;
@@ -78,11 +70,11 @@ impl ServerSettings for PacfIssuanceServerSettings {
     }
 
     fn validate(&self) -> Result<(), IssuerSettingsValidationError> {
-        self.issuer_settings.validate()?;
+        self.0.validate()?;
         Ok(())
     }
 
     fn server_settings(&self) -> &Settings {
-        &self.issuer_settings.server_settings
+        &self.0.server_settings
     }
 }

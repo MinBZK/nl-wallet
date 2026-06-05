@@ -13,10 +13,10 @@ async fn main() -> Result<()> {
 }
 
 async fn main_impl(settings: PacfIssuanceServerSettings) -> Result<()> {
-    let serve_status_lists = settings.issuer_settings.status_lists.serve;
+    let serve_status_lists = settings.0.status_lists.serve;
 
     let hsm = settings
-        .issuer_settings
+        .0
         .server_settings
         .hsm
         .clone()
@@ -24,7 +24,7 @@ async fn main_impl(settings: PacfIssuanceServerSettings) -> Result<()> {
         .transpose()?;
     let hsm_checker = hsm.as_ref().map(HsmChecker::new);
 
-    let (issuer, database_checkers, _, server_settings) = settings.issuer_settings.into_issuer(hsm, None).await?;
+    let (issuer, database_checkers, _, server_settings) = settings.0.into_issuer(hsm, None).await?;
 
     let health_checkers = health_checkers::boxed(hsm_checker)
         .into_iter()
