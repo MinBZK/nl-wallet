@@ -5374,7 +5374,6 @@ name = "pacf_issuance_server"
 version = "0.6.0-dev"
 dependencies = [
  "anyhow",
- "attestation_types",
  "axum",
  "config",
  "health_checkers",

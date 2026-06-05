@@ -11,16 +11,14 @@ use http_utils::reqwest::ReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use itertools::Itertools;
 use openid4vc::PostAuthResponseErrorCode;
-use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
+use openid4vc::issuer::IssuanceError;
 use openid4vc::issuer::Issuer;
 use openid4vc::server_state::SessionStore;
-use openid4vc::server_state::SessionStoreError;
 use openid4vc::verifier::DisclosureResultHandler;
 use openid4vc::verifier::DisclosureResultHandlerError;
 use openid4vc::verifier::ToPostAuthResponseErrorCode;
-use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error)]
@@ -97,11 +95,8 @@ pub enum IssuanceResultHandlerError {
     #[error("no attestations to issue")]
     NoIssuableAttestations,
 
-    #[error("attestation type for format \"{0}\" not configured: {1}")]
-    AttestationTypeNotConfigured(Format, String),
-
-    #[error("failed to create session: {0}")]
-    SessionStore(#[from] SessionStoreError),
+    #[error("issuance error: {0}")]
+    Issuer(#[source] IssuanceError),
 
     #[error("credential offer URL serialization failed: {0}")]
     CredentialOfferSerialization(#[source] serde_json::Error),
@@ -142,35 +137,11 @@ where
             .try_into()
             .map_err(|_| DisclosureResultHandlerError::new(IssuanceResultHandlerError::NoIssuableAttestations))?;
 
-        // Look up the credential configuration ids based on the combination
-        // of the format and attestation types of the issuable documents.
-        let credential_configuration_ids = to_issue
-            .nonempty_iter()
-            .map(|document| {
-                self.issuer
-                    .credential_config_id_by_format_and_attestation_type(document.format, &document.attestation_type)
-                    .cloned()
-                    .ok_or_else(|| {
-                        DisclosureResultHandlerError::new(IssuanceResultHandlerError::AttestationTypeNotConfigured(
-                            document.format,
-                            document.attestation_type.clone(),
-                        ))
-                    })
-            })
-            .collect::<Result<_, _>>()?;
-
-        // Start a new issuance session.
-        let token = self
+        let credential_offer = self
             .issuer
-            .new_session(to_issue)
+            .pre_authorized_offer_from_documents(to_issue)
             .await
-            .map_err(|err| DisclosureResultHandlerError::new(IssuanceResultHandlerError::SessionStore(err)))?;
-
-        let credential_offer = CredentialOffer::new_pre_authorized(
-            self.issuer.issuer_identifier().clone(),
-            credential_configuration_ids,
-            token.into(),
-        );
+            .map_err(|e| DisclosureResultHandlerError::new(IssuanceResultHandlerError::Issuer(e)))?;
 
         let credential_offer_json = serde_json::to_string(&credential_offer).map_err(|error| {
             DisclosureResultHandlerError::new(IssuanceResultHandlerError::CredentialOfferSerialization(error))
