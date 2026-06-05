@@ -93,6 +93,7 @@
   fixing a UX issue that occurred when the user took too long to enter their
   PIN.
 - Added an in-app FAQ, reachable from the menu's "Need help?" entry.
+- Updated Flutter to 3.44.1
 
 ## Interoperability improvements
 
