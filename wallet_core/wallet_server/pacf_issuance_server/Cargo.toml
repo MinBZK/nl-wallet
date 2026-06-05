@@ -25,7 +25,6 @@ test_internal_ui = ["utoipa-swagger-ui/axum", "utoipa-swagger-ui/vendored", "sta
 anyhow.workspace = true
 axum.workspace = true
 config = { workspace = true, features = ["toml", "preserve_order"] }
-derive_more = { workspace = true, features = ["debug"] }
 itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_urlencoded.workspace = true

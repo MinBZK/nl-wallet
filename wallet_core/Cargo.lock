@@ -5377,7 +5377,6 @@ dependencies = [
  "attestation_types",
  "axum",
  "config",
- "derive_more",
  "health_checkers",
  "hsm",
  "http_utils",
