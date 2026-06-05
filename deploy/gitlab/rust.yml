@@ -276,15 +276,9 @@ build-pacf-issuance-server-binary:
   script:
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package pacf_issuance_server --bin
       pacf_issuance_server
-    # Also build for glibc on main pipeline because it is needed to work with dynamically loaded PKCS11 library
-    - |
-      if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" ]]; then
-        cargo build --locked --target x86_64-unknown-linux-gnu --release --package pacf_issuance_server --bin pacf_issuance_server --features test_internal_ui
-      fi
   artifacts:
     name: pacf_issuance_server
     paths:
-      - wallet_core/target/x86_64-unknown-linux-gnu/release/pacf_issuance_server
       - wallet_core/target/x86_64-unknown-linux-musl/release/pacf_issuance_server
 
 build-wallet-server-migrations-binaries:
