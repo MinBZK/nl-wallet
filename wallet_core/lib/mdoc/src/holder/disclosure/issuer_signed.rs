@@ -144,8 +144,6 @@ mod tests {
     use attestation_types::claim_path::ClaimPath;
     use itertools::Itertools;
     use rstest::rstest;
-    use utils::vec_at_least::IntoNonEmptyIterator;
-    use utils::vec_at_least::NonEmptyIterator;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
 
@@ -167,52 +165,57 @@ mod tests {
             .issuer_signed
     }
 
-    fn claim_path(elements: VecNonEmpty<String>) -> VecNonEmpty<ClaimPath> {
-        elements.into_nonempty_iter().map(ClaimPath::SelectByKey).collect()
+    fn claim_path(elements: &[&str]) -> VecNonEmpty<ClaimPath> {
+        elements
+            .iter()
+            .map(|key| ClaimPath::SelectByKey(key.to_string()))
+            .collect_vec()
+            .try_into()
+            .expect("`claim_path` should be called with a non-empty slice")
     }
 
     #[rstest]
     #[case(vec![], None)]
-    #[case(vec![claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "family_name".to_owned()])], None)]
+    #[case(vec![claim_path(&["org.iso.18013.5.1", "family_name"])], None)]
     #[case(
         vec![
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "family_name".to_owned()]),
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "issue_date".to_owned()]),
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "expiry_date".to_owned()]),
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "document_number".to_owned()]),
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "portrait".to_owned()]),
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "driving_privileges".to_owned()]),
+            claim_path(&["org.iso.18013.5.1", "family_name"]),
+            claim_path(&["org.iso.18013.5.1", "issue_date"]),
+            claim_path(&["org.iso.18013.5.1", "expiry_date"]),
+            claim_path(&["org.iso.18013.5.1", "document_number"]),
+            claim_path(&["org.iso.18013.5.1", "portrait"]),
+            claim_path(&["org.iso.18013.5.1", "driving_privileges"]),
         ],
         None,
     )]
     #[case(
-        vec![claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "is_rich".to_owned()])],
-        Some(vec![claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "is_rich".to_owned()])].into_iter().collect()),
+        vec![claim_path(&["org.iso.18013.5.1", "is_rich"])],
+        Some(vec![claim_path(&["org.iso.18013.5.1", "is_rich"])].into_iter().collect()),
     )]
     #[case(
         vec![
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "family_name".to_owned()]),
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "is_rich".to_owned()]),
+            claim_path(&["org.iso.18013.5.1", "family_name"]),
+            claim_path(&["org.iso.18013.5.1", "is_rich"]),
         ],
-        Some(vec![claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "is_rich".to_owned()])].into_iter().collect()),
+        Some(vec![claim_path(&["org.iso.18013.5.1", "is_rich"])].into_iter().collect()),
     )]
     #[case(
         vec![
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "family_name".to_owned()]),
-            claim_path(vec_nonempty!["vroom".to_owned(), "driving_privileges".to_owned()]),
+            claim_path(&["org.iso.18013.5.1", "family_name"]),
+            claim_path(&["vroom", "driving_privileges"]),
         ],
-        Some(vec![claim_path(vec_nonempty!["vroom".to_owned(), "driving_privileges".to_owned()])].into_iter().collect()),
+        Some(vec![claim_path(&["vroom", "driving_privileges"])].into_iter().collect()),
     )]
     #[case(
         vec![
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "portrait".to_owned()]),
-            claim_path(vec_nonempty!["foobar".to_owned()]),
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "driving_privileges".to_owned()]),
-            claim_path(vec_nonempty!["foobar".to_owned(), "bleh".to_owned(), "blah".to_owned()]),
+            claim_path(&["org.iso.18013.5.1", "portrait"]),
+            claim_path(&["foobar"]),
+            claim_path(&["org.iso.18013.5.1", "driving_privileges"]),
+            claim_path(&["foobar", "bleh", "blah"]),
         ],
         Some(vec![
-            claim_path(vec_nonempty!["foobar".to_owned(), "bleh".to_owned(), "blah".to_owned()]),
-            claim_path(vec_nonempty!["foobar".to_owned()]),
+            claim_path(&["foobar", "bleh", "blah"]),
+            claim_path(&["foobar"]),
         ].into_iter().collect()),
     )]
     #[case(
@@ -246,46 +249,38 @@ mod tests {
     #[rstest]
     #[case(vec![], IntoAttributeSubsetResult::Success(HashSet::new()))]
     #[case(
-        vec![claim_path(vec_nonempty!["foo".to_owned(), "bar".to_owned()]), claim_path(vec_nonempty!["bleh".to_owned(), "blah".to_owned()])],
+        vec![claim_path(&["foo", "bar"]), claim_path(&["bleh", "blah"])],
+        IntoAttributeSubsetResult::Failure(HashSet::from([claim_path(&["foo", "bar"]), claim_path(&["bleh", "blah"])])),
+    )]
+    #[case(
+        vec![claim_path(&["foo"]), claim_path(&["bar"]), claim_path(&["bleh"]), claim_path(&["blah"])],
         IntoAttributeSubsetResult::Failure(HashSet::from([
-            claim_path(vec_nonempty!["foo".to_owned(), "bar".to_owned()]),
-            claim_path(vec_nonempty!["bleh".to_owned(), "blah".to_owned()])
+            claim_path(&["foo"]),
+            claim_path(&["bar"]),
+            claim_path(&["bleh"]),
+            claim_path(&["blah"])
         ])),
     )]
     #[case(
-        vec![
-            claim_path(vec_nonempty!["foo".to_owned()]),
-            claim_path(vec_nonempty!["bar".to_owned()]),
-            claim_path(vec_nonempty!["bleh".to_owned()]),
-            claim_path(vec_nonempty!["blah".to_owned()])
-        ],
-        IntoAttributeSubsetResult::Failure(HashSet::from([
-            claim_path(vec_nonempty!["foo".to_owned()]),
-            claim_path(vec_nonempty!["bar".to_owned()]),
-            claim_path(vec_nonempty!["bleh".to_owned()]),
-            claim_path(vec_nonempty!["blah".to_owned()])
-        ])),
+        vec![claim_path(&["foo", "bar", "bleh"])],
+        IntoAttributeSubsetResult::Failure(HashSet::from([claim_path(&["foo", "bar", "bleh"])])),
     )]
     #[case(
-        vec![claim_path(vec_nonempty!["foo".to_owned(), "bar".to_owned(), "bleh".to_owned()])],
-        IntoAttributeSubsetResult::Failure(HashSet::from([claim_path(vec_nonempty!["foo".to_owned(), "bar".to_owned(), "bleh".to_owned()])])),
+        vec![claim_path(&["foo", "bar", "bleh", "blah"])],
+        IntoAttributeSubsetResult::Failure(HashSet::from([claim_path(&["foo", "bar", "bleh", "blah"])])),
     )]
     #[case(
-        vec![claim_path(vec_nonempty!["foo".to_owned(), "bar".to_owned(), "bleh".to_owned(), "blah".to_owned()])],
-        IntoAttributeSubsetResult::Failure(HashSet::from([claim_path(vec_nonempty!["foo".to_owned(), "bar".to_owned(), "bleh".to_owned(), "blah".to_owned()])])),
-    )]
-    #[case(
-        vec![claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "family_name".to_owned()])],
+        vec![claim_path(&["org.iso.18013.5.1", "family_name"])],
         IntoAttributeSubsetResult::Success(HashSet::from([("org.iso.18013.5.1", "family_name")])),
     )]
     #[case(
         vec![
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "family_name".to_owned()]),
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "issue_date".to_owned()]),
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "expiry_date".to_owned()]),
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "document_number".to_owned()]),
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "portrait".to_owned()]),
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "driving_privileges".to_owned()]),
+            claim_path(&["org.iso.18013.5.1", "family_name"]),
+            claim_path(&["org.iso.18013.5.1", "issue_date"]),
+            claim_path(&["org.iso.18013.5.1", "expiry_date"]),
+            claim_path(&["org.iso.18013.5.1", "document_number"]),
+            claim_path(&["org.iso.18013.5.1", "portrait"]),
+            claim_path(&["org.iso.18013.5.1", "driving_privileges"]),
         ],
         IntoAttributeSubsetResult::Success(HashSet::from([
             ("org.iso.18013.5.1", "family_name"),
@@ -297,19 +292,19 @@ mod tests {
         ])),
     )]
     #[case(
-        vec![claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "family_name".to_owned()]), claim_path(vec_nonempty!["foo".to_owned(), "bar".to_owned()])],
-        IntoAttributeSubsetResult::Failure(HashSet::from([claim_path(vec_nonempty!["foo".to_owned(), "bar".to_owned()])])),
+        vec![claim_path(&["org.iso.18013.5.1", "family_name"]), claim_path(&["foo", "bar"])],
+        IntoAttributeSubsetResult::Failure(HashSet::from([claim_path(&["foo", "bar"])])),
     )]
     #[case(
         vec![
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "portrait".to_owned()]),
-            claim_path(vec_nonempty!["foo".to_owned()]),
-            claim_path(vec_nonempty!["foo".to_owned(), "bar".to_owned(), "bleh".to_owned()]),
-            claim_path(vec_nonempty!["org.iso.18013.5.1".to_owned(), "driving_privileges".to_owned()]),
+            claim_path(&["org.iso.18013.5.1", "portrait"]),
+            claim_path(&["foo"]),
+            claim_path(&["foo", "bar", "bleh"]),
+            claim_path(&["org.iso.18013.5.1", "driving_privileges"]),
         ],
         IntoAttributeSubsetResult::Failure(HashSet::from([
-            claim_path(vec_nonempty!["foo".to_owned()]),
-            claim_path(vec_nonempty!["foo".to_owned(), "bar".to_owned(), "bleh".to_owned()]),
+            claim_path(&["foo"]),
+            claim_path(&["foo", "bar", "bleh"]),
         ])),
     )]
     fn test_issuer_signed_into_attribute_subset(
