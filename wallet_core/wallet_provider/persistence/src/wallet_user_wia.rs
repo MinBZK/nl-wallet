@@ -27,20 +27,6 @@ where
     Ok(())
 }
 
-pub async fn list_wia_ids<S, T>(db: &T) -> Result<Vec<Uuid>, PersistenceError>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    wallet_user_wua::Entity::find()
-        .select_only()
-        .column(wallet_user_wua::Column::WuaId)
-        .into_tuple()
-        .all(db.connection())
-        .await
-        .map_err(PersistenceError::Execution)
-}
-
 pub async fn find_wia_ids_for_wallet_users<S, T>(
     db: &T,
     wallet_user_ids: Vec<Uuid>,

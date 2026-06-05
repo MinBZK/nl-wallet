@@ -236,8 +236,6 @@ pub trait WalletUserRepository {
     async fn store_wia_id(&self, transaction: &Self::TransactionType, wallet_user_id: Uuid, wia_id: Uuid)
     -> Result<()>;
 
-    async fn list_wia_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<Uuid>>;
-
     async fn revoke_wallet_users(
         &self,
         transaction: &Self::TransactionType,
@@ -580,13 +578,6 @@ pub mod mock {
             _wia_id: Uuid,
         ) -> Result<()> {
             Ok(())
-        }
-
-        async fn list_wia_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<Uuid>> {
-            Ok(vec![
-                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
-                uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
-            ])
         }
 
         async fn revoke_wallet_users(
