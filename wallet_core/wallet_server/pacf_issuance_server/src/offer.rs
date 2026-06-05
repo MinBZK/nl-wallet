@@ -23,7 +23,7 @@ pub enum OfferError {
     AttestationTypeNotConfigured(Format, String),
 
     #[error("failed to create session: {0}")]
-    SessionStore(#[from] SessionStoreError),
+    SessionStore(#[source] SessionStoreError),
 }
 
 impl axum::response::IntoResponse for OfferError {
@@ -78,7 +78,11 @@ async fn offer(
         .try_into()
         .unwrap(); // we started with a VecNonEmpty
 
-    let token = state.issuer.new_session(request.documents).await?;
+    let token = state
+        .issuer
+        .new_session(request.documents)
+        .await
+        .map_err(OfferError::SessionStore)?;
 
     let credential_offer = CredentialOffer::new_pre_authorized(
         state.issuer.issuer_identifier().clone(),
