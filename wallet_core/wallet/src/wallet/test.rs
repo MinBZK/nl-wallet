@@ -406,6 +406,7 @@ where
             },
             WalletClients::default(),
             RegistrationStatus::Unregistered,
+            None,
         )
     }
 

@@ -18,8 +18,7 @@ enum ReportingOption {
   unreasonableTerms,
 
   /// Card
-  incorrectCardData
-  ;
+  incorrectCardData;
 
   const ReportingOption();
 

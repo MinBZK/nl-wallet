@@ -12,7 +12,6 @@ use itertools::Itertools;
 use openid4vc::Format;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential_offer::CredentialOffer;
-use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
@@ -85,9 +84,9 @@ impl AttributesFetcher for HttpAttributesFetcher {
 
 /// Receives disclosed attributes, exchanges those for attestations to be issued, and creates a new issuance session
 /// by implementing [`DisclosureResultHandler`].
-pub struct IssuanceResultHandler<AF, AS, K, L, S, N> {
+pub struct IssuanceResultHandler<AF, K, L, S, N> {
     pub attributes_fetcher: AF,
-    pub issuer: Arc<Issuer<AS, K, L, S, N>>,
+    pub issuer: Arc<Issuer<K, L, S, N>>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -104,11 +103,8 @@ pub enum IssuanceResultHandlerError {
     #[error("failed to create session: {0}")]
     SessionStore(#[from] SessionStoreError),
 
-    #[error("URL encoding failed: {0}")]
-    UrlEncoding(#[from] serde_urlencoded::ser::Error),
-
-    #[error("URL decoding failed: {0}")]
-    UrlDecoding(#[from] serde_urlencoded::de::Error),
+    #[error("credential offer URL serialization failed: {0}")]
+    CredentialOfferSerialization(#[source] serde_json::Error),
 }
 
 impl ToPostAuthResponseErrorCode for IssuanceResultHandlerError {
@@ -121,10 +117,9 @@ impl ToPostAuthResponseErrorCode for IssuanceResultHandlerError {
 }
 
 #[async_trait]
-impl<AF, AS, K, L, S, N> DisclosureResultHandler for IssuanceResultHandler<AF, AS, K, L, S, N>
+impl<AF, K, L, S, N> DisclosureResultHandler for IssuanceResultHandler<AF, K, L, S, N>
 where
     AF: AttributesFetcher + Sync,
-    AS: Send + Sync,
     K: Send + Sync,
     L: Send + Sync,
     S: SessionStore<IssuanceData> + Sync,
@@ -171,19 +166,17 @@ where
             .await
             .map_err(|err| DisclosureResultHandlerError::new(IssuanceResultHandlerError::SessionStore(err)))?;
 
-        let offer_container = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+        let credential_offer = CredentialOffer::new_pre_authorized(
             self.issuer.issuer_identifier().clone(),
             credential_configuration_ids,
             token.into(),
-        ));
+        );
 
-        // If `serde_urlencoded` would have something like `serde_json::Value` or `ciborium::Value`,
-        // then this would be a lot less awkward.
-        let query_params = serde_urlencoded::from_str(
-            &serde_urlencoded::to_string(offer_container)
-                .map_err(|err| DisclosureResultHandlerError::new(IssuanceResultHandlerError::UrlEncoding(err)))?,
-        )
-        .map_err(|err| DisclosureResultHandlerError::new(IssuanceResultHandlerError::UrlDecoding(err)))?;
+        let credential_offer_json = serde_json::to_string(&credential_offer).map_err(|error| {
+            DisclosureResultHandlerError::new(IssuanceResultHandlerError::CredentialOfferSerialization(error))
+        })?;
+
+        let query_params = HashMap::from([("credential_offer".to_string(), credential_offer_json)]);
 
         Ok(query_params)
     }
@@ -292,7 +285,7 @@ mod tests {
         }
     }
 
-    type MockIssuer = Issuer<(), SigningKey, MockStatusListService, MemorySessionStore<IssuanceData>, MemoryNonceStore>;
+    type MockIssuer = Issuer<SigningKey, MockStatusListService, MemorySessionStore<IssuanceData>, MemoryNonceStore>;
 
     fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -324,12 +317,8 @@ mod tests {
             vec![],
             [("credential_config_id".to_string().into(), config_params)].into(),
             None,
-            (),
             sessions,
             MemoryNonceStore::new(),
-            Arc::new(()),
-            Arc::new(()),
-            None,
         )
         .unwrap()
     }
@@ -367,7 +356,7 @@ mod tests {
         };
 
         // The session should contain an issuable attestation with our earlier disclosed attestation type.
-        let issuable = session.issuable_documents.as_ref().unwrap().as_ref().first().unwrap();
+        let issuable = session.issuable_documents.as_ref().first().unwrap();
         assert_eq!(issuable.attestation_type, mock_disclosed_type);
     }
 

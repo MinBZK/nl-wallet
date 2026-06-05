@@ -25,6 +25,7 @@ use wallet_configuration::wallet_config::PidAttributesConfigurationError;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::IssuanceError;
+use super::PersistedPinRecoverySessionData;
 use super::Session;
 use super::Wallet;
 use super::WalletRegistration;
@@ -85,9 +86,9 @@ pub enum PinRecoveryError {
     #[category(unexpected)]
     CommittedToPinRecovery,
 
-    #[error("user denied DigiD authentication")]
+    #[error("user denied authentication")]
     #[category(expected)]
-    DeniedDigiD,
+    AuthorizationDenied,
 
     #[error("cannot recover PIN without a PID")]
     #[category(critical)]
@@ -125,7 +126,7 @@ where
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn create_pin_recovery_redirect_uri(&mut self) -> Result<Url, PinRecoveryError> {
-        info!("Generating DigiD auth URL, starting OAuth discovery");
+        info!("Generating OAuth URL, starting issuer discovery");
 
         info!("Checking if blocked");
         if self.is_blocked() {
@@ -161,15 +162,22 @@ where
         let authorization_session = self
             .issuance_discovery
             .start_authorization_code_flow(
-                &config.pid_issuance.url,
+                &config.pid_credential_offer,
                 String::from(NL_WALLET_CLIENT_ID),
                 urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
             )
             .await
             .map_err(IssuanceError::IssuanceSession)?;
 
-        info!("PIN recovery DigiD auth URL generated");
+        info!("PIN recovery OAuth URL generated");
         let auth_url = authorization_session.auth_url().clone();
+        self.storage
+            .write()
+            .await
+            .upsert_data(&PersistedPinRecoverySessionData {
+                authorization_session: authorization_session.persist(),
+            })
+            .await?;
         self.session.replace(Session::PinRecovery(PinRecoverySession::OAuth {
             authorization_session,
         }));
@@ -202,9 +210,15 @@ where
             return Err(PinRecoveryError::SessionState);
         }
 
+        self.storage
+            .write()
+            .await
+            .delete_data::<PersistedPinRecoverySessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
+            .await?;
+
         let Some(Session::PinRecovery(PinRecoverySession::OAuth { authorization_session })) = self.session.take()
         else {
-            unreachable!("session contained no PinRecovery OAuth session"); // we just checked this above
+            return Err(PinRecoveryError::SessionState);
         };
 
         // Fetch issuance previews
@@ -213,7 +227,7 @@ where
             .start_issuance(&redirect_uri, config.issuer_trust_anchors())
             .await
             .map_err(|e| match e {
-                WalletIssuanceError::OAuth(OAuthError::Denied) => PinRecoveryError::DeniedDigiD,
+                WalletIssuanceError::OAuth(OAuthError::Denied) => PinRecoveryError::AuthorizationDenied,
                 e => PinRecoveryError::Issuance(IssuanceError::IssuanceSession(e)),
             })?;
 
@@ -292,10 +306,10 @@ where
         let Some(Session::PinRecovery(PinRecoverySession::Issuance {
             pid_config,
             pid_attestation_type: offered_pid,
-            issuance_session,
-        })) = &mut self.session.take()
+            mut issuance_session,
+        })) = self.session.take()
         else {
-            unreachable!("session contained no PIN recovery issuance session"); // we just checked this above
+            return Err(PinRecoveryError::SessionState);
         };
 
         validate_pin(&new_pin)?;
@@ -340,7 +354,7 @@ where
         let issuance_result = issuance_session
             .accept_issuance(config.issuer_trust_anchors(), &pin_recovery_wscd, true)
             .await
-            .map_err(|error| Self::handle_accept_issuance_error(error, issuance_session));
+            .map_err(|error| Self::handle_accept_issuance_error(error, &issuance_session));
 
         let issuance_result = match issuance_result {
             Err(error @ IssuanceError::Instruction(InstructionError::AccountRevoked(data))) => {
@@ -373,7 +387,7 @@ where
         // Get an SD-JWT copy out of the PID we just received.
         let attestation = issuance_result
             .into_iter()
-            .find(|attestation| attestation.attestation_type == *offered_pid)
+            .find(|attestation| attestation.attestation_type == offered_pid)
             .expect("no PID received"); // accept_issuance() already checks this against the previews
 
         let pid_attestation_type = attestation.attestation_type;
@@ -436,11 +450,15 @@ where
 
         // We don't check if the wallet is blocked: PIN recovery is allowed in that case, so cancelling it is too.
 
-        if let Some(Session::PinRecovery(_)) = &self.session {
-            self.session = None;
-        } else {
+        let Some(Session::PinRecovery(_)) = self.session.take() else {
             return Err(PinRecoveryError::SessionState);
-        }
+        };
+
+        self.storage
+            .write()
+            .await
+            .delete_data::<PersistedPinRecoverySessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
+            .await?;
 
         Ok(())
     }
@@ -469,8 +487,8 @@ mod tests {
     use openid4vc::wallet_issuance::authorization::OAuthError;
     use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
-    use rstest::rstest;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use url::Url;
@@ -493,6 +511,7 @@ mod tests {
     use crate::storage::RegistrationData;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
+    use crate::wallet::PersistedPinRecoverySessionData;
     use crate::wallet::Session;
     use crate::wallet::recovery_code::RecoveryCodeError;
     use crate::wallet::test::AUTH_URL;
@@ -508,33 +527,35 @@ mod tests {
             .issuance_discovery
             .expect_start_authorization_code_flow_sync()
             .return_once(|| {
-                let mut session = MockAuthorizationSession::new();
-                session
+                let mut authorization_session = MockAuthorizationSession::new();
+
+                authorization_session
                     .expect_get_auth_url()
                     .return_const(Url::parse(AUTH_URL).unwrap());
-                Ok(session)
+                authorization_session
+                    .expect_get_state()
+                    .return_const("state".to_string());
+                Ok(authorization_session)
             });
     }
 
-    #[rstest]
     #[tokio::test]
-    pub async fn create_pin_recovery_redirect_uri(
-        #[values(None, Some(PinRecoveryData))] pin_recovery_data: Option<PinRecoveryData>,
-    ) {
+    pub async fn create_pin_recovery_redirect_uri() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        // create_pin_recovery_redirect_uri() is allowed regardless of whether the wallet
-        // was already recovering the PIN.
-        wallet
-            .mut_storage()
-            .expect_fetch_data()
-            .return_once(|| Ok(pin_recovery_data));
 
         wallet
             .mut_storage()
             .expect_has_any_attestations_with_types()
             .once()
             .return_once(|_| Ok(true));
+        wallet
+            .mut_storage()
+            .expect_upsert_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .return_once(|data| {
+                assert_eq!(data.authorization_session.auth_url.as_str(), AUTH_URL);
+                assert_eq!(data.authorization_session.state, "state");
+                Ok(())
+            });
 
         setup_issuer_metadata_mock(&mut wallet);
 
@@ -568,6 +589,10 @@ mod tests {
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
             authorization_session,
         }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
 
         wallet
             .mut_storage()
@@ -686,6 +711,10 @@ mod tests {
             &wallet.session,
             Some(Session::PinRecovery(PinRecoverySession::Issuance { .. }))
         );
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
 
         wallet.cancel_pin_recovery().await.unwrap();
 
@@ -750,12 +779,40 @@ mod tests {
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
             authorization_session,
         }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
 
         // Pass a redirect URI with `error=access_denied` to simulate user denial
         let denied_redirect = Url::parse(&format!("{AUTH_URL}?error=access_denied&state=whatever")).unwrap();
         let err = wallet.continue_pin_recovery(denied_redirect).await.unwrap_err();
 
-        assert_matches!(err, PinRecoveryError::DeniedDigiD);
+        assert_matches!(err, PinRecoveryError::AuthorizationDenied);
+    }
+
+    #[tokio::test]
+    async fn continue_pin_recovery_delete_persisted_session_error_keeps_session() {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
+            authorization_session: MockAuthorizationSession::new(),
+        }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Err(crate::errors::StorageError::NotOpened));
+
+        let err = wallet
+            .continue_pin_recovery(AUTH_URL.parse().unwrap())
+            .await
+            .unwrap_err();
+
+        assert_matches!(err, PinRecoveryError::Storage(crate::errors::StorageError::NotOpened));
+        assert_matches!(
+            wallet.session,
+            Some(Session::PinRecovery(PinRecoverySession::OAuth { .. }))
+        );
     }
 
     #[tokio::test]
@@ -789,6 +846,10 @@ mod tests {
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
             authorization_session,
         }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
 
         let err = wallet.continue_pin_recovery(redirect_uri).await.unwrap_err();
 
@@ -834,6 +895,10 @@ mod tests {
         wallet.session = Some(Session::PinRecovery(PinRecoverySession::OAuth {
             authorization_session,
         }));
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
 
         wallet
             .mut_storage()

@@ -8,7 +8,6 @@ pub mod preview;
 pub mod mock;
 
 use std::collections::HashSet;
-use std::fmt::Debug;
 
 use attestation_data::attributes::AttributesError;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -24,6 +23,8 @@ use mdoc::utils::cose::CoseError;
 use reqwest::header::ToStrError;
 use sd_jwt::error::DecoderError;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 use url::Url;
 use utils::single_unique::MultipleItemsFound;
 use wscd::wscd::IssuanceWscd;
@@ -35,7 +36,7 @@ use crate::Format;
 use crate::TokenErrorCode;
 use crate::credential::Credential;
 use crate::dpop::DpopError;
-use crate::issuer_identifier::IssuerIdentifier;
+use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::well_known::WellKnownError;
 use crate::token::CredentialPreviewError;
 use crate::wallet_issuance::authorization::OAuthError;
@@ -181,6 +182,10 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     CredentialIssuerDiscovery(#[source] WellKnownError),
 
+    #[error("missing Credential Configuration ID from Credential Offer in Issuer Metadata: {}", .0.iter().join(", "))]
+    #[category(expected)]
+    MissingCredentialConfigId(HashSet<CredentialConfigurationId>),
+
     #[error("error during OAuth: {0}")]
     #[category(expected)]
     OAuth(#[from] OAuthError),
@@ -215,10 +220,6 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     DifferentIssuerRegistrations(#[source] MultipleItemsFound),
 
-    #[error("issuer has no credential configurations supported")]
-    #[category(critical)]
-    NoCredentialConfigurationsSupported,
-
     #[error("missing query in credential offer URI")]
     #[category(critical)]
     MissingCredentialOfferQuery,
@@ -245,6 +246,14 @@ pub enum WalletIssuanceError {
     #[error("a Credential Offer containing a Pre-Authorized code with a Transaction Code is unsupported")]
     #[category(expected)]
     CredentialOfferTxCodeUnsupported,
+
+    #[error("the Credential Offer did not resolve to using the Authorization Code flow")]
+    #[category(expected)]
+    CredentialOfferNoAuthorizationCode,
+
+    #[error("the Credential Offer did not contain a Pre-Authorized Code")]
+    #[category(expected)]
+    CredentialOfferNoPreAuthorizedCode,
 }
 
 #[derive(Debug)]
@@ -258,27 +267,43 @@ pub trait IssuanceDiscovery {
     type Authorization: AuthorizationSession<Issuance = Self::Issuance>;
     type Issuance: IssuanceSession;
 
-    /// Fetches issuer and OAuth metadata, constructs a PKCE-protected authorization URL, and returns
-    /// an [`AuthorizationSession`] the caller can use to redirect the user and later exchange the
-    /// authorization code for credentials.
-    async fn start_authorization_code_flow(
-        &self,
-        identifier: &IssuerIdentifier,
-        client_id: String,
-        redirect_uri: Url,
-    ) -> Result<Self::Authorization, WalletIssuanceError>;
-
-    /// Parses the credential offer from the redirect URI, fetches issuer and OAuth metadata and then either returns an
+    /// Parses the Credential Offer from the redirect URI, fetches issuer and OAuth metadata and then either returns an
     /// [`AuthorizationSession`] the caller can use to redirect the user into a web-based OAuth flow (if the Credential
-    /// Offer contains an Authorization Code) or immediately returns an [`IssuanceSession`] that contains the caller
-    /// can use to request issued credentials (if the Credential Offer contains a Pre-Authorized Code).
-    async fn start_with_credential_offer(
+    /// Offer resolves to an Authorization Code flow) or immediately returns an [`IssuanceSession`] that the caller can
+    /// use to request issued credentials (if the Credential Offer contains a Pre-Authorized Code).
+    async fn start(
         &self,
         offer_uri: &Url,
         client_id: String,
         redirect_uri: Url,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError>;
+
+    /// Parses the Credential Offer from the redirect URI, fetches issuer and OAuth metadata and then returns an
+    /// [`AuthorizationSession`] the caller can use to redirect the user into a web-based OAuth flow. If the credential
+    /// offer contains a Pre-Authorized code, this returns an error.
+    async fn start_authorization_code_flow(
+        &self,
+        offer_uri: &Url,
+        client_id: String,
+        redirect_uri: Url,
+    ) -> Result<Self::Authorization, WalletIssuanceError>;
+
+    /// Parses the Credential Offer from the redirect URI, fetches issuer and OAuth metadata and then returns an
+    /// [`IssuanceSession`] that the caller can use to request issued credentials. If the Credential Offer resolves to
+    /// an Authorization Code flow, this returns an error.
+    async fn start_pre_authorized_code_flow(
+        &self,
+        offer_uri: &Url,
+        client_id: String,
+        issuer_trust_anchors: &TrustAnchors,
+    ) -> Result<Self::Issuance, WalletIssuanceError>;
+
+    /// Rebuilds an [`AuthorizationSession`] from data that was persisted before the app left memory.
+    fn restore_authorization_session(
+        &self,
+        data: <Self::Authorization as AuthorizationSession>::Persisted,
+    ) -> Self::Authorization;
 }
 
 /// Represents an in-progress OAuth authorization code flow.
@@ -288,9 +313,16 @@ pub trait IssuanceDiscovery {
 /// authorization server returns after the user authenticates.
 pub trait AuthorizationSession {
     type Issuance: IssuanceSession;
+    type Persisted: Clone + Send + Sync + Serialize + DeserializeOwned + 'static;
 
     /// Returns the authorization URL the user should be redirected to.
     fn auth_url(&self) -> &Url;
+
+    /// Returns the OAuth `state` (CSRF token) stored in the PAR-submitted authorization request.
+    fn state(&self) -> &str;
+
+    /// Returns the data needed to resume the authorization code flow after an app restart.
+    fn persist(&self) -> Self::Persisted;
 
     /// Exchanges the authorization code in `received_redirect_uri` for an access token and
     /// credential previews, returning an [`IssuanceSession`].
@@ -312,7 +344,7 @@ pub trait IssuanceSession {
     where
         W: IssuanceWscd;
 
-    async fn reject_issuance(self) -> Result<(), WalletIssuanceError>;
+    async fn reject_issuance(&self) -> Result<(), WalletIssuanceError>;
 
     fn normalized_credential_preview(&self) -> &[NormalizedCredentialPreview];
 

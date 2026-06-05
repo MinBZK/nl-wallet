@@ -1,14 +1,8 @@
 package screen.wallet_transfer
 
-import com.google.zxing.BinaryBitmap
-import com.google.zxing.MultiFormatReader
-import com.google.zxing.client.j2se.BufferedImageLuminanceSource
-import com.google.zxing.common.HybridBinarizer
 import org.openqa.selenium.OutputType
 import org.openqa.selenium.TakesScreenshot
 import util.MobileActions
-import java.io.ByteArrayInputStream
-import javax.imageio.ImageIO
 
 class WalletTransferTargetScreen : MobileActions() {
 
@@ -23,13 +17,8 @@ class WalletTransferTargetScreen : MobileActions() {
 
     fun qrScreenVisible() = elementWithTextVisible(qrScreenTitle)
 
-    fun getTransferUrl(): String {
-        val screenshotBytes = (driver as TakesScreenshot).getScreenshotAs(OutputType.BYTES)
-        val image = ImageIO.read(ByteArrayInputStream(screenshotBytes))
-        val source = BufferedImageLuminanceSource(image)
-        val binaryBitmap = BinaryBitmap(HybridBinarizer(source))
-        return MultiFormatReader().decodeWithState(binaryBitmap).text
-    }
+    fun getTransferUrl(): String =
+        decodeQrFromBytes((driver as TakesScreenshot).getScreenshotAs(OutputType.BYTES))
 
     fun awaitingConfirmationVisible() = elementWithTextVisible(awaitingConfirmationTitle)
 

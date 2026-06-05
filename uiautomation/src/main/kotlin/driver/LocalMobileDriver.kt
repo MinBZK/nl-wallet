@@ -14,7 +14,7 @@ object LocalMobileDriver {
         deviceName = testConfig.deviceName,
         platformVersion = testConfig.platformVersion,
         automationName = testConfig.automationName,
-        udid = "",
+        udid = testConfig.udid,
         index = null,
     )
 

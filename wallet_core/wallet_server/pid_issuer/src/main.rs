@@ -3,12 +3,10 @@ use std::sync::Arc;
 use anyhow::Result;
 use health_checkers::hsm::HsmChecker;
 use hsm::service::Pkcs11Hsm;
-use issuer_common::par_store::IssuerParStore;
 use issuer_common::pkce_store::IssuerPkceStore;
 use openid4vc::issuer::WiaConfig;
-use pid_issuer::pid::attributes::BrpPidAttributeService;
+use pid_issuer::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow;
 use pid_issuer::pid::brp::client::HttpBrpClient;
-use pid_issuer::pid::digid::DigidAuthorizationAdapter;
 use pid_issuer::pid::digid::DigidMetadataCache;
 use pid_issuer::server;
 use pid_issuer::settings::PidIssuerSettings;
@@ -36,28 +34,24 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         wia_trust_anchors: settings.wia_trust_anchors,
     };
 
-    let digid_metadata_cache = Arc::new(DigidMetadataCache::try_new(settings.digid.client_settings)?);
-    let upstream_authorization_adapter =
-        DigidAuthorizationAdapter::new(Arc::clone(&digid_metadata_cache), settings.digid.client_id.clone());
-
-    let pid_attr_service = BrpPidAttributeService::try_new(
-        HttpBrpClient::new(settings.brp_server),
-        &settings.digid.bsn_privkey,
-        settings.digid.client_id,
-        digid_metadata_cache,
-        SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?,
-    )?;
+    let digid_metadata_cache = DigidMetadataCache::try_new(settings.digid.client_settings)?;
+    let brp_client = HttpBrpClient::new(settings.brp_server);
+    let recovery_code_secret_key = SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?;
+    let digid_client_id = settings.digid.client_id;
+    let bsn_privkey = settings.digid.bsn_privkey;
 
     let (issuer, database_checkers, _, server_settings) = settings
         .issuer_settings
-        .into_issuer(
-            hsm,
-            Some(wia_config),
-            pid_attr_service,
-            IssuerParStore::new,
-            IssuerPkceStore::new,
-            Some(upstream_authorization_adapter),
-        )
+        .into_authorizing_issuer(hsm, Some(wia_config), |store_connection| {
+            UpstreamOidcAuthorizationCodeFlow::try_new(
+                brp_client,
+                &bsn_privkey,
+                digid_client_id,
+                digid_metadata_cache,
+                recovery_code_secret_key,
+                Arc::new(IssuerPkceStore::new(store_connection)),
+            )
+        })
         .await?;
 
     let health_checkers = health_checkers::boxed(hsm_checker)

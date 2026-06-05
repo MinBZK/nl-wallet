@@ -12,6 +12,7 @@ environment:
 dependencies:
   wallet_core:
     path: ../wallet_core
+  flutter_rust_bridge: 2.11.1
   rxdart: ^0.28.0
   collection: ^1.19.1
   clock: ^1.1.2

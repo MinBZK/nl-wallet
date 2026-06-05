@@ -15,6 +15,7 @@ use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use ssri::Integrity;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::Format;
 use crate::metadata::issuer_metadata;
@@ -201,6 +202,14 @@ impl<K, L> CredentialConfigurations<K, L> {
 
     pub fn configurations(&self) -> impl Iterator<Item = &CredentialConfiguration<K, L>> {
         self.configs_by_id.values()
+    }
+
+    pub fn all_configuration_ids(&self) -> VecNonEmpty<&CredentialConfigurationId> {
+        self.configs_by_id
+            .keys()
+            .collect_vec()
+            .try_into()
+            .expect("a non-zero amount of credential configurations is guaranteed by this type's constructor")
     }
 
     pub fn get_by_configuration_id(

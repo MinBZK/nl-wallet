@@ -11,6 +11,7 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::disclosure_session::VpDisclosureClient;
+use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -26,8 +27,13 @@ use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::KeyHolderType;
+use super::PersistedIssuanceSessionData;
+use super::PersistedPinRecoverySessionData;
+use super::Session;
 use super::Wallet;
 use super::WalletRegistration;
+use super::issuance::WalletIssuanceSession;
+use super::pin_recovery::PinRecoverySession;
 use crate::config::ConfigurationError;
 use crate::config::UpdatingConfigurationRepository;
 use crate::config::WalletConfigurationRepository;
@@ -64,6 +70,10 @@ pub enum WalletInitError {
     #[error("could not initialize HTTP client: {0}")]
     #[category(critical)]
     HttpClient(#[from] reqwest::Error),
+
+    #[error("conflicting persisted wallet sessions found")]
+    #[category(critical)]
+    ConflictingPersistedSessions,
 }
 
 #[cfg(feature = "fake_attestation")]
@@ -204,6 +214,7 @@ where
         repositories: WalletRepositories<CR, UR>,
         wallet_clients: WalletClients<APC, CID, DCC, SLC>,
         registration_status: RegistrationStatus,
+        session: Option<Session<CID::Authorization, CID::Issuance, DCC::Session>>,
     ) -> Self {
         let registration = match registration_status {
             RegistrationStatus::Unregistered => WalletRegistration::Unregistered,
@@ -237,7 +248,7 @@ where
             disclosure_client: wallet_clients.disclosure_client,
             close_proximity_disclosure: PhantomData,
             status_list_client: Arc::new(wallet_clients.status_list_client),
-            session: None,
+            session,
             lock: WalletLock::new(true),
             attestations_callback: Arc::default(),
             recent_history_callback: None,
@@ -269,8 +280,20 @@ where
         repositories.update_policy_repository.fetch_in_background(http_config);
 
         let registration_status = Self::fetch_registration_status(&mut storage).await?;
+        let restored_session = if matches!(registration_status, RegistrationStatus::Registered(_)) {
+            Self::fetch_persisted_session(&storage, &wallet_clients.credential_issuer_discovery).await?
+        } else {
+            None
+        };
 
-        let mut wallet = Self::new(storage, key_holder, repositories, wallet_clients, registration_status);
+        let mut wallet = Self::new(
+            storage,
+            key_holder,
+            repositories,
+            wallet_clients,
+            registration_status,
+            restored_session,
+        );
 
         wallet.start_background_revocation_checks(REVOCATION_CHECK_FREQUENCY);
 
@@ -309,19 +332,69 @@ where
 
         Ok(registration_status)
     }
+
+    async fn fetch_persisted_session(
+        storage: &S,
+        issuance_discovery: &CID,
+    ) -> Result<Option<Session<CID::Authorization, CID::Issuance, DCC::Session>>, WalletInitError> {
+        let issuance_session_data = storage
+            .fetch_data::<PersistedIssuanceSessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
+            .await?;
+        let pin_recovery_session_data = storage
+            .fetch_data::<PersistedPinRecoverySessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
+            .await?;
+
+        match (issuance_session_data, pin_recovery_session_data) {
+            (Some(_), Some(_)) => Err(WalletInitError::ConflictingPersistedSessions),
+            (Some(data), None) => {
+                let authorization_session =
+                    issuance_discovery.restore_authorization_session(data.authorization_session);
+
+                Ok(Some(Session::Issuance(WalletIssuanceSession::Pid {
+                    purpose: data.purpose,
+                    session_state: super::issuance::SessionState::Authorization { authorization_session },
+                })))
+            }
+            (None, Some(data)) => {
+                let authorization_session =
+                    issuance_discovery.restore_authorization_session(data.authorization_session);
+
+                Ok(Some(Session::PinRecovery(PinRecoverySession::OAuth {
+                    authorization_session,
+                })))
+            }
+            (None, None) => Ok(None),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
+    use http_utils::urls;
+    use openid4vc::disclosure_session::mock::MockDisclosureClient;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSessionData;
+    use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+    use token_status_list::verification::client::mock::MockStatusListClient;
     use wallet_account::RevocationCode;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
     use super::*;
+    use crate::PidIssuancePurpose;
+    use crate::account_provider::MockAccountProviderClient;
+    use crate::config::LocalConfigurationRepository;
+    use crate::config::UNIVERSAL_LINK_BASE_URL;
     use crate::pin::key as pin_key;
     use crate::storage::MockStorage;
+    use crate::update_policy::MockUpdatePolicyRepository;
+    use crate::wallet::PersistedIssuanceSessionData;
+    use crate::wallet::PersistedPinRecoverySessionData;
+    use crate::wallet::UriType;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::generate_key_holder;
 
@@ -407,6 +480,12 @@ mod tests {
             }))
         });
         storage.expect_fetch_data::<KeyData>().returning(|| Ok(None));
+        storage
+            .expect_fetch_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .returning(|| Ok(None));
+        storage
+            .expect_fetch_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .returning(|| Ok(None));
         storage.expect_state().times(1).returning(|| Ok(StorageState::Opened));
 
         let wallet = TestWalletMockStorage::new_init_registration_with_mock_storage(key_holder, storage)
@@ -424,6 +503,239 @@ mod tests {
         // The registration data should now be available.
         let (_, registration_data) = wallet.registration.as_key_and_registration_data().unwrap();
         assert_eq!(registration_data.pin_salt, pin_salt);
+    }
+
+    #[tokio::test]
+    async fn test_wallet_init_restores_issuance_oauth_session() {
+        let key_holder = test::generate_key_holder(WalletDeviceVendor::Apple);
+        key_holder.populate_key_identifier("key_id_123".to_string(), SigningKey::random(&mut OsRng));
+
+        let mut storage = MockStorage::default();
+        storage.expect_state().times(1).returning(|| Ok(StorageState::Unopened));
+        storage.expect_open().returning(|| Ok(()));
+        storage.expect_fetch_data::<RegistrationData>().returning(|| {
+            Ok(Some(RegistrationData {
+                attested_key_identifier: "key_id_123".to_string(),
+                pin_salt: pin_key::new_pin_salt(),
+                wallet_id: "wallet_123".to_string(),
+                wallet_certificate: "this.isa.jwt".parse().unwrap(),
+                revocation_code: RevocationCode::new_random(),
+            }))
+        });
+        storage.expect_fetch_data::<KeyData>().returning(|| Ok(None));
+        storage
+            .expect_fetch_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .returning(|| {
+                Ok(Some(PersistedIssuanceSessionData {
+                    purpose: PidIssuancePurpose::Enrollment,
+                    authorization_session: MockAuthorizationSessionData {
+                        auth_url: "https://example.com/auth".parse().unwrap(),
+                        state: "state".to_string(),
+                    },
+                }))
+            });
+        storage
+            .expect_fetch_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .returning(|| Ok(None));
+        storage.expect_state().times(1).returning(|| Ok(StorageState::Opened));
+
+        let mut discovery = MockIssuanceDiscovery::default();
+        discovery
+            .expect_restore_authorization_session_sync()
+            .return_once(|data| {
+                let mut session = MockAuthorizationSession::new();
+                session.expect_get_auth_url().return_const(data.auth_url);
+                session.expect_get_state().return_const(data.state);
+                session
+            });
+
+        let config_server_config = default_config_server_config();
+        let config_repository =
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
+        let wallet_clients: WalletClients<
+            MockAccountProviderClient,
+            MockIssuanceDiscovery,
+            MockDisclosureClient,
+            MockStatusListClient,
+        > = WalletClients {
+            credential_issuer_discovery: discovery,
+            ..Default::default()
+        };
+
+        let wallet: TestWalletMockStorage = Wallet::init_registration(
+            storage,
+            key_holder,
+            WalletRepositories {
+                config_repository,
+                update_policy_repository: MockUpdatePolicyRepository::default(),
+            },
+            wallet_clients,
+        )
+        .await
+        .unwrap();
+
+        assert_matches!(
+            &wallet.session,
+            Some(Session::Issuance(WalletIssuanceSession::Pid {
+                purpose: PidIssuancePurpose::Enrollment,
+                ..
+            }))
+        );
+        assert_matches!(
+            wallet
+                .identify_uri(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
+                .unwrap(),
+            UriType::PidIssuance
+        );
+    }
+
+    #[tokio::test]
+    async fn test_wallet_init_restores_pin_recovery_oauth_session() {
+        let key_holder = test::generate_key_holder(WalletDeviceVendor::Apple);
+        key_holder.populate_key_identifier("key_id_123".to_string(), SigningKey::random(&mut OsRng));
+
+        let mut storage = MockStorage::default();
+        storage.expect_state().times(1).returning(|| Ok(StorageState::Unopened));
+        storage.expect_open().returning(|| Ok(()));
+        storage.expect_fetch_data::<RegistrationData>().returning(|| {
+            Ok(Some(RegistrationData {
+                attested_key_identifier: "key_id_123".to_string(),
+                pin_salt: pin_key::new_pin_salt(),
+                wallet_id: "wallet_123".to_string(),
+                wallet_certificate: "this.isa.jwt".parse().unwrap(),
+                revocation_code: RevocationCode::new_random(),
+            }))
+        });
+        storage.expect_fetch_data::<KeyData>().returning(|| Ok(None));
+        storage
+            .expect_fetch_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .returning(|| Ok(None));
+        storage
+            .expect_fetch_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .returning(|| {
+                Ok(Some(PersistedPinRecoverySessionData {
+                    authorization_session: MockAuthorizationSessionData {
+                        auth_url: "https://example.com/auth".parse().unwrap(),
+                        state: "state".to_string(),
+                    },
+                }))
+            });
+        storage.expect_state().times(1).returning(|| Ok(StorageState::Opened));
+
+        let mut discovery = MockIssuanceDiscovery::default();
+        discovery
+            .expect_restore_authorization_session_sync()
+            .return_once(|data| {
+                let mut session = MockAuthorizationSession::new();
+                session.expect_get_auth_url().return_const(data.auth_url);
+                session.expect_get_state().return_const(data.state);
+                session
+            });
+
+        let config_server_config = default_config_server_config();
+        let config_repository =
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
+        let wallet_clients: WalletClients<
+            MockAccountProviderClient,
+            MockIssuanceDiscovery,
+            MockDisclosureClient,
+            MockStatusListClient,
+        > = WalletClients {
+            credential_issuer_discovery: discovery,
+            ..Default::default()
+        };
+
+        let wallet: TestWalletMockStorage = Wallet::init_registration(
+            storage,
+            key_holder,
+            WalletRepositories {
+                config_repository,
+                update_policy_repository: MockUpdatePolicyRepository::default(),
+            },
+            wallet_clients,
+        )
+        .await
+        .unwrap();
+
+        assert_matches!(
+            &wallet.session,
+            Some(Session::PinRecovery(PinRecoverySession::OAuth { .. }))
+        );
+        assert_matches!(
+            wallet
+                .identify_uri(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
+                .unwrap(),
+            UriType::PinRecovery
+        );
+    }
+
+    #[tokio::test]
+    async fn test_wallet_init_errors_on_conflicting_persisted_sessions() {
+        let key_holder = test::generate_key_holder(WalletDeviceVendor::Apple);
+        key_holder.populate_key_identifier("key_id_123".to_string(), SigningKey::random(&mut OsRng));
+
+        let mut storage = MockStorage::default();
+        storage.expect_state().times(1).returning(|| Ok(StorageState::Unopened));
+        storage.expect_open().returning(|| Ok(()));
+        storage.expect_fetch_data::<RegistrationData>().returning(|| {
+            Ok(Some(RegistrationData {
+                attested_key_identifier: "key_id_123".to_string(),
+                pin_salt: pin_key::new_pin_salt(),
+                wallet_id: "wallet_123".to_string(),
+                wallet_certificate: "this.isa.jwt".parse().unwrap(),
+                revocation_code: RevocationCode::new_random(),
+            }))
+        });
+        storage.expect_fetch_data::<KeyData>().returning(|| Ok(None));
+        storage
+            .expect_fetch_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .returning(|| {
+                Ok(Some(PersistedIssuanceSessionData {
+                    purpose: PidIssuancePurpose::Enrollment,
+                    authorization_session: MockAuthorizationSessionData {
+                        auth_url: "https://example.com/auth".parse().unwrap(),
+                        state: "issuance_state".to_string(),
+                    },
+                }))
+            });
+        storage
+            .expect_fetch_data::<PersistedPinRecoverySessionData<MockAuthorizationSessionData>>()
+            .returning(|| {
+                Ok(Some(PersistedPinRecoverySessionData {
+                    authorization_session: MockAuthorizationSessionData {
+                        auth_url: "https://example.com/auth".parse().unwrap(),
+                        state: "pin_recovery_state".to_string(),
+                    },
+                }))
+            });
+
+        let config_server_config = default_config_server_config();
+        let config_repository =
+            UpdatingConfigurationRepository::new(LocalConfigurationRepository::default(), config_server_config).await;
+        let wallet_clients: WalletClients<
+            MockAccountProviderClient,
+            MockIssuanceDiscovery,
+            MockDisclosureClient,
+            MockStatusListClient,
+        > = WalletClients::default();
+
+        let result: Result<TestWalletMockStorage, WalletInitError> = Wallet::init_registration(
+            storage,
+            key_holder,
+            WalletRepositories {
+                config_repository,
+                update_policy_repository: MockUpdatePolicyRepository::default(),
+            },
+            wallet_clients,
+        )
+        .await;
+
+        let error = match result {
+            Ok(_) => panic!("wallet init should fail when both persisted sessions are present"),
+            Err(error) => error,
+        };
+
+        assert_matches!(error, WalletInitError::ConflictingPersistedSessions);
     }
 
     #[tokio::test]

@@ -99,7 +99,7 @@ where
 
         let uri = Url::parse(uri_str)?;
         let uri_type = match identify_uri(&uri) {
-            // The DigiD return URL should only be handled if we're doing either PID issuance or PIN recovery.
+            // The authorization return URL should only be handled if we're doing either PID issuance or PIN recovery.
             Some(UriType::PidIssuance)
                 if matches!(
                     self.session,
@@ -131,7 +131,7 @@ where
                 UriType::PinRecovery
             }
 
-            // If we're not doing PID issuance or PIN recovery then the DigiD return URL is unexpected,
+            // If we're not doing PID issuance or PIN recovery then the authorization return URL is unexpected,
             // so return an error in that case (and of course also when the URI was not recognized).
             Some(UriType::PidIssuance) | None => return Err(UriIdentificationError::Unknown(uri)),
 
@@ -168,8 +168,8 @@ mod tests {
         let disclosure_uri_base = urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL);
         let disclosure_based_issuance_uri_base = urls::disclosure_based_issuance_base_uri(&UNIVERSAL_LINK_BASE_URL);
 
-        let digid_uri = urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL);
-        let digid_uri = digid_uri.as_ref().as_str();
+        let authorization_uri = urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL);
+        let authorization_uri = authorization_uri.as_ref().as_str();
 
         let disclosure_uri = disclosure_uri_base.join("abcd");
         let disclosure_based_issuance_uri = disclosure_based_issuance_uri_base.join("abcd");
@@ -182,10 +182,10 @@ mod tests {
             UriIdentificationError::Unknown(uri) if uri.as_str() == example_uri
         );
 
-        // The wallet should not recognise the DigiD URI, as there is no `DigidSession`.
+        // The wallet should not recognise the authorization URI, as there is no authorization session.
         assert_matches!(
-            wallet.identify_uri(digid_uri).unwrap_err(),
-            UriIdentificationError::Unknown(uri) if uri.as_str() == digid_uri
+            wallet.identify_uri(authorization_uri).unwrap_err(),
+            UriIdentificationError::Unknown(uri) if uri.as_str() == authorization_uri
         );
 
         // Set up an enrollment session that will match the URI.
@@ -196,8 +196,8 @@ mod tests {
             },
         }));
 
-        // The wallet should now recognise the DigiD URI.
-        assert_matches!(wallet.identify_uri(digid_uri).unwrap(), UriType::PidIssuance);
+        // The wallet should now recognise the authorization URI.
+        assert_matches!(wallet.identify_uri(authorization_uri).unwrap(), UriType::PidIssuance);
 
         // Set up a PID renewal session that will match the URI.
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
@@ -207,15 +207,15 @@ mod tests {
             },
         }));
 
-        // The wallet should now recognise the DigiD URI.
-        assert_matches!(wallet.identify_uri(digid_uri).unwrap(), UriType::PidRenewal);
+        // The wallet should now recognise the authorization URI.
+        assert_matches!(wallet.identify_uri(authorization_uri).unwrap(), UriType::PidRenewal);
 
         // After clearing the session, the URI should not be recognised again.
         wallet.session = None;
 
         assert_matches!(
-            wallet.identify_uri(digid_uri).unwrap_err(),
-            UriIdentificationError::Unknown(uri) if uri.as_str() == digid_uri
+            wallet.identify_uri(authorization_uri).unwrap_err(),
+            UriIdentificationError::Unknown(uri) if uri.as_str() == authorization_uri
         );
 
         // The disclosure URI should be recognised.

@@ -1,8 +1,5 @@
-use std::sync::Arc;
-
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::tls_pinned_client_builder;
-use indexmap::IndexSet;
 use jsonwebtoken::Algorithm;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::algorithm::RsaAlgorithm;
@@ -10,11 +7,6 @@ use jwe::decryption::JweDecrypter;
 use jwe::decryption::JweRsaPrivateKey;
 use jwe::error::RsaPrivateJwkError;
 use jwk_simple::Key;
-use jwt::nonce::Nonce;
-use openid4vc::authorization::OidcAuthorizationRequest;
-use openid4vc::authorization::VciAuthorizationRequest;
-use openid4vc::issuer::UpstreamAuthorizationAdapter;
-use openid4vc::issuer::UpstreamResolveError;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::metadata::oauth_metadata::OidcProviderMetadata;
 use openid4vc::metadata::well_known;
@@ -43,6 +35,9 @@ pub enum Error {
     #[error("error fetching well-known openid metadata: {0}")]
     WellKnown(#[source] WellKnownError),
 
+    #[error("upstream metadata has no authorization_endpoint")]
+    NoUpstreamAuthorizationEndpoint,
+
     #[error("error fetching userinfo: {0}")]
     UserInfo(#[source] UserInfoError),
 }
@@ -52,6 +47,7 @@ pub enum Error {
 pub struct DigidMetadataCache {
     http_client: HttpJsonClient,
     oidc_identifier: IssuerIdentifier,
+    // TODO (PVW-5936): implement cache expiration
     cached: OnceCell<OidcProviderMetadata>,
 }
 
@@ -84,65 +80,15 @@ impl DigidMetadataCache {
     }
 }
 
-/// Implements [`UpstreamAuthorizationAdapter`] by performing OIDC discovery against the configured
-/// upstream issuer on the first call. The discovery result is cached in the shared
-/// [`DigidMetadataCache`] for the lifetime of the process.
-pub struct DigidAuthorizationAdapter {
-    cache: Arc<DigidMetadataCache>,
-    client_id: String,
-}
-
-impl DigidAuthorizationAdapter {
-    pub fn new(cache: Arc<DigidMetadataCache>, client_id: impl Into<String>) -> Self {
-        Self {
-            cache,
-            client_id: client_id.into(),
-        }
-    }
-}
-
-impl UpstreamAuthorizationAdapter for DigidAuthorizationAdapter {
-    async fn adapt(
-        &self,
-        mut request: VciAuthorizationRequest,
-    ) -> Result<(Url, OidcAuthorizationRequest), UpstreamResolveError> {
-        let metadata = self
-            .cache
-            .metadata()
-            .await
-            .map_err(|e| UpstreamResolveError::Discovery(Box::new(e)))?;
-
-        let authorization_endpoint = metadata
-            .as_ref()
-            .authorization_endpoint
-            .clone()
-            .ok_or(UpstreamResolveError::NoAuthorizationEndpoint)?;
-
-        request.oauth_request.client_id = self.client_id.clone();
-        request.scope = Some(IndexSet::from_iter([String::from("openid")]));
-
-        let oidc_request = OidcAuthorizationRequest {
-            vci_request: request,
-            nonce: Some(Nonce::new_random()),
-        };
-
-        Ok((authorization_endpoint, oidc_request))
-    }
-}
-
 /// An OIDC client for exchanging an access token provided by the user for their BSN at the IdP.
 pub struct OpenIdClient {
     decrypter: JweDecrypter,
     client_id: String,
-    cache: Arc<DigidMetadataCache>,
+    cache: DigidMetadataCache,
 }
 
 impl OpenIdClient {
-    pub fn try_new(
-        bsn_privkey: &Key,
-        client_id: impl Into<String>,
-        cache: Arc<DigidMetadataCache>,
-    ) -> Result<Self, Error> {
+    pub fn try_new(bsn_privkey: &Key, client_id: impl Into<String>, cache: DigidMetadataCache) -> Result<Self, Error> {
         let jwe_private_key =
             JweRsaPrivateKey::try_from_jwk(bsn_privkey, EXPECTED_JWE_RSA_ALGORITHM).map_err(Error::RsaJwk)?;
 
@@ -156,7 +102,7 @@ impl OpenIdClient {
     pub async fn bsn(
         &self,
         code: AuthorizationCode,
-        code_verifier: Option<String>,
+        code_verifier: String,
         redirect_uri: Option<Url>,
     ) -> Result<String, Error> {
         let metadata = self.cache.metadata().await.map_err(Error::WellKnown)?;
@@ -164,7 +110,7 @@ impl OpenIdClient {
         let token_request = TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode { code },
             client_id: Some(self.client_id.clone()),
-            code_verifier,
+            code_verifier: Some(code_verifier),
             redirect_uri,
         };
 
@@ -180,5 +126,17 @@ impl OpenIdClient {
         .map_err(Error::UserInfo)?;
 
         Ok(userinfo_claims.bsn)
+    }
+
+    pub async fn authorization_endpoint(&self) -> Result<Url, Error> {
+        let metadata = self.cache.metadata().await.map_err(Error::WellKnown)?;
+
+        let authorization_endpoint = metadata
+            .as_ref()
+            .authorization_endpoint
+            .clone()
+            .ok_or(Error::NoUpstreamAuthorizationEndpoint)?;
+
+        Ok(authorization_endpoint)
     }
 }

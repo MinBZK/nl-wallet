@@ -17,9 +17,9 @@ import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/close_proximity/observe_close_proximity_connection_usecase.dart';
-import '../../../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../../../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import '../../../domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
+import '../../../domain/usecase/session/cancel_session_usecase.dart';
 import '../../../util/cast_util.dart';
 import '../../../util/extension/core_error_extension.dart';
 import '../../../util/extension/list_extension.dart';
@@ -35,8 +35,8 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   /// Use case responsible for observing the close proximity connection events.
   final ObserveCloseProximityConnectionUseCase _observeCloseProximityConnectionUseCase;
 
-  /// Use case responsible for canceling an ongoing disclosure session.
-  final CancelDisclosureUseCase _cancelDisclosureUseCase;
+  /// Use case responsible for canceling an ongoing session.
+  final CancelSessionUseCase _cancelSessionUseCase;
 
   /// Use case to retrieve the most recent wallet event after disclosure completion.
   final GetMostRecentWalletEventUseCase _getMostRecentWalletEventUseCase;
@@ -54,7 +54,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   DisclosureBloc(
     this._startDisclosureUseCase,
-    this._cancelDisclosureUseCase,
+    this._cancelSessionUseCase,
     this._getMostRecentWalletEventUseCase,
     this._observeCloseProximityConnectionUseCase,
   ) : super(const DisclosureInitial()) {
@@ -129,7 +129,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       case BleDeviceRequestReceived():
         Fimber.i('Ignored ble event: ${event.event}');
       case BleDisconnected():
-        unawaited(_cancelDisclosureUseCase.invoke());
+        unawaited(_cancelSessionUseCase.invoke());
         emit(DisclosureCloseProximityDisconnected(isLoginFlow: isLoginFlow));
       case BleError(:final error):
         await _handleApplicationError(await error.asApplicationError(), emit);
@@ -169,7 +169,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   }
 
   Future<void> _onCancelRequested(DisclosureCancelRequested event, Emitter<DisclosureState> emit) async {
-    final cancelResult = await _cancelDisclosureUseCase.invoke();
+    final cancelResult = await _cancelSessionUseCase.invoke();
     await cancelResult.process(
       onSuccess: (returnUrl) => Fimber.d('Disclosure session cancelled'),
       onError: (error) => Fimber.e('Failed to cancel session', ex: error),
@@ -179,7 +179,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   Future<void> _onStopRequested(DisclosureStopRequested event, Emitter<DisclosureState> emit) async {
     emit(DisclosureLoadInProgress(state.stepperProgress));
     final relyingParty = this.relyingParty;
-    final cancelResult = await _cancelDisclosureUseCase.invoke();
+    final cancelResult = await _cancelSessionUseCase.invoke();
 
     // Handle the edge case where relyingParty (needed to render stopped screen) is not available.
     if (relyingParty == null) {
@@ -349,7 +349,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   Future<void> _onReportPressed(DisclosureReportPressed event, Emitter<DisclosureState> emit) async {
     Fimber.d('User selected reporting option ${event.option}');
     emit(DisclosureLoadInProgress(state.stepperProgress));
-    final cancelResult = await _cancelDisclosureUseCase.invoke();
+    final cancelResult = await _cancelSessionUseCase.invoke();
     if (cancelResult.hasError) Fimber.e('Failed to explicitly cancel disclosure flow', ex: cancelResult.error);
     emit(DisclosureLeftFeedback(returnUrl: cancelResult.value));
   }
@@ -363,7 +363,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     emit(DisclosureLoadInProgress(state.stepperProgress));
 
     // Call cancelSession to avoid stale session and to potentially provide more context (e.g. returnUrl).
-    final cancelResult = await _cancelDisclosureUseCase.invoke();
+    final cancelResult = await _cancelSessionUseCase.invoke();
     final returnUrl = tryCast<GenericError>(error)?.redirectUrl ?? cancelResult.value;
 
     switch (error) {

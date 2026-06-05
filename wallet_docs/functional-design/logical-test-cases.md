@@ -972,7 +972,7 @@ Cases:
 
 ---
 
-### LTC79
+### LTC78
 
 #### Delete EAA card
 
@@ -980,3 +980,39 @@ Cases:
 **When** user deletes the card<br>
 **Then** wallet does not contain the deleted card<br>
 **And** a delete event is added to the history<br>
+
+---
+
+### LTC79
+
+#### Close proximity data sharing
+
+**Given** user has completed PID setup and opened the app<br>
+**When** user starts disclosure process by showing its QR code to a third party verifier<br>
+**Then** system requests user consent<br>
+**When** user approves with PIN<br>
+**Then** system discloses attributes to relying party<br>
+**And** system displays data shared message<br>
+
+---
+
+### LTC80
+
+#### Wallet does not contain requested attributes at close proximity disclosure
+
+**Given** wallet does not contain attributes to fulfill a disclosure request<br>
+**When** user starts disclosure process by showing its QR code to a third party verifier<br>
+**Then** System displays an error message with instructions<br>
+
+---
+
+### LTC81
+
+#### BLE connection lost from reader during close proximity disclosure
+
+**Given** user has completed PID setup and opened the app<br>
+**When** user starts disclosure process by showing its QR code to a third party verifier<br>
+**Then** system requests user consent<br>git add
+**When** reader disconnect BLE connection<br>
+**When** user approves with PIN<br>
+**Then** System displays an error message with instructions<br>

@@ -9,9 +9,9 @@ import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/card/get_pid_cards_usecase.dart';
-import '../../../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../../../domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import '../../../domain/usecase/pid/get_pid_renewal_url_usecase.dart';
+import '../../../domain/usecase/session/cancel_session_usecase.dart';
 import '../../../wallet_core/error/core_error.dart';
 
 part 'renew_pid_event.dart';
@@ -21,13 +21,13 @@ part 'renew_pid_state.dart';
 class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
   final GetPidRenewalUrlUseCase _getPidRenewalUrlUseCase;
   final ContinuePidIssuanceUseCase _continuePidIssuanceUseCase;
-  final CancelPidIssuanceUseCase _cancelPidIssuanceUseCase;
+  final CancelSessionUseCase _cancelSessionUseCase;
   final GetPidCardsUseCase _getPidCardsUseCase;
 
   RenewPidBloc(
     this._getPidRenewalUrlUseCase,
     this._continuePidIssuanceUseCase,
-    this._cancelPidIssuanceUseCase,
+    this._cancelSessionUseCase,
     this._getPidCardsUseCase, {
     required bool continueFromDigiD,
   }) : super(continueFromDigiD ? const RenewPidVerifyingDigidAuthentication() : const RenewPidInitial()) {
@@ -45,7 +45,7 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
 
   FutureOr<void> _onDigidLoginClicked(RenewPidLoginWithDigidClicked event, Emitter<RenewPidState> emit) async {
     emit(const RenewPidLoadingDigidUrl());
-    await _cancelPidIssuanceUseCase.invoke(); // Cancel any potential stale session
+    await _cancelSessionUseCase.invoke(); // Cancel any potential stale session
     final result = await _getPidRenewalUrlUseCase.invoke();
     await result.process(
       onSuccess: (url) => emit(RenewPidAwaitingDigidAuthentication(url)),
@@ -63,7 +63,7 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
   }
 
   Future<void> _handleApplicationError(ApplicationError error, Emitter<RenewPidState> emit) async {
-    unawaited(_cancelPidIssuanceUseCase.invoke()); // Attempt to cancel the session, then render the specific error
+    unawaited(_cancelSessionUseCase.invoke()); // Attempt to cancel the session, then render the specific error
     switch (error) {
       case WrongDigidError():
         emit(const RenewPidDigidMismatch());
@@ -119,7 +119,7 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
       add(const RenewPidLoginWithDigidClicked());
 
   FutureOr<void> _onStopPressed(RenewPidStopPressed event, Emitter<RenewPidState> emit) async {
-    unawaited(_cancelPidIssuanceUseCase.invoke());
+    unawaited(_cancelSessionUseCase.invoke());
     emit(const RenewPidStopped());
   }
 }

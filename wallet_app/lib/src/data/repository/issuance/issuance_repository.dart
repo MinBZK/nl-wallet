@@ -9,6 +9,4 @@ abstract class IssuanceRepository {
   Future<List<WalletCard>> discloseForIssuance(String pin, List<int> selectedIndices);
 
   Future<void> acceptIssuance(String pin, Iterable<WalletCard> cards);
-
-  Future<String?> cancelIssuance();
 }

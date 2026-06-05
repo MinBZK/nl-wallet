@@ -24,11 +24,6 @@ void main() {
     );
   });
 
-  test('Call to cancelDisclosure is forwarded to wallet core', () async {
-    await repository.cancelDisclosure();
-    verify(mockTypedWalletCore.cancelDisclosure()).called(1);
-  });
-
   test('Call to acceptDisclosure is forwarded to wallet core with correct argument', () async {
     await repository.acceptDisclosure('123123', [0]);
     verify(mockTypedWalletCore.acceptDisclosure('123123', [0])).called(1);

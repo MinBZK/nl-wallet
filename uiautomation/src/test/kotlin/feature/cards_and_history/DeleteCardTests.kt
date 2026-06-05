@@ -64,7 +64,7 @@ class DeleteCardTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("LTC79 Delete card")
+    @DisplayName("LTC78 Delete card")
     @Tags(Tag("a11yBatch1"))
     fun verifyCardDetailScreen(testInfo: TestInfo) {
         setUp(testInfo)

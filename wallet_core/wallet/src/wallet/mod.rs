@@ -36,6 +36,9 @@ use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::close_proximity_disclosure::hardware::HardwareCloseProximityDisclosureClient;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
+use serde::Deserialize;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use tokio::sync::RwLock;
 use tokio::task::JoinHandle;
@@ -82,6 +85,7 @@ use crate::account_provider::HttpAccountProviderClient;
 use crate::config::WalletConfigurationRepository;
 use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
+use crate::storage::KeyedData;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
 use crate::wallet::close_proximity_disclosure::CloseProximityDisclosureSession;
@@ -126,6 +130,31 @@ enum Session<AS, IS, DCS> {
     Disclosure(WalletDisclosureSession<DCS>),
     CloseProximityDisclosure(CloseProximityDisclosureSession),
     PinRecovery(PinRecoverySession<AS, IS>),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(super) struct PersistedIssuanceSessionData<AD> {
+    purpose: PidIssuancePurpose,
+    authorization_session: AD,
+}
+
+impl<AD> KeyedData for PersistedIssuanceSessionData<AD>
+where
+    AD: Serialize + DeserializeOwned,
+{
+    const KEY: &'static str = "issuance_oauth_session";
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(super) struct PersistedPinRecoverySessionData<AD> {
+    authorization_session: AD,
+}
+
+impl<AD> KeyedData for PersistedPinRecoverySessionData<AD>
+where
+    AD: Serialize + DeserializeOwned,
+{
+    const KEY: &'static str = "pin_recovery_oauth_session";
 }
 
 pub struct Wallet<

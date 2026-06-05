@@ -284,18 +284,18 @@ impl FlutterApiErrorFields for IssuanceError {
             IssuanceError::AttestationPreview(_)
             | IssuanceError::Attestation { .. }
             | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
-            IssuanceError::DeniedDigiD => FlutterApiErrorType::DeniedDigid,
+            IssuanceError::AuthorizationDenied => FlutterApiErrorType::DeniedDigid,
             IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
                 FlutterApiErrorType::WrongDigid
             }
             IssuanceError::Instruction(error) => FlutterApiErrorType::from(error),
             IssuanceError::PidAlreadyPresent
             | IssuanceError::NoPidPresent
-            | IssuanceError::IssuerMetadataDiscovery(_)
             | IssuanceError::Signature(_)
             | IssuanceError::MissingSignature
             | IssuanceError::AttestationStorage(_)
             | IssuanceError::AttestationQuery(_)
+            | IssuanceError::SessionStorage(_)
             | IssuanceError::KeyNotFound(_)
             | IssuanceError::Attestations(_)
             | IssuanceError::Notifications(_)
@@ -512,9 +512,7 @@ impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
             Self::CheckPreconditions(error) => error.typ(),
             Self::Disclosure(error) => error.typ(),
             Self::Issuance(error) => error.typ(),
-            Self::NoPreAuthorizedCode(_) | Self::MissingRedirectUri(_) | Self::UnexpectedScheme(_, _) => {
-                FlutterApiErrorType::Issuer
-            }
+            Self::MissingRedirectUri(_) | Self::UnexpectedScheme(_, _) => FlutterApiErrorType::Issuer,
         }
     }
 
@@ -523,12 +521,12 @@ impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
             Self::CheckPreconditions(error) => error.data(),
             Self::Disclosure(error) => error.data(),
             Self::Issuance(error) => error.data(),
-            Self::NoPreAuthorizedCode(organization)
-            | Self::MissingRedirectUri(organization)
-            | Self::UnexpectedScheme(_, organization) => serde_json::to_value(DisclosureBasedIssuanceErrorData {
-                organization_name: organization.display_name.clone(),
-            })
-            .unwrap(),
+            Self::MissingRedirectUri(organization) | Self::UnexpectedScheme(_, organization) => {
+                serde_json::to_value(DisclosureBasedIssuanceErrorData {
+                    organization_name: organization.display_name.clone(),
+                })
+                .unwrap()
+            }
         }
     }
 }
@@ -699,7 +697,7 @@ impl FlutterApiErrorFields for PinRecoveryError {
             PinRecoveryError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
             PinRecoveryError::NotRegistered | PinRecoveryError::SessionState => FlutterApiErrorType::WalletState,
             PinRecoveryError::Issuance(issuance_error) => issuance_error.typ(),
-            PinRecoveryError::DeniedDigiD => FlutterApiErrorType::DeniedDigid,
+            PinRecoveryError::AuthorizationDenied => FlutterApiErrorType::DeniedDigid,
             PinRecoveryError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
                 FlutterApiErrorType::WrongDigid
             }

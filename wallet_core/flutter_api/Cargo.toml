@@ -32,6 +32,7 @@ url.workspace = true
 
 error_category.path = "../lib/error_category"
 flutter_api_macros.path = "flutter_api_macros"
+svg_sanitize.path = "../lib/svg_sanitize"
 wallet.path = "../wallet"
 
 [dependencies.flutter_rust_bridge]

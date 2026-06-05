@@ -128,10 +128,10 @@ void main() {
     });
   });
 
-  group('cancelPidIssuance', () {
-    test('cancel pid issuance is passed on to core', () async {
-      await typedWalletCore.cancelIssuance();
-      verify(core.crateApiFullCancelIssuance()).called(1);
+  group('cancelSession', () {
+    test('cancel session is passed on to core', () async {
+      await typedWalletCore.cancelSession();
+      verify(core.crateApiFullCancelSession()).called(1);
     });
   });
 
@@ -389,11 +389,6 @@ void main() {
       verify(core.crateApiFullStartDisclosure(uri: 'uri', isQrCode: true)).called(1);
     });
 
-    test('cancelDisclosure is passed on to core', () async {
-      await typedWalletCore.cancelDisclosure();
-      verify(core.crateApiFullCancelDisclosure()).called(1);
-    });
-
     test('acceptDisclosure is passed on to core', () async {
       await typedWalletCore.acceptDisclosure(_kSamplePin, [1, 2]);
       verify(core.crateApiFullAcceptDisclosure(pin: _kSamplePin, selectedIndices: [1, 2])).called(1);
@@ -527,9 +522,9 @@ void main() {
       expect(() => typedWalletCore.identifyUri('https://example.org'), throwsA(isA<CoreError>()));
     });
 
-    test('cancelPidIssuance', () async {
-      when(core.crateApiFullCancelIssuance()).thenAnswer((_) async => throw ffiException);
-      expect(() async => typedWalletCore.cancelIssuance(), throwsA(isA<CoreError>()));
+    test('cancelSession', () async {
+      when(core.crateApiFullCancelSession()).thenAnswer((_) async => throw ffiException);
+      expect(() async => typedWalletCore.cancelSession(), throwsA(isA<CoreError>()));
     });
 
     test('acceptOfferedPid', () async {
@@ -682,11 +677,6 @@ void main() {
     test('acceptPidIssuance', () async {
       when(core.crateApiFullAcceptPidIssuance(pin: _kSamplePin)).thenThrow(ffiException);
       expect(() => typedWalletCore.acceptPidIssuance(_kSamplePin), throwsA(isA<CoreError>()));
-    });
-
-    test('cancelDisclosure', () async {
-      when(core.crateApiFullCancelDisclosure()).thenThrow(ffiException);
-      expect(() => typedWalletCore.cancelDisclosure(), throwsA(isA<CoreError>()));
     });
 
     test('getRegistrationRevocationCode', () async {

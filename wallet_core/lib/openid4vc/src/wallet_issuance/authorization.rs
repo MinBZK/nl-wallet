@@ -4,13 +4,16 @@ use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
 use http_utils::reqwest::HttpJsonClient;
 use serde::Deserialize;
+use serde::Serialize;
 use url::Url;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
 use crate::authorization::AuthorizationResponse;
 use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
+use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::pkce::PkcePair;
@@ -82,6 +85,7 @@ pub enum OAuthError {
 /// The state of an in-progress OAuth authorization code flow.
 #[derive(Debug)]
 pub struct HttpAuthorizationSession<P = S256PkcePair> {
+    credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
     issuer_metadata: IssuerMetadata,
     oauth_metadata: AuthorizationServerMetadata,
     http_client: HttpJsonClient,
@@ -93,12 +97,26 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
     state: String,
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+pub struct HttpAuthorizationSessionData {
+    credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
+    issuer_metadata: IssuerMetadata,
+    oauth_metadata: AuthorizationServerMetadata,
+    auth_url: Url,
+    client_id: String,
+    redirect_uri: Url,
+    code_verifier: String,
+    state: String,
+}
+
 impl<P: PkcePair> HttpAuthorizationSession<P> {
     /// POST the authorization parameters to the PAR endpoint, then build the authorization URL
     /// using the returned `request_uri`. Returns an error if the provider has no PAR endpoint,
     /// the PAR request is rejected, or the URL cannot be constructed.
+    #[expect(clippy::too_many_arguments, reason = "internal constructor")]
     pub(super) async fn create(
         http_client: HttpJsonClient,
+        credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
         issuer_metadata: IssuerMetadata,
         oauth_metadata: AuthorizationServerMetadata,
         client_id: String,
@@ -150,6 +168,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             .append_pair("request_uri", &par_response.request_uri);
 
         Ok(Self {
+            credential_configuration_ids,
             issuer_metadata,
             oauth_metadata,
             http_client,
@@ -199,11 +218,45 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
     }
 }
 
+impl HttpAuthorizationSession {
+    pub fn restore(http_client: HttpJsonClient, data: HttpAuthorizationSessionData) -> Self {
+        Self {
+            credential_configuration_ids: data.credential_configuration_ids,
+            issuer_metadata: data.issuer_metadata,
+            oauth_metadata: data.oauth_metadata,
+            http_client,
+            auth_url: data.auth_url,
+            client_id: data.client_id,
+            redirect_uri: data.redirect_uri,
+            pkce_pair: S256PkcePair::from_code_verifier(data.code_verifier),
+            state: data.state,
+        }
+    }
+}
+
 impl AuthorizationSession for HttpAuthorizationSession {
     type Issuance = HttpIssuanceSession;
+    type Persisted = HttpAuthorizationSessionData;
 
     fn auth_url(&self) -> &Url {
         &self.auth_url
+    }
+
+    fn state(&self) -> &str {
+        &self.state
+    }
+
+    fn persist(&self) -> Self::Persisted {
+        HttpAuthorizationSessionData {
+            credential_configuration_ids: self.credential_configuration_ids.clone(),
+            issuer_metadata: self.issuer_metadata.clone(),
+            oauth_metadata: self.oauth_metadata.clone(),
+            auth_url: self.auth_url.clone(),
+            client_id: self.client_id.clone(),
+            redirect_uri: self.redirect_uri.clone(),
+            code_verifier: self.pkce_pair.code_verifier().to_string(),
+            state: self.state.clone(),
+        }
     }
 
     async fn start_issuance(
@@ -225,6 +278,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
 
         HttpIssuanceSession::create(
             message_client,
+            self.credential_configuration_ids,
             self.issuer_metadata,
             self.oauth_metadata,
             token_request,
@@ -249,14 +303,18 @@ mod tests {
     use serde_json::json;
     use serial_test::serial;
     use url::Url;
+    use utils::vec_nonempty;
 
     use super::HttpAuthorizationSession;
+    use super::HttpAuthorizationSessionData;
     use super::OAuthError;
     use crate::AuthorizationErrorCode;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::pkce::MockPkcePair;
+    use crate::pkce::S256PkcePair;
+    use crate::wallet_issuance::AuthorizationSession;
 
     const ISSUER_URL: &str = "https://example.com";
     const CLIENT_ID: &str = "client-1";
@@ -280,6 +338,7 @@ mod tests {
         pkce_pair.expect_code_challenge().return_const("challenge".to_string());
         HttpAuthorizationSession {
             issuer_metadata: IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test"),
+            credential_configuration_ids: vec_nonempty!["config_id".to_string().into()],
             oauth_metadata: AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
             http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: ISSUER_URL.parse().unwrap(),
@@ -364,6 +423,7 @@ mod tests {
 
         let session = HttpAuthorizationSession::<MockPkcePair>::create(
             HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            vec_nonempty!["config_id".to_string().into()],
             IssuerMetadata::new_mock(server.base_url().parse().unwrap(), "test"),
             oauth_metadata,
             MOCK_WALLET_CLIENT_ID.to_string(),
@@ -461,6 +521,48 @@ mod tests {
         );
 
         assert_eq!(session.authorization_code(&uri).unwrap().as_ref(), "123");
+    }
+
+    #[tokio::test]
+    async fn test_persist_and_restore() {
+        let persisted = HttpAuthorizationSessionData {
+            credential_configuration_ids: vec_nonempty!["config_id".to_string().into()],
+            issuer_metadata: IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test"),
+            oauth_metadata: AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
+            auth_url: ISSUER_URL.parse().unwrap(),
+            client_id: CLIENT_ID.to_string(),
+            redirect_uri: REDIRECT_URI.parse().unwrap(),
+            code_verifier: "verifier".to_string(),
+            state: CSRF_TOKEN.to_string(),
+        };
+
+        let session = HttpAuthorizationSession {
+            credential_configuration_ids: persisted.credential_configuration_ids.clone(),
+            issuer_metadata: persisted.issuer_metadata.clone(),
+            oauth_metadata: persisted.oauth_metadata.clone(),
+            http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
+            auth_url: persisted.auth_url.clone(),
+            client_id: persisted.client_id.clone(),
+            redirect_uri: persisted.redirect_uri.clone(),
+            pkce_pair: S256PkcePair::from_code_verifier(persisted.code_verifier.clone()),
+            state: persisted.state.clone(),
+        };
+
+        let restored = HttpAuthorizationSession::restore(
+            HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
+            session.persist(),
+        );
+        let restored_persisted = restored.persist();
+
+        assert_eq!(
+            restored_persisted.credential_configuration_ids,
+            persisted.credential_configuration_ids
+        );
+        assert_eq!(restored_persisted.auth_url, persisted.auth_url);
+        assert_eq!(restored_persisted.client_id, persisted.client_id);
+        assert_eq!(restored_persisted.redirect_uri, persisted.redirect_uri);
+        assert_eq!(restored_persisted.code_verifier, persisted.code_verifier);
+        assert_eq!(restored_persisted.state, persisted.state);
     }
 
     #[rstest]

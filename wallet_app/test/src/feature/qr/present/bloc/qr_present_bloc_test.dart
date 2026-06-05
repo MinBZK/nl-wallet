@@ -16,7 +16,7 @@ import '../../../../mocks/wallet_mocks.mocks.dart';
 
 void main() {
   late MockStartCloseProximityDisclosureUseCase mockStartQrEngagementUseCase;
-  late MockCancelDisclosureUseCase mockCancelDisclosureUseCase;
+  late MockCancelSessionUseCase mockCancelSessionUseCase;
   late MockObserveCloseProximityConnectionUseCase mockObserveCloseProximityConnectionUseCase;
   late AppLifecycleService mockAppLifecycleService;
   late QrPresentBloc bloc;
@@ -26,7 +26,7 @@ void main() {
   setUp(() {
     mockStartQrEngagementUseCase = MockStartCloseProximityDisclosureUseCase();
     mockObserveCloseProximityConnectionUseCase = MockObserveCloseProximityConnectionUseCase();
-    mockCancelDisclosureUseCase = MockCancelDisclosureUseCase();
+    mockCancelSessionUseCase = MockCancelSessionUseCase();
     bluetooth = MockBluetooth();
     mockAppLifecycleService = AppLifecycleService();
     connectionEventController = StreamController<BleConnectionEvent>.broadcast();
@@ -36,7 +36,7 @@ void main() {
     bloc = QrPresentBloc(
       mockStartQrEngagementUseCase,
       mockObserveCloseProximityConnectionUseCase,
-      mockCancelDisclosureUseCase,
+      mockCancelSessionUseCase,
       bluetooth,
       mockAppLifecycleService,
     );
@@ -167,14 +167,14 @@ void main() {
       bloc.add(const QrPresentStopRequested());
       await Future.microtask(() {}); // Process event
 
-      verify(mockCancelDisclosureUseCase.invoke()).called(1);
+      verify(mockCancelSessionUseCase.invoke()).called(1);
     });
 
     test('Cancel disclosure on missing permission and emit a generic error', () async {
       bloc.add(const QrPresentPermissionDenied());
       await Future.microtask(() {}); // Process event
 
-      verify(mockCancelDisclosureUseCase.invoke()).called(1);
+      verify(mockCancelSessionUseCase.invoke()).called(1);
 
       expect(bloc.state, isA<QrPresentError>().having((it) => it.error, 'exposes generic error', isA<GenericError>()));
     });
@@ -182,7 +182,7 @@ void main() {
     test('Cancel disclosure on bloc close', () async {
       await bloc.close();
 
-      verify(mockCancelDisclosureUseCase.invoke()).called(1);
+      verify(mockCancelSessionUseCase.invoke()).called(1);
     });
 
     test('Do not cancel disclosure on bloc close when state is connected and device request received', () async {
@@ -193,7 +193,7 @@ void main() {
 
       await bloc.close();
 
-      verifyNever(mockCancelDisclosureUseCase.invoke());
+      verifyNever(mockCancelSessionUseCase.invoke());
     });
 
     group('Lifecycle', () {
@@ -203,11 +203,11 @@ void main() {
         seed: () => const QrPresentServerStarted('qr_content'),
         setUp: () {
           when(bluetooth.isEnabled()).thenAnswer((_) async => false);
-          when(mockCancelDisclosureUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
+          when(mockCancelSessionUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
         },
         act: (bloc) => mockAppLifecycleService.notifyStateChanged(AppLifecycleState.resumed),
         expect: () => [const QrPresentConnectionFailed()],
-        verify: (_) => verify(mockCancelDisclosureUseCase.invoke()).called(2),
+        verify: (_) => verify(mockCancelSessionUseCase.invoke()).called(2),
       );
 
       blocTest<QrPresentBloc, QrPresentState>(

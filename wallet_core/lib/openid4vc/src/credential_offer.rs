@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use http_utils::urls::BaseUrl;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::IgnoredAny;
@@ -13,6 +12,7 @@ use strum::EnumString;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::token::AuthorizationCode;
 
@@ -32,7 +32,7 @@ pub enum CredentialOfferContainer {
     },
 
     Uri {
-        credential_offer_uri: BaseUrl,
+        credential_offer_uri: IssuerUrl,
     },
 }
 
@@ -43,7 +43,7 @@ impl CredentialOfferContainer {
         }
     }
 
-    pub fn new_uri(credential_offer_uri: BaseUrl) -> Self {
+    pub fn new_uri(credential_offer_uri: IssuerUrl) -> Self {
         Self::Uri { credential_offer_uri }
     }
 }
@@ -115,7 +115,7 @@ pub struct Grants {
 
     // Capture the keys of any unknown grant types.
     #[serde(flatten, skip_serializing)]
-    pub other: HashMap<String, IgnoredAny>,
+    pub unknown: HashMap<String, IgnoredAny>,
 }
 
 impl Grants {
@@ -258,7 +258,7 @@ mod tests {
 
         assert!(grants.authorization_code.is_some());
         assert!(grants.pre_authorized_code.is_some());
-        assert!(grants.other.is_empty());
+        assert!(grants.unknown.is_empty());
 
         let json = json!({
             "urn:ietf:params:oauth:grant-type:pre-authorized_code": { "pre-authorized_code": "bar" }
@@ -267,7 +267,7 @@ mod tests {
 
         assert!(grants.authorization_code.is_none());
         assert!(grants.pre_authorized_code.is_some());
-        assert!(grants.other.is_empty());
+        assert!(grants.unknown.is_empty());
 
         let json = json!({
             "authorization_code": { "issuer_state": "foo" }
@@ -276,14 +276,14 @@ mod tests {
 
         assert!(grants.authorization_code.is_some());
         assert!(grants.pre_authorized_code.is_none());
-        assert!(grants.other.is_empty());
+        assert!(grants.unknown.is_empty());
 
         let json = json!({});
         let grants = serde_json::from_value::<Grants>(json).expect("should be able to deserialize Grants");
 
         assert!(grants.authorization_code.is_none());
         assert!(grants.pre_authorized_code.is_none());
-        assert!(grants.other.is_empty());
+        assert!(grants.unknown.is_empty());
 
         let json = json!({
             "foo": "bar"
@@ -292,7 +292,7 @@ mod tests {
 
         assert!(grants.authorization_code.is_none());
         assert!(grants.pre_authorized_code.is_none());
-        assert!(grants.other.keys().eq(["foo"]));
+        assert!(grants.unknown.keys().eq(["foo"]));
     }
 
     #[test]
@@ -417,7 +417,7 @@ mod tests {
         };
 
         assert_eq!(
-            credential_offer_uri.as_ref().as_str(),
+            credential_offer_uri.as_url().as_str(),
             "https://server.example.com/credential-offer/GkurKxf5T0Y-mnPFCHqWOMiZi4VS138cQO_V7PZHAdM"
         );
     }
