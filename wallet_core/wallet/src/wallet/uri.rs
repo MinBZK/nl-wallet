@@ -145,7 +145,9 @@ where
 
             // If we're not doing PID issuance or PIN recovery then the authorization return URL is unexpected,
             // so return an error in that case (and of course also when the URI was not recognized).
-            Some(UriType::Redirect(RedirectUri::PidIssuance)) | None => return Err(UriIdentificationError::Unknown(uri)),
+            Some(UriType::Redirect(RedirectUri::PidIssuance)) | None => {
+                return Err(UriIdentificationError::Unknown(uri));
+            }
 
             // Just pass through any other URI types.
             Some(uri_type) => uri_type,

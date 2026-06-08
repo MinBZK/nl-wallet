@@ -396,8 +396,8 @@ mod tests {
     use crate::wallet::PersistedPinRecoverySessionData;
     use crate::wallet::UriType;
     use crate::wallet::test::TestWalletMockStorage;
-    use crate::wallet::uri::RedirectUri;
     use crate::wallet::test::generate_key_holder;
+    use crate::wallet::uri::RedirectUri;
 
     // Tests if the `Wallet::init_registration()` method completes successfully with the mock generics.
     #[tokio::test]
