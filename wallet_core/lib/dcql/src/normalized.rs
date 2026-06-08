@@ -454,7 +454,7 @@ pub mod mock {
                         .map(str::to_string)
                         .collect_vec()
                         .try_into()
-                        .expect("should contain at least one vct"),
+                        .expect("`new_mock_sd_jwt` should be called with a non-empty slice of VCTs"),
                 },
                 multiple: false,
                 trusted_authorities: vec![],
@@ -469,7 +469,10 @@ pub mod mock {
                                 .map(|attribute| ClaimPath::SelectByKey(attribute.to_string()))
                                 .collect_vec()
                                 .try_into()
-                                .expect("should contain at least one path element"),
+                                .expect(
+                                    "`new_mock_sd_jwt` should be called with a slice of non-empty slices of claim \
+                                     paths",
+                                ),
                             values: vec![],
                             intent_to_retain: None,
                         })
@@ -861,9 +864,7 @@ mod test {
         mdoc_example_query_mutate_first_credential_query(|mut c| {
             c.claims_selection = ClaimsSelection::Combinations {
                 claims: vec![mdoc_claims_query()].try_into().unwrap(),
-                claim_sets: vec![vec!["1".to_string().try_into().unwrap()].try_into().unwrap()]
-                    .try_into()
-                    .unwrap(),
+                claim_sets: vec_nonempty![vec!["1".to_string().try_into().unwrap()].try_into().unwrap()],
             };
             c
         })
@@ -872,9 +873,7 @@ mod test {
     fn mdoc_query_with_invalid_claim_path_variant_all() -> Query {
         let claims_query = {
             let mut claims_query = mdoc_claims_query();
-            claims_query.path = vec![ClaimPath::SelectByKey("ns".to_string()), ClaimPath::SelectAll]
-                .try_into()
-                .unwrap();
+            claims_query.path = vec_nonempty![ClaimPath::SelectByKey("ns".to_string()), ClaimPath::SelectAll];
             claims_query
         };
         mdoc_example_query_mutate_first_credential_query(move |mut c| {
@@ -888,9 +887,7 @@ mod test {
     fn mdoc_query_with_invalid_claim_path_variant_by_index() -> Query {
         let claims_query = {
             let mut claims_query = mdoc_claims_query();
-            claims_query.path = vec![ClaimPath::SelectByKey("ns".to_string()), ClaimPath::SelectByIndex(1)]
-                .try_into()
-                .unwrap();
+            claims_query.path = vec_nonempty![ClaimPath::SelectByKey("ns".to_string()), ClaimPath::SelectByIndex(1)];
             claims_query
         };
         mdoc_example_query_mutate_first_credential_query(move |mut c| {
@@ -954,15 +951,13 @@ mod test {
             id: "mdoc_iso_example".try_into().unwrap(),
             doctype_value: "org.iso.18013.5.1.mDL".to_string(),
             aki: vec![],
-            claims: vec![MdocAttributeRequest {
+            claims: vec_nonempty![MdocAttributeRequest {
                 path: vec_nonempty![
                     ClaimPath::SelectByKey("ns".to_string()),
                     ClaimPath::SelectByKey("attr".to_string()),
                 ],
                 intent_to_retain: Some(true),
-            }]
-            .try_into()
-            .unwrap(),
+            }],
         }]
         .try_into()
         .unwrap()
@@ -971,13 +966,11 @@ mod test {
     fn normalized_sd_jwt_family_name() -> NormalizedCredentialRequests {
         vec![NormalizedCredentialRequest::SdJwt {
             id: "intent_to_retain".try_into().unwrap(),
-            vct_values: vec!["pid".to_string()].try_into().unwrap(),
+            vct_values: vec_nonempty!["pid".to_string()],
             aki: vec![],
-            claims: vec![SdJwtAttributeRequest {
+            claims: vec_nonempty![SdJwtAttributeRequest {
                 path: vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())],
-            }]
-            .try_into()
-            .unwrap(),
+            }],
         }]
         .try_into()
         .unwrap()

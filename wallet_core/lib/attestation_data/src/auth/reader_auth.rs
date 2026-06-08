@@ -135,7 +135,9 @@ pub mod mock {
     use dcql::CredentialQueryFormat;
     use dcql::Query;
     use itertools::Itertools;
+    use utils::vec_at_least::IntoNonEmptyIterator;
     use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_nonempty;
 
     use super::*;
 
@@ -223,37 +225,30 @@ pub mod mock {
             (
                 "some_doctype",
                 vec![
-                    vec!["some_namespace", "another_attribute"],
-                    vec!["some_namespace", "some_attribute"],
-                    vec!["another_namespace", "some_attribute"],
-                    vec!["another_namespace", "another_attribute"],
+                    vec_nonempty!["some_namespace".to_owned(), "another_attribute".to_owned()],
+                    vec_nonempty!["some_namespace".to_owned(), "some_attribute".to_owned()],
+                    vec_nonempty!["another_namespace".to_owned(), "some_attribute".to_owned()],
+                    vec_nonempty!["another_namespace".to_owned(), "another_attribute".to_owned()],
                 ],
             ),
             (
                 "another_doctype",
                 vec![
-                    vec!["some_namespace", "some_attribute"],
-                    vec!["some_namespace", "another_attribute"],
-                    vec!["another_namespace", "some_attribute"],
-                    vec!["another_namespace", "another_attribute"],
+                    vec_nonempty!["some_namespace".to_owned(), "some_attribute".to_owned()],
+                    vec_nonempty!["some_namespace".to_owned(), "another_attribute".to_owned()],
+                    vec_nonempty!["another_namespace".to_owned(), "some_attribute".to_owned()],
+                    vec_nonempty!["another_namespace".to_owned(), "another_attribute".to_owned()],
                 ],
             ),
         ])
     }
 
     // Utility function to easily create [`ReaderRegistration`]
-    pub fn create_registration(authorized_attributes: Vec<(&str, Vec<Vec<&str>>)>) -> ReaderRegistration {
+    pub fn create_registration(authorized_attributes: Vec<(&str, Vec<VecNonEmpty<String>>)>) -> ReaderRegistration {
         let authorized_attributes = HashMap::from_iter(authorized_attributes.into_iter().map(|(name, names)| {
             let paths = names
                 .into_iter()
-                .map(|paths| {
-                    paths
-                        .into_iter()
-                        .map(|path| ClaimPath::SelectByKey(String::from(path)))
-                        .collect_vec()
-                        .try_into()
-                        .unwrap()
-                })
+                .map(|paths| paths.into_nonempty_iter().map(ClaimPath::SelectByKey).collect())
                 .collect_vec();
             (name.to_string(), paths)
         }));

@@ -33,6 +33,8 @@ use serde::de::DeserializeOwned;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::single_unique::SingleUnique;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::wscd::IssuanceWscd;
 
@@ -407,8 +409,8 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .expect("there are always credential_previews in the preview response")
             .clone();
 
-        let normalized_credential_previews: VecNonEmpty<_> = credential_previews
-            .into_iter()
+        let normalized_credential_previews = credential_previews
+            .into_nonempty_iter()
             .map(|preview| {
                 // Verify the issuer certificate against the trust anchors.
                 preview
@@ -417,9 +419,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 let state = NormalizedCredentialPreview::try_new(preview)?;
                 Ok::<_, WalletIssuanceError>(state)
             })
-            .collect::<Result<Vec<_>, _>>()?
-            .try_into()
-            .unwrap(); // credential_previews is VecNonEmpty
+            .collect::<Result<_, _>>()?;
 
         let credential_request_types = credential_request_types_from_preview(&normalized_credential_previews)?;
 
