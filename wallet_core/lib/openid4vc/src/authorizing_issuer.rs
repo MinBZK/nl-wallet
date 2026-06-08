@@ -73,19 +73,6 @@ pub enum AuthorizeError {
     EncodeRedirectQuery(#[source] serde_urlencoded::ser::Error),
 }
 
-/// Errors that can occur during processing of a Pushed Authorization Request.
-#[derive(Debug, thiserror::Error)]
-pub enum TokenRequestError {
-    #[error("authorization code flow error: {0}")]
-    AuthorizationCodeFlow(#[source] Box<dyn Error + Send + Sync + 'static>),
-
-    #[error("error writing to the issuer's session store: {0}")]
-    SessionStoreWrite(#[source] SessionStoreError),
-
-    #[error("error when delegating handling the token request to the issuer: {0}")]
-    IssuerTokenRequest(#[source] crate::issuer::TokenRequestError),
-}
-
 /// Errors that can occur while writing the auth-code-grant session and building the
 /// wallet-facing redirect URL from [`AuthorizingIssuer::complete_authorization`].
 #[derive(derive_more::Debug, thiserror::Error)]

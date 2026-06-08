@@ -13,7 +13,6 @@ use url::Url;
 
 use crate::authorizing_issuer::AuthorizeError;
 use crate::authorizing_issuer::ParError;
-use crate::authorizing_issuer::TokenRequestError as AuthorizingIssuerTokenRequestError;
 use crate::issuer::CredentialPreviewError;
 use crate::issuer::CredentialRequestError;
 use crate::issuer::IssuanceError;
@@ -212,21 +211,6 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
         let description = err.to_string();
         ErrorResponse {
             error: err.into(),
-            error_description: Some(description),
-            error_uri: None,
-        }
-    }
-}
-
-impl From<AuthorizingIssuerTokenRequestError> for ErrorResponse<TokenErrorCode> {
-    fn from(err: AuthorizingIssuerTokenRequestError) -> Self {
-        let description = err.to_string();
-        ErrorResponse {
-            error: match err {
-                AuthorizingIssuerTokenRequestError::SessionStoreWrite(_)
-                | AuthorizingIssuerTokenRequestError::AuthorizationCodeFlow(_) => TokenErrorCode::ServerError,
-                AuthorizingIssuerTokenRequestError::IssuerTokenRequest(err) => err.into(),
-            },
             error_description: Some(description),
             error_uri: None,
         }
