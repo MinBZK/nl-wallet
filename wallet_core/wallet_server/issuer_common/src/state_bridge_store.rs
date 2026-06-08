@@ -1,6 +1,6 @@
 use chrono::DateTime;
+use chrono::Duration;
 use chrono::Utc;
-use openid4vc::pkce::PKCE_FLOW_TTL;
 use openid4vc::store::MemoryStore;
 use openid4vc::store::Store;
 use sea_orm::ActiveModelTrait;
@@ -20,6 +20,10 @@ use utils::generator::TimeGenerator;
 
 use crate::entity::prelude::*;
 use crate::entity::state_bridge;
+
+/// TTL for state bridge store entries. Bounds how long an entry may live between being
+/// stored and consumed before it is treated as expired.
+const STATE_BRIDGE_ENTRY_TTL: Duration = Duration::minutes(30);
 
 #[derive(Debug, thiserror::Error)]
 pub enum IssuerStateBridgeStoreError {
@@ -61,7 +65,7 @@ impl IssuerStateBridgeStore {
     pub fn new(store_connection: StoreConnection) -> Self {
         let backend = match store_connection {
             StoreConnection::Postgres(connection) => StateBridgeStoreBackend::Postgres(connection),
-            StoreConnection::Memory => StateBridgeStoreBackend::Memory(MemoryStore::new(PKCE_FLOW_TTL)),
+            StoreConnection::Memory => StateBridgeStoreBackend::Memory(MemoryStore::new(STATE_BRIDGE_ENTRY_TTL)),
         };
 
         Self {
@@ -105,7 +109,7 @@ where
 
         match &self.backend {
             StateBridgeStoreBackend::Postgres(connection) => {
-                let expires_at = self.now() + PKCE_FLOW_TTL;
+                let expires_at = self.now() + STATE_BRIDGE_ENTRY_TTL;
 
                 state_bridge::ActiveModel {
                     id: NotSet,
