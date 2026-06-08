@@ -178,7 +178,6 @@ async fn type_metadata<K, L, S, N>(
     state
         .issuer
         .type_metadata(&id)
-        .clone()
         .map(|metadata| Ok(Json(metadata)))
         .unwrap_or_else(|| Err(StatusCode::NOT_FOUND))
 }
