@@ -349,7 +349,7 @@ where
             .map_err(|_| Error::InvalidIssuableDocuments)?,
     ];
 
-    let (_code, wallet_redirect_url) = authorizing_issuer
+    let wallet_redirect_url = authorizing_issuer
         .complete_authorization(
             issuable_documents,
             entry.wallet_code_challenge.clone(),

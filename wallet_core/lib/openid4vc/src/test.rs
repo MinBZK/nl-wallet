@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
@@ -154,7 +155,8 @@ impl StaticAuthorizationCodeFlow {
             .unwrap()
             .clone()
             .expect("fake_complete_authorization called before /authorize was hit");
-        let (code, _redirect_url) = authorizing_issuer
+
+        let redirect_url = authorizing_issuer
             .complete_authorization(
                 self.documents.clone(),
                 captured.wallet_code_challenge.clone(),
@@ -163,7 +165,12 @@ impl StaticAuthorizationCodeFlow {
             )
             .await
             .unwrap();
-        (code, captured)
+
+        // Extract the authorization code from the redirect URL.
+        let params: HashMap<_, _> = redirect_url.query_pairs().into_owned().collect();
+        let authorization_code: AuthorizationCode = params.get("code").unwrap().clone().into();
+
+        (authorization_code, captured)
     }
 }
 

@@ -544,7 +544,7 @@ async fn plant_authorized_session(authorizing_issuer: &TestAuthorizingIssuer) ->
     let challenge = pair.code_challenge().to_string();
     let verifier = pair.into_code_verifier();
     let documents = mock_issuable_documents(NonZeroUsize::MIN);
-    let (code, _redirect_url) = authorizing_issuer
+    let redirect_url = authorizing_issuer
         .complete_authorization(
             documents,
             challenge,
@@ -553,7 +553,12 @@ async fn plant_authorized_session(authorizing_issuer: &TestAuthorizingIssuer) ->
         )
         .await
         .unwrap();
-    (code, verifier)
+
+    // Extract the authorization code from the redirect URL.
+    let params: HashMap<_, _> = redirect_url.query_pairs().into_owned().collect();
+    let authorization_code: AuthorizationCode = params.get("code").unwrap().clone().into();
+
+    (authorization_code, verifier)
 }
 
 #[tokio::test]

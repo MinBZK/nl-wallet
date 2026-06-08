@@ -138,7 +138,7 @@ where
         )
         .await
     {
-        Ok((_code, url)) => url,
+        Ok(url) => url,
         Err(error) => {
             warn!("mock digid callback: complete_authorization failed: {error}");
             return (StatusCode::INTERNAL_SERVER_ERROR, "session store error").into_response();

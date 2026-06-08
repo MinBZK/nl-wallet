@@ -222,33 +222,33 @@ where
     /// issuables and the wallet's PKCE `code_challenge`), and builds the wallet-facing redirect
     /// URL with that code and the wallet's original `state`. The framework's `/token` handler
     /// will later load the session, verify the wallet's `code_verifier` against the stored
-    /// challenge, and issue. Returns both the generated code (for test helpers using `/token`
-    /// directly) and the redirect URL.
+    /// challenge, and issue.
     pub async fn complete_authorization(
         &self,
         issuable_documents: VecNonEmpty<IssuableDocument>,
         wallet_code_challenge: String,
         wallet_redirect_uri: Url,
         wallet_state: Option<String>,
-    ) -> Result<(AuthorizationCode, Url), CompleteAuthorizationError> {
+    ) -> Result<Url, CompleteAuthorizationError> {
         let code = AuthorizationCode::from(random_string(AUTH_CODE_LENGTH));
 
+        let redirect_url = build_wallet_redirect(wallet_redirect_uri, &code, wallet_state.as_deref())
+            .map_err(CompleteAuthorizationError::EncodeRedirectQuery)?;
+
         let state = SessionState::new(
-            code.clone().into(),
+            code.into(),
             IssuanceData::AuthCodeIssued(Box::new(AuthCodeIssued {
                 issuable_documents,
                 grant: Grant::AuthorizationCode { wallet_code_challenge },
             })),
         );
+
         self.issuer
             .write_new_session(state)
             .await
             .map_err(CompleteAuthorizationError::SessionStore)?;
 
-        let redirect_url = build_wallet_redirect(wallet_redirect_uri, &code, wallet_state.as_deref())
-            .map_err(CompleteAuthorizationError::EncodeRedirectQuery)?;
-
-        Ok((code, redirect_url))
+        Ok(redirect_url)
     }
 }
 
@@ -560,7 +560,7 @@ mod tests {
         let documents = mock_issuable_documents(NonZeroUsize::MIN);
         let wallet_code_challenge = "wallet-code-challenge".to_string();
 
-        let (code, redirect_url) = authorizing_issuer
+        let redirect_url = authorizing_issuer
             .complete_authorization(
                 documents.clone(),
                 wallet_code_challenge.clone(),
@@ -573,13 +573,15 @@ mod tests {
         // The wallet is redirected back to its own redirect_uri, carrying the generated code and state.
         assert!(redirect_url.as_str().starts_with(WALLET_REDIRECT_URI));
         let params: HashMap<_, _> = redirect_url.query_pairs().into_owned().collect();
-        assert_eq!(params.get("code").map(String::as_str), Some(code.as_ref()));
+        assert!(params.contains_key("code"));
         assert_eq!(params.get("state").map(String::as_str), Some(WALLET_STATE));
+
+        let authorization_code: AuthorizationCode = params.get("code").unwrap().clone().into();
 
         // An AuthCodeIssued session was written, keyed by the generated code, carrying the documents and
         // the wallet's PKCE challenge.
         let session = sessions
-            .get(&SessionToken::from(code))
+            .get(&SessionToken::from(authorization_code))
             .await
             .unwrap()
             .expect("a session should have been written under the generated code");
@@ -603,7 +605,7 @@ mod tests {
             allowed_redirect_uris(),
         );
 
-        let (_code, redirect_url) = authorizing_issuer
+        let redirect_url = authorizing_issuer
             .complete_authorization(
                 mock_issuable_documents(NonZeroUsize::MIN),
                 "wallet-code-challenge".to_string(),
