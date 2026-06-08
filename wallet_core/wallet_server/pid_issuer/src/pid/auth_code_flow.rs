@@ -95,9 +95,6 @@ pub enum Error {
     #[error("error inserting recovery code: {0}")]
     InsertingRecoveryCode(#[source] AttributesHandlingError),
 
-    #[error("wallet did not supply a redirect_uri at /authorize, cannot finish the callback")]
-    MissingWalletRedirectUri,
-
     #[error("error completing authorization: {0}")]
     CompleteAuthorization(#[source] CompleteAuthorizationError),
 }
