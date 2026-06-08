@@ -20,8 +20,6 @@ use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
-use openid4vc::pkce::PkcePair;
-use openid4vc::pkce::S256PkcePair;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::test::MOCK_ATTESTATION_TYPES;
 use openid4vc::test::MockAuthorizingIssuer;
@@ -595,14 +593,9 @@ fn dpop_header_for(token_url: &Url) -> String {
         .to_string()
 }
 
-/// Plant an `AuthCodeIssued` session against the given authorizing_issuer using a freshly generated
-/// PKCE pair, returning the (issuer-generated code, code_verifier) the caller can use to drive
-/// `/token`. The wallet redirect URL the `openid4vc` layer builds is discarded — these tests don't
-/// follow the wallet redirect, they call `/token` directly.
-async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) -> (AuthorizationCode, String) {
-    let pair = S256PkcePair::generate();
-    let challenge = pair.code_challenge().to_string();
-    let verifier = pair.into_code_verifier();
+/// Plant an `AuthCodeIssued` session against the given authorizing_issuer, returning the
+/// issuer-generated code the caller can use to drive `/token`.
+async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) -> AuthorizationCode {
     let documents = mock_issuable_documents(NonZeroUsize::MIN);
     let redirect_url = authorizing_issuer
         .complete_authorization(
@@ -610,7 +603,7 @@ async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) ->
             WalletAuthorizationContext {
                 redirect_uri: "https://wallet.example.com/callback".parse().unwrap(),
                 state: None,
-                code_challenge: challenge,
+                code_challenge: "irrelevant-challenge".to_string(),
             },
         )
         .await
@@ -618,9 +611,7 @@ async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) ->
 
     // Extract the authorization code from the redirect URL.
     let params: HashMap<_, _> = redirect_url.query_pairs().into_owned().collect();
-    let authorization_code: AuthorizationCode = params.get("code").unwrap().clone().into();
-
-    (authorization_code, verifier)
+    params.get("code").unwrap().clone().into()
 }
 
 #[tokio::test]
@@ -632,7 +623,7 @@ async fn token_rejects_missing_code_verifier() {
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
-    let (code, _verifier) = plant_authorized_session(&authorizing_issuer).await;
+    let code = plant_authorized_session(&authorizing_issuer).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .build()
@@ -671,7 +662,7 @@ async fn token_rejects_unknown_code_verifier() {
         ..
     } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
-    let (code, _verifier) = plant_authorized_session(&authorizing_issuer).await;
+    let code = plant_authorized_session(&authorizing_issuer).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .build()
