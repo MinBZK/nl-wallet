@@ -454,6 +454,13 @@ where
             return Err(IssuanceError::SessionState);
         }
 
+        self.storage
+            .write()
+            .await
+            .delete_data::<PersistedIssuanceSessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
+            .await
+            .map_err(IssuanceError::SessionStorage)?;
+
         // Take ownership of the active session, now that we know that it exists.
         let Some(Session::Issuance(issuance_session)) = self.session.take() else {
             return Err(IssuanceError::SessionState);
@@ -463,13 +470,6 @@ where
         let SessionState::Authorization { authorization_session } = issuance_session.into_session_state() else {
             return Err(IssuanceError::SessionState);
         };
-
-        self.storage
-            .write()
-            .await
-            .delete_data::<PersistedIssuanceSessionData<<CID::Authorization as AuthorizationSession>::Persisted>>()
-            .await
-            .map_err(IssuanceError::SessionStorage)?;
 
         let config = self.config_repository.get();
         let trust_anchors = config.issuer_trust_anchors();
