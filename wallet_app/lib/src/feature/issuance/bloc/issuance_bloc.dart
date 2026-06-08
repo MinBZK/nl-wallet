@@ -15,8 +15,8 @@ import '../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/result/application_error.dart';
-import '../../../domain/usecase/issuance/cancel_issuance_usecase.dart';
 import '../../../domain/usecase/issuance/start_issuance_usecase.dart';
+import '../../../domain/usecase/session/cancel_session_usecase.dart';
 import '../../../util/cast_util.dart';
 import '../../../util/extension/list_extension.dart';
 
@@ -25,7 +25,7 @@ part 'issuance_state.dart';
 
 class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   final StartIssuanceUseCase _startIssuanceUseCase;
-  final CancelIssuanceUseCase _cancelIssuanceUseCase;
+  final CancelSessionUseCase _cancelSessionUseCase;
 
   StartIssuanceResult? _startIssuanceResult;
 
@@ -41,7 +41,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
 
   IssuanceBloc(
     this._startIssuanceUseCase,
-    this._cancelIssuanceUseCase,
+    this._cancelSessionUseCase,
   ) : super(const IssuanceInitial()) {
     on<IssuanceSessionStarted>(_onSessionStarted);
     on<IssuanceBackPressed>(_onIssuanceBackPressed);
@@ -59,7 +59,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   Future<void> _onSessionStarted(IssuanceSessionStarted event, Emitter<IssuanceState> emit) async {
     // Cancel any potential ongoing (disclosure based) issuance session, needed for when the user taps an issuance
     // deeplink during an active issuance (or disclosure) session (e.g. by switching back to the browser).
-    await _cancelIssuanceUseCase.invoke();
+    await _cancelSessionUseCase.invoke();
     final startResult = await _startIssuanceUseCase.invoke(event.issuanceUri, isQrCode: event.isQrCode);
 
     /// Handle [error]/[ready to disclose]/[missing attributes] cases.
@@ -203,7 +203,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   }
 
   Future<void> _stopIssuance(Emitter<IssuanceState> emit) async {
-    final cancelResult = await _cancelIssuanceUseCase.invoke();
+    final cancelResult = await _cancelSessionUseCase.invoke();
     await cancelResult.process(
       onSuccess: (returnUrl) => emit(IssuanceStopped(returnUrl: returnUrl)),
       onError: (error) => _handleApplicationError(error, emit),
@@ -222,7 +222,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
         emit(IssuanceExternalScannerError(error: error));
       default:
         // Call cancelSession to avoid stale session and to try and provide more context (e.g. returnUrl).
-        final cancelResult = await _cancelIssuanceUseCase.invoke();
+        final cancelResult = await _cancelSessionUseCase.invoke();
         final String? returnUrl = tryCast<GenericError>(error)?.redirectUrl ?? cancelResult.value;
         emit(IssuanceError(error: error, returnUrl: returnUrl));
     }
@@ -245,7 +245,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   Future<void> close() async {
     _startIssuanceResult = null;
     _cardRequestsSelectionCache = null;
-    await _cancelIssuanceUseCase.invoke();
+    await _cancelSessionUseCase.invoke();
     await super.close();
   }
 }

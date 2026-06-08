@@ -203,7 +203,10 @@ class WalletCoreMock implements WalletCoreApi {
         inactiveWarningTimeout: const Duration(minutes: 1).inSeconds,
         inactiveLockTimeout: const Duration(minutes: 3).inSeconds,
         backgroundLockTimeout: const Duration(seconds: 20).inSeconds,
-        pidAttestationTypes: [MockAttestationTypes.pid, MockAttestationTypes.address],
+        pidAttestations: [
+          const PidAttestation(format: Format.SdJwt, attestationType: MockAttestationTypes.pid),
+          const PidAttestation(format: Format.SdJwt, attestationType: MockAttestationTypes.address),
+        ],
         staticAssetsBaseUrl: 'https://example.com/',
         version: '1',
         environment: 'mock',

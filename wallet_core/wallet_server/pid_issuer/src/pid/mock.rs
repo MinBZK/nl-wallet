@@ -5,6 +5,7 @@ use std::sync::Mutex;
 
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
+use attestation_types::credential_format::Format;
 use axum::Router;
 use axum::extract::Query;
 use axum::extract::State;
@@ -14,7 +15,6 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use crypto::utils::random_string;
-use openid4vc::Format;
 use openid4vc::authorization::PkceCodeChallenge;
 use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;

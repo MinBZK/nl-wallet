@@ -11,9 +11,9 @@ import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/flow_progress.dart';
 import '../../../../domain/model/result/application_error.dart';
 import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
-import '../../../../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
+import '../../../../domain/usecase/session/cancel_session_usecase.dart';
 import '../../../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import '../../../../util/helper/onboarding_helper.dart';
 import '../../../../wallet_core/error/core_error.dart';
@@ -24,14 +24,14 @@ part 'wallet_personalize_state.dart';
 class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonalizeState> {
   final GetWalletCardsUseCase getWalletCardsUseCase;
   final GetPidIssuanceUrlUseCase getPidIssuanceUrlUseCase;
-  final CancelPidIssuanceUseCase cancelPidIssuanceUseCase;
+  final CancelSessionUseCase cancelSessionUseCase;
   final ContinuePidIssuanceUseCase continuePidIssuanceUseCase;
   final IsWalletInitializedWithPidUseCase isWalletInitializedWithPidUseCase;
 
   WalletPersonalizeBloc(
     this.getWalletCardsUseCase,
     this.getPidIssuanceUrlUseCase,
-    this.cancelPidIssuanceUseCase,
+    this.cancelSessionUseCase,
     this.continuePidIssuanceUseCase,
     this.isWalletInitializedWithPidUseCase, {
     bool continueFromDigiD = false,
@@ -86,7 +86,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   ) async {
     emit(const WalletPersonalizeLoadingIssuanceUrl());
     // Fixes PVW-2171 (lock during WalletPersonalizeCheckData)
-    await cancelPidIssuanceUseCase.invoke();
+    await cancelSessionUseCase.invoke();
 
     final urlResult = await getPidIssuanceUrlUseCase.invoke();
     await urlResult.process(
@@ -115,7 +115,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     Emitter<WalletPersonalizeState> emit,
   ) async {
     emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
-    await cancelPidIssuanceUseCase.invoke(); // Confirm cancellation to the server
+    await cancelSessionUseCase.invoke(); // Confirm cancellation to the server
 
     if (event.cancelledByUser) {
       emit(const WalletPersonalizeDigidCancelled());
@@ -126,7 +126,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
 
   Future<void> _onAcceptPidFailed(WalletPersonalizeAcceptPidFailed event, Emitter<WalletPersonalizeState> emit) async {
     emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
-    await cancelPidIssuanceUseCase.invoke(); // Confirm cancellation to the server
+    await cancelSessionUseCase.invoke(); // Confirm cancellation to the server
     emit(WalletPersonalizeError(error: event.error));
   }
 
@@ -142,7 +142,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     Emitter<WalletPersonalizeState> emit,
   ) async {
     emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
-    final cancelResult = await cancelPidIssuanceUseCase.invoke();
+    final cancelResult = await cancelSessionUseCase.invoke();
     if (cancelResult.hasError) Fimber.e('Failed to explicitly reject pid', ex: cancelResult.error);
     emit(const WalletPersonalizeInitial(didGoBack: true));
   }

@@ -7,6 +7,7 @@ use itertools::Itertools;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 
+use super::AuthorizationSession;
 use super::IssuanceDiscovery;
 use super::IssuanceFlow;
 use super::WalletIssuanceError;
@@ -131,6 +132,13 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
             issuer_trust_anchors,
         )
         .await
+    }
+
+    fn restore_authorization_session(
+        &self,
+        data: <Self::Authorization as AuthorizationSession>::Persisted,
+    ) -> Self::Authorization {
+        HttpAuthorizationSession::restore(self.http_client.clone(), data)
     }
 }
 
@@ -400,6 +408,7 @@ mod test {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
+    use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use crypto::server_keys::generate::Ca;
     use crypto::trust_anchor::TrustAnchors;
@@ -422,7 +431,6 @@ mod test {
 
     use super::HttpIssuanceDiscovery;
     use super::IssuanceDiscovery;
-    use crate::Format;
     use crate::credential_offer::CredentialOffer;
     use crate::credential_offer::CredentialOfferContainer;
     use crate::credential_offer::GrantPreAuthorizedCode;

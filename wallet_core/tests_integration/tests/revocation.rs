@@ -1,8 +1,8 @@
 use std::assert_matches;
 use std::time::Duration;
 
+use attestation_types::credential_format::Format;
 use db_test::DbSetup;
-use dcql::CredentialFormat;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use openid4vc::disclosure_session::DisclosureUriSource;
@@ -34,7 +34,7 @@ async fn test_revocation_pid_ok() {
             &universal_link(
                 issuance_urls.issuance_server.public.as_base_url(),
                 &issuance_urls.degree_client_ids,
-                CredentialFormat::SdJwt,
+                Format::SdJwt,
             ),
             DisclosureUriSource::Link,
         )
@@ -75,7 +75,7 @@ async fn test_revocation_degree_ok() {
         pin.to_owned(),
         &issuance_urls.issuance_server.public,
         &issuance_urls.degree_client_ids,
-        CredentialFormat::SdJwt,
+        Format::SdJwt,
     )
     .await;
 

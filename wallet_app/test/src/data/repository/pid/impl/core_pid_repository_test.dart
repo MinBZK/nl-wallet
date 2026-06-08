@@ -46,6 +46,7 @@ void main() {
       final testAttestation = AttestationPresentation(
         identity: const AttestationIdentity_Ephemeral(),
         attestationType: 'pid',
+        format: .SdJwt,
         displayMetadata: [CoreMockData.enDisplayMetadata],
         issuer: CoreMockData.organization,
         attributes: CoreMockData.attestation.attributes,
@@ -56,11 +57,6 @@ void main() {
       when(core.continuePidIssuance(mockContinueUri)).thenAnswer((realInvocation) async => [testAttestation]);
       expect(await pidRepository.continuePidIssuance(mockContinueUri), expectedAttributes);
       verify(core.continuePidIssuance(mockContinueUri));
-    });
-
-    test('cancel pid issuance should be propagated to the core', () async {
-      await pidRepository.cancelIssuance();
-      verify(core.cancelIssuance());
     });
 
     test('accept offered pid should be propagated to the core', () async {

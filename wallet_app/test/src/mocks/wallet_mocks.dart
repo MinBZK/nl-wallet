@@ -52,7 +52,6 @@ import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart
 import 'package:wallet/src/domain/usecase/close_proximity/observe_close_proximity_connection_usecase.dart';
 import 'package:wallet/src/domain/usecase/close_proximity/start_close_proximity_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
-import 'package:wallet/src/domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_for_card_usecase.dart';
@@ -61,7 +60,6 @@ import 'package:wallet/src/domain/usecase/event/observe_recent_wallet_events_use
 import 'package:wallet/src/domain/usecase/help/get_help_categories_usecase.dart';
 import 'package:wallet/src/domain/usecase/help/get_help_topic_blocks_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart';
-import 'package:wallet/src/domain/usecase/issuance/cancel_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/maintenance/observe_maintenance_state_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
@@ -74,7 +72,6 @@ import 'package:wallet/src/domain/usecase/notification/set_push_notifications_se
 import 'package:wallet/src/domain/usecase/permission/check_permission_usecase.dart';
 import 'package:wallet/src/domain/usecase/permission/request_permission_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
-import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/check_is_pid.dart';
 import 'package:wallet/src/domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/get_pid_issuance_url_usecase.dart';
@@ -92,6 +89,7 @@ import 'package:wallet/src/domain/usecase/revocation/get_registration_revocation
 import 'package:wallet/src/domain/usecase/revocation/get_revocation_code_saved_usecase.dart';
 import 'package:wallet/src/domain/usecase/revocation/get_revocation_code_usecase.dart';
 import 'package:wallet/src/domain/usecase/revocation/set_revocation_code_saved_usecase.dart';
+import 'package:wallet/src/domain/usecase/session/cancel_session_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/accept_sign_agreement_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/reject_sign_agreement_usecase.dart';
 import 'package:wallet/src/domain/usecase/sign/start_sign_usecase.dart';
@@ -188,9 +186,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<AcceptIssuanceUseCase>()])
 @GenerateNiceMocks([MockSpec<AcceptOfferedPidUseCase>()])
 @GenerateNiceMocks([MockSpec<AcceptSignAgreementUseCase>()])
-@GenerateNiceMocks([MockSpec<CancelDisclosureUseCase>()])
-@GenerateNiceMocks([MockSpec<CancelIssuanceUseCase>()])
-@GenerateNiceMocks([MockSpec<CancelPidIssuanceUseCase>()])
+@GenerateNiceMocks([MockSpec<CancelSessionUseCase>()])
 @GenerateNiceMocks([MockSpec<CancelPinRecoveryUseCase>()])
 @GenerateNiceMocks([MockSpec<CancelWalletTransferUseCase>()])
 @GenerateNiceMocks([MockSpec<ChangePinUseCase>()])
@@ -343,9 +339,7 @@ class Mocks {
     sl.registerFactory<AcceptIssuanceUseCase>(MockAcceptIssuanceUseCase.new);
     sl.registerFactory<AcceptOfferedPidUseCase>(MockAcceptOfferedPidUseCase.new);
     sl.registerFactory<AcceptSignAgreementUseCase>(MockAcceptSignAgreementUseCase.new);
-    sl.registerFactory<CancelDisclosureUseCase>(MockCancelDisclosureUseCase.new);
-    sl.registerFactory<CancelIssuanceUseCase>(MockCancelIssuanceUseCase.new);
-    sl.registerFactory<CancelPidIssuanceUseCase>(MockCancelPidIssuanceUseCase.new);
+    sl.registerFactory<CancelSessionUseCase>(MockCancelSessionUseCase.new);
     sl.registerFactory<CancelPinRecoveryUseCase>(MockCancelPinRecoveryUseCase.new);
     sl.registerFactory<CancelWalletTransferUseCase>(MockCancelWalletTransferUseCase.new);
     sl.registerFactory<ChangePinUseCase>(MockChangePinUseCase.new);

@@ -27,7 +27,7 @@ void main() {
           inactiveWarningTimeout: 3,
           inactiveLockTimeout: 5,
           backgroundLockTimeout: 10,
-          pidAttestationTypes: ['urn:eudi:pid:nl:1'],
+          pidAttestations: [PidAttestation(format: Format.SdJwt, attestationType: 'urn:eudi:pid:nl:1')],
           staticAssetsBaseUrl: 'https://example.com/',
           version: '0',
           environment: 'test',

@@ -171,13 +171,12 @@ mod tests {
     use attestation_data::validity::ValidityWindow;
     use attestation_data::verifier_certificate::VerifierCertificate;
     use attestation_data::x509::generate::mock::generate_reader_mock_with_registration;
+    use attestation_types::credential_format::Format;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
-    use dcql::CredentialFormat;
     use indexmap::IndexMap;
     use mdoc::holder::disclosure::PartialMdoc;
     use openid4vc::DisclosureErrorResponse;
-    use openid4vc::Format;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential_offer::CredentialOffer;
     use openid4vc::credential_offer::CredentialOfferContainer;
@@ -217,9 +216,7 @@ mod tests {
 
     const PIN: &str = "051097";
 
-    fn setup_wallet_disclosure_session(
-        requested_format: CredentialFormat,
-    ) -> WalletDisclosureSession<MockDisclosureSession> {
+    fn setup_wallet_disclosure_session(requested_format: Format) -> WalletDisclosureSession<MockDisclosureSession> {
         let reader_ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_key_pair =
             generate_reader_mock_with_registration(&reader_ca, ReaderRegistration::new_mock()).unwrap();
@@ -231,7 +228,7 @@ mod tests {
             .return_const(verifier_certificate);
 
         let disclosable_attestation = match requested_format {
-            CredentialFormat::MsoMdoc => {
+            Format::MsoMdoc => {
                 let ca = Ca::generate_issuer_mock_ca().unwrap();
                 let mdoc_key = MockRemoteEcdsaKey::new("mdoc_key".to_string(), SigningKey::random(&mut OsRng));
                 let partial_mdoc = Box::new(PartialMdoc::new_mock_with_ca_and_key(&ca, &mdoc_key));
@@ -242,7 +239,7 @@ mod tests {
                     AttestationPresentation::new_mock(),
                 )
             }
-            CredentialFormat::SdJwt => {
+            Format::SdJwt => {
                 let (sd_jwt, _) = create_example_pid_sd_jwt();
                 let unsigned_presentation = sd_jwt.into_presentation_builder().finish();
 
@@ -268,7 +265,7 @@ mod tests {
     #[rstest]
     #[tokio::test]
     async fn test_wallet_continue_disclosure_based_issuance(
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] requested_format: CredentialFormat,
+        #[values(Format::MsoMdoc, Format::SdJwt)] requested_format: Format,
     ) {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -376,7 +373,7 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup an disclosure based issuance session returning an error that means there are no attestations to offer.
-        let mut disclosure_session = setup_wallet_disclosure_session(CredentialFormat::SdJwt);
+        let mut disclosure_session = setup_wallet_disclosure_session(Format::SdJwt);
         disclosure_session.protocol_state.expect_disclose().return_once(|_| {
             Err((
                 Box::new(MockDisclosureSession::new()),
@@ -433,7 +430,7 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let mut disclosure_session = setup_wallet_disclosure_session(CredentialFormat::SdJwt);
+        let mut disclosure_session = setup_wallet_disclosure_session(Format::SdJwt);
         disclosure_session.redirect_uri_purpose = RedirectUriPurpose::Browser;
         wallet.session = Some(Session::Disclosure(disclosure_session));
 

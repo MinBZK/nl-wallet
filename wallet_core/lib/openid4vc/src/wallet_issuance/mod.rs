@@ -8,7 +8,6 @@ pub mod preview;
 pub mod mock;
 
 use std::collections::HashSet;
-use std::fmt::Debug;
 
 use attestation_data::attributes::AttributesError;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -24,6 +23,8 @@ use mdoc::utils::cose::CoseError;
 use reqwest::header::ToStrError;
 use sd_jwt::error::DecoderError;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 use url::Url;
 use utils::single_unique::MultipleItemsFound;
 use wscd::wscd::IssuanceWscd;
@@ -31,7 +32,6 @@ use wscd::wscd::IssuanceWscd;
 use crate::CredentialErrorCode;
 use crate::CredentialPreviewErrorCode;
 use crate::ErrorResponse;
-use crate::Format;
 use crate::TokenErrorCode;
 use crate::credential::Credential;
 use crate::dpop::DpopError;
@@ -211,10 +211,6 @@ pub enum WalletIssuanceError {
     #[error("error converting SD-JWT to a CredentialPayload: {0}")]
     SdJwtCredentialPayloadError(#[from] SdJwtCredentialPayloadError),
 
-    #[error("unsupported credential format proposed for credential \"{0}\": {1}")]
-    #[category(pd)]
-    UnsupportedCredentialFormat(String, Format),
-
     #[error("different issuer registrations found in credential previews")]
     #[category(critical)]
     DifferentIssuerRegistrations(#[source] MultipleItemsFound),
@@ -297,6 +293,12 @@ pub trait IssuanceDiscovery {
         client_id: String,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError>;
+
+    /// Rebuilds an [`AuthorizationSession`] from data that was persisted before the app left memory.
+    fn restore_authorization_session(
+        &self,
+        data: <Self::Authorization as AuthorizationSession>::Persisted,
+    ) -> Self::Authorization;
 }
 
 /// Represents an in-progress OAuth authorization code flow.
@@ -306,9 +308,16 @@ pub trait IssuanceDiscovery {
 /// authorization server returns after the user authenticates.
 pub trait AuthorizationSession {
     type Issuance: IssuanceSession;
+    type Persisted: Clone + Send + Sync + Serialize + DeserializeOwned + 'static;
 
     /// Returns the authorization URL the user should be redirected to.
     fn auth_url(&self) -> &Url;
+
+    /// Returns the OAuth `state` (CSRF token) stored in the PAR-submitted authorization request.
+    fn state(&self) -> &str;
+
+    /// Returns the data needed to resume the authorization code flow after an app restart.
+    fn persist(&self) -> Self::Persisted;
 
     /// Exchanges the authorization code in `received_redirect_uri` for an access token and
     /// credential previews, returning an [`IssuanceSession`].
@@ -330,7 +339,7 @@ pub trait IssuanceSession {
     where
         W: IssuanceWscd;
 
-    async fn reject_issuance(self) -> Result<(), WalletIssuanceError>;
+    async fn reject_issuance(&self) -> Result<(), WalletIssuanceError>;
 
     fn normalized_credential_preview(&self) -> &[NormalizedCredentialPreview];
 

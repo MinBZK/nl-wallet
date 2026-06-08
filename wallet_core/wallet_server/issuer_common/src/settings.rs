@@ -4,6 +4,7 @@ use std::num::NonZeroU8;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use attestation_types::credential_format::Format;
 use attestation_types::qualification::AttestationQualification;
 use chrono::Days;
 use crypto::x509::CertificateError;
@@ -19,7 +20,6 @@ use hsm::service::Pkcs11Hsm;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::HttpsUri;
 use itertools::Itertools;
-use openid4vc::Format;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::credential_configurations::CredentialConfigurationParameters;
 use openid4vc::credential_configurations::CredentialConfigurationsError;
@@ -233,7 +233,7 @@ impl CredentialConfigurationsSettings {
         let config_params = try_join_all(
             inner
                 .into_iter()
-                .zip_eq(itertools::repeat_n(
+                .zip_eq(std::iter::repeat_n(
                     (status_list_connection, public_url, hsm),
                     config_count,
                 ))
@@ -605,6 +605,7 @@ mod tests {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::x509::CertificateTypeError;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
+    use attestation_types::credential_format::Format;
     use attestation_types::qualification::AttestationQualification;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
@@ -612,7 +613,6 @@ mod tests {
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
     use http_utils::urls::HttpsUri;
-    use openid4vc::Format;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;

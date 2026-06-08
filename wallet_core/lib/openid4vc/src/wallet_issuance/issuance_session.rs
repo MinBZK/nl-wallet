@@ -342,17 +342,10 @@ fn credential_request_types_from_preview(
     let credential_request_types = normalized_credential_previews
         .iter()
         .map(|preview| {
-            // If we do not support the proposed format, this constitutes an error.
             let request_type = CredentialRequestType::from_format(
                 preview.content.format,
                 preview.content.credential_payload.attestation_type.clone(),
-            )
-            .ok_or_else(|| {
-                WalletIssuanceError::UnsupportedCredentialFormat(
-                    preview.content.credential_payload.attestation_type.clone(),
-                    preview.content.format,
-                )
-            })?;
+            );
 
             // Construct a `Vec<CredentialRequestType>`, with one entry per copy for this credential.
             let request_types = vec![request_type; usize::from(preview.content.batch_size.get())];
@@ -634,7 +627,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         Ok(docs)
     }
 
-    async fn reject_issuance(self) -> Result<(), WalletIssuanceError> {
+    async fn reject_issuance(&self) -> Result<(), WalletIssuanceError> {
         let url = self
             .session_state
             .issuer_metadata
@@ -889,6 +882,7 @@ mod tests {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
+    use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::qualification::AttestationQualification;
     use attestation_types::status_claim::StatusClaim;
@@ -918,7 +912,6 @@ mod tests {
     use wscd::mock_remote::MockRemoteWscd;
 
     use super::*;
-    use crate::Format;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
     use crate::metadata::well_known::WellKnownMetadata;
@@ -1072,30 +1065,6 @@ mod tests {
         .expect_err("starting issuance session should not succeed");
 
         assert_matches!(error, WalletIssuanceError::TypeMetadataVerification(_));
-    }
-
-    #[test]
-    fn test_start_issuance_error_unsupported_credential_format() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-
-        let error = test_start_issuance(
-            &ca,
-            &TrustAnchors::from(&ca),
-            IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE),
-            vec![PreviewableCredentialPayload::example_empty(
-                PID_ATTESTATION_TYPE,
-                &MockTimeGenerator::default(),
-            )],
-            TypeMetadata::pid_example(),
-            Format::AcVc,
-        )
-        .expect_err("starting issuance session should not succeed");
-
-        assert_matches!(
-            error,
-            WalletIssuanceError::UnsupportedCredentialFormat(attestation_type, formats)
-                if attestation_type == PID_ATTESTATION_TYPE && formats == Format::AcVc
-        );
     }
 
     #[test]
@@ -1391,7 +1360,7 @@ mod tests {
                     let credential_responses = credential_requests
                         .credential_requests
                         .iter()
-                        .zip(itertools::repeat_n(
+                        .zip(std::iter::repeat_n(
                             signer,
                             credential_requests.credential_requests.len().get(),
                         ))

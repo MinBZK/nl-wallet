@@ -78,4 +78,7 @@ class CoreWalletRepository implements WalletRepository {
     final state = await _walletCore.getWalletState();
     return _stateMapper.map(state);
   }
+
+  @override
+  Future<String?> cancelSession() => _walletCore.cancelSession();
 }

@@ -13,13 +13,13 @@ use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
+use attestation_types::credential_format::Format;
 use axum::Json;
 use axum::Router;
 use axum::routing::post;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use ctor::ctor;
 use db_test::DbSetup;
-use dcql::CredentialFormat;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
 use http_utils::client::TlsPinningConfig;
@@ -196,10 +196,10 @@ impl DegreeClientIds {
         }
     }
 
-    pub fn for_format(&self, format: CredentialFormat) -> &ClientId {
+    pub fn for_format(&self, format: Format) -> &ClientId {
         match format {
-            CredentialFormat::MsoMdoc => &self.mdoc,
-            CredentialFormat::SdJwt => &self.sd_jwt,
+            Format::MsoMdoc => &self.mdoc,
+            Format::SdJwt => &self.sd_jwt,
         }
     }
 }
@@ -1101,7 +1101,7 @@ pub async fn do_degree_issuance(
     pin: String,
     issuance_server_url: &IssuerIdentifier,
     client_ids: &DegreeClientIds,
-    format: CredentialFormat,
+    format: Format,
 ) -> Vec<AttestationPresentation> {
     let _proposal = wallet
         .start_disclosure(
@@ -1121,7 +1121,7 @@ pub async fn do_degree_issuance(
     attestation_previews
 }
 
-pub fn universal_link(issuance_server_url: &BaseUrl, client_ids: &DegreeClientIds, format: CredentialFormat) -> Url {
+pub fn universal_link(issuance_server_url: &BaseUrl, client_ids: &DegreeClientIds, format: Format) -> Url {
     let params = serde_urlencoded::to_string(VerifierUrlParameters {
         session_type: SessionType::SameDevice,
         ephemeral_id_params: None,
@@ -1129,8 +1129,8 @@ pub fn universal_link(issuance_server_url: &BaseUrl, client_ids: &DegreeClientId
     .unwrap();
 
     let issuance_path = match format {
-        CredentialFormat::MsoMdoc => "/disclosure/university_mdoc/request_uri",
-        CredentialFormat::SdJwt => "/disclosure/university_sd_jwt/request_uri",
+        Format::MsoMdoc => "/disclosure/university_mdoc/request_uri",
+        Format::SdJwt => "/disclosure/university_sd_jwt/request_uri",
     };
     let mut issuance_server_url = issuance_server_url.join_base_url(issuance_path).into_inner();
     issuance_server_url.set_query(Some(&params));

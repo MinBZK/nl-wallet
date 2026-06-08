@@ -140,6 +140,7 @@ void main() {
       const samplePidCard = AttestationPresentation(
         identity: AttestationIdentity.fixed(id: '0'),
         attestationType: 'pid',
+        format: .SdJwt,
         displayMetadata: [DisplayMetadata(lang: 'nl', name: 'card name')],
         attributes: [],
         issuer: CoreMockData.organization,

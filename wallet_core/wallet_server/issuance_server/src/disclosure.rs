@@ -3,13 +3,13 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use attestation_data::disclosure::DisclosedAttestations;
+use attestation_types::credential_format::Format;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::IntoReqwestClient;
 use http_utils::reqwest::ReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use itertools::Itertools;
-use openid4vc::Format;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::issuable_document::IssuableDocument;
@@ -197,6 +197,7 @@ mod tests {
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::validity::IssuanceValidity;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
+    use attestation_types::credential_format::Format;
     use attestation_types::qualification::AttestationQualification;
     use chrono::Days;
     use chrono::Utc;
@@ -204,7 +205,6 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use dcql::unique_id_vec::UniqueIdVec;
     use indexmap::IndexMap;
-    use openid4vc::Format;
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential_configurations::CredentialConfigurationParameters;
     use openid4vc::credential_offer::CredentialOffer;

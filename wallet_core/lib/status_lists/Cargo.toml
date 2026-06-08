@@ -32,6 +32,7 @@ axum = [
     "dep:utoipa-axum",
     "axum/json",
     "tower-http/compression-gzip",
+    "tower-http/cors",
     "utoipa/uuid",
     "token_status_list/axum",
 ]
@@ -46,6 +47,7 @@ anyhow.workspace = true
 chrono = { workspace = true, features = ["now"] }
 derive_more = { workspace = true, features = ["as_ref", "constructor", "debug", "from", "into_iterator"] }
 futures.workspace = true
+http.workspace = true
 itertools.workspace = true
 metrics.workspace = true
 nutype.workspace = true

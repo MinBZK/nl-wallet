@@ -51,6 +51,7 @@ sealed class AttestationIdentity with _$AttestationIdentity {
 
 class AttestationPresentation {
   final AttestationIdentity identity;
+  final Format format;
   final String attestationType;
   final List<DisplayMetadata> displayMetadata;
   final Organization issuer;
@@ -60,6 +61,7 @@ class AttestationPresentation {
 
   const AttestationPresentation({
     required this.identity,
+    required this.format,
     required this.attestationType,
     required this.displayMetadata,
     required this.issuer,
@@ -71,6 +73,7 @@ class AttestationPresentation {
   @override
   int get hashCode =>
       identity.hashCode ^
+      format.hashCode ^
       attestationType.hashCode ^
       displayMetadata.hashCode ^
       issuer.hashCode ^
@@ -84,6 +87,7 @@ class AttestationPresentation {
       other is AttestationPresentation &&
           runtimeType == other.runtimeType &&
           identity == other.identity &&
+          format == other.format &&
           attestationType == other.attestationType &&
           displayMetadata == other.displayMetadata &&
           issuer == other.issuer &&
@@ -166,6 +170,11 @@ class DisplayMetadata {
           description == other.description &&
           summary == other.summary &&
           rendering == other.rendering;
+}
+
+enum Format {
+  MsoMdoc,
+  SdJwt,
 }
 
 @freezed

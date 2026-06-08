@@ -38,19 +38,29 @@ workspace "Name" "NL-Wallet" {
                 configurationServer = container "ConfigurationServer" "Serve app config file" "nginx (static)"
                 db = container "WB database (accounts, WIA status)" "" "postgress" {
                     tags "Database"
-                }
+                }       
+                auditDb = container "WB auditlog" "" "postgress" {
+                    tags "DatabaseS"
+                }    
+         
             }
-            walletHsm = container "HSM device (WSCD)" "dedicated cryptographic hardware"
+            walletHsm = container "HSM device (WSCD)" "dedicated cryptographic hardware" 
+            adminPortal = container "Admin Portal" ""{ 
+               -> ws.walletBackend "[A-104] Manage vulnerable devices"
+               -> ws.walletBackend "[A-103] Revoke wallet (admin request)" 
+               -> ws.walletBackend.walletDenyList "Manage vulnerable devices"
+        }
+
         }
 
 
-       adminPortal = softwareSystem "Admin Portal" ""{
+        iam = softwareSystem "IAM" "Keycloak"{ 
             tags "HostingPlatform"
-            -> ws.walletBackend "[A-104] Manage vulnerable devices"
-            -> ws.walletBackend "[A-103] Revoke wallet (admin request)"
-            -> ws.walletBackend.walletDenyList "Manage vulnerable devices"
         }
-        ciCdPipeline = softwareSystem "CI/CD" "deployment"{
+        ws.adminPortal -> iam "[A-107] Admin user authentication/authorization"
+
+
+        ciCdPipeline = softwareSystem "CI/CD" "deployment"{ 
             tags "HostingPlatform"
             -> ws.configurationServer "[A-101] Maintain runtime config"
             -> ws.updateServer.updatePolicy "[A-102] Maintain updatepolicy"
@@ -83,8 +93,8 @@ workspace "Name" "NL-Wallet" {
 
 
         ua = person "Wallet Technical Support"{
-            -> ws "Maintain configuration, Manage vulnerabilities"
-            -> adminPortal "Perform system administration"
+            -> ws "Maintain configuration, Manage vulnerabilities" 
+            -> ws.adminPortal "Perform system administration"
         }
 
         hc = softwareSystem "BRP-V"
@@ -187,6 +197,9 @@ workspace "Name" "NL-Wallet" {
         ws.walletBackend.walletAccountManager -> ws.db "Store/retrieve accountdata"
         ws.walletBackend.walletStatusManager -> ws.db "Store/retrieve WIA data + status"
         ws.walletBackend.walletDenyList -> ws.db "Store/retrieve denylist"
+        ws.walletBackend -> ws.auditDb "[I-409] Log audit data"
+   
+
         us -> ws.revokeUi "Revoke wallet"
         issuerPid -> ws.statusList "[E-102] Check wallet validity"
         issuerPid.vvPid -> ws.statusList "Get WIA status"
@@ -227,7 +240,11 @@ workspace "Name" "NL-Wallet" {
 
     views {
         systemContext ws "AD1NL-Wallet" {
-            include u ws verifier issuerPid issuerPb platformServices
+            include u ws verifier issuerPid issuerPb platformServices ua
+        }
+
+        systemContext ws "AD2NL-Wallet" {
+            include u ws verifier issuerPid issuerPb platformServices ua iam
         }
 
         systemContext ws "B1PID-Issuer" {
@@ -301,10 +318,13 @@ workspace "Name" "NL-Wallet" {
             element "Database" {
                 shape cylinder
             }
+            
             element "DatabaseS" {
                 shape cylinder
                 fontSize 25
+                width 300
             }
+
 
             element "File" {
                 shape Folder
@@ -336,9 +356,9 @@ workspace "Name" "NL-Wallet" {
                 fontSize 28
             }
         }
-        branding {
-            font "Calibri, Arial"
-        }
+       // branding {            
+            //font "Calibri, Arial" 
+        //}
 
     }
 

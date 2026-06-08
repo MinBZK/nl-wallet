@@ -105,6 +105,7 @@ core.AttestationPresentation _createMockAttestationPresentation({
   return core.AttestationPresentation(
     identity: const core.AttestationIdentity_Fixed(id: 'id'),
     attestationType: 'com.example.attestation',
+    format: .SdJwt,
     displayMetadata: [CoreMockData.enDisplayMetadata, CoreMockData.nlDisplayMetadata],
     issuer: CoreMockData.organization,
     attributes: [CoreMockData.attestationAttributeName],

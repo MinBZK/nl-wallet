@@ -3,12 +3,12 @@ use std::collections::HashSet;
 use std::iter;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::credential_format::Format;
 use crypto::x509::KeyIdentifier;
 use itertools::Either;
 use itertools::Itertools;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::CredentialFormat;
 use crate::CredentialQueryIdentifier;
 use crate::normalized::NormalizedCredentialRequests;
 
@@ -24,7 +24,7 @@ pub enum CredentialValidationError {
     #[error("received incorrect format for identifier(s): {}", .0.iter().map(|(id, (expected, received))| {
         format!("({id}): expected \"{expected}\", received \"{received}\"")
     }).join(" / "))]
-    FormatMismatch(HashMap<CredentialQueryIdentifier, (CredentialFormat, CredentialFormat)>),
+    FormatMismatch(HashMap<CredentialQueryIdentifier, (Format, Format)>),
     #[error("received incorrect credential type for identifier(s): {}", .0.iter().map(|(id, (expected, received))| {
         format!(
             "({}): expected {}, received \"{}\"",
@@ -53,7 +53,7 @@ pub enum CredentialValidationError {
 
 /// This should be implemented on a credential that a verifier receives from the holder.
 pub trait DisclosedCredential {
-    fn format(&self) -> CredentialFormat;
+    fn format(&self) -> Format;
     fn credential_type(&self) -> &str;
     fn aki(&self) -> &[KeyIdentifier];
     fn missing_claim_paths<'a, 'b>(
@@ -133,7 +133,7 @@ impl NormalizedCredentialRequests {
 
                 (!request
                     .credential_types()
-                    .chain(if credential.format() == CredentialFormat::SdJwt {
+                    .chain(if credential.format() == Format::SdJwt {
                         Either::Left(
                             request
                                 .credential_types()
@@ -202,6 +202,7 @@ mod tests {
     use std::collections::HashSet;
 
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::credential_format::Format;
     use crypto::x509::KeyIdentifier;
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
@@ -213,7 +214,6 @@ mod tests {
     use super::CredentialValidationError;
     use super::DisclosedCredential;
     use super::ExtendingVctRetriever;
-    use crate::CredentialFormat;
     use crate::CredentialQueryIdentifier;
     use crate::normalized::NormalizedCredentialRequests;
 
@@ -222,7 +222,7 @@ mod tests {
 
     /// A very simple type that implements [`MockDisclosedCredential`] for testing.
     struct MockDisclosedCredential {
-        format: CredentialFormat,
+        format: Format,
         credential_type: String,
         claim_paths: HashSet<VecNonEmpty<ClaimPath>>,
         aki: Vec<KeyIdentifier>,
@@ -231,7 +231,7 @@ mod tests {
     impl MockDisclosedCredential {
         pub fn example_mdoc() -> Self {
             Self {
-                format: CredentialFormat::MsoMdoc,
+                format: Format::MsoMdoc,
                 credential_type: EXAMPLE_DOC_TYPE.to_string(),
                 claim_paths: EXAMPLE_ATTRIBUTES
                     .iter()
@@ -248,7 +248,7 @@ mod tests {
 
         pub fn example_sd_jwt(vct: &str) -> Self {
             Self {
-                format: CredentialFormat::SdJwt,
+                format: Format::SdJwt,
                 credential_type: String::from(vct),
                 claim_paths: EXAMPLE_ATTRIBUTES
                     .iter()
@@ -260,7 +260,7 @@ mod tests {
     }
 
     impl DisclosedCredential for MockDisclosedCredential {
-        fn format(&self) -> CredentialFormat {
+        fn format(&self) -> Format {
             self.format
         }
 
@@ -415,7 +415,7 @@ mod tests {
         HashMap::from([("sd_jwt_0".try_into().unwrap(), vec_nonempty![MockDisclosedCredential::example_mdoc()])]),
         Err(CredentialValidationError::FormatMismatch(
             HashMap::from([("sd_jwt_0".try_into().unwrap(),
-            (CredentialFormat::SdJwt, CredentialFormat::MsoMdoc),
+            (Format::SdJwt, Format::MsoMdoc),
         )]))),
     )]
     #[case::extended_vct_in_response_is_allowed_if_configured(

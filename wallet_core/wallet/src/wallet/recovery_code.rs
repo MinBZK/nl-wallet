@@ -1,9 +1,8 @@
 use std::collections::HashSet;
 
 use attestation_data::attributes::AttributeValue;
-use dcql::CredentialFormat;
+use attestation_types::credential_format::Format;
 use error_category::ErrorCategory;
-use openid4vc::Format;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
@@ -100,7 +99,7 @@ where
         self.storage
             .read()
             .await
-            .fetch_unique_attestations_by_types_and_format(pid_attestation_types, CredentialFormat::SdJwt)
+            .fetch_unique_attestations_by_types_and_format(pid_attestation_types, Format::SdJwt)
             .await
             .map_err(RecoveryCodeError::AttestationQuery)?
             .pop()

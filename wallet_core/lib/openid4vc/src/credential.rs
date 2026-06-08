@@ -3,6 +3,7 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::time::Duration;
 
+use attestation_types::credential_format::Format;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithJwk;
 use jwt::pop::JwtPopClaims;
@@ -21,8 +22,6 @@ use serde_with::skip_serializing_none;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
-
-use crate::Format;
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
 /// Sent JSON-encoded to `POST /batch_credential`.
@@ -76,13 +75,12 @@ impl Display for CredentialRequestType {
 }
 
 impl CredentialRequestType {
-    pub fn from_format(format: Format, attestation_type: String) -> Option<Self> {
+    pub fn from_format(format: Format, attestation_type: String) -> Self {
         match format {
-            Format::MsoMdoc => Some(CredentialRequestType::MsoMdoc {
+            Format::MsoMdoc => CredentialRequestType::MsoMdoc {
                 doctype: attestation_type,
-            }),
-            Format::SdJwt => Some(CredentialRequestType::SdJwt { vct: attestation_type }),
-            _ => None,
+            },
+            Format::SdJwt => CredentialRequestType::SdJwt { vct: attestation_type },
         }
     }
 }
@@ -206,6 +204,7 @@ mod tests {
     use std::assert_matches;
     use std::time::Duration;
 
+    use attestation_types::credential_format::Format;
     use base64::Engine;
     use base64::prelude::BASE64_URL_SAFE_NO_PAD;
     use mdoc::DeviceResponse;
@@ -216,7 +215,6 @@ mod tests {
 
     use super::Credential;
     use super::CredentialResponse;
-    use crate::Format;
 
     #[test]
     fn test_deferred_credential_response_serialization() {

@@ -61,6 +61,7 @@ Relations:
 - [I-405] Request app integrity verdict from Google Play Integrity (Android only)
 - [I-406] Issue WIA to Wallet on activation
 - [I-407] Called by Wallet Revocation portal for wallet revocation
+- [I-409] Writes to auditdatabase 
 - [A-103] Wallet Unit management functions for Wallet User Support
 - [A-104] Manage vulnerable devices
 
@@ -103,7 +104,15 @@ Technology: postgres
 Relations:
 - Accessed by WalletBackend  [I-401]
 
-## 9. HSM device
+## 9. WB audit database
+
+Database used to write auditlog records.
+
+Technology: postgres
+Relations:
+- Accessed by WalletBackend  [I-408]
+
+## 10. HSM device
 
 Dedicated cryptographic hardware used to perform issuing of keys and signing operations. 
 
@@ -113,7 +122,7 @@ Interaction:
 - Receives instructions from WalletBackend to perform cryptographic operations (PKCS#11) [I-403]
 
 
-## 10. Wallet revocation portal
+## 11. Wallet revocation portal
 
 Portal for Wallet Users and Wallet Support to revoke a wallet using the deletion code that is presented during onboarding.
 
@@ -122,6 +131,15 @@ Technology: (web)
 Interaction:
 - Used by Users and Wallet Support
 - Calls WalletBackend to invoke revocation on the wallet account requested. [I-407]
+
+## 12. Admin Portal
+
+GUI for administrative roles in the support organization that provides access to support functions, like revocation and vulnerable device management.
+
+Relations:
+ - Used by Wallet administrator
+ - [A-103] Revoke wallet by Wallet Provider
+ - [A-104] Manage list of vulnerable devices (devicetype, OS version, patchlevel)
 
 # External systems (Wallet Provider)
 
@@ -134,14 +152,6 @@ DevOps environment from which configuration artifacts are managed.
 Relations:
 - [A-101] Maintain runtime configuration and publish to ConfigurationServer
 - [A-102] Maintain update policy and publish to UpdateServer
-
-## E2. Admin Portal
-
-GUI for administrative roles in the support organization that provides access to support functions, like revocation and vulnerable device management.
-
-Relations:
- - [A-103] Revoke wallet by Wallet Provider
- - [A-104] Manage list of vulnerable devices (devicetype, OS version, patchlevel)
 
 ## E3. Monitoring
 
