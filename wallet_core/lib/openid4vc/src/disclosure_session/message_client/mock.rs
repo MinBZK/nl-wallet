@@ -92,7 +92,7 @@ where
         &self,
         _url: BaseUrl,
         jwe: String,
-    ) -> Result<Option<BaseUrl>, VpMessageClientError> {
+    ) -> Result<Option<Url>, VpMessageClientError> {
         self.wallet_messages.lock().push(WalletMessage::Disclosure(jwe));
         let error = (self.response_factory)();
 
@@ -103,7 +103,7 @@ where
         &self,
         _url: BaseUrl,
         error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
-    ) -> Result<Option<BaseUrl>, VpMessageClientError> {
+    ) -> Result<Option<Url>, VpMessageClientError> {
         self.wallet_messages.lock().push(WalletMessage::Error(error));
 
         if self.error_has_error {
@@ -150,7 +150,7 @@ pub fn request_uri(
 /// exposing fields to its user to inspect and/or modify the behaviour.
 #[derive(Debug)]
 pub struct MockVerifierSession {
-    pub redirect_uri: Option<BaseUrl>,
+    pub redirect_uri: Option<Url>,
     pub reader_registration: Option<ReaderRegistration>,
     pub trust_anchors: TrustAnchors,
     pub credential_requests: NormalizedCredentialRequests,
@@ -171,7 +171,7 @@ impl MockVerifierSession {
         verifier_url: &BaseUrl,
         session_type: SessionType,
         request_uri_method: VpRequestUriMethod,
-        redirect_uri: Option<BaseUrl>,
+        redirect_uri: Option<Url>,
         reader_registration: Option<ReaderRegistration>,
         credential_requests: NormalizedCredentialRequests,
     ) -> Self {
@@ -289,7 +289,7 @@ impl VpMessageClient for MockVerifierVpMessageClient {
         &self,
         _url: BaseUrl,
         jwe: String,
-    ) -> Result<Option<BaseUrl>, VpMessageClientError> {
+    ) -> Result<Option<Url>, VpMessageClientError> {
         self.session.wallet_messages.lock().push(WalletMessage::Disclosure(jwe));
         let redirect_uri = self.session.redirect_uri.clone();
 
@@ -300,7 +300,7 @@ impl VpMessageClient for MockVerifierVpMessageClient {
         &self,
         _url: BaseUrl,
         error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
-    ) -> Result<Option<BaseUrl>, VpMessageClientError> {
+    ) -> Result<Option<Url>, VpMessageClientError> {
         self.session.wallet_messages.lock().push(WalletMessage::Error(error));
         let redirect_uri = self.session.redirect_uri.clone();
 

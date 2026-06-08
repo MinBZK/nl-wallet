@@ -7,7 +7,6 @@ use axum::http::StatusCode;
 use axum::routing::post;
 use issuer_common::IssuanceServerIssuer;
 use openid4vc::credential_offer::CredentialOfferContainer;
-use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceError;
 use serde::Deserialize;
@@ -63,13 +62,6 @@ async fn offer(
         .await
         .map_err(OfferError::Issuer)?;
 
-    let offer = CredentialOfferContainer::new_offer(credential_offer);
-    let credential_offer_url = format!(
-        "{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://?{}",
-        serde_urlencoded::to_string(&offer).expect("credential offer serialization should not fail")
-    )
-    .parse()
-    .unwrap();
-
+    let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).into_credential_offer_url();
     Ok(Json(OfferResponse { credential_offer_url }))
 }

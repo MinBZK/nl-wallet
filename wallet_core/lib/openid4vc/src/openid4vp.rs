@@ -65,6 +65,7 @@ use serde_with::skip_serializing_none;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
+use url::Url;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::IntoNonEmptyIterator;
@@ -1097,7 +1098,7 @@ impl VpAuthorizationResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VpResponse {
-    pub redirect_uri: Option<BaseUrl>,
+    pub redirect_uri: Option<Url>,
 }
 
 #[cfg(any(test, feature = "test"))]

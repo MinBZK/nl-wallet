@@ -45,6 +45,7 @@ use tokio::task::AbortHandle;
 use tracing::debug;
 use tracing::info;
 use tracing::warn;
+use url::Url;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
@@ -172,7 +173,7 @@ pub struct UserError(Box<AuthorizationErrorResponse<VpAuthorizationErrorCode>>);
 pub struct WithRedirectUri<T: Error> {
     #[source]
     pub error: T,
-    pub redirect_uri: Option<BaseUrl>,
+    pub redirect_uri: Option<Url>,
 }
 
 impl<T: Error> Display for WithRedirectUri<T> {
@@ -188,7 +189,7 @@ impl<T: Error> From<T> for WithRedirectUri<T> {
 }
 
 impl<T: Error> WithRedirectUri<T> {
-    fn new(error: T, redirect_uri: Option<BaseUrl>) -> Self {
+    fn new(error: T, redirect_uri: Option<Url>) -> Self {
         Self { error, redirect_uri }
     }
 }
@@ -250,7 +251,7 @@ pub struct RedirectUriTemplate {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RedirectUri {
-    uri: BaseUrl,
+    uri: Url,
     nonce: String,
     share_on_error: bool,
 }
@@ -1386,11 +1387,11 @@ impl Session<Created> {
     ) -> Option<RedirectUri> {
         must_use_return_url(session_type_return_url, session_type).then(|| {
             let nonce = random_string(32);
-            let mut redirect_uri = redirect_uri_template.template.into_url(session_token);
-            redirect_uri.query_pairs_mut().append_pair("nonce", &nonce);
+            let mut uri = redirect_uri_template.template.into_url(session_token);
+            uri.query_pairs_mut().append_pair("nonce", &nonce);
 
             RedirectUri {
-                uri: redirect_uri.try_into().unwrap(),
+                uri,
                 nonce,
                 share_on_error: redirect_uri_template.share_on_error,
             }
@@ -1529,14 +1530,13 @@ impl Session<WaitingForResponse> {
     fn ok_response(&self, url_params: &HashMap<String, String>) -> VpResponse {
         VpResponse {
             redirect_uri: self.state().redirect_uri.as_ref().map(|u| {
-                let mut uri = u.uri.clone().into_inner();
+                let mut uri = u.uri.clone();
                 url_params.iter().fold(uri.query_pairs_mut(), |mut acc, (name, value)| {
                     acc.append_pair(name, value);
                     acc
                 });
 
-                // This is safe as this URI was obtained from a BaseUrl
-                uri.try_into().unwrap()
+                uri
             }),
         }
     }

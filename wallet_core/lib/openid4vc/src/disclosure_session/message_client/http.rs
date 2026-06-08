@@ -8,6 +8,7 @@ use reqwest::Method;
 use reqwest::Response;
 use reqwest::header::ACCEPT;
 use serde::de::DeserializeOwned;
+use url::Url;
 
 use super::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 use super::VpMessageClient;
@@ -55,7 +56,7 @@ impl HttpVpMessageClient {
 
     /// If the RP does not wish to specify a redirect URI, e.g. in case of cross device flows,
     /// the spec requires an empty JSON object, i.e. `{}`.
-    async fn handle_vp_response<T>(response: Response) -> Result<Option<BaseUrl>, VpMessageClientError>
+    async fn handle_vp_response<T>(response: Response) -> Result<Option<Url>, VpMessageClientError>
     where
         T: DeserializeOwned,
         DisclosureErrorResponse<T>: Into<VpMessageClientError>,
@@ -104,7 +105,7 @@ impl VpMessageClient for HttpVpMessageClient {
         &self,
         url: BaseUrl,
         jwe: String,
-    ) -> Result<Option<BaseUrl>, VpMessageClientError> {
+    ) -> Result<Option<Url>, VpMessageClientError> {
         self.http_client
             .post(url.into_inner())
             .form(&VpToken { response: jwe })
@@ -122,7 +123,7 @@ impl VpMessageClient for HttpVpMessageClient {
         &self,
         url: BaseUrl,
         error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
-    ) -> Result<Option<BaseUrl>, VpMessageClientError> {
+    ) -> Result<Option<Url>, VpMessageClientError> {
         self.http_client
             .post(url.into_inner())
             .form(&error)

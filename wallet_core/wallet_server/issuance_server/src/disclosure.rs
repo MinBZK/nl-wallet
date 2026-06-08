@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_types::credential_format::Format;
 use dcql::unique_id_vec::UniqueIdVec;
 use http_utils::client::TlsPinningConfig;
 use http_utils::reqwest::IntoReqwestClient;
@@ -11,6 +10,7 @@ use http_utils::reqwest::ReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use itertools::Itertools;
 use openid4vc::PostAuthResponseErrorCode;
+use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::IssuanceError;
@@ -143,12 +143,7 @@ where
             .await
             .map_err(|e| DisclosureResultHandlerError::new(IssuanceResultHandlerError::Issuer(e)))?;
 
-        let credential_offer_json = serde_json::to_string(&credential_offer).map_err(|error| {
-            DisclosureResultHandlerError::new(IssuanceResultHandlerError::CredentialOfferSerialization(error))
-        })?;
-
-        let query_params = HashMap::from([("credential_offer".to_string(), credential_offer_json)]);
-
+        let query_params = HashMap::from([CredentialOfferContainer::new_offer(credential_offer).into_query_pair()]);
         Ok(query_params)
     }
 }

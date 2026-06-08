@@ -388,7 +388,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
         &self,
         url: BaseUrl,
         jwe: String,
-    ) -> Result<Option<BaseUrl>, VpMessageClientError> {
+    ) -> Result<Option<Url>, VpMessageClientError> {
         assert_eq!(url, self.response_uri);
 
         let disclosed_attestations = VpAuthorizationResponse::decrypt_and_verify(
@@ -417,7 +417,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
         &self,
         _url: BaseUrl,
         error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
-    ) -> Result<Option<BaseUrl>, VpMessageClientError> {
+    ) -> Result<Option<Url>, VpMessageClientError> {
         panic!("error: {error:?}")
     }
 }
@@ -562,8 +562,7 @@ async fn test_client_and_server(
     let redirect_uri_query_pairs: IndexMap<String, String> = redirect_uri
         .as_ref()
         .map(|uri| {
-            uri.as_ref()
-                .query_pairs()
+            uri.query_pairs()
                 .map(|(k, v)| (k.into_owned(), v.into_owned()))
                 .collect()
         })
@@ -1261,7 +1260,7 @@ where
         &self,
         url: BaseUrl,
         jwe: String,
-    ) -> Result<Option<BaseUrl>, VpMessageClientError> {
+    ) -> Result<Option<Url>, VpMessageClientError> {
         let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
         let session_token = path_segments[path_segments.len() - 2].to_owned().into();
 
@@ -1282,7 +1281,7 @@ where
         &self,
         url: BaseUrl,
         error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
-    ) -> Result<Option<BaseUrl>, VpMessageClientError> {
+    ) -> Result<Option<Url>, VpMessageClientError> {
         let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
         let session_token = path_segments[path_segments.len() - 2].to_owned().into();
 

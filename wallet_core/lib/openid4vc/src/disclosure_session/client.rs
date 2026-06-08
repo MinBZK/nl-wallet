@@ -316,6 +316,7 @@ mod tests {
     use serde::de::Error;
     use token_status_list::verification::client::mock::StatusListClientStub;
     use token_status_list::verification::verifier::RevocationVerifier;
+    use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wscd::mock_remote::MOCK_WALLET_CLIENT_ID;
@@ -364,7 +365,7 @@ mod tests {
         session_type: SessionType,
         uri_source: DisclosureUriSource,
         request_uri_method: VpRequestUriMethod,
-        redirect_uri: Option<BaseUrl>,
+        redirect_uri: Option<Url>,
         credential_requests: NormalizedCredentialRequests,
         reader_registration: Option<ReaderRegistration>,
         transform_verifier_session: SF,
@@ -406,7 +407,7 @@ mod tests {
         session_type: SessionType,
         uri_source: DisclosureUriSource,
         request_uri_method: VpRequestUriMethod,
-        redirect_uri: Option<BaseUrl>,
+        redirect_uri: Option<Url>,
         credential_format: Format,
         transform_verifier_session: SF,
     ) -> StartDisclosureResult
@@ -452,7 +453,7 @@ mod tests {
         #[case] session_type: SessionType,
         #[case] uri_source: DisclosureUriSource,
         #[values(VpRequestUriMethod::GET, VpRequestUriMethod::POST)] request_uri_method: VpRequestUriMethod,
-        #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<BaseUrl>,
+        #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<Url>,
     ) {
         let (disclosure_session, verifier_session) = start_disclosure_session_format(
             session_type,

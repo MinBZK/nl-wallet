@@ -1,5 +1,5 @@
 use error_category::ErrorCategory;
-use http_utils::urls::BaseUrl;
+use url::Url;
 
 use crate::errors::DisclosureErrorResponse;
 use crate::errors::GetRequestErrorCode;
@@ -49,7 +49,7 @@ impl VpMessageClientError {
         }
     }
 
-    pub fn redirect_uri(&self) -> Option<&BaseUrl> {
+    pub fn redirect_uri(&self) -> Option<&Url> {
         match self {
             Self::AuthGetResponse(response) => response.redirect_uri.as_ref(),
             Self::AuthPostResponse(response) => response.redirect_uri.as_ref(),
