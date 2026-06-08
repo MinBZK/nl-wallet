@@ -1627,6 +1627,16 @@ impl CstDecode<crate::models::disclosure::DisclosureType> for i32 {
         }
     }
 }
+impl CstDecode<crate::models::attestation::Format> for i32 {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    fn cst_decode(self) -> crate::models::attestation::Format {
+        match self {
+            0 => crate::models::attestation::Format::MsoMdoc,
+            1 => crate::models::attestation::Format::SdJwt,
+            _ => unreachable!("Invalid variant for Format: {}", self),
+        }
+    }
+}
 impl CstDecode<i32> for i32 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> i32 {
@@ -1912,6 +1922,7 @@ impl SseDecode for crate::models::attestation::AttestationPresentation {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_identity = <crate::models::attestation::AttestationIdentity>::sse_decode(deserializer);
+        let mut var_format = <crate::models::attestation::Format>::sse_decode(deserializer);
         let mut var_attestationType = <String>::sse_decode(deserializer);
         let mut var_displayMetadata = <Vec<crate::models::attestation::DisplayMetadata>>::sse_decode(deserializer);
         let mut var_issuer = <crate::models::disclosure::Organization>::sse_decode(deserializer);
@@ -1920,6 +1931,7 @@ impl SseDecode for crate::models::attestation::AttestationPresentation {
         let mut var_attributes = <Vec<crate::models::attestation::AttestationAttribute>>::sse_decode(deserializer);
         return crate::models::attestation::AttestationPresentation {
             identity: var_identity,
+            format: var_format,
             attestation_type: var_attestationType,
             display_metadata: var_displayMetadata,
             issuer: var_issuer,
@@ -2145,7 +2157,7 @@ impl SseDecode for crate::models::config::FlutterConfiguration {
         let mut var_inactiveWarningTimeout = <u16>::sse_decode(deserializer);
         let mut var_inactiveLockTimeout = <u16>::sse_decode(deserializer);
         let mut var_backgroundLockTimeout = <u16>::sse_decode(deserializer);
-        let mut var_pidAttestationTypes = <Vec<String>>::sse_decode(deserializer);
+        let mut var_pidAttestations = <Vec<crate::models::config::PidAttestation>>::sse_decode(deserializer);
         let mut var_staticAssetsBaseUrl = <String>::sse_decode(deserializer);
         let mut var_maintenanceWindow = <Option<(String, String)>>::sse_decode(deserializer);
         let mut var_version = <String>::sse_decode(deserializer);
@@ -2154,7 +2166,7 @@ impl SseDecode for crate::models::config::FlutterConfiguration {
             inactive_warning_timeout: var_inactiveWarningTimeout,
             inactive_lock_timeout: var_inactiveLockTimeout,
             background_lock_timeout: var_backgroundLockTimeout,
-            pid_attestation_types: var_pidAttestationTypes,
+            pid_attestations: var_pidAttestations,
             static_assets_base_url: var_staticAssetsBaseUrl,
             maintenance_window: var_maintenanceWindow,
             version: var_version,
@@ -2190,6 +2202,18 @@ impl SseDecode for crate::models::version_state::FlutterVersionState {
                 unimplemented!("");
             }
         }
+    }
+}
+
+impl SseDecode for crate::models::attestation::Format {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::models::attestation::Format::MsoMdoc,
+            1 => crate::models::attestation::Format::SdJwt,
+            _ => unreachable!("Invalid variant for Format: {}", inner),
+        };
     }
 }
 
@@ -2289,18 +2313,6 @@ impl SseDecode for crate::models::issuance::IssuanceStartResult {
                 unimplemented!("");
             }
         }
-    }
-}
-
-impl SseDecode for Vec<String> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut len_ = <i32>::sse_decode(deserializer);
-        let mut ans_ = vec![];
-        for idx_ in 0..len_ {
-            ans_.push(<String>::sse_decode(deserializer));
-        }
-        return ans_;
     }
 }
 
@@ -2425,6 +2437,18 @@ impl SseDecode for Vec<crate::models::disclosure::MissingAttribute> {
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
             ans_.push(<crate::models::disclosure::MissingAttribute>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::models::config::PidAttestation> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::models::config::PidAttestation>::sse_decode(deserializer));
         }
         return ans_;
     }
@@ -2659,6 +2683,18 @@ impl SseDecode for crate::models::disclosure::Organization {
             category: var_category,
             department: var_department,
             country_code: var_countryCode,
+        };
+    }
+}
+
+impl SseDecode for crate::models::config::PidAttestation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_format = <crate::models::attestation::Format>::sse_decode(deserializer);
+        let mut var_attestationType = <String>::sse_decode(deserializer);
+        return crate::models::config::PidAttestation {
+            format: var_format,
+            attestation_type: var_attestationType,
         };
     }
 }
@@ -3232,6 +3268,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttestationPr
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.identity.into_into_dart().into_dart(),
+            self.format.into_into_dart().into_dart(),
             self.attestation_type.into_into_dart().into_dart(),
             self.display_metadata.into_into_dart().into_dart(),
             self.issuer.into_into_dart().into_dart(),
@@ -3503,7 +3540,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::config::FlutterConfigurati
             self.inactive_warning_timeout.into_into_dart().into_dart(),
             self.inactive_lock_timeout.into_into_dart().into_dart(),
             self.background_lock_timeout.into_into_dart().into_dart(),
-            self.pid_attestation_types.into_into_dart().into_dart(),
+            self.pid_attestations.into_into_dart().into_dart(),
             self.static_assets_base_url.into_into_dart().into_dart(),
             self.maintenance_window.into_into_dart().into_dart(),
             self.version.into_into_dart().into_dart(),
@@ -3542,6 +3579,22 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::version_state::FlutterVers
     for crate::models::version_state::FlutterVersionState
 {
     fn into_into_dart(self) -> crate::models::version_state::FlutterVersionState {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::attestation::Format {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::MsoMdoc => 0.into_dart(),
+            Self::SdJwt => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::attestation::Format {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::Format> for crate::models::attestation::Format {
+    fn into_into_dart(self) -> crate::models::attestation::Format {
         self
     }
 }
@@ -3720,6 +3773,24 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::Organization>
     for crate::models::disclosure::Organization
 {
     fn into_into_dart(self) -> crate::models::disclosure::Organization {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::config::PidAttestation {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.format.into_into_dart().into_dart(),
+            self.attestation_type.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::config::PidAttestation {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::config::PidAttestation>
+    for crate::models::config::PidAttestation
+{
+    fn into_into_dart(self) -> crate::models::config::PidAttestation {
         self
     }
 }
@@ -4307,6 +4378,7 @@ impl SseEncode for crate::models::attestation::AttestationPresentation {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::models::attestation::AttestationIdentity>::sse_encode(self.identity, serializer);
+        <crate::models::attestation::Format>::sse_encode(self.format, serializer);
         <String>::sse_encode(self.attestation_type, serializer);
         <Vec<crate::models::attestation::DisplayMetadata>>::sse_encode(self.display_metadata, serializer);
         <crate::models::disclosure::Organization>::sse_encode(self.issuer, serializer);
@@ -4525,7 +4597,7 @@ impl SseEncode for crate::models::config::FlutterConfiguration {
         <u16>::sse_encode(self.inactive_warning_timeout, serializer);
         <u16>::sse_encode(self.inactive_lock_timeout, serializer);
         <u16>::sse_encode(self.background_lock_timeout, serializer);
-        <Vec<String>>::sse_encode(self.pid_attestation_types, serializer);
+        <Vec<crate::models::config::PidAttestation>>::sse_encode(self.pid_attestations, serializer);
         <String>::sse_encode(self.static_assets_base_url, serializer);
         <Option<(String, String)>>::sse_encode(self.maintenance_window, serializer);
         <String>::sse_encode(self.version, serializer);
@@ -4557,6 +4629,22 @@ impl SseEncode for crate::models::version_state::FlutterVersionState {
                 unimplemented!("");
             }
         }
+    }
+}
+
+impl SseEncode for crate::models::attestation::Format {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::models::attestation::Format::MsoMdoc => 0,
+                crate::models::attestation::Format::SdJwt => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
     }
 }
 
@@ -4652,16 +4740,6 @@ impl SseEncode for crate::models::issuance::IssuanceStartResult {
             _ => {
                 unimplemented!("");
             }
-        }
-    }
-}
-
-impl SseEncode for Vec<String> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <i32>::sse_encode(self.len() as _, serializer);
-        for item in self {
-            <String>::sse_encode(item, serializer);
         }
     }
 }
@@ -4762,6 +4840,16 @@ impl SseEncode for Vec<crate::models::disclosure::MissingAttribute> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::models::disclosure::MissingAttribute>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::models::config::PidAttestation> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::models::config::PidAttestation>::sse_encode(item, serializer);
         }
     }
 }
@@ -4949,6 +5037,14 @@ impl SseEncode for crate::models::disclosure::Organization {
         <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.category, serializer);
         <Option<Vec<crate::models::localize::LocalizedString>>>::sse_encode(self.department, serializer);
         <Option<String>>::sse_encode(self.country_code, serializer);
+    }
+}
+
+impl SseEncode for crate::models::config::PidAttestation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::models::attestation::Format>::sse_encode(self.format, serializer);
+        <String>::sse_encode(self.attestation_type, serializer);
     }
 }
 
@@ -5565,6 +5661,7 @@ mod io {
         fn cst_decode(self) -> crate::models::attestation::AttestationPresentation {
             crate::models::attestation::AttestationPresentation {
                 identity: self.identity.cst_decode(),
+                format: self.format.cst_decode(),
                 attestation_type: self.attestation_type.cst_decode(),
                 display_metadata: self.display_metadata.cst_decode(),
                 issuer: self.issuer.cst_decode(),
@@ -5778,7 +5875,7 @@ mod io {
                 inactive_warning_timeout: self.inactive_warning_timeout.cst_decode(),
                 inactive_lock_timeout: self.inactive_lock_timeout.cst_decode(),
                 background_lock_timeout: self.background_lock_timeout.cst_decode(),
-                pid_attestation_types: self.pid_attestation_types.cst_decode(),
+                pid_attestations: self.pid_attestations.cst_decode(),
                 static_assets_base_url: self.static_assets_base_url.cst_decode(),
                 maintenance_window: self.maintenance_window.cst_decode(),
                 version: self.version.cst_decode(),
@@ -5859,16 +5956,6 @@ mod io {
                 }
                 _ => unreachable!(),
             }
-        }
-    }
-    impl CstDecode<Vec<String>> for *mut wire_cst_list_String {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> Vec<String> {
-            let vec = unsafe {
-                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
-                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
-            };
-            vec.into_iter().map(CstDecode::cst_decode).collect()
         }
     }
     impl CstDecode<Vec<crate::models::notification::AppNotification>> for *mut wire_cst_list_app_notification {
@@ -5966,6 +6053,16 @@ mod io {
     impl CstDecode<Vec<crate::models::disclosure::MissingAttribute>> for *mut wire_cst_list_missing_attribute {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> Vec<crate::models::disclosure::MissingAttribute> {
+            let vec = unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            };
+            vec.into_iter().map(CstDecode::cst_decode).collect()
+        }
+    }
+    impl CstDecode<Vec<crate::models::config::PidAttestation>> for *mut wire_cst_list_pid_attestation {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<crate::models::config::PidAttestation> {
             let vec = unsafe {
                 let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
                 flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
@@ -6081,6 +6178,15 @@ mod io {
                 category: self.category.cst_decode(),
                 department: self.department.cst_decode(),
                 country_code: self.country_code.cst_decode(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::config::PidAttestation> for wire_cst_pid_attestation {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::config::PidAttestation {
+            crate::models::config::PidAttestation {
+                format: self.format.cst_decode(),
+                attestation_type: self.attestation_type.cst_decode(),
             }
         }
     }
@@ -6397,6 +6503,7 @@ mod io {
         fn new_with_null_ptr() -> Self {
             Self {
                 identity: Default::default(),
+                format: Default::default(),
                 attestation_type: core::ptr::null_mut(),
                 display_metadata: core::ptr::null_mut(),
                 issuer: Default::default(),
@@ -6511,7 +6618,7 @@ mod io {
                 inactive_warning_timeout: Default::default(),
                 inactive_lock_timeout: Default::default(),
                 background_lock_timeout: Default::default(),
-                pid_attestation_types: core::ptr::null_mut(),
+                pid_attestations: core::ptr::null_mut(),
                 static_assets_base_url: core::ptr::null_mut(),
                 maintenance_window: core::ptr::null_mut(),
                 version: core::ptr::null_mut(),
@@ -6632,6 +6739,19 @@ mod io {
         }
     }
     impl Default for wire_cst_organization {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_pid_attestation {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                format: Default::default(),
+                attestation_type: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_pid_attestation {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -7291,18 +7411,6 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_list_String(len: i32) -> *mut wire_cst_list_String {
-        let wrap = wire_cst_list_String {
-            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
-                <*mut wire_cst_list_prim_u_8_strict>::new_with_null_ptr(),
-                len,
-            ),
-            len,
-        };
-        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
-    }
-
-    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_list_app_notification(
         len: i32,
     ) -> *mut wire_cst_list_app_notification {
@@ -7439,6 +7547,18 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_pid_attestation(len: i32) -> *mut wire_cst_list_pid_attestation {
+        let wrap = wire_cst_list_pid_attestation {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
+                <wire_cst_pid_attestation>::new_with_null_ptr(),
+                len,
+            ),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_list_prim_u_16_loose(len: i32) -> *mut wire_cst_list_prim_u_16_loose {
         let ans = wire_cst_list_prim_u_16_loose {
             ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(Default::default(), len),
@@ -7552,6 +7672,7 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_attestation_presentation {
         identity: wire_cst_attestation_identity,
+        format: i32,
         attestation_type: *mut wire_cst_list_prim_u_8_strict,
         display_metadata: *mut wire_cst_list_display_metadata,
         issuer: wire_cst_organization,
@@ -7684,7 +7805,7 @@ mod io {
         inactive_warning_timeout: u16,
         inactive_lock_timeout: u16,
         background_lock_timeout: u16,
-        pid_attestation_types: *mut wire_cst_list_String,
+        pid_attestations: *mut wire_cst_list_pid_attestation,
         static_assets_base_url: *mut wire_cst_list_prim_u_8_strict,
         maintenance_window: *mut wire_cst_record_string_string,
         version: *mut wire_cst_list_prim_u_8_strict,
@@ -7773,12 +7894,6 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_list_String {
-        ptr: *mut *mut wire_cst_list_prim_u_8_strict,
-        len: i32,
-    }
-    #[repr(C)]
-    #[derive(Clone, Copy)]
     pub struct wire_cst_list_app_notification {
         ptr: *mut wire_cst_app_notification,
         len: i32,
@@ -7835,6 +7950,12 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_list_missing_attribute {
         ptr: *mut wire_cst_missing_attribute,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_pid_attestation {
+        ptr: *mut wire_cst_pid_attestation,
         len: i32,
     }
     #[repr(C)]
@@ -7922,6 +8043,12 @@ mod io {
         category: *mut wire_cst_list_localized_string,
         department: *mut wire_cst_list_localized_string,
         country_code: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_pid_attestation {
+        format: i32,
+        attestation_type: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

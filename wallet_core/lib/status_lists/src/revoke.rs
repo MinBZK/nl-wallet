@@ -59,7 +59,7 @@ where
         state
             .status_list_services
             .iter()
-            .zip_eq(itertools::repeat_n(batch_ids, service_count))
+            .zip_eq(std::iter::repeat_n(batch_ids, service_count))
             .map(|(service, batch_ids)| service.revoke_attestation_batches(batch_ids)),
     )
     .await

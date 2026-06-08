@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::credential_format::Format;
 use attestation_types::qualification::AttestationQualification;
 use crypto::x509::CertificateError;
 use crypto::x509::KeyIdentifier;
-use dcql::CredentialFormat;
 use dcql::CredentialQueryIdentifier;
 use dcql::disclosure::DisclosedCredential;
 use dcql::normalized::NormalizedCredentialRequest;
@@ -220,10 +220,10 @@ pub enum DisclosedAttestationError {
 }
 
 impl DisclosedCredential for DisclosedAttestation {
-    fn format(&self) -> CredentialFormat {
+    fn format(&self) -> Format {
         match &self.attributes {
-            DisclosedAttributes::MsoMdoc(_) => CredentialFormat::MsoMdoc,
-            DisclosedAttributes::SdJwt(_) => CredentialFormat::SdJwt,
+            DisclosedAttributes::MsoMdoc(_) => Format::MsoMdoc,
+            DisclosedAttributes::SdJwt(_) => Format::SdJwt,
         }
     }
 
@@ -247,14 +247,14 @@ impl DisclosedCredential for DisclosedAttestation {
 }
 
 pub trait AttestationRequest {
-    fn format(&self) -> CredentialFormat;
+    fn format(&self) -> Format;
     fn credential_types(&self) -> impl NonEmptyIterator<Item = String>;
     fn claim_paths(&self) -> impl Iterator<Item = VecNonEmpty<ClaimPath>>;
     fn aki(&self) -> &[KeyIdentifier];
 }
 
 impl AttestationRequest for NormalizedCredentialRequest {
-    fn format(&self) -> CredentialFormat {
+    fn format(&self) -> Format {
         self.format()
     }
 
@@ -275,8 +275,8 @@ impl AttestationRequest for NormalizedCredentialRequest {
 }
 
 impl AttestationRequest for ItemsRequest {
-    fn format(&self) -> CredentialFormat {
-        CredentialFormat::MsoMdoc
+    fn format(&self) -> Format {
+        Format::MsoMdoc
     }
 
     fn credential_types(&self) -> impl NonEmptyIterator<Item = String> {
@@ -293,7 +293,7 @@ impl AttestationRequest for ItemsRequest {
 }
 
 impl<T: AttestationRequest> AttestationRequest for &T {
-    fn format(&self) -> CredentialFormat {
+    fn format(&self) -> Format {
         (*self).format()
     }
 
@@ -313,9 +313,9 @@ impl<T: AttestationRequest> AttestationRequest for &T {
 #[cfg(test)]
 mod test {
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::credential_format::Format;
     use attestation_types::qualification::AttestationQualification;
     use chrono::Utc;
-    use dcql::CredentialFormat;
     use dcql::disclosure::DisclosedCredential;
     use indexmap::IndexMap;
     use itertools::Itertools;
@@ -558,9 +558,9 @@ mod test {
     }
 
     #[rstest]
-    #[case(CredentialFormat::MsoMdoc, vec![], vec![])]
+    #[case(Format::MsoMdoc, vec![], vec![])]
     #[case(
-        CredentialFormat::MsoMdoc,
+        Format::MsoMdoc,
         vec![
             claim_path(&vec_nonempty!["org.iso.18013.5.1", "family_name"]),
             claim_path(&vec_nonempty!["org.iso.18013.5.1", "issue_date"]),
@@ -572,12 +572,12 @@ mod test {
         vec![],
     )]
     #[case(
-        CredentialFormat::MsoMdoc,
+        Format::MsoMdoc,
         vec![claim_path(&vec_nonempty!["org.iso.18013.5.1", "is_rich"])],
         vec![claim_path(&vec_nonempty!["org.iso.18013.5.1", "is_rich"])],
     )]
     #[case(
-        CredentialFormat::MsoMdoc,
+        Format::MsoMdoc,
         vec![
             claim_path(&vec_nonempty!["org.iso.18013.5.1", "family_name"]),
             claim_path(&vec_nonempty!["org.iso.18013.5.1", "is_rich"]),
@@ -585,7 +585,7 @@ mod test {
         vec![claim_path(&vec_nonempty!["org.iso.18013.5.1", "is_rich"])],
     )]
     #[case(
-        CredentialFormat::MsoMdoc,
+        Format::MsoMdoc,
         vec![
             claim_path(&vec_nonempty!["org.iso.18013.5.1", "family_name"]),
             claim_path(&vec_nonempty!["vroom", "driving_privileges"]),
@@ -593,7 +593,7 @@ mod test {
         vec![claim_path(&vec_nonempty!["vroom", "driving_privileges"])],
     )]
     #[case(
-        CredentialFormat::MsoMdoc,
+        Format::MsoMdoc,
         vec![
             claim_path(&vec_nonempty!["org.iso.18013.5.1", "portrait"]),
             claim_path(&vec_nonempty!["foobar"]),
@@ -606,13 +606,13 @@ mod test {
         ],
     )]
     #[case(
-        CredentialFormat::MsoMdoc,
+        Format::MsoMdoc,
         vec![vec_nonempty![ClaimPath::SelectAll]],
         vec![vec_nonempty![ClaimPath::SelectAll]]
     )]
-    #[case(CredentialFormat::SdJwt, vec![], vec![])]
+    #[case(Format::SdJwt, vec![], vec![])]
     #[case(
-        CredentialFormat::SdJwt,
+        Format::SdJwt,
         vec![
             claim_path(&vec_nonempty!["address", "street"]),
             claim_path(&vec_nonempty!["family_name"]),
@@ -620,7 +620,7 @@ mod test {
         vec![],
     )]
     #[case(
-        CredentialFormat::SdJwt,
+        Format::SdJwt,
         vec![
             claim_path(&vec_nonempty!["family_name", "something"]),
             claim_path(&vec_nonempty!["address"]),
@@ -633,7 +633,7 @@ mod test {
         ],
     )]
     #[case(
-        CredentialFormat::SdJwt,
+        Format::SdJwt,
         vec![
             claim_path(&vec_nonempty!["address", "street"]),
             claim_path(&vec_nonempty!["address", "house_number"]),
@@ -641,13 +641,13 @@ mod test {
         vec![claim_path(&vec_nonempty!["address", "house_number"])],
     )]
     fn test_disclosed_attestation_missing_claim_paths(
-        #[case] credential_format: CredentialFormat,
+        #[case] credential_format: Format,
         #[case] request_claim_paths: Vec<VecNonEmpty<ClaimPath>>,
         #[case] expected_missing_attributes: Vec<VecNonEmpty<ClaimPath>>,
     ) {
         let disclosed_attestation = match credential_format {
-            CredentialFormat::MsoMdoc => DisclosedAttestation::mdoc_example(),
-            CredentialFormat::SdJwt => DisclosedAttestation::sd_jwt_example(),
+            Format::MsoMdoc => DisclosedAttestation::mdoc_example(),
+            Format::SdJwt => DisclosedAttestation::sd_jwt_example(),
         };
 
         let missing_attributes = disclosed_attestation.missing_claim_paths(&request_claim_paths);

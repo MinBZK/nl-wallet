@@ -230,7 +230,7 @@ impl VerifierSettings {
         let (use_case_futures, url_configs) = self
             .disclosure_settings
             .into_iter()
-            .zip_eq(itertools::repeat_n(hsm, use_case_count))
+            .zip_eq(std::iter::repeat_n(hsm, use_case_count))
             .map(|((id, attestation), hsm)| {
                 let use_case_id = id.clone();
                 let use_case_future = async {

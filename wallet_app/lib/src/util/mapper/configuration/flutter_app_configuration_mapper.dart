@@ -16,7 +16,7 @@ class FlutterAppConfigurationMapper extends Mapper<core.FlutterConfiguration, Fl
       idleWarningTimeout: Duration(seconds: input.inactiveWarningTimeout),
       backgroundLockTimeout: Duration(seconds: input.backgroundLockTimeout),
       staticAssetsBaseUrl: input.staticAssetsBaseUrl,
-      pidAttestationTypes: input.pidAttestationTypes,
+      pidAttestationTypes: input.pidAttestations.map((it) => it.attestationType).toList(),
       maintenanceWindow: _maintenanceWindowMapper.map(input.maintenanceWindow),
       version: input.version,
       environment: input.environment,

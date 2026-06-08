@@ -16,6 +16,7 @@ use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::x509::CertificateType;
 use attestation_data::x509::generate::mock::generate_pid_issuer_mock_with_registration;
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::credential_format::Format;
 use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
 use attestation_types::qualification::AttestationQualification;
 use attestation_types::status_claim::StatusClaim;
@@ -25,7 +26,6 @@ use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::generate::mock::PID_ISSUER_CERT_CN;
 use crypto::trust_anchor::TrustAnchors;
-use dcql::CredentialFormat;
 use dcql::CredentialQuery;
 use dcql::Query;
 use dcql::unique_id_vec::UniqueIdVec;
@@ -800,10 +800,10 @@ mod db_test {
     }
 }
 
-fn pid_start_disclosure_request(format: CredentialFormat) -> StartDisclosureRequest {
+fn pid_start_disclosure_request(format: Format) -> StartDisclosureRequest {
     let query = match format {
-        CredentialFormat::MsoMdoc => Query::new_mock_mdoc_pid_example(),
-        CredentialFormat::SdJwt => Query::new_mock_sd_jwt_pid_example(),
+        Format::MsoMdoc => Query::new_mock_mdoc_pid_example(),
+        Format::SdJwt => Query::new_mock_sd_jwt_pid_example(),
     };
 
     StartDisclosureRequest {
@@ -862,7 +862,7 @@ fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (Signed
 
 async fn perform_full_disclosure(
     session_type: SessionType,
-    format: CredentialFormat,
+    format: Format,
 ) -> (Client, SessionToken, BaseUrl, Option<BaseUrl>) {
     // Start the verification_server and create a disclosure request.
     let (settings, client, session_token, internal_url, issuer_ca, rp_trust_anchor) = start_disclosure(
@@ -902,7 +902,7 @@ async fn perform_full_disclosure(
     let wscd = MockRemoteWscd::default();
 
     let attestations = match format {
-        CredentialFormat::MsoMdoc => {
+        Format::MsoMdoc => {
             let partial_mdocs = disclosure_session
                 .credential_requests()
                 .as_ref()
@@ -917,7 +917,7 @@ async fn perform_full_disclosure(
 
             DisclosableAttestations::MsoMdoc(partial_mdocs)
         }
-        CredentialFormat::SdJwt => {
+        Format::SdJwt => {
             let presentations = disclosure_session
                 .credential_requests()
                 .as_ref()
@@ -949,10 +949,7 @@ async fn perform_full_disclosure(
     (client, session_token, internal_url, return_url)
 }
 
-fn check_example_disclosed_attributes(
-    disclosed_attributes: &UniqueIdVec<DisclosedAttestations>,
-    format: CredentialFormat,
-) {
+fn check_example_disclosed_attributes(disclosed_attributes: &UniqueIdVec<DisclosedAttestations>, format: Format) {
     assert_eq!(disclosed_attributes.len().get(), 1);
     let attestations = &disclosed_attributes.as_ref().iter().exactly_one().unwrap().attestations;
 
@@ -973,13 +970,13 @@ fn check_example_disclosed_attributes(
         .attributes;
 
     match (format, attributes) {
-        (CredentialFormat::MsoMdoc, DisclosedAttributes::MsoMdoc(attributes)) => {
+        (Format::MsoMdoc, DisclosedAttributes::MsoMdoc(attributes)) => {
             itertools::assert_equal(attributes.keys(), [PID_ATTESTATION_TYPE]);
 
             let bsn_value = attributes.get(PID_ATTESTATION_TYPE).unwrap().get("bsn").unwrap();
             assert_eq!(bsn_value.to_string(), "999991772");
         }
-        (CredentialFormat::SdJwt, DisclosedAttributes::SdJwt(attributes)) => {
+        (Format::SdJwt, DisclosedAttributes::SdJwt(attributes)) => {
             let bsn_value = attributes
                 .get(&vec_nonempty![ClaimPath::SelectByKey("bsn".to_string())])
                 .unwrap()
@@ -992,9 +989,7 @@ fn check_example_disclosed_attributes(
 
 #[rstest]
 #[tokio::test]
-async fn test_disclosed_attributes_without_nonce(
-    #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
-) {
+async fn test_disclosed_attributes_without_nonce(#[values(Format::MsoMdoc, Format::SdJwt)] format: Format) {
     let (client, session_token, internal_url, _) = perform_full_disclosure(SessionType::CrossDevice, format).await;
 
     // Check if the disclosed attributes endpoint returns a 200 for the session, with the attributes.
@@ -1015,9 +1010,7 @@ async fn test_disclosed_attributes_without_nonce(
 
 #[rstest]
 #[tokio::test]
-async fn test_disclosed_attributes_with_nonce(
-    #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
-) {
+async fn test_disclosed_attributes_with_nonce(#[values(Format::MsoMdoc, Format::SdJwt)] format: Format) {
     let (client, session_token, internal_url, return_url) =
         perform_full_disclosure(SessionType::SameDevice, format).await;
 

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use attestation_data::auth::Organization;
@@ -521,7 +522,7 @@ where
                 previews,
                 stored,
                 &TimeGenerator,
-                pid_purpose.is_some().then(|| &config.pid_attributes),
+                pid_purpose.is_some().then_some(&config.pid_attributes),
             );
 
         info!("successfully received token and previews from issuer");
@@ -531,6 +532,7 @@ where
             .map(|(preview_data, identity)| {
                 let attestation = AttestationPresentation::create_from_attributes(
                     identity.map_or(AttestationIdentity::Ephemeral, |id| AttestationIdentity::Fixed { id }),
+                    preview_data.content.format,
                     preview_data.normalized_metadata.clone(),
                     organization.clone(),
                     AttestationValidity {
@@ -768,14 +770,15 @@ fn match_preview_and_stored_attestations<'a>(
     time_generator: &impl Generator<DateTime<Utc>>,
     pid_config: Option<&PidAttributesConfiguration>,
 ) -> Vec<(&'a NormalizedCredentialPreview, Option<Uuid>)> {
-    let stored_credential_payloads: Vec<(PreviewableCredentialPayload, Uuid)> = stored_attestations
+    let mut stored_credential_payloads = stored_attestations
         .into_iter()
         .map(|copy| {
             let attestation_id = copy.attestation_id();
+            let format = copy.format();
 
-            (copy.into_previewable_credential_payload(), attestation_id)
+            (attestation_id, (format, copy.into_previewable_credential_payload()))
         })
-        .collect_vec();
+        .collect::<HashMap<_, _>>();
 
     // Find the first matching stored preview based on the ordering of `stored_credential_payloads`.
     previews
@@ -783,26 +786,38 @@ fn match_preview_and_stored_attestations<'a>(
         .map(|preview| {
             let identity = stored_credential_payloads
                 .iter()
-                .find(|(stored_preview, _)| {
-                    pid_config.map_or_else(
-                        // If this is not PID issuance, then the two cards match if their contents are identical.
-                        || compare_contents(preview, stored_preview, time_generator),
-                        // If this is PID issuance, and the two cards are both PIDs, then they match.
-                        // If not, fall back to contents comparison.
-                        |pid_config| {
-                            let pid_types = pid_config.pid_attestation_types().collect_vec();
-                            let both_pid = pid_types
-                                .contains(&preview.content.credential_payload.attestation_type.as_str())
-                                && pid_types.contains(&stored_preview.attestation_type.as_str());
-                            both_pid || compare_contents(preview, stored_preview, time_generator)
-                        },
-                    )
-                })
-                .map(|(_, id)| *id);
+                .find_map(|(id, (format, stored_preview))| {
+                    // The new credential is not a renewal of an existing credential if their formats differ.
+                    if *format != preview.content.format {
+                        return None;
+                    }
+
+                    pid_config
+                        .map_or_else(
+                            // If this is not PID issuance, then the two cards match if their contents are identical.
+                            || compare_contents(preview, stored_preview, time_generator),
+                            // If this is PID issuance, and the two cards are both PIDs, then they match.
+                            // If not, fall back to contents comparison.
+                            |pid_config| {
+                                let pid_types = pid_config.pid_attestation_types().collect_vec();
+                                let both_pid = pid_types
+                                    .contains(&preview.content.credential_payload.attestation_type.as_str())
+                                    && pid_types.contains(&stored_preview.attestation_type.as_str());
+                                both_pid || compare_contents(preview, stored_preview, time_generator)
+                            },
+                        )
+                        .then_some(*id)
+                });
+
+            // Remove the stored credential from being considered in future iterations, as a single credential cannot be
+            // renewed by multiple incoming credentials.
+            if let Some(identity) = identity {
+                stored_credential_payloads.remove(&identity);
+            }
 
             (preview, identity)
         })
-        .collect_vec()
+        .collect()
 }
 
 fn compare_contents(
@@ -826,13 +841,13 @@ mod tests {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::validity::ValidityWindow;
     use attestation_data::x509::CertificateType;
+    use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::Duration;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
     use itertools::multiunzip;
     use mockall::predicate::*;
-    use openid4vc::Format;
     use openid4vc::wallet_issuance::IssuanceFlow;
     use openid4vc::wallet_issuance::credential::IssuedCredential;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
@@ -1410,42 +1425,84 @@ mod tests {
 
     #[rstest]
     // An attestation that is identical to one that the wallet already has should overwrite the old one.
-    #[case(None, "some_attestation_type", true, |preview| {preview})]
-    #[case(None, "some_attestation_type", false, |mut preview: NormalizedCredentialPreview| {
-        // When the attestation_type is different from the one stored in the database, it should be
-        // considered as a new attestation and the identity is None.
-        preview.content.credential_payload.attestation_type = String::from("some_other_attestation_type");
-        preview
-    })]
-    #[case(None, "some_attestation_type", false, |mut preview: NormalizedCredentialPreview| {
-        // When the attestation already exists in the database, but the preview has a newer nbf, it should be
-        // considered as a new attestation and the identity is None.
-        preview.content.credential_payload.not_before = Some(Utc::now().add(Duration::days(365)).into());
-        preview
-    })]
+    #[case::non_pid_identical(None, vec![Format::SdJwt], "some_attestation_type", Some(0), |preview| {preview})]
+    // An attestation that has a different format but is otherwise identical should not overwrite the existing one.
+    #[case::non_pid_identical_mdoc(None, vec![Format::MsoMdoc], "some_attestation_type", None, |preview| {preview})]
+    // Given two identical previews, onle the first one should overwerite an existing credential.
+    #[case::non_pid_multiple_previews(
+        None, vec![Format::SdJwt, Format::SdJwt], "some_attestation_type", Some(0), |preview| {preview}
+    )]
+    // Only the existing SD-JWT credential should be overwritten.
+    #[case::non_pid_multiple_formats1(
+        None, vec![Format::SdJwt, Format::MsoMdoc], "some_attestation_type", Some(0), |preview| {preview})]
+    #[case::non_pid_multiple_formats2(
+        None, vec![Format::MsoMdoc, Format::SdJwt], "some_attestation_type", Some(1), |preview| {preview}
+    )]
+    // When the attestation_type is different from the one stored in the database, it should be considered as a new
+    // attestation and the identity is None.
+    #[case::non_pid_different(
+        None, vec![Format::SdJwt], "some_attestation_type", None, |mut preview: NormalizedCredentialPreview| {
+            preview.content.credential_payload.attestation_type = String::from("some_other_attestation_type");
+            preview
+        }
+    )]
+    // When the attestation already exists in the database, but the preview has a newer nbf, it should be considered as
+    // a new attestation and the identity is None.
+    #[case::non_pid_newer_nbf(
+        None, vec![Format::SdJwt], "some_attestation_type", None,|mut preview: NormalizedCredentialPreview| {
+            preview.content.credential_payload.not_before = Some(Utc::now().add(Duration::days(365)).into());
+            preview
+        }
+    )]
     // A new PID always overwrites an older PID, even in cases where other attestation types would be overwritten.
-    #[case(Some(PidIssuancePurpose::Enrollment), PID_ATTESTATION_TYPE, true, |preview| {preview})]
-    #[case(Some(PidIssuancePurpose::Renewal), PID_ATTESTATION_TYPE, true, |preview| {preview})]
-    #[case(Some(PidIssuancePurpose::Renewal), PID_ATTESTATION_TYPE, true, |mut preview : NormalizedCredentialPreview| {
-        preview.content.credential_payload.not_before = Some(Utc::now().add(Duration::days(365)).into());
-        preview
-    })]
+    #[case::pid_enrollment(
+        Some(PidIssuancePurpose::Enrollment), vec![Format::SdJwt], PID_ATTESTATION_TYPE, Some(0), |preview| {preview}
+    )]
+    #[case::pid_renewal(
+        Some(PidIssuancePurpose::Renewal), vec![Format::SdJwt], PID_ATTESTATION_TYPE, Some(0), |preview| {preview}
+    )]
+    #[case::pid_renewal_newer_nbf(
+        Some(PidIssuancePurpose::Renewal),
+        vec![Format::SdJwt],
+        PID_ATTESTATION_TYPE,
+        Some(0),
+        |mut preview : NormalizedCredentialPreview| {
+            preview.content.credential_payload.not_before = Some(Utc::now().add(Duration::days(365)).into());
+            preview
+        }
+    )]
+    // However, the PID should not override a PID credential with the same attestation type but a different format.
+    #[case::pid_renewal_multiple_formats1(
+        Some(PidIssuancePurpose::Renewal),
+        vec![Format::SdJwt, Format::MsoMdoc],
+        PID_ATTESTATION_TYPE,
+        Some(0),
+        |preview| {preview}
+    )]
+    #[case::pid_renewal_multiple_formats2(
+        Some(PidIssuancePurpose::Renewal),
+        vec![Format::MsoMdoc, Format::SdJwt],
+        PID_ATTESTATION_TYPE,
+        Some(1),
+        |preview| {preview}
+    )]
     #[tokio::test]
     async fn test_continue_issuance_with_renewed_attestation(
         #[case] purpose: Option<PidIssuancePurpose>,
+        #[case] preview_formats: Vec<Format>,
         #[case] attestation_type: &str,
-        #[case] expect_fixed: bool,
+        #[case] expect_fixed_index: Option<usize>,
         #[case] modifier: impl Fn(NormalizedCredentialPreview) -> NormalizedCredentialPreview,
     ) {
         // Prepare a registered wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         let time_generator = MockTimeGenerator::default();
 
-        let preview = modifier(create_example_preview_data(
-            &time_generator,
-            Format::SdJwt,
-            attestation_type,
-        ));
+        let previews = preview_formats
+            .into_iter()
+            .map(|format| modifier(create_example_preview_data(&time_generator, format, attestation_type)))
+            .collect_vec();
+        let preview_count = previews.len();
 
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let cert_type = CertificateType::from(IssuerRegistration::new_mock());
@@ -1486,24 +1543,24 @@ mod tests {
         let mut issuance_session = MockIssuanceSession::new();
         issuance_session
             .expect_normalized_credential_previews()
-            .return_const(vec![preview]);
+            .return_const(previews);
         issuance_session
             .expect_issuer()
             .return_const(IssuerRegistration::new_mock());
 
-        let mut attestations = wallet
+        let attestations = wallet
             .issuance_process_previews(issuance_session, purpose)
             .await
             .expect("Could not continue issuance");
 
-        let attestation = attestations.pop().unwrap();
+        assert_eq!(attestations.len(), preview_count);
 
-        if expect_fixed {
-            assert_matches!(
-            &attestation.identity,
-            AttestationIdentity::Fixed { id } if *id == attestation_id);
-        } else {
-            assert_matches!(&attestation.identity, AttestationIdentity::Ephemeral);
+        for (index, attestation) in attestations.iter().enumerate() {
+            if expect_fixed_index.is_some_and(|expected_index| expected_index == index) {
+                assert_matches!(&attestation.identity, AttestationIdentity::Fixed { id } if *id == attestation_id);
+            } else {
+                assert_matches!(&attestation.identity, AttestationIdentity::Ephemeral);
+            }
         }
     }
 
@@ -2179,15 +2236,30 @@ mod tests {
             None,
         );
 
-        // When the attestation already exists in the database, we expect the identity to be known
-        let previews = [create_example_pid_preview_data(&time_generator, Format::MsoMdoc)];
+        // When the attestation already exists in the database, we expect the identity to be known.
+        let previews = [create_example_pid_preview_data(&time_generator, Format::SdJwt)];
         let result = match_preview_and_stored_attestations(&previews, vec![stored.clone()], &time_generator, None);
         let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
         assert_eq!(vec![Some(attestation_id)], identities);
 
+        // When the existing attestation has a different format, the identity is None.
+        let previews = [create_example_pid_preview_data(&time_generator, Format::MsoMdoc)];
+        let result = match_preview_and_stored_attestations(&previews, vec![stored.clone()], &time_generator, None);
+        let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
+        assert_eq!(vec![None], identities);
+
+        // When the preview contains the same attestation twice, we expect only the first identity to be known.
+        let previews = [
+            create_example_pid_preview_data(&time_generator, Format::SdJwt),
+            create_example_pid_preview_data(&time_generator, Format::SdJwt),
+        ];
+        let result = match_preview_and_stored_attestations(&previews, vec![stored.clone()], &time_generator, None);
+        let (_, identities): (Vec<_>, Vec<_>) = multiunzip(result);
+        assert_eq!(vec![Some(attestation_id), None], identities);
+
         // When the attestation already exists in the database, but the preview has a newer nbf, it should be considered
         // as a new attestation and the identity is None.
-        let mut preview = create_example_pid_preview_data(&time_generator, Format::MsoMdoc);
+        let mut preview = create_example_pid_preview_data(&time_generator, Format::SdJwt);
         preview.content.credential_payload.not_before = Some(Utc::now().add(Duration::days(365)).into());
         let previews = [preview];
         let result = match_preview_and_stored_attestations(&previews, vec![stored.clone()], &time_generator, None);
@@ -2195,7 +2267,7 @@ mod tests {
         assert_eq!(vec![None], identities);
 
         // When the attestation doesn't exists in the database, the identity is None.
-        let mut preview = create_example_pid_preview_data(&time_generator, Format::MsoMdoc);
+        let mut preview = create_example_pid_preview_data(&time_generator, Format::SdJwt);
         preview.content.credential_payload.attestation_type = String::from("att_type_1");
         let previews = [preview];
         let result = match_preview_and_stored_attestations(&previews, vec![stored.clone()], &time_generator, None);
@@ -2215,7 +2287,7 @@ mod tests {
                 ("att_type_1".to_string(), paths),
             ]),
         };
-        let mut preview = create_example_pid_preview_data(&time_generator, Format::MsoMdoc);
+        let mut preview = create_example_pid_preview_data(&time_generator, Format::SdJwt);
         preview.content.credential_payload.attestation_type = String::from("att_type_1");
         let previews = [preview];
         let result = match_preview_and_stored_attestations(&previews, vec![stored], &time_generator, Some(&pid_config));

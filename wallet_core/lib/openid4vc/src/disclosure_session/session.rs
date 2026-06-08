@@ -283,11 +283,11 @@ mod tests {
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::verifier_certificate::VerifierCertificate;
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::credential_format::Format;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::x509::CertificateUsage;
-    use dcql::CredentialFormat;
     use dcql::normalized::NormalizedCredentialRequests;
     use futures::FutureExt;
     use http::StatusCode;
@@ -445,11 +445,11 @@ mod tests {
     #[rstest]
     fn test_disclosure_session_disclose_abridged(
         #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<BaseUrl>,
-        #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] credential_format: CredentialFormat,
+        #[values(Format::MsoMdoc, Format::SdJwt)] credential_format: Format,
     ) {
         let (requests, attestations, wscd) = match credential_format {
-            CredentialFormat::MsoMdoc => setup_disclosure_mdoc(),
-            CredentialFormat::SdJwt => setup_disclosure_sd_jwt(),
+            Format::MsoMdoc => setup_disclosure_mdoc(),
+            Format::SdJwt => setup_disclosure_sd_jwt(),
         };
 
         let (disclosure_session, verifier_session) = setup_disclosure_session(redirect_uri.clone(), requests);

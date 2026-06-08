@@ -1,8 +1,8 @@
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::credential_format::Format;
 use db_test::DbSetup;
-use dcql::CredentialFormat;
 use dcql::normalized::NormalizedCredentialRequest;
 use dcql::normalized::NormalizedCredentialRequests;
 use dcql::normalized::SdJwtAttributeRequest;
@@ -24,7 +24,7 @@ use wallet::openid4vc::SessionType;
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc5_test_disclosure_based_issuance_and_disclosure(
-    #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] pid_format: CredentialFormat,
+    #[values(Format::MsoMdoc, Format::SdJwt)] pid_format: Format,
 ) {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";
@@ -201,7 +201,7 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
-    #[values(CredentialFormat::MsoMdoc, CredentialFormat::SdJwt)] format: CredentialFormat,
+    #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
 ) {
     let db_setup = DbSetup::create_clean().await;
     let pin = "112233";

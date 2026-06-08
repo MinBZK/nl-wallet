@@ -143,7 +143,7 @@ void main() {
             inactiveWarningTimeout: 0,
             inactiveLockTimeout: 0,
             backgroundLockTimeout: 0,
-            pidAttestationTypes: [],
+            pidAttestations: [],
             staticAssetsBaseUrl: '',
             version: '0',
             environment: 'test',
@@ -191,6 +191,7 @@ void main() {
         const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
           attestationType: 'pid_id',
+          format: .SdJwt,
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
@@ -199,6 +200,7 @@ void main() {
         const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
           attestationType: 'pid_address',
+          format: .SdJwt,
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
@@ -218,6 +220,7 @@ void main() {
         const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
           attestationType: 'pid_id',
+          format: .SdJwt,
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
@@ -228,6 +231,7 @@ void main() {
         const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
           attestationType: 'pid_id',
+          format: .SdJwt,
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
@@ -236,6 +240,7 @@ void main() {
         const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
           attestationType: 'pid_address',
+          format: .SdJwt,
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
@@ -257,6 +262,7 @@ void main() {
         const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
           attestationType: 'pid_id',
+          format: .SdJwt,
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
@@ -267,6 +273,7 @@ void main() {
         const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
           attestationType: 'pid_id',
+          format: .SdJwt,
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
@@ -275,6 +282,7 @@ void main() {
         const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
           attestationType: 'pid_address',
+          format: .SdJwt,
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,

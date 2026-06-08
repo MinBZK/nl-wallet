@@ -6,6 +6,7 @@ export CONFIG_ENV=${CONFIG_ENV:-dev}
 
 SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
 BINARY="$(dirname $SCRIPTS_DIR})/target/release/performance_test"
+DELAY="${DELAY:-0.10}"
 
 if [[ ${1:-} == '--skip-build' ]]; then
     if [[ ! -x $BINARY ]]; then
@@ -30,7 +31,8 @@ stop() {
 trap stop INT
 
 for ((i=1; i <= NUM; i++)); do
-  (RUST_LOG=warn "$BINARY" 2>&1) & pids+=($!)
+    (RUST_LOG=warn "$BINARY" 2>&1) & pids+=($!)
+    sleep $DELAY
 done
 
 FAILED=0

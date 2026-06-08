@@ -2,7 +2,7 @@ use std::error::Error;
 
 use attestation_data::auth::reader_auth::ValidationError;
 use attestation_data::x509::CertificateTypeError;
-use dcql::CredentialFormat;
+use attestation_types::credential_format::Format;
 use derive_more::Constructor;
 use derive_more::Display;
 use error_category::ErrorCategory;
@@ -99,7 +99,7 @@ pub enum VpVerifierError {
 
     #[error("verifier vp_formats_supported does not include required algorithm for format {0}")]
     #[category(critical)]
-    VpFormatsNotSupported(CredentialFormat),
+    VpFormatsNotSupported(Format),
 }
 
 #[derive(Debug, thiserror::Error)]

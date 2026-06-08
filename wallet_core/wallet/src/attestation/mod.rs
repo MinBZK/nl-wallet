@@ -6,6 +6,7 @@ use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::AttributesError;
 use attestation_data::auth::Organization;
 use attestation_data::validity::ValidityWindow;
+use attestation_types::credential_format::Format;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::NaiveDate;
@@ -64,6 +65,7 @@ impl AttestationPresentationConfig for PidAttributesConfiguration {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AttestationPresentation {
     pub identity: AttestationIdentity,
+    pub format: Format,
     pub attestation_type: String,
     pub display_metadata: VecNonEmpty<DisplayMetadata>,
     pub issuer: Box<Organization>,
@@ -159,6 +161,7 @@ impl ValidityStatus {
 pub mod mock {
     use attestation_data::auth::Organization;
     use attestation_data::validity::ValidityWindow;
+    use attestation_types::credential_format::Format;
     use utils::vec_nonempty;
 
     use super::AttestationIdentity;
@@ -180,6 +183,7 @@ pub mod mock {
         pub fn new_mock() -> Self {
             Self {
                 identity: AttestationIdentity::Ephemeral,
+                format: Format::SdJwt,
                 attestation_type: "mock".to_string(),
                 display_metadata: vec_nonempty![DisplayMetadata {
                     lang: "nl".to_string(),

@@ -4,6 +4,7 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
+use attestation_types::credential_format::Format;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::KeyIdentifier;
 use mdoc::IssuerSigned;
@@ -151,6 +152,13 @@ impl StoredAttestationCopy {
 
     pub fn attestation_copy_id(&self) -> Uuid {
         self.attestation_copy_id
+    }
+
+    pub fn format(&self) -> Format {
+        match self.attestation {
+            StoredAttestation::MsoMdoc { .. } => Format::MsoMdoc,
+            StoredAttestation::SdJwt { .. } => Format::SdJwt,
+        }
     }
 
     /// Returns true if `aki` is empty, and otherwise returns whether any of the attestation's issuer certificates
@@ -401,6 +409,7 @@ mod tests {
     use attestation_data::validity::ValidityWindow;
     use attestation_data::x509::generate::mock::generate_issuer_mock_with_registration;
     use attestation_types::claim_path::ClaimPath;
+    use attestation_types::credential_format::Format;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_BSN;
     use attestation_types::status_claim::StatusClaim;
@@ -540,8 +549,20 @@ mod tests {
         })
         .unzip();
 
-        // The full and partial `AttestationPresentation`s should be the same for both formats.
-        assert!(full_presentations.iter().all_equal());
-        assert!(disclosable_presentations.iter().all_equal())
+        // The fields for the full and partial `AttestationPresentation`s should be the same for both formats, except
+        // for the `format` field.
+        for presentations in &[full_presentations, disclosable_presentations] {
+            let (mdoc_presentation, sd_jwt_presentation) = presentations.iter().collect_tuple().unwrap();
+
+            assert_eq!(mdoc_presentation.format, Format::MsoMdoc);
+            assert_eq!(sd_jwt_presentation.format, Format::SdJwt);
+
+            assert_eq!(mdoc_presentation.identity, sd_jwt_presentation.identity);
+            assert_eq!(mdoc_presentation.attestation_type, sd_jwt_presentation.attestation_type);
+            assert_eq!(mdoc_presentation.display_metadata, sd_jwt_presentation.display_metadata);
+            assert_eq!(mdoc_presentation.issuer, sd_jwt_presentation.issuer);
+            assert_eq!(mdoc_presentation.validity, sd_jwt_presentation.validity);
+            assert_eq!(mdoc_presentation.attributes, sd_jwt_presentation.attributes);
+        }
     }
 }

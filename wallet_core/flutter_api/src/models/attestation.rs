@@ -11,6 +11,7 @@ use crate::models::revocation::RevocationStatus;
 
 pub struct AttestationPresentation {
     pub identity: AttestationIdentity,
+    pub format: Format,
     pub attestation_type: String,
     pub display_metadata: Vec<DisplayMetadata>,
     pub issuer: Organization,
@@ -23,6 +24,7 @@ impl From<wallet::AttestationPresentation> for AttestationPresentation {
     fn from(value: wallet::AttestationPresentation) -> Self {
         Self {
             identity: value.identity.into(),
+            format: value.format.into(),
             attestation_type: value.attestation_type,
             display_metadata: value.display_metadata.into_iter().map(DisplayMetadata::from).collect(),
             issuer: value.issuer.into(),
@@ -43,6 +45,20 @@ impl From<wallet::AttestationIdentity> for AttestationIdentity {
         match value {
             wallet::AttestationIdentity::Ephemeral => AttestationIdentity::Ephemeral,
             wallet::AttestationIdentity::Fixed { id } => AttestationIdentity::Fixed { id: id.to_string() },
+        }
+    }
+}
+
+pub enum Format {
+    MsoMdoc,
+    SdJwt,
+}
+
+impl From<wallet::attestation_types::Format> for Format {
+    fn from(value: wallet::attestation_types::Format) -> Self {
+        match value {
+            wallet::attestation_types::Format::MsoMdoc => Self::MsoMdoc,
+            wallet::attestation_types::Format::SdJwt => Self::SdJwt,
         }
     }
 }

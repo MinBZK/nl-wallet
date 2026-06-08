@@ -2,7 +2,7 @@ use std::convert::Infallible;
 
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
-use openid4vc::Format;
+use attestation_types::credential_format::Format;
 use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;

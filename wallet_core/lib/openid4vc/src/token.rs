@@ -5,6 +5,7 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::x509::CertificateType;
 use attestation_data::x509::CertificateTypeError;
+use attestation_types::credential_format::Format;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::random_string;
 use crypto::utils::sha256;
@@ -29,7 +30,6 @@ use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::Format;
 use crate::authorization::AuthorizationDetails;
 use crate::server_state::SessionToken;
 
