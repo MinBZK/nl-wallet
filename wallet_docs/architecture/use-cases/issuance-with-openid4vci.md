@@ -291,7 +291,7 @@ the issuer's nonce with them. It does this by sending a `PerformIssuance`
 Possession (PoP) per generated key by signing the `c_nonce` from the issuer.
 
 When a WIA is also required, which is the case for PID issuance, the wallet
-additionally sends an [`IssueWia`](./wallet-provider-instruction.md#issue_wia)
+additionally sends an [`IssueWia`](./wallet-provider-instruction.md)
 instruction. This returns a fresh WIA (signed with the WB's certificate chain)
 together with a disclosure PoP that binds the WIA to the current request.
 
