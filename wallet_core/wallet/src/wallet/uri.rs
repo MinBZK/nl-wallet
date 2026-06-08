@@ -32,16 +32,21 @@ pub enum RedirectUri {
 /// Uri type for external parties to start a new flow inside the Wallet.
 #[derive(Debug)]
 pub enum InvocationUri {
+    CredentialOffer, // Generic Issuance
     Disclosure,
     DisclosureBasedIssuance,
     Transfer,
-    CredentialOffer,
 }
 
 #[derive(Debug)]
-pub enum UriType {
+pub enum FlowType {
+    Issuance,
+}
+
+#[derive(Debug)]
+pub enum UriType<R = RedirectUri> {
     Invocation(InvocationUri),
-    Redirect(RedirectUri),
+    Redirect(R),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -59,11 +64,11 @@ const DISCLOSURE_URL_SCHEMES: &[&str] = &["eu-eaap", "openid4vp", "haip-vp"];
 /// Custom URL schemes for credential offer issuance flows.
 const CREDENTIAL_OFFER_URI_SCHEMES: &[&str] = &["eu-eaa-offer", "haip-vci", "openid-credential-offer"];
 
-pub(super) fn identify_uri(uri: &Url) -> Option<UriType> {
+pub(super) fn identify_uri(uri: &Url) -> Option<UriType<FlowType>> {
     let uri_str = uri.as_str();
 
     if uri_str.starts_with(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str()) {
-        return Some(UriType::Redirect(RedirectUri::PidIssuance));
+        return Some(UriType::Redirect(FlowType::Issuance));
     }
 
     if uri_str.starts_with(
@@ -112,7 +117,7 @@ where
         let uri = Url::parse(uri_str)?;
         let uri_type = match identify_uri(&uri) {
             // The authorization return URL should only be handled if we're doing either PID issuance or PIN recovery.
-            Some(UriType::Redirect(RedirectUri::PidIssuance))
+            Some(UriType::Redirect(FlowType::Issuance))
                 if matches!(
                     self.session,
                     Some(Session::Issuance(WalletIssuanceSession::Pid {
@@ -123,7 +128,7 @@ where
             {
                 UriType::Redirect(RedirectUri::PidIssuance)
             }
-            Some(UriType::Redirect(RedirectUri::PidIssuance))
+            Some(UriType::Redirect(FlowType::Issuance))
                 if matches!(
                     self.session,
                     Some(Session::Issuance(WalletIssuanceSession::Pid {
@@ -134,7 +139,7 @@ where
             {
                 UriType::Redirect(RedirectUri::PidRenewal)
             }
-            Some(UriType::Redirect(RedirectUri::PidIssuance))
+            Some(UriType::Redirect(FlowType::Issuance))
                 if matches!(
                     self.session,
                     Some(Session::PinRecovery(PinRecoverySession::OAuth { .. }))
@@ -145,12 +150,12 @@ where
 
             // If we're not doing PID issuance or PIN recovery then the authorization return URL is unexpected,
             // so return an error in that case (and of course also when the URI was not recognized).
-            Some(UriType::Redirect(RedirectUri::PidIssuance)) | None => {
+            Some(UriType::Redirect(FlowType::Issuance)) | None => {
                 return Err(UriIdentificationError::Unknown(uri));
             }
 
             // Just pass through any other URI types.
-            Some(uri_type) => uri_type,
+            Some(UriType::Invocation(invocation_type)) => UriType::Invocation(invocation_type),
         };
 
         Ok(uri_type)
