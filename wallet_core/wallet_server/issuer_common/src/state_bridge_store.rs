@@ -124,7 +124,7 @@ where
                 Ok(())
             }
             StateBridgeStoreBackend::Memory(memory_store) => {
-                memory_store.store(issuer_state, entry).await.unwrap();
+                memory_store.store_inner(issuer_state, entry);
                 Ok(())
             }
         }
@@ -145,7 +145,7 @@ where
                     _ => None,
                 }
             }
-            StateBridgeStoreBackend::Memory(memory_store) => memory_store.consume(issuer_state.as_str()).await.unwrap(),
+            StateBridgeStoreBackend::Memory(memory_store) => memory_store.consume_inner(&issuer_state),
         };
 
         entry
@@ -174,7 +174,7 @@ where
                 Ok(())
             }
             StateBridgeStoreBackend::Memory(memory_store) => {
-                memory_store.cleanup().await.unwrap();
+                memory_store.cleanup_inner();
                 Ok(())
             }
         }
