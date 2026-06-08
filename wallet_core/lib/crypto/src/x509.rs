@@ -569,7 +569,6 @@ mod test {
     use chrono::Duration;
     use chrono::Utc;
     use p256::pkcs8::EncodePublicKey;
-    use p256::pkcs8::ObjectIdentifier;
     use rcgen::CustomExtension;
     use time::OffsetDateTime;
     use time::macros::datetime;
@@ -599,9 +598,8 @@ mod test {
 
     #[test]
     fn parse_oid() {
-        let mdl_kp: ObjectIdentifier = "1.0.18013.5.1.2".parse().unwrap();
-        let mdl_kp: &'static [u8] = Box::leak(mdl_kp.into()).as_bytes();
-        assert_eq!(mdl_kp, CertificateUsage::Mdl.eku());
+        let mdl_kp: Oid = "1.0.18013.5.1.2".parse().unwrap();
+        assert_eq!(mdl_kp.as_bytes(), CertificateUsage::Mdl.eku());
     }
 
     #[test]
