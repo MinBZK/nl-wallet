@@ -79,6 +79,8 @@ pub use self::state::CheckPreconditionsError;
 pub use self::state::TransferRole;
 pub use self::state::WalletState;
 pub use self::transfer::TransferError;
+pub use self::uri::InvocationUri;
+pub use self::uri::RedirectUri;
 pub use self::uri::UriIdentificationError;
 pub use self::uri::UriType;
 use crate::account_provider::HttpAccountProviderClient;

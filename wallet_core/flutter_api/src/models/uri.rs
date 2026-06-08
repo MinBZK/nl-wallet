@@ -1,3 +1,5 @@
+use wallet::InvocationUri;
+use wallet::RedirectUri;
 use wallet::UriType;
 use wallet::errors::UriIdentificationError;
 
@@ -17,13 +19,13 @@ impl TryFrom<Result<UriType, UriIdentificationError>> for IdentifyUriResult {
     fn try_from(value: Result<UriType, UriIdentificationError>) -> Result<Self, Self::Error> {
         match value {
             Ok(uri_type) => match uri_type {
-                UriType::PidIssuance => Ok(Self::PidIssuance),
-                UriType::PidRenewal => Ok(Self::PidRenewal),
-                UriType::PinRecovery => Ok(Self::PinRecovery),
-                UriType::Disclosure => Ok(Self::Disclosure),
-                UriType::DisclosureBasedIssuance => Ok(Self::DisclosureBasedIssuance),
-                UriType::Transfer => Ok(Self::Transfer),
-                UriType::CredentialOffer => Ok(Self::CredentialOffer),
+                UriType::Redirect(RedirectUri::PidIssuance) => Ok(Self::PidIssuance),
+                UriType::Redirect(RedirectUri::PidRenewal) => Ok(Self::PidRenewal),
+                UriType::Redirect(RedirectUri::PinRecovery) => Ok(Self::PinRecovery),
+                UriType::Invocation(InvocationUri::Disclosure) => Ok(Self::Disclosure),
+                UriType::Invocation(InvocationUri::DisclosureBasedIssuance) => Ok(Self::DisclosureBasedIssuance),
+                UriType::Invocation(InvocationUri::Transfer) => Ok(Self::Transfer),
+                UriType::Invocation(InvocationUri::CredentialOffer) => Ok(Self::CredentialOffer),
             },
             Err(e) => Err(e),
         }

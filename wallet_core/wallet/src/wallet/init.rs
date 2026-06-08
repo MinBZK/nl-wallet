@@ -396,6 +396,7 @@ mod tests {
     use crate::wallet::PersistedPinRecoverySessionData;
     use crate::wallet::UriType;
     use crate::wallet::test::TestWalletMockStorage;
+    use crate::wallet::uri::RedirectUri;
     use crate::wallet::test::generate_key_holder;
 
     // Tests if the `Wallet::init_registration()` method completes successfully with the mock generics.
@@ -585,7 +586,7 @@ mod tests {
             wallet
                 .identify_uri(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
                 .unwrap(),
-            UriType::PidIssuance
+            UriType::Redirect(RedirectUri::PidIssuance)
         );
     }
 
@@ -665,7 +666,7 @@ mod tests {
             wallet
                 .identify_uri(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
                 .unwrap(),
-            UriType::PinRecovery
+            UriType::Redirect(RedirectUri::PinRecovery)
         );
     }
 
