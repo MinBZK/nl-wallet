@@ -365,11 +365,11 @@ fn credential_request_types_from_preview(
                 CredentialRequestType::from_format(preview.format, preview.credential_payload.attestation_type.clone());
 
             // Construct a `Vec<CredentialRequestType>`, with one entry per copy for this credential.
-            Ok(itertools::repeat_n(request_type, usize::from(preview.batch_size.get())))
+            Ok(std::iter::repeat_n(request_type, usize::from(preview.batch_size.get())))
         })
         .process_results::<_, _, WalletIssuanceError, _>(|iter| iter.flatten().collect_vec())?
         .try_into()
-        .unwrap(); // we're iterating and flatten over a VecNonEmpty that produces an iterator from a NonZeroU8
+        .expect("source is a VecNonEmpty which maps into repeat with NonZeroU8");
 
     Ok(credential_request_types)
 }
