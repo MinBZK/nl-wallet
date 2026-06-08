@@ -11,6 +11,7 @@ use serde_with::skip_serializing_none;
 use strum::EnumString;
 use url::Url;
 
+use crate::authorization_code_flow::InvalidAuthorizationRequest;
 use crate::authorizing_issuer::AuthorizeError;
 use crate::authorizing_issuer::ParError;
 use crate::issuer::CredentialPreviewError;
@@ -269,6 +270,9 @@ impl From<AuthorizeError> for ErrorResponse<AuthorizeErrorCode> {
                     AuthorizeErrorCode::InvalidClient
                 }
                 AuthorizeError::UnknownRequestUri(_) => AuthorizeErrorCode::InvalidRequest,
+                AuthorizeError::InvalidAuthorizationRequest(e) => match e {
+                    InvalidAuthorizationRequest::UnsupportedCodeChallenge => AuthorizeErrorCode::InvalidRequest,
+                },
                 AuthorizeError::ParStore(_)
                 | AuthorizeError::AuthorizationCodeFlow(_)
                 | AuthorizeError::EncodeRedirectQuery(_) => AuthorizeErrorCode::ServerError,

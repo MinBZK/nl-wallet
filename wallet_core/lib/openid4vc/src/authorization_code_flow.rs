@@ -6,12 +6,50 @@
 //! [`AuthorizingIssuer`](crate::authorizing_issuer::AuthorizingIssuer) is generic over this trait and delegates both
 //! endpoints to the configured impl.
 
+use serde::Deserialize;
+use serde::Serialize;
 use url::Url;
 
+use crate::authorization::PkceCodeChallenge;
 use crate::authorization::VciAuthorizationRequest;
 use crate::token::AuthorizationCode;
 
-/// Defines what the framework should do in response to `/authorize`, expressed at the protocol level. The
+/// Represents the wallet-side parameters the `openid4vc` layer extracts from a [`VciAuthorizationRequest`] and that an
+/// [`AuthorizationCodeFlow`] must retain to complete the authorization later: the wallet's
+/// `redirect_uri` and `state` (to build the wallet-facing redirect) and its PKCE `code_challenge`
+/// (which the `/token` handler verifies the wallet's `code_verifier` against).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct WalletAuthorizationContext {
+    pub redirect_uri: Url,
+    pub state: Option<String>,
+    pub code_challenge: String,
+}
+
+/// Reasons a [`VciAuthorizationRequest`] cannot be accepted into a [`WalletAuthorizationContext`].
+#[derive(Debug, thiserror::Error)]
+pub enum InvalidAuthorizationRequest {
+    #[error("unsupported code_challenge_method: only S256 is supported")]
+    UnsupportedCodeChallenge,
+}
+
+impl WalletAuthorizationContext {
+    /// Build the wallet-side context from an authorization request, rejecting requests we can't
+    /// support.
+    pub fn try_from_request(request: VciAuthorizationRequest) -> Result<Self, InvalidAuthorizationRequest> {
+        let code_challenge = match request.code_challenge {
+            PkceCodeChallenge::S256 { code_challenge } => code_challenge,
+            PkceCodeChallenge::Plain { .. } => return Err(InvalidAuthorizationRequest::UnsupportedCodeChallenge),
+        };
+
+        Ok(Self {
+            redirect_uri: request.redirect_uri.into_inner(),
+            state: request.oauth_request.state,
+            code_challenge,
+        })
+    }
+}
+
+/// Defines what the `openid4vc` layer should do in response to `/authorize`, expressed at the protocol level. The
 /// `openid4vc_server` HTTP layer turns each variant into the corresponding 302 redirect.
 #[derive(Debug)]
 pub enum AuthorizeOutcome {
@@ -21,7 +59,7 @@ pub enum AuthorizeOutcome {
     /// not modelled by this trait.
     RedirectTo(Url),
 
-    /// The impl produced an authorization code with no external round-trip. The framework
+    /// The impl produced an authorization code with no external round-trip. The `openid4vc` layer
     /// redirects the wallet back to the original `redirect_uri` with this code (and the
     /// echoed `state`).
     IssuedCode(AuthorizationCode),
@@ -31,8 +69,8 @@ pub enum AuthorizeOutcome {
 pub trait AuthorizationCodeFlow {
     type Error: std::error::Error + Send + Sync + 'static;
 
-    /// Called after the framework has consumed the PAR entry and resolved the original
-    /// authorization request. The implementation decides how the user authenticates and
-    /// returns the protocol-level outcome.
-    async fn authorize(&self, request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error>;
+    /// Called after the `openid4vc` layer has consumed the PAR entry, resolved the original authorization
+    /// request and extracted the wallet-side [`WalletAuthorizationContext`]. The implementation
+    /// decides how the user authenticates and returns the protocol-level outcome.
+    async fn authorize(&self, context: WalletAuthorizationContext) -> Result<AuthorizeOutcome, Self::Error>;
 }

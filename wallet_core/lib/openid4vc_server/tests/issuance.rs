@@ -11,6 +11,8 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
+use openid4vc::authorization::PushedAuthorizationResponse;
+use openid4vc::authorization_code_flow::WalletAuthorizationContext;
 use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
@@ -534,6 +536,55 @@ async fn authorize_rejects_unknown_client_id() {
     assert!(body.contains("invalid_client"), "unexpected body: {body}");
 }
 
+#[tokio::test]
+async fn authorize_rejects_unsupported_code_challenge_method() {
+    let AuthCodeFlowServer {
+        issuer_identifier,
+        tls_trust_anchor,
+        ..
+    } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .redirect(Policy::none())
+        .build()
+        .unwrap();
+
+    let base = issuer_identifier.as_base_url().as_ref().as_str().to_string();
+
+    // PAR doesn't validate the code_challenge_method, so a `plain` request is stored and yields a
+    // request_uri; the rejection is the `openid4vc` layer's job at /authorize, uniformly for every flow.
+    let par_response = http_client
+        .post(format!("{base}issuance/par"))
+        .form(&[
+            ("response_type", "code"),
+            ("client_id", MOCK_WALLET_CLIENT_ID),
+            ("redirect_uri", "https://wallet.example.com/callback"),
+            ("code_challenge", "plain-challenge"),
+            ("code_challenge_method", "plain"),
+        ])
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(par_response.status(), StatusCode::CREATED);
+    let request_uri = par_response
+        .json::<PushedAuthorizationResponse>()
+        .await
+        .unwrap()
+        .request_uri;
+
+    let mut authorize_url: Url = format!("{base}issuance/authorize").parse().unwrap();
+    authorize_url
+        .query_pairs_mut()
+        .append_pair("client_id", MOCK_WALLET_CLIENT_ID)
+        .append_pair("request_uri", &request_uri);
+    let response = http_client.get(authorize_url).send().await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("invalid_request"), "unexpected body: {body}");
+    assert!(body.contains("code_challenge_method"), "unexpected body: {body}");
+}
+
 /// Builds a parseable DPoP header for `POST {token_url}`. The PKCE check in the `/token`
 /// handler runs before DPoP semantic verification, so the value just has to deserialize —
 /// the URL/method don't need to match what the handler will later try to verify against.
@@ -546,7 +597,7 @@ fn dpop_header_for(token_url: &Url) -> String {
 
 /// Plant an `AuthCodeIssued` session against the given authorizing_issuer using a freshly generated
 /// PKCE pair, returning the (issuer-generated code, code_verifier) the caller can use to drive
-/// `/token`. The wallet redirect URL the framework builds is discarded — these tests don't
+/// `/token`. The wallet redirect URL the `openid4vc` layer builds is discarded — these tests don't
 /// follow the wallet redirect, they call `/token` directly.
 async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) -> (AuthorizationCode, String) {
     let pair = S256PkcePair::generate();
@@ -556,9 +607,11 @@ async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) ->
     let redirect_url = authorizing_issuer
         .complete_authorization(
             documents,
-            challenge,
-            "https://wallet.example.com/callback".parse().unwrap(),
-            None,
+            WalletAuthorizationContext {
+                redirect_uri: "https://wallet.example.com/callback".parse().unwrap(),
+                state: None,
+                code_challenge: challenge,
+            },
         )
         .await
         .unwrap();

@@ -4,7 +4,7 @@
 //! It handles the Pushed Authorization Request and authorize endpoints, and exposes
 //! [`complete_authorization`] for the configured flow to call once it has authenticated the holder
 //! and determined the issuables. Once `complete_authorization` has
-//! written the `AuthCodeIssued` session, the framework's `/token` on the inner [`Issuer`]) is used in the next step of
+//! written the `AuthCodeIssued` session, the `openid4vc` layer's `/token` on the inner [`Issuer`]) is used in the next step of
 //! the flow. Deployments that only do the pre-authorized-code grant (no flow) use the bare [`Issuer`]
 //! directly and never construct an [`AuthorizingIssuer`].
 
@@ -22,6 +22,8 @@ use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
 use crate::authorization_code_flow::AuthorizationCodeFlow;
 use crate::authorization_code_flow::AuthorizeOutcome;
+use crate::authorization_code_flow::InvalidAuthorizationRequest;
+use crate::authorization_code_flow::WalletAuthorizationContext;
 use crate::credential_offer::CredentialOffer;
 use crate::issuable_document::IssuableDocument;
 use crate::issuer::AuthCodeIssued;
@@ -62,6 +64,9 @@ pub enum AuthorizeError {
 
     #[error("request_uri not found or expired: {0}")]
     UnknownRequestUri(String),
+
+    #[error(transparent)]
+    InvalidAuthorizationRequest(#[from] InvalidAuthorizationRequest),
 
     #[error("consuming PAR request failed: {0}")]
     ParStore(#[source] Box<dyn Error + Send + Sync + 'static>),
@@ -189,21 +194,22 @@ where
             });
         }
 
-        // Capture the wallet's redirect_uri + state up front so we can build the wallet-facing
-        // redirect URL when the flow yields an authorization code.
-        let wallet_redirect_uri = authorization_request.redirect_uri.clone();
-        let wallet_state = authorization_request.oauth_request.state.clone();
+        // Extract the wallet-side parameters the flow must retain (rejecting an unsupported
+        // code_challenge_method here, for every flow at once). Keep the redirect_uri + state so we
+        // can build the wallet-facing redirect ourselves on the IssuedCode path.
+        let context = WalletAuthorizationContext::try_from_request(authorization_request)?;
+        let wallet_redirect_uri = context.redirect_uri.clone();
+        let wallet_state = context.state.clone();
 
         let outcome = self
             .flow
-            .authorize(authorization_request)
+            .authorize(context)
             .await
             .map_err(|error| AuthorizeError::AuthorizationCodeFlow(Box::new(error)))?;
 
         match outcome {
             AuthorizeOutcome::RedirectTo(url) => Ok(url),
             AuthorizeOutcome::IssuedCode(code) => {
-                let wallet_redirect_uri = wallet_redirect_uri.into_inner();
                 build_wallet_redirect(wallet_redirect_uri, &code, wallet_state.as_deref())
                     .map_err(AuthorizeError::EncodeRedirectQuery)
             }
@@ -220,26 +226,26 @@ where
     /// implementation detail of the flow and not modelled here. Generates a fresh authorization code, writes
     /// an `AuthCodeIssued` session keyed by it (with `Grant::AuthorizationCode` carrying both the
     /// issuables and the wallet's PKCE `code_challenge`), and builds the wallet-facing redirect
-    /// URL with that code and the wallet's original `state`. The framework's `/token` handler
+    /// URL with that code and the wallet's original `state`. The `openid4vc` layer's `/token` handler
     /// will later load the session, verify the wallet's `code_verifier` against the stored
     /// challenge, and issue.
     pub async fn complete_authorization(
         &self,
         issuable_documents: VecNonEmpty<IssuableDocument>,
-        wallet_code_challenge: String,
-        wallet_redirect_uri: Url,
-        wallet_state: Option<String>,
+        context: WalletAuthorizationContext,
     ) -> Result<Url, CompleteAuthorizationError> {
         let code = AuthorizationCode::from(random_string(AUTH_CODE_LENGTH));
 
-        let redirect_url = build_wallet_redirect(wallet_redirect_uri, &code, wallet_state.as_deref())
+        let redirect_url = build_wallet_redirect(context.redirect_uri, &code, context.state.as_deref())
             .map_err(CompleteAuthorizationError::EncodeRedirectQuery)?;
 
         let state = SessionState::new(
             code.into(),
             IssuanceData::AuthCodeIssued(Box::new(AuthCodeIssued {
                 issuable_documents,
-                grant: Grant::AuthorizationCode { wallet_code_challenge },
+                grant: Grant::AuthorizationCode {
+                    wallet_code_challenge: context.code_challenge,
+                },
             })),
         );
 
@@ -289,9 +295,12 @@ mod tests {
     use super::AuthorizeError;
     use super::AuthorizingIssuer;
     use super::ParError;
+    use crate::authorization::PkceCodeChallenge;
     use crate::authorization::VciAuthorizationRequest;
     use crate::authorization_code_flow::AuthorizationCodeFlow;
     use crate::authorization_code_flow::AuthorizeOutcome;
+    use crate::authorization_code_flow::InvalidAuthorizationRequest;
+    use crate::authorization_code_flow::WalletAuthorizationContext;
     use crate::issuer::Grant;
     use crate::issuer::IssuanceData;
     use crate::issuer_identifier::IssuerIdentifier;
@@ -364,7 +373,7 @@ mod tests {
     impl AuthorizationCodeFlow for FixedOutcomeFlow {
         type Error = Infallible;
 
-        async fn authorize(&self, _request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error> {
+        async fn authorize(&self, _context: WalletAuthorizationContext) -> Result<AuthorizeOutcome, Self::Error> {
             Ok(match &self.0 {
                 AuthorizeOutcome::RedirectTo(url) => AuthorizeOutcome::RedirectTo(url.clone()),
                 AuthorizeOutcome::IssuedCode(code) => AuthorizeOutcome::IssuedCode(code.clone()),
@@ -505,6 +514,32 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn process_authorize_rejects_unsupported_code_challenge_method() {
+        // The PAR holds a request with a `plain` code_challenge_method, which we don't support.
+        let mut request = vci_request(MOCK_WALLET_CLIENT_ID);
+        request.code_challenge = PkceCodeChallenge::Plain {
+            code_challenge: "plain-challenge".to_string(),
+        };
+        let (issuer, par_store, _sessions) = issuer_and_par(vec![(REQUEST_URI.to_string(), request)]);
+        let authorizing_issuer = AuthorizingIssuer::new(
+            issuer,
+            par_store,
+            FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
+            allowed_redirect_uris(),
+        );
+
+        let error = authorizing_issuer
+            .process_authorize(REQUEST_URI, MOCK_WALLET_CLIENT_ID)
+            .await
+            .unwrap_err();
+
+        assert_matches!(
+            error,
+            AuthorizeError::InvalidAuthorizationRequest(InvalidAuthorizationRequest::UnsupportedCodeChallenge)
+        );
+    }
+
+    #[tokio::test]
     async fn process_authorize_passes_through_redirect_outcome() {
         let (issuer, par_store, _sessions) =
             issuer_and_par(vec![(REQUEST_URI.to_string(), vci_request(MOCK_WALLET_CLIENT_ID))]);
@@ -563,9 +598,11 @@ mod tests {
         let redirect_url = authorizing_issuer
             .complete_authorization(
                 documents.clone(),
-                wallet_code_challenge.clone(),
-                WALLET_REDIRECT_URI.parse().unwrap(),
-                Some(WALLET_STATE.to_string()),
+                WalletAuthorizationContext {
+                    redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
+                    state: Some(WALLET_STATE.to_string()),
+                    code_challenge: wallet_code_challenge.clone(),
+                },
             )
             .await
             .unwrap();
@@ -608,9 +645,11 @@ mod tests {
         let redirect_url = authorizing_issuer
             .complete_authorization(
                 mock_issuable_documents(NonZeroUsize::MIN),
-                "wallet-code-challenge".to_string(),
-                WALLET_REDIRECT_URI.parse().unwrap(),
-                None,
+                WalletAuthorizationContext {
+                    redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
+                    state: None,
+                    code_challenge: "wallet-code-challenge".to_string(),
+                },
             )
             .await
             .unwrap();

@@ -23,10 +23,10 @@ use issuer_common::state_bridge_store::IssuerStateBridgeStoreError;
 use jwk_simple::Key;
 use jwt::nonce::Nonce;
 use openid4vc::authorization::OidcAuthorizationRequest;
-use openid4vc::authorization::PkceCodeChallenge;
 use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;
+use openid4vc::authorization_code_flow::WalletAuthorizationContext;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::authorizing_issuer::CompleteAuthorizationError;
 use openid4vc::issuable_document::IssuableDocument;
@@ -61,9 +61,6 @@ const ISSUER_STATE_LENGTH: usize = 32;
 pub enum Error {
     #[error("DigiD error: {0}")]
     Digid(#[source] digid::Error),
-
-    #[error("only S256 code_challenge_method is supported")]
-    UnsupportedCodeChallenge,
 
     #[error("state bridge store error: {0}")]
     StateBridge(#[source] IssuerStateBridgeStoreError),
@@ -113,9 +110,7 @@ pub enum Error {
 /// wallet-facing redirect.
 #[derive(Serialize, Deserialize)]
 struct StateBridgeEntry {
-    wallet_redirect_uri: Url,
-    wallet_state: Option<String>,
-    wallet_code_challenge: String,
+    context: WalletAuthorizationContext,
     upstream_code_verifier: String,
 }
 
@@ -191,7 +186,7 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
     }
 
     /// Mount the `/digid/callback` route owned by this flow on a fresh [`Router`]. The
-    /// pid_issuer binary merges this with the framework's authorization and issuance routers.
+    /// pid_issuer binary merges this with the `openid4vc` layer's authorization and issuance routers.
     /// The handler reads its flow state via [`AuthorizingIssuer::flow`].
     pub fn callback_router<K, L, S, N, PAS>(authorizing_issuer: Arc<AuthorizingIssuer<K, L, S, N, PAS, Self>>) -> Router
     where
@@ -216,15 +211,7 @@ where
 {
     type Error = Error;
 
-    async fn authorize(&self, request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error> {
-        // Capture the wallet-side parameters we'll need at callback time to redirect the
-        // user-agent back to the wallet, and the wallet's PKCE challenge that the framework's
-        // /token handler will verify against.
-        let wallet_code_challenge = match request.code_challenge {
-            PkceCodeChallenge::S256 { code_challenge } => code_challenge,
-            PkceCodeChallenge::Plain { .. } => return Err(Error::UnsupportedCodeChallenge),
-        };
-
+    async fn authorize(&self, context: WalletAuthorizationContext) -> Result<AuthorizeOutcome, Self::Error> {
         // Generate the upstream PKCE pair and the random `issuer_state` we'll use as `state` in
         // the upstream redirect. The upstream provider will echo it back to our callback.
         let upstream_pkce = S256PkcePair::generate();
@@ -240,10 +227,10 @@ where
         );
         upstream_request.scope = Some(IndexSet::from_iter([String::from("openid")]));
 
+        // Retain the wallet-side context so the callback can redirect the user-agent back to the
+        // wallet and the `openid4vc` layer's /token handler can verify the wallet's PKCE challenge.
         let entry = StateBridgeEntry {
-            wallet_redirect_uri: request.redirect_uri.into_inner(),
-            wallet_state: request.oauth_request.state.clone(),
-            wallet_code_challenge,
+            context,
             upstream_code_verifier: upstream_pkce.into_code_verifier(),
         };
         self.state_bridge_store
@@ -266,7 +253,7 @@ where
 
 /// `GET /digid/callback`: termination point for the upstream OIDC redirect. Exchanges the upstream
 /// `code` for a BSN, looks up attributes in the BRP, builds the [`IssuableDocument`]s, and hands
-/// them to the framework's [`AuthorizingIssuer::complete_authorization`] which mints the
+/// them to the `openid4vc` layer's [`AuthorizingIssuer::complete_authorization`] which generates the
 /// issuer-side authorization code, writes the `AuthCodeIssued` session, and produces the wallet-facing
 /// redirect URL. Errors during the BSN / BRP / issuable-build steps surface to the wallet as an
 /// OAuth error redirect, since the wallet's redirect_uri is known by then.
@@ -312,8 +299,8 @@ where
 }
 
 /// Exchange the upstream `code` for the user's BSN, look up attributes, build the issuable documents, and hand them to
-/// the framework's [`AuthorizingIssuer::complete_authorization`], which mints the issuer-side authorization code,
-/// writes the `AuthCodeIssued` session, and returns the wallet-facing redirect URL.
+/// the `openid4vc` layer's [`AuthorizingIssuer::complete_authorization`], which generates the issuer-side authorization
+/// code, writes the `AuthCodeIssued` session, and returns the wallet-facing redirect URL.
 async fn complete_digid_callback<K, L, S, N, PAS, B, O>(
     flow: &UpstreamOidcAuthorizationCodeFlow<B, O>,
     authorizing_issuer: &AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow<B, O>>,
@@ -350,12 +337,7 @@ where
     ];
 
     let wallet_redirect_url = authorizing_issuer
-        .complete_authorization(
-            issuable_documents,
-            entry.wallet_code_challenge.clone(),
-            entry.wallet_redirect_uri.clone(),
-            entry.wallet_state.clone(),
-        )
+        .complete_authorization(issuable_documents, entry.context.clone())
         .await
         .map_err(Error::CompleteAuthorization)?;
 
@@ -371,12 +353,12 @@ fn redirect_to_wallet_error(entry: &StateBridgeEntry, error: &Error) -> Response
         state: Option<&'a str>,
     }
 
-    let mut url = entry.wallet_redirect_uri.clone();
+    let mut url = entry.context.redirect_uri.clone();
 
     let query = serde_urlencoded::to_string(RedirectErrorQuery {
         error: "server_error",
         error_description: &error.to_string(),
-        state: entry.wallet_state.as_deref(),
+        state: entry.context.state.as_deref(),
     })
     .expect("encoding error query string should never fail");
 
@@ -425,10 +407,10 @@ mod tests {
     use axum::http::header;
     use indexmap::IndexMap;
     use issuer_common::state_bridge_store::IssuerStateBridgeStore;
-    use openid4vc::authorization::PkceCodeChallenge;
     use openid4vc::authorization::VciAuthorizationRequest;
     use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
     use openid4vc::authorization_code_flow::AuthorizeOutcome;
+    use openid4vc::authorization_code_flow::WalletAuthorizationContext;
     use openid4vc::authorizing_issuer::AuthorizingIssuer;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
@@ -599,9 +581,11 @@ mod tests {
 
     fn state_bridge_entry() -> StateBridgeEntry {
         StateBridgeEntry {
-            wallet_redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
-            wallet_state: Some(WALLET_STATE.to_string()),
-            wallet_code_challenge: WALLET_CODE_CHALLENGE.to_string(),
+            context: WalletAuthorizationContext {
+                redirect_uri: WALLET_REDIRECT_URI.parse().unwrap(),
+                state: Some(WALLET_STATE.to_string()),
+                code_challenge: WALLET_CODE_CHALLENGE.to_string(),
+            },
             upstream_code_verifier: "upstream-verifier".to_string(),
         }
     }
@@ -648,23 +632,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn authorize_rejects_plain_code_challenge() {
-        let flow = flow_with_clients(
-            FakeBrpClient::from_fixture("frouke"),
-            FakeDigidClient::default(),
-            memory_bridge_store(),
-        );
-
-        let mut request = wallet_request();
-        request.code_challenge = PkceCodeChallenge::Plain {
-            code_challenge: "plain-challenge".to_string(),
-        };
-
-        let error = flow.authorize(request).await.unwrap_err();
-        assert_matches!(error, Error::UnsupportedCodeChallenge);
-    }
-
-    #[tokio::test]
     async fn authorize_builds_upstream_redirect_and_bridge_entry() {
         let bridge = memory_bridge_store();
         let flow = flow_with_clients(
@@ -673,13 +640,10 @@ mod tests {
             Arc::clone(&bridge),
         );
 
-        let request = wallet_request();
-        let wallet_code_challenge = match &request.code_challenge {
-            PkceCodeChallenge::S256 { code_challenge } => code_challenge.clone(),
-            PkceCodeChallenge::Plain { .. } => unreachable!(),
-        };
+        let context = WalletAuthorizationContext::try_from_request(wallet_request()).unwrap();
+        let wallet_code_challenge = context.code_challenge.clone();
 
-        let outcome = flow.authorize(request).await.unwrap();
+        let outcome = flow.authorize(context).await.unwrap();
         let AuthorizeOutcome::RedirectTo(redirect_url) = outcome else {
             panic!("expected a RedirectTo outcome");
         };
@@ -710,9 +674,9 @@ mod tests {
             .await
             .unwrap()
             .expect("a bridge entry should be stored under the issuer_state");
-        assert_eq!(entry.wallet_redirect_uri.as_str(), WALLET_REDIRECT_URI);
-        assert_eq!(entry.wallet_state.as_deref(), Some(WALLET_STATE));
-        assert_eq!(entry.wallet_code_challenge, wallet_code_challenge);
+        assert_eq!(entry.context.redirect_uri.as_str(), WALLET_REDIRECT_URI);
+        assert_eq!(entry.context.state.as_deref(), Some(WALLET_STATE));
+        assert_eq!(entry.context.code_challenge, wallet_code_challenge);
         assert!(!entry.upstream_code_verifier.is_empty());
     }
 

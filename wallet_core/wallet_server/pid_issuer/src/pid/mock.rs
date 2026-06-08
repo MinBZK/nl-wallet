@@ -15,10 +15,9 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use crypto::utils::random_string;
-use openid4vc::authorization::PkceCodeChallenge;
-use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;
+use openid4vc::authorization_code_flow::WalletAuthorizationContext;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
@@ -47,7 +46,7 @@ use crate::pid::constants::PID_RESIDENT_STREET;
 
 /// Mock [`AuthorizationCodeFlow`] for pid, providing a deterministic end-to-end stand-in for the
 /// real DigiD-backed flow:
-/// - `authorize` captures the wallet's PKCE challenge, redirect_uri and state into an in-memory bridge keyed by a
+/// - `authorize` captures the wallet's [`WalletAuthorizationContext`] into an in-memory bridge keyed by a
 ///   generated `issuer_state`, then 302s to the issuer's own mock callback URL
 ///   `<issuer_url>/mock/digid/callback?code=<rnd>&state=<issuer_state>`.
 /// - `callback_router` mounts that callback URL: it consumes the bridge entry, plants an `AuthCodeIssued` session via
@@ -56,14 +55,7 @@ use crate::pid::constants::PID_RESIDENT_STREET;
 pub struct MockPidAuthorizationCodeFlow {
     callback_uri: Url,
     documents: VecNonEmpty<IssuableDocument>,
-    bridge: Mutex<HashMap<String, MockBridgeEntry>>,
-}
-
-#[derive(Clone)]
-struct MockBridgeEntry {
-    wallet_code_challenge: String,
-    wallet_redirect_uri: Url,
-    wallet_state: Option<String>,
+    bridge: Mutex<HashMap<String, WalletAuthorizationContext>>,
 }
 
 impl MockPidAuthorizationCodeFlow {
@@ -76,7 +68,7 @@ impl MockPidAuthorizationCodeFlow {
     }
 
     /// Mount the mock's `/mock/digid/callback` route on a fresh [`Router`]. The integration
-    /// scaffolding merges this with the framework's authorization and issuance routers.
+    /// scaffolding merges this with the `openid4vc` layer's authorization and issuance routers.
     pub fn callback_router<K, L, S, N, PAS>(authorizing_issuer: Arc<AuthorizingIssuer<K, L, S, N, PAS, Self>>) -> Router
     where
         K: Send + Sync + 'static,
@@ -129,15 +121,7 @@ where
             document
         })
         .collect();
-    let wallet_redirect_url = match authorizing_issuer
-        .complete_authorization(
-            documents,
-            entry.wallet_code_challenge,
-            entry.wallet_redirect_uri,
-            entry.wallet_state,
-        )
-        .await
-    {
+    let wallet_redirect_url = match authorizing_issuer.complete_authorization(documents, entry).await {
         Ok(url) => url,
         Err(error) => {
             warn!("mock digid callback: complete_authorization failed: {error}");
@@ -177,24 +161,14 @@ impl Default for MockPidAuthorizationCodeFlow {
 impl AuthorizationCodeFlow for MockPidAuthorizationCodeFlow {
     type Error = Infallible;
 
-    async fn authorize(&self, request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error> {
-        // Capture the wallet-side parameters into the in-memory bridge so the mock callback can
+    async fn authorize(&self, context: WalletAuthorizationContext) -> Result<AuthorizeOutcome, Self::Error> {
+        // Capture the wallet-side context into the in-memory bridge so the mock callback can
         // build the wallet-facing redirect later.
-        let wallet_code_challenge = match request.code_challenge {
-            PkceCodeChallenge::S256 { code_challenge } | PkceCodeChallenge::Plain { code_challenge } => code_challenge,
-        };
-        let wallet_redirect_uri = request.redirect_uri.into_inner();
-        let wallet_state = request.oauth_request.state;
-
         let issuer_state = random_string(32);
-        self.bridge.lock().expect("mutex shouldn't be poisoned in test").insert(
-            issuer_state.clone(),
-            MockBridgeEntry {
-                wallet_code_challenge,
-                wallet_redirect_uri,
-                wallet_state,
-            },
-        );
+        self.bridge
+            .lock()
+            .expect("mutex shouldn't be poisoned in test")
+            .insert(issuer_state.clone(), context);
 
         // Redirect to our own mock callback URL with a fake upstream code + the issuer_state. The
         // callback handler will resolve the bridge entry and complete the flow.

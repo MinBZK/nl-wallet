@@ -34,10 +34,10 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
-use crate::authorization::PkceCodeChallenge;
 use crate::authorization::VciAuthorizationRequest;
 use crate::authorization_code_flow::AuthorizationCodeFlow;
 use crate::authorization_code_flow::AuthorizeOutcome;
+use crate::authorization_code_flow::WalletAuthorizationContext;
 use crate::authorizing_issuer::AuthorizingIssuer;
 use crate::credential_configurations::CredentialConfigurationParameters;
 use crate::issuable_document::IssuableDocument;
@@ -111,20 +111,13 @@ pub fn mock_issuable_documents(document_count: NonZeroUsize) -> VecNonEmpty<Issu
 }
 
 /// Test-only implementation of [`AuthorizationCodeFlow`] for the auth-code path. `authorize`
-/// captures the wallet's `code_challenge`, original `redirect_uri` and `state` into a single-slot
-/// cell and redirects to a dummy upstream URL. Tests do not follow that redirect; they call
+/// captures the wallet's [`WalletAuthorizationContext`] into a single-slot cell and redirects to a
+/// dummy upstream URL. Tests do not follow that redirect; they call
 /// [`StaticAuthorizationCodeFlow::fake_complete_authorization`] directly to plant the corresponding
 /// `AuthCodeIssued` session, standing in for what a real upstream callback would do.
 pub struct StaticAuthorizationCodeFlow {
     documents: VecNonEmpty<IssuableDocument>,
-    captured: Mutex<Option<CapturedAuthorize>>,
-}
-
-/// What the flow captured from the most recent `/authorize` call, awaiting the fake callback.
-struct CapturedAuthorize {
-    wallet_code_challenge: String,
-    wallet_redirect_uri: Url,
-    wallet_state: Option<String>,
+    captured: Mutex<Option<WalletAuthorizationContext>>,
 }
 
 impl StaticAuthorizationCodeFlow {
@@ -135,8 +128,8 @@ impl StaticAuthorizationCodeFlow {
         }
     }
 
-    /// Test-only stand-in for the real upstream callback. Reads the parameters captured during
-    /// `authorize` and hands them to [`AuthorizingIssuer::complete_authorization`], which mints the
+    /// Test-only stand-in for the real upstream callback. Reads the context captured during
+    /// `authorize` and hands it to [`AuthorizingIssuer::complete_authorization`], which generates the
     /// issuer-side authorization code and writes the `AuthCodeIssued` session. Returns the generated code
     /// so the test can drive `/token`.
     pub async fn fake_complete_authorization<K, L, S, N, PAS>(
@@ -146,7 +139,7 @@ impl StaticAuthorizationCodeFlow {
     where
         S: SessionStore<IssuanceData>,
     {
-        let captured = self
+        let context = self
             .captured
             .lock()
             .unwrap()
@@ -154,12 +147,7 @@ impl StaticAuthorizationCodeFlow {
             .expect("fake_complete_authorization called before /authorize was hit");
 
         let redirect_url = authorizing_issuer
-            .complete_authorization(
-                self.documents.clone(),
-                captured.wallet_code_challenge,
-                captured.wallet_redirect_uri,
-                captured.wallet_state,
-            )
+            .complete_authorization(self.documents.clone(), context)
             .await
             .unwrap();
 
@@ -172,19 +160,8 @@ impl StaticAuthorizationCodeFlow {
 impl AuthorizationCodeFlow for StaticAuthorizationCodeFlow {
     type Error = Infallible;
 
-    async fn authorize(&self, request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error> {
-        let wallet_code_challenge = match request.code_challenge {
-            PkceCodeChallenge::S256 { code_challenge } => code_challenge,
-            PkceCodeChallenge::Plain { .. } => panic!("Plain code_challenge not supported"),
-        };
-        let wallet_redirect_uri = request.redirect_uri.into_inner();
-        let wallet_state = request.oauth_request.state;
-
-        *self.captured.lock().expect("mutex shouldn't be poisoned in test") = Some(CapturedAuthorize {
-            wallet_code_challenge,
-            wallet_redirect_uri,
-            wallet_state,
-        });
+    async fn authorize(&self, context: WalletAuthorizationContext) -> Result<AuthorizeOutcome, Self::Error> {
+        *self.captured.lock().expect("mutex shouldn't be poisoned in test") = Some(context);
 
         // The wallet would be redirected to the upstream provider here. Tests drive the upstream
         // callback directly via `fake_complete_authorization`, so this redirect is never followed and

@@ -675,7 +675,7 @@ where
     /// Process a token request. The session must already exist, populated by a flow-specific
     /// provisioner: either via [`Issuer::new_preauthorized_session`] for the pre-authorized-code
     /// flow, or via [`AuthorizingIssuer::complete_authorization`] for the authorization-code
-    /// flow (wallet PKCE is then verified framework-side at `/token`).
+    /// flow (wallet PKCE is then verified by the `openid4vc` layer at `/token`).
     pub async fn process_token_request(
         &self,
         token_request: TokenRequest,
@@ -846,7 +846,7 @@ fn utc_now_truncated_to_days() -> DateTime<Utc> {
 
 /// Outcome of [`Session<AuthCodeIssued>::process_token_request`]: either the access-token response
 /// paired with the `AccessTokenIssued` session, or the error paired with the failed session
-/// the framework should persist in its place. The `Err` variant is boxed to keep the size of
+/// the `openid4vc` layer should persist in its place. The `Err` variant is boxed to keep the size of
 /// the `Result` reasonable.
 type ProcessTokenRequest =
     Result<(TokenResponse, String, Session<AccessTokenIssued>), Box<(TokenRequestError, Session<Done>)>>;
