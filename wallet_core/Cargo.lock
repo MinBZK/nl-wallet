@@ -9396,6 +9396,7 @@ dependencies = [
  "nonempty-collections",
  "nutype",
  "parking_lot",
+ "rand 0.8.6",
  "rstest",
  "semver",
  "serde",

@@ -10,6 +10,7 @@ use nonempty_collections::FromNonEmptyIterator;
 pub use nonempty_collections::IntoNonEmptyIterator;
 use nonempty_collections::Singleton;
 pub use nonempty_collections::iter::NonEmptyIterator;
+use rand::seq::SliceRandom;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
@@ -134,6 +135,14 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
         let last = self.0.pop().unwrap();
 
         (self.0, last)
+    }
+
+    pub fn choose(&self) -> &T {
+        let Self(inner) = self;
+
+        inner
+            .choose(&mut rand::thread_rng())
+            .expect("inner Vec should never be empty")
     }
 
     pub fn as_slice(&self) -> &[T] {
