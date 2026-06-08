@@ -112,11 +112,10 @@ pub fn mock_issuable_documents(document_count: NonZeroUsize) -> VecNonEmpty<Issu
 
 /// Test-only implementation of [`AuthorizationCodeFlow`] for the auth-code path. `authorize`
 /// captures the wallet's `code_challenge`, original `redirect_uri` and `state` into a single-slot
-/// cell and redirects to the configured upstream URL. Tests do not follow that redirect; they call
+/// cell and redirects to a dummy upstream URL. Tests do not follow that redirect; they call
 /// [`StaticAuthorizationCodeFlow::fake_complete_authorization`] directly to plant the corresponding
 /// `AuthCodeIssued` session, standing in for what a real upstream callback would do.
 pub struct StaticAuthorizationCodeFlow {
-    upstream_url: Url,
     documents: VecNonEmpty<IssuableDocument>,
     captured: Mutex<Option<CapturedAuthorize>>,
 }
@@ -129,9 +128,8 @@ struct CapturedAuthorize {
 }
 
 impl StaticAuthorizationCodeFlow {
-    pub fn new(upstream_url: Url, documents: VecNonEmpty<IssuableDocument>) -> Self {
+    pub fn new(documents: VecNonEmpty<IssuableDocument>) -> Self {
         Self {
-            upstream_url,
             documents,
             captured: Mutex::new(None),
         }
@@ -189,8 +187,13 @@ impl AuthorizationCodeFlow for StaticAuthorizationCodeFlow {
         });
 
         // The wallet would be redirected to the upstream provider here. Tests drive the upstream
-        // callback directly via `fake_complete_authorization`, so this redirect is never followed.
-        Ok(AuthorizeOutcome::RedirectTo(self.upstream_url.clone()))
+        // callback directly via `fake_complete_authorization`, so this redirect is never followed and
+        // its target is never inspected.
+        Ok(AuthorizeOutcome::RedirectTo(
+            "https://upstream.example.com/oauth2/authorize"
+                .parse()
+                .expect("valid URL"),
+        ))
     }
 }
 

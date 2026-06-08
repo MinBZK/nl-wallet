@@ -80,7 +80,7 @@ struct AuthCodeFlowServer {
     tls_trust_anchor: ReqwestTrustAnchor,
 }
 
-async fn start_auth_code_flow_server(attestation_count: NonZeroUsize, upstream: Url) -> AuthCodeFlowServer {
+async fn start_auth_code_flow_server(attestation_count: NonZeroUsize) -> AuthCodeFlowServer {
     let (tls_server_config, tls_trust_anchor) = generate_localhost_tls();
 
     let listener = TcpListener::bind("localhost:0").await.unwrap().into_std().unwrap();
@@ -90,7 +90,7 @@ async fn start_auth_code_flow_server(attestation_count: NonZeroUsize, upstream: 
     let sessions = Arc::new(MemorySessionStore::default());
     let mock_documents = mock_issuable_documents(attestation_count);
 
-    let flow = StaticAuthorizationCodeFlow::new(upstream, mock_documents);
+    let flow = StaticAuthorizationCodeFlow::new(mock_documents);
     let (authorizing_issuer, trust_anchors, wia_keypair) = setup_mock_authorizing_issuer(
         issuer_identifier.clone(),
         attestation_count,
@@ -222,7 +222,6 @@ fn verify_issued_credentials(
 async fn authorization_code_flow(
     #[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
 ) {
-    let upstream_oauth_id: Url = "https://auth.example.com/".parse().unwrap();
     let AuthCodeFlowServer {
         authorizing_issuer,
         trust_anchors,
@@ -230,7 +229,7 @@ async fn authorization_code_flow(
         wia_keypair,
         tls_trust_anchor,
         ..
-    } = start_auth_code_flow_server(attestation_count, upstream_oauth_id).await;
+    } = start_auth_code_flow_server(attestation_count).await;
 
     let credential_offer_url = make_credential_offer_url(issuer_identifier.clone(), attestation_count, None);
     let redirect_uri = Url::parse("https://wallet.example.com/callback").unwrap();
@@ -405,12 +404,11 @@ async fn reject_issuance() {
 
 #[tokio::test]
 async fn par_rejects_unknown_client_id() {
-    let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
     let AuthCodeFlowServer {
         issuer_identifier,
         tls_trust_anchor,
         ..
-    } = start_auth_code_flow_server(NonZeroUsize::MIN, upstream_endpoint).await;
+    } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .build()
@@ -437,12 +435,11 @@ async fn par_rejects_unknown_client_id() {
 
 #[tokio::test]
 async fn par_rejects_missing_code_challenge() {
-    let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
     let AuthCodeFlowServer {
         issuer_identifier,
         tls_trust_anchor,
         ..
-    } = start_auth_code_flow_server(NonZeroUsize::MIN, upstream_endpoint).await;
+    } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .build()
@@ -464,12 +461,11 @@ async fn par_rejects_missing_code_challenge() {
 
 #[tokio::test]
 async fn authorize_rejects_unknown_request_uri() {
-    let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
     let AuthCodeFlowServer {
         issuer_identifier,
         tls_trust_anchor,
         ..
-    } = start_auth_code_flow_server(NonZeroUsize::MIN, upstream_endpoint).await;
+    } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .redirect(Policy::none())
@@ -496,12 +492,11 @@ async fn authorize_rejects_unknown_request_uri() {
 
 #[tokio::test]
 async fn authorize_rejects_unknown_client_id() {
-    let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
     let AuthCodeFlowServer {
         issuer_identifier,
         tls_trust_anchor,
         ..
-    } = start_auth_code_flow_server(NonZeroUsize::MIN, upstream_endpoint).await;
+    } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
     let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
         .redirect(Policy::none())
@@ -563,13 +558,12 @@ async fn plant_authorized_session(authorizing_issuer: &TestAuthorizingIssuer) ->
 
 #[tokio::test]
 async fn token_rejects_missing_code_verifier() {
-    let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
     let AuthCodeFlowServer {
         authorizing_issuer,
         issuer_identifier,
         tls_trust_anchor,
         ..
-    } = start_auth_code_flow_server(NonZeroUsize::MIN, upstream_endpoint).await;
+    } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
     let (code, _verifier) = plant_authorized_session(&authorizing_issuer).await;
 
@@ -603,13 +597,12 @@ async fn token_rejects_missing_code_verifier() {
 
 #[tokio::test]
 async fn token_rejects_unknown_code_verifier() {
-    let upstream_endpoint: Url = "https://auth.example.com/oauth2/authorize".parse().unwrap();
     let AuthCodeFlowServer {
         authorizing_issuer,
         issuer_identifier,
         tls_trust_anchor,
         ..
-    } = start_auth_code_flow_server(NonZeroUsize::MIN, upstream_endpoint).await;
+    } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
 
     let (code, _verifier) = plant_authorized_session(&authorizing_issuer).await;
 
