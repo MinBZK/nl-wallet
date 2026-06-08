@@ -296,10 +296,10 @@ max:
           "external_ids": ["87654321"],
           "token_endpoint_auth_method": "none",
           "redirect_uris": [
-            "walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid/",
-            "walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid"
+            "walletdebuginteraction://wallet.edi.rijksoverheid.nl/issuance-callback/",
+            "walletdebuginteraction://wallet.edi.rijksoverheid.nl/issuance-callback"
           ],
-          "error_page": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid",
+          "error_page": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/issuance-callback",
           "response_types": ["code"],
           "pubkey_type": "RSA",
           "client_authentication_method": "none",
