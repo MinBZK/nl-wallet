@@ -141,7 +141,7 @@ where
                     .map_err(IssuerStateBridgeStoreError::DbConsume)?;
 
                 match deleted.into_iter().next() {
-                    Some(model) if self.now() <= model.expires_at.to_utc() => Some(model.entry),
+                    Some(model) if self.now() < model.expires_at.to_utc() => Some(model.entry),
                     _ => None,
                 }
             }
@@ -159,7 +159,7 @@ where
                 // TODO (PVW-5911): limit the number of deleted rows by selecting ids (using FOR UPDATE SKIP LOCKED)
                 // and then delete
                 let result = StateBridge::delete_many()
-                    .filter(state_bridge::Column::ExpiresAt.lt(self.now()))
+                    .filter(state_bridge::Column::ExpiresAt.lte(self.now()))
                     .exec(connection)
                     .await
                     .map_err(IssuerStateBridgeStoreError::DbCleanup)?;

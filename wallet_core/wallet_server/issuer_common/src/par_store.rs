@@ -136,7 +136,7 @@ where
                     None => return Ok(None),
                 };
 
-                if self.now() > model.expires_at.to_utc() {
+                if self.now() >= model.expires_at.to_utc() {
                     return Ok(None);
                 }
 
@@ -153,7 +153,7 @@ where
                 // TODO (PVW-5911): limit the number of deleted rows by selecting ids (using FOR UPDATE SKIP LOCKED)
                 // and then delete
                 let result = PushedAuthorizationRequest::delete_many()
-                    .filter(pushed_authorization_request::Column::ExpiresAt.lt(self.now()))
+                    .filter(pushed_authorization_request::Column::ExpiresAt.lte(self.now()))
                     .exec(connection)
                     .await
                     .map_err(IssuerParStoreError::DbCleanup)?;
