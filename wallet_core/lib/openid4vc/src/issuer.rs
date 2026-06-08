@@ -870,10 +870,7 @@ impl Grant {
 }
 
 impl Session<AuthCodeIssued> {
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "transition helper that takes the framework's shared issuance context by reference"
-    )]
+    #[expect(clippy::too_many_arguments, reason = "Indirect constructor of a session")]
     fn process_token_request<K, L>(
         self,
         token_request: &TokenRequest,
