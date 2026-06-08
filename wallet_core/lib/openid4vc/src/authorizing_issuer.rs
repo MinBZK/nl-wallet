@@ -254,7 +254,7 @@ where
             })),
         );
         self.issuer
-            .write_session(state)
+            .write_new_session(state)
             .await
             .map_err(CompleteAuthorizationError::SessionStore)?;
 

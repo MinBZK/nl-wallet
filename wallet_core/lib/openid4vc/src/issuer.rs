@@ -536,14 +536,14 @@ where
                 grant: Grant::PreAuthorizedCode,
             })),
         );
-        self.write_session(session).await?;
+        self.write_new_session(session).await?;
         Ok(token)
     }
 
     /// Persist a new session. Only used by callers in this crate that build their own
     /// [`SessionState`] (specifically [`AuthorizingIssuer::complete_authorization`] for
     /// auth-code sessions).
-    pub(crate) async fn write_session(&self, state: SessionState<IssuanceData>) -> Result<(), SessionStoreError> {
+    pub(crate) async fn write_new_session(&self, state: SessionState<IssuanceData>) -> Result<(), SessionStoreError> {
         self.sessions.write(state, true).await
     }
 
