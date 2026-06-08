@@ -622,7 +622,7 @@ described below.</p>
         CI-&gt;&gt;Wallet: c_nonce
         Wallet--&gt;&gt;CI: GET metadata
         CI--&gt;&gt;Wallet: metadata
-        Wallet-&gt;&gt;CI: POST Credential Request&lt;br/&gt;(access_token, WUA) to /credential
+        Wallet-&gt;&gt;CI: POST Credential Request&lt;br/&gt;(access_token, WIA) to /credential
         CI-&gt;&gt;Wallet: Credential Response (attestation copies)
     end
     </pre></section>
@@ -683,7 +683,7 @@ carrying one Proof of Possession per attestation private key.</p></li>
         CI-&gt;&gt;Wallet: c_nonce
         Wallet--&gt;&gt;CI: GET metadata
         CI--&gt;&gt;Wallet: metadata
-        Wallet-&gt;&gt;CI: POST Credential Request&lt;br/&gt;(access_token, WUA) to /credential
+        Wallet-&gt;&gt;CI: POST Credential Request&lt;br/&gt;(access_token, WIA) to /credential
         CI-&gt;&gt;Wallet: Credential Response (attestation copies)
     end
     </pre></section>
@@ -866,12 +866,14 @@ the upstream server.</p>
 <section id="wallet-app">
 <h3>Wallet App<a class="headerlink" href="#wallet-app" title="Link to this heading"></a></h3>
 <p>The wallet uses the Wallet Backend to generate attestation private keys and sign
-the issuer’s nonce with them. It does this by sending a <code class="docutils literal notranslate"><span class="pre">PerformIssuance</span></code> or
-<code class="docutils literal notranslate"><span class="pre">PerformIssuanceWithWia</span></code> <a class="reference internal" href="wallet-provider-instruction.html"><span class="std std-doc">instruction</span></a>,
-depending on whether or not a PID is being issued (which requires a WIA). Using
-one of these instructions, the App requests the Wallet Backend to provide a WIA
-and Proofs of Possession (PoPs) for the private keys by signing the <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code>
-from the issuer. The following sequence diagram depicts how this happens.</p>
+the issuer’s nonce with them. It does this by sending a <code class="docutils literal notranslate"><span class="pre">PerformIssuance</span></code>
+<a class="reference internal" href="wallet-provider-instruction.html"><span class="std std-doc">instruction</span></a>, which returns one Proof of
+Possession (PoP) per generated key by signing the <code class="docutils literal notranslate"><span class="pre">c_nonce</span></code> from the issuer.</p>
+<p>For PID issuance, a WIA is additionally required. The wallet sends an
+<a class="reference internal" href="wallet-provider-instruction.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">IssueWia</span></code></span></a> instruction, which returns a
+fresh WIA (signed with the WB’s certificate chain) together with a disclosure
+PoP that binds the WIA to the current request.</p>
+<p>The following sequence diagram depicts how this happens.</p>
 <pre  class="mermaid">
         sequenceDiagram
     %% Force ordering by explicitly setting up participants
@@ -880,8 +882,7 @@ from the issuer. The following sequence diagram depicts how this happens.</p>
     participant hsm as WB HSM
     participant db as WB Database
 
-    wallet-&gt;&gt;+wallet_provider: instruction: perform_issuance[_with_wia](c_nonce, key_count)
-    wallet_provider-&gt;&gt;wallet_provider: key_count++ if WIA is requested
+    wallet-&gt;&gt;+wallet_provider: instruction: perform_issuance(c_nonce, key_count)
     wallet_provider -&gt;&gt;+ hsm: generateECDSAPrivateKeys(key_count)
     hsm -&gt;&gt; hsm: generate ECDSA private keys&lt;br/&gt;encrypt each private key with attestationWrappingKey
     hsm --&gt;&gt;- wallet_provider: encryptedECDSAPrivateKeys, ECDSAPublicKeys
@@ -892,16 +893,22 @@ from the issuer. The following sequence diagram depicts how this happens.</p>
         hsm -&gt;&gt; hsm: Decrypt encryptedAttestationPrivateKey with attestationWrappingKey&lt;br/&gt;sign c_nonce with decrypted key
         hsm --&gt;&gt;- wallet_provider: PoP
     end
-    opt WIA requested
-        wallet_provider -&gt;&gt; wallet_provider: generateWIAContent()
-        wallet_provider -&gt;&gt;+ hsm: sign WIA content using wiaSigningPrivateKey
-        hsm --&gt;&gt;- wallet_provider: WIA
+    wallet_provider--&gt;&gt;-wallet: instruction response: keyIdentifiers, PoPs
+
+    opt WIA required (PID issuance)
+        wallet-&gt;&gt;+wallet_provider: instruction: issue_wia(nonce, aud)
+        wallet_provider -&gt;&gt;+ hsm: generateECDSAPrivateKey()
+        hsm -&gt;&gt; hsm: generate WIA signing key&lt;br/&gt;encrypt with attestationWrappingKey
+        hsm --&gt;&gt;- wallet_provider: encryptedWIAPrivateKey, WIAPublicKey
+        wallet_provider -&gt;&gt; wallet_provider: buildWIAContent(walletMetadata, statusClaim)
+        wallet_provider -&gt;&gt;+ hsm: sign WIA content with wiaSigningKey (x5c)
+        hsm --&gt;&gt;- wallet_provider: WIA JWT
+        wallet_provider -&gt;&gt;+ hsm: sign disclosure PoP with wiaSigningKey
+        hsm --&gt;&gt;- wallet_provider: disclosure PoP
+        wallet_provider -&gt;&gt;+ db: storeWIAKey(encryptedWIAPrivateKey)
+        db --&gt;&gt;- wallet_provider: OK
+        wallet_provider--&gt;&gt;-wallet: instruction response: WiaDisclosure (WIA JWT + disclosure PoP)
     end
-    opt More than 1 private key involved
-        wallet_provider -&gt;&gt;+ hsm: sign PoA for attestationPrivateKeys and possibly WIA
-        hsm --&gt;&gt;- wallet_provider: PoA
-    end
-    wallet_provider--&gt;&gt;-wallet: instruction response: PoPs, attestationPublicKeys, WIA (optional), PoA (optional)
     </pre><!-- References -->
 </section>
 </section>

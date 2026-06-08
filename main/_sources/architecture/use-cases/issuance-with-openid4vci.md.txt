@@ -69,7 +69,7 @@ sequenceDiagram
         CI->>Wallet: c_nonce
         Wallet-->>CI: GET metadata
         CI-->>Wallet: metadata
-        Wallet->>CI: POST Credential Request<br/>(access_token, WUA) to /credential
+        Wallet->>CI: POST Credential Request<br/>(access_token, WIA) to /credential
         CI->>Wallet: Credential Response (attestation copies)
     end
 ```
@@ -136,7 +136,7 @@ sequenceDiagram
         CI->>Wallet: c_nonce
         Wallet-->>CI: GET metadata
         CI-->>Wallet: metadata
-        Wallet->>CI: POST Credential Request<br/>(access_token, WUA) to /credential
+        Wallet->>CI: POST Credential Request<br/>(access_token, WIA) to /credential
         CI->>Wallet: Credential Response (attestation copies)
     end
 ```
@@ -286,12 +286,16 @@ sequenceDiagram
 ### Wallet App
 
 The wallet uses the Wallet Backend to generate attestation private keys and sign
-the issuer's nonce with them. It does this by sending a `PerformIssuance` or
-`PerformIssuanceWithWia` [instruction](./wallet-provider-instruction.md),
-depending on whether or not a PID is being issued (which requires a WIA). Using
-one of these instructions, the App requests the Wallet Backend to provide a WIA
-and Proofs of Possession (PoPs) for the private keys by signing the `c_nonce`
-from the issuer. The following sequence diagram depicts how this happens.
+the issuer's nonce with them. It does this by sending a `PerformIssuance`
+[instruction](./wallet-provider-instruction.md), which returns one Proof of
+Possession (PoP) per generated key by signing the `c_nonce` from the issuer.
+
+For PID issuance, a WIA is additionally required. The wallet sends an
+[`IssueWia`](./wallet-provider-instruction.md) instruction, which returns a
+fresh WIA (signed with the WB's certificate chain) together with a disclosure
+PoP that binds the WIA to the current request.
+
+The following sequence diagram depicts how this happens.
 
 ```{mermaid}
 sequenceDiagram
@@ -301,8 +305,7 @@ sequenceDiagram
     participant hsm as WB HSM
     participant db as WB Database
 
-    wallet->>+wallet_provider: instruction: perform_issuance[_with_wia](c_nonce, key_count)
-    wallet_provider->>wallet_provider: key_count++ if WIA is requested
+    wallet->>+wallet_provider: instruction: perform_issuance(c_nonce, key_count)
     wallet_provider ->>+ hsm: generateECDSAPrivateKeys(key_count)
     hsm ->> hsm: generate ECDSA private keys<br/>encrypt each private key with attestationWrappingKey
     hsm -->>- wallet_provider: encryptedECDSAPrivateKeys, ECDSAPublicKeys
@@ -313,16 +316,22 @@ sequenceDiagram
         hsm ->> hsm: Decrypt encryptedAttestationPrivateKey with attestationWrappingKey<br/>sign c_nonce with decrypted key
         hsm -->>- wallet_provider: PoP
     end
-    opt WIA requested
-        wallet_provider ->> wallet_provider: generateWIAContent()
-        wallet_provider ->>+ hsm: sign WIA content using wiaSigningPrivateKey
-        hsm -->>- wallet_provider: WIA
+    wallet_provider-->>-wallet: instruction response: keyIdentifiers, PoPs
+
+    opt WIA required (PID issuance)
+        wallet->>+wallet_provider: instruction: issue_wia(nonce, aud)
+        wallet_provider ->>+ hsm: generateECDSAPrivateKey()
+        hsm ->> hsm: generate WIA signing key<br/>encrypt with attestationWrappingKey
+        hsm -->>- wallet_provider: encryptedWIAPrivateKey, WIAPublicKey
+        wallet_provider ->> wallet_provider: buildWIAContent(walletMetadata, statusClaim)
+        wallet_provider ->>+ hsm: sign WIA content with wiaSigningKey (x5c)
+        hsm -->>- wallet_provider: WIA JWT
+        wallet_provider ->>+ hsm: sign disclosure PoP with wiaSigningKey
+        hsm -->>- wallet_provider: disclosure PoP
+        wallet_provider ->>+ db: storeWIAKey(encryptedWIAPrivateKey)
+        db -->>- wallet_provider: OK
+        wallet_provider-->>-wallet: instruction response: WiaDisclosure (WIA JWT + disclosure PoP)
     end
-    opt More than 1 private key involved
-        wallet_provider ->>+ hsm: sign PoA for attestationPrivateKeys and possibly WIA
-        hsm -->>- wallet_provider: PoA
-    end
-    wallet_provider-->>-wallet: instruction response: PoPs, attestationPublicKeys, WIA (optional), PoA (optional)
 ```
 
 <!-- References -->

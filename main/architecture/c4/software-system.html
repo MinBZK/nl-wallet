@@ -236,7 +236,7 @@ Technology: sqlite (on Android/iOS)</p>
 </section>
 <section id="walletbackend">
 <h2>4. WalletBackend<a class="headerlink" href="#walletbackend" title="Link to this heading"></a></h2>
-<p>WalletBackend provides backend services to support the Wallet app. WalletBackend facilitates account management, Wallet Unit Attestation status management and offers an endpoint to the Wallet app to perform HSM-assisted operations.</p>
+<p>WalletBackend provides backend services to support the Wallet app. WalletBackend facilitates account management, Wallet Instance Attestation status management and offers an endpoint to the Wallet app to perform HSM-assisted operations.</p>
 <p>Technology: axum (rust)</p>
 <p>Relations:</p>
 <ul class="simple">
@@ -274,7 +274,7 @@ Technology: sqlite (on Android/iOS)</p>
 </section>
 <section id="wia-status-list">
 <h2>7. WIA status list<a class="headerlink" href="#wia-status-list" title="Link to this heading"></a></h2>
-<p>The WIA Status list container contains the WIA Status List(s) that provide information about the validity of Wallet Unit Attestations to consumers (Wallet app and PID-issuer). The WIA Status Lists are published by the WalletBackend.</p>
+<p>The WIA Status list container contains the WIA Status List(s) that provide information about the validity of Wallet Instance Attestations to consumers (Wallet app and PID-issuer). The WIA Status Lists are published by the WalletBackend.</p>
 <p>Technology: nginx (static content, Token Status List)</p>
 <p>Relations:</p>
 <ul class="simple">
@@ -284,7 +284,7 @@ Technology: sqlite (on Android/iOS)</p>
 </section>
 <section id="wb-database-accounts-wia-status">
 <h2>8. WB database (accounts, WIA status)<a class="headerlink" href="#wb-database-accounts-wia-status" title="Link to this heading"></a></h2>
-<p>The WB database contains user account data, and the statuses for issued Wallet Unit Attestations.</p>
+<p>The WB database contains user account data, and the statuses for issued Wallet Instance Attestations.</p>
 <p>Technology: postgres
 Relations:</p>
 <ul class="simple">
