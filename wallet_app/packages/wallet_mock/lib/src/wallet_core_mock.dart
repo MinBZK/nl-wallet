@@ -140,20 +140,6 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  // TODO: implement rust_arc_decrement_strong_count_IssuanceStartResult
-  RustArcDecrementStrongCountFnType get rust_arc_decrement_strong_count_IssuanceStartResult =>
-      throw UnimplementedError();
-
-  @override
-  // TODO: implement rust_arc_decrement_strong_count_IssuanceStartResultPtr
-  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_IssuanceStartResultPtr => throw UnimplementedError();
-
-  @override
-  // TODO: implement rust_arc_increment_strong_count_IssuanceStartResult
-  RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_IssuanceStartResult =>
-      throw UnimplementedError();
-
-  @override
   Future<String> crateApiFullCreatePidIssuanceRedirectUri() async => MockConstants.pidIssuanceRedirectUri;
 
   @override
@@ -438,4 +424,19 @@ class WalletCoreMock implements WalletCoreApi {
   Future<String> crateApiFullStartCloseProximityDisclosure({
     required FutureOr<void> Function(CloseProximityDisclosureFlutterUpdate) callback,
   }) async => 'mdoc:example.org';
+
+  @override
+  String crateModelsImageSanitizedSvgXml({required SanitizedSvg that}) => '<svg></svg>';
+
+  @override
+  // ignore: non_constant_identifier_names
+  RustArcIncrementStrongCountFnType get rust_arc_increment_strong_count_SanitizedSvg => throw UnimplementedError();
+
+  @override
+  // ignore: non_constant_identifier_names
+  RustArcDecrementStrongCountFnType get rust_arc_decrement_strong_count_SanitizedSvg => throw UnimplementedError();
+
+  @override
+  // ignore: non_constant_identifier_names
+  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_SanitizedSvgPtr => throw UnimplementedError();
 }
