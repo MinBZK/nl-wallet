@@ -891,7 +891,33 @@ impl Session<AuthCodeIssued> {
             )
         });
 
-        finalize_token_response(self, accepted_wallet_client_ids, result)
+        self.finalize_token_response(accepted_wallet_client_ids, result)
+    }
+
+    /// Apply the state transition on a `Session<AuthCodeIssued>` based on the result of
+    /// [`build_token_response`]: success → `AccessTokenIssued`, failure → `Done`. The `Err`
+    /// variant of the returned [`ProcessTokenRequest`] is boxed for size.
+    fn finalize_token_response(
+        self,
+        accepted_wallet_client_ids: &[String],
+        result: Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError>,
+    ) -> ProcessTokenRequest {
+        match result {
+            Ok((token_response, credential_previews, dpop_pubkey, dpop_nonce)) => {
+                let next = self.transition(AccessTokenIssued {
+                    access_token: token_response.access_token.clone(),
+                    accepted_wallet_client_ids: accepted_wallet_client_ids.to_vec(),
+                    credential_previews,
+                    dpop_public_key: dpop_pubkey,
+                    dpop_nonce: dpop_nonce.clone(),
+                });
+                Ok((token_response, dpop_nonce, next))
+            }
+            Err(err) => {
+                let next = self.transition_fail(&err);
+                Err(Box::new((err, next)))
+            }
+        }
     }
 }
 
@@ -921,32 +947,6 @@ fn build_token_response<K, L>(
     let token_response = TokenResponse::new(AccessToken::new(&code));
 
     Ok((token_response, preview_states, dpop_public_key, dpop_nonce))
-}
-
-/// Apply the state transition on a `Session<AuthCodeIssued>` based on the result of
-/// [`build_token_response`]: success → `AccessTokenIssued`, failure → `Done`. The `Err`
-/// variant of the returned [`ProcessTokenRequest`] is boxed for size.
-fn finalize_token_response<S: IssuanceState>(
-    session: Session<S>,
-    accepted_wallet_client_ids: &[String],
-    result: Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError>,
-) -> ProcessTokenRequest {
-    match result {
-        Ok((token_response, credential_previews, dpop_pubkey, dpop_nonce)) => {
-            let next = session.transition(AccessTokenIssued {
-                access_token: token_response.access_token.clone(),
-                accepted_wallet_client_ids: accepted_wallet_client_ids.to_vec(),
-                credential_previews,
-                dpop_public_key: dpop_pubkey,
-                dpop_nonce: dpop_nonce.clone(),
-            });
-            Ok((token_response, dpop_nonce, next))
-        }
-        Err(err) => {
-            let next = session.transition_fail(&err);
-            Err(Box::new((err, next)))
-        }
-    }
 }
 
 fn credential_preview_state_for_issuable_document<K, L>(
