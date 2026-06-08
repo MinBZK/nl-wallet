@@ -37,6 +37,9 @@ class CoreUriRepository implements UriRepository {
       case IdentifyUriResult.CredentialOffer:
         // TODO: Handle this case.
         throw UnimplementedError();
+      case IdentifyUriResult.GeneralIssuance:
+        // TODO: Handle this case.
+        throw UnimplementedError();
     }
   }
 }

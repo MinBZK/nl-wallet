@@ -25,6 +25,7 @@ use crate::wallet::pin_recovery::PinRecoverySession;
 #[derive(Debug)]
 pub enum RedirectUri {
     PidIssuance,
+    GeneralIssuance,
     PidRenewal,
     PinRecovery,
 }
@@ -147,6 +148,16 @@ where
             {
                 UriType::Redirect(RedirectUri::PinRecovery)
             }
+            Some(UriType::Redirect(FlowType::Issuance))
+                if matches!(
+                    self.session,
+                    Some(Session::Issuance(WalletIssuanceSession::General {
+                        session_state: SessionState::Authorization { .. },
+                    })),
+                ) =>
+            {
+                UriType::Redirect(RedirectUri::GeneralIssuance)
+            }
 
             // If we're not doing PID issuance or PIN recovery then the authorization return URL is unexpected,
             // so return an error in that case (and of course also when the URI was not recognized).
@@ -233,6 +244,19 @@ mod tests {
         assert_matches!(
             wallet.identify_uri(authorization_uri).unwrap(),
             UriType::Redirect(RedirectUri::PidRenewal)
+        );
+
+        // Set up a general issuance session that will match the URI.
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::General {
+            session_state: SessionState::Authorization {
+                authorization_session: MockAuthorizationSession::new(),
+            },
+        }));
+
+        // The wallet should now recognise the authorization URI.
+        assert_matches!(
+            wallet.identify_uri(authorization_uri).unwrap(),
+            UriType::Redirect(RedirectUri::GeneralIssuance)
         );
 
         // After clearing the session, the URI should not be recognised again.

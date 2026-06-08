@@ -3579,10 +3579,10 @@ class MockTypedWalletCore extends _i1.Mock implements _i78.TypedWalletCore {
       (super.noSuchMethod(
             Invocation.method(#identifyUri, [uri]),
             returnValue: _i11.Future<_i19.IdentifyUriResult>.value(
-              _i19.IdentifyUriResult.PidIssuance,
+              _i19.IdentifyUriResult.GeneralIssuance,
             ),
             returnValueForMissingStub: _i11.Future<_i19.IdentifyUriResult>.value(
-              _i19.IdentifyUriResult.PidIssuance,
+              _i19.IdentifyUriResult.GeneralIssuance,
             ),
           )
           as _i11.Future<_i19.IdentifyUriResult>);
@@ -4834,10 +4834,10 @@ class MockWalletCoreApi extends _i1.Mock implements _i79.WalletCoreApi {
       (super.noSuchMethod(
             Invocation.method(#crateApiFullIdentifyUri, [], {#uri: uri}),
             returnValue: _i11.Future<_i19.IdentifyUriResult>.value(
-              _i19.IdentifyUriResult.PidIssuance,
+              _i19.IdentifyUriResult.GeneralIssuance,
             ),
             returnValueForMissingStub: _i11.Future<_i19.IdentifyUriResult>.value(
-              _i19.IdentifyUriResult.PidIssuance,
+              _i19.IdentifyUriResult.GeneralIssuance,
             ),
           )
           as _i11.Future<_i19.IdentifyUriResult>);

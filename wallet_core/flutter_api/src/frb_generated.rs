@@ -1653,13 +1653,14 @@ impl CstDecode<crate::models::uri::IdentifyUriResult> for i32 {
     // Codec=Cst (C-struct based), see doc to use other codecs
     fn cst_decode(self) -> crate::models::uri::IdentifyUriResult {
         match self {
-            0 => crate::models::uri::IdentifyUriResult::PidIssuance,
-            1 => crate::models::uri::IdentifyUriResult::PidRenewal,
-            2 => crate::models::uri::IdentifyUriResult::PinRecovery,
-            3 => crate::models::uri::IdentifyUriResult::Disclosure,
-            4 => crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance,
-            5 => crate::models::uri::IdentifyUriResult::Transfer,
-            6 => crate::models::uri::IdentifyUriResult::CredentialOffer,
+            0 => crate::models::uri::IdentifyUriResult::GeneralIssuance,
+            1 => crate::models::uri::IdentifyUriResult::PidIssuance,
+            2 => crate::models::uri::IdentifyUriResult::PidRenewal,
+            3 => crate::models::uri::IdentifyUriResult::PinRecovery,
+            4 => crate::models::uri::IdentifyUriResult::Disclosure,
+            5 => crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance,
+            6 => crate::models::uri::IdentifyUriResult::Transfer,
+            7 => crate::models::uri::IdentifyUriResult::CredentialOffer,
             _ => unreachable!("Invalid variant for IdentifyUriResult: {}", self),
         }
     }
@@ -2236,13 +2237,14 @@ impl SseDecode for crate::models::uri::IdentifyUriResult {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::models::uri::IdentifyUriResult::PidIssuance,
-            1 => crate::models::uri::IdentifyUriResult::PidRenewal,
-            2 => crate::models::uri::IdentifyUriResult::PinRecovery,
-            3 => crate::models::uri::IdentifyUriResult::Disclosure,
-            4 => crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance,
-            5 => crate::models::uri::IdentifyUriResult::Transfer,
-            6 => crate::models::uri::IdentifyUriResult::CredentialOffer,
+            0 => crate::models::uri::IdentifyUriResult::GeneralIssuance,
+            1 => crate::models::uri::IdentifyUriResult::PidIssuance,
+            2 => crate::models::uri::IdentifyUriResult::PidRenewal,
+            3 => crate::models::uri::IdentifyUriResult::PinRecovery,
+            4 => crate::models::uri::IdentifyUriResult::Disclosure,
+            5 => crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance,
+            6 => crate::models::uri::IdentifyUriResult::Transfer,
+            7 => crate::models::uri::IdentifyUriResult::CredentialOffer,
             _ => unreachable!("Invalid variant for IdentifyUriResult: {}", inner),
         };
     }
@@ -3602,13 +3604,14 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::Format> for c
 impl flutter_rust_bridge::IntoDart for crate::models::uri::IdentifyUriResult {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
-            Self::PidIssuance => 0.into_dart(),
-            Self::PidRenewal => 1.into_dart(),
-            Self::PinRecovery => 2.into_dart(),
-            Self::Disclosure => 3.into_dart(),
-            Self::DisclosureBasedIssuance => 4.into_dart(),
-            Self::Transfer => 5.into_dart(),
-            Self::CredentialOffer => 6.into_dart(),
+            Self::GeneralIssuance => 0.into_dart(),
+            Self::PidIssuance => 1.into_dart(),
+            Self::PidRenewal => 2.into_dart(),
+            Self::PinRecovery => 3.into_dart(),
+            Self::Disclosure => 4.into_dart(),
+            Self::DisclosureBasedIssuance => 5.into_dart(),
+            Self::Transfer => 6.into_dart(),
+            Self::CredentialOffer => 7.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -4667,13 +4670,14 @@ impl SseEncode for crate::models::uri::IdentifyUriResult {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::models::uri::IdentifyUriResult::PidIssuance => 0,
-                crate::models::uri::IdentifyUriResult::PidRenewal => 1,
-                crate::models::uri::IdentifyUriResult::PinRecovery => 2,
-                crate::models::uri::IdentifyUriResult::Disclosure => 3,
-                crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance => 4,
-                crate::models::uri::IdentifyUriResult::Transfer => 5,
-                crate::models::uri::IdentifyUriResult::CredentialOffer => 6,
+                crate::models::uri::IdentifyUriResult::GeneralIssuance => 0,
+                crate::models::uri::IdentifyUriResult::PidIssuance => 1,
+                crate::models::uri::IdentifyUriResult::PidRenewal => 2,
+                crate::models::uri::IdentifyUriResult::PinRecovery => 3,
+                crate::models::uri::IdentifyUriResult::Disclosure => 4,
+                crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance => 5,
+                crate::models::uri::IdentifyUriResult::Transfer => 6,
+                crate::models::uri::IdentifyUriResult::CredentialOffer => 7,
                 _ => {
                     unimplemented!("");
                 }

@@ -4,9 +4,12 @@ use wallet::UriType;
 use wallet::errors::UriIdentificationError;
 
 pub enum IdentifyUriResult {
+    // Callback/Redirect urls
+    GeneralIssuance,
     PidIssuance,
     PidRenewal,
     PinRecovery,
+    // Invocation urls
     Disclosure,
     DisclosureBasedIssuance,
     Transfer,
@@ -19,6 +22,7 @@ impl TryFrom<Result<UriType, UriIdentificationError>> for IdentifyUriResult {
     fn try_from(value: Result<UriType, UriIdentificationError>) -> Result<Self, Self::Error> {
         match value {
             Ok(uri_type) => match uri_type {
+                UriType::Redirect(RedirectUri::GeneralIssuance) => Ok(Self::GeneralIssuance),
                 UriType::Redirect(RedirectUri::PidIssuance) => Ok(Self::PidIssuance),
                 UriType::Redirect(RedirectUri::PidRenewal) => Ok(Self::PidRenewal),
                 UriType::Redirect(RedirectUri::PinRecovery) => Ok(Self::PinRecovery),
