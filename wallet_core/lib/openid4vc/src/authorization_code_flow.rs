@@ -33,8 +33,6 @@ pub trait AuthorizationCodeFlow {
 
     /// Called after the framework has consumed the PAR entry and resolved the original
     /// authorization request. The implementation decides how the user authenticates and
-    /// returns the protocol-level outcome. Anything the impl needs after this point -- an
-    /// external callback, an issuer-generated code, the issuance session itself -- is the impl's
-    /// responsibility and is not modelled by this trait.
+    /// returns the protocol-level outcome.
     async fn authorize(&self, request: VciAuthorizationRequest) -> Result<AuthorizeOutcome, Self::Error>;
 }
