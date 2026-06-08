@@ -55,11 +55,12 @@ impl IssuerMetadata {
         attestation_type: &str,
         config_id: CredentialConfigurationId,
     ) -> IssuerMetadata {
-        let credential_endpoint = issuer_identifier.join_issuer_url("/issuance/credential");
-        let batch_credential_endpoint = issuer_identifier.join_issuer_url("/issuance/batch_credential");
-        let nonce_endpoint = issuer_identifier.join_issuer_url("/issuance/nonce");
-        let credential_preview_endpoint = issuer_identifier.join_issuer_url("/issuance/credential_preview");
-        let type_metadata_uri = issuer_identifier
+        let issuer_url = issuer_identifier.as_issuer_url();
+        let credential_endpoint = issuer_url.join_issuer_url("/issuance/credential");
+        let batch_credential_endpoint = issuer_url.join_issuer_url("/issuance/batch_credential");
+        let nonce_endpoint = issuer_url.join_issuer_url("/issuance/nonce");
+        let credential_preview_endpoint = issuer_url.join_issuer_url("/issuance/credential_preview");
+        let type_metadata_uri = issuer_url
             .join_issuer_url("/issuance/type_metadata")
             .join_config_id(&config_id);
 

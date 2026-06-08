@@ -430,7 +430,7 @@ where
     ) -> Result<Self, CredentialConfigurationsError> {
         let credential_configs = CredentialConfigurations::try_new(credential_config_params)?;
 
-        let server_url = issuer_identifier.join_issuer_url("/issuance");
+        let server_url = issuer_identifier.as_issuer_url().join_issuer_url("/issuance");
         let credential_endpoint = server_url.join_issuer_url("/credential");
         let batch_credential_endpoint = server_url.join_issuer_url("/batch_credential");
         let nonce_endpoint = server_url.join_issuer_url("/nonce");

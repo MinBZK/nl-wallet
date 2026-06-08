@@ -481,7 +481,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     .to_owned();
 
                 // Required by our own profile
-                if !uri.is_based_on(&issuer_metadata.credential_issuer) {
+                if !uri.is_based_on(issuer_metadata.credential_issuer.as_issuer_url()) {
                     return Err(WalletIssuanceError::NotBasedOnIssuerIdentifier(
                         uri,
                         issuer_metadata.credential_issuer.clone().into(),
