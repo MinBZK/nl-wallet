@@ -290,10 +290,10 @@ the issuer's nonce with them. It does this by sending a `PerformIssuance`
 [instruction](./wallet-provider-instruction.md), which returns one Proof of
 Possession (PoP) per generated key by signing the `c_nonce` from the issuer.
 
-When a WIA is also required, which is the case for PID issuance, the wallet
-additionally sends an [`IssueWia`](./wallet-provider-instruction.md)
-instruction. This returns a fresh WIA (signed with the WB's certificate chain)
-together with a disclosure PoP that binds the WIA to the current request.
+For PID issuance, a WIA is additionally required. The wallet sends an
+[`IssueWia`](./wallet-provider-instruction.md) instruction, which returns a
+fresh WIA (signed with the WB's certificate chain) together with a disclosure
+PoP that binds the WIA to the current request.
 
 The following sequence diagram depicts how this happens.
 
