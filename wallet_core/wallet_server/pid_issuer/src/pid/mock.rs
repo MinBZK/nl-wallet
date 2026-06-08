@@ -75,7 +75,7 @@ impl MockPidAuthorizationCodeFlow {
         }
     }
 
-    /// Mount the mock's `/mock/digid/callback` route on a fresh [`axum::Router`]. The integration
+    /// Mount the mock's `/mock/digid/callback` route on a fresh [`Router`]. The integration
     /// scaffolding merges this with the framework's authorization and issuance routers.
     pub fn callback_router<K, L, S, N, PAS>(authorizing_issuer: Arc<AuthorizingIssuer<K, L, S, N, PAS, Self>>) -> Router
     where
@@ -101,7 +101,7 @@ type MockDigidCallbackAuthorizingIssuer<K, L, S, N, PAS> =
 
 async fn mock_digid_callback<K, L, S, N, PAS>(
     State(authorizing_issuer): State<MockDigidCallbackAuthorizingIssuer<K, L, S, N, PAS>>,
-    Query(MockDigidCallbackQuery { state: issuer_state }): Query<MockDigidCallbackQuery>,
+    Query(MockDigidCallbackQuery { state }): Query<MockDigidCallbackQuery>,
 ) -> Response
 where
     K: Send + Sync + 'static,
@@ -112,7 +112,7 @@ where
 {
     let flow = authorizing_issuer.flow();
 
-    let entry = match flow.bridge.lock().unwrap().remove(&issuer_state) {
+    let entry = match flow.bridge.lock().unwrap().remove(&state) {
         Some(entry) => entry,
         None => {
             warn!("mock digid callback: unknown issuer_state");
@@ -187,7 +187,7 @@ impl AuthorizationCodeFlow for MockPidAuthorizationCodeFlow {
         let wallet_state = request.oauth_request.state;
 
         let issuer_state = random_string(32);
-        self.bridge.lock().unwrap().insert(
+        self.bridge.lock().expect("mutex shouldn't be poisoned in test").insert(
             issuer_state.clone(),
             MockBridgeEntry {
                 wallet_code_challenge,

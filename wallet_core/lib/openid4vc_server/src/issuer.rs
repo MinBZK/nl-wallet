@@ -89,6 +89,27 @@ impl<K, L, S, N, PAS, AF> Clone for AuthorizationState<K, L, S, N, PAS, AF> {
     }
 }
 
+/// Authorization Phase endpoints (PAR + `/authorize`). The wallet's `/token` request is
+/// served by [`create_issuance_router`] in both flows; the auth-code-flow callback is owned
+/// by the concrete [`AuthorizationCodeFlow`] impl and mounted by the binary.
+pub fn create_authorization_router<K, L, S, N, PAS, AF>(
+    authorizing_issuer: Arc<AuthorizingIssuer<K, L, S, N, PAS, AF>>,
+) -> Router
+where
+    K: Send + Sync + 'static,
+    L: Send + Sync + 'static,
+    S: Send + Sync + 'static,
+    N: Send + Sync + 'static,
+    PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
+    AF: AuthorizationCodeFlow + Send + Sync + 'static,
+{
+    Router::new()
+        .route("/issuance/credential_offer", get(credential_offer))
+        .route("/issuance/par", post(pushed_authorization_request))
+        .route("/issuance/authorize", get(authorize))
+        .with_state(AuthorizationState { authorizing_issuer })
+}
+
 /// Issuance Phase endpoints (token / credential / nonce / metadata). Handles `/issuance/token`
 /// for both pre-authorized and authization-code sessions — the inner
 /// [`Issuer::process_token_request`] dispatches on the variant. Auth-code deployments mount
@@ -111,27 +132,6 @@ where
         .route("/issuance/batch_credential", post(batch_credential))
         .route("/issuance/batch_credential", delete(reject_batch_credential))
         .with_state(IssuanceState { issuer })
-}
-
-/// Authorization Phase endpoints (PAR + `/authorize`). The wallet's `/token` request is
-/// served by [`create_issuance_router`] in both flows; the auth-code-flow callback is owned
-/// by the concrete [`AuthorizationCodeFlow`] impl and mounted by the binary.
-pub fn create_authorization_router<K, L, S, N, PAS, AF>(
-    authorizing_issuer: Arc<AuthorizingIssuer<K, L, S, N, PAS, AF>>,
-) -> Router
-where
-    L: Send + Sync + 'static,
-    S: Send + Sync + 'static,
-    N: Send + Sync + 'static,
-    K: Send + Sync + 'static,
-    PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
-    AF: AuthorizationCodeFlow + Send + Sync + 'static,
-{
-    Router::new()
-        .route("/issuance/credential_offer", get(credential_offer))
-        .route("/issuance/par", post(pushed_authorization_request))
-        .route("/issuance/authorize", get(authorize))
-        .with_state(AuthorizationState { authorizing_issuer })
 }
 async fn metadata<K, L, S, N>(State(state): State<IssuanceState<K, L, S, N>>) -> Json<IssuerMetadata> {
     Json(state.issuer.metadata().clone())

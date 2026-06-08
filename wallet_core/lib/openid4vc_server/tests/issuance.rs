@@ -62,18 +62,24 @@ fn generate_localhost_tls() -> (TlsServerConfig, ReqwestTrustAnchor) {
         cert: keypair.certificate().as_ref().to_vec(),
         key: keypair.private_key().to_pkcs8_der().unwrap().as_bytes().to_vec(),
     };
-    let trust_anchors = ReqwestTrustAnchor::try_from(ca.certificate().as_ref().to_vec()).unwrap();
+    let trust_anchor = ReqwestTrustAnchor::try_from(ca.certificate().as_ref().to_vec()).unwrap();
 
-    (tls_config, trust_anchors)
+    (tls_config, trust_anchor)
 }
-
-/// Type alias for the [`AuthorizingIssuer`] flavor used in these auth-code-flow tests.
-type TestAuthorizingIssuer = MockAuthorizingIssuer<TimeGenerator>;
 
 /// Bundle returned by `start_auth_code_flow_server` so tests can call
 /// [`StaticAuthorizationCodeFlow::fake_complete_authorization`] after `/authorize`.
 struct AuthCodeFlowServer {
-    authorizing_issuer: Arc<TestAuthorizingIssuer>,
+    authorizing_issuer: Arc<MockAuthorizingIssuer>,
+    trust_anchors: TrustAnchors,
+    issuer_identifier: IssuerIdentifier,
+    wia_keypair: KeyPair,
+    tls_trust_anchor: ReqwestTrustAnchor,
+}
+
+/// Bundle returned by `start_pre_authorized_code_flow_server`.
+struct PreAuthCodeFlowServer {
+    issuer: Arc<MockIssuer<TimeGenerator>>,
     trust_anchors: TrustAnchors,
     issuer_identifier: IssuerIdentifier,
     wia_keypair: KeyPair,
@@ -122,15 +128,7 @@ async fn start_auth_code_flow_server(attestation_count: NonZeroUsize) -> AuthCod
     }
 }
 
-async fn start_pre_authorized_code_flow_server(
-    attestation_count: NonZeroUsize,
-) -> (
-    Arc<MockIssuer<TimeGenerator>>,
-    TrustAnchors,
-    IssuerIdentifier,
-    KeyPair,
-    ReqwestTrustAnchor,
-) {
+async fn start_pre_authorized_code_flow_server(attestation_count: NonZeroUsize) -> PreAuthCodeFlowServer {
     let (tls_server_config, tls_trust_anchor) = generate_localhost_tls();
 
     let listener = TcpListener::bind("localhost:0").await.unwrap().into_std().unwrap();
@@ -154,7 +152,13 @@ async fn start_pre_authorized_code_flow_server(
             .unwrap()
     });
 
-    (issuer, trust_anchors, issuer_identifier, wia_keypair, tls_trust_anchor)
+    PreAuthCodeFlowServer {
+        issuer,
+        trust_anchors,
+        issuer_identifier,
+        wia_keypair,
+        tls_trust_anchor,
+    }
 }
 
 fn make_credential_offer_url(
@@ -325,8 +329,13 @@ async fn authorization_code_flow(
 async fn pre_authorized_code_flow(
     #[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
 ) {
-    let (issuer, trust_anchors, issuer_identifier, wia_keypair, tls_trust_anchor) =
-        start_pre_authorized_code_flow_server(attestation_count).await;
+    let PreAuthCodeFlowServer {
+        issuer,
+        trust_anchors,
+        issuer_identifier,
+        wia_keypair,
+        tls_trust_anchor,
+    } = start_pre_authorized_code_flow_server(attestation_count).await;
 
     let documents = mock_issuable_documents(attestation_count);
     let session_token = issuer.new_preauthorized_session(documents).await.unwrap();
@@ -370,8 +379,13 @@ async fn pre_authorized_code_flow(
 #[tokio::test]
 async fn reject_issuance() {
     let attestation_count = NonZeroUsize::MIN;
-    let (issuer, trust_anchors, issuer_identifier, _, tls_trust_anchor) =
-        start_pre_authorized_code_flow_server(attestation_count).await;
+    let PreAuthCodeFlowServer {
+        issuer,
+        trust_anchors,
+        issuer_identifier,
+        tls_trust_anchor,
+        ..
+    } = start_pre_authorized_code_flow_server(attestation_count).await;
 
     let documents = mock_issuable_documents(attestation_count);
     let session_token = issuer.new_preauthorized_session(documents).await.unwrap();
@@ -534,7 +548,7 @@ fn dpop_header_for(token_url: &Url) -> String {
 /// PKCE pair, returning the (issuer-generated code, code_verifier) the caller can use to drive
 /// `/token`. The wallet redirect URL the framework builds is discarded — these tests don't
 /// follow the wallet redirect, they call `/token` directly.
-async fn plant_authorized_session(authorizing_issuer: &TestAuthorizingIssuer) -> (AuthorizationCode, String) {
+async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) -> (AuthorizationCode, String) {
     let pair = S256PkcePair::generate();
     let challenge = pair.code_challenge().to_string();
     let verifier = pair.into_code_verifier();
