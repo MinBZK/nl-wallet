@@ -122,8 +122,7 @@ pub struct StaticAuthorizationCodeFlow {
 }
 
 /// What the flow captured from the most recent `/authorize` call, awaiting the fake callback.
-#[derive(Clone)]
-pub struct CapturedAuthorize {
+struct CapturedAuthorize {
     wallet_code_challenge: String,
     wallet_redirect_uri: Url,
     wallet_state: Option<String>,
@@ -140,12 +139,12 @@ impl StaticAuthorizationCodeFlow {
 
     /// Test-only stand-in for the real upstream callback. Reads the parameters captured during
     /// `authorize` and hands them to [`AuthorizingIssuer::complete_authorization`], which mints the
-    /// issuer-side authorization code and writes the `AuthCodeIssued` session. Returns the minted code
-    /// and the captured parameters so the test can drive `/token`.
+    /// issuer-side authorization code and writes the `AuthCodeIssued` session. Returns the generated code
+    /// so the test can drive `/token`.
     pub async fn fake_complete_authorization<K, L, S, N, PAS>(
         &self,
         authorizing_issuer: &AuthorizingIssuer<K, L, S, N, PAS, Self>,
-    ) -> (AuthorizationCode, CapturedAuthorize)
+    ) -> AuthorizationCode
     where
         S: SessionStore<IssuanceData>,
     {
@@ -153,24 +152,22 @@ impl StaticAuthorizationCodeFlow {
             .captured
             .lock()
             .unwrap()
-            .clone()
+            .take()
             .expect("fake_complete_authorization called before /authorize was hit");
 
         let redirect_url = authorizing_issuer
             .complete_authorization(
                 self.documents.clone(),
-                captured.wallet_code_challenge.clone(),
-                captured.wallet_redirect_uri.clone(),
-                captured.wallet_state.clone(),
+                captured.wallet_code_challenge,
+                captured.wallet_redirect_uri,
+                captured.wallet_state,
             )
             .await
             .unwrap();
 
         // Extract the authorization code from the redirect URL.
         let params: HashMap<_, _> = redirect_url.query_pairs().into_owned().collect();
-        let authorization_code: AuthorizationCode = params.get("code").unwrap().clone().into();
-
-        (authorization_code, captured)
+        params.get("code").unwrap().clone().into()
     }
 }
 

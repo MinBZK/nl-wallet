@@ -294,7 +294,7 @@ async fn authorization_code_flow(
     // Plant the `AuthCodeIssued` session that the wallet's `/token` call will load. This stands in
     // for what the real upstream callback handler does (BSN → BRP → issuables →
     // complete_authorization).
-    let (issuer_code, _captured) = authorizing_issuer
+    let issuer_code = authorizing_issuer
         .flow()
         .fake_complete_authorization(&authorizing_issuer)
         .await;
