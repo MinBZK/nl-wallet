@@ -467,16 +467,16 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         let type_metadata_uris: HashMap<IssuerUrl, Vec<CredentialConfigurationId>> = credential_configuration_ids
             .iter()
             .map(|config_id| {
-                // TODO (PVW-5856): Ensure this fetch is checked earlier in this method
                 let credential_config = issuer_metadata
                     .credential_configurations_supported
                     .get(config_id)
+                    // TODO (PVW-5856): Ensure this fetch is checked earlier in this method
                     .expect("credential configurations should already be checked");
 
-                // TODO (PVW-5547): Implement fallback if type_metadata_uri is not given
                 let uri = credential_config
                     .type_metadata_uri
                     .as_ref()
+                    // TODO (PVW-5547): Implement fallback if type_metadata_uri is not given
                     .expect("type_metadata_uri is mandatory")
                     .to_owned();
 
@@ -510,6 +510,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 let attestation_type = issuer_metadata.credential_configurations_supported[&config_id]
                     .format
                     .attestation_type()
+                    // TODO (PVW-5547): Only SD-JWT will be supported, also handle this graciously
                     .expect("unsupported format");
 
                 // Normalize
