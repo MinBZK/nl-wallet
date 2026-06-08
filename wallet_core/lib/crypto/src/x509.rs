@@ -105,6 +105,8 @@ impl CertificateUsage {
             return Ok(Self::ReaderAuth);
         } else if key_usage_oid == EXTENDED_KEY_USAGE_TSL {
             return Ok(Self::OAuthStatusSigning);
+        } else if key_usage_oid == EXTENDED_KEY_USAGE_WIA {
+            return Ok(Self::Wia);
         }
 
         Err(CertificateError::IncorrectEku(key_usage_oid.to_id_string()))
