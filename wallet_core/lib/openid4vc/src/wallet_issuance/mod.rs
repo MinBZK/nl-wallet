@@ -35,6 +35,7 @@ use crate::ErrorResponse;
 use crate::TokenErrorCode;
 use crate::credential::Credential;
 use crate::dpop::DpopError;
+use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::well_known::WellKnownError;
 use crate::token::CredentialPreviewError;
@@ -180,6 +181,10 @@ pub enum WalletIssuanceError {
     #[error("error discovering Credential Issuer metadata: {0}")]
     #[category(expected)]
     CredentialIssuerDiscovery(#[source] WellKnownError),
+
+    #[error("authorization server specified in Credential Offer is not present in OAuth metadata: {0}")]
+    #[category(expected)]
+    AuthorizationServerMismatch(IssuerIdentifier),
 
     #[error("missing Credential Configuration ID from Credential Offer in Issuer Metadata: {}", .0.iter().join(", "))]
     #[category(expected)]
