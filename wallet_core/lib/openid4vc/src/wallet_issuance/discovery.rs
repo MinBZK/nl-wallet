@@ -19,6 +19,7 @@ use crate::credential_offer::CredentialOffer;
 use crate::credential_offer::CredentialOfferContainer;
 use crate::credential_offer::Grants;
 use crate::issuer_identifier::IssuerIdentifier;
+use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
@@ -49,14 +50,14 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         redirect_uri: Url,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<IssuanceFlow<Self::Authorization, Self::Issuance>, WalletIssuanceError> {
-        let (credential_configuration_ids, flow, issuer_metadata, oauth_metadata) =
+        let (credential_configurations, flow, issuer_metadata, oauth_metadata) =
             self.resolve_credential_offer_flow(offer_uri).await?;
 
         let issuance_flow = match flow {
             CredentialOfferFlow::AuthorizationCode { issuer_state } => {
                 let authorization_session = HttpAuthorizationSession::create(
                     self.http_client.clone(),
-                    credential_configuration_ids,
+                    credential_configurations,
                     issuer_metadata,
                     oauth_metadata,
                     client_id,
@@ -71,7 +72,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
                 let issuance_session = self
                     .create_issuance_session(
                         pre_authorized_code,
-                        credential_configuration_ids,
+                        credential_configurations,
                         issuer_metadata,
                         oauth_metadata,
                         client_id,
@@ -117,7 +118,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
         client_id: String,
         issuer_trust_anchors: &TrustAnchors,
     ) -> Result<Self::Issuance, WalletIssuanceError> {
-        let (credential_configuration_ids, flow, issuer_metadata, oauth_metadata) =
+        let (credential_configurations, flow, issuer_metadata, oauth_metadata) =
             self.resolve_credential_offer_flow(offer_uri).await?;
 
         let CredentialOfferFlow::PreAuthorizedCode { pre_authorized_code } = flow else {
@@ -126,7 +127,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
 
         self.create_issuance_session(
             pre_authorized_code,
-            credential_configuration_ids,
+            credential_configurations,
             issuer_metadata,
             oauth_metadata,
             client_id,
@@ -304,7 +305,7 @@ impl HttpIssuanceDiscovery {
         offer_uri: &Url,
     ) -> Result<
         (
-            VecNonEmpty<CredentialConfigurationId>,
+            VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
             CredentialOfferFlow,
             IssuerMetadata,
             AuthorizationServerMetadata,
@@ -318,27 +319,22 @@ impl HttpIssuanceDiscovery {
         // Collect the indices of all Credential Configuration IDs that appear in the Credential Offer, but not in the
         // Issuer Metadata. If any are missing we can use these indices to collect the owned values for returning the
         // error.
-        let (credential_configs, missing_id_indices): (Vec<_>, HashSet<_>) = credential_offer
+        let (credential_configs, missing_ids): (Vec<_>, HashSet<_>) = credential_offer
             .credential_configuration_ids
-            .iter()
+            .into_iter()
             .enumerate()
             .partition_map(
-                |(index, id)| match issuer_metadata.credential_configurations_supported.get(id) {
-                    Some(config) => Either::Left(config),
-                    None => Either::Right(index),
+                |(_index, id)| match issuer_metadata.credential_configurations_supported.get(&id) {
+                    Some(config) => Either::Left((id, config.clone())),
+                    None => Either::Right(id),
                 },
             );
 
-        if !missing_id_indices.is_empty() {
-            let missing_ids = credential_offer
-                .credential_configuration_ids
-                .into_iter()
-                .enumerate()
-                .filter_map(|(index, id)| missing_id_indices.contains(&index).then_some(id))
-                .collect();
-
+        if !missing_ids.is_empty() {
             return Err(WalletIssuanceError::MissingCredentialConfigId(missing_ids));
         }
+        let credential_configs =
+            VecNonEmpty::try_from(credential_configs).expect("credential_configuration_ids is VecNonEmpty");
 
         // According to HAIP, if the issuer requires key binding for any of its credential configurations, it MUST also
         // offer a nonce endpoint. As the wallet, we interpret this a bit more loosely and reject issuance whenever any
@@ -348,7 +344,7 @@ impl HttpIssuanceDiscovery {
         if issuer_metadata.nonce_endpoint.is_none()
             && credential_configs
                 .iter()
-                .any(|config| config.cryptographic_binding.is_some())
+                .any(|(_, config)| config.cryptographic_binding.is_some())
         {
             return Err(WalletIssuanceError::NoNonceEndpoint);
         }
@@ -381,19 +377,14 @@ impl HttpIssuanceDiscovery {
             }
         };
 
-        Ok((
-            credential_offer.credential_configuration_ids,
-            flow,
-            issuer_metadata,
-            oauth_metadata,
-        ))
+        Ok((credential_configs, flow, issuer_metadata, oauth_metadata))
     }
 
     #[expect(clippy::too_many_arguments, reason = "internal helper method")]
     async fn create_issuance_session(
         &self,
         pre_authorized_code: AuthorizationCode,
-        credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
+        credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
         issuer_metadata: IssuerMetadata,
         oauth_metadata: AuthorizationServerMetadata,
         client_id: String,
@@ -410,7 +401,7 @@ impl HttpIssuanceDiscovery {
 
         HttpIssuanceSession::create(
             message_client,
-            credential_configuration_ids,
+            credential_configurations,
             issuer_metadata,
             oauth_metadata,
             token_request,

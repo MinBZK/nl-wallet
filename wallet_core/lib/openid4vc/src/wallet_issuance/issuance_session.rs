@@ -35,6 +35,8 @@ use serde::de::DeserializeOwned;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::single_unique::SingleUnique;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use wscd::wscd::IssuanceWscd;
 
@@ -53,6 +55,7 @@ use crate::dpop::DPOP_HEADER_NAME;
 use crate::dpop::DPOP_NONCE_HEADER_NAME;
 use crate::dpop::Dpop;
 use crate::issuer_identifier::IssuerUrl;
+use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
@@ -377,7 +380,7 @@ fn credential_request_types_from_preview(
 impl<H: VcMessageClient> HttpIssuanceSession<H> {
     pub(crate) async fn create(
         message_client: H,
-        credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
+        credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
         issuer_metadata: IssuerMetadata,
         oauth_metadata: AuthorizationServerMetadata,
         token_request: TokenRequest,
@@ -398,16 +401,15 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .await?;
 
         // Fetch type metadata
-        let type_metadata = Self::fetch_type_metadata(
-            credential_configuration_ids.as_slice(),
-            &issuer_metadata,
-            &message_client,
-        )
-        .await?;
+        let type_metadata =
+            Self::fetch_type_metadata(&credential_configurations, &issuer_metadata, &message_client).await?;
 
         // Call the credential preview endpoint to retrieve the credential previews.
         let preview_request = CredentialPreviewRequest::CredentialConfigurationIds {
-            credential_configuration_ids,
+            credential_configuration_ids: credential_configurations
+                .into_nonempty_iter()
+                .map(|(id, _)| id)
+                .collect(),
         };
         let preview_response = message_client
             .request_credential_preview(
@@ -459,55 +461,49 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     }
 
     async fn fetch_type_metadata(
-        credential_configuration_ids: &[CredentialConfigurationId],
+        credential_configurations: impl IntoIterator<Item = &(CredentialConfigurationId, CredentialConfiguration)>,
         issuer_metadata: &IssuerMetadata,
         message_client: &H,
     ) -> Result<HashMap<CredentialConfigurationId, IssuanceTypeMetadata>, WalletIssuanceError> {
         // Get all unique type metadata uris
-        let type_metadata_uris: HashMap<IssuerUrl, Vec<CredentialConfigurationId>> = credential_configuration_ids
-            .iter()
-            .map(|config_id| {
-                let credential_config = issuer_metadata
-                    .credential_configurations_supported
-                    .get(config_id)
-                    // TODO (PVW-5856): Ensure this fetch is checked earlier in this method
-                    .expect("credential configurations should already be checked");
+        let type_metadata_uris: HashMap<IssuerUrl, Vec<(&CredentialConfigurationId, &CredentialConfiguration)>> =
+            credential_configurations
+                .into_iter()
+                .map(|(config_id, config)| {
+                    let uri = config
+                        .type_metadata_uri
+                        .as_ref()
+                        // TODO (PVW-5547): Implement fallback if type_metadata_uri is not given
+                        .expect("type_metadata_uri is mandatory")
+                        .to_owned();
 
-                let uri = credential_config
-                    .type_metadata_uri
-                    .as_ref()
-                    // TODO (PVW-5547): Implement fallback if type_metadata_uri is not given
-                    .expect("type_metadata_uri is mandatory")
-                    .to_owned();
+                    // Required by our own profile
+                    if !uri.has_same_scheme_and_host(issuer_metadata.credential_issuer.as_issuer_url()) {
+                        return Err(WalletIssuanceError::HostMismatchWithIssuerIdentifier(
+                            uri,
+                            issuer_metadata.credential_issuer.clone().into(),
+                        ));
+                    }
 
-                // Required by our own profile
-                if !uri.has_same_scheme_and_host(issuer_metadata.credential_issuer.as_issuer_url()) {
-                    return Err(WalletIssuanceError::HostMismatchWithIssuerIdentifier(
-                        uri,
-                        issuer_metadata.credential_issuer.clone().into(),
-                    ));
-                }
-
-                Ok((uri, config_id.clone()))
-            })
-            .process_results(|iter| iter.into_group_map())?;
+                    Ok((uri, (config_id, config)))
+                })
+                .process_results(|iter| iter.into_group_map())?;
 
         // Fetch type metadata from uris
-        let type_metadata_docs = try_join_all(type_metadata_uris.into_iter().map(|(uri, config_ids)| async {
+        let type_metadata_docs = try_join_all(type_metadata_uris.into_iter().map(|(uri, configs)| async {
             message_client
                 .request_type_metadata(uri.into_url())
                 .await
-                .map(|docs| (docs, config_ids))
+                .map(|docs| (docs, configs))
         }))
         .await?;
 
         // Construct normalized type metadata from documents
         let type_metadatas = type_metadata_docs
             .into_iter()
-            .flat_map(|(docs, config_ids)| std::iter::repeat_n(docs, config_ids.len()).zip_eq(config_ids))
-            .map(|(docs, config_id)| {
-                // `config_id` is produced from `credential_configurations_supported`
-                let attestation_type = issuer_metadata.credential_configurations_supported[&config_id]
+            .flat_map(|(docs, configs)| std::iter::repeat_n(docs, configs.len()).zip_eq(configs))
+            .map(|(docs, (config_id, config))| {
+                let attestation_type = config
                     .format
                     .attestation_type()
                     // TODO (PVW-5547): Only SD-JWT will be supported, also handle this graciously
@@ -517,7 +513,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                 docs.into_normalized(attestation_type)
                     .map(|(normalized_metadata, raw_metadata)| {
                         (
-                            config_id,
+                            config_id.clone(),
                             IssuanceTypeMetadata {
                                 normalized_metadata,
                                 raw_metadata,
@@ -1074,10 +1070,10 @@ mod tests {
                 })
             });
 
-        let credential_config_ids = issuer_metadata
+        let credential_configs = issuer_metadata
             .credential_configurations_supported
-            .keys()
-            .cloned()
+            .iter()
+            .map(|(id, config)| (id.clone(), config.clone()))
             .collect_vec()
             .try_into()
             .unwrap();
@@ -1085,7 +1081,7 @@ mod tests {
 
         HttpIssuanceSession::create(
             mock_msg_client,
-            credential_config_ids,
+            credential_configs,
             issuer_metadata,
             oauth_metadata,
             TokenRequest::new_mock(),
@@ -1233,10 +1229,10 @@ mod tests {
             IssuerMetadata::new_mock(issuer_identifier.clone(), PID_ATTESTATION_TYPE, config_id.clone());
         let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
 
-        let credential_config_ids: VecNonEmpty<_> = issuer_metadata
+        let credential_configs: VecNonEmpty<_> = issuer_metadata
             .credential_configurations_supported
-            .keys()
-            .cloned()
+            .iter()
+            .map(|(id, config)| (id.clone(), config.clone()))
             .collect_vec()
             .try_into()
             .unwrap();
@@ -1283,7 +1279,7 @@ mod tests {
 
         let error = HttpIssuanceSession::create(
             mock_msg_client,
-            credential_config_ids,
+            credential_configs,
             issuer_metadata,
             oauth_metadata,
             TokenRequest::new_mock(),

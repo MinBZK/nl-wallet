@@ -13,6 +13,7 @@ use crate::ErrorResponse;
 use crate::authorization::AuthorizationResponse;
 use crate::authorization::PushedAuthorizationResponse;
 use crate::authorization::VciAuthorizationRequest;
+use crate::metadata::issuer_metadata::CredentialConfiguration;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
@@ -85,7 +86,7 @@ pub enum OAuthError {
 /// The state of an in-progress OAuth authorization code flow.
 #[derive(Debug)]
 pub struct HttpAuthorizationSession<P = S256PkcePair> {
-    credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
+    credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
     issuer_metadata: IssuerMetadata,
     oauth_metadata: AuthorizationServerMetadata,
     http_client: HttpJsonClient,
@@ -99,7 +100,7 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct HttpAuthorizationSessionData {
-    credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
+    credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
     issuer_metadata: IssuerMetadata,
     oauth_metadata: AuthorizationServerMetadata,
     auth_url: Url,
@@ -116,7 +117,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
     #[expect(clippy::too_many_arguments, reason = "internal constructor")]
     pub(super) async fn create(
         http_client: HttpJsonClient,
-        credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
+        credential_configurations: VecNonEmpty<(CredentialConfigurationId, CredentialConfiguration)>,
         issuer_metadata: IssuerMetadata,
         oauth_metadata: AuthorizationServerMetadata,
         client_id: String,
@@ -168,7 +169,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             .append_pair("request_uri", &par_response.request_uri);
 
         Ok(Self {
-            credential_configuration_ids,
+            credential_configurations,
             issuer_metadata,
             oauth_metadata,
             http_client,
@@ -221,7 +222,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
 impl HttpAuthorizationSession {
     pub fn restore(http_client: HttpJsonClient, data: HttpAuthorizationSessionData) -> Self {
         Self {
-            credential_configuration_ids: data.credential_configuration_ids,
+            credential_configurations: data.credential_configurations,
             issuer_metadata: data.issuer_metadata,
             oauth_metadata: data.oauth_metadata,
             http_client,
@@ -248,7 +249,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
 
     fn persist(&self) -> Self::Persisted {
         HttpAuthorizationSessionData {
-            credential_configuration_ids: self.credential_configuration_ids.clone(),
+            credential_configurations: self.credential_configurations.clone(),
             issuer_metadata: self.issuer_metadata.clone(),
             oauth_metadata: self.oauth_metadata.clone(),
             auth_url: self.auth_url.clone(),
@@ -278,7 +279,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
 
         HttpIssuanceSession::create(
             message_client,
-            self.credential_configuration_ids,
+            self.credential_configurations,
             self.issuer_metadata,
             self.oauth_metadata,
             token_request,
@@ -299,11 +300,11 @@ mod tests {
     use http_utils::reqwest::default_reqwest_client_builder;
     use httpmock::Method::POST;
     use httpmock::MockServer;
+    use itertools::Itertools;
     use rstest::rstest;
     use serde_json::json;
     use serial_test::serial;
     use url::Url;
-    use utils::vec_nonempty;
 
     use super::HttpAuthorizationSession;
     use super::HttpAuthorizationSessionData;
@@ -336,11 +337,18 @@ mod tests {
 
     fn create_session() -> HttpAuthorizationSession<MockPkcePair> {
         let config_id: CredentialConfigurationId = "config_id".to_string().into();
+        let issuer_metadata = IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test", config_id.clone());
         let mut pkce_pair = MockPkcePair::new();
         pkce_pair.expect_code_challenge().return_const("challenge".to_string());
         HttpAuthorizationSession {
-            issuer_metadata: IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test", config_id.clone()),
-            credential_configuration_ids: vec_nonempty![config_id],
+            credential_configurations: issuer_metadata
+                .credential_configurations_supported
+                .iter()
+                .map(|(id, config)| (id.clone(), config.clone()))
+                .collect_vec()
+                .try_into()
+                .unwrap(),
+            issuer_metadata,
             oauth_metadata: AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
             http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
             auth_url: ISSUER_URL.parse().unwrap(),
@@ -424,10 +432,17 @@ mod tests {
         });
 
         let config_id: CredentialConfigurationId = "config_id".to_string().into();
+        let issuer_metadata = IssuerMetadata::new_mock(server.base_url().parse().unwrap(), "test", config_id);
         let session = HttpAuthorizationSession::<MockPkcePair>::create(
             HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
-            vec_nonempty![config_id.clone()],
-            IssuerMetadata::new_mock(server.base_url().parse().unwrap(), "test", config_id),
+            issuer_metadata
+                .credential_configurations_supported
+                .iter()
+                .map(|(id, config)| (id.clone(), config.clone()))
+                .collect_vec()
+                .try_into()
+                .unwrap(),
+            issuer_metadata,
             oauth_metadata,
             MOCK_WALLET_CLIENT_ID.to_string(),
             REDIRECT_URI.parse().unwrap(),
@@ -529,9 +544,16 @@ mod tests {
     #[tokio::test]
     async fn test_persist_and_restore() {
         let config_id: CredentialConfigurationId = "config_id".to_string().into();
+        let issuer_metadata = IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test", config_id);
         let persisted = HttpAuthorizationSessionData {
-            credential_configuration_ids: vec_nonempty![config_id.clone()],
-            issuer_metadata: IssuerMetadata::new_mock(ISSUER_URL.parse().unwrap(), "test", config_id),
+            credential_configurations: issuer_metadata
+                .credential_configurations_supported
+                .iter()
+                .map(|(id, config)| (id.clone(), config.clone()))
+                .collect_vec()
+                .try_into()
+                .unwrap(),
+            issuer_metadata,
             oauth_metadata: AuthorizationServerMetadata::new_mock(ISSUER_URL.parse().unwrap()),
             auth_url: ISSUER_URL.parse().unwrap(),
             client_id: CLIENT_ID.to_string(),
@@ -541,7 +563,7 @@ mod tests {
         };
 
         let session = HttpAuthorizationSession {
-            credential_configuration_ids: persisted.credential_configuration_ids.clone(),
+            credential_configurations: persisted.credential_configurations.clone(),
             issuer_metadata: persisted.issuer_metadata.clone(),
             oauth_metadata: persisted.oauth_metadata.clone(),
             http_client: HttpJsonClient::try_new(default_reqwest_client_builder()).unwrap(),
@@ -558,10 +580,6 @@ mod tests {
         );
         let restored_persisted = restored.persist();
 
-        assert_eq!(
-            restored_persisted.credential_configuration_ids,
-            persisted.credential_configuration_ids
-        );
         assert_eq!(restored_persisted.auth_url, persisted.auth_url);
         assert_eq!(restored_persisted.client_id, persisted.client_id);
         assert_eq!(restored_persisted.redirect_uri, persisted.redirect_uri);
