@@ -224,6 +224,15 @@ where
         );
         upstream_request.scope = Some(IndexSet::from_iter([String::from("openid")]));
 
+        let oidc_request = OidcAuthorizationRequest {
+            vci_request: upstream_request,
+            nonce: Some(Nonce::new_random()),
+        };
+
+        let query_string = serde_urlencoded::to_string(&oidc_request).map_err(Error::Encode)?;
+        let mut redirect_url = self.digid_client.authorization_endpoint().await.map_err(Error::Digid)?;
+        redirect_url.set_query(Some(&query_string));
+
         // Retain the wallet-side context so the callback can redirect the user-agent back to the
         // wallet and the `openid4vc` layer's /token handler can verify the wallet's PKCE challenge.
         let entry = StateBridgeEntry {
@@ -234,15 +243,6 @@ where
             .store(issuer_state, entry)
             .await
             .map_err(Error::StateBridge)?;
-
-        let oidc_request = OidcAuthorizationRequest {
-            vci_request: upstream_request,
-            nonce: Some(Nonce::new_random()),
-        };
-
-        let query_string = serde_urlencoded::to_string(&oidc_request).map_err(Error::Encode)?;
-        let mut redirect_url = self.digid_client.authorization_endpoint().await.map_err(Error::Digid)?;
-        redirect_url.set_query(Some(&query_string));
 
         Ok(AuthorizeOutcome::RedirectTo(redirect_url))
     }
