@@ -4,7 +4,10 @@
     "external_id": "87654321",
     "external_ids": ["87654321"],
     "token_endpoint_auth_method": "none",
-    "redirect_uris": ["http://localhost:3003/digid/callback"],
+    "redirect_uris": [
+      "http://localhost:3003/digid/callback",
+      "http://${SERVICES_HOST}:${PID_ISSUER_PORT}/digid/callback"
+    ],
     "error_page": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid",
     "response_types": ["code"],
     "pubkey_type": "RSA",

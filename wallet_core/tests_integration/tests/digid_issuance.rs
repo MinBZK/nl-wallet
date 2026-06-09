@@ -97,7 +97,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             // The issuer advertises a fixed, pre-registered callback URL to nl-rdo-max (exact-match
             // validated against its clients.json) rather than its dynamic bind port, which nl-rdo-max
             // cannot pre-register. `fake_digid_auth` rewrites the port back to the live issuer when it
-            // follows the callback. Keep the port (3003) in sync with the redirect_uris registered in
+            // follows the callback. Keep the port (3003) in sync with the redirect_uris statically registered in
             // `scripts/devenv/digid-connector/clients.json` and `deploy/helm-charts/rdo-max/values.yaml`.
             let callback_base_url = local_http_base_url(3003);
             UpstreamOidcAuthorizationCodeFlow::try_new(
