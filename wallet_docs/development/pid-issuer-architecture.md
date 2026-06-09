@@ -26,6 +26,7 @@ The `PID Issuer` process is assembled from three crates:
 
 - **`wallet_core/lib/openid4vc`** — protocol types and traits, with no HTTP or
   storage baked in. Relevant pieces:
+
     - `authorization::PushedAuthorizationRequest`,
       `authorization::PushedAuthorizationResponse`,
       `authorization::VciAuthorizationRequest` (with its `for_auth_code`
@@ -68,6 +69,7 @@ The `PID Issuer` process is assembled from three crates:
 
 - **`wallet_core/lib/openid4vc_server`** — generic axum wiring for an OpenID4VCI
   issuer, knows nothing about DigiD or BRP. It exposes two routers:
+
     - `issuer::create_issuance_router` mounts the **Issuance Phase** handlers:
       `/.well-known/openid-credential-issuer`,
       `/.well-known/oauth-authorization-server`, `/issuance/token`,
@@ -81,11 +83,11 @@ The `PID Issuer` process is assembled from three crates:
       handlers `/issuance/par` and `/issuance/authorize`. Backed by
       `AuthorizationState { authorizing_issuer }`. The `/authorize` handler just
       calls `AuthorizingIssuer::process_authorize` and 302-redirects to whatever
-      URL it returns; it has no knowledge of PKCE bridging or the upstream IdP.
+      URL it returns; it has no knowledge of state bridging or the upstream IdP.
     - The upstream-IdP callback route is **not** in this crate. It is owned by
       the concrete `AuthorizationCodeFlow` impl and mounted by the binary.
 
-- **`wallet_core/wallet_server/pid_issuer`** — the PID-specific concretions:
+- **`wallet_core/wallet_server/pid_issuer`** — the PID-specific concrete types:
     - `pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow` — the concrete
       `AuthorizationCodeFlow`. It owns the DigiD client, the state-bridge store,
       the BRP client, the recovery-code HMAC key, the issuer's DigiD `client_id`
@@ -160,7 +162,7 @@ flowchart LR
     Flow -->|owns| BrpClient
     Flow -->|reads/writes| Bridge
     Flow -->|complete_authorization| AuthIssuer
-    DigidClient -. shares .-> DigidCache
+    DigidClient -->|owns| DigidCache
 
     DigidCache -->|GET /.well-known/<br/>openid-configuration| RDO
     DigidClient -->|POST /token,<br/>GET /userinfo,<br/>GET jwks_uri| RDO
