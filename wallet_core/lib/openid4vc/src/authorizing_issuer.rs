@@ -4,14 +4,16 @@
 //! It handles the Pushed Authorization Request and authorize endpoints, and exposes
 //! [`complete_authorization`] for the configured flow to call once it has authenticated the holder
 //! and determined the issuables. Once `complete_authorization` has
-//! written the `AuthCodeIssued` session, the `openid4vc` layer's `/token` on the inner [`Issuer`]) is used in the next step of
-//! the flow. Deployments that only do the pre-authorized-code grant (no flow) use the bare [`Issuer`]
+//! written the `AuthCodeIssued` session, the `openid4vc` layer's `/token` on the inner [`Issuer`]) is used in the next
+//! step of the flow. Deployments that only do the pre-authorized-code grant (no flow) use the bare [`Issuer`]
 //! directly and never construct an [`AuthorizingIssuer`].
 
 use std::error::Error;
+use std::fmt::Display;
 use std::sync::Arc;
 
 use crypto::utils::random_string;
+use derive_more::Constructor;
 use serde::Serialize;
 use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
@@ -198,8 +200,7 @@ where
         // code_challenge_method here, for every flow at once). Keep the redirect_uri + state so we
         // can build the wallet-facing redirect ourselves on the IssuedCode path.
         let context = WalletAuthorizationContext::try_from_request(authorization_request)?;
-        let wallet_redirect_uri = context.redirect_uri.clone();
-        let wallet_state = context.state.clone();
+        let wallet_redirect = WalletRedirect::new(context.redirect_uri.clone(), context.state.clone());
 
         let outcome = self
             .flow
@@ -209,10 +210,9 @@ where
 
         match outcome {
             AuthorizeOutcome::RedirectTo(url) => Ok(url),
-            AuthorizeOutcome::IssuedCode(code) => {
-                build_wallet_redirect(wallet_redirect_uri, &code, wallet_state.as_deref())
-                    .map_err(AuthorizeError::EncodeRedirectQuery)
-            }
+            AuthorizeOutcome::IssuedCode(code) => wallet_redirect
+                .into_authorization_code_url(&code)
+                .map_err(AuthorizeError::EncodeRedirectQuery),
         }
     }
 }
@@ -223,61 +223,121 @@ where
 {
     /// Called by the configured [`AuthorizationCodeFlow`] once it has authenticated the holder and
     /// produced the issuables. How the flow does so (e.g. via an external identity provider) is an
-    /// implementation detail of the flow and not modelled here. Generates a fresh authorization code, writes
-    /// an `AuthCodeIssued` session keyed by it (with `Grant::AuthorizationCode` carrying both the
-    /// issuables and the wallet's PKCE `code_challenge`), and builds the wallet-facing redirect
-    /// URL with that code and the wallet's original `state`. The `openid4vc` layer's `/token` handler
-    /// will later load the session, verify the wallet's `code_verifier` against the stored
-    /// challenge, and issue.
+    /// implementation detail of the flow and not modelled here.
     pub async fn complete_authorization(
         &self,
         issuable_documents: VecNonEmpty<IssuableDocument>,
         context: WalletAuthorizationContext,
     ) -> Result<Url, CompleteAuthorizationError> {
+        let WalletAuthorizationContext {
+            redirect_uri,
+            state,
+            code_challenge,
+        } = context;
+
+        self.finalize_authorization(
+            issuable_documents,
+            code_challenge,
+            WalletRedirect::new(redirect_uri, state),
+        )
+        .await
+    }
+
+    /// Generates a fresh authorization code, writes an `AuthCodeIssued` session keyed by it,
+    /// and builds the wallet-facing redirect URL with that code and the wallet's original `state`. The
+    /// `openid4vc` layer's `/token` handler will later load the session, verify the wallet's
+    /// `code_verifier` against the stored challenge, and issue documents.
+    ///
+    /// Shared by async callback flows ([`Self::complete_authorization`]) and the synchronous
+    /// `IssuedCode` path, so both produce identical sessions and redirects.
+    async fn finalize_authorization(
+        &self,
+        issuable_documents: VecNonEmpty<IssuableDocument>,
+        wallet_code_challenge: String,
+        wallet_redirect: WalletRedirect,
+    ) -> Result<Url, CompleteAuthorizationError> {
         let code = AuthorizationCode::from(random_string(AUTH_CODE_LENGTH));
 
-        let redirect_url = build_wallet_redirect(context.redirect_uri, &code, context.state.as_deref())
-            .map_err(CompleteAuthorizationError::EncodeRedirectQuery)?;
-
-        let state = SessionState::new(
-            code.into(),
+        let session_state = SessionState::new(
+            code.clone().into(),
             IssuanceData::AuthCodeIssued(Box::new(AuthCodeIssued {
                 issuable_documents,
-                grant: Grant::AuthorizationCode {
-                    wallet_code_challenge: context.code_challenge,
-                },
+                grant: Grant::AuthorizationCode { wallet_code_challenge },
             })),
         );
 
         self.issuer
-            .write_new_session(state)
+            .write_new_session(session_state)
             .await
             .map_err(CompleteAuthorizationError::SessionStore)?;
 
-        Ok(redirect_url)
+        wallet_redirect
+            .into_authorization_code_url(&code)
+            .map_err(CompleteAuthorizationError::EncodeRedirectQuery)
     }
 }
 
-/// Build the wallet-facing redirect URL carrying the authorization code and the wallet's original `state`.
-fn build_wallet_redirect(
-    mut redirect_uri: Url,
-    code: &AuthorizationCode,
-    wallet_state: Option<&str>,
-) -> Result<Url, serde_urlencoded::ser::Error> {
-    #[derive(Serialize)]
-    struct RedirectQuery<'a> {
-        code: &'a str,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        state: Option<&'a str>,
+/// The wallet-facing redirect target (`redirect_uri` plus the wallet's original `state`), which can be turned into
+/// either a success or an error redirect.
+#[derive(Debug, Clone, Constructor)]
+pub struct WalletRedirect {
+    redirect_uri: Url,
+    state: Option<String>,
+}
+
+impl WalletRedirect {
+    pub fn into_authorization_code_url(self, code: &AuthorizationCode) -> Result<Url, serde_urlencoded::ser::Error> {
+        #[derive(Serialize)]
+        struct RedirectQuery<'a> {
+            code: &'a str,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            state: Option<&'a str>,
+        }
+
+        let Self {
+            mut redirect_uri,
+            state,
+        } = self;
+
+        let query = serde_urlencoded::to_string(RedirectQuery {
+            code: code.as_ref(),
+            state: state.as_deref(),
+        })?;
+
+        redirect_uri.set_query(Some(&query));
+        Ok(redirect_uri)
     }
 
-    let query = serde_urlencoded::to_string(RedirectQuery {
-        code: code.as_ref(),
-        state: wallet_state,
-    })?;
+    pub fn into_error_url(self, error: &'static str, error_description: &impl ToString) -> Url {
+        #[derive(Serialize)]
+        struct RedirectErrorQuery<'a> {
+            error: &'a str,
+            error_description: &'a str,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            state: Option<&'a str>,
+        }
 
-    redirect_uri.set_query(Some(&query));
-    Ok(redirect_uri)
+        let Self {
+            mut redirect_uri,
+            state,
+        } = self;
+        let error_description = error_description.to_string();
+
+        let query = serde_urlencoded::to_string(RedirectErrorQuery {
+            error,
+            error_description: &error_description,
+            state: state.as_deref(),
+        })
+        .expect("encoding wallet error redirect query string should never fail");
+
+        redirect_uri.set_query(Some(&query));
+        redirect_uri
+    }
+
+    /// Resolve a completion result into the final wallet-facing success or error redirect URL.
+    pub fn into_redirect_url(self, result: Result<Url, impl Display>, error_code: &'static str) -> Url {
+        result.unwrap_or_else(|error| self.into_error_url(error_code, &error))
+    }
 }
 
 #[cfg(test)]
@@ -295,6 +355,7 @@ mod tests {
     use super::AuthorizeError;
     use super::AuthorizingIssuer;
     use super::ParError;
+    use super::WalletRedirect;
     use crate::authorization::PkceCodeChallenge;
     use crate::authorization::VciAuthorizationRequest;
     use crate::authorization_code_flow::AuthorizationCodeFlow;
@@ -657,5 +718,33 @@ mod tests {
         let params: HashMap<_, _> = redirect_url.query_pairs().into_owned().collect();
         assert!(params.contains_key("code"));
         assert!(!params.contains_key("state"));
+    }
+
+    #[test]
+    fn into_redirect_url_passes_success_url_through() {
+        let success_url: Url = format!("{WALLET_REDIRECT_URI}?code=the-code&state={WALLET_STATE}")
+            .parse()
+            .unwrap();
+        let wallet_redirect = WalletRedirect::new(WALLET_REDIRECT_URI.parse().unwrap(), Some(WALLET_STATE.to_string()));
+
+        let url = wallet_redirect.into_redirect_url(Ok::<_, Infallible>(success_url.clone()), "server_error");
+
+        assert_eq!(url, success_url);
+    }
+
+    #[test]
+    fn into_redirect_url_builds_error_redirect_on_failure() {
+        let wallet_redirect = WalletRedirect::new(WALLET_REDIRECT_URI.parse().unwrap(), Some(WALLET_STATE.to_string()));
+
+        let url = wallet_redirect.into_redirect_url(Err::<Url, _>("something broke"), "server_error");
+
+        assert!(url.as_str().starts_with(WALLET_REDIRECT_URI));
+        let params: HashMap<_, _> = url.query_pairs().into_owned().collect();
+        assert_eq!(params.get("error").map(String::as_str), Some("server_error"));
+        assert_eq!(
+            params.get("error_description").map(String::as_str),
+            Some("something broke")
+        );
+        assert_eq!(params.get("state").map(String::as_str), Some(WALLET_STATE));
     }
 }

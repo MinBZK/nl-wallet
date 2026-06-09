@@ -29,6 +29,7 @@ use openid4vc::authorization_code_flow::AuthorizeOutcome;
 use openid4vc::authorization_code_flow::WalletAuthorizationContext;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
 use openid4vc::authorizing_issuer::CompleteAuthorizationError;
+use openid4vc::authorizing_issuer::WalletRedirect;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::pkce::PkcePair;
@@ -41,6 +42,7 @@ use serde::Serialize;
 use server_utils::keys::SecretKeyVariant;
 use tracing::warn;
 use url::Url;
+use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
 use crate::pid::brp::client::BrpClient;
@@ -201,6 +203,43 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
             .route("/digid/callback", get(digid_callback))
             .with_state(authorizing_issuer)
     }
+
+    /// Exchange the upstream `code` for the user's BSN, look up attributes, build and return the issuable documents.
+    async fn fetch_issuable_documents(
+        &self,
+        upstream_code: AuthorizationCode,
+        upstream_code_verifier: String,
+    ) -> Result<VecNonEmpty<IssuableDocument>, Error>
+    where
+        B: BrpClient,
+        O: DigidClient,
+    {
+        let bsn = self
+            .digid_client
+            .bsn(upstream_code, upstream_code_verifier, Some(self.callback_uri.clone()))
+            .await
+            .map_err(Error::Digid)?;
+
+        let mut persons = self.brp_client.get_person_by_bsn(&bsn).await.map_err(Error::Brp)?;
+        if persons.persons.len() != 1 {
+            return Err(Error::NoAttributesFound);
+        }
+        let person = persons.persons.remove(0);
+        let attributes = insert_recovery_code(person.into_attributes(), &self.recovery_code_secret_key).await?;
+
+        let issuable_documents = vec_nonempty![
+            IssuableDocument::try_new_with_random_id(
+                Format::SdJwt,
+                PID_ATTESTATION_TYPE.to_string(),
+                attributes.clone(),
+            )
+            .map_err(|_| Error::InvalidIssuableDocuments)?,
+            IssuableDocument::try_new_with_random_id(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string(), attributes)
+                .map_err(|_| Error::InvalidIssuableDocuments)?,
+        ];
+
+        Ok(issuable_documents)
+    }
 }
 
 impl<B, O> AuthorizationCodeFlow for UpstreamOidcAuthorizationCodeFlow<B, O>
@@ -286,83 +325,41 @@ where
         }
     };
 
-    match complete_digid_callback(flow, authorizing_issuer.as_ref(), &entry, code).await {
-        Ok(wallet_redirect_url) => {
-            (StatusCode::FOUND, [(header::LOCATION, wallet_redirect_url.to_string())]).into_response()
-        }
-        Err(error) => {
-            warn!("digid callback: completion failed: {error}");
-            redirect_to_wallet_error(&entry, &error)
-        }
+    // The wallet's redirect_uri is known from here on, so for any failure below, the oauth error redirect uri is sent
+    // back to the wallet.
+    let wallet_redirect = WalletRedirect::new(entry.context.redirect_uri.clone(), entry.context.state.clone());
+
+    let result = complete_digid_callback(&authorizing_issuer, entry, code).await;
+    if let Err(error) = &result {
+        warn!("digid callback: completion failed: {error}");
     }
+
+    let url = wallet_redirect.into_redirect_url(result, "server_error");
+    (StatusCode::FOUND, [(header::LOCATION, String::from(url))]).into_response()
 }
 
-/// Exchange the upstream `code` for the user's BSN, look up attributes, build the issuable documents, and hand them to
-/// the `openid4vc` layer's [`AuthorizingIssuer::complete_authorization`], which generates the issuer-side authorization
-/// code, writes the `AuthCodeIssued` session, and returns the wallet-facing redirect URL.
+/// Exchange the upstream `code` for the issuable documents, then hand them to the `openid4vc` layer's
+/// [`AuthorizingIssuer::complete_authorization`], which generates the issuer-side authorization code,
+/// writes the `AuthCodeIssued` session, and returns the wallet-facing redirect URL.
 async fn complete_digid_callback<K, L, S, N, PAS, B, O>(
-    flow: &UpstreamOidcAuthorizationCodeFlow<B, O>,
     authorizing_issuer: &AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow<B, O>>,
-    entry: &StateBridgeEntry,
-    upstream_code: AuthorizationCode,
+    entry: StateBridgeEntry,
+    code: AuthorizationCode,
 ) -> Result<Url, Error>
 where
     S: SessionStore<IssuanceData>,
     B: BrpClient,
     O: DigidClient,
 {
-    let bsn = flow
-        .digid_client
-        .bsn(
-            upstream_code,
-            entry.upstream_code_verifier.clone(),
-            Some(flow.callback_uri.clone()),
-        )
+    let issuable_documents = authorizing_issuer
+        .flow()
+        .fetch_issuable_documents(code, entry.upstream_code_verifier)
+        .await?;
+
+    authorizing_issuer
+        .complete_authorization(issuable_documents, entry.context)
         .await
-        .map_err(Error::Digid)?;
-
-    let mut persons = flow.brp_client.get_person_by_bsn(&bsn).await.map_err(Error::Brp)?;
-    if persons.persons.len() != 1 {
-        return Err(Error::NoAttributesFound);
-    }
-    let person = persons.persons.remove(0);
-    let attributes = insert_recovery_code(person.into_attributes(), &flow.recovery_code_secret_key).await?;
-
-    let issuable_documents = vec_nonempty![
-        IssuableDocument::try_new_with_random_id(Format::SdJwt, PID_ATTESTATION_TYPE.to_string(), attributes.clone(),)
-            .map_err(|_| Error::InvalidIssuableDocuments)?,
-        IssuableDocument::try_new_with_random_id(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string(), attributes)
-            .map_err(|_| Error::InvalidIssuableDocuments)?,
-    ];
-
-    let wallet_redirect_url = authorizing_issuer
-        .complete_authorization(issuable_documents, entry.context.clone())
-        .await
-        .map_err(Error::CompleteAuthorization)?;
-
-    Ok(wallet_redirect_url)
-}
-
-fn redirect_to_wallet_error(entry: &StateBridgeEntry, error: &Error) -> Response {
-    #[derive(Serialize)]
-    struct RedirectErrorQuery<'a> {
-        error: &'a str,
-        error_description: &'a str,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        state: Option<&'a str>,
-    }
-
-    let mut url = entry.context.redirect_uri.clone();
-
-    let query = serde_urlencoded::to_string(RedirectErrorQuery {
-        error: "server_error",
-        error_description: &error.to_string(),
-        state: entry.context.state.as_deref(),
-    })
-    .expect("encoding error query string should never fail");
-
-    url.set_query(Some(&query));
-    (StatusCode::FOUND, [(header::LOCATION, url.to_string())]).into_response()
+        .map_err(Error::CompleteAuthorization)
 }
 
 /// Add the BRP-derived BSN's recovery code (an HMAC over the BSN) as an attribute
@@ -402,8 +399,6 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::attributes::Attributes;
-    use axum::http::StatusCode;
-    use axum::http::header;
     use indexmap::IndexMap;
     use issuer_common::state_bridge_store::IssuerStateBridgeStore;
     use openid4vc::authorization::VciAuthorizationRequest;
@@ -411,6 +406,7 @@ mod tests {
     use openid4vc::authorization_code_flow::AuthorizeOutcome;
     use openid4vc::authorization_code_flow::WalletAuthorizationContext;
     use openid4vc::authorizing_issuer::AuthorizingIssuer;
+    use openid4vc::authorizing_issuer::WalletRedirect;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer_identifier::IssuerIdentifier;
@@ -441,7 +437,6 @@ mod tests {
     use super::UpstreamOidcAuthorizationCodeFlow;
     use super::complete_digid_callback;
     use super::insert_recovery_code;
-    use super::redirect_to_wallet_error;
     use crate::pid::brp::client::BrpClient;
     use crate::pid::brp::client::BrpError;
     use crate::pid::brp::data::BrpPersons;
@@ -690,9 +685,8 @@ mod tests {
         let entry = state_bridge_entry();
 
         let redirect_url = complete_digid_callback(
-            authorizing_issuer.flow(),
             &authorizing_issuer,
-            &entry,
+            entry,
             AuthorizationCode::from("upstream-code".to_string()),
         )
         .await
@@ -741,9 +735,8 @@ mod tests {
         let entry = state_bridge_entry();
 
         let error = complete_digid_callback(
-            authorizing_issuer.flow(),
             &authorizing_issuer,
-            &entry,
+            entry,
             AuthorizationCode::from("upstream-code".to_string()),
         )
         .await
@@ -755,13 +748,14 @@ mod tests {
     #[test]
     fn error_redirect_carries_oauth_error() {
         let entry = state_bridge_entry();
-        let response = redirect_to_wallet_error(&entry, &Error::NoAttributesFound);
+        let wallet_redirect = WalletRedirect::new(entry.context.redirect_uri.clone(), entry.context.state.clone());
 
-        assert_eq!(response.status(), StatusCode::FOUND);
-        let location = response.headers().get(header::LOCATION).unwrap().to_str().unwrap();
-        let location_url: Url = location.parse().unwrap();
-        assert!(location_url.as_str().starts_with(WALLET_REDIRECT_URI));
-        let params: HashMap<_, _> = location_url.query_pairs().into_owned().collect();
+        // A completion failure resolves to a wallet error redirect carrying the `server_error` OAuth
+        // error code, the error's description, and the wallet's original state.
+        let url = wallet_redirect.into_redirect_url(Err(Error::NoAttributesFound), "server_error");
+
+        assert!(url.as_str().starts_with(WALLET_REDIRECT_URI));
+        let params: HashMap<_, _> = url.query_pairs().into_owned().collect();
         assert_eq!(params.get("error").map(String::as_str), Some("server_error"));
         assert_eq!(params.get("state").map(String::as_str), Some(WALLET_STATE));
         assert!(params.contains_key("error_description"));

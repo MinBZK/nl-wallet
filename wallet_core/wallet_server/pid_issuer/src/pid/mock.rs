@@ -19,6 +19,7 @@ use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;
 use openid4vc::authorization_code_flow::WalletAuthorizationContext;
 use openid4vc::authorizing_issuer::AuthorizingIssuer;
+use openid4vc::authorizing_issuer::WalletRedirect;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::server_state::SessionStore;
@@ -121,15 +122,17 @@ where
             document
         })
         .collect();
-    let wallet_redirect_url = match authorizing_issuer.complete_authorization(documents, entry).await {
-        Ok(url) => url,
-        Err(error) => {
-            warn!("mock digid callback: complete_authorization failed: {error}");
-            return (StatusCode::INTERNAL_SERVER_ERROR, "session store error").into_response();
-        }
-    };
+    // The wallet's redirect_uri is known, so a completion failure bounces the user-agent back to the
+    // wallet as an OAuth error redirect. Capture the redirect target before `entry` is consumed.
+    let wallet_redirect = WalletRedirect::new(entry.redirect_uri.clone(), entry.state.clone());
 
-    (StatusCode::FOUND, [(header::LOCATION, wallet_redirect_url.to_string())]).into_response()
+    let result = authorizing_issuer.complete_authorization(documents, entry).await;
+    if let Err(error) = &result {
+        warn!("mock digid callback: complete_authorization failed: {error}");
+    }
+
+    let url = wallet_redirect.into_redirect_url(result, "server_error");
+    (StatusCode::FOUND, [(header::LOCATION, String::from(url))]).into_response()
 }
 
 pub fn mock_issuable_documents_pid() -> VecNonEmpty<IssuableDocument> {
