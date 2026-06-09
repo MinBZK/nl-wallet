@@ -65,6 +65,7 @@ use crate::issuer_identifier::IssuerIdentifier;
 use crate::metadata::issuer_metadata::AtLeastTwoU64;
 use crate::metadata::issuer_metadata::BatchCredentialIssuance;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
+use crate::metadata::issuer_metadata::IssuerEndpoints;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
 use crate::nonce::store::NonceStatus;
@@ -461,18 +462,20 @@ where
         let metadata = IssuerMetadata {
             credential_issuer: issuer_identifier,
             authorization_servers: None,
-            credential_endpoint,
-            batch_credential_endpoint: Some(batch_credential_endpoint),
-            nonce_endpoint: Some(nonce_endpoint),
-            deferred_credential_endpoint: None,
-            notification_endpoint: None,
+            endpoints: IssuerEndpoints {
+                credential_endpoint,
+                batch_credential_endpoint: Some(batch_credential_endpoint),
+                nonce_endpoint: Some(nonce_endpoint),
+                deferred_credential_endpoint: None,
+                notification_endpoint: None,
+                credential_preview_endpoint: Some(credential_preview_endpoint),
+            },
             credential_request_encryption: None,
             credential_response_encryption: None,
             batch_credential_issuance,
             display: None,
             credential_configurations_supported: credential_configs
                 .to_credential_configurations_supported(&type_metadata_base_url),
-            credential_preview_endpoint: Some(credential_preview_endpoint),
         };
 
         let issuer_data = IssuerData {
@@ -1863,8 +1866,9 @@ mod tests {
         let mut session = HttpIssuanceSession::create(
             message_client,
             credential_configs,
-            issuer_metadata,
-            oauth_metadata,
+            issuer_metadata.credential_issuer,
+            issuer_metadata.endpoints,
+            &oauth_metadata.token_endpoint,
             TokenRequest::new_mock_with_pre_authorized_code(session_token.to_string()),
             &trust_anchors,
         )

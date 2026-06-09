@@ -60,27 +60,8 @@ pub struct IssuerMetadata {
     /// Credential Offer parameter value does not match any of the entries in the `authorization_servers` array.
     pub authorization_servers: Option<VecNonEmpty<IssuerIdentifier>>,
 
-    /// URL of the Credential Issuer's Credential Endpoint, as defined in Section 8.2. This URL MUST use the https
-    /// scheme and MAY contain port, path, and query parameter components.
-    pub credential_endpoint: IssuerUrl,
-
-    // TODO (PVW-5554): Remove this field when removing the batch credential endpoint.
-    pub batch_credential_endpoint: Option<IssuerUrl>,
-
-    /// URL of the Credential Issuer's Nonce Endpoint, as defined in Section 7. This URL MUST use the https scheme and
-    /// MAY contain port, path, and query parameter components. If omitted, the Credential Issuer does not require the
-    /// use of `c_nonce``.
-    pub nonce_endpoint: Option<IssuerUrl>,
-
-    /// URL of the Credential Issuer's Deferred Credential Endpoint, as defined in Section 9. This URL MUST use the
-    /// https scheme and MAY contain port, path, and query parameter components. If omitted, the Credential Issuer does
-    /// not support the Deferred Credential Endpoint.
-    pub deferred_credential_endpoint: Option<IssuerUrl>,
-
-    /// URL of the Credential Issuer's Notification Endpoint, as defined in Section 11. This URL MUST use the https
-    /// scheme and MAY contain port, path, and query parameter components. If omitted, the Credential Issuer does not
-    /// support the Notification Endpoint.
-    pub notification_endpoint: Option<IssuerUrl>,
+    #[serde(flatten)]
+    pub endpoints: IssuerEndpoints,
 
     /// Object containing information about whether the Credential Issuer supports encryption of the Credential Request
     /// on top of TLS.
@@ -107,6 +88,32 @@ pub struct IssuerMetadata {
     /// Credential.
     #[serde_as(as = "MapPreventDuplicates<_, _>")]
     pub credential_configurations_supported: HashMap<CredentialConfigurationId, CredentialConfiguration>,
+}
+
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IssuerEndpoints {
+    /// URL of the Credential Issuer's Credential Endpoint, as defined in Section 8.2. This URL MUST use the https
+    /// scheme and MAY contain port, path, and query parameter components.
+    pub credential_endpoint: IssuerUrl,
+
+    // TODO (PVW-5554): Remove this field when removing the batch credential endpoint.
+    pub batch_credential_endpoint: Option<IssuerUrl>,
+
+    /// URL of the Credential Issuer's Nonce Endpoint, as defined in Section 7. This URL MUST use the https scheme and
+    /// MAY contain port, path, and query parameter components. If omitted, the Credential Issuer does not require the
+    /// use of `c_nonce``.
+    pub nonce_endpoint: Option<IssuerUrl>,
+
+    /// URL of the Credential Issuer's Deferred Credential Endpoint, as defined in Section 9. This URL MUST use the
+    /// https scheme and MAY contain port, path, and query parameter components. If omitted, the Credential Issuer does
+    /// not support the Deferred Credential Endpoint.
+    pub deferred_credential_endpoint: Option<IssuerUrl>,
+
+    /// URL of the Credential Issuer's Notification Endpoint, as defined in Section 11. This URL MUST use the https
+    /// scheme and MAY contain port, path, and query parameter components. If omitted, the Credential Issuer does not
+    /// support the Notification Endpoint.
+    pub notification_endpoint: Option<IssuerUrl>,
 
     /// URL of the credential issuer's credential preview endpoint. This URL MUST use the https scheme and MAY contain
     /// port, path and query parameter components.
@@ -846,11 +853,12 @@ mod tests {
             "https://credential-issuer.example.com"
         );
         assert_eq!(
-            metadata.credential_endpoint.as_ref().as_ref().as_str(),
+            metadata.endpoints.credential_endpoint.as_ref().as_ref().as_str(),
             "https://credential-issuer.example.com/credential"
         );
         assert_eq!(
             metadata
+                .endpoints
                 .nonce_endpoint
                 .as_ref()
                 .map(|url| url.as_ref().as_ref().as_str()),
