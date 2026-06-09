@@ -64,10 +64,10 @@ class CoreQrRepository implements QrRepository {
       case IdentifyUriResult.Transfer:
         return NavigationRequest.walletTransferSource(rawValue);
       case IdentifyUriResult.CredentialOffer:
-        // TODO: Handle this case.
+        // TODO(PVW-5980): Handle this case.
         throw UnimplementedError();
       case IdentifyUriResult.GeneralIssuance:
-        // TODO: Handle this case.
+        // TODO(PVW-5980): Handle this case.
         throw UnimplementedError();
     }
   }

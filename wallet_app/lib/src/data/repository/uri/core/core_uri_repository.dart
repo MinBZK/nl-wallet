@@ -35,10 +35,10 @@ class CoreUriRepository implements UriRepository {
       case IdentifyUriResult.Transfer:
         return NavigationRequest.walletTransferSource(uri);
       case IdentifyUriResult.CredentialOffer:
-        // TODO: Handle this case.
+        // TODO(PVW-5980): Handle this case.
         throw UnimplementedError();
       case IdentifyUriResult.GeneralIssuance:
-        // TODO: Handle this case.
+        // TODO(PVW-5980): Handle this case.
         throw UnimplementedError();
     }
   }

@@ -135,7 +135,7 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Future<IssuanceStartResult> crateApiFullStartIssuanceFromOffer({required String offerUri}) {
-    // TODO: implement crateApiFullStartIssuanceFromOffer
+    // TODO(PVW-5980): implement crateApiFullStartIssuanceFromOffer
     throw UnimplementedError();
   }
 
