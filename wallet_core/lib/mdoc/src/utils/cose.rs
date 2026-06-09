@@ -201,12 +201,10 @@ impl<C, T> From<C> for MdocCose<C, T> {
 /// COSE header label for `x5chain`, defined in [RFC 9360](https://datatracker.ietf.org/doc/rfc9360/).
 pub const COSE_X5CHAIN_HEADER_LABEL: i64 = 33;
 
-const ONE: NonZeroUsize = NonZeroUsize::new(1usize).expect("1 is non-zero");
-
 pub fn header_with_x5chain(chain: &VecNonEmpty<&BorrowingCertificate>) -> Header {
     let cbor_encode = |c: &&BorrowingCertificate| Value::Bytes(c.to_vec());
 
-    if chain.len() == ONE {
+    if chain.len() == NonZeroUsize::MIN {
         let cert = chain.first();
         HeaderBuilder::new()
             .value(COSE_X5CHAIN_HEADER_LABEL, cbor_encode(cert))
