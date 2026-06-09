@@ -85,22 +85,11 @@ impl IssuerUrl {
         Self(BaseUrl::try_from(url).expect("issuer URL has a base and is guaranteed to succeed"))
     }
 
-    pub fn is_based_on(&self, base: &IssuerUrl) -> bool {
+    pub fn has_same_scheme_and_host(&self, other: &IssuerUrl) -> bool {
         let url = self.as_url();
-        let base_url = base.as_url();
+        let other = other.as_url();
 
-        // Check schema, host and port
-        if url.scheme() != base_url.scheme() || url.host() != base_url.host() || url.port() != base_url.port() {
-            return false;
-        }
-
-        // Check path
-        let path = url.path();
-        let base_path = base_url.path();
-        path.starts_with(base_path)
-            // check if path starts with base url's path segment wise by comparing trailing slash
-            // the index will always succeed as `path` starts with `base_path`
-            && (base_path.ends_with('/') || path.as_bytes()[base_path.len()] == b'/')
+        url.scheme() == other.scheme() && url.host() == other.host()
     }
 }
 
@@ -286,19 +275,19 @@ mod tests {
     }
 
     #[rstest]
-    #[case::identity("https://example.com", "https://example.com", true)]
-    #[case::identity_with_slash("https://example.com/", "https://example.com", true)]
-    #[case::root("https://example.com/subpath", "https://example.com", true)]
-    #[case::root_with_slash("https://example.com/subpath", "https://example.com/", true)]
-    #[case::with_path("https://example.com/issuer/subpath", "https://example.com/issuer", true)]
-    #[case::with_path_and_slash("https://example.com/issuer/subpath", "https://example.com/issuer/", true)]
-    #[case::sibling_host_bypass("https://example.com.evil.com/", "https://example.com", false)]
-    #[case::path_segment_bypass("https://example.com/issuer/subpath", "https://example.com/iss", false)]
-    #[case::port("https://example.com/", "https://example.com:8443/subpath", false)]
-    fn test_issuer_url_is_based_on(#[case] issuer_url: &str, #[case] base_url: &str, #[case] expected: bool) {
-        let issuer_url = issuer_url.parse::<IssuerUrl>().unwrap();
-        let base_url = base_url.parse::<IssuerUrl>().unwrap();
+    #[case::same("https://example.com", "https://example.com", true)]
+    #[case::different_host("https://example.com", "https://example.net", false)]
+    #[cfg_attr(
+        feature = "allow_insecure_url",
+        case::different_scheme("https://example.com/", "http://example.com", false)
+    )]
+    #[case::different_port("https://example.com", "https://example.com:8843", true)]
+    #[case::different_path("https://example.com/a", "https://example.com/b", true)]
+    fn test_issuer_url_has_same_scheme_and_host(#[case] a_url: &str, #[case] b_url: &str, #[case] expected: bool) {
+        let a_url = a_url.parse::<IssuerUrl>().unwrap();
+        let b_url = b_url.parse::<IssuerUrl>().unwrap();
 
-        assert_eq!(issuer_url.is_based_on(&base_url), expected);
+        assert_eq!(a_url.has_same_scheme_and_host(&b_url), expected);
+        assert_eq!(b_url.has_same_scheme_and_host(&a_url), expected);
     }
 }

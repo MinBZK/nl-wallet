@@ -160,9 +160,9 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     HeaderToStr(#[from] ToStrError),
 
-    #[error("uri `{0}` does not start with issuer identifier `{1}`")]
+    #[error("uri `{0}` has different host than issuer identifier `{1}`")]
     #[category(critical)]
-    NotBasedOnIssuerIdentifier(IssuerUrl, Box<IssuerIdentifier>),
+    HostMismatchWithIssuerIdentifier(IssuerUrl, Box<IssuerIdentifier>),
 
     #[error("type metadata for `{0}` not found")]
     #[category(critical)]

@@ -481,8 +481,8 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
                     .to_owned();
 
                 // Required by our own profile
-                if !uri.is_based_on(issuer_metadata.credential_issuer.as_issuer_url()) {
-                    return Err(WalletIssuanceError::NotBasedOnIssuerIdentifier(
+                if !uri.has_same_scheme_and_host(issuer_metadata.credential_issuer.as_issuer_url()) {
+                    return Err(WalletIssuanceError::HostMismatchWithIssuerIdentifier(
                         uri,
                         issuer_metadata.credential_issuer.clone().into(),
                     ));
@@ -1214,7 +1214,7 @@ mod tests {
         )
         .expect_err("starting issuance session should not succeed");
 
-        assert_matches!(error, WalletIssuanceError::NotBasedOnIssuerIdentifier(uri, issuer_identifier)
+        assert_matches!(error, WalletIssuanceError::HostMismatchWithIssuerIdentifier(uri, issuer_identifier)
             if uri == type_metadata_uri && *issuer_identifier == configured_issuer_identifier);
     }
 
