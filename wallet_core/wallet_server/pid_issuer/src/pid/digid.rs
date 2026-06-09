@@ -89,12 +89,7 @@ pub trait DigidClient {
 
     /// Exchange an upstream authorization `code` (with its PKCE `code_verifier` and the
     /// `redirect_uri` used at `/authorize`) for the user's BSN via the upstream `/userinfo` endpoint.
-    async fn bsn(
-        &self,
-        code: AuthorizationCode,
-        code_verifier: String,
-        redirect_uri: Option<Url>,
-    ) -> Result<String, Error>;
+    async fn bsn(&self, code: AuthorizationCode, code_verifier: String, redirect_uri: Url) -> Result<String, Error>;
 }
 
 /// HTTP-backed [`DigidClient`] that exchanges an access token provided by the user for their BSN at the IdP.
@@ -130,19 +125,14 @@ impl DigidClient for HttpDigidClient {
         Ok(authorization_endpoint)
     }
 
-    async fn bsn(
-        &self,
-        code: AuthorizationCode,
-        code_verifier: String,
-        redirect_uri: Option<Url>,
-    ) -> Result<String, Error> {
+    async fn bsn(&self, code: AuthorizationCode, code_verifier: String, redirect_uri: Url) -> Result<String, Error> {
         let metadata = self.cache.metadata().await.map_err(Error::WellKnown)?;
 
         let token_request = TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode { code },
             client_id: Some(self.client_id.clone()),
             code_verifier: Some(code_verifier),
-            redirect_uri,
+            redirect_uri: Some(redirect_uri),
         };
 
         let userinfo_claims = userinfo::request_userinfo::<UserInfo>(

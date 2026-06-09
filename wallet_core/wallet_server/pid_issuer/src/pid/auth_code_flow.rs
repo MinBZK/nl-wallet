@@ -222,7 +222,7 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
             .bsn(
                 upstream_code,
                 upstream_code_verifier,
-                Some(self.callback_base_url.join(DIGID_CALLBACK_PATH)),
+                self.callback_base_url.join(DIGID_CALLBACK_PATH),
             )
             .await
             .map_err(Error::Digid)?;
@@ -517,7 +517,7 @@ mod tests {
             &self,
             _code: AuthorizationCode,
             _code_verifier: String,
-            _redirect_uri: Option<Url>,
+            _redirect_uri: Url,
         ) -> Result<String, DigidError> {
             Ok(self.bsn.clone())
         }
