@@ -123,7 +123,37 @@ class WalletCardItem extends StatefulWidget {
     WalletCard card, {
     CtaAnimation ctaAnimation = CtaAnimation.visible,
   }) {
-    final scaleTween = TweenSequence<double>(
+    final scaleTween = _buildScaleTween();
+    final perspectiveTween = _buildPerspectiveTween();
+    final VoidCallback? onPressed = _buildOnPressedStub(ctaAnimation);
+
+    return AnimatedBuilder(
+      animation: animation,
+      child: Builder(
+        builder: (context) => WalletCardItem.fromWalletCard(
+          context,
+          card,
+          ctaAnimation: ctaAnimation,
+          onPressed: onPressed,
+        ),
+      ),
+      builder: (context, child) {
+        final scale = scaleTween.evaluate(animation);
+        return Transform(
+          alignment: FractionalOffset.center,
+          transform: Matrix4.identity()
+            ..scaleByDouble(scale, scale, scale, scale)
+            ..setEntry(3, 2, 0.001)
+            ..rotateX(perspectiveTween.evaluate(animation)),
+          child: child,
+        );
+      },
+    );
+  }
+
+  /// Builds the scale animation sequence for the shuttle card.
+  static TweenSequence<double> _buildScaleTween() {
+    return TweenSequence<double>(
       <TweenSequenceItem<double>>[
         TweenSequenceItem<double>(
           tween: Tween<double>(begin: 1, end: 1.05).chain(CurveTween(curve: Curves.easeIn)),
@@ -139,8 +169,11 @@ class WalletCardItem extends StatefulWidget {
         ),
       ],
     );
+  }
 
-    final perspectiveTween = TweenSequence<double>(
+  /// Builds the perspective rotation sequence for the shuttle card.
+  static TweenSequence<double> _buildPerspectiveTween() {
+    return TweenSequence<double>(
       <TweenSequenceItem<double>>[
         TweenSequenceItem<double>(
           tween: Tween<double>(begin: 0, end: 0.2).chain(CurveTween(curve: Curves.easeInCubic)),
@@ -156,38 +189,16 @@ class WalletCardItem extends StatefulWidget {
         ),
       ],
     );
+  }
 
-    final VoidCallback? onPressed = switch (ctaAnimation) {
+  /// Returns an [onPressed] callback stub based on the [ctaAnimation].
+  static VoidCallback? _buildOnPressedStub(CtaAnimation ctaAnimation) {
+    return switch (ctaAnimation) {
       CtaAnimation.fadeIn => () {},
       CtaAnimation.fadeOut => () {},
       CtaAnimation.visible => () {},
       CtaAnimation.invisible => null,
     };
-
-    return AnimatedBuilder(
-      animation: animation,
-      child: Builder(
-        builder: (context) {
-          return WalletCardItem.fromWalletCard(
-            context,
-            card,
-            ctaAnimation: ctaAnimation,
-            onPressed: onPressed,
-          );
-        },
-      ),
-      builder: (context, child) {
-        final scale = scaleTween.evaluate(animation);
-        return Transform(
-          alignment: FractionalOffset.center,
-          transform: Matrix4.identity()
-            ..scaleByDouble(scale, scale, scale, scale)
-            ..setEntry(3, 2, 0.001)
-            ..rotateX(perspectiveTween.evaluate(animation)),
-          child: child,
-        );
-      },
-    );
   }
 }
 

@@ -175,11 +175,11 @@ class OtherStylesTab extends StatelessWidget {
         _buildSheetSection(context),
         _buildErrorScreensSection(context),
         _buildAttributeSection(context),
-        _buildCardSection(context),
+        ..._buildCardSection(context),
         _buildPlaceholderSection(context),
         _buildHistorySection(context),
         _buildPolicySection(context),
-        _buildMiscellaneousSection(context),
+        ..._buildMiscellaneousSection(context),
       ],
     );
   }
@@ -424,7 +424,7 @@ class OtherStylesTab extends StatelessWidget {
     );
   }
 
-  Widget _buildCardSection(BuildContext context) {
+  List<Widget> _buildCardSection(BuildContext context) {
     final cardStatusList = [
       CardStatusValidSoon(validFrom: clock.now().add(const Duration(days: 3))),
       CardStatusValid(validUntil: clock.now().add(const Duration(days: 30))),
@@ -435,96 +435,106 @@ class OtherStylesTab extends StatelessWidget {
       const CardStatusUndetermined(),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const ThemeSectionHeader(title: 'Cards'),
-        const SizedBox(height: 16),
-        const ThemeSectionSubHeader(title: 'CardStatusInfoLabel - WalletCardItem'),
-        ...cardStatusList.map((status) {
-          final statusMetadata = CardStatusMetadataMapper.map(
-            context,
-            _kSampleCard.copyWith(status: status),
-            CardStatusRenderType.walletCardItem,
+    return [
+      const ThemeSectionHeader(title: 'Cards'),
+      const SizedBox(height: 16),
+      ..._buildCardStatusLabels(context, cardStatusList),
+      ..._buildCardStatusTexts(context, cardStatusList),
+      ..._buildCardDisplayWidgets(context),
+    ];
+  }
+
+  List<Widget> _buildCardStatusLabels(BuildContext context, List<CardStatus> cardStatusList) {
+    return [
+      const ThemeSectionSubHeader(title: 'CardStatusInfoLabel - WalletCardItem'),
+      ...cardStatusList.map((status) {
+        final statusMetadata = CardStatusMetadataMapper.map(
+          context,
+          _kSampleCard.copyWith(status: status),
+          CardStatusRenderType.walletCardItem,
+        );
+        if (statusMetadata != null) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: CardStatusInfoLabel(statusMetadata),
           );
-          if (statusMetadata != null) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: CardStatusInfoLabel(statusMetadata),
-            );
-          } else {
-            return const SizedBox.shrink();
-          }
-        }),
+        } else {
+          return const SizedBox.shrink();
+        }
+      }),
+      const SizedBox(height: 16),
+    ];
+  }
 
-        const SizedBox(height: 16),
-        const ThemeSectionSubHeader(title: 'CardStatusInfoText - CardDataScreen'),
-        ...cardStatusList.map((status) {
-          final statusMetadata = CardStatusMetadataMapper.map(
-            context,
-            _kSampleCard.copyWith(status: status),
-            CardStatusRenderType.cardDataScreen,
+  List<Widget> _buildCardStatusTexts(BuildContext context, List<CardStatus> cardStatusList) {
+    return [
+      const ThemeSectionSubHeader(title: 'CardStatusInfoText - CardDataScreen'),
+      ...cardStatusList.map((status) {
+        final statusMetadata = CardStatusMetadataMapper.map(
+          context,
+          _kSampleCard.copyWith(status: status),
+          CardStatusRenderType.cardDataScreen,
+        );
+        if (statusMetadata != null) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: CardStatusInfoText(statusMetadata),
           );
-          if (statusMetadata != null) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: CardStatusInfoText(statusMetadata),
-            );
-          } else {
-            return const SizedBox.shrink();
-          }
-        }),
-
-        const SizedBox(height: 16),
-        const ThemeSectionSubHeader(title: 'CardStatusInfoText - CardDetailScreen'),
-        ...cardStatusList.map((status) {
-          final statusMetadata = CardStatusMetadataMapper.map(
-            context,
-            _kSampleCard.copyWith(status: status),
-            CardStatusRenderType.cardDetailScreen,
+        } else {
+          return const SizedBox.shrink();
+        }
+      }),
+      const SizedBox(height: 16),
+      const ThemeSectionSubHeader(title: 'CardStatusInfoText - CardDetailScreen'),
+      ...cardStatusList.map((status) {
+        final statusMetadata = CardStatusMetadataMapper.map(
+          context,
+          _kSampleCard.copyWith(status: status),
+          CardStatusRenderType.cardDetailScreen,
+        );
+        if (statusMetadata != null) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: CardStatusInfoText(statusMetadata),
           );
-          if (statusMetadata != null) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: CardStatusInfoText(statusMetadata),
-            );
-          } else {
-            return const SizedBox.shrink();
-          }
-        }),
+        } else {
+          return const SizedBox.shrink();
+        }
+      }),
+      const SizedBox(height: 16),
+    ];
+  }
 
-        const SizedBox(height: 16),
-        const ThemeSectionSubHeader(title: 'WalletCardItem'),
-        const WalletCardItem(
-          title: 'Card Title',
-          background: DecoratedBox(decoration: BoxDecoration(color: Colors.orangeAccent)),
-          subtitle: 'Card subtitle1',
-          logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
-        ),
-
-        const SizedBox(height: 16),
-        const ThemeSectionSubHeader(title: 'StackedWalletCards'),
-        StackedWalletCards(
-          cards: [
-            _kAltSampleCard,
-            _kSampleCard,
-          ],
-        ),
-
-        const SizedBox(height: 16),
-        const ThemeSectionSubHeader(title: 'SharedAttributesCard'),
-        SharedAttributesCard(
-          card: _kSampleCard.copyWith(
-            status: CardStatusExpired(
-              validUntil: clock.now().subtract(const Duration(days: 5)),
-            ),
+  List<Widget> _buildCardDisplayWidgets(BuildContext context) {
+    return [
+      const ThemeSectionSubHeader(title: 'WalletCardItem'),
+      const WalletCardItem(
+        title: 'Card Title',
+        background: DecoratedBox(decoration: BoxDecoration(color: Colors.orangeAccent)),
+        subtitle: 'Card subtitle1',
+        logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
+      ),
+      const SizedBox(height: 16),
+      const ThemeSectionSubHeader(title: 'StackedWalletCards'),
+      StackedWalletCards(
+        cards: [
+          _kAltSampleCard,
+          _kSampleCard,
+        ],
+      ),
+      const SizedBox(height: 16),
+      const ThemeSectionSubHeader(title: 'SharedAttributesCard'),
+      SharedAttributesCard(
+        card: _kSampleCard.copyWith(
+          status: CardStatusExpired(
+            validUntil: clock.now().subtract(const Duration(days: 5)),
           ),
-          attributes: [_kSampleCard.attributes.first],
-          onPressed: () {},
-          onChangeCardPressed: () {},
         ),
-      ],
-    );
+        attributes: [_kSampleCard.attributes.first],
+        onPressed: () {},
+        onChangeCardPressed: () {},
+      ),
+    ];
   }
 
   Widget _buildHistorySection(BuildContext context) {
@@ -534,63 +544,71 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionHeader(title: 'History'),
         const SizedBox(height: 12),
         const ThemeSectionSubHeader(title: 'WalletEventRow'),
-        WalletEventRow(
-          event: WalletEvent.disclosure(
-            dateTime: clock.now(),
-            relyingParty: _kSampleOrganization,
-            status: EventStatus.success,
-            policy: const Policy(
-              storageDuration: Duration(days: 90),
-              dataPurpose: _kMockPurpose,
-              dataIsShared: false,
-              deletionCanBeRequested: true,
-              privacyPolicyUrl: _kMockUrl,
-            ),
-            purpose: _kMockPurpose.untranslated,
-            cards: [
-              WalletCard(
-                attestationId: 'id',
-                attestationType: 'attestationType',
-                issuer: _kSampleOrganization,
-                status: _kSampleCardStatus,
-                metadata: _kSampleCardMetaData,
-                attributes: const [],
-              ),
-            ],
-            type: DisclosureType.regular,
-          ),
-          onPressed: () {},
-        ),
+        _buildWalletEventRow(),
         const ThemeSectionSubHeader(title: 'WalletEventStatusHeader'),
-        WalletEventStatusHeader(
-          event: WalletEvent.disclosure(
-            dateTime: clock.now(),
-            relyingParty: _kSampleOrganization,
-            status: EventStatus.cancelled,
-            policy: const Policy(
-              storageDuration: Duration(days: 90),
-              dataPurpose: _kMockPurpose,
-              dataIsShared: false,
-              deletionCanBeRequested: true,
-              privacyPolicyUrl: _kMockUrl,
-            ),
-            purpose: _kMockPurpose.untranslated,
-            cards: [
-              WalletCard(
-                attestationId: 'id',
-                attestationType: 'attestationType',
-                issuer: _kSampleOrganization,
-                status: _kSampleCardStatus,
-                metadata: _kSampleCardMetaData,
-                attributes: const [],
-              ),
-            ],
-            type: DisclosureType.regular,
-          ),
-        ),
+        _buildWalletEventStatusHeader(),
         const ThemeSectionSubHeader(title: 'HistorySectionHeader'),
         HistorySectionHeader(dateTime: clock.now()),
       ],
+    );
+  }
+
+  Widget _buildWalletEventRow() {
+    return WalletEventRow(
+      event: WalletEvent.disclosure(
+        dateTime: clock.now(),
+        relyingParty: _kSampleOrganization,
+        status: EventStatus.success,
+        policy: const Policy(
+          storageDuration: Duration(days: 90),
+          dataPurpose: _kMockPurpose,
+          dataIsShared: false,
+          deletionCanBeRequested: true,
+          privacyPolicyUrl: _kMockUrl,
+        ),
+        purpose: _kMockPurpose.untranslated,
+        cards: [
+          WalletCard(
+            attestationId: 'id',
+            attestationType: 'attestationType',
+            issuer: _kSampleOrganization,
+            status: _kSampleCardStatus,
+            metadata: _kSampleCardMetaData,
+            attributes: const [],
+          ),
+        ],
+        type: DisclosureType.regular,
+      ),
+      onPressed: () {},
+    );
+  }
+
+  Widget _buildWalletEventStatusHeader() {
+    return WalletEventStatusHeader(
+      event: WalletEvent.disclosure(
+        dateTime: clock.now(),
+        relyingParty: _kSampleOrganization,
+        status: EventStatus.cancelled,
+        policy: const Policy(
+          storageDuration: Duration(days: 90),
+          dataPurpose: _kMockPurpose,
+          dataIsShared: false,
+          deletionCanBeRequested: true,
+          privacyPolicyUrl: _kMockUrl,
+        ),
+        purpose: _kMockPurpose.untranslated,
+        cards: [
+          WalletCard(
+            attestationId: 'id',
+            attestationType: 'attestationType',
+            issuer: _kSampleOrganization,
+            status: _kSampleCardStatus,
+            metadata: _kSampleCardMetaData,
+            attributes: const [],
+          ),
+        ],
+        type: DisclosureType.regular,
+      ),
     );
   }
 
@@ -617,83 +635,110 @@ class OtherStylesTab extends StatelessWidget {
     );
   }
 
-  Widget _buildMiscellaneousSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const ThemeSectionHeader(title: 'Miscellaneous'),
-        const SizedBox(height: 12),
-        const ThemeSectionSubHeader(title: 'StepperIndicator'),
-        const StepperIndicator(padding: EdgeInsets.zero),
-        const ThemeSectionSubHeader(title: 'AnimatedVisibilityBackButton'),
-        const AnimatedVisibilityBackButton(visible: true),
-        const ThemeSectionSubHeader(title: 'CenteredLoadingIndicator'),
-        const CenteredLoadingIndicator(),
-        const ThemeSectionSubHeader(title: 'LoadingIndicator'),
-        const LoadingIndicator(),
-        const ThemeSectionSubHeader(title: 'PinHeader'),
-        const PinHeader(title: 'Title', description: 'Description', hasError: false),
-        const ThemeSectionSubHeader(title: 'SelectCardRow'),
-        SelectCardRow(
-          onPressed: () {},
-          card: WalletCard(
-            attestationId: 'row_id',
-            attestationType: 'attestationType',
-            issuer: _kSampleOrganization,
-            status: _kSampleCardStatus,
-            metadata: _kSampleCardMetaData,
-            attributes: const [],
-          ),
+  List<Widget> _buildMiscellaneousSection(BuildContext context) {
+    return [
+      const ThemeSectionHeader(title: 'Miscellaneous'),
+      const SizedBox(height: 12),
+      ..._buildIndicatorWidgets(context),
+      ..._buildPinWidgets(context),
+      ..._buildBrandingWidgets(context),
+      ..._buildListAndRowWidgets(context),
+      ..._buildStatusAndBannerWidgets(context),
+    ];
+  }
+
+  List<Widget> _buildIndicatorWidgets(BuildContext context) {
+    return [
+      const ThemeSectionSubHeader(title: 'StepperIndicator'),
+      const StepperIndicator(padding: EdgeInsets.zero),
+      const ThemeSectionSubHeader(title: 'AnimatedVisibilityBackButton'),
+      const AnimatedVisibilityBackButton(visible: true),
+      const ThemeSectionSubHeader(title: 'CenteredLoadingIndicator'),
+      const CenteredLoadingIndicator(),
+      const ThemeSectionSubHeader(title: 'LoadingIndicator'),
+      const LoadingIndicator(),
+    ];
+  }
+
+  List<Widget> _buildPinWidgets(BuildContext context) {
+    return [
+      const ThemeSectionSubHeader(title: 'PinHeader'),
+      const PinHeader(title: 'Title', description: 'Description', hasError: false),
+      const ThemeSectionSubHeader(title: 'PinField'),
+      const PinFieldDemo(),
+    ];
+  }
+
+  List<Widget> _buildBrandingWidgets(BuildContext context) {
+    return [
+      const ThemeSectionSubHeader(title: 'WalletLogo'),
+      const WalletLogo(size: 64),
+      const ThemeSectionSubHeader(title: 'VersionText'),
+      const AppVersionText(),
+    ];
+  }
+
+  List<Widget> _buildListAndRowWidgets(BuildContext context) {
+    return [
+      const ThemeSectionSubHeader(title: 'SelectCardRow'),
+      SelectCardRow(
+        onPressed: () {},
+        card: WalletCard(
+          attestationId: 'row_id',
+          attestationType: 'attestationType',
+          issuer: _kSampleOrganization,
+          status: _kSampleCardStatus,
+          metadata: _kSampleCardMetaData,
+          attributes: const [],
         ),
-        const ThemeSectionSubHeader(title: 'StatusIcon'),
-        const StatusIcon(icon: Icons.ac_unit),
-        const ThemeSectionSubHeader(title: 'VersionText'),
-        const AppVersionText(),
-        const ThemeSectionSubHeader(title: 'WalletLogo'),
-        const WalletLogo(size: 64),
-        const ThemeSectionSubHeader(title: 'IconRow'),
-        const IconRow(
-          icon: Icon(Icons.ac_unit),
-          text: Text('IconRow'),
+      ),
+      const ThemeSectionSubHeader(title: 'MenuItem'),
+      const MenuItem(
+        leftIcon: Icon(Icons.ac_unit),
+        label: Text('Title'),
+        subtitle: Text('Subtitle'),
+      ),
+      const ThemeSectionSubHeader(title: 'IconRow'),
+      const IconRow(
+        icon: Icon(Icons.ac_unit),
+        text: Text('IconRow'),
+      ),
+      const ThemeSectionSubHeader(title: 'BulletList'),
+      BulletList(
+        items: const ['Item 1', 'Item 2', 'Item 3'],
+        icon: Icon(
+          Icons.check,
+          color: context.colorScheme.primary,
+          size: 18,
         ),
-        const ThemeSectionSubHeader(title: 'MenuItem'),
-        const MenuItem(
-          leftIcon: Icon(Icons.ac_unit),
-          label: Text('Title'),
-          subtitle: Text('Subtitle'),
-        ),
-        const ThemeSectionSubHeader(title: 'PinField'),
-        const PinFieldDemo(),
-        const ThemeSectionSubHeader(title: 'BulletList'),
-        BulletList(
-          items: const ['Item 1', 'Item 2', 'Item 3'],
-          icon: Icon(
-            Icons.check,
-            color: context.colorScheme.primary,
-            size: 18,
-          ),
-          rowPadding: const EdgeInsets.symmetric(vertical: 4),
-        ),
-        const ThemeSectionSubHeader(title: 'NumberedList'),
-        const NumberedList(
-          items: ['Item', 'Item', 'Item'],
-        ),
-        const ThemeSectionSubHeader(title: 'ActivitySummary'),
-        ActivitySummary(
-          events: [
-            _kSampleIssuanceEvent,
-            _kSampleIssuanceEvent,
-            _kSampleInteractionAttribute,
-            _kSampleInteractionAttribute,
-            _kSampleInteractionAttribute,
-          ],
-        ),
-        const ThemeSectionSubHeader(title: 'TourBanner'),
-        const TourBanner(),
-        const ThemeSectionSubHeader(title: 'RevocationCodeText'),
-        const RevocationCodeText(revocationCode: 'AB12CD34EF56GH78IJ'),
-      ],
-    );
+        rowPadding: const EdgeInsets.symmetric(vertical: 4),
+      ),
+      const ThemeSectionSubHeader(title: 'NumberedList'),
+      const NumberedList(
+        items: ['Item', 'Item', 'Item'],
+      ),
+    ];
+  }
+
+  List<Widget> _buildStatusAndBannerWidgets(BuildContext context) {
+    return [
+      const ThemeSectionSubHeader(title: 'StatusIcon'),
+      const StatusIcon(icon: Icons.ac_unit),
+      const ThemeSectionSubHeader(title: 'ActivitySummary'),
+      ActivitySummary(
+        events: [
+          _kSampleIssuanceEvent,
+          _kSampleIssuanceEvent,
+          _kSampleInteractionAttribute,
+          _kSampleInteractionAttribute,
+          _kSampleInteractionAttribute,
+        ],
+      ),
+      const ThemeSectionSubHeader(title: 'TourBanner'),
+      const TourBanner(),
+      const ThemeSectionSubHeader(title: 'RevocationCodeText'),
+      const RevocationCodeText(revocationCode: 'AB12CD34EF56GH78IJ'),
+    ];
   }
 
   void _showWalletAppBarPage(BuildContext context) {
