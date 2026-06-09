@@ -271,24 +271,32 @@ impl FlutterApiErrorFields for IssuanceError {
             IssuanceError::CheckPreconditions(CheckPreconditionsError::VersionBlocked) => {
                 FlutterApiErrorType::VersionBlocked
             }
+
             IssuanceError::CheckPreconditions(_) | IssuanceError::SessionState => FlutterApiErrorType::WalletState,
+
             IssuanceError::IssuanceSession(WalletIssuanceError::OAuth(OAuthError::RedirectUriError(_))) => {
                 FlutterApiErrorType::RedirectUri
             }
+
             IssuanceError::IssuanceSession(WalletIssuanceError::TokenRequest(_))
             | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialPreview(_))
             | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRequest(_))
             | IssuanceError::IssuanceSession(WalletIssuanceError::CredentialRejection(_)) => {
                 FlutterApiErrorType::Server
             }
+
             IssuanceError::AttestationPreview(_)
             | IssuanceError::Attestation { .. }
-            | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
+            | IssuanceError::IssuerServer { .. }
+            | IssuanceError::MissingTypeMetadata(_) => FlutterApiErrorType::Issuer,
+
             IssuanceError::AuthorizationDenied => FlutterApiErrorType::DeniedDigid,
             IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
                 FlutterApiErrorType::WrongDigid
             }
+
             IssuanceError::Instruction(error) => FlutterApiErrorType::from(error),
+
             IssuanceError::PidAlreadyPresent
             | IssuanceError::NoPidPresent
             | IssuanceError::Signature(_)

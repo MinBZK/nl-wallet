@@ -236,13 +236,13 @@ where
         // Check the recovery code in the received PID against the one in the stored PID, as otherwise
         // the WP will reject our PIN recovery instructions.
         let pid_config = &config.pid_attributes;
-        let pid_preview = Self::pid_preview(issuance_session.normalized_credential_preview(), pid_config)?;
+        let pid_preview = Self::pid_preview(issuance_session.credential_previews(), pid_config)?;
         self.compare_recovery_code_against_stored(pid_preview, pid_config)
             .await?;
 
         self.session.replace(Session::PinRecovery(PinRecoverySession::Issuance {
             pid_config: pid_config.clone(),
-            pid_attestation_type: pid_preview.content.credential_payload.attestation_type.clone(),
+            pid_attestation_type: pid_preview.credential_payload.attestation_type.clone(),
             issuance_session,
         }));
 
@@ -572,15 +572,9 @@ mod tests {
         let mut authorization_session = MockAuthorizationSession::new();
         authorization_session.expect_start_issuance_sync().return_once(|| {
             let mut client = MockIssuanceSession::new();
+            let (preview, _) = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
 
-            client
-                .expect_normalized_credential_previews()
-                .once()
-                .return_const(vec![create_example_pid_preview_data(
-                    &MockTimeGenerator::default(),
-                    Format::SdJwt,
-                )]);
-
+            client.expect_credential_previews().once().return_const(vec![preview]);
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             Ok(client)
@@ -826,18 +820,13 @@ mod tests {
             let mut client = MockIssuanceSession::new();
 
             // Remove the recovery code attribute from the preview
-            let mut preview = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
+            let (mut preview, _) = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
             preview
-                .content
                 .credential_payload
                 .attributes
                 .prune(&[vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]]);
 
-            client
-                .expect_normalized_credential_previews()
-                .once()
-                .return_const(vec![preview]);
-
+            client.expect_credential_previews().once().return_const(vec![preview]);
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             Ok(client)
@@ -873,9 +862,10 @@ mod tests {
                 let mut client = MockIssuanceSession::new();
 
                 // Change the recovery code attribute from the preview
-                let mut preview = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
+                let (mut preview, _type_metadata) =
+                    create_example_pid_preview_data(&MockTimeGenerator::default(), Format::SdJwt);
 
-                let attributes = &mut preview.content.credential_payload.attributes;
+                let attributes = &mut preview.credential_payload.attributes;
                 attributes.prune(&[vec_nonempty![ClaimPath::SelectByKey("family_name".to_string())]]);
                 attributes
                     .insert(
@@ -884,10 +874,7 @@ mod tests {
                     )
                     .unwrap();
 
-                client
-                    .expect_normalized_credential_previews()
-                    .once()
-                    .return_const(vec![preview]);
+                client.expect_credential_previews().once().return_const(vec![preview]);
 
                 Ok(client)
             });
