@@ -57,12 +57,16 @@ impl CredentialOfferContainer {
 
     /// Returns the key and value as a `(String, String)` pair, suitable for passing to
     /// [`form_urlencoded::Serializer::append_pair`] (e.g. as obtained from [`Url::query_pairs_mut`]).
+    #[no_panic]
     pub fn into_query_pair(self) -> (String, String) {
         let serde_json::Value::Object(map) = serde_json::to_value(self).unwrap() else {
-            unreachable!()
+            unreachable!("`enum CredentialOfferContainer` should always serialize as an Object");
         };
-        let (k, v) = map.into_iter().exactly_one().unwrap();
-        (k, v.as_str().unwrap_or(&v.to_string()).to_string())
+        let (k, v) = map
+            .into_iter()
+            .exactly_one()
+            .expect("`enum CredentialOfferContainer` should always serialize as an object with a single field");
+        (k.to_string(), v.as_str().unwrap_or(&v.to_string()).to_string())
     }
 
     pub fn into_credential_offer_url(self) -> Url {
