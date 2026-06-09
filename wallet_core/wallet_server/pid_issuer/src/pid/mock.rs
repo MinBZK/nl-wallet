@@ -46,8 +46,8 @@ use crate::pid::constants::PID_RESIDENT_STREET;
 
 /// Mock [`AuthorizationCodeFlow`] for pid, providing a deterministic end-to-end stand-in for the
 /// real DigiD-backed flow:
-/// - `authorize` captures the wallet's [`WalletAuthorizationContext`] into an in-memory bridge keyed by a
-///   generated `issuer_state`, then 302s to the issuer's own mock callback URL
+/// - `authorize` captures the wallet's [`WalletAuthorizationContext`] into an in-memory bridge keyed by a generated
+///   `issuer_state`, then 302s to the issuer's own mock callback URL
 ///   `<issuer_url>/mock/digid/callback?code=<rnd>&state=<issuer_state>`.
 /// - `callback_router` mounts that callback URL: it consumes the bridge entry, plants an `AuthCodeIssued` session via
 ///   [`AuthorizingIssuer::complete_authorization`] with copies of the preconfigured documents (fresh ids), and 302s the
