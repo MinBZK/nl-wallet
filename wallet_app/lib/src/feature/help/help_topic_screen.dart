@@ -3,8 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/model/result/application_error.dart';
 import '../../navigation/wallet_routes.dart';
+import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../wallet_constants.dart';
 import '../common/widget/button/bottom_back_button.dart';
+import '../common/widget/button/list_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
@@ -99,6 +102,11 @@ class _HelpTopicScreenState extends State<HelpTopicScreen> {
         TopicBlockList(
           blocks: state.blocks,
           onReferenceTap: (topicId) => _onReferenceTap(context, topicId),
+        ),
+        const SizedBox(height: 24),
+        ListButton(
+          text: Text.rich(context.l10n.helpTopicScreenSomethingElseCta.toTextSpan(context)),
+          onPressed: () => Navigator.pushNamed(context, WalletRoutes.contactRoute),
         ),
       ],
     );
