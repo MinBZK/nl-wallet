@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::num::NonZeroU8;
 use std::time::Duration;
 
@@ -16,7 +17,6 @@ use derive_more::Debug;
 use derive_more::From;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
-use indexmap::IndexSet;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DurationSeconds;
@@ -126,7 +126,7 @@ pub struct TokenResponse {
     pub refresh_token: Option<String>,
 
     #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, String>>")]
-    pub scope: Option<IndexSet<String>>,
+    pub scope: Option<HashSet<String>>,
 
     #[serde_as(as = "Option<DurationSeconds<u64>>")]
     pub expires_in: Option<Duration>,
@@ -231,12 +231,15 @@ pub enum TokenType {
 
 #[cfg(test)]
 mod tests {
-    use indexmap::IndexSet;
+    use std::collections::HashSet;
+
+    use itertools::Itertools;
     use serde_json::json;
 
     use crate::token::TokenRequest;
     use crate::token::TokenRequestGrantType;
     use crate::token::TokenResponse;
+    use crate::token::TokenType;
 
     #[test]
     fn token_request_serialization() {
@@ -261,22 +264,35 @@ mod tests {
 
     #[test]
     fn token_response_serialization() {
-        assert_eq!(
-            serde_json::to_string(&TokenResponse {
-                access_token: "access_token".to_string().into(),
-                token_type: crate::token::TokenType::Bearer,
-                scope: Some(IndexSet::from_iter(["scope1".to_string(), "scope2".to_string()])),
-                expires_in: None,
-                refresh_token: None,
-                authorization_details: None,
-            })
-            .unwrap(),
-            json!({
-                "access_token": "access_token",
-                "token_type": "Bearer",
-                "scope": "scope1 scope2"
-            })
-            .to_string(),
-        );
+        let token_response = TokenResponse {
+            access_token: "access_token".to_string().into(),
+            token_type: TokenType::Bearer,
+            scope: Some(HashSet::from(["scope1".to_string(), "scope2".to_string()])),
+            expires_in: None,
+            refresh_token: None,
+            authorization_details: None,
+        };
+
+        let mut json =
+            serde_json::to_value(token_response).expect("should be able to serialize TokenResponse to JSON value");
+
+        // Sort scope values, as their order is not deterministic.
+        json["scope"] = json
+            .get("scope")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .split(' ')
+            .sorted()
+            .join(" ")
+            .into();
+
+        let expected_json = json!({
+            "access_token": "access_token",
+            "token_type": "Bearer",
+            "scope": "scope1 scope2"
+        });
+
+        assert_eq!(json, expected_json);
     }
 }

@@ -1,6 +1,7 @@
+use std::collections::HashSet;
+
 use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::tls_pinned_client_builder;
-use indexmap::IndexSet;
 use jwe::algorithm::EncryptionAlgorithm;
 use jwe::algorithm::RsaAlgorithm;
 use jwe::decryption::JweDecrypter;
@@ -148,7 +149,7 @@ impl DigidClient for HttpDigidClient {
     ) -> Result<Url, Error> {
         // Create a new upstream authorization request
         let mut vci_request = VciAuthorizationRequest::for_auth_code(client_id, redirect_uri, state, None, pkce_pair);
-        vci_request.scope = Some(IndexSet::from_iter([String::from("openid")]));
+        vci_request.scope = Some(HashSet::from_iter([String::from("openid")]));
 
         let oidc_request = OidcAuthorizationRequest {
             vci_request,

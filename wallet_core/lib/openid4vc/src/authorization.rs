@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use chrono::Duration;
-use indexmap::IndexSet;
 use jwt::nonce::Nonce;
 use serde::Deserialize;
 use serde::Serialize;
@@ -68,7 +67,7 @@ pub struct VciAuthorizationRequest {
     pub code_challenge: PkceCodeChallenge,
 
     #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, String>>")]
-    pub scope: Option<IndexSet<String>>,
+    pub scope: Option<HashSet<String>>,
 
     /// String value identifying a certain processing context at the Credential Issuer. A value for this parameter is
     /// typically passed in a Credential Offer from the Credential Issuer to the Wallet. This request parameter is used
@@ -227,7 +226,7 @@ pub struct AuthorizationResponse {
 mod tests {
     use std::collections::HashSet;
 
-    use indexmap::IndexSet;
+    use itertools::Itertools;
     use jwt::nonce::Nonce;
     use serde_json::json;
     use serde_qs;
@@ -242,9 +241,7 @@ mod tests {
     use crate::authorization::VciAuthorizationRequest;
 
     fn example_vci_request() -> VciAuthorizationRequest {
-        let mut scope = IndexSet::new();
-        scope.insert("openid".to_string());
-        scope.insert("profile".to_string());
+        let scope = HashSet::from(["openid".to_string(), "profile".to_string()]);
 
         VciAuthorizationRequest {
             oauth_request: AuthorizationRequestBase {
@@ -272,9 +269,14 @@ mod tests {
 
         assert_eq!(decoded.oauth_request.client_id, "client-123");
         assert_eq!(decoded.oauth_request.state.as_deref(), Some("state-abc"));
-        assert_eq!(
-            decoded.scope.unwrap().iter().cloned().collect::<Vec<_>>(),
-            vec!["openid", "profile"]
+        assert!(
+            decoded
+                .scope
+                .as_ref()
+                .unwrap()
+                .iter()
+                .sorted()
+                .eq(["openid", "profile"])
         );
         assert!(matches!(
             decoded.code_challenge,
