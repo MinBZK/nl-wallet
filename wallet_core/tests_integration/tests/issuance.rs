@@ -4,7 +4,6 @@ use std::collections::HashSet;
 use attestation_data::attributes::Attributes;
 use attestation_types::credential_format::Format;
 use db_test::DbSetup;
-use itertools::Itertools;
 use openid4vc::ErrorResponse;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::wallet_issuance::WalletIssuanceError;
@@ -22,7 +21,10 @@ use pid_issuer::pid::constants::PID_RESIDENT_POSTAL_CODE;
 use pid_issuer::pid::constants::PID_RESIDENT_STREET;
 use serial_test::serial;
 use tests_integration::common::*;
+use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_nonempty;
 use wallet::AttestationAttributeValue;
 use wallet::AttestationPresentation;
 use wallet::PidIssuancePurpose;
@@ -102,8 +104,8 @@ fn test_pid_attestation(pid_attestation: &AttestationPresentation) {
 }
 
 fn pid_without_optionals_with_address() -> VecNonEmpty<IssuableDocument> {
-    [Format::MsoMdoc, Format::SdJwt]
-        .into_iter()
+    vec_nonempty![Format::MsoMdoc, Format::SdJwt]
+        .into_nonempty_iter()
         .map(|format| {
             IssuableDocument::try_new_with_random_id(
                 format,
@@ -142,14 +144,12 @@ fn pid_without_optionals_with_address() -> VecNonEmpty<IssuableDocument> {
             )
             .unwrap()
         })
-        .collect_vec()
-        .try_into()
-        .unwrap()
+        .collect()
 }
 
 fn pid_missing_required_with_address() -> VecNonEmpty<IssuableDocument> {
-    [Format::MsoMdoc, Format::SdJwt]
-        .into_iter()
+    vec_nonempty![Format::MsoMdoc, Format::SdJwt]
+        .into_nonempty_iter()
         .map(|format| {
             IssuableDocument::try_new_with_random_id(
                 format,
@@ -187,9 +187,7 @@ fn pid_missing_required_with_address() -> VecNonEmpty<IssuableDocument> {
             )
             .unwrap()
         })
-        .collect_vec()
-        .try_into()
-        .unwrap()
+        .collect()
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]

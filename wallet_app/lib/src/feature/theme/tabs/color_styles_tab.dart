@@ -12,128 +12,158 @@ class ColorStylesTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
       children: [
-        _ColorRow(
-          name: 'colorScheme.primary',
-          color: colorScheme.primary,
-        ),
-        _ColorRow(
-          name: 'colorScheme.onPrimary',
-          color: colorScheme.onPrimary,
-          bgColor: colorScheme.primary,
-          textColor: colorScheme.onPrimary,
-        ),
-        _ColorRow(
-          name: 'colorScheme.primaryContainer',
-          color: colorScheme.primaryContainer,
-        ),
-        _ColorRow(
-          name: 'colorScheme.onPrimaryContainer',
-          color: colorScheme.onPrimaryContainer,
-          bgColor: colorScheme.primaryContainer,
-          textColor: colorScheme.onPrimaryContainer,
-        ),
-        _ColorRow(
-          name: 'colorScheme.secondary',
-          color: colorScheme.secondary,
-        ),
-        _ColorRow(
-          name: 'colorScheme.onSecondary',
-          color: colorScheme.onSecondary,
-          bgColor: colorScheme.secondary,
-          textColor: colorScheme.onSecondary,
-        ),
-        _ColorRow(
-          name: 'colorScheme.secondaryContainer',
-          color: colorScheme.secondaryContainer,
-        ),
-        _ColorRow(
-          name: 'colorScheme.onSecondaryContainer',
-          color: colorScheme.onSecondaryContainer,
-          bgColor: colorScheme.secondaryContainer,
-          textColor: colorScheme.onSecondaryContainer,
-        ),
-        _ColorRow(
-          name: 'colorScheme.tertiary',
-          color: colorScheme.tertiary,
-        ),
-        _ColorRow(
-          name: 'colorScheme.onTertiary',
-          color: colorScheme.onTertiary,
-          bgColor: colorScheme.tertiary,
-          textColor: colorScheme.onTertiary,
-        ),
-        _ColorRow(
-          name: 'colorScheme.tertiaryContainer',
-          color: colorScheme.tertiaryContainer,
-        ),
-        _ColorRow(
-          name: 'colorScheme.onTertiaryContainer',
-          color: colorScheme.onTertiaryContainer,
-          bgColor: colorScheme.tertiaryContainer,
-          textColor: colorScheme.onTertiaryContainer,
-        ),
-        _ColorRow(
-          name: 'colorScheme.error',
-          color: colorScheme.error,
-        ),
-        _ColorRow(
-          name: 'colorScheme.onError',
-          color: colorScheme.onError,
-          bgColor: colorScheme.error,
-          textColor: colorScheme.onError,
-        ),
-        _ColorRow(
-          name: 'colorScheme.errorContainer',
-          color: colorScheme.errorContainer,
-        ),
-        _ColorRow(
-          name: 'colorScheme.onErrorContainer',
-          color: colorScheme.onErrorContainer,
-          bgColor: colorScheme.errorContainer,
-          textColor: colorScheme.onErrorContainer,
-        ),
-        _ColorRow(
-          name: 'colorScheme.surface',
-          color: colorScheme.surface,
-        ),
-        _ColorRow(
-          name: 'colorScheme.onSurface',
-          color: colorScheme.onSurface,
-          bgColor: colorScheme.surface,
-          textColor: colorScheme.onSurface,
-        ),
-        _ColorRow(
-          name: 'colorScheme.surfaceTint',
-          color: colorScheme.surfaceTint,
-        ),
-        _ColorRow(
-          name: 'colorScheme.surfaceContainerHighest',
-          color: colorScheme.surfaceContainerHighest,
-        ),
-        _ColorRow(
-          name: 'colorScheme.onSurfaceVariant',
-          color: colorScheme.onSurfaceVariant,
-          bgColor: colorScheme.surfaceContainerHighest,
-          textColor: colorScheme.onSurfaceVariant,
-        ),
-        _ColorRow(
-          name: 'colorScheme.outline',
-          color: colorScheme.outline,
-        ),
-        _ColorRow(
-          name: 'colorScheme.outlineVariant',
-          color: colorScheme.outlineVariant,
-        ),
-        _ColorRow(
-          name: 'colorScheme.scrim',
-          color: colorScheme.scrim,
-        ),
-        _ColorRow(
-          name: 'colorScheme.shadow',
-          color: colorScheme.shadow,
-        ),
+        ..._buildPrimaryColors(colorScheme),
+        ..._buildSecondaryColors(colorScheme),
+        ..._buildTertiaryColors(colorScheme),
+        ..._buildErrorColors(colorScheme),
+        ..._buildSurfaceAndOutlineColors(colorScheme),
       ],
     );
+  }
+
+  List<Widget> _buildPrimaryColors(ColorScheme colorScheme) {
+    return [
+      _ColorRow(
+        name: 'colorScheme.primary',
+        color: colorScheme.primary,
+      ),
+      _ColorRow(
+        name: 'colorScheme.onPrimary',
+        color: colorScheme.onPrimary,
+        bgColor: colorScheme.primary,
+        textColor: colorScheme.onPrimary,
+      ),
+      _ColorRow(
+        name: 'colorScheme.primaryContainer',
+        color: colorScheme.primaryContainer,
+      ),
+      _ColorRow(
+        name: 'colorScheme.onPrimaryContainer',
+        color: colorScheme.onPrimaryContainer,
+        bgColor: colorScheme.primaryContainer,
+        textColor: colorScheme.onPrimaryContainer,
+      ),
+    ];
+  }
+
+  List<Widget> _buildSecondaryColors(ColorScheme colorScheme) {
+    return [
+      _ColorRow(
+        name: 'colorScheme.secondary',
+        color: colorScheme.secondary,
+      ),
+      _ColorRow(
+        name: 'colorScheme.onSecondary',
+        color: colorScheme.onSecondary,
+        bgColor: colorScheme.secondary,
+        textColor: colorScheme.onSecondary,
+      ),
+      _ColorRow(
+        name: 'colorScheme.secondaryContainer',
+        color: colorScheme.secondaryContainer,
+      ),
+      _ColorRow(
+        name: 'colorScheme.onSecondaryContainer',
+        color: colorScheme.onSecondaryContainer,
+        bgColor: colorScheme.secondaryContainer,
+        textColor: colorScheme.onSecondaryContainer,
+      ),
+    ];
+  }
+
+  List<Widget> _buildTertiaryColors(ColorScheme colorScheme) {
+    return [
+      _ColorRow(
+        name: 'colorScheme.tertiary',
+        color: colorScheme.tertiary,
+      ),
+      _ColorRow(
+        name: 'colorScheme.onTertiary',
+        color: colorScheme.onTertiary,
+        bgColor: colorScheme.tertiary,
+        textColor: colorScheme.onTertiary,
+      ),
+      _ColorRow(
+        name: 'colorScheme.tertiaryContainer',
+        color: colorScheme.tertiaryContainer,
+      ),
+      _ColorRow(
+        name: 'colorScheme.onTertiaryContainer',
+        color: colorScheme.onTertiaryContainer,
+        bgColor: colorScheme.tertiaryContainer,
+        textColor: colorScheme.onTertiaryContainer,
+      ),
+    ];
+  }
+
+  List<Widget> _buildErrorColors(ColorScheme colorScheme) {
+    return [
+      _ColorRow(
+        name: 'colorScheme.error',
+        color: colorScheme.error,
+      ),
+      _ColorRow(
+        name: 'colorScheme.onError',
+        color: colorScheme.onError,
+        bgColor: colorScheme.error,
+        textColor: colorScheme.onError,
+      ),
+      _ColorRow(
+        name: 'colorScheme.errorContainer',
+        color: colorScheme.errorContainer,
+      ),
+      _ColorRow(
+        name: 'colorScheme.onErrorContainer',
+        color: colorScheme.onErrorContainer,
+        bgColor: colorScheme.errorContainer,
+        textColor: colorScheme.onErrorContainer,
+      ),
+    ];
+  }
+
+  List<Widget> _buildSurfaceAndOutlineColors(ColorScheme colorScheme) {
+    return [
+      _ColorRow(
+        name: 'colorScheme.surface',
+        color: colorScheme.surface,
+      ),
+      _ColorRow(
+        name: 'colorScheme.onSurface',
+        color: colorScheme.onSurface,
+        bgColor: colorScheme.surface,
+        textColor: colorScheme.onSurface,
+      ),
+      _ColorRow(
+        name: 'colorScheme.surfaceTint',
+        color: colorScheme.surfaceTint,
+      ),
+      _ColorRow(
+        name: 'colorScheme.surfaceContainerHighest',
+        color: colorScheme.surfaceContainerHighest,
+      ),
+      _ColorRow(
+        name: 'colorScheme.onSurfaceVariant',
+        color: colorScheme.onSurfaceVariant,
+        bgColor: colorScheme.surfaceContainerHighest,
+        textColor: colorScheme.onSurfaceVariant,
+      ),
+      _ColorRow(
+        name: 'colorScheme.outline',
+        color: colorScheme.outline,
+      ),
+      _ColorRow(
+        name: 'colorScheme.outlineVariant',
+        color: colorScheme.outlineVariant,
+      ),
+      _ColorRow(
+        name: 'colorScheme.scrim',
+        color: colorScheme.scrim,
+      ),
+      _ColorRow(
+        name: 'colorScheme.shadow',
+        color: colorScheme.shadow,
+      ),
+    ];
   }
 }
 

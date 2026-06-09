@@ -291,7 +291,8 @@ mod tests {
         wallet.session = Some(Session::Disclosure(disclosure_session));
 
         // Setup wallet issuance state
-        let credential_preview = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::MsoMdoc);
+        let (credential_preview, type_metadata) =
+            create_example_pid_preview_data(&MockTimeGenerator::default(), Format::MsoMdoc);
         wallet
             .issuance_discovery
             .expect_start_pre_authorized_code_flow_sync()
@@ -299,7 +300,11 @@ mod tests {
                 let mut issuance_session = MockIssuanceSession::new();
 
                 issuance_session
-                    .expect_normalized_credential_previews()
+                    .expect_type_metadata()
+                    .return_const([(credential_preview.config_id.clone(), type_metadata)].into());
+
+                issuance_session
+                    .expect_credential_previews()
                     .return_const(vec![credential_preview]);
 
                 issuance_session

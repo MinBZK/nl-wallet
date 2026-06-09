@@ -18,7 +18,7 @@ required-features = ["issuance"]
 
 [features]
 # Enable issuance
-issuance = ["axum-extra/typed-header"]
+issuance = ["axum-extra/typed-header", "dep:sd_jwt_vc_metadata"]
 # Enable disclosure
 disclosure = ["dep:ring"]
 
@@ -41,6 +41,8 @@ jwt.path = "../jwt"
 openid4vc = { path = "../openid4vc", features = ["axum"] }
 token_status_list = { path = "../token_status_list" }
 utils.path = "../utils"
+
+sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", optional = true }
 
 [dev-dependencies]
 axum-server.workspace = true

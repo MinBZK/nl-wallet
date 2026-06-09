@@ -21,96 +21,126 @@ class ButtonStylesTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       children: [
-        const ThemeSectionSubHeader(title: 'Themed Framework Buttons'),
-        const SizedBox(height: 16),
-        ElevatedButton(
-          onPressed: () => {},
-          child: const Text('ElevatedButton'),
-        ),
-        const SizedBox(height: 16),
-        OutlinedButton(
-          onPressed: () => {},
-          child: const Text('OutlinedButton'),
-        ),
-        const SizedBox(height: 16),
-        TextButton(
-          onPressed: () => {},
-          child: const Text('TextButton'),
-        ),
-        const SizedBox(height: 16),
-        const ThemeSectionSubHeader(title: 'Wallet Buttons'),
-        const SizedBox(height: 16),
-        PrimaryButton(onPressed: () => {}, text: const Text('Primary')),
-        const SizedBox(height: 16),
-        SecondaryButton(onPressed: () => {}, text: const Text('Secondary')),
-        const SizedBox(height: 16),
-        TertiaryButton(onPressed: () => {}, text: const Text('Tertiary')),
-        const SizedBox(height: 16),
-        DestructiveButton(onPressed: () => {}, text: const Text('Destructive')),
-        const SizedBox(height: 16),
-        const ThemeSectionSubHeader(title: 'TextWithLink'),
-        TextWithLink(
-          fullText: 'This is the full text {WITH} a clickable placeholder.',
-          linkText: 'WITH',
-          onLinkPressed: () {},
-        ),
-        const ThemeSectionSubHeader(title: 'ListButton'),
-        ListButton(
-          onPressed: () => {},
-          dividerSide: DividerSide.none,
-          text: const Text('ListButton'),
-        ),
-        const ThemeSectionSubHeader(title: 'LinkButton'),
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: LinkButton(
-            onPressed: () => {},
-            text: const Text('LinkButton'),
-          ),
-        ),
-        const ThemeSectionSubHeader(title: 'BottomBackButton'),
-        const BottomBackButton(),
-        const ThemeSectionSubHeader(title: 'ConfirmButtons'),
-        const ConfirmButtons(
-          primaryButton: PrimaryButton(
-            key: Key('acceptButton'),
-            text: Text('Accept'),
-            icon: null,
-          ),
-          secondaryButton: SecondaryButton(
-            key: Key('rejectButton'),
-            icon: null,
-            text: Text('Decline'),
-          ),
-        ),
-        const ThemeSectionSubHeader(title: 'ListItems'),
-        const ListItem.compact(
-          label: Text('Compact'),
-          subtitle: Text('Subtitle'),
-          dividerSide: .bottom,
-          icon: Icon(Icons.camera),
-        ),
-        const ListItem.horizontal(
-          label: Text('Horizontal'),
-          subtitle: Text('Subtitle'),
-          dividerSide: .bottom,
-          icon: Icon(Icons.camera),
-        ),
-        const ListItem.vertical(
-          label: Text('Vertical'),
-          subtitle: Text('Subtitle'),
-          button: PrimaryButton(text: Text('primary')),
-          dividerSide: .bottom,
-          icon: Icon(Icons.camera),
-        ),
-        const ThemeSectionSubHeader(title: 'Switch'),
-        const SwitchSettingRow(
-          label: Text('Toggle Setting'),
-          subtitle: Text('Subtitle'),
-          value: true,
-          dividerSide: .bottom,
-        ),
+        ..._buildFrameworkButtons(),
+        ..._buildWalletButtons(),
+        ..._buildSpecializedButtons(),
+        ..._buildListItems(),
+        ..._buildSettings(),
       ],
     );
+  }
+
+  List<Widget> _buildFrameworkButtons() {
+    return [
+      const ThemeSectionSubHeader(title: 'Themed Framework Buttons'),
+      const SizedBox(height: 16),
+      ElevatedButton(
+        onPressed: () => {},
+        child: const Text('ElevatedButton'),
+      ),
+      const SizedBox(height: 16),
+      OutlinedButton(
+        onPressed: () => {},
+        child: const Text('OutlinedButton'),
+      ),
+      const SizedBox(height: 16),
+      TextButton(
+        onPressed: () => {},
+        child: const Text('TextButton'),
+      ),
+      const SizedBox(height: 16),
+    ];
+  }
+
+  List<Widget> _buildWalletButtons() {
+    return [
+      const ThemeSectionSubHeader(title: 'Wallet Buttons'),
+      const SizedBox(height: 16),
+      PrimaryButton(onPressed: () => {}, text: const Text('Primary')),
+      const SizedBox(height: 16),
+      SecondaryButton(onPressed: () => {}, text: const Text('Secondary')),
+      const SizedBox(height: 16),
+      TertiaryButton(onPressed: () => {}, text: const Text('Tertiary')),
+      const SizedBox(height: 16),
+      DestructiveButton(onPressed: () => {}, text: const Text('Destructive')),
+      const SizedBox(height: 16),
+    ];
+  }
+
+  List<Widget> _buildSpecializedButtons() {
+    return [
+      const ThemeSectionSubHeader(title: 'TextWithLink'),
+      TextWithLink(
+        fullText: 'This is the full text {WITH} a clickable placeholder.',
+        linkText: 'WITH',
+        onLinkPressed: () {},
+      ),
+      const ThemeSectionSubHeader(title: 'ListButton'),
+      ListButton(
+        onPressed: () => {},
+        dividerSide: DividerSide.none,
+        text: const Text('ListButton'),
+      ),
+      const ThemeSectionSubHeader(title: 'LinkButton'),
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: LinkButton(
+          onPressed: () => {},
+          text: const Text('LinkButton'),
+        ),
+      ),
+      const ThemeSectionSubHeader(title: 'BottomBackButton'),
+      const BottomBackButton(),
+      const ThemeSectionSubHeader(title: 'ConfirmButtons'),
+      const ConfirmButtons(
+        primaryButton: PrimaryButton(
+          key: Key('acceptButton'),
+          text: Text('Accept'),
+          icon: null,
+        ),
+        secondaryButton: SecondaryButton(
+          key: Key('rejectButton'),
+          icon: null,
+          text: Text('Decline'),
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _buildListItems() {
+    return [
+      const ThemeSectionSubHeader(title: 'ListItems'),
+      const ListItem.compact(
+        label: Text('Compact'),
+        subtitle: Text('Subtitle'),
+        dividerSide: .bottom,
+        icon: Icon(Icons.camera),
+      ),
+      const ListItem.horizontal(
+        label: Text('Horizontal'),
+        subtitle: Text('Subtitle'),
+        dividerSide: .bottom,
+        icon: Icon(Icons.camera),
+      ),
+      const ListItem.vertical(
+        label: Text('Vertical'),
+        subtitle: Text('Subtitle'),
+        button: PrimaryButton(text: Text('primary')),
+        dividerSide: .bottom,
+        icon: Icon(Icons.camera),
+      ),
+    ];
+  }
+
+  List<Widget> _buildSettings() {
+    return [
+      const ThemeSectionSubHeader(title: 'Switch'),
+      const SwitchSettingRow(
+        label: Text('Toggle Setting'),
+        subtitle: Text('Subtitle'),
+        value: true,
+        dividerSide: .bottom,
+      ),
+    ];
   }
 }

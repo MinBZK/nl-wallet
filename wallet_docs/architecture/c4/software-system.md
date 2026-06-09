@@ -48,7 +48,7 @@ Relations:
 
 ## 4. WalletBackend
 
-WalletBackend provides backend services to support the Wallet app. WalletBackend facilitates account management, Wallet Unit Attestation status management and offers an endpoint to the Wallet app to perform HSM-assisted operations. 
+WalletBackend provides backend services to support the Wallet app. WalletBackend facilitates account management, Wallet Instance Attestation status management and offers an endpoint to the Wallet app to perform HSM-assisted operations. 
 
 Technology: axum (rust)
 
@@ -87,7 +87,7 @@ Relations:
 
 ## 7. WIA status list
 
-The WIA Status list container contains the WIA Status List(s) that provide information about the validity of Wallet Unit Attestations to consumers (Wallet app and PID-issuer). The WIA Status Lists are published by the WalletBackend.
+The WIA Status list container contains the WIA Status List(s) that provide information about the validity of Wallet Instance Attestations to consumers (Wallet app and PID-issuer). The WIA Status Lists are published by the WalletBackend.
 
 Technology: nginx (static content, Token Status List)
 
@@ -97,7 +97,7 @@ Relations:
 
 ## 8. WB database (accounts, WIA status)
 
-The WB database contains user account data, and the statuses for issued Wallet Unit Attestations.
+The WB database contains user account data, and the statuses for issued Wallet Instance Attestations.
 
 
 Technology: postgres

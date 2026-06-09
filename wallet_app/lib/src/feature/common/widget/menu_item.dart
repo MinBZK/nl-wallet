@@ -112,44 +112,9 @@ class _MenuItemState extends State<MenuItem> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (widget.label != null)
-                          DefaultTextAndFocusStyle(
-                            textStyle: context.textTheme.titleMedium!.copyWith(color: widget.labelColor),
-                            statesController: _statesController,
-                            pressedOrFocusedColor: textPressedColor,
-                            child: widget.label!,
-                          ),
-                        if (widget.subtitle != null)
-                          Row(
-                            children: [
-                              if (widget.errorIcon != null) ...[
-                                SizedBox(
-                                  height: 16,
-                                  width: 16,
-                                  child: IconTheme(
-                                    data: IconThemeData(color: context.colorScheme.error, size: 16),
-                                    child: widget.errorIcon!,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                              ],
-                              Expanded(
-                                child: DefaultTextAndFocusStyle(
-                                  textStyle: context.textTheme.bodyMedium!,
-                                  statesController: _statesController,
-                                  pressedOrFocusedColor: textPressedColor,
-                                  child: widget.subtitle!,
-                                ),
-                              ),
-                            ],
-                          ),
-                        if (widget.underline != null)
-                          DefaultTextAndFocusStyle(
-                            textStyle: context.textTheme.bodySmall!,
-                            statesController: _statesController,
-                            pressedOrFocusedColor: textPressedColor,
-                            child: widget.underline!,
-                          ),
+                        if (widget.label != null) _buildLabel(context, textPressedColor),
+                        if (widget.subtitle != null) _buildSubtitle(context, textPressedColor),
+                        if (widget.underline != null) _buildUnderline(context, textPressedColor),
                       ],
                     ),
                   ),
@@ -165,6 +130,50 @@ class _MenuItemState extends State<MenuItem> {
         ),
         if (widget.dividerSide.bottom) const Divider(),
       ],
+    );
+  }
+
+  Widget _buildLabel(BuildContext context, Color? textPressedColor) {
+    return DefaultTextAndFocusStyle(
+      textStyle: context.textTheme.titleMedium!.copyWith(color: widget.labelColor),
+      statesController: _statesController,
+      pressedOrFocusedColor: textPressedColor,
+      child: widget.label!,
+    );
+  }
+
+  Widget _buildSubtitle(BuildContext context, Color? textPressedColor) {
+    return Row(
+      children: [
+        if (widget.errorIcon != null) ...[
+          SizedBox(
+            height: 16,
+            width: 16,
+            child: IconTheme(
+              data: IconThemeData(color: context.colorScheme.error, size: 16),
+              child: widget.errorIcon!,
+            ),
+          ),
+          const SizedBox(width: 4),
+        ],
+        Expanded(
+          child: DefaultTextAndFocusStyle(
+            textStyle: context.textTheme.bodyMedium!,
+            statesController: _statesController,
+            pressedOrFocusedColor: textPressedColor,
+            child: widget.subtitle!,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUnderline(BuildContext context, Color? textPressedColor) {
+    return DefaultTextAndFocusStyle(
+      textStyle: context.textTheme.bodySmall!,
+      statesController: _statesController,
+      pressedOrFocusedColor: textPressedColor,
+      child: widget.underline!,
     );
   }
 

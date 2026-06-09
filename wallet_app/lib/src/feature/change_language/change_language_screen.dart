@@ -72,67 +72,71 @@ class ChangeLanguageScreen extends StatelessWidget {
           itemBuilder: (c, i) {
             final language = state.availableLanguages[i];
             final isSelectedLanguage = state.availableLanguages[i].locale == state.selectedLocale;
-            return Semantics(
-              inMutuallyExclusiveGroup: true,
-              selected: isSelectedLanguage,
-              button: !isSelectedLanguage,
-              onTap: isSelectedLanguage
-                  ? null
-                  : () {
-                      final changeLocaleEvent = ChangeLanguageLocaleSelected(language.locale);
-                      context.read<ChangeLanguageBloc>().add(changeLocaleEvent);
-                    },
-              excludeSemantics: true,
-              attributedLabel: AttributedString(
-                language.name,
-                attributes: [
-                  LocaleStringAttribute(
-                    range: language.name.fullRange,
-                    locale: language.locale,
-                  ),
-                ],
-              ),
-              onTapHint: _lookupSystemLocalizations(context).generalWCAGChangeLanguage,
-              child: InkWell(
-                onTap: isSelectedLanguage
-                    ? null
-                    : () {
-                        final changeLocaleEvent = ChangeLanguageLocaleSelected(language.locale);
-                        context.read<ChangeLanguageBloc>().add(changeLocaleEvent);
-                      },
-                child: Container(
-                  key: ValueKey(language),
-                  constraints: const BoxConstraints(minHeight: 72),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  alignment: Alignment.centerLeft,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: AnimatedDefaultTextStyle(
-                          duration: kDefaultAnimationDuration,
-                          style: _getRowTextStyle(context, isSelectedLanguage),
-                          child: Text(language.name),
-                        ),
-                      ),
-                      AnimatedOpacity(
-                        opacity: isSelectedLanguage ? 1 : 0,
-                        duration: kDefaultAnimationDuration,
-                        child: Icon(
-                          Icons.check,
-                          color: context.colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
+            return _buildLanguageItem(context, language, isSelectedLanguage);
           },
           itemCount: state.availableLanguages.length,
         ),
         const SliverDivider(),
       ],
     );
+  }
+
+  Widget _buildLanguageItem(BuildContext context, Language language, bool isSelectedLanguage) {
+    return Semantics(
+      inMutuallyExclusiveGroup: true,
+      selected: isSelectedLanguage,
+      button: !isSelectedLanguage,
+      onTap: isSelectedLanguage ? null : () => _onLanguageSelected(context, language),
+      excludeSemantics: true,
+      attributedLabel: _buildAttributedLanguageString(language),
+      onTapHint: _lookupSystemLocalizations(context).generalWCAGChangeLanguage,
+      child: InkWell(
+        onTap: isSelectedLanguage ? null : () => _onLanguageSelected(context, language),
+        child: Container(
+          key: ValueKey(language),
+          constraints: const BoxConstraints(minHeight: 72),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          alignment: Alignment.centerLeft,
+          child: Row(
+            children: [
+              Expanded(
+                child: AnimatedDefaultTextStyle(
+                  duration: kDefaultAnimationDuration,
+                  style: _getRowTextStyle(context, isSelectedLanguage),
+                  child: Text(language.name),
+                ),
+              ),
+              AnimatedOpacity(
+                opacity: isSelectedLanguage ? 1 : 0,
+                duration: kDefaultAnimationDuration,
+                child: Icon(
+                  Icons.check,
+                  color: context.colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Builds an [AttributedString] that includes a hint about the pronunciation (language) for the a11y framework
+  AttributedString _buildAttributedLanguageString(Language language) {
+    return AttributedString(
+      language.name,
+      attributes: [
+        LocaleStringAttribute(
+          range: language.name.fullRange,
+          locale: language.locale,
+        ),
+      ],
+    );
+  }
+
+  void _onLanguageSelected(BuildContext context, Language language) {
+    final changeLocaleEvent = ChangeLanguageLocaleSelected(language.locale);
+    context.read<ChangeLanguageBloc>().add(changeLocaleEvent);
   }
 
   /// Looks up the system Locale (so NOT the locale that is currently selected in the app) and

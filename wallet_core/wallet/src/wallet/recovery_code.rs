@@ -4,8 +4,8 @@ use attestation_data::attributes::AttributeValue;
 use attestation_types::credential_format::Format;
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::token::CredentialPreview;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
-use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
 use wallet_configuration::wallet_config::PidAttributesConfigurationError;
@@ -47,16 +47,16 @@ where
     DCC: DisclosureClient,
 {
     pub(super) fn pid_preview<'a>(
-        previews: &'a [NormalizedCredentialPreview],
+        previews: &'a [CredentialPreview],
         pid_config: &PidAttributesConfiguration,
-    ) -> Result<&'a NormalizedCredentialPreview, RecoveryCodeError> {
+    ) -> Result<&'a CredentialPreview, RecoveryCodeError> {
         previews
             .iter()
             .find(|preview| {
-                preview.content.format == Format::SdJwt
+                preview.format == Format::SdJwt
                     && pid_config
                         .sd_jwt
-                        .contains_key(&preview.content.credential_payload.attestation_type)
+                        .contains_key(&preview.credential_payload.attestation_type)
             })
             .ok_or(RecoveryCodeError::MissingPid)
     }
@@ -64,14 +64,13 @@ where
     /// Check the recovery code in the specified PID preview against the one in storage, if present.
     pub(super) async fn compare_recovery_code_against_stored(
         &self,
-        pid_preview: &NormalizedCredentialPreview,
+        pid_preview: &CredentialPreview,
         pid_config: &PidAttributesConfiguration,
     ) -> Result<(), RecoveryCodeError> {
         let received_recovery_code = pid_preview
-            .content
             .credential_payload
             .attributes
-            .get(&pid_config.recovery_code_path(&pid_preview.content.credential_payload.attestation_type)?)
+            .get(&pid_config.recovery_code_path(&pid_preview.credential_payload.attestation_type)?)
             .expect("failed to retrieve recovery code from PID")
             .ok_or(RecoveryCodeError::MissingRecoveryCode)?
             .clone();

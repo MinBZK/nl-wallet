@@ -2,11 +2,11 @@ pub mod authorization;
 pub mod credential;
 pub mod discovery;
 pub mod issuance_session;
-pub mod preview;
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock;
 
+use std::collections::HashMap;
 use std::collections::HashSet;
 
 use attestation_data::attributes::AttributesError;
@@ -27,6 +27,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use url::Url;
 use utils::single_unique::MultipleItemsFound;
+use utils::vec_at_least::VecNonEmpty;
 use wscd::wscd::IssuanceWscd;
 
 use crate::CredentialErrorCode;
@@ -35,12 +36,15 @@ use crate::ErrorResponse;
 use crate::TokenErrorCode;
 use crate::credential::Credential;
 use crate::dpop::DpopError;
+use crate::issuer_identifier::IssuerIdentifier;
+use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::well_known::WellKnownError;
+use crate::token::CredentialPreview;
 use crate::token::CredentialPreviewError;
 use crate::wallet_issuance::authorization::OAuthError;
 use crate::wallet_issuance::credential::CredentialWithMetadata;
-use crate::wallet_issuance::preview::NormalizedCredentialPreview;
+use crate::wallet_issuance::issuance_session::IssuanceTypeMetadata;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -104,6 +108,10 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     CredentialPreview(Box<ErrorResponse<CredentialPreviewErrorCode>>),
 
+    #[error("could not retrieve type metadata from issuer: {0:?}")]
+    #[category(expected)]
+    TypeMetadataHttp(#[source] reqwest::Error),
+
     #[error("could not retrieve nonce from issuer: {0:?}")]
     #[category(expected)]
     NonceHttp(#[source] reqwest::Error),
@@ -152,6 +160,14 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     HeaderToStr(#[from] ToStrError),
 
+    #[error("uri `{0}` has different host than issuer identifier `{1}`")]
+    #[category(critical)]
+    HostMismatchWithIssuerIdentifier(IssuerUrl, Box<IssuerIdentifier>),
+
+    #[error("type metadata for `{0}` not found")]
+    #[category(critical)]
+    TypeMetadataNotFound(CredentialConfigurationId),
+
     #[error("error verifying credential preview: {0}")]
     CredentialPreviewVerification(#[source] CredentialPreviewError),
 
@@ -180,6 +196,14 @@ pub enum WalletIssuanceError {
     #[error("error discovering Credential Issuer metadata: {0}")]
     #[category(expected)]
     CredentialIssuerDiscovery(#[source] WellKnownError),
+
+    #[error(
+        "authorization server specified in Credential Offer is not present in OAuth metadata: {} not in {}",
+        .0,
+        .1.iter().join(" or ")
+    )]
+    #[category(expected)]
+    AuthorizationServerMismatch(Box<IssuerIdentifier>, Box<VecNonEmpty<IssuerIdentifier>>),
 
     #[error("missing Credential Configuration ID from Credential Offer in Issuer Metadata: {}", .0.iter().join(", "))]
     #[category(expected)]
@@ -341,7 +365,9 @@ pub trait IssuanceSession {
 
     async fn reject_issuance(&self) -> Result<(), WalletIssuanceError>;
 
-    fn normalized_credential_preview(&self) -> &[NormalizedCredentialPreview];
+    fn credential_previews(&self) -> &[CredentialPreview];
+
+    fn type_metadata(&self) -> &HashMap<CredentialConfigurationId, IssuanceTypeMetadata>;
 
     fn issuer_registration(&self) -> &IssuerRegistration;
 }

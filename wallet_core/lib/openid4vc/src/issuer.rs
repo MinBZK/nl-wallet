@@ -35,6 +35,7 @@ use jwt::wia::WiaDisclosure;
 use jwt::wia::WiaError;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
+use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use serde::Deserialize;
 use serde::Serialize;
 use token_status_list::status_list_service::StatusListService;
@@ -82,7 +83,6 @@ use crate::server_state::SessionToken;
 use crate::token::AccessToken;
 use crate::token::AuthorizationCode;
 use crate::token::CredentialPreview;
-use crate::token::CredentialPreviewContent;
 use crate::token::TokenRequest;
 use crate::token::TokenResponse;
 
@@ -403,6 +403,13 @@ impl<K, L, S, N> Issuer<K, L, S, N> {
     pub fn metadata(&self) -> &IssuerMetadata {
         &self.issuer_data.metadata
     }
+
+    pub fn type_metadata(&self, id: &CredentialConfigurationId) -> Option<TypeMetadataDocuments> {
+        self.issuer_data
+            .credential_configs
+            .get_by_configuration_id(id)
+            .map(|config| config.metadata.documents().clone().into())
+    }
 }
 
 impl<K, L, S, N> Issuer<K, L, S, N>
@@ -423,11 +430,12 @@ where
     ) -> Result<Self, CredentialConfigurationsError> {
         let credential_configs = CredentialConfigurations::try_new(credential_config_params)?;
 
-        let server_url = issuer_identifier.join_issuer_url("/issuance");
+        let server_url = issuer_identifier.as_issuer_url().join_issuer_url("/issuance");
         let credential_endpoint = server_url.join_issuer_url("/credential");
         let batch_credential_endpoint = server_url.join_issuer_url("/batch_credential");
         let nonce_endpoint = server_url.join_issuer_url("/nonce");
         let credential_preview_endpoint = server_url.join_issuer_url("/credential_preview");
+        let type_metadata_base_url = server_url.join_issuer_url("/type_metadata");
 
         let batch_credential_issuance = AtLeastTwoU64::try_new(batch_size.into())
             .ok()
@@ -444,7 +452,8 @@ where
             credential_response_encryption: None,
             batch_credential_issuance,
             display: None,
-            credential_configurations_supported: credential_configs.to_credential_configurations_supported(),
+            credential_configurations_supported: credential_configs
+                .to_credential_configurations_supported(&type_metadata_base_url),
             credential_preview_endpoint: Some(credential_preview_endpoint),
         };
 
@@ -631,6 +640,7 @@ where
         &self,
         state: &CredentialPreviewState,
     ) -> Result<CredentialPreview, CredentialPreviewError> {
+        let config_id = state.credential_configuration_id.clone();
         let credential_config = self
             .issuer_data
             .credential_configuration_for_preview_state(state)
@@ -639,13 +649,11 @@ where
             })?;
 
         let preview = CredentialPreview {
-            content: CredentialPreviewContent {
-                format: state.format,
-                batch_size: state.batch_size,
-                credential_payload: state.credential_payload.clone(),
-                issuer_certificate: credential_config.key_pair.certificate().clone(),
-            },
-            type_metadata: credential_config.metadata.documents().clone().into(),
+            config_id,
+            format: state.format,
+            batch_size: state.batch_size,
+            credential_payload: state.credential_payload.clone(),
+            issuer_certificate: credential_config.key_pair.certificate().clone(),
         };
 
         Ok(preview)
@@ -1649,6 +1657,11 @@ mod tests {
                 .map_err(|err| WalletIssuanceError::CredentialPreview(Box::new(err.into())))
         }
 
+        async fn request_type_metadata(&self, url: Url) -> Result<TypeMetadataDocuments, WalletIssuanceError> {
+            let id = url.path_segments().unwrap().next_back().unwrap().to_string().into();
+            Ok(self.issuer.type_metadata(&id).unwrap())
+        }
+
         async fn request_nonce(&self, _url: Url) -> Result<(NonceResponse, Option<String>), WalletIssuanceError> {
             let c_nonce = self.issuer.generate_proof_nonce().await.unwrap();
             Ok((NonceResponse { c_nonce }, None))
@@ -1717,19 +1730,25 @@ mod tests {
             .await
             .unwrap();
 
-        let credential_config_ids = message_client
+        let issuer_metadata = message_client.issuer.metadata().clone();
+        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
+
+        let credential_configs = message_client
             .issuer
             .credential_configs()
             .all_configuration_ids()
             .into_nonempty_iter()
-            .cloned()
+            .map(|id| {
+                (
+                    id.clone(),
+                    issuer_metadata.credential_configurations_supported[id].clone(),
+                )
+            })
             .collect();
 
-        let issuer_metadata = message_client.issuer.metadata().clone();
-        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
         let mut session = HttpIssuanceSession::create(
             message_client,
-            credential_config_ids,
+            credential_configs,
             issuer_metadata,
             oauth_metadata,
             TokenRequest::new_mock_with_pre_authorized_code(session_token.to_string()),
