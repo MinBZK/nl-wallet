@@ -33,8 +33,8 @@ class TopicReferences extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.help_outline_rounded,
-                      size: 20,
+                      Icons.live_help_outlined,
+                      size: 16,
                       color: context.colorScheme.onSurface,
                       semanticLabel: '',
                     ),
@@ -42,7 +42,7 @@ class TopicReferences extends StatelessWidget {
                     Expanded(
                       child: Text(
                         context.l10n.helpTopicScreenReferencesHeading,
-                        style: context.textTheme.titleSmall,
+                        style: context.textTheme.bodySmall,
                       ),
                     ),
                   ],

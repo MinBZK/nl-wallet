@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-05-21T14:42:26+02:00",
+    "@@last_modified": "2026-06-04T14:02:38+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -699,6 +699,7 @@
     },
     "helpSheetTitle": "Need help?",
     "helpTopicScreenReferencesHeading": "Other questions",
+    "helpTopicScreenSomethingElseCta": "Something else?",
     "historyDetailScreenAboutOrganizationCta": "About {organization}",
     "@historyDetailScreenAboutOrganizationCta": {
         "placeholders": {
@@ -1069,20 +1070,6 @@
     "mockDigidScreenTitle": "Securely login with DigiD",
     "moveStoppedDialogBody": "No data has been moved to this device.\n\nYour NL Wallet is still active on your other device.",
     "moveStoppedDialogTitle": "Move stopped",
-    "needHelpScreenActivitiesSubtitle": "Previous events, organisations and summaries",
-    "needHelpScreenActivitiesTitle": "Activities",
-    "needHelpScreenCardsSubtitle": "Adding and using cards",
-    "needHelpScreenCardsTitle": "Cards",
-    "needHelpScreenContactSubtitle": "By phone",
-    "needHelpScreenContactTitle": "Contact",
-    "needHelpScreenQrSubtitle": "Sharing from another device",
-    "needHelpScreenQrTitle": "QR code",
-    "needHelpScreenSecuritySubtitle": "Security steps and secure sharing",
-    "needHelpScreenSecurityTitle": "Security",
-    "needHelpScreenSettingsTitle": "App settings",
-    "needHelpScreenShareSubtitle": "Sharing details and logging in",
-    "needHelpScreenShareTitle": "Share data",
-    "needHelpScreenTitle": "Need help?",
     "organizationApprovePageApproveCta": "Share",
     "organizationApprovePageCancelLoginCta": "Stop",
     "organizationApprovePageDenyCta": "Stop",
