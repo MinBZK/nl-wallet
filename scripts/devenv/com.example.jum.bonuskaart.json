@@ -60,6 +60,7 @@
         }
       ],
       "sd": "always",
+      "mandatory": true,
       "svg_id": "loyalty_number"
     }
   ],

@@ -508,6 +508,12 @@ pub struct ClaimMetadata {
     #[serde(default)]
     pub sd: ClaimSelectiveDisclosureMetadata,
 
+    /// The mandatory property is a boolean indicating that, if set to true, the claim MUST be included in the
+    /// credential by the Issuer. If the value is false or omitted, the claim is considered optional for the Issuer to
+    /// include.
+    #[serde(default)]
+    pub mandatory: bool,
+
     /// A string defining the ID of the claim for reference in the SVG template.
     pub svg_id: Option<SvgId>,
 }
@@ -643,6 +649,7 @@ mod example_constructors {
                             description: None,
                         }],
                         sd: ClaimSelectiveDisclosureMetadata::Always,
+                        mandatory: false,
                         svg_id: None,
                     })
                     .collect(),

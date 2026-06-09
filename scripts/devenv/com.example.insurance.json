@@ -43,7 +43,8 @@
           "description": "Type of insurance"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["coverage"],
@@ -60,6 +61,7 @@
         }
       ],
       "sd": "always",
+      "mandatory": true,
       "svg_id": "coverage"
     },
     {

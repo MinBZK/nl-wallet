@@ -52,7 +52,7 @@
       "svg_id": "first_name"
     },
     {
-      "path": ["birth_date"],
+      "path": ["birthdate"],
       "display": [
         {
           "lang": "nl-NL",
@@ -97,7 +97,25 @@
           "description": "BSN of the person"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
+    },
+    {
+      "path": ["recovery_code"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Recovery code",
+          "description": "Recovery code of the person"
+        },
+        {
+          "lang": "nl-NL",
+          "label": "Herstelcode",
+          "description": "Herstelcode van de persoon"
+        }
+      ],
+      "sd": "always",
+      "mandatory": true
     }
   ],
   "schema": {

@@ -3,7 +3,7 @@
   "name": "NL PID credential",
   "description": "Working version of the Dutch PID credential",
   "extends": "urn:example:pid:1",
-  "extends#integrity": "sha256-W7R6Oim3Sim/XN1FAPjnt41ZDHPREF7fqa5Kzs12K4M=",
+  "extends#integrity": "sha256-AcbJp7W1EAPq7Ioo2Bzn54VWQbhQZYb/sGkjfKayDHo=",
   "display": [
     {
       "lang": "en-US",
@@ -40,7 +40,8 @@
           "description": "Achternaam van de persoon, inclusief voorvoegsels"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["given_name"],
@@ -52,6 +53,7 @@
         }
       ],
       "sd": "always",
+      "mandatory": true,
       "svg_id": "given_name"
     },
     {
@@ -63,7 +65,8 @@
           "description": "Geboortedatum van de persoon"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["age_over_18"],
@@ -101,7 +104,8 @@
           "description": "BSN van de persoon"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["recovery_code"],
@@ -117,7 +121,8 @@
           "description": "Herstelcode van de persoon"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     }
   ],
   "schema": {

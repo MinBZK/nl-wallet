@@ -40,17 +40,20 @@ In the example below, the following SD-JWT VC Type Metadata is used.
     {
       "path": [ "city" ],
       "display": [ /* ... */ ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": [ "street" ],
       "display": [ /* ... */ ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": [ "house", "number" ],
       "display": [ /* ... */ ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": [ "house", "letter" ],

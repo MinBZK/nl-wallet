@@ -27,6 +27,13 @@ pub enum NormalizedTypeMetadataError {
     InconsistentSelectiveDisclosure(String, VecNonEmpty<ClaimPath>),
 
     #[error(
+        "extending mandatory option is inconsistent for vct \"{}\" at path {}",
+        .0,
+        ClaimMetadata::path_to_string(.1.as_ref())
+    )]
+    InconsistentMandatory(String, VecNonEmpty<ClaimPath>),
+
+    #[error(
         "metadata extension for vct \"{}\" missing claim(s) at path(s) {}",
         .0,
         .1.iter().map(|path| ClaimMetadata::path_to_string(path.as_ref())).join(", ")
@@ -195,12 +202,20 @@ impl NormalizedTypeMetadata {
     }
 
     /// Returns all claim paths that only consist out of `SelectByKey` as a `VecNonEmpty` of `&str`
-    pub fn claim_key_paths(&self) -> Vec<VecNonEmpty<&str>> {
+    pub fn claim_key_paths(&self) -> impl Iterator<Item = VecNonEmpty<&str>> {
         self.claims
             .iter()
             .map(|claim| claim.path.iter().filter_map(|path| path.try_key_path()).collect_vec())
             .filter_map(|key_path| VecNonEmpty::try_from(key_path).ok())
-            .collect()
+    }
+
+    /// Returns all claim paths that are mandatory
+    pub fn mandatory_claims(&self) -> impl Iterator<Item = VecNonEmpty<&str>> {
+        self.claims
+            .iter()
+            .filter(|claim| claim.mandatory)
+            .map(|claim| claim.path.iter().filter_map(|path| path.try_key_path()).collect_vec())
+            .filter_map(|key_path| VecNonEmpty::try_from(key_path).ok())
     }
 }
 
@@ -244,17 +259,27 @@ impl ClaimMetadata {
                     let sd = ClaimSelectiveDisclosureMetadata::extend(extended_claim.sd, extending_claim.sd).ok_or(
                         NormalizedTypeMetadataError::InconsistentSelectiveDisclosure(
                             extending_vct.to_string(),
-                            extended_claim.path,
+                            extended_claim.path.clone(),
                         ),
                     )?;
 
-                    // The `svg_id`` is simply overwritten by the extending claim.
+                    // An extending type can set the mandatory property of a claim that is optional in the extended type
+                    // to true, but it MUST NOT change a claim that is mandatory in the extended type to false.
+                    let mandatory = (!extended_claim.mandatory || extending_claim.mandatory)
+                        .then_some(extending_claim.mandatory)
+                        .ok_or(NormalizedTypeMetadataError::InconsistentMandatory(
+                            extending_vct.to_string(),
+                            extended_claim.path,
+                        ))?;
+
+                    // The `svg_id` is simply overwritten by the extending claim.
                     let svg_id = extending_claim.svg_id;
 
                     let claim = Self {
                         path: extending_claim.path,
                         display,
                         sd,
+                        mandatory,
                         svg_id,
                     };
 
@@ -549,6 +574,7 @@ mod tests {
             path: vec_nonempty![ClaimPath::SelectByKey("path".to_string())],
             display: vec![],
             sd,
+            mandatory: false,
             svg_id: None,
         }
     }
@@ -617,6 +643,7 @@ mod tests {
             path: vec_nonempty![ClaimPath::SelectByKey(path)],
             display: vec![],
             sd: ClaimSelectiveDisclosureMetadata::default(),
+            mandatory: false,
             svg_id: None,
         }
     }
@@ -701,6 +728,7 @@ mod tests {
                 path: vec_nonempty![ClaimPath::SelectByKey("path".to_string())],
                 display: vec![],
                 sd: ClaimSelectiveDisclosureMetadata::Allowed,
+                mandatory: false,
                 svg_id: None,
             }],
             ..create_basic_unchecked_metadata()
@@ -748,6 +776,7 @@ mod tests {
                 description: None,
             }],
             sd: ClaimSelectiveDisclosureMetadata::Allowed,
+            mandatory: false,
             svg_id: None,
         };
         let metadata1 = UncheckedTypeMetadata {

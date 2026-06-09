@@ -92,7 +92,8 @@
           "description": "BAG identification number of the rental object"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["rental_object", "street_name"],
@@ -108,7 +109,8 @@
           "description": "Street name of the rental object"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["rental_object", "house_number"],
@@ -124,7 +126,8 @@
           "description": "House number of the rental object"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["rental_object", "house_number_suffix"],
@@ -172,7 +175,8 @@
           "description": "Zip code of the rental object"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["rental_object", "city"],
@@ -188,7 +192,8 @@
           "description": "City of the rental object"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["rental_contract", "start_date"],
@@ -204,7 +209,8 @@
           "description": "Start date of the rental contract"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["rental_contract", "end_date"],
@@ -252,7 +258,8 @@
           "description": "Name of the rental organization"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["rental_organization", "kvk_number"],
@@ -268,7 +275,8 @@
           "description": "Chamber of Commerce (KVK) subscription number of the rental organization"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     }
   ],
   "schema": {

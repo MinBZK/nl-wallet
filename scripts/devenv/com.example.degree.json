@@ -43,7 +43,8 @@
           "description": "University where the degree was obtained"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["education"],
@@ -60,6 +61,7 @@
         }
       ],
       "sd": "always",
+      "mandatory": true,
       "svg_id": "education"
     },
     {

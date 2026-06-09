@@ -76,6 +76,7 @@ fn mock_claims() -> Vec<ClaimMetadata> {
                 description: None,
             }],
             sd: ClaimSelectiveDisclosureMetadata::Allowed,
+            mandatory: false,
             svg_id: None,
         })
         .collect()

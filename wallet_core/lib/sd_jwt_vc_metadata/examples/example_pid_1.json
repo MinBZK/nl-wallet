@@ -19,7 +19,8 @@
           "description": "Family name of the person, including any prefixes"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["given_name"],
@@ -30,7 +31,8 @@
           "description": "First name of the person"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["birthdate"],
@@ -41,7 +43,8 @@
           "description": "Birth date of the person"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["age_over_18"],

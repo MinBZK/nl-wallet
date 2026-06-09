@@ -256,6 +256,7 @@ pub mod test {
                 .unwrap(),
             display: vec![],
             sd: ClaimSelectiveDisclosureMetadata::Always,
+            mandatory: false,
             svg_id: None,
         }
     }

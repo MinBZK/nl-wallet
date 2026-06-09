@@ -40,7 +40,8 @@
           "description": "Straatnaam van het adres"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["address", "house_number"],
@@ -51,7 +52,8 @@
           "description": "Huisnummer van het adres"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["address", "postal_code"],
@@ -62,7 +64,8 @@
           "description": "Postcode van het adres"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["address", "locality"],
@@ -74,6 +77,7 @@
         }
       ],
       "sd": "always",
+      "mandatory": true,
       "svg_id": "resident_city"
     },
     {
@@ -85,7 +89,8 @@
           "description": "Land van het adres"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     }
   ],
   "schema": {

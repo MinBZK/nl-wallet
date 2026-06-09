@@ -183,7 +183,8 @@ Here is the example TAS for an insurance:
           "description": "Type of insurance"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["coverage"],
@@ -200,6 +201,7 @@ Here is the example TAS for an insurance:
         }
       ],
       "sd": "always",
+      "mandatory": true,
       "svg_id": "coverage"
     },
     {

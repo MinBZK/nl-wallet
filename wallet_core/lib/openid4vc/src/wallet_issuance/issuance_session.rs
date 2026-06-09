@@ -1106,7 +1106,7 @@ mod tests {
             &ca,
             &TrustAnchors::from(&ca),
             IssuerMetadata::new_mock("https://example.com".parse().unwrap(), PID_ATTESTATION_TYPE, config_id),
-            vec![PreviewableCredentialPayload::example_family_name(
+            vec![PreviewableCredentialPayload::nl_pid_example(
                 &MockTimeGenerator::default(),
             )],
             TypeMetadata::pid_example(),
@@ -1207,8 +1207,7 @@ mod tests {
             &ca,
             &TrustAnchors::from(&ca),
             issuer_metadata,
-            vec![PreviewableCredentialPayload::example_empty(
-                PID_ATTESTATION_TYPE,
+            vec![PreviewableCredentialPayload::nl_pid_example(
                 &MockTimeGenerator::default(),
             )],
             TypeMetadata::pid_example(),

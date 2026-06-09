@@ -40,7 +40,8 @@
           "description": "Achternaam van de persoon, inclusief voorvoegsels"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["given_name"],
@@ -52,6 +53,7 @@
         }
       ],
       "sd": "always",
+      "mandatory": true,
       "svg_id": "given_name"
     },
     {
@@ -63,7 +65,8 @@
           "description": "Geboortedatum van de persoon"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["age_over_18"],
@@ -101,7 +104,8 @@
           "description": "BSN van de persoon"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["recovery_code"],
@@ -117,7 +121,8 @@
           "description": "Herstelcode van de persoon"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["address", "street_address"],
@@ -128,7 +133,8 @@
           "description": "Straatnaam van het adres"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["address", "house_number"],
@@ -139,7 +145,8 @@
           "description": "Huisnummer van het adres"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["address", "postal_code"],
@@ -150,7 +157,8 @@
           "description": "Postcode van het adres"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     },
     {
       "path": ["address", "locality"],
@@ -162,6 +170,7 @@
         }
       ],
       "sd": "always",
+      "mandatory": true,
       "svg_id": "resident_city"
     },
     {
@@ -173,7 +182,8 @@
           "description": "Land van het adres"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "mandatory": true
     }
   ],
   "schema": {
