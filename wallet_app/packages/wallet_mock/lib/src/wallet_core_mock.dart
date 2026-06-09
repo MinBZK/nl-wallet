@@ -2,11 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 
-import 'package:flutter_rust_bridge/src/droppable/_io.dart';
-import 'package:flutter_rust_bridge/src/rust_arc/_common.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet_core/core.dart';
-import 'package:wallet_core/src/models/issuance.dart';
 
 import '../mock.dart';
 import 'data/mock/mock_attestations.dart';
