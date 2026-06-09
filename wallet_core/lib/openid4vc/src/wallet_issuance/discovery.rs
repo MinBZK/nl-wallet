@@ -5,6 +5,7 @@ use http_utils::reqwest::HttpJsonClient;
 use itertools::Either;
 use itertools::Itertools;
 use url::Url;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use super::AuthorizationSession;
@@ -272,7 +273,8 @@ impl HttpIssuanceDiscovery {
                 // Issuer Metadata.
                 if !metadata_auth_servers.as_ref().contains(&authorization_server) {
                     return Err(WalletIssuanceError::AuthorizationServerMismatch(
-                        authorization_server.clone(),
+                        Box::new(authorization_server.clone()),
+                        Box::new(metadata_auth_servers.nonempty_iter().copied().cloned().collect()),
                     ));
                 }
 
@@ -1009,7 +1011,7 @@ mod test {
 
         // Construct a Pre-Authorized Code Credential Offer with an unknown Authorization Server.
         let credential_offer = CredentialOffer {
-            credential_issuer: issuer_identifier,
+            credential_issuer: issuer_identifier.clone(),
             credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
             grants: Some(Grants {
                 pre_authorized_code: Some(GrantPreAuthorizedCode {
@@ -1037,8 +1039,9 @@ mod test {
 
         assert_matches!(
             result,
-            Err(WalletIssuanceError::AuthorizationServerMismatch(auth_server))
-                if auth_server.as_ref() == "https://auth.example.com"
+            Err(WalletIssuanceError::AuthorizationServerMismatch(auth_server, metadata_auth_servers))
+                if auth_server.as_ref().as_ref() == "https://auth.example.com" &&
+                    metadata_auth_servers.iter().eq([&issuer_identifier])
         );
     }
 

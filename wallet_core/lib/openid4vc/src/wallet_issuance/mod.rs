@@ -27,6 +27,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 use url::Url;
 use utils::single_unique::MultipleItemsFound;
+use utils::vec_at_least::VecNonEmpty;
 use wscd::wscd::IssuanceWscd;
 
 use crate::CredentialErrorCode;
@@ -182,9 +183,13 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     CredentialIssuerDiscovery(#[source] WellKnownError),
 
-    #[error("authorization server specified in Credential Offer is not present in OAuth metadata: {0}")]
+    #[error(
+        "authorization server specified in Credential Offer is not present in OAuth metadata: {} not in {}",
+        .0,
+        .1.iter().join(" or ")
+    )]
     #[category(expected)]
-    AuthorizationServerMismatch(IssuerIdentifier),
+    AuthorizationServerMismatch(Box<IssuerIdentifier>, Box<VecNonEmpty<IssuerIdentifier>>),
 
     #[error("missing Credential Configuration ID from Credential Offer in Issuer Metadata: {}", .0.iter().join(", "))]
     #[category(expected)]
