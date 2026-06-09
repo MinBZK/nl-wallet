@@ -17,6 +17,7 @@ use axum::routing::get;
 use crypto::utils::random_string;
 use crypto::x509::CertificateError;
 use hsm::service::HsmError;
+use http_utils::urls::BaseUrl;
 use indexmap::IndexSet;
 use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use issuer_common::state_bridge_store::IssuerStateBridgeStoreError;
@@ -57,6 +58,8 @@ use crate::pid::digid::DigidMetadataCache;
 use crate::pid::digid::HttpDigidClient;
 
 const ISSUER_STATE_LENGTH: usize = 32;
+
+const DIGID_CALLBACK_PATH: &str = "/digid/callback";
 
 /// Errors raised by [`UpstreamOidcAuthorizationCodeFlow`] on either half of the flow.
 #[derive(Debug, thiserror::Error)]
@@ -135,7 +138,7 @@ pub struct UpstreamOidcAuthorizationCodeFlow<B = HttpBrpClient, O = HttpDigidCli
     digid_client: O,
     recovery_code_secret_key: SecretKeyVariant,
     state_bridge_store: Arc<IssuerStateBridgeStore>,
-    callback_uri: Url,
+    callback_base_url: BaseUrl,
     client_id: String,
 }
 
@@ -148,7 +151,7 @@ impl UpstreamOidcAuthorizationCodeFlow {
         digid_metadata_cache: DigidMetadataCache,
         recovery_code_secret_key: SecretKeyVariant,
         state_bridge_store: Arc<IssuerStateBridgeStore>,
-        callback_uri: Url,
+        callback_base_url: BaseUrl,
     ) -> Result<Self, Error> {
         let client_id: String = client_id.into();
         let digid_client =
@@ -160,7 +163,7 @@ impl UpstreamOidcAuthorizationCodeFlow {
             client_id,
             recovery_code_secret_key,
             state_bridge_store,
-            callback_uri,
+            callback_base_url,
         ))
     }
 }
@@ -172,14 +175,14 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
         client_id: impl Into<String>,
         recovery_code_secret_key: SecretKeyVariant,
         state_bridge_store: Arc<IssuerStateBridgeStore>,
-        callback_uri: Url,
+        callback_base_url: BaseUrl,
     ) -> Self {
         Self {
             brp_client,
             digid_client,
             recovery_code_secret_key,
             state_bridge_store,
-            callback_uri,
+            callback_base_url,
             client_id: client_id.into(),
         }
     }
@@ -200,7 +203,7 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
         O: DigidClient + Send + Sync + 'static,
     {
         Router::new()
-            .route("/digid/callback", get(digid_callback))
+            .route(DIGID_CALLBACK_PATH, get(digid_callback))
             .with_state(authorizing_issuer)
     }
 
@@ -216,7 +219,11 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
     {
         let bsn = self
             .digid_client
-            .bsn(upstream_code, upstream_code_verifier, Some(self.callback_uri.clone()))
+            .bsn(
+                upstream_code,
+                upstream_code_verifier,
+                Some(self.callback_base_url.join(DIGID_CALLBACK_PATH)),
+            )
             .await
             .map_err(Error::Digid)?;
 
@@ -258,7 +265,7 @@ where
         // Create a new upstream authorization request
         let mut upstream_request = VciAuthorizationRequest::for_auth_code(
             self.client_id.clone(),
-            self.callback_uri.clone(),
+            self.callback_base_url.join(DIGID_CALLBACK_PATH),
             issuer_state.clone(),
             None,
             &upstream_pkce,
@@ -456,6 +463,7 @@ mod tests {
     >;
 
     const CLIENT_ID: &str = "issuer-client-id";
+    const CALLBACK_BASE_URL: &str = "https://issuer.example.com/";
     const CALLBACK_URI: &str = "https://issuer.example.com/digid/callback";
     const UPSTREAM_AUTHORIZATION_ENDPOINT: &str = "https://digid.example.com/oauth2/authorize";
     const WALLET_REDIRECT_URI: &str = "https://wallet.example.com/callback";
@@ -540,7 +548,7 @@ mod tests {
             CLIENT_ID,
             recovery_code_secret_key(),
             state_bridge_store,
-            CALLBACK_URI.parse().unwrap(),
+            CALLBACK_BASE_URL.parse().unwrap(),
         )
     }
 

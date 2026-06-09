@@ -99,7 +99,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             // cannot pre-register. `fake_digid_auth` rewrites the port back to the live issuer when it
             // follows the callback. Keep the port (3003) in sync with the redirect_uris registered in
             // `scripts/devenv/digid-connector/clients.json` and `deploy/helm-charts/rdo-max/values.yaml`.
-            let callback_uri = local_http_base_url(3003).join("digid/callback");
+            let callback_base_url = local_http_base_url(3003);
             UpstreamOidcAuthorizationCodeFlow::try_new(
                 brp_client,
                 &bsn_privkey,
@@ -107,7 +107,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
                 digid_metadata_cache,
                 recovery_secret_key,
                 state_bridge_store,
-                callback_uri,
+                callback_base_url,
             )
             .unwrap()
         },

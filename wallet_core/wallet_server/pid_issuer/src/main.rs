@@ -42,7 +42,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     let digid_client_id = settings.digid.client_id;
     let bsn_privkey = settings.digid.bsn_privkey;
 
-    let callback_uri = settings.issuer_settings.public_url.as_base_url().join("digid/callback");
+    let callback_base_url = settings.issuer_settings.public_url.as_base_url().clone();
 
     let (issuer, database_checkers, _, server_settings) = settings
         .issuer_settings
@@ -54,7 +54,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
                 digid_metadata_cache,
                 recovery_code_secret_key,
                 Arc::new(IssuerStateBridgeStore::new(store_connection)),
-                callback_uri,
+                callback_base_url,
             )
         })
         .await?;
