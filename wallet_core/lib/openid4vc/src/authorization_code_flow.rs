@@ -51,7 +51,7 @@ impl WalletAuthorizationContext {
 
 /// Defines what the `openid4vc` layer should do in response to `/authorize`, expressed at the protocol level. The
 /// `openid4vc_server` HTTP layer turns each variant into the corresponding 302 redirect.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum AuthorizeOutcome {
     /// Send the user-agent to this URL (e.g. an external identity provider). The impl is
     /// responsible for whatever callback / state mechanism eventually turns this round-trip

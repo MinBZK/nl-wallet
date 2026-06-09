@@ -92,7 +92,7 @@ pub enum CompleteAuthorizationError {
 }
 
 /// Authorization Phase wrapper around an Issuance Phase [`Issuer`].
-#[derive(derive_more::Constructor)]
+#[derive(Constructor)]
 pub struct AuthorizingIssuer<K, L, S, N, PAS, AF> {
     issuer: Arc<Issuer<K, L, S, N>>,
     par_store: PAS,
@@ -348,6 +348,8 @@ mod tests {
     use std::num::NonZeroUsize;
     use std::sync::Arc;
 
+    use p256::ecdsa::SigningKey;
+    use token_status_list::status_list_service::mock::MockStatusListService;
     use url::Url;
     use utils::vec_at_least::VecNonEmpty;
     use utils::vec_nonempty;
@@ -366,6 +368,7 @@ mod tests {
     use crate::issuer::IssuanceData;
     use crate::issuer_identifier::IssuerIdentifier;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
+    use crate::nonce::memory_store::MemoryNonceStore;
     use crate::par::PAR_TTL;
     use crate::pkce::PkcePair;
     use crate::pkce::S256PkcePair;
@@ -383,6 +386,15 @@ mod tests {
     const REQUEST_URI: &str = "urn:ietf:params:oauth:request_uri:test";
     const WALLET_REDIRECT_URI: &str = "https://wallet.example.com/callback";
     const WALLET_STATE: &str = "wallet-state";
+
+    type TestAuthorizingIssuer = AuthorizingIssuer<
+        SigningKey,
+        MockStatusListService,
+        MemorySessionStore<IssuanceData>,
+        MemoryNonceStore,
+        MemoryStore<String, VciAuthorizationRequest>,
+        FixedOutcomeFlow,
+    >;
 
     fn upstream_url() -> Url {
         "https://auth.example.com/oauth2/authorize".parse().unwrap()
@@ -404,7 +416,7 @@ mod tests {
         )
     }
 
-    /// Build an inner [`Issuer`] (accepting only `MOCK_WALLET_CLIENT_ID`) and a PAR store seeded with
+    /// Builds an inner [`Issuer`] (accepting only `MOCK_WALLET_CLIENT_ID`) and a PAR store seeded with
     /// the given entries. Seeding the store directly lets us plant a PAR whose `client_id` differs
     /// from the one presented at `/authorize`. Also returns the session store so tests can read back
     /// the session written by `complete_authorization`.
@@ -427,30 +439,34 @@ mod tests {
         (Arc::new(issuer), par_store, sessions)
     }
 
+    /// Builds an [`AuthorizingIssuer`], building on [`issuer_and_par`] and resulting in the provided
+    /// [`AuthorizeOutcome`].
+    fn create_authorizing_issuer(
+        entries: Vec<(String, VciAuthorizationRequest)>,
+        outcome: AuthorizeOutcome,
+    ) -> (TestAuthorizingIssuer, Arc<MemorySessionStore<IssuanceData>>) {
+        let (issuer, par_store, sessions) = issuer_and_par(entries);
+        let auth_issuer = AuthorizingIssuer::new(issuer, par_store, FixedOutcomeFlow(outcome), allowed_redirect_uris());
+        (auth_issuer, sessions)
+    }
+
     /// Minimal [`AuthorizationCodeFlow`] that returns a preconfigured outcome, so `process_authorize`
     /// can be exercised independently of any real flow's behaviour.
+    #[derive(Debug, Clone)]
     struct FixedOutcomeFlow(AuthorizeOutcome);
 
     impl AuthorizationCodeFlow for FixedOutcomeFlow {
         type Error = Infallible;
 
         async fn authorize(&self, _context: WalletAuthorizationContext) -> Result<AuthorizeOutcome, Self::Error> {
-            Ok(match &self.0 {
-                AuthorizeOutcome::RedirectTo(url) => AuthorizeOutcome::RedirectTo(url.clone()),
-                AuthorizeOutcome::IssuedCode(code) => AuthorizeOutcome::IssuedCode(code.clone()),
-            })
+            Ok(self.0.clone())
         }
     }
 
     #[tokio::test]
     async fn process_par_rejects_unknown_client_id() {
-        let (issuer, par_store, _sessions) = issuer_and_par(vec![]);
-        let authorizing_issuer = AuthorizingIssuer::new(
-            issuer,
-            par_store,
-            FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
-            allowed_redirect_uris(),
-        );
+        let (authorizing_issuer, _sessions) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let error = authorizing_issuer
             .process_pushed_authorization_request(vci_request(OTHER_CLIENT_ID))
@@ -464,13 +480,8 @@ mod tests {
 
     #[tokio::test]
     async fn process_par_stores_request_and_returns_response() {
-        let (issuer, par_store, _sessions) = issuer_and_par(vec![]);
-        let authorizing_issuer = AuthorizingIssuer::new(
-            issuer,
-            par_store,
-            FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
-            allowed_redirect_uris(),
-        );
+        let (authorizing_issuer, _sessions) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let response = authorizing_issuer
             .process_pushed_authorization_request(vci_request(MOCK_WALLET_CLIENT_ID))
@@ -515,13 +526,8 @@ mod tests {
 
     #[tokio::test]
     async fn process_authorize_rejects_unknown_client_id() {
-        let (issuer, par_store, _sessions) = issuer_and_par(vec![]);
-        let authorizing_issuer = AuthorizingIssuer::new(
-            issuer,
-            par_store,
-            FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
-            allowed_redirect_uris(),
-        );
+        let (authorizing_issuer, _sessions) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let error = authorizing_issuer
             .process_authorize(REQUEST_URI, OTHER_CLIENT_ID)
@@ -534,13 +540,8 @@ mod tests {
     #[tokio::test]
     async fn process_authorize_rejects_unknown_request_uri() {
         // Caller is accepted, but the PAR store is empty, so the request_uri can't be resolved.
-        let (issuer, par_store, _sessions) = issuer_and_par(vec![]);
-        let authorizing_issuer = AuthorizingIssuer::new(
-            issuer,
-            par_store,
-            FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
-            allowed_redirect_uris(),
-        );
+        let (authorizing_issuer, _sessions) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let error = authorizing_issuer
             .process_authorize(REQUEST_URI, MOCK_WALLET_CLIENT_ID)
@@ -553,13 +554,9 @@ mod tests {
     #[tokio::test]
     async fn process_authorize_rejects_mismatched_client_id() {
         // The PAR was pushed under a different client_id than the one presented at /authorize.
-        let (issuer, par_store, _sessions) =
-            issuer_and_par(vec![(REQUEST_URI.to_string(), vci_request(OTHER_CLIENT_ID))]);
-        let authorizing_issuer = AuthorizingIssuer::new(
-            issuer,
-            par_store,
-            FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
-            allowed_redirect_uris(),
+        let (authorizing_issuer, _sessions) = create_authorizing_issuer(
+            vec![(REQUEST_URI.to_string(), vci_request(OTHER_CLIENT_ID))],
+            AuthorizeOutcome::RedirectTo(upstream_url()),
         );
 
         let error = authorizing_issuer
@@ -581,12 +578,9 @@ mod tests {
         request.code_challenge = PkceCodeChallenge::Plain {
             code_challenge: "plain-challenge".to_string(),
         };
-        let (issuer, par_store, _sessions) = issuer_and_par(vec![(REQUEST_URI.to_string(), request)]);
-        let authorizing_issuer = AuthorizingIssuer::new(
-            issuer,
-            par_store,
-            FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
-            allowed_redirect_uris(),
+        let (authorizing_issuer, _sessions) = create_authorizing_issuer(
+            vec![(REQUEST_URI.to_string(), request)],
+            AuthorizeOutcome::RedirectTo(upstream_url()),
         );
 
         let error = authorizing_issuer
@@ -602,13 +596,9 @@ mod tests {
 
     #[tokio::test]
     async fn process_authorize_passes_through_redirect_outcome() {
-        let (issuer, par_store, _sessions) =
-            issuer_and_par(vec![(REQUEST_URI.to_string(), vci_request(MOCK_WALLET_CLIENT_ID))]);
-        let authorizing_issuer = AuthorizingIssuer::new(
-            issuer,
-            par_store,
-            FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
-            allowed_redirect_uris(),
+        let (authorizing_issuer, _sessions) = create_authorizing_issuer(
+            vec![(REQUEST_URI.to_string(), vci_request(MOCK_WALLET_CLIENT_ID))],
+            AuthorizeOutcome::RedirectTo(upstream_url()),
         );
 
         let redirect_url = authorizing_issuer
@@ -622,13 +612,9 @@ mod tests {
     #[tokio::test]
     async fn process_authorize_builds_wallet_redirect_for_issued_code() {
         let code = AuthorizationCode::from("the-authorization-code".to_string());
-        let (issuer, par_store, _sessions) =
-            issuer_and_par(vec![(REQUEST_URI.to_string(), vci_request(MOCK_WALLET_CLIENT_ID))]);
-        let authorizing_issuer = AuthorizingIssuer::new(
-            issuer,
-            par_store,
-            FixedOutcomeFlow(AuthorizeOutcome::IssuedCode(code.clone())),
-            allowed_redirect_uris(),
+        let (authorizing_issuer, _sessions) = create_authorizing_issuer(
+            vec![(REQUEST_URI.to_string(), vci_request(MOCK_WALLET_CLIENT_ID))],
+            AuthorizeOutcome::IssuedCode(code.clone()),
         );
 
         let redirect_url = authorizing_issuer
@@ -645,13 +631,8 @@ mod tests {
 
     #[tokio::test]
     async fn complete_authorization_writes_session_and_builds_redirect() {
-        let (issuer, par_store, sessions) = issuer_and_par(vec![]);
-        let authorizing_issuer = AuthorizingIssuer::new(
-            issuer,
-            par_store,
-            FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
-            allowed_redirect_uris(),
-        );
+        let (authorizing_issuer, sessions) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let documents = mock_issuable_documents(NonZeroUsize::MIN);
         let wallet_code_challenge = "wallet-code-challenge".to_string();
@@ -695,13 +676,8 @@ mod tests {
 
     #[tokio::test]
     async fn complete_authorization_omits_state_when_absent() {
-        let (issuer, par_store, _sessions) = issuer_and_par(vec![]);
-        let authorizing_issuer = AuthorizingIssuer::new(
-            issuer,
-            par_store,
-            FixedOutcomeFlow(AuthorizeOutcome::RedirectTo(upstream_url())),
-            allowed_redirect_uris(),
-        );
+        let (authorizing_issuer, _sessions) =
+            create_authorizing_issuer(vec![], AuthorizeOutcome::RedirectTo(upstream_url()));
 
         let redirect_url = authorizing_issuer
             .complete_authorization(
