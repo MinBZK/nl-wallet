@@ -895,6 +895,7 @@ mod tests {
     use crate::wallet::test::create_example_pid_mdoc;
     use crate::wallet::test::create_example_pid_preview_data;
     use crate::wallet::test::create_example_pid_sd_jwt;
+    use crate::wallet::test::create_example_preview_data;
     use crate::wallet::test::create_preview_from_payload;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::mock_issuance_session;
@@ -1653,13 +1654,19 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let time_generator = MockTimeGenerator::default();
-        let preview = create_example_preview_data(&time_generator, Format::SdJwt, "some_attestation_type");
+        let (preview, type_metadata) = create_example_preview_data(
+            &time_generator,
+            Format::SdJwt,
+            "some_attestation_type",
+            "some_config_id".to_string().into(),
+        );
 
         wallet.issuance_discovery.expect_start_sync().return_once(move || {
             let mut session = MockIssuanceSession::new();
             session
-                .expect_normalized_credential_previews()
-                .return_const(vec![preview]);
+                .expect_type_metadata()
+                .return_const([(preview.config_id.clone(), type_metadata)].into());
+            session.expect_credential_previews().return_const(vec![preview]);
             session.expect_issuer().return_const(IssuerRegistration::new_mock());
             Ok(IssuanceFlow::PreAuthorizedCode {
                 issuance_session: session,
