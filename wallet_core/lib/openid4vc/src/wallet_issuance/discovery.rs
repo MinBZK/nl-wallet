@@ -241,8 +241,8 @@ impl HttpIssuanceDiscovery {
             .map_err(WalletIssuanceError::CredentialOfferDeserialization)?;
 
         let credential_offer = match offer_container {
-            CredentialOfferContainer::Offer { credential_offer } => *credential_offer,
-            CredentialOfferContainer::Uri { credential_offer_uri } => self
+            CredentialOfferContainer::CredentialOffer(credential_offer) => *credential_offer,
+            CredentialOfferContainer::CredentialOfferUri(credential_offer_uri) => self
                 .http_client
                 .get(credential_offer_uri.into_url())
                 .await

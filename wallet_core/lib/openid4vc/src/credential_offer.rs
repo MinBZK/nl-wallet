@@ -26,27 +26,19 @@ pub const OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME: &str = "openid-credential-offe
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-4.1>
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
+#[serde(rename_all = "snake_case")]
 pub enum CredentialOfferContainer {
-    Offer {
-        #[serde_as(as = "JsonString")]
-        credential_offer: Box<CredentialOffer>,
-    },
-
-    Uri {
-        credential_offer_uri: IssuerUrl,
-    },
+    CredentialOffer(#[serde_as(as = "JsonString")] Box<CredentialOffer>),
+    CredentialOfferUri(IssuerUrl),
 }
 
 impl CredentialOfferContainer {
     pub fn new_offer(credential_offer: CredentialOffer) -> Self {
-        Self::Offer {
-            credential_offer: Box::new(credential_offer),
-        }
+        Self::CredentialOffer(Box::new(credential_offer))
     }
 
     pub fn new_uri(credential_offer_uri: IssuerUrl) -> Self {
-        Self::Uri { credential_offer_uri }
+        Self::CredentialOfferUri(credential_offer_uri)
     }
 
     /// Serialises this container as a URL query string (e.g. `credential_offer=%7B...%7D`), suitable for passing to
@@ -57,7 +49,6 @@ impl CredentialOfferContainer {
 
     /// Returns the key and value as a `(String, String)` pair, suitable for passing to
     /// [`form_urlencoded::Serializer::append_pair`] (e.g. as obtained from [`Url::query_pairs_mut`]).
-    #[no_panic]
     pub fn into_query_pair(self) -> (String, String) {
         let serde_json::Value::Object(map) = serde_json::to_value(self).unwrap() else {
             unreachable!("`enum CredentialOfferContainer` should always serialize as an Object");
@@ -397,7 +388,7 @@ mod tests {
         let offer_container = serde_urlencoded::from_str::<CredentialOfferContainer>(uri.query().unwrap())
             .expect("should be able to deserialize CredentialOfferContainer");
 
-        let CredentialOfferContainer::Offer { credential_offer } = offer_container else {
+        let CredentialOfferContainer::CredentialOffer(credential_offer) = offer_container else {
             panic!("URI should contain Credential Offer by value");
         };
 
@@ -442,7 +433,7 @@ mod tests {
         let offer_container = serde_urlencoded::from_str::<CredentialOfferContainer>(uri.query().unwrap())
             .expect("should be able to deserialize CredentialOfferContainer");
 
-        let CredentialOfferContainer::Uri { credential_offer_uri } = offer_container else {
+        let CredentialOfferContainer::CredentialOfferUri(credential_offer_uri) = offer_container else {
             panic!("URI should contain Credential Offer by reference");
         };
 
