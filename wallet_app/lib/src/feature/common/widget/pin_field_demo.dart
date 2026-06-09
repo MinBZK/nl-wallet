@@ -29,56 +29,64 @@ class _PinFieldDemoState extends State<PinFieldDemo> {
           ),
         ),
         const SizedBox(height: 32),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  enteredDigits = max(0, enteredDigits - 1);
-                });
-              },
-              child: const Text('-'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() => enteredDigits = 0);
-              },
-              child: const Text('clear'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  enteredDigits = min(kPinDigits, enteredDigits + 1);
-                });
-              },
-              child: const Text('+'),
-            ),
-          ],
-        ),
+        _buildCountButtons(),
         const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextButton(
-              onPressed: () {
-                setState(() => fieldState = PinFieldState.idle);
-              },
-              child: const Text('IDLE'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() => fieldState = PinFieldState.loading);
-              },
-              child: const Text('LOADING'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() => fieldState = PinFieldState.error);
-              },
-              child: const Text('ERROR'),
-            ),
-          ],
+        _buildStateButtons(),
+      ],
+    );
+  }
+
+  Widget _buildStateButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        TextButton(
+          onPressed: () {
+            setState(() => fieldState = PinFieldState.idle);
+          },
+          child: const Text('IDLE'),
+        ),
+        TextButton(
+          onPressed: () {
+            setState(() => fieldState = PinFieldState.loading);
+          },
+          child: const Text('LOADING'),
+        ),
+        TextButton(
+          onPressed: () {
+            setState(() => fieldState = PinFieldState.error);
+          },
+          child: const Text('ERROR'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCountButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        TextButton(
+          onPressed: () {
+            setState(() {
+              enteredDigits = max(0, enteredDigits - 1);
+            });
+          },
+          child: const Text('-'),
+        ),
+        TextButton(
+          onPressed: () {
+            setState(() => enteredDigits = 0);
+          },
+          child: const Text('clear'),
+        ),
+        TextButton(
+          onPressed: () {
+            setState(() {
+              enteredDigits = min(kPinDigits, enteredDigits + 1);
+            });
+          },
+          child: const Text('+'),
         ),
       ],
     );
