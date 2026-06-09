@@ -5,6 +5,7 @@ use http_utils::reqwest::HttpJsonClient;
 use itertools::Either;
 use itertools::Itertools;
 use url::Url;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use super::AuthorizationSession;
@@ -146,8 +147,6 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
 struct NormalizedCredentialOffer {
     credential_issuer: IssuerIdentifier,
     credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
-    // TODO (PVW-5528): Use this field when considering which authorization server to choose.
-    #[expect(dead_code)]
     authorization_server: Option<IssuerIdentifier>,
     grant: CredentialOfferGrant,
 }
@@ -257,20 +256,44 @@ impl HttpIssuanceDiscovery {
     /// Fetch the Issuer Metadata, select an Authorization Server and fetch the OAuth server metadata from that.
     async fn fetch_metadata(
         &self,
-        credential_issuer: &IssuerIdentifier,
+        credential_offer: &NormalizedCredentialOffer,
     ) -> Result<(IssuerMetadata, AuthorizationServerMetadata), WalletIssuanceError> {
-        let issuer_metadata: IssuerMetadata =
-            well_known::fetch_well_known(&self.http_client, credential_issuer, WellKnownPath::CredentialIssuer)
-                .await
-                .map_err(WalletIssuanceError::CredentialIssuerDiscovery)?;
+        let issuer_metadata: IssuerMetadata = well_known::fetch_well_known(
+            &self.http_client,
+            &credential_offer.credential_issuer,
+            WellKnownPath::CredentialIssuer,
+        )
+        .await
+        .map_err(WalletIssuanceError::CredentialIssuerDiscovery)?;
 
-        // Note: the spec allows multiple authorization servers, but we currently only support one.
-        let auth_server = issuer_metadata.authorization_servers().into_first();
+        let metadata_auth_servers = issuer_metadata.authorization_servers();
+        let authorization_server = match credential_offer.authorization_server.as_ref() {
+            Some(authorization_server) => {
+                // If the Credential Offer contains an Authorization Server, it must match one of the entries in the
+                // Issuer Metadata.
+                if !metadata_auth_servers.as_ref().contains(&authorization_server) {
+                    return Err(WalletIssuanceError::AuthorizationServerMismatch(
+                        Box::new(authorization_server.clone()),
+                        Box::new(metadata_auth_servers.nonempty_iter().copied().cloned().collect()),
+                    ));
+                }
 
-        let oauth_metadata: AuthorizationServerMetadata =
-            well_known::fetch_well_known(&self.http_client, auth_server, WellKnownPath::OauthAuthorizationServer)
-                .await
-                .map_err(WalletIssuanceError::OauthDiscovery)?;
+                authorization_server
+            }
+            None => {
+                // Otherwise, choose one at random from the list Authorization Servers in order to be a good client and
+                // load-balance requests between them.
+                metadata_auth_servers.choose()
+            }
+        };
+
+        let oauth_metadata: AuthorizationServerMetadata = well_known::fetch_well_known(
+            &self.http_client,
+            authorization_server,
+            WellKnownPath::OauthAuthorizationServer,
+        )
+        .await
+        .map_err(WalletIssuanceError::OauthDiscovery)?;
 
         Ok((issuer_metadata, oauth_metadata))
     }
@@ -290,8 +313,7 @@ impl HttpIssuanceDiscovery {
     > {
         let credential_offer = self.process_credential_offer(offer_uri).await?;
 
-        // TODO (PVW-5528): Use the authorization server from the Credential Offer, if provided.
-        let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer.credential_issuer).await?;
+        let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer).await?;
 
         // Collect the indices of all Credential Configuration IDs that appear in the Credential Offer, but not in the
         // Issuer Metadata. If any are missing we can use these indices to collect the owned values for returning the
@@ -981,6 +1003,46 @@ mod test {
             .await;
 
         assert_matches!(result, Err(WalletIssuanceError::CredentialOfferTxCodeUnsupported));
+    }
+
+    #[tokio::test]
+    async fn start_authorization_server_mismatch_error() {
+        let (_server, issuer_identifier, trust_anchor) = start_httpmock_issuer(IssuerMetadataOptions::default()).await;
+
+        // Construct a Pre-Authorized Code Credential Offer with an unknown Authorization Server.
+        let credential_offer = CredentialOffer {
+            credential_issuer: issuer_identifier.clone(),
+            credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            grants: Some(Grants {
+                pre_authorized_code: Some(GrantPreAuthorizedCode {
+                    pre_authorized_code: "code".to_string().into(),
+                    tx_code: None,
+                    authorization_server: Some("https://auth.example.com".parse().unwrap()),
+                }),
+                ..Grants::default()
+            }),
+        };
+        let offer_container = CredentialOfferContainer::new_offer(credential_offer);
+        let query = serde_urlencoded::to_string(&offer_container).unwrap();
+        let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
+
+        let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+
+        let result = discovery
+            .start(
+                &offer_url,
+                MOCK_WALLET_CLIENT_ID.to_string(),
+                REDIRECT_URI.clone(),
+                &trust_anchor,
+            )
+            .await;
+
+        assert_matches!(
+            result,
+            Err(WalletIssuanceError::AuthorizationServerMismatch(auth_server, metadata_auth_servers))
+                if auth_server.as_ref().as_ref() == "https://auth.example.com" &&
+                    metadata_auth_servers.iter().eq([&issuer_identifier])
+        );
     }
 
     #[tokio::test]
