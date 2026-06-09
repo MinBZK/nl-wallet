@@ -137,6 +137,8 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
         (self.0, last)
     }
 
+    /// Choose a value at random. This forwards to `SliceRandom::choose()` from the `rand` crate using the thread-local
+    /// random number generator. A return value is guaranteed.
     pub fn choose(&self) -> &T {
         let Self(inner) = self;
 
