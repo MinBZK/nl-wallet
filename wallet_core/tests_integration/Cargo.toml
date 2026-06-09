@@ -89,6 +89,11 @@ name = "update_policy_server"
 path = "tests/update_policy_server.rs"
 required-features = ["integration_test"]
 
+[[test]]
+name = "pre_authorized_issuance"
+path = "tests/pre_authorized_issuance.rs"
+required-features = ["integration_test"]
+
 [features]
 # Test credentials for integration tests
 test_credentials = [

@@ -31,6 +31,7 @@ use http_utils::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use http_utils::urls::disclosure_based_issuance_base_uri;
+use issuance_server::settings::IssuanceServerIssuer;
 use issuance_server::settings::IssuanceServerSettings;
 use jwt::SignedJwt;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
@@ -218,6 +219,7 @@ pub struct IssuerData {
     pub pid_issuer: IssuerUrl,
     pub issuance_server: IssuerUrl,
     pub degree_client_ids: DegreeClientIds,
+    pub issuance_server_issuer: Arc<IssuanceServerIssuer>,
 }
 
 pub struct MockDeviceConfig {
@@ -340,7 +342,8 @@ pub async fn setup_env(
 
     let degree_client_ids = DegreeClientIds::from_settings(&issuance_server_settings);
 
-    let issuance_server_url = start_issuance_server(issuance_server_settings, Some(hsm.clone())).await;
+    let (issuance_server_url, issuance_server_issuer) =
+        start_issuance_server(issuance_server_settings, Some(hsm.clone())).await;
 
     let pid_issuer_url = start_pid_issuer_server(
         issuer_settings,
@@ -356,6 +359,7 @@ pub async fn setup_env(
         issuance_server: issuance_server_url,
         pid_issuer: pid_issuer_url,
         degree_client_ids,
+        issuance_server_issuer,
     };
 
     let pid_credential_offer = create_pid_credential_offer(&issuer_data.pid_issuer.public);
@@ -754,7 +758,10 @@ async fn start_mock_attestation_server(
     url
 }
 
-pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Option<Pkcs11Hsm>) -> IssuerUrl {
+pub async fn start_issuance_server(
+    mut settings: IssuanceServerSettings,
+    hsm: Option<Pkcs11Hsm>,
+) -> (IssuerUrl, Arc<IssuanceServerIssuer>) {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
     let public_url = local_http_issuer_identifier(public_port);
@@ -773,6 +780,7 @@ pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Op
         settings.issuer_settings.into_issuer(hsm.clone(), None).await.unwrap();
 
     let issuer = Arc::new(issuer);
+    let issuer_handle = Arc::clone(&issuer);
 
     let disclosure_sessions = SessionStoreVariant::new(store_connection, (&server_settings.storage).into());
 
@@ -810,10 +818,13 @@ pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Op
     );
 
     wait_for_server(public_url.as_base_url().clone(), None).await;
-    IssuerUrl {
-        internal: internal_url,
-        public: public_url,
-    }
+    (
+        IssuerUrl {
+            internal: internal_url,
+            public: public_url,
+        },
+        issuer_handle,
+    )
 }
 
 pub async fn start_pid_issuer_server<AE>(mut settings: PidIssuerSettings, hsm: Option<Pkcs11Hsm>, flow: AE) -> IssuerUrl
