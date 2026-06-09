@@ -264,6 +264,10 @@ used to validate WIA tokens.</p></li>
 value contains a Credential Offer URI that should be used as the basis for PID
 issuance. Note that this URI can contain a Credential Offer either by value or
 by reference and must use the Authorization Code flow.</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">type_metadata_uri</span></code> is added to the <code class="docutils literal notranslate"><span class="pre">CredentialConfiguration</span></code> to specify a
+SD-JWT VC type metadata. The preview endpoint is modified to not return the
+type metadata but the <code class="docutils literal notranslate"><span class="pre">CredentialConfigurationId</span></code> instead ensuring type
+metadata fetching is independent of the preview.</p></li>
 </ul>
 </section>
 <section id="new-features">
