@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use chrono::Duration;
 use indexmap::IndexSet;
 use jwt::nonce::Nonce;
@@ -25,7 +27,7 @@ use crate::pkce::PkcePair;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AuthorizationRequestBase {
     #[serde_as(as = "StringWithSeparator::<SpaceSeparator, ResponseType>")]
-    pub response_type: IndexSet<ResponseType>,
+    pub response_type: HashSet<ResponseType>,
 
     pub client_id: String,
     pub state: Option<String>,
@@ -38,7 +40,7 @@ pub struct AuthorizationRequestBase {
 impl AuthorizationRequestBase {
     pub fn for_vp(client_id: String, state: Option<String>) -> Self {
         Self {
-            response_type: ResponseType::VpToken.into(),
+            response_type: HashSet::from([ResponseType::VpToken]),
             client_id,
             state,
             _request_uri: SpecForbidden,
@@ -86,7 +88,7 @@ impl VciAuthorizationRequest {
     ) -> Self {
         Self {
             oauth_request: AuthorizationRequestBase {
-                response_type: ResponseType::Code.into(),
+                response_type: HashSet::from([ResponseType::Code]),
                 client_id,
                 state: Some(state),
                 _request_uri: SpecForbidden,
@@ -185,12 +187,6 @@ pub enum ResponseType {
     IdToken,
 }
 
-impl From<ResponseType> for IndexSet<ResponseType> {
-    fn from(value: ResponseType) -> Self {
-        IndexSet::from([value])
-    }
-}
-
 /// Format-specific data for the [`AuthorizationDetails`].
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(tag = "format", rename_all = "snake_case")]
@@ -229,6 +225,8 @@ pub struct AuthorizationResponse {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use indexmap::IndexSet;
     use jwt::nonce::Nonce;
     use serde_json::json;
@@ -250,7 +248,7 @@ mod tests {
 
         VciAuthorizationRequest {
             oauth_request: AuthorizationRequestBase {
-                response_type: ResponseType::Code.into(),
+                response_type: HashSet::from([ResponseType::Code]),
                 client_id: "client-123".to_string(),
                 state: Some("state-abc".to_string()),
                 _request_uri: SpecForbidden,
