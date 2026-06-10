@@ -98,7 +98,7 @@ pub fn create_authorization_router<K, L, S, N, PAS, AF>(
 where
     K: Send + Sync + 'static,
     L: Send + Sync + 'static,
-    S: Send + Sync + 'static,
+    S: SessionStore<IssuanceData> + Send + Sync + 'static,
     N: Send + Sync + 'static,
     PAS: Store<String, VciAuthorizationRequest> + Send + Sync + 'static,
     AF: AuthorizationCodeFlow + Send + Sync + 'static,
@@ -311,6 +311,7 @@ async fn authorize<K, L, S, N, PAS, AF>(
     Query(PushedAuthorizationRequest { request_uri, client_id }): Query<PushedAuthorizationRequest>,
 ) -> Result<Response, ErrorResponse<AuthorizeErrorCode>>
 where
+    S: SessionStore<IssuanceData>,
     PAS: Store<String, VciAuthorizationRequest>,
     AF: AuthorizationCodeFlow,
 {

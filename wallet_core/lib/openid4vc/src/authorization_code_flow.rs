@@ -9,10 +9,11 @@
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::authorization::PkceCodeChallenge;
 use crate::authorization::VciAuthorizationRequest;
-use crate::token::AuthorizationCode;
+use crate::issuable_document::IssuableDocument;
 
 /// Represents the wallet-side parameters the `openid4vc` layer extracts from a [`VciAuthorizationRequest`] and that an
 /// [`AuthorizationCodeFlow`] must retain to complete the authorization later: the wallet's
@@ -59,10 +60,10 @@ pub enum AuthorizeOutcome {
     /// not modelled by this trait.
     RedirectTo(Url),
 
-    /// The impl produced an authorization code with no external round-trip. The `openid4vc` layer
-    /// redirects the wallet back to the original `redirect_uri` with this code (and the
-    /// echoed `state`).
-    IssuedCode(AuthorizationCode),
+    /// Represents the state where the holder is authorized synchronously (no external round-trip) given the issuable
+    /// documents and authorization context required to create a new session and redirect the wallet back to its
+    /// `redirect_uri` with the code (and echoed `state`).
+    Authorized(VecNonEmpty<IssuableDocument>, WalletAuthorizationContext),
 }
 
 #[trait_variant::make(Send)]
