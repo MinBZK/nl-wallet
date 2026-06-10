@@ -323,13 +323,16 @@ impl HttpIssuanceDiscovery {
 
         let (issuer_metadata, oauth_metadata) = self.fetch_metadata(&credential_offer).await?;
 
-        let credential_issuer = issuer_metadata.credential_issuer;
-        let issuer_endpoints = issuer_metadata.endpoints;
+        let IssuerMetadata {
+            credential_issuer,
+            endpoints: issuer_endpoints,
+            mut credential_configurations_supported,
+            ..
+        } = issuer_metadata;
 
         // Collect the indices of all Credential Configuration IDs that appear in the Credential Offer, but not in the
         // Issuer Metadata. If any are missing we can use these indices to collect the owned values for returning the
         // error.
-        let mut credential_configurations_supported = issuer_metadata.credential_configurations_supported;
         let (credential_configs, missing_ids): (Vec<_>, HashSet<_>) = credential_offer
             .credential_configuration_ids
             .into_iter()
