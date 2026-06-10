@@ -30,6 +30,7 @@ pub mod test {
             "uri://redirect_uri".parse().unwrap(),
             String::from("state"),
             None,
+            None,
             &S256PkcePair::generate(),
         )
     }

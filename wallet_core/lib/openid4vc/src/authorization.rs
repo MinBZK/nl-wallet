@@ -84,6 +84,7 @@ impl VciAuthorizationRequest {
         redirect_uri: Url,
         state: String,
         issuer_state: Option<String>,
+        scope: Option<HashSet<Scope>>,
         pkce_pair: &P,
     ) -> Self {
         Self {
@@ -98,7 +99,7 @@ impl VciAuthorizationRequest {
                 code_challenge: String::from(pkce_pair.code_challenge()),
             },
             authorization_details: None,
-            scope: None,
+            scope,
             issuer_state,
         }
     }

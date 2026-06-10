@@ -140,6 +140,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             redirect_uri.clone(),
             state.clone(),
             issuer_state,
+            None,
             &pkce_pair,
         );
 

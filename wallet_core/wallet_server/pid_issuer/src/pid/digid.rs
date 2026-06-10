@@ -152,8 +152,14 @@ impl DigidClient for HttpDigidClient {
         pkce_pair: &S256PkcePair,
     ) -> Result<Url, Error> {
         // Create a new upstream authorization request
-        let mut vci_request = VciAuthorizationRequest::for_auth_code(client_id, redirect_uri, state, None, pkce_pair);
-        vci_request.scope = Some(HashSet::from([OPENID_SCOPE.clone()]));
+        let vci_request = VciAuthorizationRequest::for_auth_code(
+            client_id,
+            redirect_uri,
+            state,
+            None,
+            Some(HashSet::from([OPENID_SCOPE.clone()])),
+            pkce_pair,
+        );
 
         let oidc_request = OidcAuthorizationRequest {
             vci_request,

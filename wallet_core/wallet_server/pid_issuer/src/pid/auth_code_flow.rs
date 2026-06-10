@@ -519,6 +519,7 @@ mod tests {
             WALLET_REDIRECT_URI.parse().unwrap(),
             WALLET_STATE.to_string(),
             None,
+            None,
             &S256PkcePair::generate(),
         )
     }
