@@ -14,6 +14,7 @@ use std::sync::Arc;
 
 use crypto::utils::random_string;
 use derive_more::Constructor;
+use itertools::Itertools;
 use serde::Serialize;
 use url::Url;
 use utils::vec_at_least::IntoNonEmptyIterator;
@@ -141,18 +142,14 @@ where
         if !self
             .issuer
             .accepted_wallet_client_ids()
-            .any(|id| id == request.oauth_request.client_id.as_str())
+            .contains(request.oauth_request.client_id.as_str())
         {
             return Err(ParError::UnknownClient(request.oauth_request.client_id));
         }
 
         // Exact-match the wallet's redirect_uri against the configured allowlist.
-        if !self
-            .wallet_redirect_uris
-            .iter()
-            .any(|uri| uri == request.redirect_uri.as_ref())
-        {
-            return Err(ParError::InvalidRedirectUri(request.redirect_uri.as_ref().clone()));
+        if !self.wallet_redirect_uris.iter().contains(request.redirect_uri.as_ref()) {
+            return Err(ParError::InvalidRedirectUri(request.redirect_uri.into_inner()));
         }
 
         let request_uri = par::generate_request_uri();
