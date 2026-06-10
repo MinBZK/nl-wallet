@@ -32,45 +32,5 @@
       ],
       "svg_id": "birth_date"
     }
-  ],
-  "schema": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "NL Wallet Simple VCT Schema",
-    "description": "The JSON schema that defines the NL Wallet Simple VCT",
-    "type": "object",
-    "properties": {
-      "vct": {
-        "type": "string"
-      },
-      "vct#integrity": {
-        "type": "string"
-      },
-      "iss": {
-        "type": "string"
-      },
-      "iat": {
-        "type": "number"
-      },
-      "nbf": {
-        "type": "number"
-      },
-      "exp": {
-        "type": "number"
-      },
-      "cnf": {
-        "type": "object"
-      },
-      "status": {
-        "type": "object"
-      },
-      "attestation_qualification": {
-        "type": "string"
-      },
-      "birth_date": {
-        "type": "string",
-        "format": "date"
-      }
-    },
-    "required": ["vct", "iss", "iat", "cnf", "status", "attestation_qualification"]
-  }
+  ]
 }

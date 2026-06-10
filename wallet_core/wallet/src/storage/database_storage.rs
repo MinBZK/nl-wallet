@@ -2545,7 +2545,7 @@ pub(crate) mod tests {
                     .unwrap()
                     .unwrap();
 
-                let payload = CredentialPayload::from_sd_jwt(sd_jwt, &normalized_metadata).unwrap();
+                let payload = CredentialPayload::from_sd_jwt(sd_jwt).unwrap();
                 AttestationPresentation::create_from_attributes(
                     AttestationIdentity::Fixed { id: attestation_id },
                     Format::SdJwt,

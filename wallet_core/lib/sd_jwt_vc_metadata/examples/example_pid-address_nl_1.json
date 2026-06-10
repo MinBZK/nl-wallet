@@ -3,7 +3,7 @@
   "name": "NL address credential",
   "description": "Working version of the Dutch address credential",
   "extends": "urn:example:pid-address:1",
-  "extends#integrity": "sha256-XR7RonmI9GxwHUe8bioFCxkuX0IOAfRTEq0GpKSqaDA=",
+  "extends#integrity": "sha256-vIb5+q1br0Y1ZvkF80k7SfwQtZAtzq1z34CjOzKj1bY=",
   "display": [
     {
       "lang": "en-US",
@@ -92,62 +92,5 @@
       "sd": "always",
       "mandatory": true
     }
-  ],
-  "schema": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "NL address VCT Schema",
-    "description": "The JSON schema that defines the NL address VCT",
-    "type": "object",
-    "properties": {
-      "vct": {
-        "type": "string"
-      },
-      "vct#integrity": {
-        "type": "string"
-      },
-      "iss": {
-        "type": "string"
-      },
-      "iat": {
-        "type": "number"
-      },
-      "nbf": {
-        "type": "number"
-      },
-      "exp": {
-        "type": "number"
-      },
-      "cnf": {
-        "type": "object"
-      },
-      "status": {
-        "type": "object"
-      },
-      "attestation_qualification": {
-        "type": "string"
-      },
-      "address": {
-        "type": "object",
-        "properties": {
-          "street_address": {
-            "type": "string"
-          },
-          "house_number": {
-            "type": "string"
-          },
-          "postal_code": {
-            "type": "string"
-          },
-          "locality": {
-            "type": "string"
-          },
-          "country": {
-            "type": "string"
-          }
-        },
-        "required": ["street_address", "house_number", "postal_code", "locality", "country"]
-      }
-    },
-    "required": ["vct", "iss", "iat", "cnf", "status", "attestation_qualification"]
-  }
+  ]
 }

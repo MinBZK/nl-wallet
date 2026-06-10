@@ -21,7 +21,6 @@ use p256::ecdsa::SigningKey;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
-use sd_jwt_vc_metadata::SchemaOption;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
@@ -65,7 +64,7 @@ pub type MockAuthorizingIssuer<G = TimeGenerator> = AuthorizingIssuer<
     AlwaysAuthorizingFlow,
 >;
 
-fn mock_claims() -> Vec<ClaimMetadata> {
+fn mock_claims(required_attr: &str) -> Vec<ClaimMetadata> {
     MOCK_ATTRS
         .iter()
         .map(|(key, _)| ClaimMetadata {
@@ -76,7 +75,7 @@ fn mock_claims() -> Vec<ClaimMetadata> {
                 description: None,
             }],
             sd: ClaimSelectiveDisclosureMetadata::Allowed,
-            mandatory: false,
+            mandatory: *key == required_attr,
             svg_id: None,
         })
         .collect()
@@ -85,7 +84,7 @@ fn mock_claims() -> Vec<ClaimMetadata> {
 pub fn mock_type_metadata(vct: &str) -> TypeMetadata {
     TypeMetadata::try_new(UncheckedTypeMetadata {
         vct: vct.to_string(),
-        claims: mock_claims(),
+        claims: mock_claims(""),
         ..UncheckedTypeMetadata::empty_example()
     })
     .unwrap()
@@ -95,22 +94,9 @@ pub fn mock_type_metadata(vct: &str) -> TypeMetadata {
 /// property; the other [`MOCK_ATTRS`] stay optional. Issuing a document that lacks `required_attr`
 /// then fails schema validation at credential issuance.
 pub fn mock_type_metadata_with_required_attr(vct: &str, required_attr: &str) -> TypeMetadata {
-    let properties: serde_json::Map<String, serde_json::Value> = MOCK_ATTRS
-        .iter()
-        .map(|(key, _)| (key.to_string(), serde_json::json!({"type": "string"})))
-        .collect();
-    let schema = serde_json::from_value(serde_json::json!({
-        "properties": properties,
-        "required": [required_attr],
-    }))
-    .unwrap();
-
     TypeMetadata::try_new(UncheckedTypeMetadata {
         vct: vct.to_string(),
-        claims: mock_claims(),
-        schema: SchemaOption::Embedded {
-            schema: Box::new(schema),
-        },
+        claims: mock_claims(required_attr),
         ..UncheckedTypeMetadata::empty_example()
     })
     .unwrap()

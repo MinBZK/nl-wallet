@@ -306,7 +306,6 @@ impl TestCredential {
             self.payload_preview.clone(),
             Utc::now(),
             holder_key.verifying_key(),
-            &normalized_metadata,
             self.metadata_integrity(),
             self.status.clone(),
         )

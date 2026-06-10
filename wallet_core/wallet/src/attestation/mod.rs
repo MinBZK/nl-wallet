@@ -15,7 +15,6 @@ use derive_more::Display;
 use error_category::ErrorCategory;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
-use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use serde::Deserialize;
 use serde::Serialize;
 use token_status_list::verification::verifier::RevocationStatus;
@@ -40,9 +39,9 @@ pub enum AttestationError {
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttributeError {
-    #[error("JSON schema type does not match value: {0:?} vs {1:?}")]
+    #[error("attribute conversion failed: {0:?}")]
     #[category(pd)]
-    AttributeConversion(AttributeValue, Option<JsonSchemaPropertyType>),
+    AttributeConversion(AttributeValue),
 
     #[error("unable to parse attribute value into date: {0:?}")]
     #[category(pd)]

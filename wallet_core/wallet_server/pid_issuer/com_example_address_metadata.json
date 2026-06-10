@@ -16,9 +16,7 @@
   ],
   "claims": [
     {
-      "path": [
-        "resident_street"
-      ],
+      "path": ["resident_street"],
       "display": [
         {
           "lang": "nl-NL",
@@ -34,9 +32,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "resident_house_number"
-      ],
+      "path": ["resident_house_number"],
       "display": [
         {
           "lang": "nl-NL",
@@ -52,9 +48,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "resident_postal_code"
-      ],
+      "path": ["resident_postal_code"],
       "display": [
         {
           "lang": "nl-NL",
@@ -70,9 +64,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "resident_city"
-      ],
+      "path": ["resident_city"],
       "display": [
         {
           "lang": "nl-NL",
@@ -88,9 +80,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "resident_country"
-      ],
+      "path": ["resident_country"],
       "display": [
         {
           "lang": "nl-NL",
@@ -105,53 +95,5 @@
       ],
       "sd": "always"
     }
-  ],
-  "schema": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "NL Wallet address VCT Schema",
-    "description": "The JSON schema that defines the NL Wallet address VCT",
-    "type": "object",
-    "properties": {
-      "resident_street": {
-        "type": "string"
-      },
-      "resident_house_number": {
-        "type": "string"
-      },
-      "resident_postal_code": {
-        "type": "string"
-      },
-      "resident_city": {
-        "type": "string"
-      },
-      "resident_country": {
-        "type": "string"
-      },
-      "vct": {
-        "type": "string"
-      },
-      "vct#integrity": {
-        "type": "string"
-      },
-      "iss": {
-        "type": "string"
-      },
-      "iat": {
-        "type": "number"
-      },
-      "nbf": {
-        "type": "number"
-      },
-      "exp": {
-        "type": "number"
-      }
-    },
-    "required": [
-      "vct",
-      "iss",
-      "iat",
-      "exp"
-    ],
-    "additionalProperties": false
-  }
+  ]
 }

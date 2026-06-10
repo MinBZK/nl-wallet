@@ -1048,7 +1048,6 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use rstest::rstest;
-    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use serde::de::Error;
@@ -3080,11 +3079,7 @@ mod tests {
         // Create metadata with an sd claim and 2 non-sd claims
         let mut type_metadata_with_non_selectively_disclosable_claim = UncheckedTypeMetadata::example_with_claim_names(
             my_attestation_type,
-            &[
-                (my_sd_claim, JsonSchemaPropertyType::String, None),
-                (my_first_non_sd_claim, JsonSchemaPropertyType::String, None),
-                (my_second_non_sd_claim, JsonSchemaPropertyType::String, None),
-            ],
+            &[my_sd_claim, my_first_non_sd_claim, my_second_non_sd_claim],
         );
         for claim in &mut type_metadata_with_non_selectively_disclosable_claim.claims {
             if [

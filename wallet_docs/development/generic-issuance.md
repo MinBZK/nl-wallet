@@ -60,26 +60,7 @@ In the example below, the following SD-JWT VC Type Metadata is used.
       "display": [ /* ... */ ],
       "sd": "always"
     }
-  ],
-  "schema": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "type": "object",
-    "properties": {
-      "vct":           { "type": "string" },
-      "vct#integrity": { "type": "string" },
-      "city":          { "type": "string" },
-      "street":        { "type": "string" },
-      "house": {
-        "type": "object",
-        "properties": {
-          "number":    { "type": "number" },
-          "letter":    { "type": "string"}
-        },
-        "minProperties": 1
-      }
-    },
-    "required": [ "vct", "vct#integrity", "cnf", "iat", "exp", "city", "street", "house" ]
-  }
+  ]
 }
 ```
 

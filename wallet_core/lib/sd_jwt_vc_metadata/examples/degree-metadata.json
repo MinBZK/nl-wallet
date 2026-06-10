@@ -95,57 +95,5 @@
       ],
       "sd": "always"
     }
-  ],
-  "schema": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Diploma VCT Schema",
-    "description": "The JSON schema that defines a degree VCT",
-    "type": "object",
-    "properties": {
-      "vct": {
-        "type": "string"
-      },
-      "vct#integrity": {
-        "type": "string"
-      },
-      "iss": {
-        "type": "string"
-      },
-      "iat": {
-        "type": "number"
-      },
-      "nbf": {
-        "type": "number"
-      },
-      "exp": {
-        "type": "number"
-      },
-      "cnf": {
-        "type": "object"
-      },
-      "status": {
-        "type": "object"
-      },
-      "attestation_qualification": {
-        "type": "string"
-      },
-      "university": {
-        "type": "string"
-      },
-      "education": {
-        "type": "string"
-      },
-      "graduation_date": {
-        "type": "string",
-        "format": "date"
-      },
-      "grade": {
-        "type": "string"
-      },
-      "cum_laude": {
-        "type": "boolean"
-      }
-    },
-    "required": ["vct", "iss", "iat", "exp", "status", "attestation_qualification"]
-  }
+  ]
 }

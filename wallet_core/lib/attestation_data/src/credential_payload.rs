@@ -36,7 +36,6 @@ use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataError;
-use sd_jwt_vc_metadata::TypeMetadataValidationError;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::serde_as;
@@ -129,7 +128,7 @@ pub enum MdocPreviewableCredentialPayloadError {
 
     #[error("attributes error: {0}")]
     #[category(pd)]
-    Attributes(#[from] AttributesError),
+    InvalidAttributes(#[from] AttributesError),
 }
 
 #[serde_as]
@@ -200,14 +199,6 @@ pub enum CredentialPayloadError {
     #[error("error converting holder VerifyingKey to JWK: {0}")]
     #[category(pd)]
     JwkConversion(#[from] JwkConversionError),
-
-    #[error("error converting to / from JSON: {0}")]
-    #[category(pd)]
-    JsonConversion(#[from] serde_json::Error),
-
-    #[error("metadata validation error: {0}")]
-    #[category(pd)]
-    MetadataValidation(#[from] TypeMetadataValidationError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -285,58 +276,48 @@ impl CredentialPayload {
         previewable_payload: PreviewableCredentialPayload,
         issued_at: DateTimeSeconds,
         confirmation_key: ConfirmationClaim,
-        metadata: &NormalizedTypeMetadata,
         vct_integrity: Integrity,
         status: StatusClaim,
-    ) -> Result<Self, CredentialPayloadError> {
-        let payload = CredentialPayload {
+    ) -> Self {
+        CredentialPayload {
             issued_at,
             confirmation_key,
             vct_integrity,
             status,
             previewable_payload,
-        };
-
-        metadata.validate(&serde_json::to_value(&payload)?)?;
-        Ok(payload)
+        }
     }
 
     pub fn from_previewable_credential_payload(
         previewable_payload: PreviewableCredentialPayload,
         issued_at: DateTime<Utc>,
         holder_pubkey: &VerifyingKey,
-        metadata: &NormalizedTypeMetadata,
         metadata_integrity: Integrity,
         status: StatusClaim,
     ) -> Result<Self, CredentialPayloadError> {
         let confirmation_key = jwk_from_p256(holder_pubkey).map_err(CredentialPayloadError::JwkConversion)?;
-        Self::new(
+        Ok(Self::new(
             previewable_payload,
             issued_at.into(),
             ConfirmationClaim::Jwk(confirmation_key),
-            metadata,
             metadata_integrity,
             status,
-        )
+        ))
     }
 
-    pub fn from_sd_jwt(
-        sd_jwt: VerifiedSdJwt,
-        metadata: &NormalizedTypeMetadata,
-    ) -> Result<Self, SdJwtCredentialPayloadError> {
+    pub fn from_sd_jwt(sd_jwt: VerifiedSdJwt) -> Result<Self, SdJwtCredentialPayloadError> {
         let (previewable_payload, issued_at, confirmation_key, vct_integrity, status) = split_sd_jwt(sd_jwt)?;
 
         Ok(Self::new(
             previewable_payload,
             issued_at,
             confirmation_key,
-            metadata,
             vct_integrity
                 .as_ref()
                 .ok_or(SdJwtCredentialPayloadError::MissingMetadataIntegrity)?
                 .to_owned(),
             status.ok_or(SdJwtCredentialPayloadError::MissingStatusClaim)?,
-        )?)
+        ))
     }
 
     pub fn from_mdoc(mdoc: Mdoc, metadata: &NormalizedTypeMetadata) -> Result<Self, MdocCredentialPayloadError> {
@@ -349,10 +330,9 @@ impl CredentialPayload {
             previewable_payload,
             issued_at,
             ConfirmationClaim::Jwk(confirmation_key),
-            metadata,
             type_metadata_integrity.ok_or(MdocCredentialPayloadError::MissingMetadataIntegrity)?,
             status.ok_or(MdocCredentialPayloadError::MissingStatusClaim)?,
-        )?)
+        ))
     }
 
     pub async fn into_signed_sd_jwt(
@@ -527,7 +507,7 @@ fn split_mdoc(
             .attestation_qualification
             .ok_or(MdocPreviewableCredentialPayloadError::MissingAttestationQualification)?,
         attributes: Attributes::from_mdoc_attributes(metadata, attributes)
-            .map_err(MdocPreviewableCredentialPayloadError::Attributes)?,
+            .map_err(MdocPreviewableCredentialPayloadError::InvalidAttributes)?,
     };
 
     Ok((
@@ -699,7 +679,6 @@ mod mock {
 
 #[cfg(test)]
 mod test {
-    use std::assert_matches;
     use std::sync::Arc;
     use std::time::Duration;
 
@@ -727,7 +706,6 @@ mod test {
     use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
     use sd_jwt::sd_jwt::SdJwtVcClaims;
     use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
-    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use serde_json::json;
@@ -770,16 +748,12 @@ mod test {
         let metadata_integrity = Integrity::from(crypto::utils::random_bytes(32));
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
             PID_ATTESTATION_TYPE,
-            &[
-                ("first_name", JsonSchemaPropertyType::String, None),
-                ("family_name", JsonSchemaPropertyType::String, None),
-            ],
+            &["first_name", "family_name"],
         ));
         let credential_payload = CredentialPayload::from_previewable_credential_payload(
             payload_preview.clone(),
             Utc::now(),
             SigningKey::random(&mut OsRng).verifying_key(),
-            &metadata,
             metadata_integrity.clone(),
             StatusClaim::new_mock(),
         )
@@ -875,27 +849,6 @@ mod test {
     }
 
     #[test]
-    fn test_from_mdoc_invalid() {
-        let mdoc = Mdoc::new_mock().now_or_never().unwrap();
-        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
-            PID_ATTESTATION_TYPE,
-            &[
-                ("family_name", JsonSchemaPropertyType::Number, None),
-                ("bsn", JsonSchemaPropertyType::String, None),
-                ("given_name", JsonSchemaPropertyType::String, None),
-            ],
-        ));
-
-        let error =
-            CredentialPayload::from_mdoc(mdoc, &metadata).expect_err("wrong family_name type should fail validation");
-
-        assert_matches!(
-            error,
-            MdocCredentialPayloadError::CredentialPayload(CredentialPayloadError::MetadataValidation(_))
-        );
-    }
-
-    #[test]
     fn test_serialize_deserialize_and_validate() {
         let confirmation_key = jwk_from_p256(SigningKey::random(&mut OsRng).verifying_key()).unwrap();
 
@@ -946,21 +899,11 @@ mod test {
 
         let json = serde_json::to_value(payload).unwrap();
         assert_eq!(json, expected_json);
-
-        let metadata = NormalizedTypeMetadata::example();
-        metadata.validate(&json).expect("CredentialPayload should be valid");
     }
 
     #[test]
     fn test_from_previewable_credential_payload() {
         let holder_key = SigningKey::random(&mut OsRng);
-
-        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_name(
-            PID_ATTESTATION_TYPE,
-            "family_name",
-            JsonSchemaPropertyType::String,
-            None,
-        ));
 
         let preview_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
 
@@ -968,7 +911,6 @@ mod test {
             preview_payload.clone(),
             Utc::now(),
             holder_key.verifying_key(),
-            &metadata,
             Integrity::from(""),
             StatusClaim::new_mock(),
         )
@@ -978,32 +920,6 @@ mod test {
             payload.previewable_payload.attestation_type,
             preview_payload.attestation_type,
         );
-    }
-
-    #[test]
-    fn test_from_previewable_credential_payload_invalid() {
-        let holder_key = SigningKey::random(&mut OsRng);
-
-        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_name(
-            PID_ATTESTATION_TYPE,
-            "family_name",
-            JsonSchemaPropertyType::Number,
-            None,
-        ));
-
-        let preview_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
-
-        let error = CredentialPayload::from_previewable_credential_payload(
-            preview_payload,
-            Utc::now(),
-            holder_key.verifying_key(),
-            &metadata,
-            Integrity::from(""),
-            StatusClaim::new_mock(),
-        )
-        .expect_err("wrong family_name type should fail validation");
-
-        assert_matches!(error, CredentialPayloadError::MetadataValidation(_));
     }
 
     #[test]
@@ -1074,9 +990,7 @@ mod test {
             .unwrap()
             .into_verified();
 
-        let metadata =
-            NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::credential_payload_sd_jwt_metadata());
-        let payload = CredentialPayload::from_sd_jwt(sd_jwt.clone(), &metadata)
+        let payload = CredentialPayload::from_sd_jwt(sd_jwt.clone())
             .expect("creating and validating CredentialPayload from SD-JWT should succeed");
 
         assert_eq!(payload.previewable_payload.attestation_type, sd_jwt.claims().vct);
@@ -1096,8 +1010,6 @@ mod test {
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_name(
             PID_ATTESTATION_TYPE,
             "family_name",
-            JsonSchemaPropertyType::String,
-            None,
         ));
 
         let credential_payload = CredentialPayload::example_with_attributes(

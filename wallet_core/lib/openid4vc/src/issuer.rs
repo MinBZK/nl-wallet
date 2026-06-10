@@ -1474,7 +1474,6 @@ impl CredentialResponse {
             preview_credential_payload,
             issued_at,
             holder_pubkey,
-            credential_config.metadata.normalized(),
             credential_config.metadata.first_document_integrity().clone(),
             status_claim,
         )?;

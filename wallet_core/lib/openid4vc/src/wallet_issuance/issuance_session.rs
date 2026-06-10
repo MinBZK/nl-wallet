@@ -864,8 +864,7 @@ impl Credential {
                 credential: unverified_sd_jwt,
             } => {
                 let sd_jwt = unverified_sd_jwt.into_verified_against_trust_anchors(trust_anchors, &TimeGenerator)?;
-                let issued_credential_payload =
-                    CredentialPayload::from_sd_jwt(sd_jwt.clone(), normalized_type_metadata)?;
+                let issued_credential_payload = CredentialPayload::from_sd_jwt(sd_jwt.clone())?;
 
                 // Store claim paths to later use in validation of selective disclosability of claims.
                 // This prevents cloning `issued_credential_payload`.
@@ -1005,7 +1004,6 @@ mod tests {
     use sd_jwt::claims::ClaimName;
     use sd_jwt::error::ClaimError;
     use sd_jwt::test::conceal_and_sign;
-    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use serde_bytes::ByteBuf;
@@ -1357,12 +1355,7 @@ mod tests {
     impl MockCredentialSigner {
         pub fn new_with_preview_and_type_metadata_state() -> (Self, CredentialPreview, String, IssuanceTypeMetadata) {
             let preview_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
-            let type_metadata = TypeMetadata::example_with_claim_name(
-                &preview_payload.attestation_type,
-                "family_name",
-                JsonSchemaPropertyType::String,
-                None,
-            );
+            let type_metadata = TypeMetadata::example_with_claim_name(&preview_payload.attestation_type, "family_name");
 
             Self::from_metadata_and_payload_with_preview_data(type_metadata, preview_payload)
         }
@@ -1604,48 +1597,6 @@ mod tests {
             error,
             WalletIssuanceError::UnexpectedCredentialResponseCount { found: 1, expected: 2 }
         );
-    }
-
-    #[test]
-    fn test_accept_issuance_credential_payload_error() {
-        let (signer, preview_data, attestation_type, type_metadata) =
-            MockCredentialSigner::from_metadata_and_payload_with_preview_data(
-                TypeMetadata::example_with_claim_name(
-                    PID_ATTESTATION_TYPE,
-                    "family_name",
-                    JsonSchemaPropertyType::String,
-                    None,
-                ),
-                PreviewableCredentialPayload::example_with_attributes(
-                    PID_ATTESTATION_TYPE,
-                    Attributes::example([(["family_name"], AttributeValue::Integer(1))]),
-                    &MockTimeGenerator::default(),
-                ),
-            );
-        let trust_anchor = TrustAnchors::try_from(vec![signer.trust_anchor.clone()]).unwrap();
-
-        let session_state = new_session_state(vec_nonempty![preview_data], &attestation_type, type_metadata, true);
-
-        let mut mock_msg_client = mock_openid_message_client_nonce(false);
-
-        mock_msg_client.expect_request_credential().times(1).return_once({
-            move |_url, credential_request, _dpop_header, _access_token_header| {
-                let response = signer.into_response_from_request(credential_request);
-
-                Ok(response)
-            }
-        });
-
-        let error = HttpIssuanceSession {
-            message_client: mock_msg_client,
-            session_state,
-        }
-        .accept_issuance(&trust_anchor, &MockRemoteWscd::default(), false)
-        .now_or_never()
-        .unwrap()
-        .expect_err("accepting issuance should not succeed");
-
-        assert_matches!(error, WalletIssuanceError::MdocCredentialPayload(_));
     }
 
     #[test]

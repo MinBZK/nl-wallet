@@ -5,14 +5,10 @@ use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
-use chrono::NaiveDate;
 use indexmap::IndexMap;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
 use sd_jwt::claims::ObjectClaims;
-use sd_jwt_vc_metadata::JsonSchemaProperty;
-use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
-use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -24,7 +20,6 @@ use super::AttestationIdentity;
 use super::AttestationPresentation;
 use super::AttestationPresentationConfig;
 use super::AttestationValidity;
-use super::AttributeError;
 
 impl AttestationPresentation {
     pub(crate) fn create_from_mdoc(
@@ -80,14 +75,7 @@ impl AttestationPresentation {
         nested_attributes: &Attributes,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
-        let (attestation_type, display_metadata, claims, schema) = metadata.into_presentation_components();
-
-        // Root JSON property that makes folding in loop easier
-        let root_json_property = JsonSchemaProperty {
-            r#type: JsonSchemaPropertyType::Object,
-            format: None,
-            properties: Some(schema.into_properties().properties),
-        };
+        let (attestation_type, display_metadata, claims) = metadata.into_presentation_components();
 
         // For every claim in the metadata, find the correct attribute
         // and convert it to a `AttestationAttribute` value (with optionally Json Schema metadata).
@@ -105,15 +93,6 @@ impl AttestationPresentation {
             // This is safe as `claim.path` is non-empty.
             let claim_path = VecNonEmpty::try_from(claim_path).unwrap();
 
-            // Extract the JSON Schema properties from the metadata,
-            // and try to use the metadata to enrich the attribute value.
-            let json_property = claim_path.iter().try_fold(&root_json_property, |json_property, name| {
-                json_property
-                    .properties
-                    .as_ref()
-                    .and_then(|properties| properties.get(name))
-            });
-
             // Get value of claim out of the nested attributes via flattened view
             // Cannot use swap_remove here to make the error checking easier
             let path_with_refs = claim_path
@@ -121,15 +100,10 @@ impl AttestationPresentation {
                 .map(String::as_str)
                 .collect::<VecNonEmpty<_>>();
             if let Some(&value) = flattened_attributes.get(&path_with_refs) {
-                let value = match AttestationAttributeValue::try_from_attribute_value(value.clone(), json_property) {
-                    Ok(value) => value,
-                    Err(error) => return Err(AttestationError::AttributeError(claim_path, error)),
-                };
-
                 attributes.push(AttestationAttribute {
                     key: claim_path,
                     metadata: claim.display,
-                    value,
+                    value: value.clone().into(),
                     svg_id: claim.svg_id.map(String::from),
                 })
             }
@@ -169,38 +143,14 @@ impl AttestationPresentation {
     }
 }
 
-impl AttestationAttributeValue {
-    fn try_from_attribute_value(
-        value: AttributeValue,
-        schema_property: Option<&JsonSchemaProperty>,
-    ) -> Result<Self, AttributeError> {
-        let schema_type = schema_property.map(|property| property.r#type);
-        match (schema_type, value) {
-            (_, AttributeValue::Null) => Ok(AttestationAttributeValue::Basic(AttributeValue::Null)),
-
-            (None, AttributeValue::Bool(bool))
-            | (Some(JsonSchemaPropertyType::Boolean), AttributeValue::Bool(bool)) => {
-                Ok(AttestationAttributeValue::Basic(AttributeValue::Bool(bool)))
-            }
-
-            (None, AttributeValue::Integer(integer))
-            | (Some(JsonSchemaPropertyType::Integer), AttributeValue::Integer(integer)) => {
-                Ok(AttestationAttributeValue::Basic(AttributeValue::Integer(integer)))
-            }
-
-            (Some(JsonSchemaPropertyType::String), AttributeValue::Text(text))
-                if schema_property.is_some_and(|property| property.format == Some(JsonSchemaPropertyFormat::Date)) =>
-            {
-                let date = NaiveDate::parse_from_str(&text, "%Y-%m-%d")?;
-                Ok(AttestationAttributeValue::Date(date))
-            }
-            (None, AttributeValue::Text(text)) | (Some(JsonSchemaPropertyType::String), AttributeValue::Text(text)) => {
-                Ok(AttestationAttributeValue::Basic(AttributeValue::Text(text)))
-            }
-            (Some(JsonSchemaPropertyType::Array), AttributeValue::Array(entries)) => {
-                Ok(AttestationAttributeValue::Basic(AttributeValue::Array(entries)))
-            }
-            (_, value) => Err(AttributeError::AttributeConversion(value, schema_type)),
+impl From<AttributeValue> for AttestationAttributeValue {
+    fn from(value: AttributeValue) -> Self {
+        match value {
+            AttributeValue::Null => AttestationAttributeValue::Basic(AttributeValue::Null),
+            AttributeValue::Bool(bool) => AttestationAttributeValue::Basic(AttributeValue::Bool(bool)),
+            AttributeValue::Integer(integer) => AttestationAttributeValue::Basic(AttributeValue::Integer(integer)),
+            AttributeValue::Text(text) => AttestationAttributeValue::Basic(AttributeValue::Text(text)),
+            AttributeValue::Array(entries) => AttestationAttributeValue::Basic(AttributeValue::Array(entries)),
         }
     }
 }
@@ -220,17 +170,12 @@ pub mod test {
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_BSN;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
-    use chrono::NaiveDate;
     use indexmap::IndexMap;
     use mdoc::iso::mdocs::DataElementValue;
     use mdoc::iso::mdocs::Entry;
-    use rstest::rstest;
     use sd_jwt_vc_metadata::ClaimDisplayMetadata;
     use sd_jwt_vc_metadata::ClaimMetadata;
     use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
-    use sd_jwt_vc_metadata::JsonSchemaProperty;
-    use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
-    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use serde_json::json;
@@ -265,13 +210,7 @@ pub mod test {
         NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata {
             vct: String::from("example_attestation_type"),
             claims: vec![claim_metadata(&["entry1"]), claim_metadata(&["entry2"])],
-            ..UncheckedTypeMetadata::example_with_claim_names(
-                "example_attestation_type",
-                &[
-                    ("entry1", JsonSchemaPropertyType::String, None),
-                    ("entry2", JsonSchemaPropertyType::Boolean, None),
-                ],
-            )
+            ..UncheckedTypeMetadata::example_with_claim_names("example_attestation_type", &["entry1", "entry2"])
         })
     }
 
@@ -356,10 +295,7 @@ pub mod test {
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata {
             vct: String::from("example_attestation_type"),
             claims: vec![claim_metadata(&["entry1"])],
-            ..UncheckedTypeMetadata::example_with_claim_names(
-                "example_attestation_type",
-                &[("entry1", JsonSchemaPropertyType::String, None)],
-            )
+            ..UncheckedTypeMetadata::example_with_claim_names("example_attestation_type", &["entry1"])
         });
 
         let mdoc_attributes = IndexMap::from([(
@@ -454,15 +390,7 @@ pub mod test {
                     "path": ["country", "iso"],
                     "display": [{"lang": "en", "label": "country iso"}],
                 },
-            ],
-            "schema": { "properties": {
-                "name": { "type": "string" },
-                "birth_date": { "type": "string", "format": "date" },
-                "address": { "type": "object", "properties": {
-                    "street": { "type": "string" },
-                    "number": { "type": "integer" },
-                } },
-            } }
+            ]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
@@ -501,7 +429,7 @@ pub mod test {
                         label: "birth date".to_string(),
                         description: None
                     }],
-                    value: AttestationAttributeValue::Date(NaiveDate::from_ymd_opt(1996, 6, 16).unwrap()),
+                    value: AttestationAttributeValue::Basic(AttributeValue::Text("1996-06-16".to_owned())),
                     svg_id: None
                 },
                 AttestationAttribute {
@@ -543,8 +471,7 @@ pub mod test {
                     "path": ["birth_date"],
                     "display": [{"lang": "en", "label": "birth date"}],
                 },
-            ],
-            "schema": {}
+            ]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
@@ -564,62 +491,6 @@ pub mod test {
 
         assert_matches!(error, AttestationError::AttributesNotProcessedByClaim(attributes) if attributes ==
         HashSet::from_iter(vec![vec!["address".to_string(), "street".to_string()], vec!["address".to_string(), "number".to_string()]]));
-    }
-
-    #[rstest]
-    #[case(
-        AttributeValue::Text(String::from("normal text")),
-        None,
-        Some(AttestationAttributeValue::Basic(AttributeValue::Text(String::from("normal text"))))
-    )]
-    #[case(
-        AttributeValue::Bool(true),
-        None,
-        Some(AttestationAttributeValue::Basic(AttributeValue::Bool(true)))
-    )]
-    #[case(
-        AttributeValue::Integer(0),
-        None,
-        Some(AttestationAttributeValue::Basic(AttributeValue::Integer(0)))
-    )]
-    #[case(AttributeValue::Text(String::from("normal text")), Some(&JsonSchemaProperty {
-            r#type: JsonSchemaPropertyType::String,
-            format: None,
-            properties: None,
-        }), Some(AttestationAttributeValue::Basic(AttributeValue::Text(String::from("normal text")))))
-    ]
-    #[case(AttributeValue::Bool(false), Some(&JsonSchemaProperty {
-            r#type: JsonSchemaPropertyType::Boolean,
-            format: None,
-            properties: None,
-        }), Some(AttestationAttributeValue::Basic(AttributeValue::Bool(false))))]
-    #[case(AttributeValue::Integer(123), Some(&JsonSchemaProperty {
-            r#type: JsonSchemaPropertyType::Integer,
-            format: None,
-            properties: None,
-        }), Some(AttestationAttributeValue::Basic(AttributeValue::Integer(123))))]
-    #[case(AttributeValue::Text(String::from("2002-12-28")), Some(&JsonSchemaProperty {
-            r#type: JsonSchemaPropertyType::String,
-            format: Some(JsonSchemaPropertyFormat::Date),
-            properties: None,
-        }), Some(AttestationAttributeValue::Date(NaiveDate::from_ymd_opt(2002, 12, 28).unwrap())))]
-    #[case(AttributeValue::Text(String::from("text")), Some(&JsonSchemaProperty {
-            r#type: JsonSchemaPropertyType::Number,
-            format: None,
-            properties: None,
-        }), None)]
-    #[case(AttributeValue::Text(String::from("2002-21-42")), Some(&JsonSchemaProperty {
-            r#type: JsonSchemaPropertyType::String,
-            format: Some(JsonSchemaPropertyFormat::Date),
-            properties: None,
-        }), None)]
-    fn test_attribute_conversion(
-        #[case] value: AttributeValue,
-        #[case] prop: Option<&JsonSchemaProperty>,
-        #[case] expected: Option<AttestationAttributeValue>,
-    ) {
-        let result = AttestationAttributeValue::try_from_attribute_value(value, prop);
-        assert_eq!(result.ok(), expected);
     }
 
     #[test]

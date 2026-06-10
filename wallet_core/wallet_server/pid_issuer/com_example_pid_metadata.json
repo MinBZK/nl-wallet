@@ -16,9 +16,7 @@
   ],
   "claims": [
     {
-      "path": [
-        "family_name"
-      ],
+      "path": ["family_name"],
       "display": [
         {
           "lang": "nl-NL",
@@ -34,9 +32,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "given_name"
-      ],
+      "path": ["given_name"],
       "display": [
         {
           "lang": "nl-NL",
@@ -52,9 +48,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "birth_date"
-      ],
+      "path": ["birth_date"],
       "display": [
         {
           "lang": "nl-NL",
@@ -70,9 +64,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "age_over_18"
-      ],
+      "path": ["age_over_18"],
       "display": [
         {
           "lang": "nl-NL",
@@ -88,9 +80,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "bsn"
-      ],
+      "path": ["bsn"],
       "display": [
         {
           "lang": "nl-NL",
@@ -105,54 +95,5 @@
       ],
       "sd": "always"
     }
-  ],
-  "schema": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "NL Wallet PID VCT Schema",
-    "description": "The JSON schema that defines the NL Wallet PID VCT",
-    "type": "object",
-    "properties": {
-      "given_name": {
-        "type": "string"
-      },
-      "family_name": {
-        "type": "string"
-      },
-      "birth_date": {
-        "type": "string",
-        "format": "date"
-      },
-      "age_over_18": {
-        "type": "boolean"
-      },
-      "bsn": {
-        "type": "string"
-      },
-      "vct": {
-        "type": "string"
-      },
-      "vct#integrity": {
-        "type": "string"
-      },
-      "iss": {
-        "type": "string"
-      },
-      "iat": {
-        "type": "number"
-      },
-      "nbf": {
-        "type": "number"
-      },
-      "exp": {
-        "type": "number"
-      }
-    },
-    "required": [
-      "vct",
-      "iss",
-      "iat",
-      "exp"
-    ],
-    "additionalProperties": false
-  }
+  ]
 }

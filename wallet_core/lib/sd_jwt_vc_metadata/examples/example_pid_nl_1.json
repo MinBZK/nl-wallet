@@ -3,7 +3,7 @@
   "name": "NL PID credential",
   "description": "Working version of the Dutch PID credential",
   "extends": "urn:example:pid:1",
-  "extends#integrity": "sha256-AcbJp7W1EAPq7Ioo2Bzn54VWQbhQZYb/sGkjfKayDHo=",
+  "extends#integrity": "sha256-IvJxFLUypw8Mg24YQ5zk80yd6Hmdd21ArfenBrcdE70=",
   "display": [
     {
       "lang": "en-US",
@@ -124,78 +124,5 @@
       "sd": "always",
       "mandatory": true
     }
-  ],
-  "schema": {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "NL PID VCT Schema",
-    "description": "The JSON schema that defines the NL PID VCT",
-    "type": "object",
-    "properties": {
-      "vct": {
-        "type": "string"
-      },
-      "vct#integrity": {
-        "type": "string"
-      },
-      "iss": {
-        "type": "string"
-      },
-      "iat": {
-        "type": "number"
-      },
-      "nbf": {
-        "type": "number"
-      },
-      "exp": {
-        "type": "number"
-      },
-      "cnf": {
-        "type": "object"
-      },
-      "status": {
-        "type": "object"
-      },
-      "attestation_qualification": {
-        "type": "string"
-      },
-      "given_name": {
-        "type": "string"
-      },
-      "family_name": {
-        "type": "string"
-      },
-      "birthdate": {
-        "type": "string",
-        "format": "date"
-      },
-      "age_over_18": {
-        "type": "boolean"
-      },
-      "nationalities": {
-        "type": "array",
-        "items": {
-          "type": "string"
-        }
-      },
-      "bsn": {
-        "type": "string"
-      },
-      "recovery_code": {
-        "type": "string"
-      }
-    },
-    "required": [
-      "vct",
-      "iss",
-      "iat",
-      "cnf",
-      "status",
-      "attestation_qualification",
-      "given_name",
-      "family_name",
-      "birthdate",
-      "bsn",
-      "recovery_code"
-    ]
-  }
+  ]
 }

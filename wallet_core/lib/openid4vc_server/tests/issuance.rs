@@ -1,4 +1,3 @@
-use std::assert_matches;
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::slice::Iter;
@@ -19,7 +18,6 @@ use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer_identifier::IssuerIdentifier;
-use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::test::AlwaysAuthorizingFlow;
@@ -41,12 +39,10 @@ use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
-use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredential;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use openid4vc::wallet_issuance::issuance_session::HttpIssuanceSession;
-use openid4vc::wallet_issuance::issuance_session::IssuanceTypeMetadata;
 use openid4vc_server::issuer::create_authorization_router;
 use openid4vc_server::issuer::create_issuance_router;
 use p256::ecdsa::SigningKey;
@@ -208,7 +204,6 @@ fn make_credential_offer_url(
 fn verify_issued_credentials(
     issued_creds: Vec<CredentialWithMetadata>,
     credential_previews: Iter<CredentialPreview>,
-    type_metadata: &HashMap<CredentialConfigurationId, IssuanceTypeMetadata>,
     expected_attestations: usize,
     expected_copies: usize,
 ) {
@@ -222,10 +217,6 @@ fn verify_issued_credentials(
         .into_iter()
         .zip(credential_previews)
         .for_each(|(credential, preview_data)| {
-            let normalized_metadata = &type_metadata
-                .get(&preview_data.config_id)
-                .expect("credential type metadata is missing")
-                .normalized_metadata;
             credential
                 .copies
                 .into_inner()
@@ -235,7 +226,7 @@ fn verify_issued_credentials(
                         panic!("mdoc should not be issued");
                     }
                     IssuedCredential::SdJwt { sd_jwt, .. } => {
-                        let payload = CredentialPayload::from_sd_jwt(sd_jwt, normalized_metadata).unwrap();
+                        let payload = CredentialPayload::from_sd_jwt(sd_jwt).unwrap();
                         assert_eq!(payload.previewable_payload, preview_data.credential_payload);
                     }
                 })
@@ -342,7 +333,6 @@ async fn authorization_code_flow(
     verify_issued_credentials(
         issued_creds,
         session.credential_previews().iter(),
-        session.type_metadata(),
         attestation_count.get(),
         copy_count,
     );
@@ -376,45 +366,7 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
         .await
         .expect("issuance of a document missing only an optional attribute should succeed");
 
-    verify_issued_credentials(
-        issued_creds,
-        session.credential_previews().iter(),
-        session.type_metadata(),
-        1,
-        4,
-    );
-}
-
-/// Issuing a document that lacks an attribute the type-metadata schema marks as required fails at
-/// credential issuance, surfacing to the wallet as a `CredentialRequest` error response carrying
-/// the schema violation.
-#[tokio::test]
-async fn ltc2_issuance_rejects_missing_required_attribute() {
-    let (required_attr, _) = MOCK_ATTRS[1];
-
-    let type_metadata = mock_type_metadata_with_required_attr(MOCK_ATTESTATION_TYPES[0], required_attr);
-    // The document carries only the optional attribute; the required one is missing.
-    let documents = vec_nonempty![mock_issuable_document_with_attrs(
-        MOCK_ATTESTATION_TYPES[0],
-        &[MOCK_ATTRS[0]]
-    )];
-    let server = start_auth_code_flow_server_with(vec![type_metadata], documents).await;
-
-    let mut session = start_issuance_session(&server, NonZeroUsize::MIN).await;
-
-    let wscd = MockRemoteWscd::new_with_wia_keypair(server.wia_keypair);
-    let error = session
-        .accept_issuance(&server.trust_anchors, &wscd, true)
-        .await
-        .expect_err("issuance of a document missing a required attribute should fail");
-
-    assert_matches!(
-        error,
-        WalletIssuanceError::CredentialRequest(response) if matches!(
-            &response.error_description,
-            Some(description) if description.contains(&format!("\"{required_attr}\" is a required property"))
-        )
-    );
+    verify_issued_credentials(issued_creds, session.credential_previews().iter(), 1, 4);
 }
 
 #[rstest]
@@ -464,7 +416,6 @@ async fn pre_authorized_code_flow(
     verify_issued_credentials(
         issued_creds,
         session.credential_previews().iter(),
-        session.type_metadata(),
         attestation_count.get(),
         copy_count,
     );

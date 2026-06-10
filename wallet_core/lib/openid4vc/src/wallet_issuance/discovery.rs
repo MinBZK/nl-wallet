@@ -456,7 +456,6 @@ mod test {
     use httpmock::MockServer;
     use itertools::Itertools;
     use rstest::rstest;
-    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use serde_json::json;
@@ -592,13 +591,9 @@ mod test {
         let trust_anchor = TrustAnchors::from(&ca);
 
         // Create type metadata for the credential preview.
-        let (_, _, type_metadata_documents) =
-            TypeMetadataDocuments::from_single_example(TypeMetadata::example_with_claim_name(
-                PID_ATTESTATION_TYPE,
-                "family_name",
-                JsonSchemaPropertyType::String,
-                None,
-            ));
+        let (_, _, type_metadata_documents) = TypeMetadataDocuments::from_single_example(
+            TypeMetadata::example_with_claim_name(PID_ATTESTATION_TYPE, "family_name"),
+        );
 
         let credential_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
 

@@ -513,15 +513,12 @@ mod test {
 
     #[test]
     fn test_type_metadata_documents_error_json() {
-        let document = serde_json::to_vec(&json!({
-            "vct": "abc"
-        }))
-        .unwrap();
+        let document = serde_json::to_vec(&json!({})).unwrap();
         let documents = TypeMetadataDocuments::new(vec_nonempty![document]);
 
         let error = documents
             .into_normalized("abc")
-            .expect_err("parsing metadata document chain should not succeed");
+            .expect_err("parsing metadata document without `vct` should not succeed");
 
         assert_matches!(error, TypeMetadataChainError::Json(_));
     }

@@ -800,8 +800,7 @@ pub mod test {
             }, {
                 "path": ["a", "b", "c1"],
                 "display": [{"lang": "en", "label": "a b c1"}],
-            }],
-            "schema": { "properties": {} }
+            }]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
@@ -886,8 +885,7 @@ pub mod test {
                     "path": ["nest.ed", "birth.date"],
                     "display": [{"lang": "en", "label": "nested birthday"}],
                 }
-            ],
-            "schema": { "properties": {} }
+            ]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
@@ -922,8 +920,7 @@ pub mod test {
                     "path": ["a", "a2"],
                     "display": [{"lang": "en", "label": "a a1"}],
                 }
-            ],
-            "schema": { "properties": {} }
+            ]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
@@ -971,8 +968,7 @@ pub mod test {
                     "path": ["b", "b2"],
                     "display": [{"lang": "en", "label": "b b2"}],
                 }
-            ],
-            "schema": { "properties": {} }
+            ]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
@@ -1316,8 +1312,7 @@ pub mod test {
                     "path": ["adult"],
                     "display": [{"lang": "en", "label": "adult"}],
                 },
-            ],
-            "schema": { "properties": {} }
+            ]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
@@ -1326,7 +1321,7 @@ pub mod test {
     }
 
     #[test]
-    fn test_validate_missing_claim() {
+    fn test_validate_attributes_without_claim() {
         let metadata_json = json!({
             "vct": "com.example.pid",
             "display": [{"lang": "en", "name": "example"}],
@@ -1355,8 +1350,7 @@ pub mod test {
                     "path": ["adult"],
                     "display": [{"lang": "en", "label": "adult"}],
                 },
-            ],
-            "schema": { "properties": {} }
+            ]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
@@ -1365,7 +1359,7 @@ pub mod test {
     }
 
     #[test]
-    fn test_validate_missing_mandatory() {
+    fn test_validate_missing_mandatory_attribute() {
         let metadata_json = json!({
             "vct": "com.example.pid",
             "display": [{"lang": "en", "name": "example"}],
@@ -1404,8 +1398,7 @@ pub mod test {
                     "path": ["adult"],
                     "display": [{"lang": "en", "label": "adult"}],
                 },
-            ],
-            "schema": { "properties": {} }
+            ]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
