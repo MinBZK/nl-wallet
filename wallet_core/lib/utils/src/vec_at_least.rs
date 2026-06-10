@@ -365,8 +365,9 @@ impl<T> FromNonEmptyIterator<T> for VecNonEmpty<T> {
     where
         I: IntoNonEmptyIterator<Item = T>,
     {
-        // .unwrap() requires `Debug` to be implemented for `T`, so `.unwrap_or_else` is used
-        VecNonEmpty::new(iter.into_iter().collect::<Vec<_>>()).unwrap_or_else(|_| unreachable!())
+        VecNonEmpty::new(iter.into_iter().collect::<Vec<_>>())
+            // .unwrap() requires `Debug` to be implemented for `T`, so `.unwrap_or_else` is used
+            .unwrap_or_else(|_| panic!("NonEmptyIterator produces empty iterator"))
     }
 }
 
