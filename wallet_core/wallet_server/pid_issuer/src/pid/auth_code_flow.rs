@@ -157,14 +157,12 @@ impl UpstreamOidcAuthorizationCodeFlow {
             client_id,
         ))
     }
-}
 
-impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
     /// Mount the `/digid/callback` route owned by this flow on a fresh [`Router`]. The
     /// pid_issuer binary merges this with the `openid4vc` layer's authorization and issuance routers.
     /// The handler reads its flow state via [`AuthorizingIssuer::flow`].
     pub fn callback_router<K, L, S, N, PAS>(
-        authorizing_issuer: DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B, O>,
+        authorizing_issuer: DigidCallbackAuthorizingIssuer<K, L, S, N, PAS>,
     ) -> Router
     where
         K: Send + Sync + 'static,
@@ -172,14 +170,14 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
         S: SessionStore<IssuanceData> + Send + Sync + 'static,
         N: Send + Sync + 'static,
         PAS: Send + Sync + 'static,
-        B: BrpClient + Send + Sync + 'static,
-        O: DigidClient + Send + Sync + 'static,
     {
         Router::new()
             .route(DIGID_CALLBACK_PATH, get(digid_callback))
             .with_state(authorizing_issuer)
     }
+}
 
+impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
     /// Exchange the upstream `code` for the user's BSN, look up attributes, build and return the issuable documents.
     async fn fetch_issuable_documents(
         &self,
@@ -267,11 +265,11 @@ where
 /// issuer-side authorization code, writes the `AuthCodeIssued` session, and produces the wallet-facing
 /// redirect URL. Errors during the BSN / BRP / issuable-build steps surface to the wallet as an
 /// OAuth error redirect, since the wallet's redirect_uri is known by then.
-type DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B, O> =
-    Arc<AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow<B, O>>>;
+type DigidCallbackAuthorizingIssuer<K, L, S, N, PAS> =
+    Arc<AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow>>;
 
-async fn digid_callback<K, L, S, N, PAS, B, O>(
-    State(authorizing_issuer): State<DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B, O>>,
+async fn digid_callback<K, L, S, N, PAS>(
+    State(authorizing_issuer): State<DigidCallbackAuthorizingIssuer<K, L, S, N, PAS>>,
     Query(DigidCallbackQuery { code, state }): Query<DigidCallbackQuery>,
 ) -> Response
 where
@@ -280,8 +278,6 @@ where
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
     N: Send + Sync + 'static,
     PAS: Send + Sync + 'static,
-    B: BrpClient + Send + Sync + 'static,
-    O: DigidClient + Send + Sync + 'static,
 {
     let flow = authorizing_issuer.flow();
 
