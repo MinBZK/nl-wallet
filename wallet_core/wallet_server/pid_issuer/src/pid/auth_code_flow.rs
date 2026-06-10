@@ -38,6 +38,7 @@ use serde::Serialize;
 use server_utils::keys::SecretKeyVariant;
 use server_utils::store::StoreConnection;
 use tracing::warn;
+use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
@@ -127,7 +128,7 @@ pub struct UpstreamOidcAuthorizationCodeFlow<B = HttpBrpClient, O = HttpDigidCli
     digid_client: O,
     recovery_code_secret_key: SecretKeyVariant,
     state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
-    callback_base_url: BaseUrl,
+    callback_url: Url,
     client_id: String,
 }
 
@@ -191,7 +192,7 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
             digid_client,
             recovery_code_secret_key,
             state_bridge_store,
-            callback_base_url,
+            callback_url: callback_base_url.join(DIGID_CALLBACK_PATH),
             client_id,
         }
     }
@@ -228,11 +229,7 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
     {
         let bsn = self
             .digid_client
-            .bsn(
-                upstream_code,
-                upstream_code_verifier,
-                self.callback_base_url.join(DIGID_CALLBACK_PATH),
-            )
+            .bsn(upstream_code, upstream_code_verifier, self.callback_url.clone())
             .await
             .map_err(Error::Digid)?;
 
@@ -275,7 +272,7 @@ where
             .digid_client
             .authorization_request(
                 self.client_id.clone(),
-                self.callback_base_url.join(DIGID_CALLBACK_PATH),
+                self.callback_url.clone(),
                 issuer_state.clone(),
                 &upstream_pkce,
             )
