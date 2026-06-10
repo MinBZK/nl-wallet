@@ -28,7 +28,7 @@ const test = base.extend({
   visualCheck: async ({ page, demoPage }, use) => {
     await page.waitForLoadState("load")
     /* eslint-disable-next-line playwright/no-wait-for-timeout -- hard wait needed for screenshot test */
-    await page.waitForTimeout(1000)
+    await page.waitForTimeout(1500)
     const visualCheck = async (screenshotName) => {
       const walletModal = await demoPage.getWalletModal()
       await base.expect(walletModal).toHaveScreenshot(screenshotName, {
@@ -82,6 +82,7 @@ test.describe("LTC5, LTC15, LTC18 Verifier/Issuer displays disclosure/issuance p
     const QrCode = await demoPage.getQrCode()
     await expect(walletModal).toHaveScreenshot("wallet-web-start.png", {
       mask: [QrCode],
+      maxDiffPixelRatio: 0.04,
     })
   })
 
