@@ -68,8 +68,8 @@ pub enum AuthorizeError {
     #[error("request_uri not found or expired: {0}")]
     UnknownRequestUri(String),
 
-    #[error(transparent)]
-    InvalidAuthorizationRequest(#[from] InvalidAuthorizationRequest),
+    #[error("invalid authorization request: {0}")]
+    InvalidAuthorizationRequest(#[source] InvalidAuthorizationRequest),
 
     #[error("consuming PAR request failed: {0}")]
     ParStore(#[source] Box<dyn Error + Send + Sync + 'static>),
@@ -196,7 +196,8 @@ where
         // Extract the wallet-side parameters the flow must retain (rejecting an unsupported
         // code_challenge_method here, for every flow at once). Keep the redirect_uri + state so we
         // can build the wallet-facing redirect ourselves on the IssuedCode path.
-        let context = WalletAuthorizationContext::try_from_request(authorization_request)?;
+        let context = WalletAuthorizationContext::try_from_request(authorization_request)
+            .map_err(AuthorizeError::InvalidAuthorizationRequest)?;
         let wallet_redirect = WalletRedirect::new(context.redirect_uri.clone(), context.state.clone());
 
         let outcome = self
