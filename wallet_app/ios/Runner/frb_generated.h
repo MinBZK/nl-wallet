@@ -173,10 +173,6 @@ typedef struct wire_cst_AttributeValue_Number {
   int64_t value;
 } wire_cst_AttributeValue_Number;
 
-typedef struct wire_cst_AttributeValue_Date {
-  struct wire_cst_list_prim_u_8_strict *value;
-} wire_cst_AttributeValue_Date;
-
 typedef struct wire_cst_list_attribute_value {
   struct wire_cst_attribute_value *ptr;
   int32_t len;
@@ -190,7 +186,6 @@ typedef union AttributeValueKind {
   struct wire_cst_AttributeValue_String String;
   struct wire_cst_AttributeValue_Boolean Boolean;
   struct wire_cst_AttributeValue_Number Number;
-  struct wire_cst_AttributeValue_Date Date;
   struct wire_cst_AttributeValue_Array Array;
 } AttributeValueKind;
 

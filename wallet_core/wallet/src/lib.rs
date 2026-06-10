@@ -21,7 +21,6 @@ pub use wallet_account::messages::errors::RevocationReason;
 pub use wallet_account::messages::transfer::TransferSessionState;
 
 pub use crate::attestation::AttestationAttribute;
-pub use crate::attestation::AttestationAttributeValue;
 pub use crate::attestation::AttestationIdentity;
 pub use crate::attestation::AttestationPresentation;
 pub use crate::attestation::ValidityStatus;

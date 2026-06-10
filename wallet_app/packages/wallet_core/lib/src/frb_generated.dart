@@ -2047,14 +2047,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           value: dco_decode_i_64(raw[1]),
         );
       case 3:
-        return AttributeValue_Date(
-          value: dco_decode_String(raw[1]),
-        );
-      case 4:
         return AttributeValue_Array(
           value: dco_decode_list_attribute_value(raw[1]),
         );
-      case 5:
+      case 4:
         return AttributeValue_Null();
       default:
         throw Exception("unreachable");
@@ -3067,12 +3063,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_value = sse_decode_i_64(deserializer);
         return AttributeValue_Number(value: var_value);
       case 3:
-        var var_value = sse_decode_String(deserializer);
-        return AttributeValue_Date(value: var_value);
-      case 4:
         var var_value = sse_decode_list_attribute_value(deserializer);
         return AttributeValue_Array(value: var_value);
-      case 5:
+      case 4:
         return AttributeValue_Null();
       default:
         throw UnimplementedError('');
@@ -4450,14 +4443,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case AttributeValue_Number(value: final value):
         sse_encode_i_32(2, serializer);
         sse_encode_i_64(value, serializer);
-      case AttributeValue_Date(value: final value):
-        sse_encode_i_32(3, serializer);
-        sse_encode_String(value, serializer);
       case AttributeValue_Array(value: final value):
-        sse_encode_i_32(4, serializer);
+        sse_encode_i_32(3, serializer);
         sse_encode_list_attribute_value(value, serializer);
       case AttributeValue_Null():
-        sse_encode_i_32(5, serializer);
+        sse_encode_i_32(4, serializer);
     }
   }
 

@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
 use attestation_types::claim_path::ClaimPath;
@@ -14,7 +13,6 @@ use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use super::AttestationAttribute;
-use super::AttestationAttributeValue;
 use super::AttestationError;
 use super::AttestationIdentity;
 use super::AttestationPresentation;
@@ -103,7 +101,7 @@ impl AttestationPresentation {
                 attributes.push(AttestationAttribute {
                     key: claim_path,
                     metadata: claim.display,
-                    value: value.clone().into(),
+                    value: value.to_owned(),
                     svg_id: claim.svg_id.map(String::from),
                 })
             }
@@ -143,18 +141,6 @@ impl AttestationPresentation {
     }
 }
 
-impl From<AttributeValue> for AttestationAttributeValue {
-    fn from(value: AttributeValue) -> Self {
-        match value {
-            AttributeValue::Null => AttestationAttributeValue::Basic(AttributeValue::Null),
-            AttributeValue::Bool(bool) => AttestationAttributeValue::Basic(AttributeValue::Bool(bool)),
-            AttributeValue::Integer(integer) => AttestationAttributeValue::Basic(AttributeValue::Integer(integer)),
-            AttributeValue::Text(text) => AttestationAttributeValue::Basic(AttributeValue::Text(text)),
-            AttributeValue::Array(entries) => AttestationAttributeValue::Basic(AttributeValue::Array(entries)),
-        }
-    }
-}
-
 #[cfg(test)]
 pub mod test {
     use std::assert_matches;
@@ -182,7 +168,6 @@ pub mod test {
     use utils::vec_nonempty;
 
     use super::super::AttestationAttribute;
-    use super::super::AttestationAttributeValue;
     use super::super::AttestationError;
     use super::super::AttestationIdentity;
     use super::super::AttestationPresentation;
@@ -253,12 +238,9 @@ pub mod test {
             [
                 (
                     vec_nonempty![String::from("entry1")],
-                    AttestationAttributeValue::Basic(AttributeValue::Text(String::from("value1")))
+                    AttributeValue::Text(String::from("value1"))
                 ),
-                (
-                    vec_nonempty![String::from("entry2")],
-                    AttestationAttributeValue::Basic(AttributeValue::Bool(true))
-                ),
+                (vec_nonempty![String::from("entry2")], AttributeValue::Bool(true)),
             ],
             attrs.as_slice()
         );
@@ -419,7 +401,7 @@ pub mod test {
                         label: "name".to_string(),
                         description: None
                     }],
-                    value: AttestationAttributeValue::Basic(AttributeValue::Text("Wallet".to_string())),
+                    value: AttributeValue::Text("Wallet".to_string()),
                     svg_id: None
                 },
                 AttestationAttribute {
@@ -429,7 +411,7 @@ pub mod test {
                         label: "birth date".to_string(),
                         description: None
                     }],
-                    value: AttestationAttributeValue::Basic(AttributeValue::Text("1996-06-16".to_owned())),
+                    value: AttributeValue::Text("1996-06-16".to_owned()),
                     svg_id: None
                 },
                 AttestationAttribute {
@@ -439,7 +421,7 @@ pub mod test {
                         label: "address street".to_string(),
                         description: None
                     }],
-                    value: AttestationAttributeValue::Basic(AttributeValue::Text("Gracht".to_string())),
+                    value: AttributeValue::Text("Gracht".to_string()),
                     svg_id: None
                 },
                 AttestationAttribute {
@@ -449,7 +431,7 @@ pub mod test {
                         label: "address number".to_string(),
                         description: None
                     }],
-                    value: AttestationAttributeValue::Basic(AttributeValue::Integer(123)),
+                    value: AttributeValue::Integer(123),
                     svg_id: None
                 },
             ]
@@ -534,7 +516,7 @@ pub mod test {
         assert_eq!(
             [(
                 vec_nonempty![String::from(PID_BSN)],
-                AttestationAttributeValue::Basic(AttributeValue::Text(String::from("999991772")))
+                AttributeValue::Text(String::from("999991772"))
             ),],
             attrs.as_slice()
         );

@@ -313,14 +313,13 @@ extension AttributeValuePatterns on AttributeValue {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( AttributeValue_String value)?  string,TResult Function( AttributeValue_Boolean value)?  boolean,TResult Function( AttributeValue_Number value)?  number,TResult Function( AttributeValue_Date value)?  date,TResult Function( AttributeValue_Array value)?  array,TResult Function( AttributeValue_Null value)?  null_,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( AttributeValue_String value)?  string,TResult Function( AttributeValue_Boolean value)?  boolean,TResult Function( AttributeValue_Number value)?  number,TResult Function( AttributeValue_Array value)?  array,TResult Function( AttributeValue_Null value)?  null_,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case AttributeValue_String() when string != null:
 return string(_that);case AttributeValue_Boolean() when boolean != null:
 return boolean(_that);case AttributeValue_Number() when number != null:
-return number(_that);case AttributeValue_Date() when date != null:
-return date(_that);case AttributeValue_Array() when array != null:
+return number(_that);case AttributeValue_Array() when array != null:
 return array(_that);case AttributeValue_Null() when null_ != null:
 return null_(_that);case _:
   return orElse();
@@ -340,14 +339,13 @@ return null_(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( AttributeValue_String value)  string,required TResult Function( AttributeValue_Boolean value)  boolean,required TResult Function( AttributeValue_Number value)  number,required TResult Function( AttributeValue_Date value)  date,required TResult Function( AttributeValue_Array value)  array,required TResult Function( AttributeValue_Null value)  null_,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( AttributeValue_String value)  string,required TResult Function( AttributeValue_Boolean value)  boolean,required TResult Function( AttributeValue_Number value)  number,required TResult Function( AttributeValue_Array value)  array,required TResult Function( AttributeValue_Null value)  null_,}){
 final _that = this;
 switch (_that) {
 case AttributeValue_String():
 return string(_that);case AttributeValue_Boolean():
 return boolean(_that);case AttributeValue_Number():
-return number(_that);case AttributeValue_Date():
-return date(_that);case AttributeValue_Array():
+return number(_that);case AttributeValue_Array():
 return array(_that);case AttributeValue_Null():
 return null_(_that);}
 }
@@ -363,14 +361,13 @@ return null_(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( AttributeValue_String value)?  string,TResult? Function( AttributeValue_Boolean value)?  boolean,TResult? Function( AttributeValue_Number value)?  number,TResult? Function( AttributeValue_Date value)?  date,TResult? Function( AttributeValue_Array value)?  array,TResult? Function( AttributeValue_Null value)?  null_,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( AttributeValue_String value)?  string,TResult? Function( AttributeValue_Boolean value)?  boolean,TResult? Function( AttributeValue_Number value)?  number,TResult? Function( AttributeValue_Array value)?  array,TResult? Function( AttributeValue_Null value)?  null_,}){
 final _that = this;
 switch (_that) {
 case AttributeValue_String() when string != null:
 return string(_that);case AttributeValue_Boolean() when boolean != null:
 return boolean(_that);case AttributeValue_Number() when number != null:
-return number(_that);case AttributeValue_Date() when date != null:
-return date(_that);case AttributeValue_Array() when array != null:
+return number(_that);case AttributeValue_Array() when array != null:
 return array(_that);case AttributeValue_Null() when null_ != null:
 return null_(_that);case _:
   return null;
@@ -389,13 +386,12 @@ return null_(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String value)?  string,TResult Function( bool value)?  boolean,TResult Function( PlatformInt64 value)?  number,TResult Function( String value)?  date,TResult Function( List<AttributeValue> value)?  array,TResult Function()?  null_,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String value)?  string,TResult Function( bool value)?  boolean,TResult Function( PlatformInt64 value)?  number,TResult Function( List<AttributeValue> value)?  array,TResult Function()?  null_,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case AttributeValue_String() when string != null:
 return string(_that.value);case AttributeValue_Boolean() when boolean != null:
 return boolean(_that.value);case AttributeValue_Number() when number != null:
-return number(_that.value);case AttributeValue_Date() when date != null:
-return date(_that.value);case AttributeValue_Array() when array != null:
+return number(_that.value);case AttributeValue_Array() when array != null:
 return array(_that.value);case AttributeValue_Null() when null_ != null:
 return null_();case _:
   return orElse();
@@ -415,13 +411,12 @@ return null_();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String value)  string,required TResult Function( bool value)  boolean,required TResult Function( PlatformInt64 value)  number,required TResult Function( String value)  date,required TResult Function( List<AttributeValue> value)  array,required TResult Function()  null_,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String value)  string,required TResult Function( bool value)  boolean,required TResult Function( PlatformInt64 value)  number,required TResult Function( List<AttributeValue> value)  array,required TResult Function()  null_,}) {final _that = this;
 switch (_that) {
 case AttributeValue_String():
 return string(_that.value);case AttributeValue_Boolean():
 return boolean(_that.value);case AttributeValue_Number():
-return number(_that.value);case AttributeValue_Date():
-return date(_that.value);case AttributeValue_Array():
+return number(_that.value);case AttributeValue_Array():
 return array(_that.value);case AttributeValue_Null():
 return null_();}
 }
@@ -437,13 +432,12 @@ return null_();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String value)?  string,TResult? Function( bool value)?  boolean,TResult? Function( PlatformInt64 value)?  number,TResult? Function( String value)?  date,TResult? Function( List<AttributeValue> value)?  array,TResult? Function()?  null_,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String value)?  string,TResult? Function( bool value)?  boolean,TResult? Function( PlatformInt64 value)?  number,TResult? Function( List<AttributeValue> value)?  array,TResult? Function()?  null_,}) {final _that = this;
 switch (_that) {
 case AttributeValue_String() when string != null:
 return string(_that.value);case AttributeValue_Boolean() when boolean != null:
 return boolean(_that.value);case AttributeValue_Number() when number != null:
-return number(_that.value);case AttributeValue_Date() when date != null:
-return date(_that.value);case AttributeValue_Array() when array != null:
+return number(_that.value);case AttributeValue_Array() when array != null:
 return array(_that.value);case AttributeValue_Null() when null_ != null:
 return null_();case _:
   return null;
@@ -645,72 +639,6 @@ class _$AttributeValue_NumberCopyWithImpl<$Res>
   return _then(AttributeValue_Number(
 value: null == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
 as PlatformInt64,
-  ));
-}
-
-
-}
-
-/// @nodoc
-
-
-class AttributeValue_Date extends AttributeValue {
-  const AttributeValue_Date({required this.value}): super._();
-  
-
- final  String value;
-
-/// Create a copy of AttributeValue
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$AttributeValue_DateCopyWith<AttributeValue_Date> get copyWith => _$AttributeValue_DateCopyWithImpl<AttributeValue_Date>(this, _$identity);
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AttributeValue_Date&&(identical(other.value, value) || other.value == value));
-}
-
-
-@override
-int get hashCode => Object.hash(runtimeType,value);
-
-@override
-String toString() {
-  return 'AttributeValue.date(value: $value)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $AttributeValue_DateCopyWith<$Res> implements $AttributeValueCopyWith<$Res> {
-  factory $AttributeValue_DateCopyWith(AttributeValue_Date value, $Res Function(AttributeValue_Date) _then) = _$AttributeValue_DateCopyWithImpl;
-@useResult
-$Res call({
- String value
-});
-
-
-
-
-}
-/// @nodoc
-class _$AttributeValue_DateCopyWithImpl<$Res>
-    implements $AttributeValue_DateCopyWith<$Res> {
-  _$AttributeValue_DateCopyWithImpl(this._self, this._then);
-
-  final AttributeValue_Date _self;
-  final $Res Function(AttributeValue_Date) _then;
-
-/// Create a copy of AttributeValue
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? value = null,}) {
-  return _then(AttributeValue_Date(
-value: null == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
-as String,
   ));
 }
 

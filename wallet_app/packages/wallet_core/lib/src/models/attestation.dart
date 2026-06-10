@@ -109,9 +109,6 @@ sealed class AttributeValue with _$AttributeValue {
   const factory AttributeValue.number({
     required PlatformInt64 value,
   }) = AttributeValue_Number;
-  const factory AttributeValue.date({
-    required String value,
-  }) = AttributeValue_Date;
   const factory AttributeValue.array({
     required List<AttributeValue> value,
   }) = AttributeValue_Array;

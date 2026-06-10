@@ -1073,7 +1073,6 @@ mod tests {
     use super::WalletDisclosureAttestations;
     use super::WalletDisclosureSession;
     use super::is_request_for_recovery_code;
-    use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationIdentity;
     use crate::attestation::mock::EmptyPresentationConfig;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
@@ -1391,8 +1390,7 @@ mod tests {
 
             assert!(attribute.key.iter().eq([PID_GIVEN_NAME]));
             assert_matches!(
-                &attribute.value,
-                AttestationAttributeValue::Basic(AttributeValue::Text(given_name)) if given_name == expected_name
+                &attribute.value, AttributeValue::Text(given_name) if given_name == expected_name
             );
         }
 
@@ -1412,16 +1410,14 @@ mod tests {
 
             assert!(attribute.key.iter().eq([PID_ADDRESS_GROUP, PID_RESIDENT_HOUSE_NUMBER]));
             assert_matches!(
-                &attribute.value,
-                AttestationAttributeValue::Basic(AttributeValue::Text(house_number)) if house_number == expected_house_number
+                &attribute.value, AttributeValue::Text(house_number) if house_number == expected_house_number
             );
 
             let attribute = &presentation.attributes[1];
 
             assert!(attribute.key.iter().eq([PID_ADDRESS_GROUP, PID_RESIDENT_POSTAL_CODE]));
             assert_matches!(
-                &attribute.value,
-                AttestationAttributeValue::Basic(AttributeValue::Text(postal_code)) if postal_code == expected_postal_code
+                &attribute.value, AttributeValue::Text(postal_code) if postal_code == expected_postal_code
             );
         }
 

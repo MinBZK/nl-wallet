@@ -195,20 +195,8 @@ pub enum AttributeValue {
     String { value: String },
     Boolean { value: bool },
     Number { value: i64 },
-    Date { value: String },
     Array { value: Vec<AttributeValue> },
     Null,
-}
-
-impl From<wallet::AttestationAttributeValue> for AttributeValue {
-    fn from(value: wallet::AttestationAttributeValue) -> Self {
-        match value {
-            wallet::AttestationAttributeValue::Basic(value) => value.into(),
-            wallet::AttestationAttributeValue::Date(value) => AttributeValue::Date {
-                value: value.format("%Y-%m-%d").to_string(),
-            },
-        }
-    }
 }
 
 impl From<attestation_data::AttributeValue> for AttributeValue {

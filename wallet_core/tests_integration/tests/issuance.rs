@@ -7,7 +7,6 @@ use pid_issuer::pid::constants::PID_BSN;
 use pid_issuer::pid::constants::PID_RECOVERY_CODE;
 use serial_test::serial;
 use tests_integration::common::*;
-use wallet::AttestationAttributeValue;
 use wallet::AttestationPresentation;
 use wallet::attestation_data::AttributeValue;
 
@@ -69,10 +68,7 @@ fn test_pid_attestation(pid_attestation: &AttestationPresentation) {
         .find(|a| a.key.iter().eq([PID_BSN]))
         .unwrap();
 
-    assert_eq!(
-        bsn_attr.value,
-        AttestationAttributeValue::Basic(AttributeValue::Text("999991772".to_string()))
-    );
+    assert_eq!(bsn_attr.value, AttributeValue::Text("999991772".to_string()));
 
     // The recovery code should be hidden from presentation.
     let recovery_code_result = pid_attestation

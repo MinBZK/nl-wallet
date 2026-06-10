@@ -9,9 +9,7 @@ use attestation_data::validity::ValidityWindow;
 use attestation_types::credential_format::Format;
 use chrono::DateTime;
 use chrono::Duration;
-use chrono::NaiveDate;
 use chrono::Utc;
-use derive_more::Display;
 use error_category::ErrorCategory;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
@@ -83,14 +81,8 @@ pub enum AttestationIdentity {
 pub struct AttestationAttribute {
     pub key: VecNonEmpty<String>,
     pub metadata: Vec<ClaimDisplayMetadata>,
-    pub value: AttestationAttributeValue,
+    pub value: AttributeValue,
     pub svg_id: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
-pub enum AttestationAttributeValue {
-    Basic(AttributeValue),
-    Date(NaiveDate),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
