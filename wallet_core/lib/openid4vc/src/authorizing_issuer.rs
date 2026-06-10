@@ -311,7 +311,7 @@ impl WalletRedirect {
         Ok(redirect_uri)
     }
 
-    pub fn into_error_url(self, error: &'static str, error_description: &impl ToString) -> Url {
+    pub fn into_error_url(self, error: &str, error_description: &impl ToString) -> Url {
         #[derive(Serialize)]
         struct RedirectErrorQuery<'a> {
             error: &'a str,
@@ -338,7 +338,7 @@ impl WalletRedirect {
     }
 
     /// Resolve a completion result into the final wallet-facing success or error redirect URL.
-    pub fn into_redirect_url(self, result: Result<Url, impl Display>, error_code: &'static str) -> Url {
+    pub fn into_redirect_url(self, result: Result<Url, impl ToString>, error_code: &str) -> Url {
         result.unwrap_or_else(|error| self.into_error_url(error_code, &error))
     }
 }
