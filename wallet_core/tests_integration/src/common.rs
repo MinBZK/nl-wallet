@@ -34,7 +34,6 @@ use http_utils::urls::disclosure_based_issuance_base_uri;
 use issuance_server::settings::IssuanceServerSettings;
 use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use jwt::SignedJwt;
-use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuable_document::IssuableDocument;
@@ -50,9 +49,10 @@ use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
 use pid_issuer::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow;
+use pid_issuer::pid::brp::client::BrpClient;
+use pid_issuer::pid::digid::DigidClient;
 use pid_issuer::pid::mock::MockBrpClient;
 use pid_issuer::pid::mock::MockDigidClient;
-use pid_issuer::server::PidIssuer;
 use pid_issuer::settings::PidIssuerSettings;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use reqwest::Certificate;
@@ -351,27 +351,22 @@ pub async fn setup_env(
         SecretKeyVariant::from_settings(issuer_settings.recovery_code.clone(), Some(hsm.clone()))
             .expect("could not initialize recovery code secret key");
 
-    let pid_issuer_url = start_pid_issuer_server(
-        issuer_settings,
-        Some(hsm),
-        |public_url| {
-            // The production `UpstreamOidcAuthorizationCodeFlow` (state bridge, callback handler, BRP
-            // attribute mapping, recovery-code HMAC) with only its two external boundaries mocked:
-            // `MockDigidClient` redirects the user-agent straight back to the issuer's own
-            // `/digid/callback` and returns a fixed BSN, and `MockBrpClient` serves a bundled
-            // haal-centraal person fixture.
+    let pid_issuer_url = start_pid_issuer_server(issuer_settings, Some(hsm), |public_url| {
+        // The production `UpstreamOidcAuthorizationCodeFlow` (state bridge, callback handler, BRP
+        // attribute mapping, recovery-code HMAC) with only its two external boundaries mocked:
+        // `MockDigidClient` redirects the user-agent straight back to the issuer's own
+        // `/digid/callback` and returns a fixed BSN, and `MockBrpClient` serves a bundled
+        // haal-centraal person fixture.
 
-            UpstreamOidcAuthorizationCodeFlow::new(
-                MockBrpClient::default(),
-                MockDigidClient::default(),
-                recovery_code_secret_key,
-                Arc::new(IssuerStateBridgeStore::new(StoreConnection::Memory)),
-                public_url.as_base_url().clone(),
-                "mock-digid-client".to_string(),
-            )
-        },
-        |authorizing_issuer| UpstreamOidcAuthorizationCodeFlow::callback_router(Arc::clone(authorizing_issuer)),
-    )
+        UpstreamOidcAuthorizationCodeFlow::new(
+            MockBrpClient::default(),
+            MockDigidClient::default(),
+            recovery_code_secret_key,
+            Arc::new(IssuerStateBridgeStore::new(StoreConnection::Memory)),
+            public_url.as_base_url().clone(),
+            "mock-digid-client".to_string(),
+        )
+    })
     .await;
 
     let issuer_data = IssuerData {
@@ -838,16 +833,15 @@ pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Op
     }
 }
 
-pub async fn start_pid_issuer_server<AE, B, F>(
+pub async fn start_pid_issuer_server<B, O, F>(
     mut settings: PidIssuerSettings,
     hsm: Option<Pkcs11Hsm>,
-    flow_builder: B,
-    auth_flow_router_builder: F,
+    flow_builder: F,
 ) -> IssuerUrl
 where
-    AE: AuthorizationCodeFlow + Send + Sync + 'static,
-    B: FnOnce(&IssuerIdentifier) -> AE,
-    F: FnOnce(&Arc<PidIssuer<AE>>) -> Router,
+    B: BrpClient + Send + Sync + 'static,
+    O: DigidClient + Send + Sync + 'static,
+    F: FnOnce(&IssuerIdentifier) -> UpstreamOidcAuthorizationCodeFlow<B, O>,
 {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
@@ -877,7 +871,6 @@ where
         .unwrap();
 
     let authorizing_issuer = Arc::new(issuer);
-    let auth_flow_router = auth_flow_router_builder(&authorizing_issuer);
 
     tokio::spawn(
         async move {
@@ -885,7 +878,6 @@ where
                 public_listener,
                 internal_listener,
                 authorizing_issuer,
-                auth_flow_router,
                 server_settings,
                 serve_status_lists,
                 [],

@@ -161,8 +161,8 @@ impl UpstreamOidcAuthorizationCodeFlow {
 
 impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
     /// Mount the `/digid/callback` route owned by this flow on a fresh [`Router`]. The
-    /// pid_issuer binary merges this with the `openid4vc` layer's authorization and issuance routers.
-    /// The handler reads its flow state via [`AuthorizingIssuer::flow`].
+    /// pid_issuer's `server` module merges this with the `openid4vc` layer's authorization and
+    /// issuance routers. The handler reads its flow state via [`AuthorizingIssuer::flow`].
     pub fn callback_router<K, L, S, N, PAS>(
         authorizing_issuer: DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B, O>,
     ) -> Router

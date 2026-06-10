@@ -90,29 +90,24 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
     )
     .unwrap();
 
-    let issuer_url = start_pid_issuer_server(
-        settings.clone(),
-        hsm,
-        |_public_url| {
-            // The issuer advertises a fixed, pre-registered callback URL to nl-rdo-max (exact-match
-            // validated against its clients.json) rather than its dynamic bind port, which nl-rdo-max
-            // cannot pre-register. `fake_digid_auth` rewrites the port back to the live issuer when it
-            // follows the callback. Keep the port (3003) in sync with the redirect_uris statically registered in
-            // `scripts/devenv/digid-connector/clients.json` and `deploy/helm-charts/rdo-max/values.yaml`.
-            let callback_base_url = local_http_base_url(3003);
-            UpstreamOidcAuthorizationCodeFlow::try_new(
-                brp_client,
-                &bsn_privkey,
-                digid_client_id,
-                digid_metadata_cache,
-                recovery_secret_key,
-                state_bridge_store,
-                callback_base_url,
-            )
-            .unwrap()
-        },
-        |authorizing_issuer| UpstreamOidcAuthorizationCodeFlow::callback_router(Arc::clone(authorizing_issuer)),
-    )
+    let issuer_url = start_pid_issuer_server(settings.clone(), hsm, |_public_url| {
+        // The issuer advertises a fixed, pre-registered callback URL to nl-rdo-max (exact-match
+        // validated against its clients.json) rather than its dynamic bind port, which nl-rdo-max
+        // cannot pre-register. `fake_digid_auth` rewrites the port back to the live issuer when it
+        // follows the callback. Keep the port (3003) in sync with the redirect_uris statically registered in
+        // `scripts/devenv/digid-connector/clients.json` and `deploy/helm-charts/rdo-max/values.yaml`.
+        let callback_base_url = local_http_base_url(3003);
+        UpstreamOidcAuthorizationCodeFlow::try_new(
+            brp_client,
+            &bsn_privkey,
+            digid_client_id,
+            digid_metadata_cache,
+            recovery_secret_key,
+            state_bridge_store,
+            callback_base_url,
+        )
+        .unwrap()
+    })
     .await;
 
     start_gba_hc_converter(gba_hc_converter_settings()).await;

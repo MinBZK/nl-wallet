@@ -60,19 +60,11 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         .await?;
 
     let authorizing_issuer = Arc::new(issuer);
-    let auth_flow_router = UpstreamOidcAuthorizationCodeFlow::callback_router(Arc::clone(&authorizing_issuer));
 
     let health_checkers = health_checkers::boxed(hsm_checker)
         .into_iter()
         .chain(database_checkers.into_iter().map(|checker| Box::new(checker) as Box<_>));
 
     // This will block until the server shuts down.
-    server::serve(
-        authorizing_issuer,
-        auth_flow_router,
-        server_settings,
-        serve_status_lists,
-        health_checkers,
-    )
-    .await
+    server::serve(authorizing_issuer, server_settings, serve_status_lists, health_checkers).await
 }
