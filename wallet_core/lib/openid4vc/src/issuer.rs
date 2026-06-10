@@ -125,10 +125,7 @@ pub enum TokenRequestError {
     IssuanceError(#[from] IssuanceError),
 
     #[error("unexpected grant type for this session: expected {expected}, got {actual}")]
-    UnexpectedGrantType {
-        expected: Grant,
-        actual: TokenRequestGrantType,
-    },
+    UnexpectedGrantType { expected: String, actual: String },
 
     #[error("session not found for the supplied code")]
     SessionNotFound,
@@ -901,8 +898,8 @@ impl Grant {
             (Grant::PreAuthorizedCode, TokenRequestGrantType::PreAuthorizedCode { .. })
             | (Grant::AuthorizationCode { .. }, TokenRequestGrantType::AuthorizationCode { .. }) => Ok(()),
             _ => Err(TokenRequestError::UnexpectedGrantType {
-                expected: self.clone(),
-                actual: token_request.grant_type.clone(),
+                expected: self.to_string(),
+                actual: token_request.grant_type.to_string(),
             }),
         }
     }
