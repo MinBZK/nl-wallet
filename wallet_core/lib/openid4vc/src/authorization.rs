@@ -16,6 +16,7 @@ use utils::spec::SpecForbidden;
 use utils::spec::SpecOptional;
 
 use crate::pkce::PkcePair;
+use crate::scope::Scope;
 
 /// The shared [OAuth2 RFC 6749](https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.1) fields that any
 /// authorization request — whether for OpenID4VCI issuance or OpenID4VP presentation — must carry.
@@ -66,8 +67,8 @@ pub struct VciAuthorizationRequest {
     #[serde(flatten)]
     pub code_challenge: PkceCodeChallenge,
 
-    #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, String>>")]
-    pub scope: Option<HashSet<String>>,
+    #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, Scope>>")]
+    pub scope: Option<HashSet<Scope>>,
 
     /// String value identifying a certain processing context at the Credential Issuer. A value for this parameter is
     /// typically passed in a Credential Offer from the Credential Issuer to the Wallet. This request parameter is used
@@ -241,7 +242,7 @@ mod tests {
     use crate::authorization::VciAuthorizationRequest;
 
     fn example_vci_request() -> VciAuthorizationRequest {
-        let scope = HashSet::from(["openid".to_string(), "profile".to_string()]);
+        let scope = HashSet::from(["openid".parse().unwrap(), "profile".parse().unwrap()]);
 
         VciAuthorizationRequest {
             oauth_request: AuthorizationRequestBase {
@@ -275,6 +276,7 @@ mod tests {
                 .as_ref()
                 .unwrap()
                 .iter()
+                .map(AsRef::as_ref)
                 .sorted()
                 .eq(["openid", "profile"])
         );

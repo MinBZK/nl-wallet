@@ -34,6 +34,7 @@ use crate::jose::JwsAlgorithm;
 use crate::jwe::JweCompressionAlgorithm;
 use crate::jwe::JweEncryptionAlgorithm;
 use crate::metadata::well_known::WellKnownMetadata;
+use crate::scope::Scope;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, From, Into, Display, Serialize, Deserialize)]
 #[as_ref(str)]
@@ -301,7 +302,7 @@ pub struct CredentialConfiguration {
     /// absent, the only way to request the Credential is using authorization_details [RFC9396] - in this case, the
     /// OAuth Authorization Server metadata for one of the Authorization Servers found from the Credential Issuer's
     /// Metadata must contain an `authorization_details_types_supported` that contains `openid_credential`.
-    pub scope: Option<String>,
+    pub scope: Option<Scope>,
 
     /// Combines the presence or absence of the `cryptographic_binding_methods_supported` and `proof_types_supported`
     /// fields.
@@ -966,7 +967,10 @@ mod tests {
                     .unwrap_or_default()
                     .eq(&[JwsAlgorithm::ES256])
         );
-        assert_eq!(config.scope.as_deref(), Some("SD_JWT_VC_example_in_OpenID4VCI"));
+        assert_eq!(
+            config.scope.as_ref().map(AsRef::as_ref),
+            Some("SD_JWT_VC_example_in_OpenID4VCI")
+        );
 
         let binding = config
             .cryptographic_binding

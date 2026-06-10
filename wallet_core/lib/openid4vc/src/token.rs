@@ -31,6 +31,7 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::authorization::AuthorizationDetails;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
+use crate::scope::Scope;
 use crate::server_state::SessionToken;
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
@@ -125,8 +126,8 @@ pub struct TokenResponse {
     pub token_type: TokenType,
     pub refresh_token: Option<String>,
 
-    #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, String>>")]
-    pub scope: Option<HashSet<String>>,
+    #[serde_as(as = "Option<StringWithSeparator::<SpaceSeparator, Scope>>")]
+    pub scope: Option<HashSet<Scope>>,
 
     #[serde_as(as = "Option<DurationSeconds<u64>>")]
     pub expires_in: Option<Duration>,
@@ -267,7 +268,7 @@ mod tests {
         let token_response = TokenResponse {
             access_token: "access_token".to_string().into(),
             token_type: TokenType::Bearer,
-            scope: Some(HashSet::from(["scope1".to_string(), "scope2".to_string()])),
+            scope: Some(HashSet::from(["scope1".parse().unwrap(), "scope2".parse().unwrap()])),
             expires_in: None,
             refresh_token: None,
             authorization_details: None,
