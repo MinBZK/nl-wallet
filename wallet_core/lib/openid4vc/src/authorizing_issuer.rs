@@ -98,7 +98,7 @@ impl<K, L, S, N, PAS, AF> AuthorizingIssuer<K, L, S, N, PAS, AF> {
             .credential_configs()
             .all_configuration_ids()
             .into_nonempty_iter()
-            .map(Clone::clone)
+            .cloned()
             .collect();
 
         CredentialOffer::new_authorization(

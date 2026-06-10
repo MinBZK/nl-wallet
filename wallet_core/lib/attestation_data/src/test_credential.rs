@@ -84,8 +84,8 @@ impl TestCredentials {
         let unique_id_count = credentials
             .iter()
             .map(|credential| &credential.query_id)
-            .unique()
-            .count();
+            .collect::<HashSet<_>>()
+            .len();
 
         if unique_id_count < credentials.len().get() {
             panic!("test credential query identifiers should be unique");

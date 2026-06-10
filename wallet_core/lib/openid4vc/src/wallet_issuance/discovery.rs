@@ -7,6 +7,7 @@ use itertools::Itertools;
 use url::Url;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmptyUnique;
 
 use super::AuthorizationSession;
 use super::IssuanceDiscovery;
@@ -147,7 +148,7 @@ impl IssuanceDiscovery for HttpIssuanceDiscovery {
 #[derive(Debug)]
 struct NormalizedCredentialOffer {
     credential_issuer: IssuerIdentifier,
-    credential_configuration_ids: VecNonEmpty<CredentialConfigurationId>,
+    credential_configuration_ids: VecNonEmptyUnique<CredentialConfigurationId>,
     authorization_server: Option<IssuerIdentifier>,
     grant: CredentialOfferGrant,
 }
@@ -706,7 +707,7 @@ mod test {
         };
         let credential_offer = CredentialOffer {
             credential_issuer: issuer_identifier,
-            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()],
+            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()].into(),
             grants,
         };
 
@@ -946,7 +947,7 @@ mod test {
         // Construct a Credential Offer that contains no grants.
         let credential_offer = CredentialOffer {
             credential_issuer,
-            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()],
+            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()].into(),
             grants: None,
         };
         let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
@@ -973,7 +974,7 @@ mod test {
         // Construct a Pre-Authorized Code Credential Offer with a Transaction Code.
         let credential_offer = CredentialOffer {
             credential_issuer,
-            credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()].into(),
             grants: Some(Grants {
                 pre_authorized_code: Some(GrantPreAuthorizedCode {
                     pre_authorized_code: "code".to_string().into(),
@@ -1006,7 +1007,7 @@ mod test {
         // Construct a Pre-Authorized Code Credential Offer with an unknown Authorization Server.
         let credential_offer = CredentialOffer {
             credential_issuer: issuer_identifier.clone(),
-            credential_configuration_ids: vec_nonempty![PID_ATTESTATION_TYPE.to_string().into()],
+            credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()].into(),
             grants: Some(Grants {
                 pre_authorized_code: Some(GrantPreAuthorizedCode {
                     pre_authorized_code: "code".to_string().into(),
@@ -1049,7 +1050,8 @@ mod test {
                 "other_id".to_string().into(),
                 CONFIG_ID.clone(),
                 "another_id".to_string().into()
-            ],
+            ]
+            .into(),
             grants: Some(Grants::new_pre_authorized("fake_pre_auth_code".to_string().into())),
         };
         let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
@@ -1084,7 +1086,7 @@ mod test {
 
         let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
             issuer_identifier,
-            vec_nonempty![CONFIG_ID.clone()],
+            vec_nonempty![CONFIG_ID.clone()].into(),
             "fake_pre_auth_code".to_string().into(),
         ))
         .to_credential_offer_url();
@@ -1113,7 +1115,7 @@ mod test {
 
         let offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
             issuer_identifier,
-            vec_nonempty![CONFIG_ID.clone()],
+            vec_nonempty![CONFIG_ID.clone()].into(),
             "fake_pre_auth_code".to_string().into(),
         ))
         .to_credential_offer_url();
