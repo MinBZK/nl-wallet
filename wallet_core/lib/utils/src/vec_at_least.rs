@@ -221,6 +221,16 @@ where
     }
 }
 
+/// Create a deduplicated VecNonEmptyUnique from a VecNonEmpty.
+///
+/// Note: only works for N=1 since for N > 1 we cannot maintain the guarantee that
+/// the vec is at least N because of the deduplication.
+impl<T: Clone + Eq + Hash> From<VecNonEmpty<T>> for VecNonEmptyUnique<T> {
+    fn from(value: VecNonEmpty<T>) -> Self {
+        Self(value.0.into_iter().unique().collect())
+    }
+}
+
 impl<T, const N: usize, const UNIQUE: bool> AsRef<[T]> for VecAtLeastN<T, N, UNIQUE> {
     fn as_ref(&self) -> &[T] {
         self.as_slice()
@@ -371,6 +381,18 @@ impl<T> FromNonEmptyIterator<T> for VecNonEmpty<T> {
     }
 }
 
+impl<T: Clone + Eq + Hash> FromNonEmptyIterator<T> for VecNonEmptyUnique<T> {
+    fn from_nonempty_iter<I>(iter: I) -> Self
+    where
+        I: IntoNonEmptyIterator<Item = T>,
+    {
+        VecNonEmpty::new(iter.into_iter().collect::<Vec<_>>())
+            // .unwrap() requires `Debug` to be implemented for `T`, so `.unwrap_or_else` is used
+            .unwrap_or_else(|_| panic!("NonEmptyIterator produces empty iterator"))
+            .into()
+    }
+}
+
 // A type that can be instantiated via a single item
 // <https://docs.rs/nonempty-collections/1.1.0/nonempty_collections/trait.Singleton.html>
 impl<T> Singleton for VecNonEmpty<T> {
@@ -444,6 +466,7 @@ mod tests {
     use super::VecAtLeastTwo;
     use super::VecAtLeastTwoUnique;
     use super::VecNonEmpty;
+    use super::VecNonEmptyUnique;
 
     #[test]
     #[should_panic]
@@ -473,6 +496,13 @@ mod tests {
         let result = serde_json::from_value::<VecNonEmpty<()>>(json!([]));
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_vec_non_empty_to_vec_non_empty_unique() {
+        let vec = vec_nonempty![1, 2, 2, 3];
+        let vec_unique: VecNonEmptyUnique<_> = vec.into();
+        assert_eq!(vec_unique.0, vec![1, 2, 3]);
     }
 
     #[test]
@@ -571,5 +601,12 @@ mod tests {
     fn test_nonempty_iter_fold() {
         let vec = vec_nonempty![1, 2, 3];
         assert_eq!(6, vec.nonempty_iter().fold(0, |acc, x| acc + x));
+    }
+
+    #[test]
+    fn test_nonempty_iter_unique() {
+        let vec = vec_nonempty![1, 1, 2, 3];
+        let vec_unique = vec.into_nonempty_iter().collect::<VecNonEmptyUnique<_>>();
+        assert_eq!(vec_unique.0, vec![1, 2, 3]);
     }
 }
