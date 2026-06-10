@@ -4014,7 +4014,6 @@ dependencies = [
  "itertools 0.14.0",
  "jwt",
  "openid4vc",
- "rustls-pki-types",
  "sd_jwt_vc_metadata",
  "sea-orm",
  "serde",
