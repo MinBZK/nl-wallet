@@ -13,7 +13,6 @@ use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
 use http_utils::server::TlsServerConfig;
 use openid4vc::authorization::PushedAuthorizationResponse;
-use openid4vc::authorization_code_flow::WalletAuthorizationContext;
 use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::dpop::DPOP_HEADER_NAME;
@@ -692,21 +691,10 @@ fn dpop_header_for(token_url: &Url) -> String {
 /// issuer-generated code the caller can use to drive `/token`.
 async fn plant_authorized_session(authorizing_issuer: &MockAuthorizingIssuer) -> AuthorizationCode {
     let documents = mock_issuable_documents(NonZeroUsize::MIN);
-    let redirect_url = authorizing_issuer
-        .complete_authorization(
-            documents,
-            WalletAuthorizationContext {
-                redirect_uri: "https://wallet.example.com/callback".parse().unwrap(),
-                state: None,
-                code_challenge: "irrelevant-challenge".to_string(),
-            },
-        )
+    authorizing_issuer
+        .complete_authorization(documents, "irrelevant-challenge".to_string())
         .await
-        .unwrap();
-
-    // Extract the authorization code from the redirect URL.
-    let params: HashMap<_, _> = redirect_url.query_pairs().into_owned().collect();
-    params.get("code").unwrap().clone().into()
+        .unwrap()
 }
 
 #[tokio::test]

@@ -275,7 +275,7 @@ impl From<AuthorizeError> for ErrorResponse<AuthorizeErrorCode> {
                 },
                 AuthorizeError::ParStore(_)
                 | AuthorizeError::AuthorizationCodeFlow(_)
-                | AuthorizeError::EncodeRedirectQuery(_) => AuthorizeErrorCode::ServerError,
+                | AuthorizeError::CompleteAuthorization(_) => AuthorizeErrorCode::ServerError,
             },
             error_description: Some(description),
             error_uri: None,

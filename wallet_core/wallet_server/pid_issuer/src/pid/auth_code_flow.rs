@@ -38,7 +38,6 @@ use serde::Serialize;
 use server_utils::keys::SecretKeyVariant;
 use server_utils::store::StoreConnection;
 use tracing::warn;
-use url::Url;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
@@ -301,9 +300,8 @@ where
 /// `GET /digid/callback`: termination point for the upstream OIDC redirect. Exchanges the upstream
 /// `code` for a BSN, looks up attributes in the BRP, builds the [`IssuableDocument`]s, and hands
 /// them to the `openid4vc` layer's [`AuthorizingIssuer::complete_authorization`] which generates the
-/// issuer-side authorization code, writes the `AuthCodeIssued` session, and produces the wallet-facing
-/// redirect URL. Errors during the BSN / BRP / issuable-build steps surface to the wallet as an
-/// OAuth error redirect, since the wallet's redirect_uri is known by then.
+/// issuer-side authorization code and writes the `AuthCodeIssued` session. Errors surface to the
+/// wallet as an OAuth error redirect, since the wallet's redirect_uri is known by then.
 type DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B = HttpBrpClient, O = HttpDigidClient> =
     Arc<AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow<B, O>>>;
 
@@ -334,27 +332,34 @@ where
         }
     };
 
-    // The wallet's redirect_uri is known from here on, so for any failure below, the oauth error redirect uri is sent
-    // back to the wallet.
-    let wallet_redirect = WalletRedirect::new(entry.context.redirect_uri.clone(), entry.context.state.clone());
+    let StateBridgeEntry {
+        context,
+        upstream_code_verifier,
+    } = entry;
+    let WalletAuthorizationContext {
+        redirect_uri,
+        state,
+        code_challenge,
+    } = context;
 
-    let result = complete_digid_callback(&authorizing_issuer, entry, code).await;
-    if let Err(error) = &result {
-        warn!("digid callback: completion failed: {error}");
-    }
+    let result = complete_digid_callback(&authorizing_issuer, code_challenge, upstream_code_verifier, code)
+        .await
+        .inspect_err(|error| warn!("digid callback: completion failed: {error}"));
 
-    let url = wallet_redirect.into_redirect_url(result, "server_error");
+    let url = WalletRedirect::new(redirect_uri, state).into_redirect_url(result.as_ref(), "server_error");
+
     (StatusCode::FOUND, [(header::LOCATION, String::from(url))]).into_response()
 }
 
 /// Exchange the upstream `code` for the issuable documents, then hand them to the `openid4vc` layer's
 /// [`AuthorizingIssuer::complete_authorization`], which generates the issuer-side authorization code,
-/// writes the `AuthCodeIssued` session, and returns the wallet-facing redirect URL.
+/// writes the `AuthCodeIssued` session, and returns the code.
 async fn complete_digid_callback<K, L, S, N, PAS, B, O>(
     authorizing_issuer: &AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow<B, O>>,
-    entry: StateBridgeEntry,
-    code: AuthorizationCode,
-) -> Result<Url, Error>
+    code_challenge: String,
+    upstream_code_verifier: String,
+    digid_code: AuthorizationCode,
+) -> Result<AuthorizationCode, Error>
 where
     S: SessionStore<IssuanceData>,
     B: BrpClient,
@@ -362,11 +367,11 @@ where
 {
     let issuable_documents = authorizing_issuer
         .flow()
-        .fetch_issuable_documents(code, entry.upstream_code_verifier)
+        .fetch_issuable_documents(digid_code, upstream_code_verifier)
         .await?;
 
     authorizing_issuer
-        .complete_authorization(issuable_documents, entry.context)
+        .complete_authorization(issuable_documents, code_challenge)
         .await
         .map_err(Error::CompleteAuthorization)
 }
@@ -620,29 +625,27 @@ mod tests {
             memory_bridge_store(),
         );
         let (authorizing_issuer, sessions) = authorizing_issuer_with_flow(flow);
-        let entry = state_bridge_entry();
+        let StateBridgeEntry {
+            context,
+            upstream_code_verifier,
+        } = state_bridge_entry();
 
-        let redirect_url = complete_digid_callback(
+        let code = complete_digid_callback(
             &authorizing_issuer,
-            entry,
+            context.code_challenge,
+            upstream_code_verifier,
             AuthorizationCode::from("upstream-code".to_string()),
         )
         .await
         .unwrap();
 
-        // The wallet is redirected back to its redirect_uri with a code and the echoed state.
-        assert!(redirect_url.as_str().starts_with(WALLET_REDIRECT_URI));
-        let params: HashMap<_, _> = redirect_url.query_pairs().into_owned().collect();
-        assert_eq!(params.get("state").map(String::as_str), Some(WALLET_STATE));
-        let code = params.get("code").expect("redirect should carry a code").clone();
-
-        // An AuthCodeIssued session was written, keyed by the generated code, carrying both PID
+        // An AuthCodeIssued session was written, keyed by the returned code, carrying both PID
         // documents (SD-JWT + mdoc) and the wallet's PKCE challenge.
         let session = sessions
-            .get(&SessionToken::from(AuthorizationCode::from(code)))
+            .get(&SessionToken::from(code))
             .await
             .unwrap()
-            .expect("a session should have been written under the migeneratednted code");
+            .expect("a session should have been written under the returned code");
         let IssuanceData::AuthCodeIssued(auth_code_issued) = session.data else {
             panic!("expected an AuthCodeIssued session");
         };
@@ -670,11 +673,15 @@ mod tests {
             memory_bridge_store(),
         );
         let (authorizing_issuer, _sessions) = authorizing_issuer_with_flow(flow);
-        let entry = state_bridge_entry();
+        let StateBridgeEntry {
+            context,
+            upstream_code_verifier,
+        } = state_bridge_entry();
 
         let error = complete_digid_callback(
             &authorizing_issuer,
-            entry,
+            context.code_challenge,
+            upstream_code_verifier,
             AuthorizationCode::from("upstream-code".to_string()),
         )
         .await
@@ -690,7 +697,8 @@ mod tests {
 
         // A completion failure resolves to a wallet error redirect carrying the `server_error` OAuth
         // error code, the error's description, and the wallet's original state.
-        let url = wallet_redirect.into_redirect_url(Err(Error::NoAttributesFound), "server_error");
+        let url =
+            wallet_redirect.into_redirect_url(Err::<&AuthorizationCode, _>(Error::NoAttributesFound), "server_error");
 
         assert!(url.as_str().starts_with(WALLET_REDIRECT_URI));
         let params: HashMap<_, _> = url.query_pairs().into_owned().collect();
