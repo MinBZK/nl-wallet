@@ -6,6 +6,36 @@ set -euxo pipefail
 #  - Resets the devenv and runs `cargo check` to populate the Rust cache, so that
 #    this is already done for the next time `cargo` commands are run.
 
+usage() {
+    cat <<EOF
+Usage: $0 [-P|--skip-postgres] [-h|--help]
+
+Options:
+  -P, --skip-postgres    Skip starting Postgres; assumes it is already running
+  -h, --help             Show this help message
+EOF
+}
+
+START_POSTGRES=1
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -P | --skip-postgres)
+            START_POSTGRES=0
+            shift
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown argument: $1" >&2
+            usage >&2
+            exit 1
+            ;;
+    esac
+done
+
 SCRIPTS_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
 BASE_DIR="$(dirname "${SCRIPTS_DIR}")"
 
@@ -16,7 +46,9 @@ cargo clean --manifest-path "${BASE_DIR}/wallet_core/Cargo.toml"
 SKIP_DIGID_CONNECTOR=1 SKIP_WALLET_WEB=1 bash "${BASE_DIR}/scripts/setup-devenv.sh"
 
 # Also reset the DB
-bash "${SCRIPTS_DIR}/start-devenv.sh" postgres
+if [[ "${START_POSTGRES}" == "1" ]]; then
+    bash "${SCRIPTS_DIR}/start-devenv.sh" postgres
+fi
 bash "${SCRIPTS_DIR}/migrate-db.sh" fresh
 
 # Run cargo check to populate the cache
