@@ -242,6 +242,12 @@ impl<T: Eq + Hash> From<VecNonEmpty<T>> for VecNonEmptyUnique<T> {
     }
 }
 
+impl<T, const N: usize> From<VecAtLeastN<T, N, true>> for VecAtLeastN<T, N, false> {
+    fn from(value: VecAtLeastN<T, N, true>) -> Self {
+        Self(value.0)
+    }
+}
+
 impl<T, const N: usize, const UNIQUE: bool> AsRef<[T]> for VecAtLeastN<T, N, UNIQUE> {
     fn as_ref(&self) -> &[T] {
         self.as_slice()
@@ -510,10 +516,11 @@ mod tests {
     }
 
     #[test]
-    fn test_vec_non_empty_to_vec_non_empty_unique() {
+    fn test_vec_non_empty_to_vec_non_empty_unique_and_back() {
         let vec = vec_nonempty![1, 2, 2, 3, 3];
         let vec_unique: VecNonEmptyUnique<_> = vec.into();
         assert_eq!(vec_unique.0, vec![1, 2, 3]);
+        assert_eq!(vec_nonempty![1, 2, 3], vec_unique.into());
     }
 
     #[test]
