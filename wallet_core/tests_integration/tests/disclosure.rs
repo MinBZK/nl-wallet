@@ -390,7 +390,7 @@ async fn test_disclosure_aki_ok() {
     let test_credentials = nl_pid_credentials_full_name();
     let mut dcql_query = test_credentials.to_dcql_query(std::iter::repeat_n(format, test_credentials.as_ref().len()));
 
-    let (pid_issuer_settings, _) = pid_issuer_settings(Url::parse("postgres://unused").unwrap());
+    let pid_issuer_settings = pid_issuer_settings(Url::parse("postgres://unused").unwrap());
     let aki = pid_issuer_settings
         .issuer_settings
         .credential_configurations

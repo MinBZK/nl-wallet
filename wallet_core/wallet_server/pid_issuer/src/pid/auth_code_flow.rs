@@ -157,12 +157,14 @@ impl UpstreamOidcAuthorizationCodeFlow {
             client_id,
         ))
     }
+}
 
+impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
     /// Mount the `/digid/callback` route owned by this flow on a fresh [`Router`]. The
     /// pid_issuer binary merges this with the `openid4vc` layer's authorization and issuance routers.
     /// The handler reads its flow state via [`AuthorizingIssuer::flow`].
     pub fn callback_router<K, L, S, N, PAS>(
-        authorizing_issuer: DigidCallbackAuthorizingIssuer<K, L, S, N, PAS>,
+        authorizing_issuer: DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B, O>,
     ) -> Router
     where
         K: Send + Sync + 'static,
@@ -170,14 +172,14 @@ impl UpstreamOidcAuthorizationCodeFlow {
         S: SessionStore<IssuanceData> + Send + Sync + 'static,
         N: Send + Sync + 'static,
         PAS: Send + Sync + 'static,
+        B: BrpClient + Send + Sync + 'static,
+        O: DigidClient + Send + Sync + 'static,
     {
         Router::new()
             .route(DIGID_CALLBACK_PATH, get(digid_callback))
             .with_state(authorizing_issuer)
     }
-}
 
-impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
     /// Exchange the upstream `code` for the user's BSN, look up attributes, build and return the issuable documents.
     async fn fetch_issuable_documents(
         &self,
@@ -265,11 +267,11 @@ where
 /// issuer-side authorization code, writes the `AuthCodeIssued` session, and produces the wallet-facing
 /// redirect URL. Errors during the BSN / BRP / issuable-build steps surface to the wallet as an
 /// OAuth error redirect, since the wallet's redirect_uri is known by then.
-type DigidCallbackAuthorizingIssuer<K, L, S, N, PAS> =
-    Arc<AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow>>;
+type DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B = HttpBrpClient, O = HttpDigidClient> =
+    Arc<AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow<B, O>>>;
 
-async fn digid_callback<K, L, S, N, PAS>(
-    State(authorizing_issuer): State<DigidCallbackAuthorizingIssuer<K, L, S, N, PAS>>,
+async fn digid_callback<K, L, S, N, PAS, B, O>(
+    State(authorizing_issuer): State<DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B, O>>,
     Query(DigidCallbackQuery { code, state }): Query<DigidCallbackQuery>,
 ) -> Response
 where
@@ -278,6 +280,8 @@ where
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
     N: Send + Sync + 'static,
     PAS: Send + Sync + 'static,
+    B: BrpClient + Send + Sync + 'static,
+    O: DigidClient + Send + Sync + 'static,
 {
     let flow = authorizing_issuer.flow();
 
@@ -359,11 +363,8 @@ async fn insert_recovery_code(mut attributes: Attributes, secret_key: &SecretKey
 mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
-    use std::fs;
     use std::num::NonZeroUsize;
-    use std::path::PathBuf;
     use std::sync::Arc;
-    use std::sync::Mutex;
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
@@ -397,103 +398,34 @@ mod tests {
     use server_utils::settings::SecretKey;
     use server_utils::store::StoreConnection;
     use token_status_list::status_list_service::mock::MockStatusListService;
-    use url::Url;
-    use utils::path::prefix_local_path;
     use utils::vec_nonempty;
 
+    use super::DIGID_CALLBACK_PATH;
     use super::Error;
     use super::StateBridgeEntry;
     use super::UpstreamOidcAuthorizationCodeFlow;
     use super::complete_digid_callback;
     use super::insert_recovery_code;
-    use crate::pid::brp::client::BrpClient;
-    use crate::pid::brp::client::BrpError;
-    use crate::pid::brp::data::BrpPersons;
     use crate::pid::constants::PID_ATTESTATION_TYPE;
-    use crate::pid::digid::DigidClient;
-    use crate::pid::digid::Error as DigidError;
+    use crate::pid::mock::MockBrpClient;
+    use crate::pid::mock::MockDigidClient;
 
     /// The in-memory [`AuthorizingIssuer`] flavour used by the callback tests: the mock inner issuer
-    /// from `openid4vc::test` wrapped around a fake-backed flow.
+    /// from `openid4vc::test` wrapped around a mock-backed flow.
     type TestAuthorizingIssuer = AuthorizingIssuer<
         SigningKey,
         MockStatusListService,
         MemorySessionStore<IssuanceData>,
         MemoryNonceStore,
         MemoryStore<String, VciAuthorizationRequest>,
-        UpstreamOidcAuthorizationCodeFlow<FakeBrpClient, FakeDigidClient>,
+        UpstreamOidcAuthorizationCodeFlow<MockBrpClient, MockDigidClient>,
     >;
 
     const CLIENT_ID: &str = "issuer-client-id";
     const CALLBACK_BASE_URL: &str = "https://issuer.example.com/";
-    const UPSTREAM_AUTHORIZATION_ENDPOINT: &str = "https://digid.example.com/oauth2/authorize";
     const WALLET_REDIRECT_URI: &str = "https://wallet.example.com/callback";
     const WALLET_STATE: &str = "wallet-state";
     const WALLET_CODE_CHALLENGE: &str = "wallet-code-challenge";
-
-    /// [`BrpClient`] returning a `BrpPersons` deserialized from a haal-centraal test
-    /// fixture, so the callback path can be exercised without a live BRP proxy.
-    struct FakeBrpClient {
-        persons_json: String,
-    }
-
-    impl FakeBrpClient {
-        fn from_fixture(name: &str) -> Self {
-            let persons_json = fs::read_to_string(prefix_local_path(PathBuf::from(format!(
-                "resources/test/haal-centraal-examples/{name}.json"
-            ))))
-            .unwrap();
-            Self { persons_json }
-        }
-    }
-
-    impl BrpClient for FakeBrpClient {
-        async fn get_person_by_bsn(&self, _bsn: &str) -> Result<BrpPersons, BrpError> {
-            Ok(serde_json::from_str(&self.persons_json)?)
-        }
-    }
-
-    /// [`DigidClient`] returning fixed values, so the flow can be tested without a live
-    /// upstream provider. Building the redirect URL is the real client's contract (covered in
-    /// `digid.rs`), so this fake just returns a fixed URL and records the `state` (the flow-generated
-    /// `issuer_state`) it was called with, so the test can look the bridge entry back up.
-    struct FakeDigidClient {
-        authorization_endpoint: Url,
-        bsn: String,
-        last_state: Mutex<Option<String>>,
-    }
-
-    impl Default for FakeDigidClient {
-        fn default() -> Self {
-            Self {
-                authorization_endpoint: UPSTREAM_AUTHORIZATION_ENDPOINT.parse().unwrap(),
-                bsn: "999991772".to_string(),
-                last_state: Mutex::new(None),
-            }
-        }
-    }
-
-    impl DigidClient for FakeDigidClient {
-        async fn authorization_request(
-            &self,
-            _client_id: String,
-            _redirect_uri: Url,
-            state: String,
-            _pkce_pair: &S256PkcePair,
-        ) -> Result<Url, DigidError> {
-            *self.last_state.lock().unwrap() = Some(state);
-            Ok(self.authorization_endpoint.clone())
-        }
-
-        async fn bsn(
-            &self,
-            _code: AuthorizationCode,
-            _code_verifier: String,
-            _redirect_uri: Url,
-        ) -> Result<String, DigidError> {
-            Ok(self.bsn.clone())
-        }
-    }
 
     fn recovery_code_secret_key() -> SecretKeyVariant {
         SecretKeyVariant::from_settings(
@@ -510,10 +442,10 @@ mod tests {
     }
 
     fn flow_with_clients(
-        brp_client: FakeBrpClient,
-        digid_client: FakeDigidClient,
+        brp_client: MockBrpClient,
+        digid_client: MockDigidClient,
         state_bridge_store: Arc<IssuerStateBridgeStore>,
-    ) -> UpstreamOidcAuthorizationCodeFlow<FakeBrpClient, FakeDigidClient> {
+    ) -> UpstreamOidcAuthorizationCodeFlow<MockBrpClient, MockDigidClient> {
         UpstreamOidcAuthorizationCodeFlow::new(
             brp_client,
             digid_client,
@@ -528,7 +460,7 @@ mod tests {
     /// callback path (which writes a session via `complete_authorization`) can be exercised. Returns
     /// the session store so tests can read the written session back.
     fn authorizing_issuer_with_flow(
-        flow: UpstreamOidcAuthorizationCodeFlow<FakeBrpClient, FakeDigidClient>,
+        flow: UpstreamOidcAuthorizationCodeFlow<MockBrpClient, MockDigidClient>,
     ) -> (TestAuthorizingIssuer, Arc<MemorySessionStore<IssuanceData>>) {
         let issuer_identifier = IssuerIdentifier::try_new("https://issuer.example.com".to_string()).unwrap();
         let sessions = Arc::new(MemorySessionStore::default());
@@ -609,8 +541,8 @@ mod tests {
     async fn authorize_builds_upstream_redirect_and_bridge_entry() {
         let bridge = memory_bridge_store();
         let flow = flow_with_clients(
-            FakeBrpClient::from_fixture("frouke"),
-            FakeDigidClient::default(),
+            MockBrpClient::from_fixture("frouke"),
+            MockDigidClient::default(),
             Arc::clone(&bridge),
         );
 
@@ -618,17 +550,18 @@ mod tests {
         let wallet_code_challenge = context.code_challenge.clone();
 
         let outcome = flow.authorize(context).await.unwrap();
-        assert_matches!(outcome, AuthorizeOutcome::RedirectTo(_));
+        let AuthorizeOutcome::RedirectTo(redirect_url) = outcome else {
+            panic!("authorize should redirect the user-agent to the upstream provider");
+        };
 
-        // The flow generated an `issuer_state` and handed it to the digid client as the upstream `state`;
-        // that same value keys the bridge entry.
-        let issuer_state = flow
-            .digid_client
-            .last_state
-            .lock()
-            .unwrap()
-            .clone()
-            .expect("authorize should have called the digid client with an issuer_state");
+        // The flow asked the digid client for the upstream redirect, handing it the issuer's
+        // callback URL and a generated `issuer_state` as the upstream `state`; the mock client
+        // echoes both back in the redirect URL, and that same `issuer_state` keys the bridge entry.
+        assert_eq!(redirect_url.path(), DIGID_CALLBACK_PATH);
+        let query_params: HashMap<_, _> = redirect_url.query_pairs().into_owned().collect();
+        let issuer_state = query_params
+            .get("state")
+            .expect("upstream redirect should carry the issuer_state as state");
 
         let entry: StateBridgeEntry = bridge
             .consume(issuer_state.as_str())
@@ -645,8 +578,8 @@ mod tests {
     #[tokio::test]
     async fn complete_callback_happy_path() {
         let flow = flow_with_clients(
-            FakeBrpClient::from_fixture("frouke"),
-            FakeDigidClient::default(),
+            MockBrpClient::from_fixture("frouke"),
+            MockDigidClient::default(),
             memory_bridge_store(),
         );
         let (authorizing_issuer, sessions) = authorizing_issuer_with_flow(flow);
@@ -695,8 +628,8 @@ mod tests {
     #[tokio::test]
     async fn complete_callback_rejects_when_no_attributes_found() {
         let flow = flow_with_clients(
-            FakeBrpClient::from_fixture("empty"),
-            FakeDigidClient::default(),
+            MockBrpClient::from_fixture("empty"),
+            MockDigidClient::default(),
             memory_bridge_store(),
         );
         let (authorizing_issuer, _sessions) = authorizing_issuer_with_flow(flow);

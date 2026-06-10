@@ -54,7 +54,7 @@ use wallet_account::NL_WALLET_CLIENT_ID;
 #[serial(hsm)]
 async fn ltc1_test_pid_issuance_digid_bridge() {
     let db_setup = DbSetup::create_clean().await;
-    let (mut settings, _) = pid_issuer_settings(db_setup.pid_issuer_url());
+    let mut settings = pid_issuer_settings(db_setup.pid_issuer_url());
 
     // The wallet's PAR redirect_uri: DIGID_TEST_REDIRECT_URI in CI, otherwise the default
     // universal-link base. Allowlist exactly this value so the PAR passes redirect_uri validation

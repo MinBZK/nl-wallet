@@ -23,7 +23,7 @@ required-features = ["integration_test"]
 # Allow Credential Issuer Identifiers to contain "http://".
 allow_insecure_url = ["openid4vc/allow_insecure_url"]
 # Enable mock PID issuance
-mock = ["dep:uuid", "attestation_data/mock", "derive_more/constructor", "openid4vc/mock"]
+mock = ["attestation_data/mock", "derive_more/constructor", "openid4vc/mock"]
 # Enable integration tests
 integration_test = ["allow_insecure_url", "server_utils/parsed_key_pair_conversion"]
 # Enable test API endpoints and Swagger UI for the management API. This should not be used in production.
@@ -55,7 +55,6 @@ tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
 utoipa-swagger-ui = { workspace = true, optional = true }
-uuid = { workspace = true, optional = true }
 
 attestation_data.path = "../../lib/attestation_data"
 attestation_types.path = "../../lib/attestation_types"

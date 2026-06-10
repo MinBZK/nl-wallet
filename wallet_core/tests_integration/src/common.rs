@@ -32,6 +32,7 @@ use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use issuance_server::settings::IssuanceServerSettings;
+use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use jwt::SignedJwt;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::disclosure_session::DisclosureUriSource;
@@ -48,8 +49,9 @@ use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use p256::ecdsa::SigningKey;
 use p256::pkcs8::DecodePrivateKey;
-use pid_issuer::pid::mock::MockPidAuthorizationCodeFlow;
-use pid_issuer::pid::mock::mock_issuable_documents_pid;
+use pid_issuer::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow;
+use pid_issuer::pid::mock::MockBrpClient;
+use pid_issuer::pid::mock::MockDigidClient;
 use pid_issuer::server::PidIssuer;
 use pid_issuer::settings::PidIssuerSettings;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
@@ -61,10 +63,12 @@ use rustls::crypto::ring;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
 use sea_orm::PaginatorTrait;
+use server_utils::keys::SecretKeyVariant;
 use server_utils::settings::Server;
 use server_utils::settings::ServerAuth;
 use server_utils::settings::ServerSettings;
 use server_utils::store::SessionStoreVariant;
+use server_utils::store::StoreConnection;
 pub use server_utils::store::postgres::new_connection;
 use static_server::settings::Settings as StaticSettings;
 use token_status_list::verification::reqwest::HttpStatusListClient;
@@ -296,7 +300,7 @@ pub async fn setup_env(
     (ups_settings, ups_root_ca): (UpsSettings, ReqwestTrustAnchor),
     (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     verifier_settings: VerifierSettings,
-    (issuer_settings, pid_issuable_documents): (PidIssuerSettings, VecNonEmpty<IssuableDocument>),
+    issuer_settings: PidIssuerSettings,
     (mut issuance_server_settings, issuable_documents, di_root_ca, di_tls_config): (
         IssuanceServerSettings,
         Vec<IssuableDocument>,
@@ -343,14 +347,30 @@ pub async fn setup_env(
 
     let issuance_server_url = start_issuance_server(issuance_server_settings, Some(hsm.clone())).await;
 
+    let recovery_code_secret_key =
+        SecretKeyVariant::from_settings(issuer_settings.recovery_code.clone(), Some(hsm.clone()))
+            .expect("could not initialize recovery code secret key");
+
     let pid_issuer_url = start_pid_issuer_server(
         issuer_settings,
         Some(hsm),
         |public_url| {
-            let callback_uri = public_url.as_base_url().join("mock/digid/callback");
-            MockPidAuthorizationCodeFlow::new(callback_uri, pid_issuable_documents)
+            // The production `UpstreamOidcAuthorizationCodeFlow` (state bridge, callback handler, BRP
+            // attribute mapping, recovery-code HMAC) with only its two external boundaries mocked:
+            // `MockDigidClient` redirects the user-agent straight back to the issuer's own
+            // `/digid/callback` and returns a fixed BSN, and `MockBrpClient` serves a bundled
+            // haal-centraal person fixture.
+
+            UpstreamOidcAuthorizationCodeFlow::new(
+                MockBrpClient::default(),
+                MockDigidClient::default(),
+                recovery_code_secret_key,
+                Arc::new(IssuerStateBridgeStore::new(StoreConnection::Memory)),
+                public_url.as_base_url().clone(),
+                "mock-digid-client".to_string(),
+            )
         },
-        |authorizing_issuer| MockPidAuthorizationCodeFlow::callback_router(Arc::clone(authorizing_issuer)),
+        |authorizing_issuer| UpstreamOidcAuthorizationCodeFlow::callback_router(Arc::clone(authorizing_issuer)),
     )
     .await;
 
@@ -472,7 +492,7 @@ pub async fn setup_wallet_and_env(
     vendor: WalletDeviceVendor,
     ups_config: (UpsSettings, ReqwestTrustAnchor),
     wp_config: (WpSettings, ReqwestTrustAnchor),
-    issuer_config: (PidIssuerSettings, VecNonEmpty<IssuableDocument>),
+    issuer_config: PidIssuerSettings,
     issuance_config: (
         IssuanceServerSettings,
         Vec<IssuableDocument>,
@@ -650,7 +670,7 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
     port
 }
 
-pub fn pid_issuer_settings(db_url: Url) -> (PidIssuerSettings, VecNonEmpty<IssuableDocument>) {
+pub fn pid_issuer_settings(db_url: Url) -> PidIssuerSettings {
     let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("Could not read settings");
 
     settings.issuer_settings.server_settings.storage.url = db_url;
@@ -658,7 +678,7 @@ pub fn pid_issuer_settings(db_url: Url) -> (PidIssuerSettings, VecNonEmpty<Issua
     settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.issuer_settings.server_settings.wallet_server.port = 0;
 
-    (settings, mock_issuable_documents_pid())
+    settings
 }
 
 pub fn issuance_server_settings(
@@ -898,9 +918,7 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
     settings.public_url = public_url.clone();
 
     let storage_settings = &settings.server_settings.storage;
-    let store_connection = server_utils::store::StoreConnection::try_new(storage_settings.url.clone())
-        .await
-        .unwrap();
+    let store_connection = StoreConnection::try_new(storage_settings.url.clone()).await.unwrap();
 
     let disclosure_sessions = Arc::new(SessionStoreVariant::new(
         store_connection.clone(),
@@ -1009,41 +1027,36 @@ pub async fn do_wallet_registration(mut wallet: WalletWithStorage, pin: &str) ->
     wallet
 }
 
-/// Follow the in-process pid_issuer's `/authorize` → `/mock/digid/callback` → wallet redirect
-/// chain, returning the final wallet-facing redirect URL (with the issuer-generated `code` + the
-/// wallet's original `state`).
-///
-/// The pid_issuer is a real Authorization Server: `/authorize` redirects to the
-/// issuer's own mock-DigiD callback (instead of straight back to the wallet), and the callback
-/// is what plants the `AuthCodeIssued` session. Following both 302s is the simplest way to drive the
-/// flow to completion without coupling the helper to the mock's internal state.
-pub async fn fake_oidc_redirect(authorization_url: Url) -> Url {
+/// Act as the user's browser for the in-process pid_issuer: follow the redirect chain starting at
+/// `/authorize` (`/authorize` → `/digid/callback` → wallet redirect, since the mocked DigiD
+/// client sends the user-agent straight back to the issuer's own callback) for as long as it
+/// stays on the issuer's origin, returning the first off-origin redirect URL, which is the wallet-facing
+/// redirect with the issuer-generated `code` and the wallet's original `state`.
+pub async fn follow_authorization_redirects(authorization_url: Url) -> Url {
     let http_client = default_reqwest_client_builder()
         .redirect(Policy::none())
         .build()
         .unwrap();
 
-    // First hop: /authorize → /mock/digid/callback?code=<rnd>&state=<issuer_state>
-    let authorize_response = http_client.get(authorization_url).send().await.unwrap();
-    let callback_url: Url = authorize_response
-        .headers()
-        .get(header::LOCATION)
-        .expect("authorize response should carry Location")
-        .to_str()
-        .unwrap()
-        .parse()
-        .unwrap();
+    let issuer_origin = authorization_url.origin();
+    let mut url = authorization_url;
 
-    // Second hop: /mock/digid/callback → <wallet_redirect_uri>?code=<issuer_code>&state=<wallet_state>
-    let callback_response = http_client.get(callback_url).send().await.unwrap();
-    callback_response
-        .headers()
-        .get(header::LOCATION)
-        .expect("mock callback response should carry Location")
-        .to_str()
-        .unwrap()
-        .parse()
-        .unwrap()
+    loop {
+        let response = http_client.get(url).send().await.unwrap();
+        let location: Url = response
+            .headers()
+            .get(header::LOCATION)
+            .expect("response should be a redirect carrying a Location header")
+            .to_str()
+            .unwrap()
+            .parse()
+            .unwrap();
+
+        if location.origin() != issuer_origin {
+            return location;
+        }
+        url = location;
+    }
 }
 
 pub async fn do_pid_issuance(wallet: WalletWithStorage, pin: String) -> WalletWithStorage {
@@ -1064,7 +1077,7 @@ pub async fn do_pid_issuance_with_purpose(
         .await
         .expect("Could not create pid issuance auth url");
 
-    let redirect_url = fake_oidc_redirect(redirect_uri).await;
+    let redirect_url = follow_authorization_redirects(redirect_uri).await;
 
     let _attestations = wallet
         .continue_pid_issuance(redirect_url)
@@ -1083,7 +1096,7 @@ pub async fn do_pin_recovery(mut wallet: WalletWithStorage, new_pin: String) -> 
         .await
         .expect("Could not create pin recovery redirect URI");
 
-    let redirect_url = fake_oidc_redirect(redirect_uri).await;
+    let redirect_url = follow_authorization_redirects(redirect_uri).await;
 
     wallet
         .continue_pin_recovery(redirect_url)

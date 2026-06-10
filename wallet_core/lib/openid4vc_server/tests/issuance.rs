@@ -1,3 +1,4 @@
+use std::assert_matches;
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::slice::Iter;
@@ -18,15 +19,20 @@ use openid4vc::credential_offer::CredentialOfferContainer;
 use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
+use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer_identifier::IssuerIdentifier;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::server_state::MemorySessionStore;
+use openid4vc::test::AlwaysAuthorizingFlow;
 use openid4vc::test::MOCK_ATTESTATION_TYPES;
+use openid4vc::test::MOCK_ATTRS;
 use openid4vc::test::MockAuthorizingIssuer;
 use openid4vc::test::MockIssuer;
-use openid4vc::test::StaticAuthorizationCodeFlow;
+use openid4vc::test::mock_issuable_document_with_attrs;
 use openid4vc::test::mock_issuable_documents;
-use openid4vc::test::setup_mock_authorizing_issuer;
+use openid4vc::test::mock_type_metadata;
+use openid4vc::test::mock_type_metadata_with_required_attr;
+use openid4vc::test::setup_mock_authorizing_issuer_from_type_metadata;
 use openid4vc::test::setup_mock_issuer;
 use openid4vc::token::AuthorizationCode;
 use openid4vc::token::TokenRequest;
@@ -35,9 +41,11 @@ use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
 use openid4vc::wallet_issuance::IssuanceFlow;
 use openid4vc::wallet_issuance::IssuanceSession;
+use openid4vc::wallet_issuance::WalletIssuanceError;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredential;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
+use openid4vc::wallet_issuance::issuance_session::HttpIssuanceSession;
 use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
 use openid4vc_server::issuer::create_authorization_router;
 use openid4vc_server::issuer::create_issuance_router;
@@ -48,9 +56,11 @@ use reqwest::Method;
 use reqwest::StatusCode;
 use reqwest::redirect::Policy;
 use rstest::rstest;
+use sd_jwt_vc_metadata::TypeMetadata;
 use tokio::net::TcpListener;
 use url::Url;
 use utils::generator::TimeGenerator;
+use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 use wscd::mock_remote::MockRemoteWscd;
 
@@ -67,8 +77,8 @@ fn generate_localhost_tls() -> (TlsServerConfig, ReqwestTrustAnchor) {
     (tls_config, trust_anchor)
 }
 
-/// Bundle returned by `start_auth_code_flow_server` so tests can call
-/// [`StaticAuthorizationCodeFlow::fake_complete_authorization`] after `/authorize`.
+/// Bundle returned by `start_auth_code_flow_server`. The `authorizing_issuer` is exposed so tests
+/// can plant `AuthCodeIssued` sessions directly via [`MockAuthorizingIssuer::complete_authorization`].
 struct AuthCodeFlowServer {
     authorizing_issuer: Arc<MockAuthorizingIssuer>,
     trust_anchors: TrustAnchors,
@@ -87,6 +97,19 @@ struct PreAuthCodeFlowServer {
 }
 
 async fn start_auth_code_flow_server(attestation_count: NonZeroUsize) -> AuthCodeFlowServer {
+    let type_metadata = MOCK_ATTESTATION_TYPES[..attestation_count.get()]
+        .iter()
+        .map(|attestation_type| mock_type_metadata(attestation_type))
+        .collect();
+
+    start_auth_code_flow_server_with(type_metadata, mock_issuable_documents(attestation_count)).await
+}
+
+/// Like [`start_auth_code_flow_server`], but with custom type metadata and custom documents to authorize.
+async fn start_auth_code_flow_server_with(
+    type_metadata: Vec<TypeMetadata>,
+    documents: VecNonEmpty<IssuableDocument>,
+) -> AuthCodeFlowServer {
     let (tls_server_config, tls_trust_anchor) = generate_localhost_tls();
 
     let listener = TcpListener::bind("localhost:0").await.unwrap().into_std().unwrap();
@@ -94,12 +117,11 @@ async fn start_auth_code_flow_server(attestation_count: NonZeroUsize) -> AuthCod
     let issuer_identifier: IssuerIdentifier = format!("https://localhost:{port}").parse().unwrap();
 
     let sessions = Arc::new(MemorySessionStore::default());
-    let mock_documents = mock_issuable_documents(attestation_count);
 
-    let flow = StaticAuthorizationCodeFlow::new(mock_documents);
-    let (authorizing_issuer, trust_anchors, wia_keypair) = setup_mock_authorizing_issuer(
+    let flow = AlwaysAuthorizingFlow::new(documents);
+    let (authorizing_issuer, trust_anchors, wia_keypair) = setup_mock_authorizing_issuer_from_type_metadata(
         issuer_identifier.clone(),
-        attestation_count,
+        type_metadata,
         sessions,
         flow,
         vec_nonempty!["https://wallet.example.com/callback".parse().unwrap()],
@@ -221,25 +243,15 @@ fn verify_issued_credentials(
         });
 }
 
-#[rstest]
-#[tokio::test]
-async fn authorization_code_flow(
-    #[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
-) {
-    let AuthCodeFlowServer {
-        authorizing_issuer,
-        trust_anchors,
-        issuer_identifier,
-        wia_keypair,
-        tls_trust_anchor,
-        ..
-    } = start_auth_code_flow_server(attestation_count).await;
-
-    let credential_offer_url = make_credential_offer_url(issuer_identifier.clone(), attestation_count, None);
+/// Simulate wallet issuance, by going through discovery, the `/authorize` redirect (playing the user-agent)
+/// and the wallet redirect, returning the issuance session holding the credential previews.
+async fn start_issuance_session(server: &AuthCodeFlowServer, attestation_count: NonZeroUsize) -> HttpIssuanceSession {
+    let credential_offer_url = make_credential_offer_url(server.issuer_identifier.clone(), attestation_count, None);
     let redirect_uri = Url::parse("https://wallet.example.com/callback").unwrap();
 
     let discovery = HttpIssuanceDiscovery::new(
-        HttpJsonClient::try_new(tls_reqwest_client_builder([tls_trust_anchor
+        HttpJsonClient::try_new(tls_reqwest_client_builder([server
+            .tls_trust_anchor
             .clone()
             .into_certificate()]))
         .unwrap(),
@@ -251,11 +263,10 @@ async fn authorization_code_flow(
             &credential_offer_url,
             MOCK_WALLET_CLIENT_ID.to_string(),
             redirect_uri.clone(),
-            &trust_anchors,
+            &server.trust_anchors,
         )
         .await
         .unwrap();
-
     let IssuanceFlow::AuthorizationCode {
         authorization_session: auth_session,
     } = flow
@@ -263,10 +274,10 @@ async fn authorization_code_flow(
         panic!("should have received Authorization Code flow");
     };
 
-    // Auth URL must point to the authorize endpoint and carry PAR params (RFC 9126).
+    // Auth URL must point to the authorize endpoint and carry PAR params.
     assert!(auth_session.auth_url().as_str().starts_with(&format!(
         "{}issuance/authorize",
-        issuer_identifier.as_base_url().as_ref().as_str()
+        server.issuer_identifier.as_base_url().as_ref().as_str()
     )));
     let auth_params: HashMap<String, String> = auth_session
         .auth_url()
@@ -276,14 +287,14 @@ async fn authorization_code_flow(
     assert!(auth_params.contains_key("request_uri"));
     assert!(!auth_params.contains_key("state"));
 
-    // State is inside the PAR-stored request; read it from the session to craft the redirect.
+    // State is inside the PAR-stored request; read it from the session to check the redirect.
     let state = auth_session.state().to_owned();
 
-    // Simulate the user agent following the auth_url. The /authorize handler captures the
-    // wallet's PKCE challenge + redirect_uri + state into the AF's single-slot cell, then
-    // returns a 302 to the upstream URL. We don't actually follow the upstream redirect — we
-    // synthesize the upstream callback below by calling `fake_complete_authorization`.
-    let browser_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+    // Simulate the user agent following the auth_url. `AlwaysAuthorizingFlow` authorizes
+    // synchronously, so the /authorize handler writes the `AuthCodeIssued` session and 302s the
+    // user-agent straight back to the wallet's redirect_uri with the issuer-generated code and the
+    // echoed state.
+    let browser_client = tls_reqwest_client_builder([server.tls_trust_anchor.clone().into_certificate()])
         .redirect(Policy::none())
         .build()
         .unwrap();
@@ -294,26 +305,39 @@ async fn authorization_code_flow(
         .unwrap();
     assert_eq!(authorize_response.status(), StatusCode::FOUND);
 
-    // Plant the `AuthCodeIssued` session that the wallet's `/token` call will load. This stands in
-    // for what the real upstream callback handler does (BSN → BRP → issuables →
-    // complete_authorization).
-    let issuer_code = authorizing_issuer
-        .flow()
-        .fake_complete_authorization(&authorizing_issuer)
-        .await;
-
-    let mut received_redirect = redirect_uri;
-    received_redirect.set_query(Some(&format!("code={}&state={state}", issuer_code.as_ref())));
-
-    let mut session = auth_session
-        .start_issuance(&received_redirect, &trust_anchors)
-        .await
+    let received_redirect: Url = authorize_response
+        .headers()
+        .get(reqwest::header::LOCATION)
+        .expect("authorize response should carry a Location header")
+        .to_str()
+        .unwrap()
+        .parse()
         .unwrap();
+    assert!(received_redirect.as_str().starts_with(redirect_uri.as_str()));
+    let redirect_params: HashMap<_, _> = received_redirect.query_pairs().into_owned().collect();
+    assert_eq!(redirect_params.get("state"), Some(&state));
+
+    auth_session
+        .start_issuance(&received_redirect, &server.trust_anchors)
+        .await
+        .unwrap()
+}
+
+#[rstest]
+#[tokio::test]
+async fn authorization_code_flow(
+    #[values(NonZeroUsize::MIN, NonZeroUsize::new(2).unwrap())] attestation_count: NonZeroUsize,
+) {
+    let server = start_auth_code_flow_server(attestation_count).await;
+    let mut session = start_issuance_session(&server, attestation_count).await;
 
     assert_eq!(session.normalized_credential_preview().len(), attestation_count.get());
 
-    let wscd = MockRemoteWscd::new_with_wia_keypair(wia_keypair);
-    let issued_creds = session.accept_issuance(&trust_anchors, &wscd, true).await.unwrap();
+    let wscd = MockRemoteWscd::new_with_wia_keypair(server.wia_keypair);
+    let issued_creds = session
+        .accept_issuance(&server.trust_anchors, &wscd, true)
+        .await
+        .unwrap();
 
     let copy_count = 4;
     verify_issued_credentials(
@@ -321,6 +345,69 @@ async fn authorization_code_flow(
         session.normalized_credential_preview().iter(),
         attestation_count.get(),
         copy_count,
+    );
+}
+
+/// The issuer accepts documents omitting attributes the type-metadata schema does not require.
+#[tokio::test]
+async fn ltc1_issuance_allows_missing_optional_attribute() {
+    let (optional_attr, _) = MOCK_ATTRS[0];
+    let (required_attr, _) = MOCK_ATTRS[1];
+
+    let type_metadata = mock_type_metadata_with_required_attr(MOCK_ATTESTATION_TYPES[0], required_attr);
+    // The document carries only the required attribute; the optional one is absent.
+    let documents = vec_nonempty![mock_issuable_document_with_attrs(
+        MOCK_ATTESTATION_TYPES[0],
+        &[MOCK_ATTRS[1]]
+    )];
+    let server = start_auth_code_flow_server_with(vec![type_metadata], documents).await;
+
+    let mut session = start_issuance_session(&server, NonZeroUsize::MIN).await;
+
+    let previews = session.normalized_credential_preview();
+    assert_eq!(previews.len(), 1);
+    let attributes = previews[0].content.credential_payload.attributes.as_ref();
+    assert!(attributes.get(required_attr).is_some());
+    assert!(attributes.get(optional_attr).is_none());
+
+    let wscd = MockRemoteWscd::new_with_wia_keypair(server.wia_keypair);
+    let issued_creds = session
+        .accept_issuance(&server.trust_anchors, &wscd, true)
+        .await
+        .expect("issuance of a document missing only an optional attribute should succeed");
+
+    verify_issued_credentials(issued_creds, session.normalized_credential_preview().iter(), 1, 4);
+}
+
+/// Issuing a document that lacks an attribute the type-metadata schema marks as required fails at
+/// credential issuance, surfacing to the wallet as a `CredentialRequest` error response carrying
+/// the schema violation.
+#[tokio::test]
+async fn ltc2_issuance_rejects_missing_required_attribute() {
+    let (required_attr, _) = MOCK_ATTRS[1];
+
+    let type_metadata = mock_type_metadata_with_required_attr(MOCK_ATTESTATION_TYPES[0], required_attr);
+    // The document carries only the optional attribute; the required one is missing.
+    let documents = vec_nonempty![mock_issuable_document_with_attrs(
+        MOCK_ATTESTATION_TYPES[0],
+        &[MOCK_ATTRS[0]]
+    )];
+    let server = start_auth_code_flow_server_with(vec![type_metadata], documents).await;
+
+    let mut session = start_issuance_session(&server, NonZeroUsize::MIN).await;
+
+    let wscd = MockRemoteWscd::new_with_wia_keypair(server.wia_keypair);
+    let error = session
+        .accept_issuance(&server.trust_anchors, &wscd, true)
+        .await
+        .expect_err("issuance of a document missing a required attribute should fail");
+
+    assert_matches!(
+        error,
+        WalletIssuanceError::CredentialRequest(response) if matches!(
+            &response.error_description,
+            Some(description) if description.contains(&format!("\"{required_attr}\" is a required property"))
+        )
     );
 }
 

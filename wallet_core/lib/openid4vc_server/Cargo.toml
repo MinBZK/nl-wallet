@@ -56,4 +56,5 @@ url = { workspace = true, features = ["serde"] }
 
 http_utils = { path = "../http_utils", features = ["client"] }
 openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
+sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
 wscd = { path = "../wscd", features = ["mock"] }
