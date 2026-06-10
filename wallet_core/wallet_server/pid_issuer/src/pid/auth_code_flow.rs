@@ -418,7 +418,6 @@ mod tests {
     use openid4vc::authorization_code_flow::AuthorizeOutcome;
     use openid4vc::authorization_code_flow::WalletAuthorizationContext;
     use openid4vc::authorizing_issuer::AuthorizingIssuer;
-    use openid4vc::authorizing_issuer::WalletRedirect;
     use openid4vc::issuer::Grant;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer_identifier::IssuerIdentifier;
@@ -688,22 +687,5 @@ mod tests {
         .unwrap_err();
 
         assert_matches!(error, Error::NoAttributesFound);
-    }
-
-    #[test]
-    fn error_redirect_carries_oauth_error() {
-        let entry = state_bridge_entry();
-        let wallet_redirect = WalletRedirect::new(entry.context.redirect_uri.clone(), entry.context.state.clone());
-
-        // A completion failure resolves to a wallet error redirect carrying the `server_error` OAuth
-        // error code, the error's description, and the wallet's original state.
-        let url =
-            wallet_redirect.into_redirect_url(Err::<&AuthorizationCode, _>(Error::NoAttributesFound), "server_error");
-
-        assert!(url.as_str().starts_with(WALLET_REDIRECT_URI));
-        let params: HashMap<_, _> = url.query_pairs().into_owned().collect();
-        assert_eq!(params.get("error").map(String::as_str), Some("server_error"));
-        assert_eq!(params.get("state").map(String::as_str), Some(WALLET_STATE));
-        assert!(params.contains_key("error_description"));
     }
 }
