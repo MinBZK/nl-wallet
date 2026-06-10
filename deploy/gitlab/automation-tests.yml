@@ -345,23 +345,22 @@ browsertests-format-lint:
 .run-browsertest-common:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-playwright:${BUILD_TAG}"
   extends: .env-k8s
-  needs:
-    - job: build-env-ont
-      artifacts: true
-
-run-wallet-web-browsertest-test-ont:
-  extends: .run-browsertest-common
   rules:
     - !reference [.default-branch, rules]
   needs:
-    - !reference [.run-browsertest-common, needs]
+    - job: build-env-ont
+      artifacts: true
     - job: deploy-apps-ont
       artifacts: false
-  script: |
-    cd browsertests
-    npm ci --ignore-scripts
-    cd packages/wallet-web
-    npm run test:ci
+  before_script:
+    - cd browsertests
+    - npm ci --ignore-scripts
+
+run-wallet-web-browsertest-test-ont:
+  extends: .run-browsertest-common
+  script:
+    - cd packages/wallet-web
+    - npm run test:ci
   after_script:
     - deploy/bin/store-artifact.sh browsertests/packages/wallet-web/test-results/results.xml
       qt/quality-time/junit-results/browsertest-wallet-web.xml
@@ -378,17 +377,9 @@ run-wallet-web-browsertest-test-ont:
 
 run-fallback-pages-browsertest-test-ont:
   extends: .run-browsertest-common
-  rules:
-    - !reference [.default-branch, rules]
-  needs:
-    - !reference [.run-browsertest-common, needs]
-    - job: deploy-apps-ont
-      artifacts: false
-  script: |
-    cd browsertests
-    npm ci --ignore-scripts
-    cd packages/fallback-pages
-    npm run test:ci
+  script:
+    - cd packages/fallback-pages
+    - npm run test:ci
   after_script:
     - deploy/bin/store-artifact.sh browsertests/packages/fallback-pages/test-results/results.xml
       qt/quality-time/junit-results/browsertest-fallback-pages.xml
@@ -405,17 +396,9 @@ run-fallback-pages-browsertest-test-ont:
 
 run-revocation-portal-browsertest-test-ont:
   extends: .run-browsertest-common
-  rules:
-    - !reference [.default-branch, rules]
-  needs:
-    - !reference [.run-browsertest-common, needs]
-    - job: deploy-apps-ont
-      artifacts: false
-  script: |
-    cd browsertests
-    npm ci --ignore-scripts
-    cd packages/revocation-portal
-    npm run test:ci
+  script:
+    - cd packages/revocation-portal
+    - npm run test:ci
   after_script:
     - deploy/bin/store-artifact.sh browsertests/packages/revocation-portal/test-results/results.xml
       qt/quality-time/junit-results/browsertest-revocation-portal.xml
