@@ -15,16 +15,11 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use crypto::utils::random_string;
-use crypto::x509::CertificateError;
 use hsm::service::HsmError;
 use http_utils::urls::BaseUrl;
-use indexmap::IndexSet;
 use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use issuer_common::state_bridge_store::IssuerStateBridgeStoreError;
 use jwk_simple::Key;
-use jwt::nonce::Nonce;
-use openid4vc::authorization::OidcAuthorizationRequest;
-use openid4vc::authorization::VciAuthorizationRequest;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;
 use openid4vc::authorization_code_flow::WalletAuthorizationContext;
@@ -70,9 +65,6 @@ pub enum Error {
     #[error("state bridge store error: {0}")]
     StateBridge(#[source] IssuerStateBridgeStoreError),
 
-    #[error("encoding upstream authorization request as query string failed: {0}")]
-    Encode(#[source] serde_urlencoded::ser::Error),
-
     #[error("could not find attributes for BSN")]
     NoAttributesFound,
 
@@ -81,9 +73,6 @@ pub enum Error {
 
     #[error("error creating issuable documents")]
     InvalidIssuableDocuments,
-
-    #[error("certificate error: {0}")]
-    Certificate(#[source] CertificateError),
 
     #[error("could not find BSN attribute")]
     NoBsnFound,
@@ -262,24 +251,16 @@ where
         let upstream_pkce = S256PkcePair::generate();
         let issuer_state = random_string(ISSUER_STATE_LENGTH);
 
-        // Create a new upstream authorization request
-        let mut upstream_request = VciAuthorizationRequest::for_auth_code(
-            self.client_id.clone(),
-            self.callback_base_url.join(DIGID_CALLBACK_PATH),
-            issuer_state.clone(),
-            None,
-            &upstream_pkce,
-        );
-        upstream_request.scope = Some(IndexSet::from_iter([String::from("openid")]));
-
-        let oidc_request = OidcAuthorizationRequest {
-            vci_request: upstream_request,
-            nonce: Some(Nonce::new_random()),
-        };
-
-        let query_string = serde_urlencoded::to_string(&oidc_request).map_err(Error::Encode)?;
-        let mut redirect_url = self.digid_client.authorization_endpoint().await.map_err(Error::Digid)?;
-        redirect_url.set_query(Some(&query_string));
+        let redirect_url = self
+            .digid_client
+            .authorization_request(
+                self.client_id.clone(),
+                self.callback_base_url.join(DIGID_CALLBACK_PATH),
+                issuer_state.clone(),
+                &upstream_pkce,
+            )
+            .await
+            .map_err(Error::Digid)?;
 
         // Retain the wallet-side context so the callback can redirect the user-agent back to the
         // wallet and the `openid4vc` layer's /token handler can verify the wallet's PKCE challenge.
@@ -402,6 +383,7 @@ mod tests {
     use std::num::NonZeroUsize;
     use std::path::PathBuf;
     use std::sync::Arc;
+    use std::sync::Mutex;
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
@@ -464,7 +446,6 @@ mod tests {
 
     const CLIENT_ID: &str = "issuer-client-id";
     const CALLBACK_BASE_URL: &str = "https://issuer.example.com/";
-    const CALLBACK_URI: &str = "https://issuer.example.com/digid/callback";
     const UPSTREAM_AUTHORIZATION_ENDPOINT: &str = "https://digid.example.com/oauth2/authorize";
     const WALLET_REDIRECT_URI: &str = "https://wallet.example.com/callback";
     const WALLET_STATE: &str = "wallet-state";
@@ -493,10 +474,13 @@ mod tests {
     }
 
     /// [`DigidClient`] returning fixed values, so the flow can be tested without a live
-    /// upstream provider.
+    /// upstream provider. Building the redirect URL is the real client's contract (covered in
+    /// `digid.rs`), so this fake just returns a fixed URL and records the `state` (the flow-generated
+    /// `issuer_state`) it was called with, so the test can look the bridge entry back up.
     struct FakeDigidClient {
         authorization_endpoint: Url,
         bsn: String,
+        last_state: Mutex<Option<String>>,
     }
 
     impl Default for FakeDigidClient {
@@ -504,12 +488,20 @@ mod tests {
             Self {
                 authorization_endpoint: UPSTREAM_AUTHORIZATION_ENDPOINT.parse().unwrap(),
                 bsn: "999991772".to_string(),
+                last_state: Mutex::new(None),
             }
         }
     }
 
     impl DigidClient for FakeDigidClient {
-        async fn authorization_endpoint(&self) -> Result<Url, DigidError> {
+        async fn authorization_request(
+            &self,
+            _client_id: String,
+            _redirect_uri: Url,
+            state: String,
+            _pkce_pair: &S256PkcePair,
+        ) -> Result<Url, DigidError> {
+            *self.last_state.lock().unwrap() = Some(state);
             Ok(self.authorization_endpoint.clone())
         }
 
@@ -646,36 +638,24 @@ mod tests {
         let wallet_code_challenge = context.code_challenge.clone();
 
         let outcome = flow.authorize(context).await.unwrap();
-        let AuthorizeOutcome::RedirectTo(redirect_url) = outcome else {
-            panic!("expected a RedirectTo outcome");
-        };
+        assert_matches!(outcome, AuthorizeOutcome::RedirectTo(_));
 
-        // The redirect targets the upstream authorization endpoint.
-        assert!(redirect_url.as_str().starts_with(UPSTREAM_AUTHORIZATION_ENDPOINT));
+        // The flow generated an `issuer_state` and handed it to the digid client as the upstream `state`;
+        // that same value keys the bridge entry.
+        let issuer_state = flow
+            .digid_client
+            .last_state
+            .lock()
+            .unwrap()
+            .clone()
+            .expect("authorize should have called the digid client with an issuer_state");
 
-        let params: HashMap<_, _> = redirect_url.query_pairs().into_owned().collect();
-        // The upstream request carries the issuer's own client_id and callback as redirect_uri.
-        assert_eq!(params.get("client_id").map(String::as_str), Some(CLIENT_ID));
-        assert_eq!(params.get("redirect_uri").map(String::as_str), Some(CALLBACK_URI));
-        assert_eq!(params.get("scope").map(String::as_str), Some("openid"));
-        assert!(params.contains_key("nonce"));
-        // The upstream PKCE challenge is freshly generated, not the wallet's.
-        assert_eq!(params.get("code_challenge_method").map(String::as_str), Some("S256"));
-        assert_ne!(
-            params.get("code_challenge").map(String::as_str),
-            Some(wallet_code_challenge.as_str())
-        );
-
-        // The `state` is the issuer_state, which keys the bridge entry.
-        let issuer_state = params
-            .get("state")
-            .expect("redirect should carry a state param")
-            .clone();
         let entry: StateBridgeEntry = bridge
             .consume(issuer_state.as_str())
             .await
             .unwrap()
             .expect("a bridge entry should be stored under the issuer_state");
+
         assert_eq!(entry.context.redirect_uri.as_str(), WALLET_REDIRECT_URI);
         assert_eq!(entry.context.state.as_deref(), Some(WALLET_STATE));
         assert_eq!(entry.context.code_challenge, wallet_code_challenge);
