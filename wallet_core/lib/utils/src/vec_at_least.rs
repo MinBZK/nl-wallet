@@ -160,16 +160,6 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
     pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, T> {
         self.0.iter_mut()
     }
-}
-
-impl<T, const N: usize> VecAtLeastN<T, N, false> {
-    pub fn insert(&mut self, index: usize, element: T) {
-        self.0.insert(index, element);
-    }
-
-    pub fn push(&mut self, e: T) {
-        self.0.push(e);
-    }
 
     pub fn nonempty_iter(&self) -> Iter<'_, T> {
         Iter { iter: self.0.iter() }
@@ -182,13 +172,23 @@ impl<T, const N: usize> VecAtLeastN<T, N, false> {
     }
 }
 
+impl<T, const N: usize> VecAtLeastN<T, N, false> {
+    pub fn insert(&mut self, index: usize, element: T) {
+        self.0.insert(index, element);
+    }
+
+    pub fn push(&mut self, e: T) {
+        self.0.push(e);
+    }
+}
+
 impl<A, const N: usize> Extend<A> for VecAtLeastN<A, N, false> {
     fn extend<T: IntoIterator<Item = A>>(&mut self, iter: T) {
         self.0.extend(iter);
     }
 }
 
-/// Should be used as the constructor for types where the uniqueness constraint is set.
+/// Should be used as the constructor for types where the uniqueness constraint is not set.
 impl<T, const N: usize> TryFrom<Vec<T>> for VecAtLeastN<T, N, false> {
     type Error = VecAtLeastNError<T>;
 
@@ -290,7 +290,7 @@ impl<'a, T> IntoIterator for IterMut<'a, T> {
     }
 }
 
-/// An owned non-empty iterator over values from an [`VecNonEmpty`].
+/// An owned non-empty iterator over values from an [`VecAtLeastN`].
 #[derive(Clone)]
 #[must_use = "non-empty iterators are lazy and do nothing unless consumed"]
 pub struct IntoIter<T> {
@@ -315,7 +315,7 @@ impl<T: Debug> Debug for IntoIter<T> {
     }
 }
 
-impl<T> IntoNonEmptyIterator for VecNonEmpty<T> {
+impl<T, const N: usize, const UNIQUE: bool> IntoNonEmptyIterator for VecAtLeastN<T, N, UNIQUE> {
     type IntoNEIter = IntoIter<T>;
 
     fn into_nonempty_iter(self) -> Self::IntoNEIter {
@@ -325,7 +325,7 @@ impl<T> IntoNonEmptyIterator for VecNonEmpty<T> {
     }
 }
 
-impl<'a, T> IntoNonEmptyIterator for &'a VecNonEmpty<T> {
+impl<'a, T, const N: usize, const UNIQUE: bool> IntoNonEmptyIterator for &'a VecAtLeastN<T, N, UNIQUE> {
     type IntoNEIter = Iter<'a, T>;
 
     fn into_nonempty_iter(self) -> Self::IntoNEIter {
@@ -333,7 +333,7 @@ impl<'a, T> IntoNonEmptyIterator for &'a VecNonEmpty<T> {
     }
 }
 
-impl<T> IntoIterator for VecNonEmpty<T> {
+impl<T, const N: usize, const UNIQUE: bool> IntoIterator for VecAtLeastN<T, N, UNIQUE> {
     type Item = T;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
@@ -342,7 +342,7 @@ impl<T> IntoIterator for VecNonEmpty<T> {
     }
 }
 
-impl<'a, T> IntoIterator for &'a VecNonEmpty<T> {
+impl<'a, T, const N: usize, const UNIQUE: bool> IntoIterator for &'a VecAtLeastN<T, N, UNIQUE> {
     type Item = &'a T;
     type IntoIter = std::slice::Iter<'a, T>;
 
@@ -351,7 +351,7 @@ impl<'a, T> IntoIterator for &'a VecNonEmpty<T> {
     }
 }
 
-impl<'a, T> IntoIterator for &'a mut VecNonEmpty<T> {
+impl<'a, T, const N: usize, const UNIQUE: bool> IntoIterator for &'a mut VecAtLeastN<T, N, UNIQUE> {
     type Item = &'a mut T;
     type IntoIter = std::slice::IterMut<'a, T>;
 
