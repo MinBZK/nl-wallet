@@ -62,6 +62,6 @@ async fn offer(
         .await
         .map_err(OfferError::Issuer)?;
 
-    let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).into_credential_offer_url();
+    let credential_offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
     Ok(Json(OfferResponse { credential_offer_url }))
 }

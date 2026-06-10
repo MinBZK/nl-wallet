@@ -172,7 +172,7 @@ fn disclosure_based_issuance_universal_links(
 
     SessionType::iter()
         .map(|session_type| {
-            let params = serde_urlencoded::to_string(VerifierUrlParameters {
+            let params = serde_qs::to_string(&VerifierUrlParameters {
                 session_type,
                 ephemeral_id_params: None,
             })
@@ -181,7 +181,7 @@ fn disclosure_based_issuance_universal_links(
             let mut issuance_server_url = issuance_server_url.join(&format!("/disclosure/{usecase}/request_uri"));
             issuance_server_url.set_query(Some(&params));
 
-            let query = serde_urlencoded::to_string(VpRequestUri {
+            let query = serde_qs::to_string(&VpRequestUri {
                 client_id: client_id.clone(),
                 object: VpRequestUriObject::AsReference {
                     request_uri: issuance_server_url.try_into().unwrap(),

@@ -43,14 +43,14 @@ impl CredentialOfferContainer {
 
     /// Serialises this container as a URL query string (e.g. `credential_offer=%7B...%7D`), suitable for passing to
     /// [`Url::set_query`].
-    pub fn into_query_string(self) -> String {
-        serde_urlencoded::to_string(self).expect("a `CredentialOffer` should always serialize")
+    pub fn to_query_string(&self) -> String {
+        serde_qs::to_string(&self).expect("a `CredentialOffer` should always serialize")
     }
 
     /// Returns the key and value as a `(String, String)` pair, suitable for passing to
     /// [`form_urlencoded::Serializer::append_pair`] (e.g. as obtained from [`Url::query_pairs_mut`]).
     pub fn into_query_pair(self) -> (String, String) {
-        let serde_json::Value::Object(map) = serde_json::to_value(self).unwrap() else {
+        let serde_json::Value::Object(map) = serde_json::to_value(&self).unwrap() else {
             unreachable!("`enum CredentialOfferContainer` should always serialize as an Object");
         };
         let (k, v) = map
@@ -60,9 +60,9 @@ impl CredentialOfferContainer {
         (k.to_string(), v.as_str().unwrap_or(&v.to_string()).to_string())
     }
 
-    pub fn into_credential_offer_url(self) -> Url {
+    pub fn to_credential_offer_url(&self) -> Url {
         let mut url = Url::parse(&format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://")).expect("this is a valid URL");
-        url.set_query(Some(&self.into_query_string()));
+        url.set_query(Some(&self.to_query_string()));
         url
     }
 }
@@ -385,7 +385,7 @@ mod tests {
                          the%20serial%20number%20of%20your%20physical%20drivers%20license%22%7D%7D%7D%7D";
 
         let uri = offer_uri.parse::<Url>().unwrap();
-        let offer_container = serde_urlencoded::from_str::<CredentialOfferContainer>(uri.query().unwrap())
+        let offer_container = serde_qs::from_str::<CredentialOfferContainer>(uri.query().unwrap())
             .expect("should be able to deserialize CredentialOfferContainer");
 
         let CredentialOfferContainer::CredentialOffer(credential_offer) = offer_container else {
@@ -430,7 +430,7 @@ mod tests {
                          2Fcredential-offer%2FGkurKxf5T0Y-mnPFCHqWOMiZi4VS138cQO_V7PZHAdM";
 
         let uri = offer_uri.parse::<Url>().unwrap();
-        let offer_container = serde_urlencoded::from_str::<CredentialOfferContainer>(uri.query().unwrap())
+        let offer_container = serde_qs::from_str::<CredentialOfferContainer>(uri.query().unwrap())
             .expect("should be able to deserialize CredentialOfferContainer");
 
         let CredentialOfferContainer::CredentialOfferUri(credential_offer_uri) = offer_container else {
@@ -457,7 +457,9 @@ mod tests {
         assert_eq!(key, "credential_offer");
         assert_eq!(
             value,
-            "{\"credential_issuer\":\"https://issuer.example.com\",\"credential_configuration_ids\":[\"MyCredential\"],\"grants\":{\"urn:ietf:params:oauth:grant-type:pre-authorized_code\":{\"pre-authorized_code\":\"abc123\"}}}"
+            "{\"credential_issuer\":\"https://issuer.example.com\",\"credential_configuration_ids\":[\"MyCredential\"]\
+             ,\"grants\":{\"urn:ietf:params:oauth:grant-type:pre-authorized_code\":{\"pre-authorized_code\":\"abc123\"\
+             }}}"
         );
         let parsed: CredentialOffer = serde_json::from_str(&value).expect("value should be valid CredentialOffer JSON");
         assert_eq!(parsed.credential_issuer.as_ref(), "https://issuer.example.com");
@@ -475,7 +477,7 @@ mod tests {
     }
 
     #[test]
-    fn test_credential_offer_container_into_credential_offer_url() {
+    fn test_credential_offer_container_to_credential_offer_url() {
         let offer = CredentialOffer::new_pre_authorized(
             "https://issuer.example.com".parse().unwrap(),
             vec!["MyCredential".to_string().into()].try_into().unwrap(),
@@ -483,31 +485,30 @@ mod tests {
         );
         let container = CredentialOfferContainer::new_offer(offer);
 
-        let url = container.into_credential_offer_url();
+        let url = container.to_credential_offer_url();
 
         assert_eq!(url.scheme(), OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME);
         assert!(url.query().is_some_and(|q| q.contains("credential_offer")));
         assert_eq!(
             url.as_str(),
-            "openid-credential-offer://?credential_offer=%7B%22credential_issuer%22%3A%22https%3A%2F%2Fissuer.example.\
-             com%22%2C%22credential_configuration_ids%22%3A%5B%22MyCredential%22%5D%2C%22grants%22%3A%7B%22urn%3Aietf%\
-             3Aparams%3Aoauth%3Agrant-type%3Apre-authorized_code%22%3A%7B%22pre-authorized_code%22%3A%22abc123%22%7D%\
-             7D%7D"
+            "openid-credential-offer://?credential_offer={%22credential_issuer%22:%22https://issuer.example.com%22,%22\
+             credential_configuration_ids%22:%5B%22MyCredential%22%5D,%22grants%22:{%22urn:ietf:params:oauth:grant-typ\
+             e:pre-authorized_code%22:{%22pre-authorized_code%22:%22abc123%22}}}"
         );
     }
 
     #[test]
-    fn test_credential_offer_container_uri_into_credential_offer_url() {
+    fn test_credential_offer_container_uri_to_credential_offer_url() {
         let uri: IssuerUrl = "https://issuer.example.com/offer/123".parse().unwrap();
         let container = CredentialOfferContainer::new_uri(uri);
 
-        let url = container.into_credential_offer_url();
+        let url = container.to_credential_offer_url();
 
         assert_eq!(url.scheme(), OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME);
         assert!(url.query().is_some_and(|q| q.contains("credential_offer_uri")));
         assert_eq!(
             url.as_str(),
-            "openid-credential-offer://?credential_offer_uri=https%3A%2F%2Fissuer.example.com%2Foffer%2F123"
+            "openid-credential-offer://?credential_offer_uri=https://issuer.example.com/offer/123"
         );
     }
 }

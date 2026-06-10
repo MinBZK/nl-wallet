@@ -61,7 +61,7 @@ pub enum AuthorizeError {
     AuthorizationCodeFlow(#[source] Box<dyn Error + Send + Sync + 'static>),
 
     #[error("encoding authorization request as query string failed: {0}")]
-    Encode(#[source] serde_urlencoded::ser::Error),
+    Encode(#[source] serde_qs::Error),
 }
 
 /// Errors that can occur during processing of a Pushed Authorization Request.
@@ -189,7 +189,7 @@ where
                 }
 
                 let mut redirect_url = wallet_redirect_uri.into_inner();
-                let query = serde_urlencoded::to_string(RedirectQuery {
+                let query = serde_qs::to_string(&RedirectQuery {
                     code: code.as_ref(),
                     state: wallet_state.as_deref(),
                 })

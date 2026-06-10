@@ -2710,7 +2710,7 @@ mod tests {
     fn test_authorization_request_object_as_reference() {
         let query = "client_id=test_client&request_uri=https%3A%2F%2Fclient.example.org%2Frequest%\
                      2Fvapof4ql2i7m41m68uep&request_uri_method=post";
-        let result = serde_urlencoded::from_str::<VpRequestUri>(query).unwrap();
+        let result = serde_qs::from_str::<VpRequestUri>(query).unwrap();
 
         assert_matches!(
             result,
@@ -2724,7 +2724,7 @@ mod tests {
     #[test]
     fn test_authorization_request_object_as_value() {
         let query = "client_id=test_client&request=eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJzIiwiYXVkIjoicyJ9.sig";
-        let result = serde_urlencoded::from_str::<VpRequestUri>(query).unwrap();
+        let result = serde_qs::from_str::<VpRequestUri>(query).unwrap();
 
         assert_matches!(
             result,
@@ -2738,7 +2738,7 @@ mod tests {
     #[test]
     fn test_authorization_request_object_as_query_parameters() {
         let query = "response_type=vp_token&client_id=test_client&nonce=abc123";
-        let result = serde_urlencoded::from_str::<VpRequestUri>(query).unwrap();
+        let result = serde_qs::from_str::<VpRequestUri>(query).unwrap();
 
         assert_matches!(
             result,
@@ -2752,7 +2752,7 @@ mod tests {
     #[test]
     fn test_authorization_request_unrecognized() {
         let query = "foo=bar";
-        let result = serde_urlencoded::from_str::<VpRequestUri>(query)
+        let result = serde_qs::from_str::<VpRequestUri>(query)
             .map_err(crate::disclosure_session::VpClientError::RequestUri)
             .expect_err("unrecognized request object should fail to parse as VpRequestUri");
 

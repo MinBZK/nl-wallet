@@ -27,7 +27,7 @@ axum.workspace = true
 config = { workspace = true, features = ["toml", "preserve_order"] }
 itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
-serde_urlencoded.workspace = true
+serde_qs.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 url = { workspace = true, features = ["serde"] }

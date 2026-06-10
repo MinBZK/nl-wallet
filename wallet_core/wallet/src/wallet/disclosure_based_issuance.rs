@@ -275,7 +275,7 @@ mod tests {
             vec_nonempty!["config_id".to_string().into()],
             "123".to_string().into(),
         ))
-        .into_credential_offer_url();
+        .to_credential_offer_url();
 
         let mut disclosure_session = setup_wallet_disclosure_session(requested_format);
         disclosure_session

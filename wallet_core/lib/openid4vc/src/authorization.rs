@@ -232,7 +232,7 @@ mod tests {
     use indexmap::IndexSet;
     use jwt::nonce::Nonce;
     use serde_json::json;
-    use serde_urlencoded;
+    use serde_qs;
     use url::Url;
     use utils::spec::SpecForbidden;
 
@@ -269,8 +269,8 @@ mod tests {
     fn vci_authorization_request_urlencoded_roundtrip() {
         let request = example_vci_request();
 
-        let encoded = serde_urlencoded::to_string(&request).unwrap();
-        let decoded: VciAuthorizationRequest = serde_urlencoded::from_str(&encoded).unwrap();
+        let encoded = serde_qs::to_string(&request).unwrap();
+        let decoded: VciAuthorizationRequest = serde_qs::from_str(&encoded).unwrap();
 
         assert_eq!(decoded.oauth_request.client_id, "client-123");
         assert_eq!(decoded.oauth_request.state.as_deref(), Some("state-abc"));
@@ -295,8 +295,8 @@ mod tests {
             nonce: Some(nonce.clone()),
         };
 
-        let encoded = serde_urlencoded::to_string(&request).unwrap();
-        let decoded: OidcAuthorizationRequest = serde_urlencoded::from_str(&encoded).unwrap();
+        let encoded = serde_qs::to_string(&request).unwrap();
+        let decoded: OidcAuthorizationRequest = serde_qs::from_str(&encoded).unwrap();
 
         assert_eq!(decoded.nonce, Some(nonce));
         assert_eq!(decoded.vci_request.oauth_request.client_id, "client-123");
@@ -305,10 +305,10 @@ mod tests {
     #[test]
     fn vci_authorization_request_rejects_request_uri() {
         let request = example_vci_request();
-        let mut encoded = serde_urlencoded::to_string(&request).unwrap();
+        let mut encoded = serde_qs::to_string(&request).unwrap();
         encoded.push_str("&request_uri=should-not-be-here");
 
-        let err = serde_urlencoded::from_str::<VciAuthorizationRequest>(&encoded).unwrap_err();
+        let err = serde_qs::from_str::<VciAuthorizationRequest>(&encoded).unwrap_err();
         assert!(
             err.to_string().contains("MUST NOT be present"),
             "expected SpecForbidden rejection, got: {err}"

@@ -142,7 +142,7 @@ async fn main() {
     let mut status_url = demo_rp_url
         .join(&format!("disclosure/sessions/{session_token}"))
         .unwrap();
-    let status_query = serde_urlencoded::to_string(StatusParams {
+    let status_query = serde_qs::to_string(&StatusParams {
         session_type: Some(SessionType::SameDevice),
     })
     .unwrap();

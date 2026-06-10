@@ -242,7 +242,7 @@ mod tests {
     fn token_request_serialization() {
         #[rustfmt::skip]
         assert_eq!(
-            serde_urlencoded::to_string(TokenRequest {
+            serde_qs::to_string(&TokenRequest {
                 grant_type: TokenRequestGrantType::PreAuthorizedCode {
                     pre_authorized_code: "123".to_string().into()
                 },
@@ -251,11 +251,8 @@ mod tests {
                 redirect_uri: Some("https://example.com".parse().unwrap())
             })
             .unwrap(),
-            "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Apre-authorized_code\
-                &pre-authorized_code=123\
-                &code_verifier=myverifier\
-                &client_id=myclient\
-                &redirect_uri=https%3A%2F%2Fexample.com%2F",
+            "grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code&pre-authorized_code=123&code_verifier=myv\
+             erifier&client_id=myclient&redirect_uri=https://example.com/",
         );
     }
 

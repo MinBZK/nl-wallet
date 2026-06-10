@@ -25,7 +25,7 @@ reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["derive"] }
 serde_valid.workspace = true
 serde_with.workspace = true
-serde_urlencoded.workspace = true
+serde_qs.workspace = true
 strum.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 tower.workspace = true

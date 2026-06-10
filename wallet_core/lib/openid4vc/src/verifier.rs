@@ -111,7 +111,7 @@ pub enum SessionStatusError {
     #[error("session error: {0}")]
     Session(#[from] SessionError),
     #[error("URL encoding error: {0}")]
-    UrlEncoding(#[from] serde_urlencoded::ser::Error),
+    UrlEncoding(#[from] serde_qs::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -149,7 +149,7 @@ pub enum GetAuthRequestError {
     #[error("missing query parameters")]
     QueryParametersMissing,
     #[error("failed to deserialize query parameters: {0}")]
-    QueryParametersDeserialization(#[from] serde_urlencoded::de::Error),
+    QueryParametersDeserialization(#[from] serde_qs::Error),
 }
 
 /// Errors returned by the endpoint to which the user posts the Authorization Response.
@@ -162,7 +162,7 @@ pub enum PostAuthResponseError {
     #[error("failed handling disclosure result: {0}")]
     HandlingDisclosureResult(#[from] DisclosureResultHandlerError),
     #[error("failed serializing response: {0}")]
-    ResponseEncoding(#[from] serde_urlencoded::ser::Error),
+    ResponseEncoding(#[from] serde_qs::Error),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -967,7 +967,7 @@ where
         wallet_nonce: Option<String>,
     ) -> Result<SignedJwt<VpAuthorizationRequest, HeaderWithX5c>, WithRedirectUri<GetAuthRequestError>> {
         let url_params: VerifierUrlParameters =
-            serde_urlencoded::from_str(query.ok_or(GetAuthRequestError::QueryParametersMissing)?)
+            serde_qs::from_str(query.ok_or(GetAuthRequestError::QueryParametersMissing)?)
                 .map_err(GetAuthRequestError::QueryParametersDeserialization)?;
 
         let session_type = url_params.session_type;
@@ -1061,7 +1061,7 @@ where
                             session_type_return_url,
                             time,
                         );
-                        Self::format_ul(ul_base.clone(), request_uri, verifier_url_parameters, &client_id)
+                        Self::format_ul(ul_base.clone(), request_uri, &verifier_url_parameters, &client_id)
                     })
                     .transpose()?;
 
@@ -1149,14 +1149,14 @@ impl<S, US, C> Verifier<S, US, C> {
     fn format_ul(
         base_ul: BaseUrl,
         request_uri: BaseUrl,
-        verifier_url_params: VerifierUrlParameters,
+        verifier_url_params: &VerifierUrlParameters,
         client_id: &ClientId,
-    ) -> Result<BaseUrl, serde_urlencoded::ser::Error> {
+    ) -> Result<BaseUrl, serde_qs::Error> {
         let mut request_uri = request_uri.into_inner();
-        request_uri.set_query(Some(&serde_urlencoded::to_string(verifier_url_params)?));
+        request_uri.set_query(Some(&serde_qs::to_string(verifier_url_params)?));
 
         let mut ul = base_ul.into_inner();
-        ul.set_query(Some(&serde_urlencoded::to_string(VpRequestUri {
+        ul.set_query(Some(&serde_qs::to_string(&VpRequestUri {
             client_id: client_id.clone(),
             object: VpRequestUriObject::AsReference {
                 request_uri: request_uri.try_into().unwrap(), // safe because we constructed request_uri from a BaseUrl
@@ -1793,7 +1793,7 @@ mod tests {
             panic!("should match DisclosureData::Created with Some(ul)")
         };
 
-        let request_query_object: VpRequestUri = serde_urlencoded::from_str(ul.as_ref().query().unwrap()).unwrap();
+        let request_query_object: VpRequestUri = serde_qs::from_str(ul.as_ref().query().unwrap()).unwrap();
         let request_uri = match request_query_object.object {
             VpRequestUriObject::AsReference { request_uri, .. } => request_uri,
             variant => panic!("expected RequestObjectAsReference, found {variant:?}"),
@@ -2062,7 +2062,7 @@ mod tests {
         let verifier_url = Verifier::<(), (), ()>::format_ul(
             "https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
-            VerifierUrlParameters {
+            &VerifierUrlParameters {
                 session_type,
                 ephemeral_id_params: Some(EphemeralIdParameters {
                     ephemeral_id: RpInitiatedUseCases::<(), ()>::generate_ephemeral_id(
@@ -2084,7 +2084,7 @@ mod tests {
             (session_token.to_string() + "|" + &session_type.to_string() + "|" + time_str).as_bytes(),
         );
 
-        let request_uri: VpRequestUri = serde_urlencoded::from_str(verifier_url.as_ref().query().unwrap()).unwrap();
+        let request_uri: VpRequestUri = serde_qs::from_str(verifier_url.as_ref().query().unwrap()).unwrap();
         assert_eq!(request_uri.client_id, "client_id".into());
 
         let (request_uri, request_uri_method) = match request_uri.object {
@@ -2099,8 +2099,7 @@ mod tests {
         request_uri_without_query.set_query(None);
         assert_eq!(request_uri_without_query.as_str(), "https://rp.example.com/");
 
-        let url_params: VerifierUrlParameters =
-            serde_urlencoded::from_str(request_uri.as_ref().query().unwrap()).unwrap();
+        let url_params: VerifierUrlParameters = serde_qs::from_str(request_uri.as_ref().query().unwrap()).unwrap();
         assert_eq!(url_params.session_type, SessionType::CrossDevice);
         assert_eq!(
             url_params.ephemeral_id_params.unwrap().ephemeral_id,
@@ -2116,7 +2115,7 @@ mod tests {
         let verifier_url = Verifier::<(), (), ()>::format_ul(
             "https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
-            VerifierUrlParameters {
+            &VerifierUrlParameters {
                 session_type: SessionType::CrossDevice,
                 ephemeral_id_params: None,
             },
@@ -2124,7 +2123,7 @@ mod tests {
         )
         .unwrap();
 
-        let request_uri: VpRequestUri = serde_urlencoded::from_str(verifier_url.as_ref().query().unwrap()).unwrap();
+        let request_uri: VpRequestUri = serde_qs::from_str(verifier_url.as_ref().query().unwrap()).unwrap();
         assert_eq!(request_uri.client_id, "client_id".into());
 
         let (request_uri, request_uri_method) = match request_uri.object {
@@ -2140,8 +2139,7 @@ mod tests {
             "https://rp.example.com/?session_type=cross_device"
         );
 
-        let url_params: VerifierUrlParameters =
-            serde_urlencoded::from_str(request_uri.as_ref().query().unwrap()).unwrap();
+        let url_params: VerifierUrlParameters = serde_qs::from_str(request_uri.as_ref().query().unwrap()).unwrap();
         assert_eq!(url_params.session_type, SessionType::CrossDevice);
         assert!(url_params.ephemeral_id_params.is_none());
     }
@@ -2183,7 +2181,7 @@ mod tests {
             ))),
         );
 
-        let query_params = serde_urlencoded::to_string(VerifierUrlParameters {
+        let query_params = serde_qs::to_string(&VerifierUrlParameters {
             session_type: SessionType::SameDevice,
             ephemeral_id_params: None,
         })
@@ -2202,7 +2200,7 @@ mod tests {
 
     #[test]
     fn test_wallet_auth_response_jwe_serializes_to_response_parameter() {
-        let body = serde_urlencoded::to_string(WalletAuthResponse::Response(VpToken {
+        let body = serde_qs::to_string(&WalletAuthResponse::Response(VpToken {
             response: "jwe".to_string(),
         }))
         .unwrap();
@@ -2212,14 +2210,14 @@ mod tests {
 
     #[test]
     fn test_wallet_auth_response_jwe_deserializes_response_parameter() {
-        let response: WalletAuthResponse = serde_urlencoded::from_str("response=jwe").unwrap();
+        let response: WalletAuthResponse = serde_qs::from_str("response=jwe").unwrap();
 
         assert_matches!(response, WalletAuthResponse::Response(VpToken { response }) if response == "jwe");
     }
 
     #[test]
     fn test_wallet_auth_response_error_serializes_without_state_parameter() {
-        let body = serde_urlencoded::to_string(WalletAuthResponse::Error(
+        let body = serde_qs::to_string(&WalletAuthResponse::Error(
             VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied).into(),
         ))
         .unwrap();
@@ -2238,11 +2236,11 @@ mod tests {
             state: Some("authorization_state".to_string()),
         });
 
-        let body = serde_urlencoded::to_string(&expected).unwrap();
+        let body = serde_qs::to_string(&expected).unwrap();
 
         assert_eq!(body, "error=access_denied&state=authorization_state");
 
-        let response: WalletAuthResponse = serde_urlencoded::from_str(&body).unwrap();
+        let response: WalletAuthResponse = serde_qs::from_str(&body).unwrap();
         assert_eq!(response, expected);
     }
 

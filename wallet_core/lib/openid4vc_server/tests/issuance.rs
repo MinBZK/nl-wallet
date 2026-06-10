@@ -148,7 +148,7 @@ fn make_credential_offer_url(
         }
     };
 
-    CredentialOfferContainer::new_offer(credential_offer).into_credential_offer_url()
+    CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url()
 }
 
 fn verify_issued_credentials(

@@ -322,7 +322,7 @@ impl DirectMockVpMessageClient {
         trust_anchors: TrustAnchors,
         status_list_keypair: KeyPair,
     ) -> Self {
-        let query = serde_urlencoded::to_string(VerifierUrlParameters {
+        let query = serde_qs::to_string(&VerifierUrlParameters {
             session_type: SessionType::SameDevice,
             ephemeral_id_params: Some(EphemeralIdParameters {
                 ephemeral_id: vec![42],
@@ -358,7 +358,7 @@ impl DirectMockVpMessageClient {
     }
 
     fn start_session(&self) -> String {
-        serde_urlencoded::to_string(VpRequestUri {
+        serde_qs::to_string(&VpRequestUri {
             client_id: self.auth_request.client_id.clone(),
             object: VpRequestUriObject::AsReference {
                 request_uri: self.request_uri.clone(),
@@ -800,14 +800,14 @@ async fn test_wallet_initiated_usecase_verifier() {
         .parse()
         .unwrap();
     request_uri.set_query(Some(
-        &serde_urlencoded::to_string(VerifierUrlParameters {
+        &serde_qs::to_string(&VerifierUrlParameters {
             session_type: SessionType::SameDevice,
             ephemeral_id_params: None,
         })
         .unwrap(),
     ));
 
-    let universal_link_query = serde_urlencoded::to_string(VpRequestUri {
+    let universal_link_query = serde_qs::to_string(&VpRequestUri {
         client_id,
         object: VpRequestUriObject::AsReference {
             request_uri: request_uri.try_into().unwrap(),
@@ -846,14 +846,14 @@ async fn test_wallet_initiated_usecase_verifier_cancel() {
         .parse()
         .unwrap();
     request_uri.set_query(Some(
-        &serde_urlencoded::to_string(VerifierUrlParameters {
+        &serde_qs::to_string(&VerifierUrlParameters {
             session_type: SessionType::SameDevice,
             ephemeral_id_params: None,
         })
         .unwrap(),
     ));
 
-    let universal_link_query = serde_urlencoded::to_string(VpRequestUri {
+    let universal_link_query = serde_qs::to_string(&VpRequestUri {
         client_id,
         object: VpRequestUriObject::AsReference {
             request_uri: request_uri.try_into().unwrap(),
@@ -889,7 +889,7 @@ async fn test_verifier_auth_request_metadata_contract() {
         .await
         .unwrap();
     let disclosure_request = request_uri_from_status_endpoint(&verifier, &session_token, SessionType::SameDevice).await;
-    let request_uri: VpRequestUri = serde_urlencoded::from_str(&disclosure_request).unwrap();
+    let request_uri: VpRequestUri = serde_qs::from_str(&disclosure_request).unwrap();
     let VpRequestUriObject::AsReference { request_uri, .. } = request_uri.object else {
         panic!("expected request object by reference");
     };

@@ -566,7 +566,7 @@ fn format_status_url(public_url: &BaseUrl, session_token: &SessionToken, session
     let mut status_url = public_url.join(&format!("disclosure/sessions/{session_token}"));
 
     if let Some(session_type) = session_type {
-        let status_query = serde_urlencoded::to_string(StatusParams {
+        let status_query = serde_qs::to_string(&StatusParams {
             session_type: Some(session_type),
         })
         .unwrap();

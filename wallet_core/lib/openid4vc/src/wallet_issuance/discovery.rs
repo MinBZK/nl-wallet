@@ -237,7 +237,7 @@ impl HttpIssuanceDiscovery {
             .query()
             .ok_or(WalletIssuanceError::MissingCredentialOfferQuery)?;
 
-        let offer_container = serde_urlencoded::from_str::<CredentialOfferContainer>(query)
+        let offer_container = serde_qs::from_str::<CredentialOfferContainer>(query)
             .map_err(WalletIssuanceError::CredentialOfferDeserialization)?;
 
         let credential_offer = match offer_container {
@@ -727,7 +727,7 @@ mod test {
         } else {
             CredentialOfferContainer::new_offer(credential_offer)
         }
-        .into_credential_offer_url();
+        .to_credential_offer_url();
 
         // Start issuance based on this Credential Offer URL.
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
@@ -878,8 +878,8 @@ mod test {
         let server = MockServer::start_async().await;
 
         // Construct a Credential Offer that contains an invalid URI.
-        let offer_url = CredentialOfferContainer::new_uri(server.url("/does-not-exist").parse().unwrap())
-            .into_credential_offer_url();
+        let offer_url =
+            CredentialOfferContainer::new_uri(server.url("/does-not-exist").parse().unwrap()).to_credential_offer_url();
 
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
@@ -949,7 +949,7 @@ mod test {
             credential_configuration_ids: vec_nonempty![CONFIG_ID.clone()],
             grants: None,
         };
-        let offer_url = CredentialOfferContainer::new_offer(credential_offer).into_credential_offer_url();
+        let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
@@ -983,7 +983,7 @@ mod test {
                 ..Grants::default()
             }),
         };
-        let offer_url = CredentialOfferContainer::new_offer(credential_offer).into_credential_offer_url();
+        let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
@@ -1016,9 +1016,7 @@ mod test {
                 ..Grants::default()
             }),
         };
-        let offer_container = CredentialOfferContainer::new_offer(credential_offer);
-        let query = serde_urlencoded::to_string(&offer_container).unwrap();
-        let offer_url: Url = format!("openid-credential-offer://?{query}").parse().unwrap();
+        let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
@@ -1054,7 +1052,7 @@ mod test {
             ],
             grants: Some(Grants::new_pre_authorized("fake_pre_auth_code".to_string().into())),
         };
-        let offer_url = CredentialOfferContainer::new_offer(credential_offer).into_credential_offer_url();
+        let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
@@ -1089,7 +1087,7 @@ mod test {
             vec_nonempty![CONFIG_ID.clone()],
             "fake_pre_auth_code".to_string().into(),
         ))
-        .into_credential_offer_url();
+        .to_credential_offer_url();
 
         let discovery = HttpIssuanceDiscovery::new(HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap());
 
@@ -1118,7 +1116,7 @@ mod test {
             vec_nonempty![CONFIG_ID.clone()],
             "fake_pre_auth_code".to_string().into(),
         ))
-        .into_credential_offer_url();
+        .to_credential_offer_url();
 
         let _flow = discovery
             .start(

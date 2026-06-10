@@ -118,7 +118,7 @@ where
 
 pub fn request_uri_with_verifier_params(mut request_uri: Url, session_type: SessionType) -> BaseUrl {
     request_uri.set_query(Some(
-        &serde_urlencoded::to_string(VerifierUrlParameters {
+        &serde_qs::to_string(&VerifierUrlParameters {
             session_type,
             ephemeral_id_params: Some(EphemeralIdParameters {
                 ephemeral_id: vec![42],
@@ -221,7 +221,7 @@ impl MockVerifierSession {
     }
 
     pub fn request_uri_query(&self) -> String {
-        serde_urlencoded::to_string(&VpRequestUri {
+        serde_qs::to_string(&VpRequestUri {
             client_id: self.client_id.as_str().into(),
             object: VpRequestUriObject::AsReference {
                 request_uri: self.request_uri.clone(),

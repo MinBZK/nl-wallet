@@ -135,7 +135,7 @@ where
     ) -> Result<Self::Session, VpSessionError> {
         info!("start disclosure session");
 
-        let request = serde_urlencoded::from_str::<VpRequestUri>(uri_query).map_err(VpClientError::RequestUri)?;
+        let request = serde_qs::from_str::<VpRequestUri>(uri_query).map_err(VpClientError::RequestUri)?;
         let (request_uri, request_uri_method) = match request.object {
             VpRequestUriObject::AsReference {
                 request_uri,
@@ -159,7 +159,7 @@ where
         let url_session_type = request_uri
             .as_ref()
             .query()
-            .and_then(|query| serde_urlencoded::from_str(query).ok()) // discard the error: see comment below
+            .and_then(|query| serde_qs::from_str(query).ok()) // discard the error: see comment below
             .map(|params: UrlSessionType| params.session_type);
 
         let source_session_type = uri_source.session_type();
@@ -664,7 +664,7 @@ mod tests {
             false,
         ));
 
-        let query = serde_urlencoded::to_string(VpRequestUri {
+        let query = serde_qs::to_string(&VpRequestUri {
             client_id: "client_id".into(),
             object: VpRequestUriObject::AsValue {
                 request: "eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJzIiwiYXVkIjoicyJ9.sig".to_string(),
@@ -695,7 +695,7 @@ mod tests {
             false,
         ));
 
-        let query = serde_urlencoded::to_string(VpRequestUri {
+        let query = serde_qs::to_string(&VpRequestUri {
             client_id: "client_id".into(),
             object: VpRequestUriObject::AsQueryParameters {
                 response_type: "vp_token".to_string(),
@@ -835,7 +835,7 @@ mod tests {
         let error_client = MockErrorFactoryVpMessageClient::new(error_factory, error_has_error);
         let wallet_messages = Arc::clone(&error_client.wallet_messages);
 
-        let request_query = serde_urlencoded::to_string(request_uri(
+        let request_query = serde_qs::to_string(&request_uri(
             VERIFIER_URL.join_base_url("redirect_uri").into_inner(),
             SessionType::SameDevice,
             VpRequestUriMethod::POST,
