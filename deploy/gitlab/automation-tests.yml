@@ -361,7 +361,6 @@ run-wallet-web-browsertest-test-ont:
     cd browsertests
     npm ci --ignore-scripts
     cd packages/wallet-web
-    npx playwright install chromium webkit
     npm run test:ci
   after_script:
     - deploy/bin/store-artifact.sh browsertests/packages/wallet-web/test-results/results.xml
@@ -389,7 +388,6 @@ run-fallback-pages-browsertest-test-ont:
     cd browsertests
     npm ci --ignore-scripts
     cd packages/fallback-pages
-    npx playwright install chromium webkit
     npm run test:ci
   after_script:
     - deploy/bin/store-artifact.sh browsertests/packages/fallback-pages/test-results/results.xml
@@ -417,7 +415,6 @@ run-revocation-portal-browsertest-test-ont:
     cd browsertests
     npm ci --ignore-scripts
     cd packages/revocation-portal
-    npx playwright install chromium webkit
     npm run test:ci
   after_script:
     - deploy/bin/store-artifact.sh browsertests/packages/revocation-portal/test-results/results.xml
