@@ -88,6 +88,13 @@ pub enum WalletIssuanceError {
     #[category(pd)]
     AttributesVerification(#[from] AttributesError),
 
+    #[error(
+        "no OAuth scope value present in Issuer Metadata for Credential Configuration ID(s): {}",
+        .0.iter().join(", ")
+    )]
+    #[category(critical)]
+    IssuerMetadataNoScope(Vec<CredentialConfigurationId>),
+
     #[error("could not push authorization request to server: {0:?}")]
     #[category(expected)]
     ParHttp(#[source] reqwest::Error),

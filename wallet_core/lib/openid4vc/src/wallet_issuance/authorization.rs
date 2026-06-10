@@ -3,6 +3,8 @@ use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use crypto::trust_anchor::TrustAnchors;
 use error_category::ErrorCategory;
 use http_utils::reqwest::HttpJsonClient;
+use itertools::Either;
+use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DeserializeFromStr;
@@ -142,6 +144,25 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             .as_ref()
             .ok_or(OAuthError::NoAuthorizationEndpoint)?;
 
+        // Include the scope values for each Credential Configuration that was present in the Credential Offer and
+        // return an error if any of them do not include a scope. According to HAIP:
+        //
+        // "For Grant Type authorization_code, the Issuer MUST include a scope value in order to allow the Wallet to
+        // identify the desired Credential Type. The Wallet MUST use that value in the scope Authorization parameter."
+        //
+        // Source: <https://openid.net/specs/openid4vc-high-assurance-interoperability-profile-1_0.html#section-4.2>
+        let (scope, no_scope_config_ids): (_, Vec<_>) =
+            credential_configurations
+                .iter()
+                .partition_map(|(id, config)| match &config.scope {
+                    Some(scope) => Either::Left(scope.clone()),
+                    None => Either::Right(id.clone()),
+                });
+
+        if !no_scope_config_ids.is_empty() {
+            return Err(WalletIssuanceError::IssuerMetadataNoScope(no_scope_config_ids));
+        }
+
         let pkce_pair = P::generate();
         let state = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
 
@@ -150,7 +171,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             redirect_uri.clone(),
             state.clone(),
             issuer_state,
-            None,
+            Some(scope),
             &pkce_pair,
         );
 
@@ -320,19 +341,21 @@ mod tests {
     use serial_test::serial;
     use url::Url;
 
+    use super::super::AuthorizationSession;
+    use super::super::WalletIssuanceError;
     use super::HttpAuthorizationSession;
     use super::HttpAuthorizationSessionData;
     use super::OAuthError;
     use super::ParErrorCode;
     use crate::AuthorizationErrorCode;
     use crate::ErrorResponse;
+    use crate::issuer_identifier::IssuerIdentifier;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::pkce::MockPkcePair;
     use crate::pkce::S256PkcePair;
-    use crate::wallet_issuance::AuthorizationSession;
 
     const ISSUER_URL: &str = "https://example.com";
     const CLIENT_ID: &str = "client-1";
@@ -438,7 +461,6 @@ mod tests {
         let issuer_identifier = server.base_url().parse().unwrap();
         let mut oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier);
         oauth_metadata.pushed_authorization_request_endpoint = Some(server.url("/issuance/par").parse().unwrap());
-        oauth_metadata.authorization_endpoint = Some(server.url("/issuance/authorize").parse().unwrap());
 
         let pkce_context = MockPkcePair::generate_context();
         pkce_context.expect().return_once(|| {
@@ -476,6 +498,47 @@ mod tests {
         assert!(!params.contains_key("state"));
         assert!(!params.contains_key("redirect_uri"));
         assert!(!params.contains_key("issuer_state"));
+        assert!(!params.contains_key("scope"));
+    }
+
+    #[tokio::test]
+    async fn test_http_authorization_session_create_issuer_metadata_no_scope_error() {
+        let issuer_identifier = "https://example.com".parse::<IssuerIdentifier>().unwrap();
+        let config_id = CredentialConfigurationId::from("config_id".to_string());
+
+        let oauth_metadata = AuthorizationServerMetadata::new_mock(issuer_identifier.clone());
+
+        let mut issuer_metadata = IssuerMetadata::new_mock(issuer_identifier, "test", config_id.clone());
+
+        for config in issuer_metadata.credential_configurations_supported.values_mut() {
+            config.scope = None;
+        }
+
+        let credential_configurations = issuer_metadata
+            .credential_configurations_supported
+            .clone()
+            .into_iter()
+            .collect_vec()
+            .try_into()
+            .unwrap();
+
+        let error = HttpAuthorizationSession::<MockPkcePair>::create(
+            HttpJsonClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            credential_configurations,
+            issuer_metadata.credential_issuer,
+            issuer_metadata.endpoints,
+            oauth_metadata,
+            MOCK_WALLET_CLIENT_ID.to_string(),
+            REDIRECT_URI.parse().unwrap(),
+            None,
+        )
+        .await
+        .expect_err("creating authorization session should fail");
+
+        assert_matches!(
+            error,
+            WalletIssuanceError::IssuerMetadataNoScope(config_ids) if config_ids.iter().eq([&config_id])
+        );
     }
 
     #[tokio::test]

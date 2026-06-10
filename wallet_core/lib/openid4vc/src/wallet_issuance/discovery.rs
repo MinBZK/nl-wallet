@@ -509,7 +509,11 @@ mod test {
                 CONFIG_ID.as_ref(): {
                     "format": "mso_mdoc",
                     "doctype": PID_ATTESTATION_TYPE,
-                    "type_metadata_uri": issuer_identifier.as_issuer_url().join_issuer_url("/issuance/type_metadata").join_config_id(&CONFIG_ID),
+                    "scope": "pid_scope",
+                    "type_metadata_uri": issuer_identifier
+                                            .as_issuer_url()
+                                            .join_issuer_url("/issuance/type_metadata")
+                                            .join_config_id(&CONFIG_ID),
                 }
             },
         });

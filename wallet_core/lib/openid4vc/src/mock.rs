@@ -33,6 +33,7 @@ impl AuthorizationServerMetadata {
         let auth_url = issuer_url.join("/authorize");
         let token_url = issuer_url.join("/issuance/token");
         let jwks_url = issuer_url.join("/jwks.json");
+        let par_url = issuer_url.join("/par");
 
         Self {
             authorization_endpoint: Some(auth_url),
@@ -44,6 +45,7 @@ impl AuthorizationServerMetadata {
                 ["code", "code id_token", "id_token", "id_token token"].map(str::to_string),
             ),
             id_token_signing_alg_values_supported: IndexSet::from_iter(["RS256".to_string()]),
+            pushed_authorization_request_endpoint: Some(par_url),
 
             ..AuthorizationServerMetadata::new(issuer_identifier, token_url)
         }
