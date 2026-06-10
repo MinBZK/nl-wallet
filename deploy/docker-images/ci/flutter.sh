@@ -18,5 +18,6 @@ flutter config --no-analytics
 
 flutter precache --android
 flutter doctor --android-licenses
+flutter precache --ios
 
 dart pub global activate junitreport 2.0.2
