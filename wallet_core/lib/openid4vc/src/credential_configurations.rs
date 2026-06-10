@@ -22,11 +22,16 @@ use crate::issuer_identifier::IssuerUrl;
 use crate::metadata::issuer_metadata;
 use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::ProofType;
+use crate::scope::Scope;
+use crate::scope::ScopeInvalid;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CredentialConfigurationsError {
     #[error("no credential configuration parameters provided")]
     NoConfigurations,
+
+    #[error("could not use credential configuration ID as scope: {0}")]
+    Scope(#[source] ScopeInvalid),
 
     #[error("could not parse SD-JWT VC Type Metadata chain: {0}")]
     TypeMetadata(#[source] TypeMetadataChainError),
@@ -61,6 +66,7 @@ pub struct CredentialConfigurationParameters<K, L> {
 pub(crate) struct CredentialConfiguration<K, L> {
     pub format: Format,
     pub attestation_type: String,
+    pub scope: Scope,
     #[debug(skip)]
     pub key_pair: KeyPair<K>,
     pub status_list: L,
@@ -80,7 +86,8 @@ pub(crate) struct CredentialConfigurationMetadata {
 
 impl<K, L> CredentialConfiguration<K, L> {
     /// Create a new [`CredentialConfiguration`] and decode and validate the type metadata documents.
-    pub fn try_new(
+    fn try_new(
+        config_id: CredentialConfigurationId,
         CredentialConfigurationParameters {
             format,
             attestation_type,
@@ -91,12 +98,17 @@ impl<K, L> CredentialConfiguration<K, L> {
             attestation_qualification,
             metadata_documents,
         }: CredentialConfigurationParameters<K, L>,
-    ) -> Result<Self, TypeMetadataChainError> {
-        let metadata = CredentialConfigurationMetadata::try_new(&attestation_type, metadata_documents)?;
+    ) -> Result<Self, CredentialConfigurationsError> {
+        // Use the Credential Configuration ID as the scope value.
+        let scope = Scope::try_new(String::from(config_id)).map_err(CredentialConfigurationsError::Scope)?;
+
+        let metadata = CredentialConfigurationMetadata::try_new(&attestation_type, metadata_documents)
+            .map_err(CredentialConfigurationsError::TypeMetadata)?;
 
         let config = Self {
             format,
             attestation_type,
+            scope,
             status_list,
             key_pair,
             valid_days,
@@ -163,8 +175,7 @@ impl<K, L> CredentialConfigurations<K, L> {
                     .or_default()
                     .push(config_id.clone());
 
-                let config =
-                    CredentialConfiguration::try_new(params).map_err(CredentialConfigurationsError::TypeMetadata)?;
+                let config = CredentialConfiguration::try_new(config_id.clone(), params)?;
 
                 Ok((config_id, config))
             })
@@ -230,6 +241,9 @@ impl<K, L> CredentialConfigurations<K, L> {
         self.configs_by_id
             .iter()
             .map(|(config_id, config)| {
+                let attestation_type = config.attestation_type.clone();
+                let scope = config.scope.clone();
+
                 // TODO (PVW-5548): Add "attestation" proof type.
                 let proof_types = vec![ProofType::Jwt];
                 let display = config.metadata.normalized.display().to_vec();
@@ -238,14 +252,16 @@ impl<K, L> CredentialConfigurations<K, L> {
 
                 let credential_configuration = match config.format {
                     Format::MsoMdoc => issuer_metadata::CredentialConfiguration::new_mdoc_ecdsa_p256_sha256(
-                        config.attestation_type.clone(),
+                        attestation_type,
+                        Some(scope),
                         proof_types,
                         display,
                         claims,
                         type_metadata_uri,
                     ),
                     Format::SdJwt => issuer_metadata::CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
-                        config.attestation_type.clone(),
+                        attestation_type,
+                        Some(scope),
                         proof_types,
                         display,
                         claims,
@@ -420,6 +436,20 @@ mod tests {
             .expect_err("creating credential configurations from parameters should fail");
 
         assert_matches!(error, CredentialConfigurationsError::TypeMetadata(_));
+    }
+
+    #[test]
+    fn test_credential_configurations_try_new_error_scope() {
+        let mut params = credential_configuration_parameters();
+
+        // Change one of the Credential Configuration IDs to an empty string.
+        let config = params.remove(&"degree_mso_mdoc".to_string().into()).unwrap();
+        params.insert("".to_string().into(), config);
+
+        let error = CredentialConfigurations::try_new(params)
+            .expect_err("creating credential configurations from parameters should fail");
+
+        assert_matches!(error, CredentialConfigurationsError::Scope(_));
     }
 
     #[test]
