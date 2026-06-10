@@ -111,7 +111,6 @@ The TAS contains the following particularly important data elements:
 | `description` | string | Description of this verifiable credential           |
 | `display`     | array  | Array of display objects, one per language          |
 | `claims`      | array  | Array of claim objects                              |
-| `schema`      | object | A v2020-12 JSON Schema object defining the claims   |
 
 Claims have the following elements:
 
