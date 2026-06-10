@@ -132,6 +132,16 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         redirect_uri: Url,
         issuer_state: Option<String>,
     ) -> Result<Self, WalletIssuanceError> {
+        let par_endpoint = oauth_metadata
+            .pushed_authorization_request_endpoint
+            .as_ref()
+            .ok_or(OAuthError::NoPushedAuthorizationEndpoint)?;
+
+        let auth_url = oauth_metadata
+            .authorization_endpoint
+            .as_ref()
+            .ok_or(OAuthError::NoAuthorizationEndpoint)?;
+
         let pkce_pair = P::generate();
         let state = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
 
@@ -143,11 +153,6 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             None,
             &pkce_pair,
         );
-
-        let par_endpoint = oauth_metadata
-            .pushed_authorization_request_endpoint
-            .as_ref()
-            .ok_or(OAuthError::NoPushedAuthorizationEndpoint)?;
 
         let response = http_client
             .post(par_endpoint.as_str(), |builder| builder.form(&par_request))
@@ -167,11 +172,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             return Err(OAuthError::PushedAuthorizationRequest(Box::new(error)).into());
         };
 
-        let mut auth_url = oauth_metadata
-            .authorization_endpoint
-            .clone()
-            .ok_or(OAuthError::NoAuthorizationEndpoint)?;
-
+        let mut auth_url = auth_url.clone();
         auth_url
             .query_pairs_mut()
             .append_pair("client_id", &client_id)
