@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fmt;
 use std::fmt::Debug;
 use std::fmt::Formatter;
@@ -225,9 +226,19 @@ where
 ///
 /// Note: only works for N=1 since for N > 1 we cannot maintain the guarantee that
 /// the vec is at least N because of the deduplication.
-impl<T: Clone + Eq + Hash> From<VecNonEmpty<T>> for VecNonEmptyUnique<T> {
+impl<T: Eq + Hash> From<VecNonEmpty<T>> for VecNonEmptyUnique<T> {
     fn from(value: VecNonEmpty<T>) -> Self {
-        Self(value.0.into_iter().unique().collect())
+        let mut seen = HashSet::with_capacity(value.len().get());
+        let mask = value.iter().map(|item| seen.insert(item)).collect_vec();
+
+        Self(
+            value
+                .0
+                .into_iter()
+                .zip(mask)
+                .filter_map(|(item, keep)| keep.then_some(item))
+                .collect(),
+        )
     }
 }
 
@@ -381,7 +392,7 @@ impl<T> FromNonEmptyIterator<T> for VecNonEmpty<T> {
     }
 }
 
-impl<T: Clone + Eq + Hash> FromNonEmptyIterator<T> for VecNonEmptyUnique<T> {
+impl<T: Eq + Hash> FromNonEmptyIterator<T> for VecNonEmptyUnique<T> {
     fn from_nonempty_iter<I>(iter: I) -> Self
     where
         I: IntoNonEmptyIterator<Item = T>,
@@ -500,7 +511,7 @@ mod tests {
 
     #[test]
     fn test_vec_non_empty_to_vec_non_empty_unique() {
-        let vec = vec_nonempty![1, 2, 2, 3];
+        let vec = vec_nonempty![1, 2, 2, 3, 3];
         let vec_unique: VecNonEmptyUnique<_> = vec.into();
         assert_eq!(vec_unique.0, vec![1, 2, 3]);
     }
