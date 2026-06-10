@@ -85,6 +85,7 @@ use crate::token::AuthorizationCode;
 use crate::token::CredentialPreview;
 use crate::token::CredentialPreviewContent;
 use crate::token::TokenRequest;
+use crate::token::TokenRequestGrantType;
 use crate::token::TokenResponse;
 
 /// The cleanup task that removes stale sessions runs every so often.
@@ -121,8 +122,8 @@ pub enum TokenRequestError {
 
     #[error("unexpected grant type for this session: expected {expected}, got {actual}")]
     UnexpectedGrantType {
-        expected: &'static str,
-        actual: &'static str,
+        expected: Grant,
+        actual: TokenRequestGrantType,
     },
 
     #[error("session not found for the supplied code")]
@@ -241,7 +242,7 @@ pub struct AuthCodeIssued {
     pub grant: Grant,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, strum::Display)]
 pub enum Grant {
     PreAuthorizedCode,
     AuthorizationCode { wallet_code_challenge: String },
@@ -852,6 +853,18 @@ type ProcessTokenRequest =
     Result<(TokenResponse, String, Session<AccessTokenIssued>), Box<(TokenRequestError, Session<Done>)>>;
 
 impl Grant {
+    /// Verify that the `grant_type` of the token request matches the grant captured for this session.
+    fn verify_grant_type(&self, token_request: &TokenRequest) -> Result<(), TokenRequestError> {
+        match (self, &token_request.grant_type) {
+            (Grant::PreAuthorizedCode, TokenRequestGrantType::PreAuthorizedCode { .. })
+            | (Grant::AuthorizationCode { .. }, TokenRequestGrantType::AuthorizationCode { .. }) => Ok(()),
+            _ => Err(TokenRequestError::UnexpectedGrantType {
+                expected: self.clone(),
+                actual: token_request.grant_type.clone(),
+            }),
+        }
+    }
+
     /// Verify the wallet's PKCE `code_verifier` (RFC 7636). `PreAuthorizedCode` carries no PKCE and
     /// passes unconditionally; `AuthorizationCode` requires a `code_verifier` whose S256 challenge
     /// matches the one captured at `/authorize`.
@@ -880,18 +893,38 @@ impl Session<AuthCodeIssued> {
         credential_configurations: &CredentialConfigurations<K, L>,
         batch_size: NonZeroU8,
     ) -> ProcessTokenRequest {
-        let result = self.session_data().grant.verify_pkce(token_request).and_then(|()| {
-            build_token_response(
-                token_request,
-                dpop,
-                server_url,
-                credential_configurations,
-                batch_size,
-                self.session_data().issuable_documents.clone(),
-            )
-        });
+        let result = self.validate_and_build_token_response(
+            token_request,
+            dpop,
+            server_url,
+            credential_configurations,
+            batch_size,
+        );
 
         self.finalize_token_response(accepted_wallet_client_ids, result)
+    }
+
+    fn validate_and_build_token_response<K, L>(
+        &self,
+        token_request: &TokenRequest,
+        dpop: Dpop,
+        server_url: &BaseUrl,
+        credential_configurations: &CredentialConfigurations<K, L>,
+        batch_size: NonZeroU8,
+    ) -> Result<(TokenResponse, VecNonEmpty<CredentialPreviewState>, VerifyingKey, String), TokenRequestError> {
+        let session_data = self.session_data();
+
+        session_data.grant.verify_grant_type(token_request)?;
+        session_data.grant.verify_pkce(token_request)?;
+
+        build_token_response(
+            token_request,
+            dpop,
+            server_url,
+            credential_configurations,
+            batch_size,
+            session_data.issuable_documents.clone(),
+        )
     }
 
     /// Apply the state transition on a `Session<AuthCodeIssued>` based on the result of

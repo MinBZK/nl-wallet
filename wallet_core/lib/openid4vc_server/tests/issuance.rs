@@ -691,3 +691,47 @@ async fn token_rejects_unknown_code_verifier() {
     let body = response.text().await.unwrap();
     assert!(body.contains("invalid_grant"), "unexpected body: {body}");
 }
+
+#[tokio::test]
+async fn token_rejects_grant_type_mismatch() {
+    let AuthCodeFlowServer {
+        authorizing_issuer,
+        issuer_identifier,
+        tls_trust_anchor,
+        ..
+    } = start_auth_code_flow_server(NonZeroUsize::MIN).await;
+
+    // Plant an authorization-code session, then try to redeem its code using the pre-authorized-code
+    // grant. The code is placed in the `pre-authorized_code` field so the session is still found, and
+    // the grant-type mismatch is what the handler must reject.
+    let code = plant_authorized_session(&authorizing_issuer).await;
+
+    let http_client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .build()
+        .unwrap();
+
+    let token_url: Url = format!("{}issuance/token", issuer_identifier.as_base_url().as_ref().as_str())
+        .parse()
+        .unwrap();
+
+    let token_request = TokenRequest {
+        grant_type: TokenRequestGrantType::PreAuthorizedCode {
+            pre_authorized_code: code,
+        },
+        code_verifier: None,
+        client_id: None,
+        redirect_uri: None,
+    };
+
+    let response = http_client
+        .post(token_url.clone())
+        .header(DPOP_HEADER_NAME, dpop_header_for(&token_url))
+        .form(&token_request)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    let body = response.text().await.unwrap();
+    assert!(body.contains("unsupported_grant_type"), "unexpected body: {body}");
+}
