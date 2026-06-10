@@ -50,6 +50,8 @@
                                 {{ base.trans.job_index }}
                             {% when "housing" %}
                                 {{ base.trans.housing_index }}
+                            {% when "loyalty" %}
+                                {{ base.trans.loyalty_index }}
                             {% else %}
                                 {{ usecase_id }}
                         {% endmatch %}

@@ -112,7 +112,7 @@
 
 | Name        | Description                                                        | Value |
 | ----------- | ------------------------------------------------------------------ | ----- |
-| `batchSize` | The maximum amount of credentials a holder will be able to request | 4     |
+| `batchSize` | The maximum amount of credentials a holder will be able to request | `4`   |
 
 ### Urls
 

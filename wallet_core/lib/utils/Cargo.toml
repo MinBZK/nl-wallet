@@ -18,6 +18,7 @@ derive_more = { workspace = true, features = ["as_ref", "from", "index", "into",
 itertools.workspace = true
 nonempty-collections.workspace = true
 nutype = { workspace = true, features = ["serde"] }
+rand.workspace = true
 semver.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64", "chrono"] }

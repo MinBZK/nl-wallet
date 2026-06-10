@@ -158,57 +158,12 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          DefaultTextAndFocusStyle(
-            statesController: _statesController,
-            textStyle: context.textTheme.titleMedium,
-            pressedOrFocusedColor: textPressedColor,
-            child: Text.rich(
-              context.l10n
-                  .sharedAttributesCardTitle(
-                    card.title.l10nValue(context),
-                    (widget.attributes ?? card.attributes).length,
-                  )
-                  .toTextSpan(context),
-            ),
-          ),
+          _buildTitle(context, textPressedColor),
           const SizedBox(height: 8),
-          DefaultTextAndFocusStyle(
-            statesController: _statesController,
-            textStyle: context.textTheme.bodyLarge,
-            pressedOrFocusedColor: textPressedColor,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: _buildAttributeList(context),
-            ),
-          ),
+          _buildAttributes(context, textPressedColor),
           if (widget.showCta) ...[
             const SizedBox(height: 16),
-            Focus(
-              // Prevents the button from being focused to avoid duplicate focus handling with the parent TextButton
-              canRequestFocus: false,
-              descendantsAreFocusable: false,
-              child: TextButton.icon(
-                onPressed: widget.onPressed,
-                statesController: _statesController,
-                icon: const Icon(Icons.arrow_forward),
-                iconAlignment: IconAlignment.end,
-                label: Semantics(
-                  button: true,
-                  attributedLabel: context.l10n
-                      .sharedAttributesCardCtaSemanticsLabel(card.title.l10nValue(context))
-                      .toAttributedString(context),
-                  excludeSemantics: true /* exclude semantics from child text */,
-                  child: Text.rich(context.l10n.sharedAttributesCardCta.toTextSpan(context)),
-                ),
-                style: context.theme.textButtonTheme.style?.copyWith(
-                  backgroundColor: WidgetStateProperty.all(Colors.transparent),
-                  minimumSize: const WidgetStatePropertyAll(Size.zero),
-                  padding: const WidgetStatePropertyAll(EdgeInsets.zero),
-                  side: WidgetStateBorderSide.resolveWith((states) => BorderSide.none),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ),
-            ),
+            _buildViewCta(context),
             const SizedBox(height: 4),
           ],
         ],
@@ -225,6 +180,63 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
               _buildStatusFooter(context, statusMetadata),
             ],
           );
+  }
+
+  Widget _buildTitle(BuildContext context, Color? textPressedColor) {
+    return DefaultTextAndFocusStyle(
+      statesController: _statesController,
+      textStyle: context.textTheme.titleMedium,
+      pressedOrFocusedColor: textPressedColor,
+      child: Text.rich(
+        context.l10n
+            .sharedAttributesCardTitle(
+              widget.card.title.l10nValue(context),
+              (widget.attributes ?? widget.card.attributes).length,
+            )
+            .toTextSpan(context),
+      ),
+    );
+  }
+
+  Widget _buildAttributes(BuildContext context, Color? textPressedColor) {
+    return DefaultTextAndFocusStyle(
+      statesController: _statesController,
+      textStyle: context.textTheme.bodyLarge,
+      pressedOrFocusedColor: textPressedColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: _buildAttributeList(context),
+      ),
+    );
+  }
+
+  Widget _buildViewCta(BuildContext context) {
+    return Focus(
+      // Prevents the button from being focused to avoid duplicate focus handling with the parent TextButton
+      canRequestFocus: false,
+      descendantsAreFocusable: false,
+      child: TextButton.icon(
+        onPressed: widget.onPressed,
+        statesController: _statesController,
+        icon: const Icon(Icons.arrow_forward),
+        iconAlignment: IconAlignment.end,
+        label: Semantics(
+          button: true,
+          attributedLabel: context.l10n
+              .sharedAttributesCardCtaSemanticsLabel(widget.card.title.l10nValue(context))
+              .toAttributedString(context),
+          excludeSemantics: true /* exclude semantics from child text */,
+          child: Text.rich(context.l10n.sharedAttributesCardCta.toTextSpan(context)),
+        ),
+        style: context.theme.textButtonTheme.style?.copyWith(
+          backgroundColor: WidgetStateProperty.all(Colors.transparent),
+          minimumSize: const WidgetStatePropertyAll(Size.zero),
+          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+          side: WidgetStateBorderSide.resolveWith((states) => BorderSide.none),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ),
+    );
   }
 
   /// Builds the header section of the card, displaying a localized background

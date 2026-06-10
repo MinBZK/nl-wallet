@@ -18,11 +18,14 @@ axum = { workspace = true, features = ["json"] }
 axum-server.workspace = true
 config = { workspace = true, features = ["json"] }
 derive_more.workspace = true
+indexmap.workspace = true
 itertools.workspace = true
+rand.workspace = true
+reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["derive"] }
 serde_valid.workspace = true
 serde_with.workspace = true
-serde_urlencoded.workspace = true
+serde_qs.workspace = true
 strum.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net"] }
 tower.workspace = true
@@ -36,6 +39,7 @@ attestation_types.path = "../../lib/attestation_types"
 demo_utils.path = "../demo_utils"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 openid4vc.path = "../../lib/openid4vc"
+pacf_issuance_server.path = "../../wallet_server/pacf_issuance_server"
 server_utils.path = "../../wallet_server/server_utils"
 utils.path = "../../lib/utils"
 web_utils.path = "../../lib/web_utils"

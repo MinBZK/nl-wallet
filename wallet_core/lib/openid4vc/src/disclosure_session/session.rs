@@ -7,7 +7,6 @@ use crypto::CredentialEcdsaKey;
 use crypto::utils::random_string;
 use crypto::wscd::DisclosureWscd;
 use dcql::normalized::NormalizedCredentialRequests;
-use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use jwe::algorithm::EncryptionAlgorithm;
 use mdoc::iso::disclosure::DeviceResponse;
@@ -15,6 +14,7 @@ use sd_jwt::key_binding_jwt::KeyBindingJwtBuilder;
 use sd_jwt::sd_jwt::UnsignedSdJwtPresentation;
 use tracing::info;
 use tracing::warn;
+use url::Url;
 use utils::generator::Generator;
 use wscd::Poa;
 use wscd::poa::JwtPoaInput;
@@ -75,7 +75,7 @@ where
         &self.verifier_certificate
     }
 
-    async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError> {
+    async fn terminate(self) -> Result<Option<Url>, VpSessionError> {
         let return_url = self
             .client
             .terminate(self.auth_request.response_uri.clone(), self.auth_request.state.clone())
@@ -89,7 +89,7 @@ where
         attestations: NonEmptyDisclosableAttestations,
         wscd: &W,
         time: &impl Generator<DateTime<Utc>>,
-    ) -> Result<Option<BaseUrl>, (Box<Self>, DisclosureError<VpSessionError>)>
+    ) -> Result<Option<Url>, (Box<Self>, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         W: DisclosureWscd<Key = K, Poa = Poa>,
@@ -297,6 +297,7 @@ mod tests {
     use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
     use serde::de::Error;
+    use url::Url;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use wscd::mock_remote::MockRemoteWscd;
@@ -324,7 +325,7 @@ mod tests {
 
     /// Creates a `VpDisclosureSession` that has already been started, along with a `MockVerifierSession`.
     fn setup_disclosure_session(
-        redirect_uri: Option<BaseUrl>,
+        redirect_uri: Option<Url>,
         credential_requests: NormalizedCredentialRequests,
     ) -> (
         VpDisclosureSession<MockVerifierVpMessageClient>,
@@ -444,7 +445,7 @@ mod tests {
     /// thorough test see `test_vp_disclosure_client_full()` in the `client` submodule.
     #[rstest]
     fn test_disclosure_session_disclose_abridged(
-        #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<BaseUrl>,
+        #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<Url>,
         #[values(Format::MsoMdoc, Format::SdJwt)] credential_format: Format,
     ) {
         let (requests, attestations, wscd) = match credential_format {
@@ -568,7 +569,7 @@ mod tests {
 
     #[rstest]
     fn test_disclosure_session_terminate(
-        #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<BaseUrl>,
+        #[values(None, Some("http://example.com/redirect".parse().unwrap()))] redirect_uri: Option<Url>,
     ) {
         let (mut disclosure_session, verifier_session) = setup_disclosure_session(
             redirect_uri.clone(),

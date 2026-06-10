@@ -47,7 +47,7 @@ pub enum Error {
     UserInfo(#[source] UserInfoError),
 
     #[error("encoding authorization request as query string failed: {0}")]
-    Encode(#[source] serde_urlencoded::ser::Error),
+    Encode(#[source] serde_qs::Error),
 }
 
 /// Holds the TLS-pinned HTTP client, upstream issuer identifier, and a lazy cache of the upstream's OIDC discovery
@@ -155,7 +155,7 @@ impl DigidClient for HttpDigidClient {
             nonce: Some(Nonce::new_random()),
         };
 
-        let query_string = serde_urlencoded::to_string(&oidc_request).map_err(Error::Encode)?;
+        let query_string = serde_qs::to_string(&oidc_request).map_err(Error::Encode)?;
         let mut redirect_url = self.authorization_endpoint().await?;
         redirect_url.set_query(Some(&query_string));
 

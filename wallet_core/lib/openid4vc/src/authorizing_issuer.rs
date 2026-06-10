@@ -78,7 +78,7 @@ pub enum AuthorizeError {
     AuthorizationCodeFlow(#[source] Box<dyn Error + Send + Sync + 'static>),
 
     #[error("encoding authorization request as query string failed: {0}")]
-    EncodeRedirectQuery(#[source] serde_urlencoded::ser::Error),
+    EncodeRedirectQuery(#[source] serde_qs::Error),
 }
 
 /// Errors that can occur while writing the auth-code-grant session and building the
@@ -89,7 +89,7 @@ pub enum CompleteAuthorizationError {
     SessionStore(#[source] SessionStoreError),
 
     #[error("encoding wallet redirect query string failed: {0}")]
-    EncodeRedirectQuery(#[source] serde_urlencoded::ser::Error),
+    EncodeRedirectQuery(#[source] serde_qs::Error),
 }
 
 /// Authorization Phase wrapper around an Issuance Phase [`Issuer`].
@@ -289,7 +289,7 @@ pub struct WalletRedirect {
 }
 
 impl WalletRedirect {
-    pub fn into_authorization_code_url(self, code: &AuthorizationCode) -> Result<Url, serde_urlencoded::ser::Error> {
+    pub fn into_authorization_code_url(self, code: &AuthorizationCode) -> Result<Url, serde_qs::Error> {
         #[derive(Serialize)]
         struct RedirectQuery<'a> {
             code: &'a str,
@@ -302,7 +302,7 @@ impl WalletRedirect {
             state,
         } = self;
 
-        let query = serde_urlencoded::to_string(RedirectQuery {
+        let query = serde_qs::to_string(&RedirectQuery {
             code: code.as_ref(),
             state: state.as_deref(),
         })?;
@@ -326,7 +326,7 @@ impl WalletRedirect {
         } = self;
         let error_description = error_description.to_string();
 
-        let query = serde_urlencoded::to_string(RedirectErrorQuery {
+        let query = serde_qs::to_string(&RedirectErrorQuery {
             error,
             error_description: &error_description,
             state: state.as_deref(),

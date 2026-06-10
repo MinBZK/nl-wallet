@@ -16,11 +16,11 @@ use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::authorization_code_flow::WalletAuthorizationContext;
 use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::credential_offer::CredentialOfferContainer;
-use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer_identifier::IssuerIdentifier;
+use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::test::AlwaysAuthorizingFlow;
@@ -35,6 +35,7 @@ use openid4vc::test::mock_type_metadata_with_required_attr;
 use openid4vc::test::setup_mock_authorizing_issuer_from_type_metadata;
 use openid4vc::test::setup_mock_issuer;
 use openid4vc::token::AuthorizationCode;
+use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::wallet_issuance::AuthorizationSession;
@@ -46,7 +47,7 @@ use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredential;
 use openid4vc::wallet_issuance::discovery::HttpIssuanceDiscovery;
 use openid4vc::wallet_issuance::issuance_session::HttpIssuanceSession;
-use openid4vc::wallet_issuance::preview::NormalizedCredentialPreview;
+use openid4vc::wallet_issuance::issuance_session::IssuanceTypeMetadata;
 use openid4vc_server::issuer::create_authorization_router;
 use openid4vc_server::issuer::create_issuance_router;
 use p256::ecdsa::SigningKey;
@@ -201,18 +202,14 @@ fn make_credential_offer_url(
             CredentialOffer::new_pre_authorized(issuer_identifier, config_ids, pre_authorized_code)
         }
     };
-    let offer_container = CredentialOfferContainer::new_offer(credential_offer);
-    let query = serde_urlencoded::to_string(&offer_container).unwrap();
 
-    let mut url = Url::parse(&format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://")).unwrap();
-    url.set_query(Some(&query));
-
-    url
+    CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url()
 }
 
 fn verify_issued_credentials(
     issued_creds: Vec<CredentialWithMetadata>,
-    normalized_credential_previews: Iter<NormalizedCredentialPreview>,
+    credential_previews: Iter<CredentialPreview>,
+    type_metadata: &HashMap<CredentialConfigurationId, IssuanceTypeMetadata>,
     expected_attestations: usize,
     expected_copies: usize,
 ) {
@@ -224,8 +221,12 @@ fn verify_issued_credentials(
 
     issued_creds
         .into_iter()
-        .zip(normalized_credential_previews)
+        .zip(credential_previews)
         .for_each(|(credential, preview_data)| {
+            let normalized_metadata = &type_metadata
+                .get(&preview_data.config_id)
+                .expect("credential type metadata is missing")
+                .normalized_metadata;
             credential
                 .copies
                 .into_inner()
@@ -235,9 +236,8 @@ fn verify_issued_credentials(
                         panic!("mdoc should not be issued");
                     }
                     IssuedCredential::SdJwt { sd_jwt, .. } => {
-                        let payload =
-                            CredentialPayload::from_sd_jwt(sd_jwt, &preview_data.normalized_metadata).unwrap();
-                        assert_eq!(payload.previewable_payload, preview_data.content.credential_payload);
+                        let payload = CredentialPayload::from_sd_jwt(sd_jwt, normalized_metadata).unwrap();
+                        assert_eq!(payload.previewable_payload, preview_data.credential_payload);
                     }
                 })
         });
@@ -331,7 +331,7 @@ async fn authorization_code_flow(
     let server = start_auth_code_flow_server(attestation_count).await;
     let mut session = start_issuance_session(&server, attestation_count).await;
 
-    assert_eq!(session.normalized_credential_preview().len(), attestation_count.get());
+    assert_eq!(session.credential_previews().len(), attestation_count.get());
 
     let wscd = MockRemoteWscd::new_with_wia_keypair(server.wia_keypair);
     let issued_creds = session
@@ -342,7 +342,8 @@ async fn authorization_code_flow(
     let copy_count = 4;
     verify_issued_credentials(
         issued_creds,
-        session.normalized_credential_preview().iter(),
+        session.credential_previews().iter(),
+        session.type_metadata(),
         attestation_count.get(),
         copy_count,
     );
@@ -364,9 +365,9 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
 
     let mut session = start_issuance_session(&server, NonZeroUsize::MIN).await;
 
-    let previews = session.normalized_credential_preview();
+    let previews = session.credential_previews();
     assert_eq!(previews.len(), 1);
-    let attributes = previews[0].content.credential_payload.attributes.as_ref();
+    let attributes = previews[0].credential_payload.attributes.as_ref();
     assert!(attributes.get(required_attr).is_some());
     assert!(attributes.get(optional_attr).is_none());
 
@@ -376,7 +377,13 @@ async fn ltc1_issuance_allows_missing_optional_attribute() {
         .await
         .expect("issuance of a document missing only an optional attribute should succeed");
 
-    verify_issued_credentials(issued_creds, session.normalized_credential_preview().iter(), 1, 4);
+    verify_issued_credentials(
+        issued_creds,
+        session.credential_previews().iter(),
+        session.type_metadata(),
+        1,
+        4,
+    );
 }
 
 /// Issuing a document that lacks an attribute the type-metadata schema marks as required fails at
@@ -457,7 +464,8 @@ async fn pre_authorized_code_flow(
 
     verify_issued_credentials(
         issued_creds,
-        session.normalized_credential_preview().iter(),
+        session.credential_previews().iter(),
+        session.type_metadata(),
         attestation_count.get(),
         copy_count,
     );

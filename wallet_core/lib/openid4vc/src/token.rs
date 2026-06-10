@@ -17,7 +17,6 @@ use derive_more::From;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
 use indexmap::IndexSet;
-use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::DurationSeconds;
@@ -31,6 +30,7 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::authorization::AuthorizationDetails;
+use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::server_state::SessionToken;
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
@@ -151,7 +151,9 @@ impl TokenResponse {
 
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CredentialPreviewContent {
+pub struct CredentialPreview {
+    pub config_id: CredentialConfigurationId,
+
     pub format: Format,
 
     // TODO (PVW-5634): Use the `batch_credential_issuance` field in the issuer metadata instead.
@@ -163,20 +165,8 @@ pub struct CredentialPreviewContent {
     pub issuer_certificate: BorrowingCertificate,
 }
 
-#[serde_as]
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct CredentialPreview {
-    #[serde(flatten)]
-    pub content: CredentialPreviewContent,
-
-    #[debug(skip)]
-    pub type_metadata: TypeMetadataDocuments,
-}
-
 impl CredentialPreview {
     pub fn verify(&self, trust_anchors: &TrustAnchors) -> Result<(), CredentialPreviewError> {
-        let Self { content, .. } = self;
-
         // Verify the issuer certificates that the issuer presents for each credential to be issued.
         // NB: this only proves the authenticity of the data inside the certificates (the
         // [`IssuerRegistration`]s), but does not authenticate the issuer that presents them.
@@ -186,20 +176,19 @@ impl CredentialPreview {
         // protocol each mdoc is verified against the corresponding certificate in the
         // credential preview, which implicitly authenticates the issuer because only it could
         // have produced an mdoc against that certificate.
-        content
-            .issuer_certificate
+        self.issuer_certificate
             .verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)?;
 
         // Verify that the issuer_uri is among the SAN DNS names or URIs in the issuer_certificate
-        if !content
+        if !self
             .issuer_certificate
             .san_dns_name_or_uris()?
             .as_ref()
-            .contains(&content.credential_payload.issuer)
+            .contains(&self.credential_payload.issuer)
         {
             return Err(CredentialPreviewError::IssuerUriNotFoundInSan(
-                content.credential_payload.issuer.clone(),
-                content.issuer_certificate.san_dns_name_or_uris()?,
+                self.credential_payload.issuer.clone(),
+                self.issuer_certificate.san_dns_name_or_uris()?,
             ));
         }
 
@@ -207,7 +196,7 @@ impl CredentialPreview {
     }
 
     pub fn issuer_registration(&self) -> Result<IssuerRegistration, CredentialPreviewError> {
-        let CertificateType::Mdl(issuer) = CertificateType::from_certificate(&self.content.issuer_certificate)? else {
+        let CertificateType::Mdl(issuer) = CertificateType::from_certificate(&self.issuer_certificate)? else {
             Err(CredentialPreviewError::NoIssuerCertificate)?
         };
         Ok(issuer)
@@ -253,7 +242,7 @@ mod tests {
     fn token_request_serialization() {
         #[rustfmt::skip]
         assert_eq!(
-            serde_urlencoded::to_string(TokenRequest {
+            serde_qs::to_string(&TokenRequest {
                 grant_type: TokenRequestGrantType::PreAuthorizedCode {
                     pre_authorized_code: "123".to_string().into()
                 },

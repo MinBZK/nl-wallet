@@ -397,6 +397,7 @@ mod tests {
     use rstest::rstest;
     use scraper::Html;
     use scraper::Selector;
+    use serde_json::json;
     use tower::Service;
     use tower::ServiceExt;
     use web_utils::language::Language;
@@ -404,6 +405,9 @@ mod tests {
     use super::*;
     use crate::revocation_client::tests::MockRevocationClient;
     use crate::translations::TRANSLATIONS;
+
+    static SERDE_QS_FORM_ENCODING: LazyLock<serde_qs::Config> =
+        LazyLock::new(|| serde_qs::Config::new().use_form_encoding(true));
 
     async fn get_csrf_and_cookie(app: &mut Router) -> (String, String) {
         let response = app
@@ -456,8 +460,11 @@ mod tests {
     async fn post_delete_with_lang(app: &mut Router, deletion_code: &str, lang: &str) -> Response {
         let (token, cookie) = get_csrf_and_cookie(app).await;
 
-        let form = [("deletion_code", deletion_code), ("csrf_token", &token)];
-        let body = serde_urlencoded::to_string(form).unwrap();
+        let form = json!({
+            "deletion_code": deletion_code,
+            "csrf_token": &token,
+        });
+        let body = SERDE_QS_FORM_ENCODING.serialize_string(&form).unwrap();
 
         post_delete(app, format!("/support/delete?lang={lang}"), cookie, body).await
     }
@@ -515,8 +522,11 @@ mod tests {
 
         let (token, cookie) = get_csrf_and_cookie(&mut router_a).await;
 
-        let form = [("deletion_code", "C20C-KF0R-D32B-A5E3-2X"), ("csrf_token", &token)];
-        let body = serde_urlencoded::to_string(form).unwrap();
+        let form = json!({
+            "deletion_code": "C20C-KF0R-D32B-A5E3-2X",
+            "csrf_token": &token,
+        });
+        let body = SERDE_QS_FORM_ENCODING.serialize_string(&form).unwrap();
 
         let response = post_delete(&mut router_b, "/support/delete", cookie, body).await;
         assert_eq!(response.status(), StatusCode::SEE_OTHER);
@@ -568,8 +578,10 @@ mod tests {
 
         let (_token, cookie) = get_csrf_and_cookie(&mut app).await;
 
-        let form = [("deletion_code", "C20C-KF0R-D32B-A5E3-2X")];
-        let body = serde_urlencoded::to_string(form).unwrap();
+        let form = json!({
+            "deletion_code": "C20C-KF0R-D32B-A5E3-2X",
+        });
+        let body = SERDE_QS_FORM_ENCODING.serialize_string(&form).unwrap();
 
         let response = post_delete(&mut app, "/support/delete?lang=nl", cookie, body).await;
 
@@ -583,8 +595,11 @@ mod tests {
 
         let (token, _cookie) = get_csrf_and_cookie(&mut app).await;
 
-        let form = [("deletion_code", "C20C-KF0R-D32B-A5E3-2X"), ("csrf_token", &token)];
-        let body = serde_urlencoded::to_string(form).unwrap();
+        let form = json!({
+            "deletion_code": "C20C-KF0R-D32B-A5E3-2X",
+            "csrf_token": &token,
+        });
+        let body = SERDE_QS_FORM_ENCODING.serialize_string(&form).unwrap();
 
         let response = app
             .oneshot(
@@ -614,11 +629,11 @@ mod tests {
 
         let (_token, cookie) = get_csrf_and_cookie(&mut app).await;
 
-        let form = [
-            ("deletion_code", "C20C-KF0R-D32B-A5E3-2X"),
-            ("csrf_token", "this_csrf_is_wrong"),
-        ];
-        let body = serde_urlencoded::to_string(form).unwrap();
+        let form = json!({
+            "deletion_code": "C20C-KF0R-D32B-A5E3-2X",
+            "csrf_token": "this_csrf_is_wrong",
+        });
+        let body = SERDE_QS_FORM_ENCODING.serialize_string(&form).unwrap();
 
         let response = app
             .oneshot(

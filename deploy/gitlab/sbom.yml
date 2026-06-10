@@ -19,7 +19,6 @@ build-sbom:
     - bundle install
     - cd wallet_app
     - flutter pub get --enforce-lockfile
-    - flutter precache --ios
     - cd ios
     - bundle exec pod install --allow-root --deployment
     - cyclonedx-cocoapods # only supports single spec version (currently 1.6)

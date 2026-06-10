@@ -1,5 +1,6 @@
 {
   "issuance_server_url": "http://${SERVICES_HOST}:${ISSUANCE_SERVER_PORT}",
+  "pacf_issuance_server_url": "http://${SERVICES_HOST}:${PACF_ISSUANCE_SERVER_IS_PORT}",
   "help_base_url": "https://example.com/",
   "webserver": {
     "ip": "0.0.0.0",
@@ -14,6 +15,18 @@
     "key": "${DEMO_ISSUER_ATTESTATION_SERVER_KEY}"
   },
   "usecases": {
+    "loyalty": {
+      "data": [
+        {
+          "format": "mso_mdoc",
+          "attestation_type": "com.example.jum.bonuskaart",
+          "attributes": {
+            "branch": "Demodam",
+            "loyalty_number": "{{INSERT_RANDOM_VALUE}}"
+          }
+        }
+      ]
+    },
     "university_mdoc": {
       "client_id": "${DEMO_ISSUER_CLIENT_ID_UNIVERSITY_READER}",
       "data": {

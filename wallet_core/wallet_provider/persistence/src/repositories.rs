@@ -497,11 +497,6 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn list_wia_ids(&self, transaction: &Self::TransactionType) -> Result<Vec<Uuid>, PersistenceError> {
-        wallet_user_wia::list_wia_ids(transaction).await
-    }
-
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn revoke_wallet_users(
         &self,
         transaction: &Self::TransactionType,
@@ -845,11 +840,6 @@ pub mod mock {
                 wallet_user_id: Uuid,
                 wia_id: Uuid,
             ) -> Result<(), PersistenceError>;
-
-            async fn list_wia_ids(
-                &self,
-                transaction: &MockTransaction,
-            ) -> Result<Vec<Uuid>, PersistenceError>;
 
             async fn revoke_wallet_users(
                 &self,
@@ -1284,13 +1274,6 @@ pub mod mock {
             _wallet_user_id: Uuid,
         ) -> Result<(), PersistenceError> {
             Ok(())
-        }
-
-        async fn list_wia_ids(&self, _transaction: &Self::TransactionType) -> Result<Vec<Uuid>, PersistenceError> {
-            Ok(vec![
-                uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08"),
-                uuid!("a123f36e-ffbd-402f-b6f3-418cf4c49e09"),
-            ])
         }
 
         async fn revoke_wallet_users(

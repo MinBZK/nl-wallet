@@ -166,12 +166,12 @@
 
 ### WIA status list parameters
 
-| Name                            | Description                                          | Value |
-| ------------------------------- | ---------------------------------------------------- | ----- |
-| `wiaStatusList.baseUrl`         | WIA status list base url                             | `nil` |
-| `wiaStatusList.certificate`     | WIA status list certificate                          | `nil` |
-| `wiaStatusList.volumeClaimName` | Name of PVC where the WIA status lists are published | `nil` |
-| `wiaStatusList.volumeClaimPath` | Path in PVC where the WIA status lists are published | `nil` |
+| Name                            | Description                                              | Value |
+| ------------------------------- | -------------------------------------------------------- | ----- |
+| `wiaStatusList.baseUrl`         | WIA status list base url                                 | `nil` |
+| `wiaStatusList.certificate`     | WIA status list certificate                              | `nil` |
+| `wiaStatusList.volumeClaimName` | Name of PVC where the WIA status lists are published     | `nil` |
+| `wiaStatusList.volumeClaimPath` | Path in the PVC where the WIA status lists are published | `nil` |
 
 ### Migration parameters
 

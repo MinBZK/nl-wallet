@@ -17,13 +17,11 @@ use hsm::service::Pkcs11Hsm;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-use issuer_common::nonce_store::ProofNonceStore;
+use issuer_common::IssuanceServerIssuer;
 use issuer_common::settings::IssuerSettings;
 use issuer_common::settings::IssuerSettingsValidationError;
 use itertools::Itertools;
 use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
-use openid4vc::issuer::IssuanceData;
-use openid4vc::issuer::Issuer;
 use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::SessionTypeReturnUrl;
@@ -33,7 +31,6 @@ use openid4vc_server::verifier::VerifierFactory;
 use serde::Deserialize;
 use serde_with::serde_as;
 use server_utils::keys::PrivateKeySettingsError;
-use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::KeyPair;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::ServerSettings;
@@ -41,8 +38,6 @@ use server_utils::settings::Settings;
 use server_utils::settings::verify_key_pairs;
 use server_utils::status_list_token_cache_settings::StatusListTokenCacheSettings;
 use server_utils::store::SessionStoreVariant;
-use status_lists::postgres::NoRevokeAll;
-use status_lists::postgres::PostgresStatusListService;
 use token_status_list::verification::reqwest::HttpStatusListClient;
 use token_status_list::verification::verifier::RevocationVerifier;
 use utils::generator::TimeGenerator;
@@ -51,13 +46,6 @@ use utils::vec_at_least::VecNonEmpty;
 
 use crate::disclosure::HttpAttributesFetcher;
 use crate::disclosure::IssuanceResultHandler;
-
-pub type IssuanceServerIssuer = Issuer<
-    PrivateKeyVariant,
-    PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
-    SessionStoreVariant<IssuanceData>,
-    ProofNonceStore,
->;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct IssuanceServerSettings {

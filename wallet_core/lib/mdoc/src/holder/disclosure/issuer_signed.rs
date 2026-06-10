@@ -171,7 +171,7 @@ mod tests {
             .map(|key| ClaimPath::SelectByKey(key.to_string()))
             .collect_vec()
             .try_into()
-            .unwrap()
+            .expect("`claim_path` should be called with a non-empty slice")
     }
 
     #[rstest]

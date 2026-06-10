@@ -180,7 +180,6 @@ mod tests {
     use openid4vc::PostAuthResponseErrorCode;
     use openid4vc::credential_offer::CredentialOffer;
     use openid4vc::credential_offer::CredentialOfferContainer;
-    use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
     use openid4vc::disclosure_session;
     use openid4vc::disclosure_session::DataDisclosed;
     use openid4vc::disclosure_session::VpClientError;
@@ -271,27 +270,23 @@ mod tests {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup wallet disclosure state
-        let credential_offer_query = serde_urlencoded::to_string(CredentialOfferContainer::new_offer(
-            CredentialOffer::new_pre_authorized(
-                "https://issuer.example.com".parse().unwrap(),
-                vec_nonempty!["config_id".to_string().into()],
-                "123".to_string().into(),
-            ),
+        let credential_offer_url = CredentialOfferContainer::new_offer(CredentialOffer::new_pre_authorized(
+            "https://issuer.example.com".parse().unwrap(),
+            vec_nonempty!["config_id".to_string().into()],
+            "123".to_string().into(),
         ))
-        .unwrap();
-        let credential_offer = format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://?{credential_offer_query}")
-            .parse()
-            .unwrap();
+        .to_credential_offer_url();
 
         let mut disclosure_session = setup_wallet_disclosure_session(requested_format);
         disclosure_session
             .protocol_state
             .expect_disclose()
-            .return_once(|_| Ok(Some(credential_offer)));
+            .return_once(|_| Ok(Some(credential_offer_url)));
         wallet.session = Some(Session::Disclosure(disclosure_session));
 
         // Setup wallet issuance state
-        let credential_preview = create_example_pid_preview_data(&MockTimeGenerator::default(), Format::MsoMdoc);
+        let (credential_preview, type_metadata) =
+            create_example_pid_preview_data(&MockTimeGenerator::default(), Format::MsoMdoc);
         wallet
             .issuance_discovery
             .expect_start_pre_authorized_code_flow_sync()
@@ -299,7 +294,11 @@ mod tests {
                 let mut issuance_session = MockIssuanceSession::new();
 
                 issuance_session
-                    .expect_normalized_credential_previews()
+                    .expect_type_metadata()
+                    .return_const([(credential_preview.config_id.clone(), type_metadata)].into());
+
+                issuance_session
+                    .expect_credential_previews()
                     .return_const(vec![credential_preview]);
 
                 issuance_session

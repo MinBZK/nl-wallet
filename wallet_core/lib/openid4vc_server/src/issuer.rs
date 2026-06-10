@@ -4,6 +4,7 @@ use std::sync::Arc;
 use axum::Form;
 use axum::Json;
 use axum::Router;
+use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::State;
 use axum::http::HeaderMap;
@@ -45,6 +46,7 @@ use openid4vc::dpop::DPOP_NONCE_HEADER_NAME;
 use openid4vc::dpop::Dpop;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
+use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
 use openid4vc::metadata::issuer_metadata::IssuerMetadata;
 use openid4vc::metadata::oauth_metadata::AuthorizationServerMetadata;
 use openid4vc::nonce::response::NonceResponse;
@@ -56,6 +58,7 @@ use openid4vc::store::Store;
 use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponse;
+use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use token_status_list::status_list_service::StatusListService;
 use tracing::warn;
 
@@ -125,6 +128,7 @@ where
         .route("/.well-known/openid-credential-issuer", get(metadata))
         .route("/.well-known/oauth-authorization-server", get(oauth_metadata))
         .route("/issuance/token", post(token))
+        .route("/issuance/type_metadata/{id}", get(type_metadata))
         .route("/issuance/credential_preview", post(credential_preview))
         .route("/issuance/nonce", post(nonce))
         .route("/issuance/credential", post(credential))
@@ -141,6 +145,17 @@ async fn oauth_metadata<K, L, S, N>(
     State(state): State<IssuanceState<K, L, S, N>>,
 ) -> Json<AuthorizationServerMetadata> {
     Json(state.issuer.oauth_metadata())
+}
+
+async fn type_metadata<K, L, S, N>(
+    State(state): State<IssuanceState<K, L, S, N>>,
+    Path(id): Path<CredentialConfigurationId>,
+) -> Result<Json<TypeMetadataDocuments>, StatusCode> {
+    state
+        .issuer
+        .type_metadata(&id)
+        .map(|metadata| Ok(Json(metadata)))
+        .unwrap_or_else(|| Err(StatusCode::NOT_FOUND))
 }
 
 async fn credential_preview<K, L, S, N>(

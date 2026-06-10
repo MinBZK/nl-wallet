@@ -6,6 +6,7 @@ use attestation_data::attributes::Attributes;
 use crypto::utils::random_string;
 use openid4vc::pkce::S256PkcePair;
 use openid4vc::token::AuthorizationCode;
+use serde::Serialize;
 use url::Url;
 use utils::path::prefix_local_path;
 
@@ -60,8 +61,19 @@ impl DigidClient for MockDigidClient {
     ) -> Result<Url, DigidError> {
         // "Authenticate" instantly: bounce the user-agent back to the issuer's callback with a
         // fake upstream code (ignored by `bsn` below) and the issuer's state.
-        let query = serde_urlencoded::to_string([("code", random_string(32).as_str()), ("state", state.as_str())])
-            .expect("encoding (code, state) query string should never fail");
+
+        #[derive(Serialize)]
+        struct RedirectQuery<'a> {
+            code: &'a str,
+            state: &'a str,
+        }
+
+        let query = serde_qs::to_string(&RedirectQuery {
+            code: random_string(32).as_str(),
+            state: state.as_str(),
+        })
+        .expect("encoding (code, state) query string should never fail");
+        dbg!(&query);
         redirect_uri.set_query(Some(&query));
         Ok(redirect_uri)
     }

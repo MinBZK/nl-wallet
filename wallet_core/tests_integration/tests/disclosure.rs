@@ -81,7 +81,7 @@ async fn assert_disclosure_ok(
 
     let StartDisclosureResponse { session_token } = response.json::<StartDisclosureResponse>().await.unwrap();
     let mut status_url = urls.verifier_url.join(&format!("disclosure/sessions/{session_token}"));
-    let status_query = serde_urlencoded::to_string(StatusParams {
+    let status_query = serde_qs::to_string(&StatusParams {
         session_type: Some(session_type),
     })
     .unwrap();
@@ -161,7 +161,7 @@ async fn assert_disclosure_ok(
             .map(|(_, value)| value.into_owned())
             .expect("nonce should be present on return URL");
         let disclosed_attributes_query =
-            serde_urlencoded::to_string(DisclosedAttributesParams { nonce: nonce.into() }).unwrap();
+            serde_qs::to_string(&DisclosedAttributesParams { nonce: nonce.into() }).unwrap();
         disclosed_attributes_url.set_query(disclosed_attributes_query.as_str().into());
     }
 
@@ -299,7 +299,7 @@ async fn failed_disclosure_session(
     let StartDisclosureResponse { session_token } = response.json::<StartDisclosureResponse>().await.unwrap();
 
     let mut status_url = urls.verifier_url.join(&format!("disclosure/sessions/{session_token}"));
-    let status_query = serde_urlencoded::to_string(StatusParams {
+    let status_query = serde_qs::to_string(&StatusParams {
         session_type: Some(SessionType::SameDevice),
     })
     .unwrap();

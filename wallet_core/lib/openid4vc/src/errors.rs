@@ -1,6 +1,5 @@
 use http_utils::error::HttpJsonError;
 use http_utils::error::HttpJsonErrorType;
-use http_utils::urls::BaseUrl;
 use jwt::wia::WiaError;
 use reqwest::StatusCode;
 use serde::Deserialize;
@@ -59,7 +58,7 @@ impl<T> AuthorizationErrorResponse<T> {
 pub struct DisclosureErrorResponse<T> {
     #[serde(flatten)]
     pub error_response: ErrorResponse<T>,
-    pub redirect_uri: Option<BaseUrl>,
+    pub redirect_uri: Option<Url>,
 }
 
 impl<T> DisclosureErrorResponse<T> {
@@ -136,6 +135,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 }
 
                 CredentialRequestError::IssuanceError(IssuanceError::SessionStore(_))
+                | CredentialRequestError::IssuanceError(IssuanceError::AttestationTypeNotConfigured { .. })
                 | CredentialRequestError::MissingCredentialConfiguration(_)
                 | CredentialRequestError::PreviewConversion(_)
                 | CredentialRequestError::MdocConversion(_)

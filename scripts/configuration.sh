@@ -9,6 +9,7 @@ HEALTH_CHECKERS_DIR="${WALLET_CORE_DIR}/lib/health_checkers"
 STATUS_LISTS_DIR="${WALLET_CORE_DIR}/lib/status_lists"
 PID_ISSUER_DIR="${WALLET_CORE_DIR}/wallet_server/pid_issuer"
 ISSUANCE_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server/issuance_server"
+PACF_ISSUANCE_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server/pacf_issuance_server"
 VERIFICATION_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server/verification_server"
 WALLET_WEB_DIR="${BASE_DIR}/wallet_web"
 DEMO_RELYING_PARTY_DIR="${WALLET_CORE_DIR}/demo/demo_relying_party"
@@ -48,6 +49,9 @@ export DEMO_ISSUER_PORT=3006
 export DEMO_ISSUER_IS_PORT=3007
 export ISSUANCE_SERVER_PORT=3008
 export ISSUANCE_SERVER_IS_PORT=3009
+
+export PACF_ISSUANCE_SERVER_PORT=3015
+export PACF_ISSUANCE_SERVER_IS_PORT=3016
 
 export DEMO_RP_PORT=3010
 export VERIFICATION_SERVER_PORT=3011

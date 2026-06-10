@@ -10,6 +10,7 @@ use crate::metadata::issuer_metadata::AtLeastTwoU64;
 // Re-exported for convenience
 use crate::metadata::issuer_metadata::BatchCredentialIssuance;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
+use crate::metadata::issuer_metadata::CredentialConfigurationId;
 use crate::metadata::issuer_metadata::IssuerMetadata;
 use crate::metadata::issuer_metadata::ProofType;
 use crate::metadata::oauth_metadata::AuthorizationServerMetadata;
@@ -49,11 +50,19 @@ impl AuthorizationServerMetadata {
 }
 
 impl IssuerMetadata {
-    pub fn new_mock(issuer_identifier: IssuerIdentifier, attestation_type: &str) -> IssuerMetadata {
-        let credential_endpoint = issuer_identifier.join_issuer_url("/issuance/credential");
-        let batch_credential_endpoint = issuer_identifier.join_issuer_url("/issuance/batch_credential");
-        let nonce_endpoint = issuer_identifier.join_issuer_url("/issuance/nonce");
-        let credential_preview_endpoint = issuer_identifier.join_issuer_url("/issuance/credential_preview");
+    pub fn new_mock(
+        issuer_identifier: IssuerIdentifier,
+        attestation_type: &str,
+        config_id: CredentialConfigurationId,
+    ) -> IssuerMetadata {
+        let issuer_url = issuer_identifier.as_issuer_url();
+        let credential_endpoint = issuer_url.join_issuer_url("/issuance/credential");
+        let batch_credential_endpoint = issuer_url.join_issuer_url("/issuance/batch_credential");
+        let nonce_endpoint = issuer_url.join_issuer_url("/issuance/nonce");
+        let credential_preview_endpoint = issuer_url.join_issuer_url("/issuance/credential_preview");
+        let type_metadata_uri = issuer_url
+            .join_issuer_url("/issuance/type_metadata")
+            .join_config_id(&config_id);
 
         IssuerMetadata {
             credential_issuer: issuer_identifier,
@@ -70,12 +79,13 @@ impl IssuerMetadata {
             }),
             display: None,
             credential_configurations_supported: HashMap::from_iter(vec![(
-                attestation_type.to_string().into(),
+                config_id,
                 CredentialConfiguration::new_sd_jwt_ecdsa_p256_sha256(
                     attestation_type.to_string(),
                     vec![ProofType::Jwt],
                     vec![],
                     vec![],
+                    type_metadata_uri,
                 ),
             )]),
             credential_preview_endpoint: Some(credential_preview_endpoint),

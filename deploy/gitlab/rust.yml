@@ -271,6 +271,16 @@ build-issuance-server-binary:
       - wallet_core/target/x86_64-unknown-linux-gnu/release/issuance_server
       - wallet_core/target/x86_64-unknown-linux-musl/release/issuance_server
 
+build-pacf-issuance-server-binary:
+  extends: .build-binary
+  script:
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package pacf_issuance_server --bin
+      pacf_issuance_server
+  artifacts:
+    name: pacf_issuance_server
+    paths:
+      - wallet_core/target/x86_64-unknown-linux-musl/release/pacf_issuance_server
+
 build-wallet-server-migrations-binaries:
   extends: .build-binary
   script:
@@ -278,12 +288,15 @@ build-wallet-server-migrations-binaries:
       pid_issuer_migrations
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "issuance_server_migrations" --bin
       issuance_server_migrations
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "pacf_issuance_server_migrations"
+      --bin pacf_issuance_server_migrations
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "verification_server_migrations" --bin
       verification_server_migrations
     # Also build for glibc on main pipeline because it is needed to work with dynamically loaded PKCS11 library
     - |
       if [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" ]]; then
         cargo build --locked --target x86_64-unknown-linux-gnu --release --package "issuance_server_migrations" --bin issuance_server_migrations
+        cargo build --locked --target x86_64-unknown-linux-gnu --release --package "pacf_issuance_server_migrations" --bin pacf_issuance_server_migrations
         cargo build --locked --target x86_64-unknown-linux-gnu --release --package "verification_server_migrations" --bin verification_server_migrations
       fi
   artifacts:

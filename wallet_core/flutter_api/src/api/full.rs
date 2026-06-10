@@ -506,7 +506,7 @@ pub async fn pair_wallet_transfer(uri: String) -> anyhow::Result<()> {
 
     let mut wallet = wallet().write().await;
 
-    wallet.pair_transfer(url).await?;
+    wallet.pair_transfer(&url).await?;
 
     Ok(())
 }

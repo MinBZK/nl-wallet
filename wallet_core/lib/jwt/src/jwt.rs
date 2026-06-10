@@ -34,6 +34,7 @@ use serde_with::SerializeDisplay;
 use serde_with::serde_as;
 use utils::generator::Generator;
 use utils::vec_at_least::IntoNonEmptyIterator;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
 
@@ -871,20 +872,19 @@ impl<T, H> TryFrom<VecNonEmpty<UnverifiedJwt<T, H>>> for JsonJwt<T, H> {
     type Error = JwtError;
 
     fn try_from(jwts: VecNonEmpty<UnverifiedJwt<T, H>>) -> Result<Self, Self::Error> {
-        let split_jwts = jwts
-            .into_inner()
-            .into_iter()
+        let split_jwts: VecNonEmpty<_> = jwts
+            .into_nonempty_iter()
             .map(|jwt| jwt.serialization.split('.').map(str::to_string).collect_vec())
-            .collect_vec();
+            .collect();
 
-        let mut first = split_jwts.first().unwrap().clone(); // this came from a NonEmpty<>
+        let mut first = split_jwts.first().clone();
         if first.len() != 3 {
             return Err(JwtError::UnexpectedNumberOfParts(first.len()));
         }
         let payload = first.remove(1); // `remove` is like `get`, but also moves out of the vec, so we can avoid cloning
 
         let signatures: VecNonEmpty<_> = split_jwts
-            .into_iter()
+            .into_nonempty_iter()
             .map(|mut split_jwt| {
                 if split_jwt.len() != 3 {
                     return Err(JwtError::UnexpectedNumberOfParts(split_jwt.len()));
@@ -898,9 +898,7 @@ impl<T, H> TryFrom<VecNonEmpty<UnverifiedJwt<T, H>>> for JsonJwt<T, H> {
                     header: HashMap::default(),
                 })
             })
-            .collect::<Result<Vec<_>, _>>()?
-            .try_into()
-            .unwrap(); // our iterable `split_jwts` came from a `NonEmpty`
+            .collect::<Result<VecNonEmpty<_>, _>>()?;
 
         let json_jwt = Self {
             payload: payload.clone(),

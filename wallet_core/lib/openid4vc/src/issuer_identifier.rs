@@ -11,6 +11,8 @@ use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 use url::Url;
 
+use crate::metadata::issuer_metadata::CredentialConfigurationId;
+
 #[derive(Debug, thiserror::Error)]
 #[cfg_attr(test, derive(strum::EnumDiscriminants))]
 pub enum IssuerUrlError {
@@ -34,7 +36,7 @@ pub enum IssuerIdentifierError {
     HasFragment(Box<BaseUrl>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, AsRef, Display, SerializeDisplay, DeserializeFromStr)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, AsRef, Display, SerializeDisplay, DeserializeFromStr)]
 pub struct IssuerUrl(BaseUrl);
 
 /// A URL that uses the "https" scheme, as contained within the Credential Issuer Metadata.
@@ -71,8 +73,23 @@ impl IssuerUrl {
     pub fn join_issuer_url(&self, path: &str) -> Self {
         let base_url = self.as_ref().join_base_url(path);
 
-        // The sheme cannot have changed, so the guarantees of the validation in `try_new()` still hold.
+        // The scheme cannot have changed, so the guarantees of the validation in `try_new()` still hold.
         Self(base_url)
+    }
+
+    pub fn join_config_id(&self, config_id: &CredentialConfigurationId) -> Self {
+        let mut url = self.as_ref().as_ref().clone();
+        url.path_segments_mut()
+            .expect("issuer URL has a base and is guaranteed to have path segments")
+            .push(config_id.as_ref());
+        Self(BaseUrl::try_from(url).expect("issuer URL has a base and is guaranteed to succeed"))
+    }
+
+    pub fn has_same_scheme_and_host(&self, other: &IssuerUrl) -> bool {
+        let url = self.as_url();
+        let other = other.as_url();
+
+        url.scheme() == other.scheme() && url.host() == other.host()
     }
 }
 
@@ -91,7 +108,7 @@ impl FromStr for IssuerUrl {
 /// This wraps a URL with the following restrictions:
 /// - The scheme should be "https".
 /// - There should be no query component.
-/// - There should be no fragement component.
+/// - There should be no fragment component.
 ///
 /// Internally, this URL is represented both by a [`String`] and a [`IssuerUrl`] which
 /// enables comparisons of the original string representation before URL normalization.
@@ -124,8 +141,8 @@ impl IssuerIdentifier {
         self.url.as_ref()
     }
 
-    pub fn join_issuer_url(&self, path: &str) -> IssuerUrl {
-        self.url.join_issuer_url(path)
+    pub fn as_issuer_url(&self) -> &IssuerUrl {
+        &self.url
     }
 }
 
@@ -142,6 +159,7 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
+    use super::CredentialConfigurationId;
     use super::IssuerIdentifier;
     use super::IssuerIdentifierErrorDiscriminants;
     use super::IssuerUrl;
@@ -240,5 +258,36 @@ mod tests {
             serde_json::from_str::<IssuerIdentifier>(&json).expect("deserialization from JSON should succeed");
 
         assert_eq!(deserialized_identifier, identifier);
+    }
+
+    #[rstest]
+    #[case::simple("simple", "https://example.com/simple")]
+    #[case::colons("urn:example:pid:nl:1", "https://example.com/urn:example:pid:nl:1")]
+    #[case::slash("hello/world", "https://example.com/hello%2Fworld")]
+    #[case::panda("🐼", "https://example.com/%F0%9F%90%BC")]
+    fn test_issuer_url_joining_config_id(#[case] config_id: String, #[case] expected: &str) {
+        let config_id: CredentialConfigurationId = config_id.into();
+        let issuer_url = IssuerUrl::try_new("https://example.com")
+            .unwrap()
+            .join_config_id(&config_id);
+
+        assert_eq!(issuer_url, expected.parse::<IssuerUrl>().unwrap());
+    }
+
+    #[rstest]
+    #[case::same("https://example.com", "https://example.com", true)]
+    #[case::different_host("https://example.com", "https://example.net", false)]
+    #[cfg_attr(
+        feature = "allow_insecure_url",
+        case::different_scheme("https://example.com/", "http://example.com", false)
+    )]
+    #[case::different_port("https://example.com", "https://example.com:8843", true)]
+    #[case::different_path("https://example.com/a", "https://example.com/b", true)]
+    fn test_issuer_url_has_same_scheme_and_host(#[case] a_url: &str, #[case] b_url: &str, #[case] expected: bool) {
+        let a_url = a_url.parse::<IssuerUrl>().unwrap();
+        let b_url = b_url.parse::<IssuerUrl>().unwrap();
+
+        assert_eq!(a_url.has_same_scheme_and_host(&b_url), expected);
+        assert_eq!(b_url.has_same_scheme_and_host(&a_url), expected);
     }
 }
