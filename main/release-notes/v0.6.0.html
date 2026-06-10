@@ -268,6 +268,18 @@ by reference and must use the Authorization Code flow.</p></li>
 SD-JWT VC type metadata. The preview endpoint is modified to not return the
 type metadata but the <code class="docutils literal notranslate"><span class="pre">CredentialConfigurationId</span></code> instead ensuring type
 metadata fetching is independent of the preview.</p></li>
+<li><p>A new service <code class="docutils literal notranslate"><span class="pre">pacf_issuance_server</span></code> has been added. It is a standalone
+issuance server that issues credentials using the Pre-Authorized Code Flow,
+and requires its own configuration file and database.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">demo_issuer</span></code> configuration has two changes:</p>
+<ul class="simple">
+<li><p>A new top-level <code class="docutils literal notranslate"><span class="pre">pacf_issuance_server_url</span></code> field must be added, pointing
+to the internal server port of the <code class="docutils literal notranslate"><span class="pre">pacf_issuance_server</span></code>.</p></li>
+<li><p>Each entry under <code class="docutils literal notranslate"><span class="pre">usecases</span></code> is now either a Pre-Authorized Code Flow
+usecase (containing only <code class="docutils literal notranslate"><span class="pre">data</span></code>) or a disclosure-based usecase (containing
+<code class="docutils literal notranslate"><span class="pre">data</span></code>, <code class="docutils literal notranslate"><span class="pre">client_id</span></code>, and <code class="docutils literal notranslate"><span class="pre">disclosed</span></code>).</p></li>
+</ul>
+</li>
 </ul>
 </section>
 <section id="new-features">
