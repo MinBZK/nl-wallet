@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use db_test::DbSetup;
@@ -8,7 +6,6 @@ use http_utils::reqwest::HttpJsonClient;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use itertools::Itertools;
 use openid4vc::wallet_issuance::AuthorizationSession;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -74,11 +71,9 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .unwrap();
 
     let digid_metadata_cache = DigidMetadataCache::try_new(settings.digid.client_settings.clone()).unwrap();
-    let state_bridge_store = Arc::new(IssuerStateBridgeStore::new(
-        StoreConnection::try_new(settings.issuer_settings.server_settings.storage.url.clone())
-            .await
-            .unwrap(),
-    ));
+    let store_connection = StoreConnection::try_new(settings.issuer_settings.server_settings.storage.url.clone())
+        .await
+        .unwrap();
     let brp_client = HttpBrpClient::new(settings.brp_server.clone());
     let bsn_privkey = settings.digid.bsn_privkey.clone();
     let digid_client_id = settings.digid.client_id.clone();
@@ -103,7 +98,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
             digid_client_id,
             digid_metadata_cache,
             recovery_secret_key,
-            state_bridge_store,
+            store_connection,
             callback_base_url,
         )
         .unwrap()

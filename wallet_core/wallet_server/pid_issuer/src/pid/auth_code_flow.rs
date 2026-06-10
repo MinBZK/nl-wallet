@@ -15,7 +15,6 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use crypto::utils::random_string;
-use derive_more::Constructor;
 use hsm::service::HsmError;
 use http_utils::urls::BaseUrl;
 use issuer_common::state_bridge_store::IssuerStateBridgeStore;
@@ -37,6 +36,7 @@ use openid4vc::token::AuthorizationCode;
 use serde::Deserialize;
 use serde::Serialize;
 use server_utils::keys::SecretKeyVariant;
+use server_utils::store::StoreConnection;
 use tracing::warn;
 use url::Url;
 use utils::vec_at_least::VecNonEmpty;
@@ -123,12 +123,11 @@ struct DigidCallbackQuery {
 /// - the BRP client (BSN → person attributes) and the recovery-code HMAC key;
 /// - the issuer's own callback URL, used both as the upstream `redirect_uri` and as the `redirect_uri` parameter of the
 ///   upstream `/token` exchange.
-#[derive(Constructor)]
 pub struct UpstreamOidcAuthorizationCodeFlow<B = HttpBrpClient, O = HttpDigidClient> {
     brp_client: B,
     digid_client: O,
     recovery_code_secret_key: SecretKeyVariant,
-    state_bridge_store: Arc<IssuerStateBridgeStore>,
+    state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
     callback_base_url: BaseUrl,
     client_id: String,
 }
@@ -141,7 +140,7 @@ impl UpstreamOidcAuthorizationCodeFlow {
         client_id: impl Into<String>,
         digid_metadata_cache: DigidMetadataCache,
         recovery_code_secret_key: SecretKeyVariant,
-        state_bridge_store: Arc<IssuerStateBridgeStore>,
+        store_connection: StoreConnection,
         callback_base_url: BaseUrl,
     ) -> Result<Self, Error> {
         let client_id: String = client_id.into();
@@ -152,7 +151,7 @@ impl UpstreamOidcAuthorizationCodeFlow {
             brp_client,
             digid_client,
             recovery_code_secret_key,
-            state_bridge_store,
+            store_connection,
             callback_base_url,
             client_id,
         ))
@@ -160,6 +159,44 @@ impl UpstreamOidcAuthorizationCodeFlow {
 }
 
 impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
+    /// Construct the flow, building its [`IssuerStateBridgeStore`] from `store_connection`. The
+    /// store's entry type is an internal detail of this flow, so callers only supply the connection.
+    pub fn new(
+        brp_client: B,
+        digid_client: O,
+        recovery_code_secret_key: SecretKeyVariant,
+        store_connection: StoreConnection,
+        callback_base_url: BaseUrl,
+        client_id: String,
+    ) -> Self {
+        Self::new_with_store(
+            brp_client,
+            digid_client,
+            recovery_code_secret_key,
+            Arc::new(IssuerStateBridgeStore::new(store_connection)),
+            callback_base_url,
+            client_id,
+        )
+    }
+
+    fn new_with_store(
+        brp_client: B,
+        digid_client: O,
+        recovery_code_secret_key: SecretKeyVariant,
+        state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
+        callback_base_url: BaseUrl,
+        client_id: String,
+    ) -> Self {
+        Self {
+            brp_client,
+            digid_client,
+            recovery_code_secret_key,
+            state_bridge_store,
+            callback_base_url,
+            client_id,
+        }
+    }
+
     /// Mount the `/digid/callback` route owned by this flow on a fresh [`Router`]. The
     /// pid_issuer's `server` module merges this with the `openid4vc` layer's authorization and
     /// issuance routers. The handler reads its flow state via [`AuthorizingIssuer::flow`].
@@ -437,16 +474,16 @@ mod tests {
         .unwrap()
     }
 
-    fn memory_bridge_store() -> Arc<IssuerStateBridgeStore> {
+    fn memory_bridge_store() -> Arc<IssuerStateBridgeStore<StateBridgeEntry>> {
         Arc::new(IssuerStateBridgeStore::new(StoreConnection::Memory))
     }
 
     fn flow_with_clients(
         brp_client: MockBrpClient,
         digid_client: MockDigidClient,
-        state_bridge_store: Arc<IssuerStateBridgeStore>,
+        state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
     ) -> UpstreamOidcAuthorizationCodeFlow<MockBrpClient, MockDigidClient> {
-        UpstreamOidcAuthorizationCodeFlow::new(
+        UpstreamOidcAuthorizationCodeFlow::new_with_store(
             brp_client,
             digid_client,
             recovery_code_secret_key(),

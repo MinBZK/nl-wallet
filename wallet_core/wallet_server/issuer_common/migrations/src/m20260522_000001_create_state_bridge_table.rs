@@ -23,7 +23,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .unique_key(),
                     )
-                    .col(ColumnDef::new(StateBridge::Entry).string().not_null())
+                    .col(ColumnDef::new(StateBridge::Entry).json_binary().not_null())
                     .col(
                         ColumnDef::new(StateBridge::ExpiresAt)
                             .timestamp_with_time_zone()

@@ -32,7 +32,6 @@ use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use issuance_server::settings::IssuanceServerSettings;
-use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use jwt::SignedJwt;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpDisclosureClient;
@@ -362,7 +361,7 @@ pub async fn setup_env(
             MockBrpClient::default(),
             MockDigidClient::default(),
             recovery_code_secret_key,
-            Arc::new(IssuerStateBridgeStore::new(StoreConnection::Memory)),
+            StoreConnection::Memory,
             public_url.as_base_url().clone(),
             "mock-digid-client".to_string(),
         )

@@ -3,7 +3,6 @@ use std::sync::Arc;
 use anyhow::Result;
 use health_checkers::hsm::HsmChecker;
 use hsm::service::Pkcs11Hsm;
-use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use openid4vc::issuer::WiaConfig;
 use pid_issuer::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow;
 use pid_issuer::pid::brp::client::HttpBrpClient;
@@ -53,7 +52,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
                 digid_client_id,
                 digid_metadata_cache,
                 recovery_code_secret_key,
-                Arc::new(IssuerStateBridgeStore::new(store_connection)),
+                store_connection,
                 callback_base_url,
             )
         })
