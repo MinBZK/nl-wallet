@@ -10,7 +10,7 @@
     "eslint": "^10.1.0",
     "eslint-plugin-playwright": "^2.2.0",
     "@lavamoat/preinstall-always-fail": "^2.1.1",
-    "@playwright/test": "^1.56.1",
+    "@playwright/test": "^1.60.0",
     "allure-playwright": "^3.4.1",
     "prettier": "^3.5.0"
   },
