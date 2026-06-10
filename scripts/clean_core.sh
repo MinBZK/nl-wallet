@@ -43,7 +43,7 @@ BASE_DIR="$(dirname -- "${SCRIPTS_DIR}")"
 cargo clean --manifest-path "${BASE_DIR}/wallet_core/Cargo.toml"
 
 # Some devenv files live in wallet_core/target, so we need to rerun setup-devenv.sh
-SKIP_DIGID_CONNECTOR=1 SKIP_WALLET_WEB=1 bash "${BASE_DIR}/scripts/setup-devenv.sh"
+SKIP_DIGID_CONNECTOR=1 SKIP_WALLET_WEB=1 bash "${SCRIPTS_DIR}/setup-devenv.sh"
 
 # Also reset the DB
 if [[ "${START_POSTGRES}" == "1" ]]; then
