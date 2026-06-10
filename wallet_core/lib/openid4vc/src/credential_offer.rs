@@ -460,9 +460,9 @@ mod tests {
             "{\
                 \"credential_issuer\":\"https://issuer.example.com\",\
                 \"credential_configuration_ids\":[\"MyCredential\"],\
-                \"grants\":{\
-                \"urn:ietf:params:oauth:grant-type:pre-authorized_code\":{\
-                \"pre-authorized_code\":\"abc123\"\
+                    \"grants\":{\
+                    \"urn:ietf:params:oauth:grant-type:pre-authorized_code\":{\
+                        \"pre-authorized_code\":\"abc123\"\
             }}}"
         );
         let parsed: CredentialOffer = serde_json::from_str(&value).expect("value should be valid CredentialOffer JSON");
@@ -495,13 +495,10 @@ mod tests {
         assert!(url.query().is_some_and(|q| q.contains("credential_offer")));
         assert_eq!(
             url.as_str(),
-            "openid-credential-offer://?credential_offer={\
-                %22credential_issuer%22:%22https://issuer.example.com%22,\
-                %22credential_configuration_ids%22:%5B%22MyCredential%22%5D,\
-                %22grants%22:{\
-                    %22urn:ietf:params:oauth:grant-type:pre-authorized_code%22:{\
-                        %22pre-authorized_code%22:%22abc123%22\
-            }}}"
+            "openid-credential-offer://?credential_offer=%7B%22credential_issuer%22%3A%22https%3A%2F%2Fissuer.example.\
+             com%22%2C%22credential_configuration_ids%22%3A%5B%22MyCredential%22%5D%2C%22grants%22%3A%7B%22urn%3Aietf%\
+             3Aparams%3Aoauth%3Agrant-type%3Apre-authorized_code%22%3A%7B%22pre-authorized_code%22%3A%22abc123%22%7D%\
+             7D%7D"
         );
     }
 
@@ -516,7 +513,7 @@ mod tests {
         assert!(url.query().is_some_and(|q| q.contains("credential_offer_uri")));
         assert_eq!(
             url.as_str(),
-            "openid-credential-offer://?credential_offer_uri=https://issuer.example.com/offer/123"
+            "openid-credential-offer://?credential_offer_uri=https%3A%2F%2Fissuer.example.com%2Foffer%2F123"
         );
     }
 }
