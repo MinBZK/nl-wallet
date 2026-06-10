@@ -298,7 +298,7 @@ max:
           "redirect_uris": [
             "http://localhost:3003/digid/callback"
           ],
-          "error_page": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid",
+          "error_page": "http://localhost:3003/digid/callback",
           "response_types": ["code"],
           "pubkey_type": "RSA",
           "client_authentication_method": "none",
