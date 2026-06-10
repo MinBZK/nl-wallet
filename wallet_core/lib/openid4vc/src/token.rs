@@ -242,7 +242,7 @@ mod tests {
     fn token_request_serialization() {
         #[rustfmt::skip]
         assert_eq!(
-            serde_urlencoded::to_string(TokenRequest {
+            serde_qs::to_string(&TokenRequest {
                 grant_type: TokenRequestGrantType::PreAuthorizedCode {
                     pre_authorized_code: "123".to_string().into()
                 },

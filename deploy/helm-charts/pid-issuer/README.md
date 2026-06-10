@@ -112,14 +112,20 @@
 
 | Name        | Description                                                        | Value |
 | ----------- | ------------------------------------------------------------------ | ----- |
-| `batchSize` | The maximum amount of credentials a holder will be able to request | 4     |
+| `batchSize` | The maximum amount of credentials a holder will be able to request | `4`   |
 
 ### DigiD parameters
 
-| Name            | Description                                      | Value |
-| --------------- | ------------------------------------------------ | ----- |
-| `digidClientId` | Client ID for the DigiD service                  | `nil` |
-| `digidBaseUrl`  | Base URL (OIDC Identifier) for the DigiD service | `nil` |
+| Name            | Description                     | Value |
+| --------------- | ------------------------------- | ----- |
+| `digidClientId` | Client ID for the DigiD service | `nil` |
+| `digidBaseUrl`  | Base URL for the DigiD service  | `nil` |
+
+### WIA trust anchors
+
+| Name              | Description       | Value |
+| ----------------- | ----------------- | ----- |
+| `wiaTrustAnchors` | the trust anchors | `[]`  |
 
 ### Migration parameters
 

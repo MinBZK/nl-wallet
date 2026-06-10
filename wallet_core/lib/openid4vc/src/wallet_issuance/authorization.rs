@@ -43,13 +43,13 @@ pub enum ParErrorCode {
 #[category(pd)]
 pub enum OAuthError {
     #[error("error encoding authorization request to URL: {0}")]
-    AuthRequestUrlEncoding(#[source] serde_urlencoded::ser::Error),
+    AuthRequestUrlEncoding(#[source] serde_qs::Error),
 
     #[error("error decoding authorization response from URL: {0}")]
-    AuthResponseUrlDecoding(#[source] serde::de::value::Error),
+    AuthResponseUrlDecoding(#[source] serde_qs::Error),
 
     #[error("error decoding error response from URL: {0}")]
-    ErrorResponseUrlDecoding(#[source] serde::de::value::Error),
+    ErrorResponseUrlDecoding(#[source] serde_qs::Error),
 
     #[error("error requesting authorization code: {0:?}")]
     RedirectUriError(Box<ErrorResponse<AuthorizationErrorCode>>),
@@ -200,7 +200,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         // First see if we received an error
         if received_redirect_uri.query_pairs().any(|(key, _)| key == "error") {
             let err_response: ErrorResponse<AuthorizationErrorCode> =
-                serde_urlencoded::from_str(auth_response).map_err(OAuthError::ErrorResponseUrlDecoding)?;
+                serde_qs::from_str(auth_response).map_err(OAuthError::ErrorResponseUrlDecoding)?;
 
             return if err_response.error == AuthorizationErrorCode::AccessDenied {
                 Err(OAuthError::Denied)
@@ -210,7 +210,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
         }
 
         let auth_response: AuthorizationResponse =
-            serde_urlencoded::from_str(auth_response).map_err(OAuthError::AuthResponseUrlDecoding)?;
+            serde_qs::from_str(auth_response).map_err(OAuthError::AuthResponseUrlDecoding)?;
         if auth_response.state.as_ref() != Some(&self.state) {
             return Err(OAuthError::StateTokenMismatch);
         }

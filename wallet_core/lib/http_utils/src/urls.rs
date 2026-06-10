@@ -13,6 +13,20 @@ pub const ALLOWED_HTTP_SCHEMES: &[&str] = cfg_select! {
     _ => &["https"],
 };
 
+/// A [`url::Url`] that can be used as a base for [`join`](BaseUrl::join) operations.
+///
+/// This type validates that the URL is a base URL as defined by the `url` crate (i.e. it can be joined, schemes such as
+/// `data:` and `mailto:` cannot). Unlike [`Url::join`], which strips the last segment of the base path before joining,
+/// [`BaseUrl::join`] preserves the entire base path and appends the relative path on top of it.
+///
+/// ```
+/// # use std::str::FromStr;
+/// # use http_utils::urls::BaseUrl;
+/// let base = BaseUrl::from_str("https://example.com/foo")?;
+/// let joined = base.join("bar");
+/// assert_eq!(joined.as_str(), "https://example.com/foo/bar");
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 #[nutype(
     validate(predicate = |u| !u.cannot_be_a_base()),
     derive(Debug, Clone, TryFrom, FromStr, Display, AsRef, PartialEq, Eq, Hash, Serialize, Deserialize),
@@ -38,10 +52,6 @@ impl BaseUrl {
 
     pub fn is_https(&self) -> bool {
         self.as_ref().scheme() == "https"
-    }
-
-    pub fn fqdn(&self) -> Option<&str> {
-        self.as_ref().host_str()
     }
 }
 

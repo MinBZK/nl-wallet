@@ -46,7 +46,7 @@ pub enum VpClientError {
     #[error("error deserializing request_uri object: {0}")]
     // we cannot be sure that the URL is not included in the error.
     #[category(pd)]
-    RequestUri(#[source] serde_urlencoded::de::Error),
+    RequestUri(#[source] serde_qs::Error),
 
     #[error("unsupported OpenID4VP authorization request URI variant: {0}")]
     #[category(critical)]

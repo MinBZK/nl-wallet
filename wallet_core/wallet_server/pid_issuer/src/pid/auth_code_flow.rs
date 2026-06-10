@@ -60,7 +60,7 @@ pub enum Error {
     InvalidGrantType,
 
     #[error("encoding upstream authorization request as query string failed: {0}")]
-    Encode(#[source] serde_urlencoded::ser::Error),
+    Encode(#[source] serde_qs::Error),
 
     #[error("could not find attributes for BSN")]
     NoAttributesFound,
@@ -186,7 +186,7 @@ impl AuthorizationCodeFlow for UpstreamOidcAuthorizationCodeFlow {
             nonce: Some(Nonce::new_random()),
         };
 
-        let query_string = serde_urlencoded::to_string(&oidc_request).map_err(Error::Encode)?;
+        let query_string = serde_qs::to_string(&oidc_request).map_err(Error::Encode)?;
         let mut redirect_url = self
             .openid_client
             .authorization_endpoint()

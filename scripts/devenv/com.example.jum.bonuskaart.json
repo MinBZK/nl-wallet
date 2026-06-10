@@ -1,0 +1,111 @@
+{
+  "vct": "com.example.jum.bonuskaart",
+  "name": "Jum loyalty card",
+  "description": "Loyalty card for the Jum supermarket",
+  "display": [
+    {
+      "lang": "en-US",
+      "name": "Jum Bonuskaart",
+      "description": "A loyalty card",
+      "summary": "{{loyalty_number}}",
+      "rendering": {
+        "simple": {
+          "background_color": "f4700a",
+          "text_color": "#ffffff"
+        }
+      }
+    },
+    {
+      "lang": "nl-NL",
+      "name": "Jum Bonuskaart",
+      "description": "Een loyaliteitskaart",
+      "summary": "{{loyalty_number}}",
+      "rendering": {
+        "simple": {
+          "background_color": "f4700a",
+          "text_color": "#ffffff"
+        }
+      }
+    }
+  ],
+  "claims": [
+    {
+      "path": ["branch"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Filiaal",
+          "description": "Filiaal van uitgifte"
+        },
+        {
+          "lang": "en-US",
+          "label": "Branch",
+          "description": "Issuing branch"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["loyalty_number"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Loyaliteitsnummer",
+          "description": "Persoonlijk loyaliteitsnummer"
+        },
+        {
+          "lang": "en-US",
+          "label": "Loyalty number",
+          "description": "Personal loyalty number"
+        }
+      ],
+      "sd": "always",
+      "svg_id": "loyalty_number"
+    }
+  ],
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Loyalty card VCT Schema",
+    "description": "The JSON schema that defines a loyalty card VCT",
+    "type": "object",
+    "properties": {
+      "vct": {
+        "type": "string"
+      },
+      "vct#integrity": {
+        "type": "string"
+      },
+      "iss": {
+        "type": "string"
+      },
+      "nbf": {
+        "type": "number"
+      },
+      "exp": {
+        "type": "number"
+      },
+      "cnf": {
+        "type": "object"
+      },
+      "status": {
+        "type": "object"
+      },
+      "sub": {
+        "type": "string"
+      },
+      "iat": {
+        "type": "number"
+      },
+      "attestation_qualification": {
+        "type": "string"
+      },
+      "branch": {
+        "type": "string"
+      },
+      "loyalty_number": {
+        "type": "string"
+      }
+    },
+    "required": ["vct", "iss", "attestation_qualification", "loyalty_number"]
+  }
+}

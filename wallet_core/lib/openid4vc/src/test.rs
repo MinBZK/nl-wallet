@@ -140,7 +140,7 @@ pub enum StaticAuthorizationCodeFlowError {
     BridgeStore(#[source] std::convert::Infallible),
 
     #[error("encoding upstream authorization request as query string failed: {0}")]
-    Encode(#[source] serde_urlencoded::ser::Error),
+    Encode(#[source] serde_qs::Error),
 
     #[error("missing wallet code_verifier on token request")]
     MissingCodeVerifier,
@@ -173,7 +173,7 @@ impl AuthorizationCodeFlow for StaticAuthorizationCodeFlow {
 
         request.oauth_request.client_id = MOCK_UPSTREAM_CLIENT_ID.to_string();
 
-        let query_string = serde_urlencoded::to_string(&request).map_err(StaticAuthorizationCodeFlowError::Encode)?;
+        let query_string = serde_qs::to_string(&request).map_err(StaticAuthorizationCodeFlowError::Encode)?;
         let mut redirect_url = self.upstream_url.clone();
         redirect_url.set_query(Some(&query_string));
 

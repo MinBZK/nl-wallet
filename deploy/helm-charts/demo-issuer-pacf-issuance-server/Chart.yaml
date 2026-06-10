@@ -1,0 +1,15 @@
+apiVersion: v2
+name: demo-issuer-pacf-issuance-server
+description: A Helm chart for demo issuer pre-ACF issuance server
+
+type: application
+
+version: 0.1.0
+
+appVersion: ""
+
+
+dependencies:
+  - name: sp-common
+    repository: "file://../sp-common"
+    version: 1.x.x

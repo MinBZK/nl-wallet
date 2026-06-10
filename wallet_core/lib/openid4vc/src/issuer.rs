@@ -57,6 +57,7 @@ use crate::credential_configurations::CredentialConfiguration;
 use crate::credential_configurations::CredentialConfigurationParameters;
 use crate::credential_configurations::CredentialConfigurations;
 use crate::credential_configurations::CredentialConfigurationsError;
+use crate::credential_offer::CredentialOffer;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::issuable_document::IssuableDocument;
@@ -104,6 +105,9 @@ pub enum IssuanceError {
 
     #[error("unknown session: {0:?}")]
     UnknownSession(AuthorizationCode),
+
+    #[error("attestation type for format \"{0}\" not configured: {1}")]
+    AttestationTypeNotConfigured(Format, String),
 
     #[error("failed to retrieve session: {0}")]
     SessionStore(#[source] SessionStoreError),
@@ -549,6 +553,33 @@ where
             .ok_or(IssuanceError::UnknownSession(code))?
             .try_into()
             .map_err(CredentialRequestError::IssuanceError)
+    }
+
+    pub async fn pre_authorized_offer_from_documents(
+        &self,
+        to_issue: VecNonEmpty<IssuableDocument>,
+    ) -> Result<CredentialOffer, IssuanceError>
+    where
+        S: SessionStore<IssuanceData>,
+    {
+        let credential_configuration_ids = to_issue
+            .nonempty_iter()
+            .map(|document| {
+                self.credential_config_id_by_format_and_attestation_type(document.format, &document.attestation_type)
+                    .cloned()
+                    .ok_or_else(|| {
+                        IssuanceError::AttestationTypeNotConfigured(document.format, document.attestation_type.clone())
+                    })
+            })
+            .collect::<Result<_, _>>()?;
+
+        let token = self.new_session(to_issue).await.map_err(IssuanceError::SessionStore)?;
+
+        Ok(CredentialOffer::new_pre_authorized(
+            self.issuer_identifier().clone(),
+            credential_configuration_ids,
+            token.into(),
+        ))
     }
 }
 

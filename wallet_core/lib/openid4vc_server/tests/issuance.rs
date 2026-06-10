@@ -14,7 +14,6 @@ use http_utils::server::TlsServerConfig;
 use openid4vc::authorization::PushedAuthorizationResponse;
 use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::credential_offer::CredentialOfferContainer;
-use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::Dpop;
 use openid4vc::issuer_identifier::IssuerIdentifier;
@@ -148,13 +147,8 @@ fn make_credential_offer_url(
             CredentialOffer::new_pre_authorized(issuer_identifier, config_ids, pre_authorized_code)
         }
     };
-    let offer_container = CredentialOfferContainer::new_offer(credential_offer);
-    let query = serde_urlencoded::to_string(&offer_container).unwrap();
 
-    let mut url = Url::parse(&format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://")).unwrap();
-    url.set_query(Some(&query));
-
-    url
+    CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url()
 }
 
 fn verify_issued_credentials(

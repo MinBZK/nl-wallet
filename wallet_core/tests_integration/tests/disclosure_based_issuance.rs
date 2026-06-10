@@ -96,7 +96,7 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
     let mut status_url = disclosure_urls
         .verifier_url
         .join(&format!("disclosure/sessions/{session_token}"));
-    let status_query = serde_urlencoded::to_string(StatusParams {
+    let status_query = serde_qs::to_string(&StatusParams {
         session_type: Some(SessionType::SameDevice),
     })
     .unwrap();
@@ -158,7 +158,7 @@ async fn ltc5_test_disclosure_based_issuance_and_disclosure(
     let mut disclosed_attributes_url = disclosure_urls
         .verifier_internal_url
         .join(&format!("disclosure/sessions/{session_token}/disclosed_attributes"));
-    let query = serde_urlencoded::to_string(DisclosedAttributesParams { nonce: Some(nonce) }).unwrap();
+    let query = serde_qs::to_string(&DisclosedAttributesParams { nonce: Some(nonce) }).unwrap();
     disclosed_attributes_url.set_query(Some(query.as_str()));
 
     let disclosed_attestations = client

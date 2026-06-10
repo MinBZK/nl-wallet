@@ -17,10 +17,10 @@ pub enum TransferUriError {
     InvalidUri(String),
 
     #[error("error deserializing query parameters: {0}")]
-    QueryDeserialization(#[from] serde_urlencoded::de::Error),
+    QueryDeserialization(#[source] serde_qs::Error),
 
     #[error("error serializing query parameters: {0}")]
-    QuerySerialization(#[from] serde_urlencoded::ser::Error),
+    QuerySerialization(#[source] serde_qs::Error),
 
     #[error("error decoding from base64: {0}")]
     Base64Decoding(#[from] base64::DecodeError),
@@ -37,26 +37,30 @@ pub struct TransferQuery {
     pub public_key: JwePublicKey,
 }
 
-impl TryFrom<Url> for TransferQuery {
+impl TryFrom<&Url> for TransferQuery {
     type Error = TransferUriError;
 
-    fn try_from(value: Url) -> Result<Self, Self::Error> {
+    fn try_from(value: &Url) -> Result<Self, Self::Error> {
         let Some(query) = value.fragment() else {
             return Err(TransferUriError::InvalidUri(value.to_string()));
         };
 
-        let query: TransferQuery = serde_urlencoded::from_str(query)?;
+        let query: TransferQuery = serde_qs::from_str(query).map_err(TransferUriError::QueryDeserialization)?;
 
         Ok(query)
     }
 }
 
-impl TryFrom<TransferQuery> for Url {
+impl TryFrom<&TransferQuery> for Url {
     type Error = TransferUriError;
 
-    fn try_from(value: TransferQuery) -> Result<Self, Self::Error> {
+    fn try_from(value: &TransferQuery) -> Result<Self, Self::Error> {
         let mut url: Url = urls::transfer_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
-        url.set_fragment(Some(serde_urlencoded::to_string(value)?.as_str()));
+        url.set_fragment(Some(
+            serde_qs::to_string(value)
+                .map_err(TransferUriError::QuerySerialization)?
+                .as_str(),
+        ));
 
         Ok(url)
     }
@@ -77,7 +81,7 @@ mod tests {
         let transfer_session_id = Uuid::new_v4();
         let secret_key = JweEcdhSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw);
 
-        let transfer_query = TransferQuery {
+        let transfer_query = &TransferQuery {
             session_id: transfer_session_id.into(),
             public_key: secret_key.to_jwe_public_key(),
         };
@@ -92,7 +96,7 @@ mod tests {
         assert_eq!(url.query(), None);
         assert!(url.fragment().is_some());
 
-        let query: TransferQuery = serde_urlencoded::from_str(url.fragment().unwrap()).unwrap();
+        let query: TransferQuery = serde_qs::from_str(url.fragment().unwrap()).unwrap();
         assert_eq!(query.session_id, transfer_session_id.into());
         assert_eq!(query.public_key.key(), secret_key.key().public_key());
     }

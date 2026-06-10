@@ -1,5 +1,6 @@
 {
   "issuance_server_url": "http://localhost:3007",
+  "pacf_issuance_server_url": "http://localhost:3008/",
   "help_base_url": "https://help.example.com/",
   "webserver": {
     "ip": "0.0.0.0",
@@ -14,6 +15,18 @@
     "key": "key"
   },
   "usecases": {
+    "loyalty": {
+      "data": [
+        {
+          "format": "mso_mdoc",
+          "attestation_type": "com.example.loyalty",
+          "attributes": {
+            "branch": "Demodam",
+            "loyalty_number": "123456789"
+          }
+        }
+      ]
+    },
     "university": {
       "client_id": "x509_hash:example-university-reader-cert-hash",
       "data": {

@@ -49,6 +49,7 @@ Where:
                                 'docker' service.
     vs, verification_server:    Start the verification_server.
     is, issuance_server:        Start the issuance_server.
+    pis, pacf_issuance_server:  Start the pacf_issuance_server.
     pi, pid_issuer:             Start the pid_issuer.
     drp, demo_relying_party:    Start the demo_relying_party.
     di, demo_issuer:            Start the demo_issuer.
@@ -88,6 +89,7 @@ REVOCATION_PORTAL=1
 WALLET_PROVIDER=1
 VERIFICATION_SERVER=1
 ISSUANCE_SERVER=1
+PACF_ISSUANCE_SERVER=1
 PID_ISSUER=1
 WALLET=1
 DIGID_CONNECTOR=1
@@ -130,6 +132,10 @@ do
             ;;
         is|issuance_server)
             ISSUANCE_SERVER=0
+            shift # past argument
+            ;;
+        pis|pacf_issuance_server)
+            PACF_ISSUANCE_SERVER=0
             shift # past argument
             ;;
         pi|pid_issuer)
@@ -189,6 +195,7 @@ do
             REVOCATION_PORTAL=0
             VERIFICATION_SERVER=0
             ISSUANCE_SERVER=0
+            PACF_ISSUANCE_SERVER=0
             PID_ISSUER=0
             WALLET_PROVIDER=0
             STATIC_SERVER=0
@@ -206,6 +213,7 @@ do
             REVOCATION_PORTAL=0
             VERIFICATION_SERVER=0
             ISSUANCE_SERVER=0
+            PACF_ISSUANCE_SERVER=0
             PID_ISSUER=0
             WALLET_PROVIDER=0
             WALLET=0
@@ -439,7 +447,7 @@ fi
 
 if [[ $ISSUANCE_SERVER == '0' ]]
 then
-    # As part of the demo RP a issuance_server is started
+    # As part of the demo issuer an issuance_server is started
     echo
     echo -e "${SECTION}Manage issuance_server${NC}"
 
@@ -465,6 +473,42 @@ then
         RUST_LOG=debug cargo run --package issuance_server --features "allow_insecure_url,test_internal_ui" --bin issuance_server > "${TARGET_DIR}/demo_issuer_issuance_server.log" 2>&1 &
 
         echo -e "issuance_server logs can be found at ${CYAN}${TARGET_DIR}/demo_issuer_issuance_server.log${NC}"
+    fi
+fi
+
+
+########################################################################
+# Manage pacf_issuance_server
+########################################################################
+
+if [[ $PACF_ISSUANCE_SERVER == '0' ]]
+then
+    # As part of the demo issuer a pacf_issuance_server is started
+    echo
+    echo -e "${SECTION}Manage pacf_issuance_server${NC}"
+
+    cd "${PACF_ISSUANCE_SERVER_DIR}"
+
+    if [[ $STOP == '0' ]]
+    then
+        echo -e "${INFO}Kill any running ${ORANGE}pacf_issuance_server${NC}"
+        pkill -f 'pacf_issuance_server$' || true
+    fi
+    if [[ $START == '0' ]]
+    then
+        pushd "${WALLET_CORE_DIR}"
+        echo -e "${INFO}Running pacf_issuance_server database migrations${NC}"
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/pacf_issuance_server" cargo run --package pacf_issuance_server_migrations --bin pacf_issuance_server_migrations -- fresh
+        popd
+
+        echo -e "${INFO}Cleaning status lists for pacf_issuance_server${NC}"
+        rm -rf "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
+        mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
+
+        echo -e "${INFO}Start ${ORANGE}pacf_issuance_server${NC}"
+        RUST_LOG=debug cargo run --package pacf_issuance_server --features "allow_insecure_url,test_internal_ui" --bin pacf_issuance_server > "${TARGET_DIR}/demo_issuer_pacf_issuance_server.log" 2>&1 &
+
+        echo -e "pacf_issuance_server logs can be found at ${CYAN}${TARGET_DIR}/demo_issuer_pacf_issuance_server.log${NC}"
     fi
 fi
 

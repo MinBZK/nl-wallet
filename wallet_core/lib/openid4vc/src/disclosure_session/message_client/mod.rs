@@ -4,6 +4,7 @@ use http_utils::urls::BaseUrl;
 use jwt::UnverifiedJwt;
 use jwt::headers::HeaderWithX5c;
 use mime::Mime;
+use url::Url;
 
 pub use self::error::VpMessageClientError;
 pub use self::error::VpMessageClientErrorType;
@@ -34,19 +35,16 @@ pub trait VpMessageClient {
         wallet_nonce: Option<String>,
     ) -> Result<UnverifiedJwt<VpAuthorizationRequest, HeaderWithX5c>, VpMessageClientError>;
 
-    async fn send_authorization_response(
-        &self,
-        url: BaseUrl,
-        jwe: String,
-    ) -> Result<Option<BaseUrl>, VpMessageClientError>;
+    async fn send_authorization_response(&self, url: BaseUrl, jwe: String)
+    -> Result<Option<Url>, VpMessageClientError>;
 
     async fn send_error(
         &self,
         url: BaseUrl,
         error: AuthorizationErrorResponse<VpAuthorizationErrorCode>,
-    ) -> Result<Option<BaseUrl>, VpMessageClientError>;
+    ) -> Result<Option<Url>, VpMessageClientError>;
 
-    async fn terminate(&self, url: BaseUrl, state: Option<String>) -> Result<Option<BaseUrl>, VpMessageClientError> {
+    async fn terminate(&self, url: BaseUrl, state: Option<String>) -> Result<Option<Url>, VpMessageClientError> {
         self.send_error(
             url,
             AuthorizationErrorResponse {

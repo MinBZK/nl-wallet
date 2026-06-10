@@ -2025,10 +2025,14 @@ dependencies = [
  "demo_utils",
  "derive_more",
  "http_utils",
+ "indexmap 2.12.1",
  "itertools 0.14.0",
  "openid4vc",
+ "pacf_issuance_server",
+ "rand 0.8.6",
+ "reqwest",
  "serde",
- "serde_urlencoded",
+ "serde_qs",
  "serde_valid",
  "serde_with",
  "server_utils",
@@ -2066,7 +2070,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "serde_urlencoded",
+ "serde_qs",
  "server_utils",
  "strum 0.28.0",
  "tokio",
@@ -2458,7 +2462,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3939,7 +3943,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4769,7 +4773,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5154,7 +5158,7 @@ dependencies = [
  "serde",
  "serde_bytes",
  "serde_json",
- "serde_urlencoded",
+ "serde_qs",
  "serde_valid",
  "serde_with",
  "serial_test",
@@ -5197,7 +5201,7 @@ dependencies = [
  "rustls-pki-types",
  "sd_jwt_vc_metadata",
  "serde",
- "serde_urlencoded",
+ "serde_qs",
  "thiserror 2.0.17",
  "token_status_list",
  "tokio",
@@ -5363,6 +5367,40 @@ dependencies = [
  "elliptic-curve",
  "primeorder",
  "sha2",
+]
+
+[[package]]
+name = "pacf_issuance_server"
+version = "0.6.0-dev"
+dependencies = [
+ "anyhow",
+ "axum",
+ "config",
+ "health_checkers",
+ "hsm",
+ "http_utils",
+ "issuer_common",
+ "itertools 0.14.0",
+ "openid4vc",
+ "openid4vc_server",
+ "serde",
+ "serde_qs",
+ "server_utils",
+ "status_lists",
+ "thiserror 2.0.17",
+ "tokio",
+ "url",
+ "utils",
+ "utoipa-swagger-ui",
+]
+
+[[package]]
+name = "pacf_issuance_server_migrations"
+version = "0.6.0-dev"
+dependencies = [
+ "issuer_common_migrations",
+ "sea-orm-migration",
+ "tokio",
 ]
 
 [[package]]
@@ -5669,7 +5707,7 @@ dependencies = [
  "rstest",
  "serde",
  "serde_json",
- "serde_urlencoded",
+ "serde_qs",
  "serde_with",
  "server_utils",
  "status_lists",
@@ -6090,7 +6128,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -6492,7 +6530,8 @@ dependencies = [
  "rstest",
  "scraper",
  "serde",
- "serde_urlencoded",
+ "serde_json",
+ "serde_qs",
  "server_utils",
  "strfmt",
  "strum 0.28.0",
@@ -6744,7 +6783,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7419,6 +7458,18 @@ dependencies = [
  "itoa",
  "serde",
  "serde_core",
+]
+
+[[package]]
+name = "serde_qs"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67d525c8ff68aa99e5818302259bdd02d86d0303710616f39c0f44846ff6d332"
+dependencies = [
+ "itoa",
+ "percent-encoding",
+ "ryu",
+ "serde",
 ]
 
 [[package]]
@@ -8332,7 +8383,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -8447,7 +8498,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "serde_urlencoded",
+ "serde_qs",
  "serial_test",
  "server_utils",
  "static_server",
@@ -9536,7 +9587,7 @@ dependencies = [
  "sd_jwt_vc_metadata",
  "serde",
  "serde_json",
- "serde_urlencoded",
+ "serde_qs",
  "serde_with",
  "server_utils",
  "ssri",
@@ -9643,7 +9694,7 @@ dependencies = [
  "sea-orm",
  "serde",
  "serde_json",
- "serde_urlencoded",
+ "serde_qs",
  "serde_with",
  "serial_test",
  "ssri",
@@ -10181,7 +10232,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

@@ -411,11 +411,10 @@ function generate_wallet_provider_tsl_key_pair {
         -outform DER -out "${TARGET_DIR}/wallet_provider/wia_tsl.crt.der"
 }
 
-# Generate an EC key pairs for the demo_issuer
+# Generate EC key pairs for the demo_issuer
 #
 # $1 - ISSUER_NAME: Name of the Issuer
 function generate_demo_issuer_key_pairs {
-
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca reader \
         --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
@@ -425,6 +424,20 @@ function generate_demo_issuer_key_pairs {
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.reader" \
         --force
 
+    openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.reader.crt.pem" \
+        -outform DER -out "${TARGET_DIR}/demo_issuer/$1.reader.crt.der"
+
+    openssl pkcs8 -topk8 -inform PEM -outform DER \
+        -in "${TARGET_DIR}/demo_issuer/$1.reader.key.pem" \
+        -out "${TARGET_DIR}/demo_issuer/$1.reader.key.der" -nocrypt
+
+    generate_demo_issuer_issuance_key_pairs $1
+}
+
+# Generate EC issuance key pairs for the demo_issuer
+#
+# $1 - ISSUER_NAME: Name of the Issuer
+function generate_demo_issuer_issuance_key_pairs {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca issuer \
         --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
@@ -442,16 +455,11 @@ function generate_demo_issuer_key_pairs {
         --file-prefix "${TARGET_DIR}/demo_issuer/$1.tsl" \
         --force
 
-    openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.reader.crt.pem" \
-        -outform DER -out "${TARGET_DIR}/demo_issuer/$1.reader.crt.der"
     openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.issuer.crt.pem" \
         -outform DER -out "${TARGET_DIR}/demo_issuer/$1.issuer.crt.der"
     openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.tsl.crt.pem" \
         -outform DER -out "${TARGET_DIR}/demo_issuer/$1.tsl.crt.der"
 
-    openssl pkcs8 -topk8 -inform PEM -outform DER \
-        -in "${TARGET_DIR}/demo_issuer/$1.reader.key.pem" \
-        -out "${TARGET_DIR}/demo_issuer/$1.reader.key.der" -nocrypt
     openssl pkcs8 -topk8 -inform PEM -outform DER \
         -in "${TARGET_DIR}/demo_issuer/$1.issuer.key.pem" \
         -out "${TARGET_DIR}/demo_issuer/$1.issuer.key.der" -nocrypt

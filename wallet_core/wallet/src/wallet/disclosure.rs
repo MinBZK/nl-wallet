@@ -19,7 +19,6 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use futures::future::try_join_all;
 use http_utils::client::TlsPinningConfig;
-use http_utils::urls::BaseUrl;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Either;
@@ -204,7 +203,7 @@ impl DisclosureError {
                 error: VpVerifierError::Request(error),
                 ..
             }
-            | Self::VpClient(VpClientError::Request(error)) => error.redirect_uri().map(AsRef::as_ref),
+            | Self::VpClient(VpClientError::Request(error)) => error.redirect_uri(),
             _ => None,
         }
     }
@@ -728,7 +727,7 @@ where
             .clone()
             .into_certificate_and_registration();
 
-        let return_url = session.protocol_state.terminate().await?.map(BaseUrl::into_inner);
+        let return_url = session.protocol_state.terminate().await?;
 
         self.store_disclosure_event(
             Utc::now(),
@@ -908,7 +907,7 @@ where
             .disclose(disclosable_attestations, &remote_wscd, &TimeGenerator)
             .await;
         let return_url = match result {
-            Ok(return_url) => return_url.map(BaseUrl::into_inner),
+            Ok(return_url) => return_url,
             Err((protocol_state, error)) => {
                 let disclosure_error =
                     DisclosureError::with_organization(error.error, reader_registration.organization);
@@ -1021,7 +1020,6 @@ mod tests {
     use dcql::normalized::SdJwtAttributeRequest;
     use entity::disclosure_event::EventStatus;
     use http_utils::urls;
-    use http_utils::urls::BaseUrl;
     use indexmap::IndexMap;
     use itertools::Itertools;
     use mdoc::iso::mdocs::Entry;
@@ -1096,8 +1094,7 @@ mod tests {
     static DISCLOSURE_URI: LazyLock<Url> =
         LazyLock::new(|| urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy?foo=bar"));
     const PIN: &str = "051097";
-    static RETURN_URL: LazyLock<BaseUrl> =
-        LazyLock::new(|| BaseUrl::from_str("https://example.com/return/here").unwrap());
+    static RETURN_URL: LazyLock<Url> = LazyLock::new(|| Url::from_str("https://example.com/return/here").unwrap());
     static DEFAULT_MDOC_PID_CREDENTIAL_REQUESTS: LazyLock<NormalizedCredentialRequests> = LazyLock::new(|| {
         NormalizedCredentialRequests::new_mock_mdoc_from_slices(
             &[(PID_ATTESTATION_TYPE, &[&[PID_ATTESTATION_TYPE, PID_FAMILY_NAME]])],
@@ -1593,7 +1590,7 @@ mod tests {
             .await
             .expect("accepting disclosure should succeed");
 
-        assert_eq!(return_url.as_ref(), Some(RETURN_URL.as_ref()));
+        assert_eq!(return_url.as_ref(), Some(&*RETURN_URL));
 
         // Check that the disclosure session is no longer present on the wallet.
         assert!(wallet.session.is_none());
@@ -1768,7 +1765,7 @@ mod tests {
             .expect_err("starting disclosure should not succeed");
 
         assert_matches!(error, DisclosureError::VpClient(VpClientError::Request(_)));
-        assert_eq!(error.return_url(), Some(RETURN_URL.as_ref()));
+        assert_eq!(error.return_url(), Some(&*RETURN_URL));
         assert!(wallet.session.is_none());
     }
 
@@ -2215,7 +2212,7 @@ mod tests {
             .await
             .expect("cancelling disclosure should succeed");
 
-        assert_eq!(cancel_return_url.as_ref(), Some(RETURN_URL.as_ref()));
+        assert_eq!(cancel_return_url.as_ref(), Some(&*RETURN_URL));
         assert!(wallet.session.is_none());
 
         assert_eq!(event_count.load(Ordering::Relaxed), 2);
@@ -2356,7 +2353,7 @@ mod tests {
             error,
             CancelSessionError::Disclosure(error)
                 if matches!(error, DisclosureError::VpClient(VpClientError::Request(_)))
-                   && error.return_url().is_some_and(|u| u == RETURN_URL.as_ref())
+                   && error.return_url().is_some_and(|u| u == &*RETURN_URL)
         );
         assert!(wallet.session.is_none());
     }
@@ -2464,7 +2461,7 @@ mod tests {
             .expect("accepting disclosure should succeed");
 
         // Accepting disclosure should result in a `Wallet` without a disclosure session.
-        assert_eq!(accept_return_url.as_ref(), Some(RETURN_URL.as_ref()));
+        assert_eq!(accept_return_url.as_ref(), Some(&*RETURN_URL));
         assert!(wallet.session.is_none());
 
         assert_eq!(event_count.load(Ordering::Relaxed), 2);
@@ -2841,7 +2838,7 @@ mod tests {
         // Check the error type and its return URL and check if the wallet still has an active disclosure session.
         expected_error_type.check_error(&error, &verifier_certificate.registration().organization);
         if expect_return_url {
-            assert_eq!(error.return_url(), Some(RETURN_URL.as_ref()));
+            assert_eq!(error.return_url(), Some(&*RETURN_URL));
         } else {
             assert!(error.return_url().is_none());
         }
@@ -2910,7 +2907,7 @@ mod tests {
 
         expected_error_type.check_error(&error, &verifier_certificate.registration().organization);
         if expect_return_url {
-            assert_eq!(error.return_url(), Some(RETURN_URL.as_ref()));
+            assert_eq!(error.return_url(), Some(&*RETURN_URL));
         } else {
             assert!(error.return_url().is_none());
         }

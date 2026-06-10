@@ -129,7 +129,7 @@ test_common = [
     "dep:rustls",
     "dep:semver",
     "dep:serde_json",
-    "dep:serde_urlencoded",
+    "dep:serde_qs",
     "dep:server_utils",
     "dep:static_server",
     "dep:tempfile",
@@ -224,7 +224,7 @@ performance_test = [
     "dep:openid4vc",
     "dep:reqwest",
     "dep:server_utils",
-    "dep:serde_urlencoded",
+    "dep:serde_qs",
     "dep:tempfile",
     "dep:tracing",
     "dep:url",
@@ -265,7 +265,7 @@ sea-orm = { workspace = true, optional = true }
 semver = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
-serde_urlencoded = { workspace = true, optional = true }
+serde_qs = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }

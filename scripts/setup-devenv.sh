@@ -452,6 +452,16 @@ export DEMO_ISSUER_KEY_HOUSING_TSL
 DEMO_ISSUER_CRT_HOUSING_TSL=$(< "${TARGET_DIR}/demo_issuer/housing.tsl.crt.der" ${BASE64})
 export DEMO_ISSUER_CRT_HOUSING_TSL
 
+generate_demo_issuer_issuance_key_pairs loyalty
+DEMO_ISSUER_KEY_LOYALTY_ISSUER=$(< "${TARGET_DIR}/demo_issuer/loyalty.issuer.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_LOYALTY_ISSUER
+DEMO_ISSUER_CRT_LOYALTY_ISSUER=$(< "${TARGET_DIR}/demo_issuer/loyalty.issuer.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_LOYALTY_ISSUER
+DEMO_ISSUER_KEY_LOYALTY_TSL=$(< "${TARGET_DIR}/demo_issuer/loyalty.tsl.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_LOYALTY_TSL
+DEMO_ISSUER_CRT_LOYALTY_TSL=$(< "${TARGET_DIR}/demo_issuer/loyalty.tsl.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_LOYALTY_TSL
+
 render_template "${DEVENV}/demo_issuer.json.template" "${DEMO_ISSUER_DIR}/demo_issuer.json"
 
 
@@ -465,11 +475,13 @@ render_template "${DEVENV}/demo_index.toml.template" "${DEMO_INDEX_DIR}/demo_ind
 cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${PID_ISSUER_DIR}"
 cp "${DEVENV}/eudi_pid_1.json" "${DEVENV}/eudi_pid_nl_1.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${DEVENV}/com.example.housing.json" "${BASE_DIR}/wallet_core/tests_integration"
 cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${DEVENV}/com.example.housing.json" "${ISSUANCE_SERVER_DIR}"
+cp "${DEVENV}/com.example.jum.bonuskaart.json" "${PACF_ISSUANCE_SERVER_DIR}"
 export ISSUER_METADATA_PID_PATH="eudi_pid_1.json"
 export ISSUER_METADATA_PID_NL_PATH="eudi_pid_nl_1.json"
 export ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
 export ISSUER_METADATA_INSURANCE_PATH="com.example.insurance.json"
 export ISSUER_METADATA_HOUSING_PATH="com.example.housing.json"
+export ISSUER_METADATA_LOYALTY_PATH="com.example.jum.bonuskaart.json"
 
 # And the demo RP's verification_server config
 render_template "${DEVENV}/demo_rp_verification_server.toml.template" "${VERIFICATION_SERVER_DIR}/verification_server.toml"
@@ -483,10 +495,15 @@ render_template "${DEVENV}/pid_issuer.toml.template" "${BASE_DIR}/wallet_core/te
 render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${ISSUANCE_SERVER_DIR}/issuance_server.toml"
 render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/issuance_server.toml"
 
+# And the pacf_issuance_server config
+render_template "${DEVENV}/demo_issuer_pacf_issuance_server.toml.template" "${PACF_ISSUANCE_SERVER_DIR}/pacf_issuance_server.toml"
+render_template "${DEVENV}/demo_issuer_pacf_issuance_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/pacf_issuance_server.toml"
+
 # Ensure the status_lists dirs exists
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/wallet_provider"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pid_issuer"
 mkdir -p "${WALLET_CORE_DIR}/target/status-lists/issuance_server"
+mkdir -p "${WALLET_CORE_DIR}/target/status-lists/pacf_issuance_server"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
 

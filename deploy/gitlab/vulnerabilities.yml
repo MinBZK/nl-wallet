@@ -64,6 +64,8 @@ osv-scanner:
       "nl-wallet-verification-server"
       "nl-wallet-issuance-server-migrations"
       "nl-wallet-issuance-server"
+      "nl-wallet-pacf-issuance-server-migrations"
+      "nl-wallet-pacf-issuance-server"
       "nl-wallet-pid-issuer-migrations"
       "nl-wallet-pid-issuer"
       "nl-wallet-gba-hc-converter"
@@ -152,6 +154,12 @@ trivy-publish:
       artifacts: false
       optional: true
     - job: build-issuance-server-migrations-image
+      artifacts: false
+      optional: true
+    - job: build-pacf-issuance-server-image
+      artifacts: false
+      optional: true
+    - job: build-pacf-issuance-server-migrations-image
       artifacts: false
       optional: true
     - job: build-pid-issuer-image

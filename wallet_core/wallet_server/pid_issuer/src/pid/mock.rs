@@ -74,7 +74,7 @@ impl AuthorizationCodeFlow for MockPidAuthorizationCodeFlow {
         // matching what a real upstream-OIDC flow does. Integration test wallet helpers parse
         // `redirect_uri` and `state` out of this URL to complete the fake OIDC dance.
         let query_string =
-            serde_urlencoded::to_string(&request).expect("VciAuthorizationRequest should always urlencode-serialize");
+            serde_qs::to_string(&request).expect("VciAuthorizationRequest should always urlencode-serialize");
         let mut redirect_url = self.redirect_to.clone();
         redirect_url.set_query(Some(&query_string));
         Ok(AuthorizeOutcome::RedirectTo(redirect_url))
