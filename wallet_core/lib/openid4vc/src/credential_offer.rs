@@ -457,9 +457,13 @@ mod tests {
         assert_eq!(key, "credential_offer");
         assert_eq!(
             value,
-            "{\"credential_issuer\":\"https://issuer.example.com\",\"credential_configuration_ids\":[\"MyCredential\"]\
-             ,\"grants\":{\"urn:ietf:params:oauth:grant-type:pre-authorized_code\":{\"pre-authorized_code\":\"abc123\"\
-             }}}"
+            "{\
+                \"credential_issuer\":\"https://issuer.example.com\",\
+                \"credential_configuration_ids\":[\"MyCredential\"],\
+                \"grants\":{\
+                \"urn:ietf:params:oauth:grant-type:pre-authorized_code\":{\
+                \"pre-authorized_code\":\"abc123\"\
+            }}}"
         );
         let parsed: CredentialOffer = serde_json::from_str(&value).expect("value should be valid CredentialOffer JSON");
         assert_eq!(parsed.credential_issuer.as_ref(), "https://issuer.example.com");
@@ -491,9 +495,13 @@ mod tests {
         assert!(url.query().is_some_and(|q| q.contains("credential_offer")));
         assert_eq!(
             url.as_str(),
-            "openid-credential-offer://?credential_offer={%22credential_issuer%22:%22https://issuer.example.com%22,%22\
-             credential_configuration_ids%22:%5B%22MyCredential%22%5D,%22grants%22:{%22urn:ietf:params:oauth:grant-typ\
-             e:pre-authorized_code%22:{%22pre-authorized_code%22:%22abc123%22}}}"
+            "openid-credential-offer://?credential_offer={\
+                %22credential_issuer%22:%22https://issuer.example.com%22,\
+                %22credential_configuration_ids%22:%5B%22MyCredential%22%5D,\
+                %22grants%22:{\
+                    %22urn:ietf:params:oauth:grant-type:pre-authorized_code%22:{\
+                        %22pre-authorized_code%22:%22abc123%22\
+            }}}"
         );
     }
 

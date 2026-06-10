@@ -251,8 +251,11 @@ mod tests {
                 redirect_uri: Some("https://example.com".parse().unwrap())
             })
             .unwrap(),
-            "grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code&pre-authorized_code=123&code_verifier=myv\
-             erifier&client_id=myclient&redirect_uri=https://example.com/",
+            "grant_type=urn:ietf:params:oauth:grant-type:pre-authorized_code\
+                &pre-authorized_code=123\
+                &code_verifier=myverifier\
+                &client_id=myclient\
+                &redirect_uri=https://example.com/",
         );
     }
 
