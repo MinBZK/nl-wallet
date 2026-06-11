@@ -4,6 +4,7 @@ use anyhow::Result;
 use axum::Router;
 use http_utils::health::HealthChecker;
 use http_utils::health::create_health_router;
+use issuer_common::IssuanceServerIssuer;
 use itertools::Itertools;
 use openid4vc_server::issuer::create_pre_authorized_token_router;
 use server_utils::server::add_cache_control_no_store_layer;
@@ -16,8 +17,6 @@ use status_lists::revoke::create_revocation_router;
 use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
 use utils::vec_at_least::VecNonEmpty;
-
-use crate::settings::IssuanceServerIssuer;
 
 pub async fn serve(
     issuer: Arc<IssuanceServerIssuer>,

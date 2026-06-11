@@ -91,14 +91,14 @@ impl WalletServerClient {
 
         let queries = nonce
             .map(|nonce| {
-                let query = serde_urlencoded::to_string(DisclosedAttributesParams { nonce: nonce.into() })?;
+                let query = serde_qs::to_string(&DisclosedAttributesParams { nonce: nonce.into() })?;
 
                 // Create a separate error query, where the nonce is masked with "X" characters.
-                let error_query = serde_urlencoded::to_string(DisclosedAttributesParams {
+                let error_query = serde_qs::to_string(&DisclosedAttributesParams {
                     nonce: "X".repeat(16).into(),
                 })?;
 
-                Ok::<_, serde_urlencoded::ser::Error>((query, error_query))
+                Ok::<_, serde_qs::Error>((query, error_query))
             })
             .transpose()?;
 

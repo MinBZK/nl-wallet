@@ -102,7 +102,7 @@ spec:
             secretName: nl-wallet-demo-issuer-issuance-server-settings
         - name: metadata
           configMap:
-            name: nl-wallet-demo-issuer-metadata
+            name: nl-wallet-issuance-server-metadata
         - name: status-lists
           persistentVolumeClaim:
             claimName: {{ include "common.names.fullname" . }}

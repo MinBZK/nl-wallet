@@ -45,7 +45,8 @@ web_utils.path = "../lib/web_utils"
 [dev-dependencies]
 rstest.workspace = true
 scraper.workspace = true
-serde_urlencoded.workspace = true
+serde_json.workspace = true
+serde_qs.workspace = true
 
 [build-dependencies]
 web_utils = { path = "../lib/web_utils", features = ["build"] }

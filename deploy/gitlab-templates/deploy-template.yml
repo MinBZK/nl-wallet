@@ -132,6 +132,18 @@ demo-issuer-issuance-server-${DEPLOY_ENV}:
     RELEASE_NAME: demo-issuer-issuance-server
     CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/demo-issuer-issuance-server.yaml"
 
+demo-issuer-pacf-issuance-server-${DEPLOY_ENV}:
+  extends: .deploy-helm-with-tag
+  needs:
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
+    - job: db-cluster-${DEPLOY_ENV}
+      artifacts: false
+  variables:
+    CHART_NAME: demo-issuer-pacf-issuance-server
+    RELEASE_NAME: demo-issuer-pacf-issuance-server
+    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,general/http-route-internal-default-headers.yaml,${DEPLOY_ENV}/demo-issuer-pacf-issuance-server.yaml"
+
 demo-issuer-${DEPLOY_ENV}:
   extends: .deploy-helm-with-tag
   needs:
@@ -256,6 +268,18 @@ run-demo-issuer-issuance-server-reset-${DEPLOY_ENV}:
       artifacts: false
   script:
     - kubectl create job --from=cronjob/demo-issuer-issuance-server-reset demo-issuer-issuance-db-reset-$(date +%s)
+  allow_failure: true
+  when: manual
+  manual_confirmation: >
+    This will launch a reset job that will reset the database using sea-orm-cli.
+
+run-demo-issuer-pacf-issuance-server-reset-${DEPLOY_ENV}:
+  extends: .deploy-base
+  needs:
+    - job: db-cluster-${DEPLOY_ENV}
+      artifacts: false
+  script:
+    - kubectl create job --from=cronjob/demo-issuer-pacf-issuance-server-reset demo-issuer-pacf-issuance-db-reset-$(date +%s)
   allow_failure: true
   when: manual
   manual_confirmation: >

@@ -566,7 +566,7 @@ fn format_status_url(public_url: &BaseUrl, session_token: &SessionToken, session
     let mut status_url = public_url.join(&format!("disclosure/sessions/{session_token}"));
 
     if let Some(session_type) = session_type {
-        let status_query = serde_urlencoded::to_string(StatusParams {
+        let status_query = serde_qs::to_string(&StatusParams {
             session_type: Some(session_type),
         })
         .unwrap();
@@ -863,7 +863,7 @@ fn prepare_example_sd_jwt_mock(issuer_ca: &Ca, wscd: &MockRemoteWscd) -> (Signed
 async fn perform_full_disclosure(
     session_type: SessionType,
     format: Format,
-) -> (Client, SessionToken, BaseUrl, Option<BaseUrl>) {
+) -> (Client, SessionToken, BaseUrl, Option<Url>) {
     // Start the verification_server and create a disclosure request.
     let (settings, client, session_token, internal_url, issuer_ca, rp_trust_anchor) = start_disclosure(
         Arc::new(MemorySessionStore::default()),
@@ -1041,7 +1041,6 @@ async fn test_disclosed_attributes_with_nonce(#[values(Format::MsoMdoc, Format::
     // with the attributes, when we include the nonce from the return URL.
     let nonce = return_url
         .expect("a same-device disclosure session should produce a return URL")
-        .into_inner()
         .query_pairs()
         .find_map(|(key, value)| (key == "nonce").then_some(value.into_owned()))
         .unwrap();

@@ -27,6 +27,7 @@ pub struct Settings {
     pub issuance_server: Server,
     pub issuance_server_tls_config: Option<TlsServerConfig>,
     pub issuance_server_url: BaseUrl,
+    pub pacf_issuance_server_url: BaseUrl,
     pub universal_link_base_url: BaseUrl,
     pub help_base_url: BaseUrl,
     pub structured_logging: bool,
@@ -41,10 +42,16 @@ pub struct Server {
 }
 
 #[derive(Deserialize, Clone)]
-pub struct Usecase {
-    pub data: HashMap<AttributeValue, IssuableDocumentTemplates>,
-    pub client_id: String,
-    pub disclosed: Disclosed,
+#[serde(untagged)]
+pub enum Usecase {
+    PreAuthorized {
+        data: IssuableDocumentTemplates,
+    },
+    DisclosureBased {
+        data: HashMap<AttributeValue, IssuableDocumentTemplates>,
+        client_id: String,
+        disclosed: Disclosed,
+    },
 }
 
 pub type IssuableDocumentTemplates = VecNonEmpty<IssuableDocumentTemplate>;

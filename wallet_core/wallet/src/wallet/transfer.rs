@@ -149,7 +149,7 @@ where
         transfer_data.key_data = Some(TransferKeyData::Destination { secret_key });
         self.storage.write().await.upsert_data(&transfer_data).await?;
 
-        let query = TransferQuery {
+        let query = &TransferQuery {
             session_id: transfer_data.transfer_session_id,
             public_key,
         };
@@ -161,7 +161,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn pair_transfer(&mut self, uri: Url) -> Result<(), TransferError> {
+    pub async fn pair_transfer(&mut self, uri: &Url) -> Result<(), TransferError> {
         info!("Pairing transfer");
 
         self.validate_transfer_allowed()?;
@@ -583,7 +583,7 @@ mod tests {
         assert_eq!(url.query(), None);
         assert!(url.fragment().is_some());
 
-        let query: TransferQuery = serde_urlencoded::from_str(url.fragment().unwrap()).unwrap();
+        let query: TransferQuery = serde_qs::from_str(url.fragment().unwrap()).unwrap();
         assert_eq!(query.session_id, transfer_session_id.into());
         assert_eq!(query.public_key.algorithm(), EcdhAlgorithm::EcdhEsA256kw);
     }
@@ -629,13 +629,13 @@ mod tests {
 
         let secret_key = JweEcdhSecretKey::new_random(None, EcdhAlgorithm::EcdhEsA256kw);
 
-        let transfer_uri = TransferQuery {
+        let transfer_uri = &TransferQuery {
             session_id: transfer_session_id.into(),
             public_key: secret_key.to_jwe_public_key(),
         };
 
         wallet
-            .pair_transfer(transfer_uri.try_into().unwrap())
+            .pair_transfer(&transfer_uri.try_into().unwrap())
             .await
             .expect("Wallet pair transfer should have succeeded");
     }
@@ -810,7 +810,7 @@ mod tests {
             .return_once(move |_, _: HwSignedInstruction<PairTransfer>| Ok(wp_result));
 
         source_wallet
-            .pair_transfer(transfer_url)
+            .pair_transfer(&transfer_url)
             .await
             .expect("Wallet pair transfer should have succeeded");
 
@@ -975,13 +975,13 @@ mod tests {
             .return_once(move |_, _: HwSignedInstruction<PairTransfer>| Ok(wp_result));
 
         source_wallet
-            .pair_transfer(transfer_url.clone())
+            .pair_transfer(&transfer_url)
             .await
             .expect("Wallet pair transfer should have succeeded");
 
         // Send the wallet payload from the source
 
-        let transfer_query: TransferQuery = transfer_url.try_into().unwrap();
+        let transfer_query: TransferQuery = (&transfer_url).try_into().unwrap();
         let public_key = transfer_query.public_key;
         source_wallet
             .mut_storage()

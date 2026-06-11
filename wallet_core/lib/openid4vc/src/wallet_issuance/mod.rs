@@ -245,7 +245,7 @@ pub enum WalletIssuanceError {
 
     #[error("failed to deserialize credential offer: {0}")]
     #[category(pd)]
-    CredentialOfferDeserialization(#[source] serde_urlencoded::de::Error),
+    CredentialOfferDeserialization(#[source] serde_qs::Error),
 
     #[error("could not retrieve credential offer from issuer: {0:?}")]
     #[category(expected)]
