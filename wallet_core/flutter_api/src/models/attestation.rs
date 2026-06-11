@@ -91,7 +91,7 @@ impl From<wallet::ValidityStatus> for ValidityStatus {
 }
 
 pub struct DisplayMetadata {
-    pub lang: String,
+    pub locale: String,
     pub name: String,
     pub description: Option<String>,
     pub summary: Option<String>,
@@ -101,7 +101,7 @@ pub struct DisplayMetadata {
 impl From<wallet::sd_jwt_vc_metadata::DisplayMetadata> for DisplayMetadata {
     fn from(value: wallet::sd_jwt_vc_metadata::DisplayMetadata) -> Self {
         Self {
-            lang: value.lang,
+            locale: value.locale,
             name: value.name,
             description: value.description,
             summary: value.summary,
@@ -158,7 +158,7 @@ impl TryFrom<LogoMetadata> for ImageWithMetadata {
 }
 
 pub struct ClaimDisplayMetadata {
-    pub lang: String,
+    pub locale: String,
     pub label: String,
     pub description: Option<String>,
 }
@@ -166,7 +166,7 @@ pub struct ClaimDisplayMetadata {
 impl From<wallet::sd_jwt_vc_metadata::ClaimDisplayMetadata> for ClaimDisplayMetadata {
     fn from(value: wallet::sd_jwt_vc_metadata::ClaimDisplayMetadata) -> Self {
         Self {
-            lang: value.lang,
+            locale: value.locale,
             label: value.label,
             description: value.description,
         }

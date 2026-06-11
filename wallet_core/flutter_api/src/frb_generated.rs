@@ -2004,11 +2004,11 @@ impl SseDecode for Box<crate::models::wallet_state::WalletState> {
 impl SseDecode for crate::models::attestation::ClaimDisplayMetadata {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_lang = <String>::sse_decode(deserializer);
+        let mut var_locale = <String>::sse_decode(deserializer);
         let mut var_label = <String>::sse_decode(deserializer);
         let mut var_description = <Option<String>>::sse_decode(deserializer);
         return crate::models::attestation::ClaimDisplayMetadata {
-            lang: var_lang,
+            locale: var_locale,
             label: var_label,
             description: var_description,
         };
@@ -2112,13 +2112,13 @@ impl SseDecode for crate::models::disclosure::DisclosureType {
 impl SseDecode for crate::models::attestation::DisplayMetadata {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_lang = <String>::sse_decode(deserializer);
+        let mut var_locale = <String>::sse_decode(deserializer);
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_description = <Option<String>>::sse_decode(deserializer);
         let mut var_summary = <Option<String>>::sse_decode(deserializer);
         let mut var_rendering = <Option<crate::models::attestation::RenderingMetadata>>::sse_decode(deserializer);
         return crate::models::attestation::DisplayMetadata {
-            lang: var_lang,
+            locale: var_locale,
             name: var_name,
             description: var_description,
             summary: var_summary,
@@ -3342,7 +3342,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::wallet_state::BlockedReaso
 impl flutter_rust_bridge::IntoDart for crate::models::attestation::ClaimDisplayMetadata {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.lang.into_into_dart().into_dart(),
+            self.locale.into_into_dart().into_dart(),
             self.label.into_into_dart().into_dart(),
             self.description.into_into_dart().into_dart(),
         ]
@@ -3489,7 +3489,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::DisclosureType
 impl flutter_rust_bridge::IntoDart for crate::models::attestation::DisplayMetadata {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.lang.into_into_dart().into_dart(),
+            self.locale.into_into_dart().into_dart(),
             self.name.into_into_dart().into_dart(),
             self.description.into_into_dart().into_dart(),
             self.summary.into_into_dart().into_dart(),
@@ -4448,7 +4448,7 @@ impl SseEncode for Box<crate::models::wallet_state::WalletState> {
 impl SseEncode for crate::models::attestation::ClaimDisplayMetadata {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.lang, serializer);
+        <String>::sse_encode(self.locale, serializer);
         <String>::sse_encode(self.label, serializer);
         <Option<String>>::sse_encode(self.description, serializer);
     }
@@ -4557,7 +4557,7 @@ impl SseEncode for crate::models::disclosure::DisclosureType {
 impl SseEncode for crate::models::attestation::DisplayMetadata {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.lang, serializer);
+        <String>::sse_encode(self.locale, serializer);
         <String>::sse_encode(self.name, serializer);
         <Option<String>>::sse_encode(self.description, serializer);
         <Option<String>>::sse_encode(self.summary, serializer);
@@ -5777,7 +5777,7 @@ mod io {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::attestation::ClaimDisplayMetadata {
             crate::models::attestation::ClaimDisplayMetadata {
-                lang: self.lang.cst_decode(),
+                locale: self.locale.cst_decode(),
                 label: self.label.cst_decode(),
                 description: self.description.cst_decode(),
             }
@@ -5832,7 +5832,7 @@ mod io {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::attestation::DisplayMetadata {
             crate::models::attestation::DisplayMetadata {
-                lang: self.lang.cst_decode(),
+                locale: self.locale.cst_decode(),
                 name: self.name.cst_decode(),
                 description: self.description.cst_decode(),
                 summary: self.summary.cst_decode(),
@@ -6521,7 +6521,7 @@ mod io {
     impl NewWithNullPtr for wire_cst_claim_display_metadata {
         fn new_with_null_ptr() -> Self {
             Self {
-                lang: core::ptr::null_mut(),
+                locale: core::ptr::null_mut(),
                 label: core::ptr::null_mut(),
                 description: core::ptr::null_mut(),
             }
@@ -6573,7 +6573,7 @@ mod io {
     impl NewWithNullPtr for wire_cst_display_metadata {
         fn new_with_null_ptr() -> Self {
             Self {
-                lang: core::ptr::null_mut(),
+                locale: core::ptr::null_mut(),
                 name: core::ptr::null_mut(),
                 description: core::ptr::null_mut(),
                 summary: core::ptr::null_mut(),
@@ -7705,7 +7705,7 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_claim_display_metadata {
-        lang: *mut wire_cst_list_prim_u_8_strict,
+        locale: *mut wire_cst_list_prim_u_8_strict,
         label: *mut wire_cst_list_prim_u_8_strict,
         description: *mut wire_cst_list_prim_u_8_strict,
     }
@@ -7757,7 +7757,7 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_display_metadata {
-        lang: *mut wire_cst_list_prim_u_8_strict,
+        locale: *mut wire_cst_list_prim_u_8_strict,
         name: *mut wire_cst_list_prim_u_8_strict,
         description: *mut wire_cst_list_prim_u_8_strict,
         summary: *mut wire_cst_list_prim_u_8_strict,

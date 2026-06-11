@@ -1257,7 +1257,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     ClaimDisplayMetadata apiObj,
     wire_cst_claim_display_metadata wireObj,
   ) {
-    wireObj.lang = cst_encode_String(apiObj.lang);
+    wireObj.locale = cst_encode_String(apiObj.locale);
     wireObj.label = cst_encode_String(apiObj.label);
     wireObj.description = cst_encode_opt_String(apiObj.description);
   }
@@ -1313,7 +1313,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_api_fill_to_wire_display_metadata(DisplayMetadata apiObj, wire_cst_display_metadata wireObj) {
-    wireObj.lang = cst_encode_String(apiObj.lang);
+    wireObj.locale = cst_encode_String(apiObj.locale);
     wireObj.name = cst_encode_String(apiObj.name);
     wireObj.description = cst_encode_opt_String(apiObj.description);
     wireObj.summary = cst_encode_opt_String(apiObj.summary);
@@ -3771,7 +3771,7 @@ final class wire_cst_rendering_metadata extends ffi.Struct {
 }
 
 final class wire_cst_display_metadata extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> lang;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> locale;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> name;
 
@@ -3860,7 +3860,7 @@ final class wire_cst_validity_status extends ffi.Struct {
 }
 
 final class wire_cst_claim_display_metadata extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> lang;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> locale;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> label;
 

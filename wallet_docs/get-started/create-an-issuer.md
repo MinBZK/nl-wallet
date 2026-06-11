@@ -144,7 +144,7 @@ Here is the example TAS for an insurance:
   "description": "Insurance credential",
   "display": [
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "Insurance",
       "description": "An insurance credential",
       "summary": "{{coverage}}",
@@ -156,7 +156,7 @@ Here is the example TAS for an insurance:
       }
     },
     {
-      "lang": "nl-NL",
+      "locale": "nl-NL",
       "name": "Verzekering",
       "description": "Een verzekering attestatie",
       "summary": "{{coverage}}",
@@ -173,12 +173,12 @@ Here is the example TAS for an insurance:
       "path": ["product"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Product",
           "description": "Soort verzekering"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Product",
           "description": "Type of insurance"
         }
@@ -190,12 +190,12 @@ Here is the example TAS for an insurance:
       "path": ["coverage"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Dekking",
           "description": "Dekking van de verzekering"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Coverage",
           "description": "Coverage of the insurance"
         }
@@ -208,12 +208,12 @@ Here is the example TAS for an insurance:
       "path": ["start_date"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Startdatum",
           "description": "Datum waarop de verzekering ingaat"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Start date",
           "description": "Date on which the insurance starts"
         }
@@ -224,12 +224,12 @@ Here is the example TAS for an insurance:
       "path": ["duration"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Duur",
           "description": "Duur van de verzekering"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Duration",
           "description": "Duration of the insurance"
         }
@@ -240,12 +240,12 @@ Here is the example TAS for an insurance:
       "path": ["customer_number"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Klantnummer",
           "description": "Klantnummer van de verzekerde"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Customer number",
           "description": "Customer number of the insured"
         }

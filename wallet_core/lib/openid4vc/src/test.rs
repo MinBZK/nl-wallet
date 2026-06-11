@@ -70,7 +70,7 @@ fn mock_claims(required_attr: &str) -> Vec<ClaimMetadata> {
         .map(|(key, _)| ClaimMetadata {
             path: vec_nonempty![ClaimPath::SelectByKey(key.to_string())],
             display: vec![ClaimDisplayMetadata {
-                lang: "en".to_string(),
+                locale: "en".to_string(),
                 label: key.to_string(),
                 description: None,
             }],

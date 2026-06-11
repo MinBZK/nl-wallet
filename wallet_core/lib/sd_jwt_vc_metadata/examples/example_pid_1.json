@@ -4,7 +4,7 @@
   "description": "Working version of the PID credential",
   "display": [
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "Personal data",
       "description": "The personal data credential"
     }
@@ -14,7 +14,7 @@
       "path": ["family_name"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Name",
           "description": "Family name of the person, including any prefixes"
         }
@@ -26,7 +26,7 @@
       "path": ["given_name"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "First name",
           "description": "First name of the person"
         }
@@ -38,7 +38,7 @@
       "path": ["birthdate"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Birth date",
           "description": "Birth date of the person"
         }
@@ -50,7 +50,7 @@
       "path": ["age_over_18"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Over 18",
           "description": "Whether the person is over 18"
         }
@@ -61,7 +61,7 @@
       "path": ["nationalities"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Nationalities",
           "description": "List of nationalities of the person"
         }

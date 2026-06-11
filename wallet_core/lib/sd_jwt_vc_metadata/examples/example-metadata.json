@@ -4,7 +4,7 @@
   "description": "Working version of the NL Wallet PID credential",
   "display": [
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "NL Wallet Personal Data",
       "description": "The Personal Data credential for the NL Wallet",
       "summary": "Example PID credential"
@@ -15,7 +15,7 @@
       "path": ["birth_date"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Birth date",
           "description": "Birth date of the person"
         }
@@ -26,7 +26,7 @@
       "path": ["place_of_birth", "locality"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Locality"
         }
       ],
@@ -36,7 +36,7 @@
       "path": ["place_of_birth", "country", "name"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Country"
         }
       ],
@@ -46,7 +46,7 @@
       "path": ["place_of_birth", "country", "area_code"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Country area code"
         }
       ],
@@ -56,7 +56,7 @@
       "path": ["financial", "has_debt"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Has debt"
         }
       ],
@@ -66,7 +66,7 @@
       "path": ["financial", "has_job"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Has job"
         }
       ],
@@ -76,7 +76,7 @@
       "path": ["financial", "debt_amount"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Debt amount"
         }
       ],

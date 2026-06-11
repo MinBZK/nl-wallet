@@ -256,7 +256,8 @@ pub struct NameLocale {
     pub name: Option<String>,
 
     /// String value that identifies the language of this object represented as a language tag taken from values
-    /// defined in BCP47 [RFC5646]. There MUST be only one object for each language identifier.
+    /// defined in BCP47 [RFC5646](https://www.rfc-editor.org/info/rfc5646). There MUST be only one object for each
+    /// language identifier.
     pub locale: Option<String>,
 }
 
@@ -625,7 +626,7 @@ impl From<DisplayMetadata> for CredentialDisplay {
         Self {
             name_locale: NameLocale {
                 name: Some(value.name),
-                locale: Some(value.lang),
+                locale: Some(value.locale),
             },
             logo: logo.map(Logo::from),
             description: value.description,
@@ -680,7 +681,7 @@ impl From<ClaimMetadata> for CredentialClaim {
                 .into_iter()
                 .map(|display| NameLocale {
                     name: Some(display.label),
-                    locale: Some(display.lang),
+                    locale: Some(display.locale),
                 })
                 .collect_vec()
                 .try_into()

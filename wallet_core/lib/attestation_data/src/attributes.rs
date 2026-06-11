@@ -781,25 +781,25 @@ pub mod test {
     fn test_traverse_groups() {
         let metadata_json = json!({
             "vct": "com.example.pid",
-            "display": [{"lang": "en", "name": "example"}],
+            "display": [{"locale": "en", "name": "example"}],
             "claims": [{
                 "path": ["birthdate"],
-                "display": [{"lang": "en", "label": "birthdate"}],
+                "display": [{"locale": "en", "label": "birthdate"}],
             }, {
                 "path": ["place_of_birth", "locality"],
-                "display": [{"lang": "en", "label": "birth city"}],
+                "display": [{"locale": "en", "label": "birth city"}],
             }, {
                 "path": ["place_of_birth", "country", "name"],
-                "display": [{"lang": "en", "label": "birth country"}],
+                "display": [{"locale": "en", "label": "birth country"}],
             }, {
                 "path": ["place_of_birth", "country", "area_code"],
-                "display": [{"lang": "en", "label": "birth area code"}],
+                "display": [{"locale": "en", "label": "birth area code"}],
             }, {
                 "path": ["a", "b", "c", "d", "e"],
-                "display": [{"lang": "en", "label": "a b c d e"}],
+                "display": [{"locale": "en", "label": "a b c d e"}],
             }, {
                 "path": ["a", "b", "c1"],
-                "display": [{"lang": "en", "label": "a b c1"}],
+                "display": [{"locale": "en", "label": "a b c1"}],
             }]
         });
         let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
@@ -879,11 +879,11 @@ pub mod test {
     fn test_traverse_groups_for_dot_in_attribute_name() {
         let metadata_json = json!({
             "vct": "com.example.pid",
-            "display": [{"lang": "en", "name": "example"}],
+            "display": [{"locale": "en", "name": "example"}],
             "claims": [
                 {
                     "path": ["nest.ed", "birth.date"],
-                    "display": [{"lang": "en", "label": "nested birthday"}],
+                    "display": [{"locale": "en", "label": "nested birthday"}],
                 }
             ]
         });
@@ -910,15 +910,15 @@ pub mod test {
     fn test_traverse_groups_with_extra_entry_not_in_claim() {
         let metadata_json = json!({
             "vct": "com.example.pid",
-            "display": [{"lang": "en", "name": "example"}],
+            "display": [{"locale": "en", "name": "example"}],
             "claims": [
                 {
                     "path": ["a", "a1"],
-                    "display": [{"lang": "en", "label": "a a1"}],
+                    "display": [{"locale": "en", "label": "a a1"}],
                 },
                 {
                     "path": ["a", "a2"],
-                    "display": [{"lang": "en", "label": "a a1"}],
+                    "display": [{"locale": "en", "label": "a a1"}],
                 }
             ]
         });
@@ -954,19 +954,19 @@ pub mod test {
     fn test_traverse_groups_claim_ordering() {
         let metadata_json = json!({
             "vct": "com.example.pid",
-            "display": [{"lang": "en", "name": "example"}],
+            "display": [{"locale": "en", "name": "example"}],
             "claims": [
                 {
                     "path": ["b", "b1"],
-                    "display": [{"lang": "en", "label": "b b1"}],
+                    "display": [{"locale": "en", "label": "b b1"}],
                 },
                 {
                     "path": ["b", "b3"],
-                    "display": [{"lang": "en", "label": "b b3"}],
+                    "display": [{"locale": "en", "label": "b b3"}],
                 },
                 {
                     "path": ["b", "b2"],
-                    "display": [{"lang": "en", "label": "b b2"}],
+                    "display": [{"locale": "en", "label": "b b2"}],
                 }
             ]
         });
@@ -1282,35 +1282,35 @@ pub mod test {
     fn test_validate_ok() {
         let metadata_json = json!({
             "vct": "com.example.pid",
-            "display": [{"lang": "en", "name": "example"}],
+            "display": [{"locale": "en", "name": "example"}],
             "claims": [
                 {
                     "path": ["name"],
-                    "display": [{"lang": "en", "label": "name"}],
+                    "display": [{"locale": "en", "label": "name"}],
                 },
                 {
                     "path": ["birth_date"],
-                    "display": [{"lang": "en", "label": "birth date"}],
+                    "display": [{"locale": "en", "label": "birth date"}],
                 },
                 {
                     "path": ["address", "street"],
-                    "display": [{"lang": "en", "label": "address street"}],
+                    "display": [{"locale": "en", "label": "address street"}],
                 },
                 {
                     "path": ["address", "number"],
-                    "display": [{"lang": "en", "label": "address number"}],
+                    "display": [{"locale": "en", "label": "address number"}],
                 },
                 {
                     "path": ["country", "iso"],
-                    "display": [{"lang": "en", "label": "country iso"}],
+                    "display": [{"locale": "en", "label": "country iso"}],
                 },
                 {
                     "path": ["country", "area_code"],
-                    "display": [{"lang": "en", "label": "country area code"}],
+                    "display": [{"locale": "en", "label": "country area code"}],
                 },
                 {
                     "path": ["adult"],
-                    "display": [{"lang": "en", "label": "adult"}],
+                    "display": [{"locale": "en", "label": "adult"}],
                 },
             ]
         });
@@ -1324,31 +1324,31 @@ pub mod test {
     fn test_validate_attributes_without_claim() {
         let metadata_json = json!({
             "vct": "com.example.pid",
-            "display": [{"lang": "en", "name": "example"}],
+            "display": [{"locale": "en", "name": "example"}],
             "claims": [
                 {
                     "path": ["name"],
-                    "display": [{"lang": "en", "label": "name"}],
+                    "display": [{"locale": "en", "label": "name"}],
                 },
                 {
                     "path": ["birth_date"],
-                    "display": [{"lang": "en", "label": "birth date"}],
+                    "display": [{"locale": "en", "label": "birth date"}],
                 },
                 {
                     "path": ["address", "street"],
-                    "display": [{"lang": "en", "label": "address street"}],
+                    "display": [{"locale": "en", "label": "address street"}],
                 },
                 {
                     "path": ["address", "number"],
-                    "display": [{"lang": "en", "label": "address number"}],
+                    "display": [{"locale": "en", "label": "address number"}],
                 },
                 {
                     "path": ["country", "iso"],
-                    "display": [{"lang": "en", "label": "country iso"}],
+                    "display": [{"locale": "en", "label": "country iso"}],
                 },
                 {
                     "path": ["adult"],
-                    "display": [{"lang": "en", "label": "adult"}],
+                    "display": [{"locale": "en", "label": "adult"}],
                 },
             ]
         });
@@ -1362,41 +1362,41 @@ pub mod test {
     fn test_validate_missing_mandatory_attribute() {
         let metadata_json = json!({
             "vct": "com.example.pid",
-            "display": [{"lang": "en", "name": "example"}],
+            "display": [{"locale": "en", "name": "example"}],
             "claims": [
                 {
                     "path": ["name"],
-                    "display": [{"lang": "en", "label": "name"}],
+                    "display": [{"locale": "en", "label": "name"}],
                 },
                 {
                     "path": ["birth_date"],
-                    "display": [{"lang": "en", "label": "birth date"}],
+                    "display": [{"locale": "en", "label": "birth date"}],
                     "mandatory": true,
                 },
                 {
                     "path": ["birth", "city"],
-                    "display": [{"lang": "en", "label": "birth city"}],
+                    "display": [{"locale": "en", "label": "birth city"}],
                     "mandatory": true,
                 },
                 {
                     "path": ["address", "street"],
-                    "display": [{"lang": "en", "label": "address street"}],
+                    "display": [{"locale": "en", "label": "address street"}],
                 },
                 {
                     "path": ["address", "number"],
-                    "display": [{"lang": "en", "label": "address number"}],
+                    "display": [{"locale": "en", "label": "address number"}],
                 },
                 {
                     "path": ["country", "iso"],
-                    "display": [{"lang": "en", "label": "country iso"}],
+                    "display": [{"locale": "en", "label": "country iso"}],
                 },
                 {
                     "path": ["country", "area_code"],
-                    "display": [{"lang": "en", "label": "country iso"}],
+                    "display": [{"locale": "en", "label": "country iso"}],
                 },
                 {
                     "path": ["adult"],
-                    "display": [{"lang": "en", "label": "adult"}],
+                    "display": [{"locale": "en", "label": "adult"}],
                 },
             ]
         });

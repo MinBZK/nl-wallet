@@ -3,7 +3,7 @@
   "name": "NL Wallet PID credential v3",
   "description": "Working version of the NL Wallet PID credential v3",
   "extends": "https://sd_jwt_vc_metadata.example.com/example_credential_v2",
-  "extends#integrity": "sha256-u/BagJN3ufTUj9oK/G2EYR4cnkm+Qcj+63G1ANLpn68=",
+  "extends#integrity": "sha256-ehBPr9inEhgob13K0QO68QW6YtrVSiV3A2wiCWojJpw=",
   "claims": [
     {
       "path": ["birth_date"],

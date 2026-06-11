@@ -3,10 +3,10 @@
   "name": "NL PID credential",
   "description": "Working version of the Dutch PID credential",
   "extends": "urn:eudi:pid:1",
-  "extends#integrity": "sha256-1VIdCfQ/u2v814A0tcoSGC4BEf0ojkPb+d8i0Lu8A4o=",
+  "extends#integrity": "sha256-FS51/D5cxPyQHeROY8Pm2rsA8eE08euMWJ7DRJMrFwI=",
   "display": [
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "Personal data",
       "description": "The Dutch personal data credential",
       "summary": "{{given_name}}",
@@ -18,7 +18,7 @@
       }
     },
     {
-      "lang": "nl-NL",
+      "locale": "nl-NL",
       "name": "Persoonsgegevens",
       "description": "De Nederlandse persoonsgegevensattestatie",
       "summary": "{{given_name}}",
@@ -35,7 +35,7 @@
       "path": ["family_name"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Achternaam",
           "description": "Achternaam van de persoon, inclusief voorvoegsels"
         }
@@ -47,7 +47,7 @@
       "path": ["given_name"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Voornaam",
           "description": "Voornaam van de persoon"
         }
@@ -60,7 +60,7 @@
       "path": ["birthdate"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Geboortedatum",
           "description": "Geboortedatum van de persoon"
         }
@@ -72,7 +72,7 @@
       "path": ["age_over_18"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "18+",
           "description": "Of de persoon 18+ is"
         }
@@ -83,7 +83,7 @@
       "path": ["nationalities"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Nationaliteiten",
           "description": "Lijst van nationaliteiten van de persoon"
         }
@@ -94,12 +94,12 @@
       "path": ["bsn"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "BSN",
           "description": "BSN of the person"
         },
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "BSN",
           "description": "BSN van de persoon"
         }
@@ -111,12 +111,12 @@
       "path": ["recovery_code"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Recovery code",
           "description": "Recovery code of the person"
         },
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Herstelcode",
           "description": "Herstelcode van de persoon"
         }
@@ -128,7 +128,7 @@
       "path": ["address", "street_address"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Straatnaam",
           "description": "Straatnaam van het adres"
         }
@@ -140,7 +140,7 @@
       "path": ["address", "house_number"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Huisnummer",
           "description": "Huisnummer van het adres"
         }
@@ -152,7 +152,7 @@
       "path": ["address", "postal_code"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Postcode",
           "description": "Postcode van het adres"
         }
@@ -164,7 +164,7 @@
       "path": ["address", "locality"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Stad",
           "description": "Stad van het adres"
         }
@@ -177,7 +177,7 @@
       "path": ["address", "country"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Land",
           "description": "Land van het adres"
         }

@@ -179,8 +179,8 @@ impl UncheckedTypeMetadata {
         let duplicates = self
             .display
             .iter()
-            .duplicates_by(|display| display.lang.as_str())
-            .map(|display| display.lang.clone())
+            .duplicates_by(|display| display.locale.as_str())
+            .map(|display| display.locale.clone())
             .collect_vec();
 
         if !duplicates.is_empty() {
@@ -244,8 +244,8 @@ pub struct MetadataExtends {
 #[skip_serializing_none]
 #[derive(derive_more::Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DisplayMetadata {
-    ///  A language tag as defined in Section 2 of [RFC5646].
-    pub lang: String,
+    ///  A language tag as defined in Section 2 of [RFC5646](https://www.rfc-editor.org/info/rfc5646).
+    pub locale: String,
 
     /// A human-readable name for the type, intended for end users.
     pub name: String,
@@ -370,8 +370,8 @@ impl ClaimMetadata {
     fn find_duplicate_languages(&self) -> Vec<String> {
         self.display
             .iter()
-            .duplicates_by(|display| &display.lang)
-            .map(|display| display.lang.clone())
+            .duplicates_by(|display| &display.locale)
+            .map(|display| display.locale.clone())
             .collect()
     }
 }
@@ -394,8 +394,13 @@ pub enum ClaimSelectiveDisclosureMetadata {
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClaimDisplayMetadata {
-    pub lang: String,
+    /// A language tag as defined in Section 2 of [RFC5646](https://www.rfc-editor.org/info/rfc5646).
+    pub locale: String,
+
+    /// A human-readable label for the claim, intended for end users.
     pub label: String,
+
+    /// A human-readable description for the claim, intended for end users.
     pub description: Option<String>,
 }
 
@@ -440,7 +445,7 @@ mod example_constructors {
                 description: None,
                 extends: None,
                 display: vec![DisplayMetadata {
-                    lang: "en".to_string(),
+                    locale: "en".to_string(),
                     name,
                     description: None,
                     summary: None,
@@ -469,7 +474,7 @@ mod example_constructors {
                     .map(|name| ClaimMetadata {
                         path: vec_nonempty![ClaimPath::SelectByKey(String::from(*name))],
                         display: vec![ClaimDisplayMetadata {
-                            lang: String::from("en"),
+                            locale: String::from("en"),
                             label: name.to_uppercase(),
                             description: None,
                         }],
@@ -711,8 +716,8 @@ mod test {
         json!({
             "vct": VCT_EXAMPLE_CREDENTIAL,
             "display": [
-                { "lang": "en", "name": "Name" },
-                { "lang": "en", "name": "Other name" }
+                { "locale": "en", "name": "Name" },
+                { "locale": "en", "name": "Other name" }
             ],
             "claims": []
         })
@@ -747,8 +752,8 @@ mod test {
                 {
                     "path": ["address.street"],
                     "display": [
-                        { "lang": "en", "label": "Street" },
-                        { "lang": "en", "label": "Street name" }
+                        { "locale": "en", "label": "Street" },
+                        { "locale": "en", "label": "Street name" }
                     ],
                 },
             ]
@@ -854,7 +859,7 @@ mod test {
         let metadata = serde_json::from_value::<UncheckedTypeMetadata>(json!({
             "vct": VCT_EXAMPLE_CREDENTIAL,
             "display": [{
-                    "lang": "en",
+                    "locale": "en",
                     "name": "Example Credential",
                     "summary": summary,
                 }

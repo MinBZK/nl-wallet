@@ -2141,7 +2141,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     final arr = raw as List<dynamic>;
     if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return ClaimDisplayMetadata(
-      lang: dco_decode_String(arr[0]),
+      locale: dco_decode_String(arr[0]),
       label: dco_decode_String(arr[1]),
       description: dco_decode_opt_String(arr[2]),
     );
@@ -2217,7 +2217,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     final arr = raw as List<dynamic>;
     if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
     return DisplayMetadata(
-      lang: dco_decode_String(arr[0]),
+      locale: dco_decode_String(arr[0]),
       name: dco_decode_String(arr[1]),
       description: dco_decode_opt_String(arr[2]),
       summary: dco_decode_opt_String(arr[3]),
@@ -3154,10 +3154,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   ClaimDisplayMetadata sse_decode_claim_display_metadata(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_lang = sse_decode_String(deserializer);
+    var var_locale = sse_decode_String(deserializer);
     var var_label = sse_decode_String(deserializer);
     var var_description = sse_decode_opt_String(deserializer);
-    return ClaimDisplayMetadata(lang: var_lang, label: var_label, description: var_description);
+    return ClaimDisplayMetadata(locale: var_locale, label: var_label, description: var_description);
   }
 
   @protected
@@ -3230,13 +3230,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   DisplayMetadata sse_decode_display_metadata(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_lang = sse_decode_String(deserializer);
+    var var_locale = sse_decode_String(deserializer);
     var var_name = sse_decode_String(deserializer);
     var var_description = sse_decode_opt_String(deserializer);
     var var_summary = sse_decode_opt_String(deserializer);
     var var_rendering = sse_decode_opt_box_autoadd_rendering_metadata(deserializer);
     return DisplayMetadata(
-      lang: var_lang,
+      locale: var_locale,
       name: var_name,
       description: var_description,
       summary: var_summary,
@@ -4532,7 +4532,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   void sse_encode_claim_display_metadata(ClaimDisplayMetadata self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.lang, serializer);
+    sse_encode_String(self.locale, serializer);
     sse_encode_String(self.label, serializer);
     sse_encode_opt_String(self.description, serializer);
   }
@@ -4596,7 +4596,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   @protected
   void sse_encode_display_metadata(DisplayMetadata self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.lang, serializer);
+    sse_encode_String(self.locale, serializer);
     sse_encode_String(self.name, serializer);
     sse_encode_opt_String(self.description, serializer);
     sse_encode_opt_String(self.summary, serializer);

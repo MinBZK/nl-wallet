@@ -4,12 +4,12 @@
   "description": "Working version of the NL Wallet address credential",
   "display": [
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "NL Wallet address",
       "description": "The address credential for the NL Wallet"
     },
     {
-      "lang": "nl-NL",
+      "locale": "nl-NL",
       "name": "NL Wallet adres",
       "description": "De adresattestatie voor de NL Wallet"
     }
@@ -19,12 +19,12 @@
       "path": ["resident_street"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Straatnaam",
           "description": "Straatnaam van het adres"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Street",
           "description": "Street of the address"
         }
@@ -35,12 +35,12 @@
       "path": ["resident_house_number"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Huisnummer",
           "description": "Huisnummer van het adres"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "House number",
           "description": "House number of the address"
         }
@@ -51,12 +51,12 @@
       "path": ["resident_postal_code"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Postcode",
           "description": "Postcode van het adres"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Postal code",
           "description": "Postal code of the address"
         }
@@ -67,12 +67,12 @@
       "path": ["resident_city"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Stad",
           "description": "Stad van het adres"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "City",
           "description": "City of the address"
         }
@@ -83,12 +83,12 @@
       "path": ["resident_country"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Land",
           "description": "Land van het adres"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Country",
           "description": "Country of the address"
         }

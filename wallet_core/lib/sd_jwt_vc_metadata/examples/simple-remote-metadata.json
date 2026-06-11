@@ -4,7 +4,7 @@
   "description": "Example with simple rendering and remote logo",
   "display": [
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "NL Wallet Simple Remote",
       "description": "Example with simple rendering and remote logo",
       "summary": "{{ birth_date }}",
@@ -26,7 +26,7 @@
       "path": ["birth_date"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Birth date",
           "description": "Birth date of the person"
         }

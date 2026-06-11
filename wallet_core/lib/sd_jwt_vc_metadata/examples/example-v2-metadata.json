@@ -3,16 +3,16 @@
   "name": "NL Wallet PID credential v2",
   "description": "Working version of the NL Wallet PID credential v2",
   "extends": "https://sd_jwt_vc_metadata.example.com/example_credential",
-  "extends#integrity": "sha256-B+dlfUwnLyeYZCEnwuXUtAuTcUpQaEgIvVjR/dyUzhU=",
+  "extends#integrity": "sha256-++jYeHww4RvLjPUoZMynJIFFDifJmktKi2QrmAIWYqk=",
   "display": [
     {
-      "lang": "nl-NL",
+      "locale": "nl-NL",
       "name": "NL Wallet persoonsgegevens",
       "description": "De persoonsgegevensattestatie voor de NL Wallet",
       "summary": "Uitgebreid voorbeeld persoonsgegevensattestatie van {{nickname}}"
     },
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "NL Wallet personal data",
       "description": "The personal data credential for the NL Wallet",
       "summary": "Extended example PID credential of {{nickname}}"
@@ -23,7 +23,7 @@
       "path": ["nickname"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Cool nickname"
         }
       ],
@@ -34,7 +34,7 @@
       "path": ["birth_date"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Birth date",
           "description": "Date of birth"
         }
@@ -45,7 +45,7 @@
       "path": ["place_of_birth", "locality"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Locality"
         }
       ],
@@ -55,7 +55,7 @@
       "path": ["place_of_birth", "country", "name"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Country"
         }
       ],
@@ -65,7 +65,7 @@
       "path": ["place_of_birth", "country", "area_code"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Country area code"
         }
       ],
@@ -75,7 +75,7 @@
       "path": ["place_of_birth", "country", "is_eu_member"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Country is a member of the EU"
         }
       ],
@@ -85,7 +85,7 @@
       "path": ["financial", "has_debt"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Has debt"
         }
       ],
@@ -95,7 +95,7 @@
       "path": ["financial", "debt_amount"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Amount of debt (in euros)"
         }
       ],
@@ -105,7 +105,7 @@
       "path": ["financial", "has_job"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Is gainfully employed"
         }
       ],

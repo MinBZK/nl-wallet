@@ -4,7 +4,7 @@
   "description": "Degree credential",
   "display": [
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "Degree",
       "description": "A degree credential",
       "summary": "{{education}}",
@@ -16,7 +16,7 @@
       }
     },
     {
-      "lang": "nl-NL",
+      "locale": "nl-NL",
       "name": "Diploma",
       "description": "Een diploma-attestatie",
       "summary": "{{education}}",
@@ -33,12 +33,12 @@
       "path": ["university"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Universiteit",
           "description": "Universiteit waar het diploma is behaald"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "University",
           "description": "University where the degree was obtained"
         }
@@ -50,12 +50,12 @@
       "path": ["education"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Opleiding",
           "description": "Naam van de opleiding waarvoor het diploma is behaald"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Education",
           "description": "Name of the education for which the degree was obtained"
         }
@@ -68,12 +68,12 @@
       "path": ["graduation_date"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Afstudeerdatum",
           "description": "Datum waarop het diploma is behaald"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Graduation date",
           "description": "Date on which the degree was obtained"
         }
@@ -84,12 +84,12 @@
       "path": ["grade"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Cijfer",
           "description": "Cijfer waarmee het diploma is behaald"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Grade",
           "description": "Grade with which the degree was obtained"
         }
@@ -100,12 +100,12 @@
       "path": ["cum_laude"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Cum Laude",
           "description": "Of het diploma cum laude is behaald"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Cum Laude",
           "description": "Whether the degree was obtained cum laude"
         }

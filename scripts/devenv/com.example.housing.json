@@ -4,7 +4,7 @@
   "description": "Housing credential",
   "display": [
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "Rent",
       "description": "A rent credential",
       "summary": "{{rent}}",
@@ -16,7 +16,7 @@
       }
     },
     {
-      "lang": "nl-NL",
+      "locale": "nl-NL",
       "name": "Huur",
       "description": "Een huur-attestatie",
       "summary": "{{rent}}",
@@ -33,12 +33,12 @@
       "path": ["rent"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Huur",
           "description": "De huurkosten van uw woning"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Rent",
           "description": "The rent costs of your house"
         }
@@ -50,12 +50,12 @@
       "path": ["service_charges"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Servicekosten",
           "description": "De servicekosten van uw huurcontract"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Service charges",
           "description": "The service charges under your rental contract"
         }
@@ -66,12 +66,12 @@
       "path": ["eligible_service_charges"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Subsidiabele servicekosten",
           "description": "De servicekosten van uw huurcontract"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Eligible service charges",
           "description": "The eligible service charges under your rental contract"
         }
@@ -82,12 +82,12 @@
       "path": ["rental_object", "bag_id"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "BAG-identificatienummer",
           "description": "BAG-identificatienummer van het huurobject"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "BAG identification number",
           "description": "BAG identification number of the rental object"
         }
@@ -99,12 +99,12 @@
       "path": ["rental_object", "street_name"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Straatnaam",
           "description": "Straatnaam van het huurobject"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Street name",
           "description": "Street name of the rental object"
         }
@@ -116,12 +116,12 @@
       "path": ["rental_object", "house_number"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Huisnummer",
           "description": "Huisnummer van het huurobject"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "House number",
           "description": "House number of the rental object"
         }
@@ -133,12 +133,12 @@
       "path": ["rental_object", "house_number_suffix"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Huisnummer toevoeging",
           "description": "Huisnummertoevoeging van het huurobject"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "House number suffix",
           "description": "House number suffix of the rental object"
         }
@@ -149,12 +149,12 @@
       "path": ["rental_object", "room_number"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Kamernummer",
           "description": "Kamernummer van het huurobject"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Room number",
           "description": "Room number of the rental object"
         }
@@ -165,12 +165,12 @@
       "path": ["rental_object", "zip_code"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Postcode",
           "description": "Postcode van het huurobject"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Zip code",
           "description": "Zip code of the rental object"
         }
@@ -182,12 +182,12 @@
       "path": ["rental_object", "city"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Plaats",
           "description": "Plaats van het huurobject"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "City",
           "description": "City of the rental object"
         }
@@ -199,12 +199,12 @@
       "path": ["rental_contract", "start_date"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Startdatum huurcontract",
           "description": "Startdatum van het huurcontract"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Start date rental contract",
           "description": "Start date of the rental contract"
         }
@@ -216,12 +216,12 @@
       "path": ["rental_contract", "end_date"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Einddatum huurcontract",
           "description": "Einddatum van het huurcontract"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "End date rental contract",
           "description": "End date of the rental contract"
         }
@@ -232,12 +232,12 @@
       "path": ["rental_contract", "duration_in_months"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Looptijd huurcontract",
           "description": "Looptijd van het huurcontract in maanden"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Rental contract duration",
           "description": "Duration of the rental contract in months"
         }
@@ -248,12 +248,12 @@
       "path": ["rental_organization", "name"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Verhuurder",
           "description": "Naam van de verhuurder"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Rental organization name",
           "description": "Name of the rental organization"
         }
@@ -265,12 +265,12 @@
       "path": ["rental_organization", "kvk_number"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "KVK-nummer verhuurder",
           "description": "KVK nummer van de verhuurder"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Rental organization KVK number",
           "description": "Chamber of Commerce (KVK) subscription number of the rental organization"
         }

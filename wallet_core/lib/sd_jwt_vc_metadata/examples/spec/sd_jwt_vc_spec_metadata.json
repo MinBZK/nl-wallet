@@ -4,7 +4,7 @@
   "description": "SD-JWT-based Verifiable Credentials (SD-JWT VC)",
   "display": [
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "Example PID",
       "description": "Example PID"
     }
@@ -14,7 +14,7 @@
       "path": ["family_name"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Name",
           "description": "Family name of the person, including any prefixes"
         }
@@ -25,7 +25,7 @@
       "path": ["given_name"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "First name",
           "description": "First name of the person"
         }
@@ -36,7 +36,7 @@
       "path": ["birth_family_name"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Family name birth",
           "description": "Family name birth"
         }
@@ -47,7 +47,7 @@
       "path": ["also_known_as"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Also known as",
           "description": "Also known as"
         }
@@ -58,7 +58,7 @@
       "path": ["gender"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Gender",
           "description": "Gender"
         }
@@ -69,7 +69,7 @@
       "path": ["source_document_type"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Source document type",
           "description": "Source document type"
         }
@@ -80,7 +80,7 @@
       "path": ["birthdate"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Birth date",
           "description": "Birth date of the person"
         }
@@ -91,7 +91,7 @@
       "path": ["place_of_birth", "locality"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Birth locality"
         }
       ],
@@ -101,7 +101,7 @@
       "path": ["place_of_birth", "country"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Birth country"
         }
       ],
@@ -111,7 +111,7 @@
       "path": ["address", "street_address"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Street address"
         }
       ],
@@ -121,7 +121,7 @@
       "path": ["address", "postal_code"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Postal code"
         }
       ],
@@ -131,7 +131,7 @@
       "path": ["address", "locality"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Locality"
         }
       ],
@@ -141,7 +141,7 @@
       "path": ["address", "country"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Country"
         }
       ],
@@ -151,7 +151,7 @@
       "path": ["nationalities", null],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Nationalities"
         }
       ],
@@ -161,7 +161,7 @@
       "path": ["age_equal_or_over", "18"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Over 18?"
         }
       ],
@@ -171,7 +171,7 @@
       "path": ["age_equal_or_over", "12"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Over 12?"
         }
       ],
@@ -181,7 +181,7 @@
       "path": ["age_equal_or_over", "65"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Over 65?"
         }
       ],
@@ -191,7 +191,7 @@
       "path": ["age_equal_or_over", "21"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Over 21?"
         }
       ],
@@ -201,7 +201,7 @@
       "path": ["age_equal_or_over", "14"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Over 14?"
         }
       ],
@@ -211,7 +211,7 @@
       "path": ["age_equal_or_over", "16"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Over 16?"
         }
       ],

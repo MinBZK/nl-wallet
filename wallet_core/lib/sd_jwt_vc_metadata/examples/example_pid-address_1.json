@@ -4,7 +4,7 @@
   "description": "Working version of the address credential",
   "display": [
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "Address",
       "description": "The address credential"
     }
@@ -14,7 +14,7 @@
       "path": ["address", "country"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Country",
           "description": "Country of the address"
         }
@@ -25,7 +25,7 @@
       "path": ["address", "locality"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "City",
           "description": "City of the address"
         }
@@ -36,7 +36,7 @@
       "path": ["address", "postal_code"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Postal code",
           "description": "Postal code of the address"
         }
@@ -47,7 +47,7 @@
       "path": ["address", "street_address"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Street",
           "description": "Street of the address"
         }
@@ -58,7 +58,7 @@
       "path": ["address", "house_number"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "House number",
           "description": "House number of the address"
         }

@@ -177,7 +177,7 @@ pub mod mock {
                 format: Format::SdJwt,
                 attestation_type: "mock".to_string(),
                 display_metadata: vec_nonempty![DisplayMetadata {
-                    lang: "nl".to_string(),
+                    locale: "nl".to_string(),
                     name: "mock".to_string(),
                     description: None,
                     summary: None,

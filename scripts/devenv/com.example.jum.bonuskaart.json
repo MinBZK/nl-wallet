@@ -4,7 +4,7 @@
   "description": "Loyalty card for the Jum supermarket",
   "display": [
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "Jum Bonuskaart",
       "description": "A loyalty card",
       "summary": "{{loyalty_number}}",
@@ -16,7 +16,7 @@
       }
     },
     {
-      "lang": "nl-NL",
+      "locale": "nl-NL",
       "name": "Jum Bonuskaart",
       "description": "Een loyaliteitskaart",
       "summary": "{{loyalty_number}}",
@@ -33,12 +33,12 @@
       "path": ["branch"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Filiaal",
           "description": "Filiaal van uitgifte"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Branch",
           "description": "Issuing branch"
         }
@@ -49,12 +49,12 @@
       "path": ["loyalty_number"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Loyaliteitsnummer",
           "description": "Persoonlijk loyaliteitsnummer"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Loyalty number",
           "description": "Personal loyalty number"
         }

@@ -4,7 +4,7 @@
   "description": "Working version of the PID credential",
   "display": [
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "Personal data",
       "description": "The personal data credential"
     }
@@ -14,7 +14,7 @@
       "path": ["family_name"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Name",
           "description": "Family name of the person, including any prefixes"
         }
@@ -26,7 +26,7 @@
       "path": ["given_name"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "First name",
           "description": "First name of the person"
         }
@@ -38,7 +38,7 @@
       "path": ["birthdate"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Birth date",
           "description": "Birth date of the person"
         }
@@ -50,7 +50,7 @@
       "path": ["age_over_18"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Over 18",
           "description": "Whether the person is over 18"
         }
@@ -61,7 +61,7 @@
       "path": ["nationalities"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Nationalities",
           "description": "List of nationalities of the person"
         }
@@ -72,7 +72,7 @@
       "path": ["address", "country"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Country",
           "description": "Country of the address"
         }
@@ -83,7 +83,7 @@
       "path": ["address", "locality"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "City",
           "description": "City of the address"
         }
@@ -94,7 +94,7 @@
       "path": ["address", "postal_code"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Postal code",
           "description": "Postal code of the address"
         }
@@ -105,7 +105,7 @@
       "path": ["address", "street_address"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Street",
           "description": "Street of the address"
         }
@@ -116,7 +116,7 @@
       "path": ["address", "house_number"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "House number",
           "description": "House number of the address"
         }

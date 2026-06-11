@@ -116,38 +116,38 @@ sealed class AttributeValue with _$AttributeValue {
 }
 
 class ClaimDisplayMetadata {
-  final String lang;
+  final String locale;
   final String label;
   final String? description;
 
   const ClaimDisplayMetadata({
-    required this.lang,
+    required this.locale,
     required this.label,
     this.description,
   });
 
   @override
-  int get hashCode => lang.hashCode ^ label.hashCode ^ description.hashCode;
+  int get hashCode => locale.hashCode ^ label.hashCode ^ description.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is ClaimDisplayMetadata &&
           runtimeType == other.runtimeType &&
-          lang == other.lang &&
+          locale == other.locale &&
           label == other.label &&
           description == other.description;
 }
 
 class DisplayMetadata {
-  final String lang;
+  final String locale;
   final String name;
   final String? description;
   final String? summary;
   final RenderingMetadata? rendering;
 
   const DisplayMetadata({
-    required this.lang,
+    required this.locale,
     required this.name,
     this.description,
     this.summary,
@@ -155,14 +155,14 @@ class DisplayMetadata {
   });
 
   @override
-  int get hashCode => lang.hashCode ^ name.hashCode ^ description.hashCode ^ summary.hashCode ^ rendering.hashCode;
+  int get hashCode => locale.hashCode ^ name.hashCode ^ description.hashCode ^ summary.hashCode ^ rendering.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is DisplayMetadata &&
           runtimeType == other.runtimeType &&
-          lang == other.lang &&
+          locale == other.locale &&
           name == other.name &&
           description == other.description &&
           summary == other.summary &&

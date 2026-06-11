@@ -4,7 +4,7 @@
   "description": "Example with simple rendering and embedded logo",
   "display": [
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "NL Wallet Simple Embedded",
       "description": "Example with simple rendering and embedded logo",
       "summary": "{{ birth_date }}",
@@ -25,7 +25,7 @@
       "path": ["birth_date"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Birth date",
           "description": "Birth date of the person"
         }

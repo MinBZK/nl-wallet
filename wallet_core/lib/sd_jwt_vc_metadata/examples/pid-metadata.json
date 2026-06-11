@@ -4,13 +4,13 @@
   "description": "Working version of the NL Wallet PID credential",
   "display": [
     {
-      "lang": "en-US",
+      "locale": "en-US",
       "name": "NL Wallet Personal Data",
       "description": "The Personal Data credential for the NL Wallet",
       "summary": "{{first_name}}"
     },
     {
-      "lang": "nl-NL",
+      "locale": "nl-NL",
       "name": "NL Wallet persoonsgegevens",
       "description": "De persoonsgegevensattestatie voor de NL Wallet",
       "summary": "{{first_name}}"
@@ -21,12 +21,12 @@
       "path": ["family_name"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Achternaam",
           "description": "Achternaam van de persoon, inclusief voorvoegsels"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Name",
           "description": "Family name of the person, including any prefixes"
         }
@@ -38,12 +38,12 @@
       "path": ["given_name"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Voornaam",
           "description": "Voornaam van de persoon"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "First name",
           "description": "First name of the person"
         }
@@ -55,12 +55,12 @@
       "path": ["birthdate"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Geboortedatum",
           "description": "Geboortedatum van de persoon"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Birth date",
           "description": "Birth date of the person"
         }
@@ -71,12 +71,12 @@
       "path": ["age_over_18"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "18+",
           "description": "Of de persoon 18+ is"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Over 18",
           "description": "Whether the person is over 18"
         }
@@ -87,12 +87,12 @@
       "path": ["bsn"],
       "display": [
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "BSN",
           "description": "BSN van de persoon"
         },
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "BSN",
           "description": "BSN of the person"
         }
@@ -104,12 +104,12 @@
       "path": ["recovery_code"],
       "display": [
         {
-          "lang": "en-US",
+          "locale": "en-US",
           "label": "Recovery code",
           "description": "Recovery code of the person"
         },
         {
-          "lang": "nl-NL",
+          "locale": "nl-NL",
           "label": "Herstelcode",
           "description": "Herstelcode van de persoon"
         }

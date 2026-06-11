@@ -86,7 +86,7 @@ typedef struct wire_cst_rendering_metadata {
 } wire_cst_rendering_metadata;
 
 typedef struct wire_cst_display_metadata {
-  struct wire_cst_list_prim_u_8_strict *lang;
+  struct wire_cst_list_prim_u_8_strict *locale;
   struct wire_cst_list_prim_u_8_strict *name;
   struct wire_cst_list_prim_u_8_strict *description;
   struct wire_cst_list_prim_u_8_strict *summary;
@@ -151,7 +151,7 @@ typedef struct wire_cst_validity_status {
 } wire_cst_validity_status;
 
 typedef struct wire_cst_claim_display_metadata {
-  struct wire_cst_list_prim_u_8_strict *lang;
+  struct wire_cst_list_prim_u_8_strict *locale;
   struct wire_cst_list_prim_u_8_strict *label;
   struct wire_cst_list_prim_u_8_strict *description;
 } wire_cst_claim_display_metadata;

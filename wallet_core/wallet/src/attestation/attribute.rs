@@ -350,27 +350,27 @@ pub mod test {
         let attributes = example_attributes();
         let metadata_json = json!({
             "vct": "com.example.pid",
-            "display": [{"lang": "en", "name": "example"}],
+            "display": [{"locale": "en", "name": "example"}],
             "claims": [
                 {
                     "path": ["name"],
-                    "display": [{"lang": "en", "label": "name"}],
+                    "display": [{"locale": "en", "label": "name"}],
                 },
                 {
                     "path": ["birth_date"],
-                    "display": [{"lang": "en", "label": "birth date"}],
+                    "display": [{"locale": "en", "label": "birth date"}],
                 },
                 {
                     "path": ["address", "street"],
-                    "display": [{"lang": "en", "label": "address street"}],
+                    "display": [{"locale": "en", "label": "address street"}],
                 },
                 {
                     "path": ["address", "number"],
-                    "display": [{"lang": "en", "label": "address number"}],
+                    "display": [{"locale": "en", "label": "address number"}],
                 },
                 {
                     "path": ["country", "iso"],
-                    "display": [{"lang": "en", "label": "country iso"}],
+                    "display": [{"locale": "en", "label": "country iso"}],
                 },
             ]
         });
@@ -397,7 +397,7 @@ pub mod test {
                 AttestationAttribute {
                     key: vec_nonempty!["name".to_string()],
                     metadata: vec![ClaimDisplayMetadata {
-                        lang: "en".to_string(),
+                        locale: "en".to_string(),
                         label: "name".to_string(),
                         description: None
                     }],
@@ -407,7 +407,7 @@ pub mod test {
                 AttestationAttribute {
                     key: vec_nonempty!["birth_date".to_string()],
                     metadata: vec![ClaimDisplayMetadata {
-                        lang: "en".to_string(),
+                        locale: "en".to_string(),
                         label: "birth date".to_string(),
                         description: None
                     }],
@@ -417,7 +417,7 @@ pub mod test {
                 AttestationAttribute {
                     key: vec_nonempty!["address".to_string(), "street".to_string()],
                     metadata: vec![ClaimDisplayMetadata {
-                        lang: "en".to_string(),
+                        locale: "en".to_string(),
                         label: "address street".to_string(),
                         description: None
                     }],
@@ -427,7 +427,7 @@ pub mod test {
                 AttestationAttribute {
                     key: vec_nonempty!["address".to_string(), "number".to_string()],
                     metadata: vec![ClaimDisplayMetadata {
-                        lang: "en".to_string(),
+                        locale: "en".to_string(),
                         label: "address number".to_string(),
                         description: None
                     }],
@@ -443,15 +443,15 @@ pub mod test {
         let attributes = example_attributes();
         let metadata_json = json!({
             "vct": "com.example.pid",
-            "display": [{"lang": "en", "name": "example"}],
+            "display": [{"locale": "en", "name": "example"}],
             "claims": [
                 {
                     "path": ["name"],
-                    "display": [{"lang": "en", "label": "name"}],
+                    "display": [{"locale": "en", "label": "name"}],
                 },
                 {
                     "path": ["birth_date"],
-                    "display": [{"lang": "en", "label": "birth date"}],
+                    "display": [{"locale": "en", "label": "birth date"}],
                 },
             ]
         });

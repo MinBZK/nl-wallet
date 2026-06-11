@@ -277,13 +277,13 @@ trait HasLanguage {
 
 impl HasLanguage for DisplayMetadata {
     fn language(&self) -> &str {
-        &self.lang
+        &self.locale
     }
 }
 
 impl HasLanguage for ClaimDisplayMetadata {
     fn language(&self) -> &str {
-        &self.lang
+        &self.locale
     }
 }
 
@@ -567,7 +567,7 @@ mod tests {
             description: None,
             extends: None,
             display: vec![DisplayMetadata {
-                lang: "en".to_string(),
+                locale: "en".to_string(),
                 name: "attestation".to_string(),
                 description: None,
                 summary: None,
@@ -629,7 +629,7 @@ mod tests {
         let claim = ClaimMetadata {
             path: vec_nonempty![ClaimPath::SelectByKey("path".to_string())],
             display: vec![ClaimDisplayMetadata {
-                lang: "en".to_string(),
+                locale: "en".to_string(),
                 label: "claim".to_string(),
                 description: None,
             }],
@@ -640,7 +640,7 @@ mod tests {
         let metadata1 = UncheckedTypeMetadata {
             vct: "metadata_1".to_string(),
             display: vec![DisplayMetadata {
-                lang: "en".to_string(),
+                locale: "en".to_string(),
                 name: "attestation".to_string(),
                 description: None,
                 summary: Some("{{identifier}}".to_string()),
