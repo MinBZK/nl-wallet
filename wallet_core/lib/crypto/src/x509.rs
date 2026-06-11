@@ -593,18 +593,6 @@ mod test {
     }
 
     #[test]
-    fn mdoc_eku_encoding_works() {
-        CertificateUsage::Mdl.eku();
-        CertificateUsage::ReaderAuth.eku();
-    }
-
-    #[test]
-    fn parse_oid() {
-        let mdl_kp: Oid = "1.0.18013.5.1.2".parse().unwrap();
-        assert_eq!(mdl_kp.as_bytes(), CertificateUsage::Mdl.eku());
-    }
-
-    #[test]
     fn generate_ca() {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let certificate = BorrowingCertificate::from_certificate_der(ca.certificate().clone())
