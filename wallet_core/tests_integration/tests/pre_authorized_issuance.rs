@@ -1,11 +1,9 @@
 use db_test::DbSetup;
 use openid4vc::credential_offer::CredentialOffer;
 use openid4vc::credential_offer::CredentialOfferContainer;
-use openid4vc::credential_offer::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::issuable_document::IssuableDocument;
 use serial_test::serial;
 use tests_integration::common::*;
-use url::Url;
 use utils::vec_nonempty;
 use wallet::IssuanceStartResult;
 
@@ -35,10 +33,7 @@ async fn test_pre_authorized_code_issuance() {
         config_ids,
         session_token.into(),
     );
-    let container = CredentialOfferContainer::new_offer(credential_offer);
-    let query = serde_urlencoded::to_string(&container).expect("should serialize credential offer");
-    let mut offer_url = Url::parse(&format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://")).unwrap();
-    offer_url.set_query(Some(&query));
+    let offer_url = CredentialOfferContainer::new_offer(credential_offer).to_credential_offer_url();
 
     // The wallet should resolve the offer and return credential previews immediately.
     let IssuanceStartResult::Previews(previews) = wallet
