@@ -109,6 +109,7 @@ impl ServerSettings for PidIssuerSettings {
             .with_list_parse_key("wia_trust_anchors")
             .with_list_parse_key("digid.client_settings.trust_anchors")
             .with_list_parse_key("metadata")
+            .with_list_parse_key("wallet_redirect_uris")
             .try_parsing(true);
 
         let config = config_builder
