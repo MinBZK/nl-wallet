@@ -350,11 +350,9 @@ where
             (Some(data), None) => {
                 let authorization_session =
                     issuance_discovery.restore_authorization_session(data.authorization_session);
-
-                Ok(Some(Session::Issuance(WalletIssuanceSession::Pid {
-                    purpose: data.purpose,
-                    session_state: SessionState::Authorization { authorization_session },
-                })))
+                let issuance_session =
+                    WalletIssuanceSession::new(data.purpose, SessionState::Authorization { authorization_session });
+                Ok(Some(Session::Issuance(issuance_session)))
             }
             (None, Some(data)) => {
                 let authorization_session =
@@ -529,7 +527,7 @@ mod tests {
             .expect_fetch_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
             .returning(|| {
                 Ok(Some(PersistedIssuanceSessionData {
-                    purpose: PidIssuancePurpose::Enrollment,
+                    purpose: Some(PidIssuancePurpose::Enrollment),
                     authorization_session: MockAuthorizationSessionData {
                         auth_url: "https://example.com/auth".parse().unwrap(),
                         state: "state".to_string(),
@@ -693,7 +691,7 @@ mod tests {
             .expect_fetch_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
             .returning(|| {
                 Ok(Some(PersistedIssuanceSessionData {
-                    purpose: PidIssuancePurpose::Enrollment,
+                    purpose: Some(PidIssuancePurpose::Enrollment),
                     authorization_session: MockAuthorizationSessionData {
                         auth_url: "https://example.com/auth".parse().unwrap(),
                         state: "issuance_state".to_string(),

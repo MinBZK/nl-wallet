@@ -352,7 +352,7 @@ where
             .write()
             .await
             .upsert_data(&PersistedIssuanceSessionData {
-                purpose,
+                purpose: Some(purpose),
                 authorization_session: authorization_session.persist(),
             })
             .await
@@ -424,6 +424,16 @@ where
         match flow {
             IssuanceFlow::AuthorizationCode { authorization_session } => {
                 let auth_url = authorization_session.auth_url().clone();
+
+                self.storage
+                    .write()
+                    .await
+                    .upsert_data(&PersistedIssuanceSessionData {
+                        purpose: None,
+                        authorization_session: authorization_session.persist(),
+                    })
+                    .await
+                    .map_err(IssuanceError::SessionStorage)?;
 
                 let session_data = WalletIssuanceSession::Generic {
                     session_state: SessionState::Authorization { authorization_session },
@@ -933,7 +943,7 @@ mod tests {
             .mut_storage()
             .expect_upsert_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
             .return_once(move |data| {
-                assert_eq!(data.purpose, purpose);
+                assert_eq!(data.purpose, Some(purpose));
                 assert_eq!(data.authorization_session.auth_url.as_str(), AUTH_URL);
                 assert_eq!(data.authorization_session.state, "state");
                 Ok(())

@@ -136,7 +136,7 @@ enum Session<AS, IS, DCS> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(super) struct PersistedIssuanceSessionData<AD> {
-    purpose: PidIssuancePurpose,
+    purpose: Option<PidIssuancePurpose>,
     authorization_session: AD,
 }
 
