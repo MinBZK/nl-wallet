@@ -56,7 +56,7 @@ impl BaseUrl {
 }
 
 pub const DEFAULT_UNIVERSAL_LINK_BASE: &str = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/";
-const ISSUANCE_BASE_PATH: &str = "issuance-callback";
+const ISSUANCE_BASE_PATH: &str = "iss";
 const DISCLOSURE_BASE_PATH: &str = "disclosure";
 const DISCLOSURE_BASED_ISSUANCE_BASE_PATH: &str = "disclosure_based_issuance";
 const TRANSFER_BASE_PATH: &str = "transfer";

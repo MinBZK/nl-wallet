@@ -227,10 +227,10 @@ requests.
     "external_ids": ["87654321"],
     "token_endpoint_auth_method": "none",
     "redirect_uris": [
-      "walletdebuginteraction://wallet.edi.rijksoverheid.nl/issuance-callback/",
-      "walletdebuginteraction://wallet.edi.rijksoverheid.nl/issuance-callback"
+      "walletdebuginteraction://wallet.edi.rijksoverheid.nl/iss/",
+      "walletdebuginteraction://wallet.edi.rijksoverheid.nl/iss"
     ],
-    "error_page": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/issuance-callback",
+    "error_page": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/iss",
     "response_types": ["code"],
     "pubkey_type": "RSA",
     "client_authentication_method": "none",
