@@ -239,6 +239,7 @@ where
                     state,
                     scope,
                     code_challenge,
+                    ..
                 } = context;
 
                 let code = self
@@ -672,6 +673,7 @@ mod tests {
                     state: Some(WALLET_STATE.to_string()),
                     scope: HashSet::from([WALLET_SCOPE.parse().unwrap()]),
                     code_challenge: code_challenge.clone(),
+                    issuer_state: None,
                 },
             ),
         );

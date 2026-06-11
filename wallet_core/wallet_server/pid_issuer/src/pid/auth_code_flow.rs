@@ -374,11 +374,13 @@ where
         upstream_code_verifier,
         formats,
     } = entry;
+
     let WalletAuthorizationContext {
         redirect_uri,
         state,
         scope,
         code_challenge,
+        ..
     } = context;
 
     let result = complete_digid_callback(
@@ -620,6 +622,7 @@ mod tests {
                     Scope::try_new(format!("{PID_ATTESTATION_TYPE}_{}", Format::SdJwt)).unwrap(),
                 ]),
                 code_challenge: WALLET_CODE_CHALLENGE.to_string(),
+                issuer_state: None,
             },
             upstream_code_verifier: "upstream-verifier".to_string(),
             formats: vec_nonempty![Format::MsoMdoc, Format::SdJwt],

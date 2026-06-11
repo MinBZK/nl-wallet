@@ -22,7 +22,9 @@ use crate::scope::Scope;
 /// Represents the wallet-side parameters the `openid4vc` layer extracts from a [`VciAuthorizationRequest`] and that an
 /// [`AuthorizationCodeFlow`] must retain to complete the authorization later: the wallet's
 /// `redirect_uri` and `state` (to build the wallet-facing redirect), the `scope` values and its PKCE `code_challenge`
-/// (which the `/token` handler verifies the wallet's `code_verifier` against).
+/// (which the `/token` handler verifies the wallet's `code_verifier` against) and the `issuer_state`
+/// the wallet echoes back from the credential offer (which a flow may use to identify the context set up during
+/// previous process steps).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct WalletAuthorizationContext {
     pub redirect_uri: Url,
@@ -31,6 +33,7 @@ pub struct WalletAuthorizationContext {
     // present in the state in order to validate any "scope" that is received in the Token Request.
     pub scope: HashSet<Scope>,
     pub code_challenge: String,
+    pub issuer_state: Option<String>,
 }
 
 /// Reasons a [`VciAuthorizationRequest`] cannot be accepted into a [`WalletAuthorizationContext`].
@@ -54,6 +57,7 @@ impl WalletAuthorizationContext {
             state: request.oauth_request.state,
             scope: request.scope,
             code_challenge,
+            issuer_state: request.issuer_state,
         })
     }
 }
