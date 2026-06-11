@@ -48,54 +48,6 @@ use crate::attributes::Attributes;
 use crate::attributes::AttributesError;
 use crate::attributes::AttributesTraversalBehaviour;
 
-/// This struct represents the Claims Set received from the issuer. Its JSON representation should be verifiable by the
-/// JSON schema defined in the SD-JWT VC Type Metadata (`TypeMetadata`).
-///
-/// Converting both an (unsigned) mdoc and SD-JWT document to this struct should yield the same result.
-#[serde_as]
-#[skip_serializing_none]
-#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
-pub struct CredentialPayload {
-    #[serde(rename = "iat")]
-    pub issued_at: DateTimeSeconds,
-
-    /// Contains the attestation's public key, of which the corresponding private key is used by the wallet during
-    /// disclosure to sign the RP's nonce into a PoP
-    #[serde(rename = "cnf")]
-    pub confirmation_key: ConfirmationClaim,
-
-    /// Contains the integrity digest of the type metadata document of this `vct`.
-    #[serde(rename = "vct#integrity")]
-    pub vct_integrity: Integrity,
-
-    /// The information on how to read the status of the Verifiable Credential.
-    pub status: StatusClaim,
-
-    #[serde(flatten)]
-    pub previewable_payload: PreviewableCredentialPayload,
-}
-
-impl TryFrom<CredentialPayload> for SdJwtVcClaims {
-    type Error = ClaimNameError;
-
-    fn try_from(value: CredentialPayload) -> Result<Self, Self::Error> {
-        Ok(SdJwtVcClaims {
-            vct: value.previewable_payload.attestation_type,
-            vct_integrity: Some(value.vct_integrity),
-            iss: value.previewable_payload.issuer,
-            iat: value.issued_at,
-            exp: value.previewable_payload.expires,
-            nbf: value.previewable_payload.not_before,
-            cnf: value.confirmation_key,
-            attestation_qualification: Some(value.previewable_payload.attestation_qualification),
-            status: Some(value.status),
-            _sd_alg: None, // TODO this should be handled elsewhere (PVW-5121)
-
-            claims: value.previewable_payload.attributes.try_into()?,
-        })
-    }
-}
-
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum PreviewableCredentialPayloadFromSdJwtError {
     #[error("error converting from SD-JWT: {0}")]
@@ -267,6 +219,33 @@ pub enum CredentialPayloadIntoSignedMdocError {
     #[error("error signing mdoc: {0}")]
     #[category(pd)]
     SigningError(#[from] CoseError),
+}
+
+/// This struct represents the Claims Set received from the issuer. Its JSON representation should be verifiable by the
+/// JSON schema defined in the SD-JWT VC Type Metadata (`TypeMetadata`).
+///
+/// Converting both an (unsigned) mdoc and SD-JWT document to this struct should yield the same result.
+#[serde_as]
+#[skip_serializing_none]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+pub struct CredentialPayload {
+    #[serde(rename = "iat")]
+    pub issued_at: DateTimeSeconds,
+
+    /// Contains the attestation's public key, of which the corresponding private key is used by the wallet during
+    /// disclosure to sign the RP's nonce into a PoP
+    #[serde(rename = "cnf")]
+    pub confirmation_key: ConfirmationClaim,
+
+    /// Contains the integrity digest of the type metadata document of this `vct`.
+    #[serde(rename = "vct#integrity")]
+    pub vct_integrity: Integrity,
+
+    /// The information on how to read the status of the Verifiable Credential.
+    pub status: StatusClaim,
+
+    #[serde(flatten)]
+    pub previewable_payload: PreviewableCredentialPayload,
 }
 
 impl CredentialPayload {
@@ -512,6 +491,27 @@ impl SplitCredential<DeviceKeyInfo> {
             key_info,
             vct_integrity,
             status,
+        })
+    }
+}
+
+impl TryFrom<CredentialPayload> for SdJwtVcClaims {
+    type Error = ClaimNameError;
+
+    fn try_from(value: CredentialPayload) -> Result<Self, Self::Error> {
+        Ok(SdJwtVcClaims {
+            vct: value.previewable_payload.attestation_type,
+            vct_integrity: Some(value.vct_integrity),
+            iss: value.previewable_payload.issuer,
+            iat: value.issued_at,
+            exp: value.previewable_payload.expires,
+            nbf: value.previewable_payload.not_before,
+            cnf: value.confirmation_key,
+            attestation_qualification: Some(value.previewable_payload.attestation_qualification),
+            status: Some(value.status),
+            _sd_alg: None, // TODO this should be handled elsewhere (PVW-5121)
+
+            claims: value.previewable_payload.attributes.try_into()?,
         })
     }
 }
