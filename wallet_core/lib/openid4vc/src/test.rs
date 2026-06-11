@@ -249,32 +249,7 @@ where
     (issuer, trust_anchors, wia_keypair)
 }
 
-pub fn setup_mock_authorizing_issuer<G>(
-    issuer_identifier: IssuerIdentifier,
-    attestation_count: NonZeroUsize,
-    sessions: Arc<MemorySessionStore<IssuanceData, G>>,
-    flow: AlwaysAuthorizingFlow,
-    wallet_redirect_uris: VecNonEmpty<Url>,
-) -> (MockAuthorizingIssuer<G>, TrustAnchors, KeyPair)
-where
-    G: Generator<DateTime<Utc>> + Send + Sync + 'static,
-{
-    let type_metadata = MOCK_ATTESTATION_TYPES[..attestation_count.get()]
-        .iter()
-        .map(|attestation_type| mock_type_metadata(attestation_type))
-        .collect();
-
-    setup_mock_authorizing_issuer_from_type_metadata(
-        issuer_identifier,
-        type_metadata,
-        sessions,
-        flow,
-        wallet_redirect_uris,
-    )
-}
-
-/// Like [`setup_mock_authorizing_issuer`], but building on
-/// [`setup_mock_issuer_from_type_metadata`] so tests can supply metadata with custom schemas.
+/// Allow tests to setup a mock issuer supplying metadata with custom schemas.
 pub fn setup_mock_authorizing_issuer_from_type_metadata<G>(
     issuer_identifier: IssuerIdentifier,
     type_metadata: Vec<TypeMetadata>,
