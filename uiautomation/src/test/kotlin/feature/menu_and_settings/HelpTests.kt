@@ -11,8 +11,9 @@ import org.junit.jupiter.api.Tags
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import screen.help.ActivitiesHelpScreen
 import screen.help.ContactScreen
-import screen.help.HelpOverviewScreen
+import screen.help.HelpAndInfoScreen
 import screen.menu.MenuScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
@@ -20,15 +21,17 @@ import screen.menu.MenuScreen
 class HelpTests : TestBase() {
 
     private lateinit var menuScreen: MenuScreen
-    private lateinit var helpOverviewScreen: HelpOverviewScreen
+    private lateinit var helpAndInfoScreen: HelpAndInfoScreen
     private lateinit var contactScreen: ContactScreen
+    private lateinit var activitiesHelpScreen: ActivitiesHelpScreen
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         menuScreen = MenuScreen()
-        helpOverviewScreen = HelpOverviewScreen()
+        helpAndInfoScreen = HelpAndInfoScreen()
         contactScreen = ContactScreen()
+        activitiesHelpScreen = ActivitiesHelpScreen()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -36,14 +39,26 @@ class HelpTests : TestBase() {
     @Tags(Tag("a11yBatch2"))
     fun verifyHelp(testInfo: TestInfo) {
         setUp(testInfo)
-        menuScreen.clickHelpButton()
-        assertTrue(helpOverviewScreen.helpButtonsVisible(), "Help buttons are not visible")
+        menuScreen.clickHelpAndInfoButton()
+        assertTrue(helpAndInfoScreen.visible(), "Help buttons are not visible")
 
-        helpOverviewScreen.clickContactButton()
+        helpAndInfoScreen.clickContactButton()
         assertTrue(contactScreen.visible(), "Contact screen not visible")
 
         contactScreen.clickBottomBackButton()
-        helpOverviewScreen.clickBottomBackButton()
+        helpAndInfoScreen.clickActivitiesHelpButton()
+        activitiesHelpScreen.clickCardActivitiesButton()
+        assertTrue(activitiesHelpScreen.helpAndInfoHeadersVisible(), "Help and Info headers are not visible")
+
+        activitiesHelpScreen.clickFirstHelpGroupButton()
+        activitiesHelpScreen.clickSomethingElseButton()
+        assertTrue(contactScreen.visible(), "Contact screen not visible")
+
+        contactScreen.clickBottomBackButton()
+        activitiesHelpScreen.clickBottomBackButton()
+        activitiesHelpScreen.clickBottomBackButton()
+        helpAndInfoScreen.clickBottomBackButton()
+        helpAndInfoScreen.clickBottomBackButton()
         assertTrue(menuScreen.menuListButtonsVisible(), "Menu screen not visible")
     }
 }

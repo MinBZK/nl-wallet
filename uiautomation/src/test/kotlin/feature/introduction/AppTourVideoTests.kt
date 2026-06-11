@@ -13,6 +13,7 @@ import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
+import screen.help.HelpAndInfoScreen
 import screen.introduction.AppTourScreen
 import screen.introduction.VideoPlayer
 import screen.menu.MenuScreen
@@ -25,6 +26,7 @@ class AppTourVideoTests : TestBase() {
     private lateinit var menuScreen: MenuScreen
     private lateinit var appTourScreen: AppTourScreen
     private lateinit var videoPlayer: VideoPlayer
+    private lateinit var helpAndInfoScreen: HelpAndInfoScreen
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
@@ -33,6 +35,7 @@ class AppTourVideoTests : TestBase() {
         menuScreen = MenuScreen()
         appTourScreen = AppTourScreen()
         videoPlayer = VideoPlayer()
+        helpAndInfoScreen = HelpAndInfoScreen()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -43,7 +46,8 @@ class AppTourVideoTests : TestBase() {
         assertTrue(dashboardScreen.appTourBannerVisible(), "app tour banner is not visible")
 
         dashboardScreen.clickMenuButton()
-        menuScreen.clickAppTourVideoButton()
+        menuScreen.clickHelpAndInfoButton()
+        helpAndInfoScreen.clickAppTourVideoButton()
         assertAll(
             { assertTrue(appTourScreen.headlineVisible(), "Headline is not visible") },
             { assertTrue(appTourScreen.descriptionVisible(), "Description is not visible") },
@@ -71,6 +75,6 @@ class AppTourVideoTests : TestBase() {
         videoPlayer.close()
         assertTrue(appTourScreen.headlineVisible(), "Headline is not visible")
         appTourScreen.clickBackButton()
-        assertTrue(menuScreen.menuListButtonsVisible(), "Menu is not visible")
+        assertTrue(helpAndInfoScreen.visible(), "Help menu is not visible")
     }
 }
