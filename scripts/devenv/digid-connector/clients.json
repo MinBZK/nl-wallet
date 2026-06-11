@@ -5,10 +5,10 @@
     "external_ids": ["87654321"],
     "token_endpoint_auth_method": "none",
     "redirect_uris": [
-      "walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid/",
-      "walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid"
+      "http://localhost:3003/digid/callback",
+      "http://${SERVICES_HOST}:${PID_ISSUER_PORT}/digid/callback"
     ],
-    "error_page": "walletdebuginteraction://wallet.edi.rijksoverheid.nl/return-from-digid",
+    "error_page": "http://${SERVICES_HOST}:${PID_ISSUER_PORT}/digid/callback",
     "response_types": ["code"],
     "pubkey_type": "RSA",
     "client_authentication_method": "none",

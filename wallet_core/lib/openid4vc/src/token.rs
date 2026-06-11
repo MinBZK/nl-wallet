@@ -101,7 +101,7 @@ impl TokenRequest {
 }
 
 #[skip_serializing_none]
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, strum::Display)]
 #[serde(rename = "snake_case")]
 #[serde(tag = "grant_type")]
 pub enum TokenRequestGrantType {

@@ -3,13 +3,14 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "pkce_flow")]
+#[sea_orm(table_name = "state_bridge")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
     #[sea_orm(unique)]
-    pub wallet_code_challenge: String,
-    pub upstream_code_verifier: String,
+    pub issuer_state: String,
+    #[sea_orm(column_type = "JsonBinary")]
+    pub entry: Json,
     pub expires_at: DateTimeWithTimeZone,
 }
 

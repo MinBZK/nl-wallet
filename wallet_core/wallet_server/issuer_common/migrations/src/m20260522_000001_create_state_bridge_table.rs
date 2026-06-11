@@ -9,23 +9,23 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(PkceFlow::Table)
+                    .table(StateBridge::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(PkceFlow::Id)
+                        ColumnDef::new(StateBridge::Id)
                             .big_integer()
                             .primary_key()
                             .auto_increment(),
                     )
                     .col(
-                        ColumnDef::new(PkceFlow::WalletCodeChallenge)
+                        ColumnDef::new(StateBridge::IssuerState)
                             .string()
                             .not_null()
                             .unique_key(),
                     )
-                    .col(ColumnDef::new(PkceFlow::UpstreamCodeVerifier).string().not_null())
+                    .col(ColumnDef::new(StateBridge::Entry).json_binary().not_null())
                     .col(
-                        ColumnDef::new(PkceFlow::ExpiresAt)
+                        ColumnDef::new(StateBridge::ExpiresAt)
                             .timestamp_with_time_zone()
                             .not_null(),
                     )
@@ -38,10 +38,10 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum PkceFlow {
+enum StateBridge {
     Table,
     Id,
-    WalletCodeChallenge,
-    UpstreamCodeVerifier,
+    IssuerState,
+    Entry,
     ExpiresAt,
 }

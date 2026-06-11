@@ -207,7 +207,7 @@ async fn test_revoke_wallets_by_recovery_code() {
         .expect("Could not create pid issuance auth url");
 
     let _attestations = wallet
-        .continue_pid_issuance(fake_oidc_redirect(redirect_uri).await)
+        .continue_pid_issuance(follow_authorization_redirects(redirect_uri).await)
         .await
         .expect("Could not continue pid issuance");
     let err = wallet

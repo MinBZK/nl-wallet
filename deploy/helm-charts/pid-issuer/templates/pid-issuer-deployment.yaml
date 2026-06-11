@@ -93,6 +93,8 @@ spec:
               value: "http://brpproxy/"
             - name: PID_ISSUER__WIA_TRUST_ANCHORS
               value: {{ join "," .Values.wiaTrustAnchors | quote }}
+            - name: PID_ISSUER__WALLET_REDIRECT_URIS
+              value: {{ join "," .Values.walletRedirectUris | quote }}
             - name: PID_ISSUER__METADATA
               value: "eudi:pid:1.json,eudi:pid:nl:1.json"
             - name: PID_ISSUER__BATCH_SIZE

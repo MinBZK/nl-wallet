@@ -4018,7 +4018,6 @@ dependencies = [
  "itertools 0.14.0",
  "jwt",
  "openid4vc",
- "rustls-pki-types",
  "sd_jwt_vc_metadata",
  "sea-orm",
  "serde",
@@ -4029,6 +4028,7 @@ dependencies = [
  "thiserror 2.0.17",
  "tokio",
  "tracing",
+ "url",
  "utils",
 ]
 
@@ -5714,10 +5714,11 @@ dependencies = [
  "thiserror 2.0.17",
  "token_status_list",
  "tokio",
+ "tracing",
+ "trait-variant",
  "url",
  "utils",
  "utoipa-swagger-ui",
- "uuid",
 ]
 
 [[package]]

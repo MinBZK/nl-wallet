@@ -5,5 +5,5 @@ pub mod digid;
 pub mod jwks;
 pub mod userinfo;
 
-#[cfg(feature = "mock")]
+#[cfg(any(test, feature = "mock"))]
 pub mod mock;

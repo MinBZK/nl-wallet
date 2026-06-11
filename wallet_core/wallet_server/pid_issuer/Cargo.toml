@@ -23,7 +23,7 @@ required-features = ["integration_test"]
 # Allow Credential Issuer Identifiers to contain "http://".
 allow_insecure_url = ["openid4vc/allow_insecure_url"]
 # Enable mock PID issuance
-mock = ["dep:uuid", "attestation_data/mock", "derive_more/constructor", "openid4vc/mock"]
+mock = ["attestation_data/mock", "openid4vc/mock"]
 # Enable integration tests
 integration_test = ["allow_insecure_url", "server_utils/parsed_key_pair_conversion"]
 # Enable test API endpoints and Swagger UI for the management API. This should not be used in production.
@@ -34,7 +34,7 @@ anyhow.workspace = true
 axum.workspace = true
 chrono = { workspace = true, features = ["serde"] }
 config = { workspace = true, features = ["toml", "preserve_order"] }
-derive_more = { workspace = true, features = ["debug"] }
+derive_more = { workspace = true, features = ["debug", "constructor"] }
 futures.workspace = true
 hex.workspace = true
 jsonwebtoken.workspace = true
@@ -50,10 +50,11 @@ serde_qs.workspace = true
 serde_with = { workspace = true, features = ["base64", "json"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net", "sync"] }
+trait-variant.workspace = true
+tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
 utoipa-swagger-ui = { workspace = true, optional = true }
-uuid = { workspace = true, optional = true }
 
 attestation_data.path = "../../lib/attestation_data"
 attestation_types.path = "../../lib/attestation_types"
@@ -76,4 +77,5 @@ rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
 attestation_data = { path = "../../lib/attestation_data", features = ["generate", "mock"] }
+openid4vc = { path = "../../lib/openid4vc", features = ["mock", "test"] }
 utils = { path = "../../lib/utils", features = ["mock_time"] }

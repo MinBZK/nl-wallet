@@ -6,7 +6,7 @@ use http_utils::health::HealthChecker;
 use http_utils::health::create_health_router;
 use issuer_common::IssuanceServerIssuer;
 use itertools::Itertools;
-use openid4vc_server::issuer::create_pre_authorized_token_router;
+use openid4vc_server::issuer::create_issuance_router;
 use server_utils::server::add_cache_control_no_store_layer;
 use server_utils::server::create_internal_listener;
 use server_utils::server::create_wallet_listener;
@@ -49,7 +49,8 @@ pub async fn serve_with_listeners(
 ) -> Result<()> {
     let status_list_services = VecNonEmpty::try_from(issuer.status_lists().cloned().collect_vec())?;
 
-    let mut router = add_cache_control_no_store_layer(create_pre_authorized_token_router(issuer))
+    let issuance_router = create_issuance_router(issuer);
+    let mut router = add_cache_control_no_store_layer(issuance_router)
         .nest("/disclosure", add_cache_control_no_store_layer(disclosure_router));
 
     if serve_status_lists {
