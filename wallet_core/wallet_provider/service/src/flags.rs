@@ -5,7 +5,8 @@ use std::time::Duration;
 use itertools::Itertools;
 use parking_lot::RwLock;
 use status_lists::postgres::RevokeAll;
-use strum::VariantArray;
+use strum::EnumCount;
+use strum::IntoEnumIterator;
 use tokio::sync::Mutex;
 use tokio::task::AbortHandle;
 use tokio::time::MissedTickBehavior;
@@ -14,7 +15,7 @@ use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::WalletFlagRepository;
 
 #[derive(Debug)]
-struct FlagArray([bool; WalletFlag::VARIANTS.len()]);
+struct FlagArray([bool; WalletFlag::COUNT]);
 
 impl Index<WalletFlag> for FlagArray {
     type Output = bool;
@@ -26,7 +27,7 @@ impl Index<WalletFlag> for FlagArray {
 
 impl FromIterator<(WalletFlag, bool)> for FlagArray {
     fn from_iter<T: IntoIterator<Item = (WalletFlag, bool)>>(iter: T) -> Self {
-        let mut flags = [false; WalletFlag::VARIANTS.len()];
+        let mut flags = [false; WalletFlag::COUNT];
         for (flag, value) in iter {
             flags[flag as usize] = value;
         }
@@ -71,11 +72,11 @@ where
 }
 
 fn update_diff(old_values: &FlagArray, new_values: &FlagArray) -> Vec<(WalletFlag, bool)> {
-    let mut diff = Vec::with_capacity(WalletFlag::VARIANTS.len());
-    for flag in WalletFlag::VARIANTS {
-        let new_value = new_values[*flag];
-        if old_values[*flag] != new_value {
-            diff.push((*flag, new_value))
+    let mut diff = Vec::with_capacity(WalletFlag::COUNT);
+    for flag in WalletFlag::iter() {
+        let new_value = new_values[flag];
+        if old_values[flag] != new_value {
+            diff.push((flag, new_value))
         }
     }
     diff
